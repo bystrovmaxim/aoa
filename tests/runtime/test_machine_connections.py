@@ -58,9 +58,15 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
-from tests.scenarios.domain_model import FullAction, NotificationService, OrdersDbManager, PaymentService, PingAction
+from tests.scenarios.domain_model import FullAction, OrdersDbManager, PingAction
 from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
+from tests.scenarios.domain_model.services import (
+    NotificationService,
+    NotificationServiceResource,
+    PaymentService,
+    PaymentServiceResource,
+)
 
 
 def _validate_connections(
@@ -303,7 +309,10 @@ class TestConnectionsViaRun:
             context=context,
             action=action,
             params=params,
-            resources={PaymentService: mock_payment, NotificationService: mock_notification},
+            resources={
+                PaymentServiceResource: PaymentServiceResource(mock_payment),
+                NotificationServiceResource: NotificationServiceResource(mock_notification),
+            },
             connections={"db": mock_db},
             nested_level=0,
             rollup=False,

@@ -324,7 +324,13 @@ class TestRolesWithBench:
         #Arrange - FullAction with the role "manager", db mock for connections
         from unittest.mock import AsyncMock
 
-        from tests.scenarios.domain_model import NotificationService, OrdersDbManager, PaymentService
+        from tests.scenarios.domain_model import OrdersDbManager
+        from tests.scenarios.domain_model.services import (
+            NotificationService,
+            NotificationServiceResource,
+            PaymentService,
+            PaymentServiceResource,
+        )
 
         mock_payment = AsyncMock(spec=PaymentService)
         mock_payment.charge.return_value = "TXN-BENCH"
@@ -332,8 +338,8 @@ class TestRolesWithBench:
         mock_db = AsyncMock(spec=OrdersDbManager)
 
         bench_with_mocks = manager_bench.with_mocks({
-            PaymentService: mock_payment,
-            NotificationService: mock_notification,
+            PaymentServiceResource: PaymentServiceResource(mock_payment),
+            NotificationServiceResource: NotificationServiceResource(mock_notification),
         })
 
         action = FullAction()

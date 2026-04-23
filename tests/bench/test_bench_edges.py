@@ -21,7 +21,7 @@ ARCHITECTURE / DATA FLOW
     _prepare_mock(entry)  --priority-->  passthrough | MockAction wrap
               |
               v
-    _reset_all_mocks  ->  mock.reset_mock() only for mock types
+    _reset_all_mocks  ->  mock.reset_mock() on mocks and on ``.service`` / ``_inner`` chains
 
     TestBench.with_mocks  ->  replaces entire prepared map (not merge)
 
@@ -58,6 +58,9 @@ import pytest
 
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
+from action_machine.resources.external_service.wrapper_external_service_resource import (
+    WrapperExternalServiceResource,
+)
 from action_machine.testing.bench import (
     TestBench,
     _prepare_all_mocks,
@@ -67,7 +70,7 @@ from action_machine.testing.bench import (
 from action_machine.testing.mock_action import MockAction, MockActionResult
 from tests.scenarios.domain_model import PingAction
 from tests.scenarios.domain_model.roles import AdminRole
-from tests.scenarios.domain_model.services import PaymentService
+from tests.scenarios.domain_model.services import PaymentService, PaymentServiceResource
 
 # ═════════════════════════════════════════════════════════════════════════════
 # _prepare_mock — rule priority
@@ -146,11 +149,11 @@ class TestPrepareAllMocks:
         result_obj = BaseResult()
 
         prepared = _prepare_all_mocks({
-            PaymentService: mock_payment,
+            PaymentServiceResource: mock_payment,
             str: result_obj,
         })
 
-        assert prepared[PaymentService] is mock_payment
+        assert prepared[PaymentServiceResource] is mock_payment
         assert isinstance(prepared[str], MockAction)
 
     def test_empty_dict(self) -> None:
@@ -173,7 +176,7 @@ class TestResetAllMocks:
         # Call count is tracked even without awaiting
         mock.charge.call_count = 1
 
-        _reset_all_mocks({PaymentService: mock})
+        _reset_all_mocks({PaymentServiceResource: mock})
 
         assert mock.charge.call_count == 0
 
@@ -190,12 +193,28 @@ class TestResetAllMocks:
         mock.some_method.call_count = 1
 
         _reset_all_mocks({
-            PaymentService: mock,
+            PaymentServiceResource: mock,
             str: "plain_value",
             int: 42,
         })
 
         assert mock.some_method.call_count == 0
+
+    def test_resets_asyncmock_inside_external_service_resource(self) -> None:
+        """``PaymentServiceResource(mock)`` — reset targets the client on ``.service``."""
+        client = AsyncMock(spec=PaymentService)
+        client.refund.call_count = 1
+        _reset_all_mocks({PaymentServiceResource: PaymentServiceResource(client)})
+        assert client.refund.call_count == 0
+
+    def test_resets_through_wrapper_external_service_resource(self) -> None:
+        """Nested wrapper delegates ``.service`` to the same client mock."""
+        client = AsyncMock(spec=PaymentService)
+        root = PaymentServiceResource(client)
+        wrapped = WrapperExternalServiceResource(root)
+        wrapped.service.refund.call_count = 1
+        _reset_all_mocks({PaymentServiceResource: wrapped})
+        assert client.refund.call_count == 0
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -209,16 +228,16 @@ class TestWithMocksReplacement:
     def test_replaces_mocks(self) -> None:
         """with_mocks replaces mocks completely, original is unchanged."""
         mock1 = AsyncMock(spec=PaymentService)
-        bench = TestBench(mocks={PaymentService: mock1})
+        bench = TestBench(mocks={PaymentServiceResource: mock1})
 
         mock2 = AsyncMock()
         new_bench = bench.with_mocks({str: mock2})
 
-        assert PaymentService in bench.mocks
+        assert PaymentServiceResource in bench.mocks
         assert str not in bench.mocks
 
         assert str in new_bench.mocks
-        assert PaymentService not in new_bench.mocks
+        assert PaymentServiceResource not in new_bench.mocks
 
 
 # ═════════════════════════════════════════════════════════════════════════════

@@ -71,6 +71,9 @@ from action_machine.model.base_schema import BaseSchema
 from action_machine.plugin.events import GlobalStartEvent
 from action_machine.plugin.plugin import Plugin
 from action_machine.resources.base_resource import BaseResource
+from action_machine.resources.external_service.external_service_resource import (
+    ExternalServiceResource,
+)
 from action_machine.runtime.dependency_factory import (
     cached_dependency_factory,
     clear_dependency_factory_cache,
@@ -168,6 +171,24 @@ class _ServiceB:
     pass
 
 
+@meta("Coordinator graph service A (test)", domain=TestDomain)
+class _ServiceAResource(ExternalServiceResource[_ServiceA]):
+    """External service resource for graph tests (formal @depends target)."""
+
+
+@meta("Coordinator graph service B (test)", domain=TestDomain)
+class _ServiceBResource(ExternalServiceResource[_ServiceB]):
+    """External service resource for graph tests (formal @depends target)."""
+
+
+def _default_service_a_resource() -> _ServiceAResource:
+    return _ServiceAResource(_ServiceA())
+
+
+def _default_service_b_resource() -> _ServiceBResource:
+    return _ServiceBResource(_ServiceB())
+
+
 @meta("Coordinator graph resource manager", domain=TestDomain)
 class _CoordinatorGraphResourceManager(BaseResource):
     """Resource manager **class** for ``@depends`` / ``@connection`` in graph tests only."""
@@ -192,8 +213,8 @@ class _PingGraphAction(BaseAction["_Params", "_Result"]):
 
 @meta("Action with dependencies", domain=TestDomain)
 @check_roles(NoneRole)
-@depends(_ServiceA)
-@depends(_ServiceB)
+@depends(_ServiceAResource, factory=_default_service_a_resource)
+@depends(_ServiceBResource, factory=_default_service_b_resource)
 @depends(
     _CoordinatorGraphResourceManager,
     description="Depends on resource manager class (same pattern as @depends on another action)",
@@ -266,9 +287,9 @@ class _RoledGraphAction(BaseAction["_Params", "_Result"]):
 
 @meta("Another action with ServiceA", domain=TestDomain)
 @check_roles(NoneRole)
-@depends(_ServiceA)
+@depends(_ServiceAResource, factory=_default_service_a_resource)
 class _AnotherActionWithServiceAAction(BaseAction["_Params", "_Result"]):
-    """Second action, dependent on _ServiceA, for node split tests."""
+    """Second action, dependent on _ServiceAResource, for node split tests."""
 
     @summary_aspect("Bottom line")
     async def finalize_summary(self, params, state, box, connections):
@@ -368,8 +389,8 @@ class TestDependenciesAndConnections:
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
         coord.get_snapshot(_AnotherActionWithServiceAAction, "meta")
-        assert _class_present(coord, _ServiceA)
-        dep_for_a = coord.get_nodes_for_class(_ServiceA)
+        assert _class_present(coord, _ServiceAResource)
+        dep_for_a = coord.get_nodes_for_class(_ServiceAResource)
         assert len(dep_for_a) == 1
 
 
@@ -491,8 +512,8 @@ class TestRecursiveCollection:
         """The dependency class is automatically registered."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
-        assert _class_present(coord, _ServiceA)
-        assert _class_present(coord, _ServiceB)
+        assert _class_present(coord, _ServiceAResource)
+        assert _class_present(coord, _ServiceBResource)
 
     def test_connection_class_automatically_registered(self):
         """The connection class is automatically registered."""
@@ -504,9 +525,9 @@ class TestRecursiveCollection:
         """The duplicate dependency is not re-registered."""
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
-        size_after_first = len(coord.get_nodes_for_class(_ServiceA))
+        size_after_first = len(coord.get_nodes_for_class(_ServiceAResource))
         coord.get_snapshot(_AnotherActionWithServiceAAction, "meta")
-        size_after_second = len(coord.get_nodes_for_class(_ServiceA))
+        size_after_second = len(coord.get_nodes_for_class(_ServiceAResource))
         # In snapshot-first graph, the shared dependency class is reused.
         assert size_after_second <= size_after_first + 1
 
@@ -530,7 +551,7 @@ class TestCycleDetection:
         coord.get_snapshot(_AnotherActionWithServiceAAction, "meta")
         assert _class_present(coord, _ActionWithDepsAction)
         assert _class_present(coord, _AnotherActionWithServiceAAction)
-        assert _class_present(coord, _ServiceA)
+        assert _class_present(coord, _ServiceAResource)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -744,8 +765,8 @@ class TestCoordinatorBasic:
         coord = Core.create_coordinator()
         factory = cached_dependency_factory(coord, _ActionWithDepsAction)
         assert factory is not None
-        assert factory.has(_ServiceA)
-        assert factory.has(_ServiceB)
+        assert factory.has(_ServiceAResource)
+        assert factory.has(_ServiceBResource)
 
     def test_repr_empty(self):
         """repr of the empty coordinator is a string."""

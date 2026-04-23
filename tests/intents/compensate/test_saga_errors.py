@@ -32,7 +32,10 @@ from tests.scenarios.domain_model.compensate_actions import (
     SecondRegularFailsOnErrorAction,
     SummaryFailsOnErrorStateAction,
 )
-from tests.scenarios.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.services import (
+    InventoryServiceResource,
+    PaymentServiceResource,
+)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TestCompensatorErrorSuppressed
@@ -100,7 +103,7 @@ class TestAllCompensatorsCalled:
         rollback_charge_compensate throws RuntimeError - but unreserve()
         has already been called and the unwinding is completed."""
         # ── Arrange ──
-        mock_inventory = compensate_bench.mocks[InventoryService]
+        mock_inventory = compensate_bench.mocks[InventoryServiceResource].service
 
         params = CompensateTestParams(
             user_id="user_all",
@@ -184,8 +187,8 @@ class TestOnErrorReceivesOriginalError:
         After run() both mocks (refund, unreserve) must be called,
         and the result is formed by @on_error."""
         # ── Arrange ──
-        mock_payment = compensate_bench.mocks[PaymentService]
-        mock_inventory = compensate_bench.mocks[InventoryService]
+        mock_payment = compensate_bench.mocks[PaymentServiceResource].service
+        mock_inventory = compensate_bench.mocks[InventoryServiceResource].service
 
         params = CompensateTestParams(
             user_id="user_order",
@@ -288,7 +291,7 @@ class TestOnErrorPipelineStateAtFailureSite:
     async def test_second_regular_failure_state_includes_only_prior_aspect(
         self, compensate_bench,
     ) -> None:
-        mock_payment = compensate_bench.mocks[PaymentService]
+        mock_payment = compensate_bench.mocks[PaymentServiceResource].service
 
         params = CompensateTestParams(
             user_id="u_second",
@@ -306,5 +309,4 @@ class TestOnErrorPipelineStateAtFailureSite:
         assert "second_regular_failed" in result.detail
         assert "TXN-TEST-001" in result.detail
         assert "res=None" in result.detail
-        assert mock_payment.refund.call_count == 1
         assert mock_payment.refund.call_count == 1

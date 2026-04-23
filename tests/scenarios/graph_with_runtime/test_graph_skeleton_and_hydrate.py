@@ -8,12 +8,11 @@ from __future__ import annotations
 import pytest
 
 from action_machine.legacy.core import Core
-from action_machine.legacy.interchange_vertex_labels import SERVICE_VERTEX_TYPE
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model import CompensatedOrderAction, FullAction, OrdersDbManager
 from tests.scenarios.domain_model.domains import OrdersDomain
-from tests.scenarios.domain_model.services import PaymentService
+from tests.scenarios.domain_model.services import PaymentServiceResource
 
 
 def test_get_graph_node_payloads_are_skeleton_only() -> None:
@@ -91,25 +90,31 @@ def test_get_nodes_by_type_includes_hydrated_facet_rows() -> None:
     assert rm_nodes[0].get("facet_rows")
 
 
-def test_stub_dependency_node_hydrates_to_empty_facet_rows() -> None:
-    """Stub dependency nodes (no snapshot) yield empty ``facet_rows``."""
+def test_external_service_resource_node_hydrates_meta_facet_rows() -> None:
+    """``PaymentServiceResource`` carries ``@meta``; skeleton hydration matches ``get_node``."""
     coord = Core.create_coordinator()
     dep_nodes = [
         n
-        for n in coord.get_nodes_for_class(PaymentService)
-        if n.get("class_ref") is PaymentService
+        for n in coord.get_nodes_for_class(PaymentServiceResource)
+        if n.get("class_ref") is PaymentServiceResource
     ]
-    assert dep_nodes, "expected PaymentService dependency stub in default graph"
-    assert dep_nodes[0].get("facet_rows") == {}
+    assert dep_nodes, "expected PaymentServiceResource in default graph"
+    rows = dep_nodes[0].get("facet_rows") or {}
+    assert "description" in rows
+
+    pay_nm = BaseIntentInspector._make_node_name(PaymentServiceResource)
+    via_api = coord.get_node("resource_manager", pay_nm)
+    assert via_api is not None
 
     g = coord.facet_topology_copy()
     idx = next(
         i
         for i in g.node_indices()
-        if g[i]["node_type"] == SERVICE_VERTEX_TYPE
-        and g[i]["class_ref"] is PaymentService
+        if g[i]["node_type"] == "resource_manager"
+        and g[i]["class_ref"] is PaymentServiceResource
     )
-    assert coord.hydrate_graph_node(dict(g[idx])).get("facet_rows") == {}
+    hydrated = coord.hydrate_graph_node(dict(g[idx]))
+    assert hydrated.get("facet_rows") == via_api.get("facet_rows")
 
 
 def test_hydration_mapping_from_build_records_meta_snapshot_key() -> None:

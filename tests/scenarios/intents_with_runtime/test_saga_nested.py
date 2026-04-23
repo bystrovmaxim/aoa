@@ -39,7 +39,12 @@ from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.testing import TestBench
 from tests.scenarios.domain_model.domains import TestDomain
-from tests.scenarios.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.services import (
+    InventoryServiceResource,
+    PaymentServiceResource,
+    default_inventory_service_resource,
+    default_payment_service_resource,
+)
 
 # ═════════════════════════════════════════════════════════════════════════════
 #Auxiliary Actions for nesting tests
@@ -68,7 +73,11 @@ class NestedResult(BaseResult):
 
 @meta(description="Child activity that can fall", domain=TestDomain)
 @check_roles(NoneRole)
-@depends(InventoryService, description="Inventory service")
+@depends(
+    InventoryServiceResource,
+    factory=default_inventory_service_resource,
+    description="Inventory service",
+)
 class FailableChildAction(BaseAction[NestedParams, NestedResult]):
 
     @regular_aspect("Reservation in child")
@@ -76,7 +85,7 @@ class FailableChildAction(BaseAction[NestedParams, NestedResult]):
     async def reserve_aspect(
         self, params, state, box, connections,
     ) -> dict[str, Any]:
-        inventory = box.resolve(InventoryService)
+        inventory = box.resolve(InventoryServiceResource).service
         res_id = await inventory.reserve("CHILD-ITEM", 1)
         return {"child_reservation_id": res_id}
 
@@ -86,7 +95,7 @@ class FailableChildAction(BaseAction[NestedParams, NestedResult]):
     ) -> None:
         if state_after is None:
             return
-        inventory = box.resolve(InventoryService)
+        inventory = box.resolve(InventoryServiceResource).service
         await inventory.unreserve(state_after.child_reservation_id)
 
     @regular_aspect("Finalization of child")
@@ -107,8 +116,16 @@ class FailableChildAction(BaseAction[NestedParams, NestedResult]):
 
 @meta(description="Parent action calling child via box.run", domain=TestDomain)
 @check_roles(NoneRole)
-@depends(PaymentService, description="Payment service")
-@depends(InventoryService, description="Inventory service")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payment service",
+)
+@depends(
+    InventoryServiceResource,
+    factory=default_inventory_service_resource,
+    description="Inventory service",
+)
 class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
     """A parent action with three regular aspects:
     1. charge_aspect — debiting funds (with compensator).
@@ -126,7 +143,7 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         txn_id = await payment.charge(100.0, "RUB")
         return {"parent_txn_id": txn_id}
 
@@ -142,7 +159,7 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
     ) -> None:
         if state_after is None:
             return
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         await payment.refund(state_after.parent_txn_id)
 
     @regular_aspect("Calling a Child Action")
@@ -178,7 +195,7 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
     ) -> None:
         """Compensator for call_child_aspect.
         We use unreserve as a marker for calling the compensator."""
-        inventory = box.resolve(InventoryService)
+        inventory = box.resolve(InventoryServiceResource).service
         await inventory.unreserve("PARENT-CHILD-ROLLBACK")
 
     @regular_aspect("Finalization in parent")
@@ -228,8 +245,8 @@ class TestNestedStacks:
         # ── Arrange ──
         bench = TestBench(
             mocks={
-                PaymentService: mock_payment,
-                InventoryService: mock_inventory,
+                PaymentServiceResource: PaymentServiceResource(mock_payment),
+                InventoryServiceResource: InventoryServiceResource(mock_inventory),
             },
             log_coordinator=AsyncMock(),
         )
@@ -267,8 +284,8 @@ class TestNestedStacks:
         # ── Arrange ──
         bench = TestBench(
             mocks={
-                PaymentService: mock_payment,
-                InventoryService: mock_inventory,
+                PaymentServiceResource: PaymentServiceResource(mock_payment),
+                InventoryServiceResource: InventoryServiceResource(mock_inventory),
             },
             log_coordinator=AsyncMock(),
         )

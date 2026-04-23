@@ -46,7 +46,12 @@ from tests.scenarios.domain_model.compensate_actions import (
     CompensateWithContextAction,
 )
 from tests.scenarios.domain_model.domains import TestDomain
-from tests.scenarios.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.services import (
+    InventoryServiceResource,
+    PaymentService,
+    PaymentServiceResource,
+    default_payment_service_resource,
+)
 
 # ═════════════════════════════════════════════════════════════════════════════
 #Helper function to create a BaseState with data
@@ -82,7 +87,11 @@ class CtxCheckResult(BaseResult):
 
 @meta(description="Action to check the context in the compensator", domain=TestDomain)
 @check_roles(NoneRole)
-@depends(PaymentService, description="Payments")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payments",
+)
 class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
     """Action whose compensator uses ctx.get(Ctx.User.user_id)
     and passes user_id to the refund argument to check that
@@ -99,7 +108,7 @@ class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
         self, params, state_before, state_after, box, connections, error, ctx,
     ):
         user_id = ctx.get(Ctx.User.user_id)
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         await payment.refund(f"refund_for_{user_id}")
 
     @summary_aspect("Summary")
@@ -130,8 +139,8 @@ class TestRunCompensatorBasic:
         bench = TestBench(
             coordinator=Core.create_coordinator(),
             mocks={
-                PaymentService: mock_payment,
-                InventoryService: mock_inventory,
+                PaymentServiceResource: PaymentServiceResource(mock_payment),
+                InventoryServiceResource: InventoryServiceResource(mock_inventory),
             },
             log_coordinator=AsyncMock(),
         )
@@ -172,8 +181,8 @@ class TestRunCompensatorBasic:
         bench = TestBench(
             coordinator=Core.create_coordinator(),
             mocks={
-                PaymentService: mock_payment,
-                InventoryService: mock_inventory,
+                PaymentServiceResource: PaymentServiceResource(mock_payment),
+                InventoryServiceResource: InventoryServiceResource(mock_inventory),
             },
             log_coordinator=AsyncMock(),
         )
@@ -213,8 +222,8 @@ class TestRunCompensatorBasic:
         bench = TestBench(
             coordinator=Core.create_coordinator(),
             mocks={
-                PaymentService: mock_payment,
-                InventoryService: mock_inventory,
+                PaymentServiceResource: PaymentServiceResource(mock_payment),
+                InventoryServiceResource: InventoryServiceResource(mock_inventory),
             },
             log_coordinator=AsyncMock(),
         )
@@ -310,7 +319,7 @@ class TestRunCompensatorValidation:
         mock_payment = AsyncMock(spec=PaymentService)
         bench = TestBench(
             coordinator=Core.create_coordinator(),
-            mocks={PaymentService: mock_payment},
+            mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
             log_coordinator=AsyncMock(),
         )
 
@@ -350,7 +359,7 @@ class TestRunCompensatorContext:
 
         bench = TestBench(
             coordinator=Core.create_coordinator(),
-            mocks={PaymentService: mock_payment},
+            mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
             log_coordinator=AsyncMock(),
         ).with_user(user_id="ctx_user_99", roles=(StubTesterRole,))
 
@@ -390,7 +399,7 @@ class TestRunCompensatorContext:
         #ContextView, not the context= argument.
         bench = TestBench(
             coordinator=Core.create_coordinator(),
-            mocks={PaymentService: mock_payment},
+            mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
             log_coordinator=AsyncMock(),
         ).with_user(user_id="verified_user_42", roles=(StubTesterRole,))
 

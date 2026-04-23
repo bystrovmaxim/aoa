@@ -29,7 +29,10 @@ from tests.scenarios.domain_model.compensate_actions import (
     CompensateTestParams,
 )
 from tests.scenarios.domain_model.compensate_plugins import SagaObserverPlugin
-from tests.scenarios.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.services import (
+    InventoryServiceResource,
+    PaymentServiceResource,
+)
 
 # ═════════════════════════════════════════════════════════════════════════════
 #Fittings
@@ -53,8 +56,8 @@ def rollup_bench(
     """TestBench with SagaObserverPlugin to run with rollup=True."""
     return TestBench(
         mocks={
-            PaymentService: mock_payment,
-            InventoryService: mock_inventory,
+            PaymentServiceResource: PaymentServiceResource(mock_payment),
+            InventoryServiceResource: InventoryServiceResource(mock_inventory),
         },
         plugins=[saga_observer],
         log_coordinator=AsyncMock(),

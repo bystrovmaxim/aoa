@@ -19,6 +19,8 @@ ARCHITECTURE / DATA FLOW
               v
     ``BaseAction[P, R]``  →  :meth:`get_schema_generic_binding` with index ``0`` / ``1`` (or :meth:`get_params_edge` / :meth:`get_result_edge`)
 
+    ``_depends_info`` (``@depends``)  →  :meth:`get_depends_edges`
+
     ActionGraphNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
 """
 
@@ -32,6 +34,8 @@ from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.introspection_tools import CallableKind, IntentIntrospection, TypeIntrospection
 from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 from action_machine.model.base_action import BaseAction
+from action_machine.resources.base_resource import BaseResource
+from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
@@ -51,7 +55,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
-    CONTRACT: ``get_properties``; ``get_domain_edge`` / ``get_params_edge`` / ``get_result_edge`` each return ``list[BaseGraphEdge]`` (0 or 1 edge: ``@meta`` domain ``ASSOCIATION`` ``is_dag=True``; params/result ``AGGREGATION``); ``get_regular_aspect_edges`` / ``get_summary_aspect_edges`` / ``get_compensator_edges`` / ``get_error_handler_edges`` (``COMPOSITION``, own-class ``@regular_aspect`` / ``@summary_aspect`` / ``@compensate`` / ``@on_error``).
+    CONTRACT: ``get_properties``; ``get_domain_edge`` / ``get_depends_edges`` / ``get_connection_edges`` / ``get_params_edge`` / ``get_result_edge`` each return ``list[BaseGraphEdge]`` (0 or 1 domain edge; 0..N ``@depends`` / ``@connection`` ``ASSOCIATION`` ``is_dag=True``; 0 or 1 params/result ``AGGREGATION``); ``get_regular_aspect_edges`` / ``get_summary_aspect_edges`` / ``get_compensator_edges`` / ``get_error_handler_edges`` (``COMPOSITION``, own-class ``@regular_aspect`` / ``@summary_aspect`` / ``@compensate`` / ``@on_error``).
     AI-CORE-END
     """
 
@@ -92,6 +96,39 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                         return None
                     return _resolve_generic_arg(args[type_arg_index], action_cls)
         return None
+
+    @classmethod
+    def _depends_target_node_type(cls, dep_cls: type) -> str:
+        """Interchange ``target_node_type`` for a ``@depends`` dependency class."""
+        if issubclass(dep_cls, BaseAction):
+            return cls.NODE_TYPE
+        if issubclass(dep_cls, BaseResource):
+            return ResourceGraphNode.NODE_TYPE
+        return "UncknownTypeNode"
+
+    @classmethod
+    def _association_edges_to_declared_types(
+        cls,
+        action_cls: type[TAction],
+        declared_types: list[type],
+    ) -> list[BaseGraphEdge]:
+        action_id = TypeIntrospection.full_qualname(action_cls)
+        edges: list[BaseGraphEdge] = []
+        for target_cls in declared_types:
+            edges.append(
+                BaseGraphEdge(
+                    edge_name=target_cls.__name__,
+                    is_dag=True,
+                    source_node_id=action_id,
+                    source_node_type=cls.NODE_TYPE,
+                    source_node_obj=action_cls,
+                    target_node_id=TypeIntrospection.full_qualname(target_cls),
+                    target_node_type=cls._depends_target_node_type(target_cls),
+                    target_node_obj=target_cls,
+                    edge_relationship=ASSOCIATION,
+                ),
+            )
+        return edges
 
     @classmethod
     def get_params_edge(
@@ -294,6 +331,36 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         ]
 
     @classmethod
+    def get_depends_edges(
+        cls,
+        action_cls: type[TAction],
+    ) -> list[BaseGraphEdge]:
+        """
+        One ``ASSOCIATION`` edge per ``@depends`` declaration from this action to the declared class.
+
+        Uses :meth:`~action_machine.introspection_tools.intent_introspection.IntentIntrospection.depends_declared_types`.
+        """
+        return cls._association_edges_to_declared_types(
+            action_cls,
+            IntentIntrospection.depends_declared_types(action_cls),
+        )
+
+    @classmethod
+    def get_connection_edges(
+        cls,
+        action_cls: type[TAction],
+    ) -> list[BaseGraphEdge]:
+        """
+        One ``ASSOCIATION`` edge per ``@connection`` declaration from this action to the resource class.
+
+        Uses :meth:`~action_machine.introspection_tools.intent_introspection.IntentIntrospection.connection_declared_types`.
+        """
+        return cls._association_edges_to_declared_types(
+            action_cls,
+            IntentIntrospection.connection_declared_types(action_cls),
+        )
+
+    @classmethod
     def get_properties(cls, action_cls: type[TAction]) -> dict[str, Any]:
         """``description`` from ``_meta_info`` when ``@meta(description=...)`` is present."""
         properties: dict[str, Any] = {}
@@ -306,6 +373,8 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     def _get_all_edges(cls, action_cls: type[TAction]) -> list[BaseGraphEdge]:
         return (
             cls.get_domain_edge(action_cls)
+            + cls.get_depends_edges(action_cls)
+            + cls.get_connection_edges(action_cls)
             + cls.get_params_edge(action_cls)
             + cls.get_result_edge(action_cls)
             + cls.get_regular_aspect_edges(action_cls)

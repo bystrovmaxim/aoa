@@ -16,7 +16,10 @@ from tests.scenarios.domain_model.compensate_actions import (
     CompensateTestParams,
 )
 from tests.scenarios.domain_model.compensate_plugins import SagaObserverPlugin
-from tests.scenarios.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.services import (
+    InventoryServiceResource,
+    PaymentServiceResource,
+)
 
 
 @pytest.fixture
@@ -36,8 +39,8 @@ def order_bench(
     """TestBench with SagaObserverPlugin for CompensateAndOnErrorAction."""
     return TestBench(
         mocks={
-            PaymentService: mock_payment,
-            InventoryService: mock_inventory,
+            PaymentServiceResource: PaymentServiceResource(mock_payment),
+            InventoryServiceResource: InventoryServiceResource(mock_inventory),
         },
         plugins=[saga_observer],
         log_coordinator=AsyncMock(),

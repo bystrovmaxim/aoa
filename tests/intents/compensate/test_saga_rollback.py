@@ -23,7 +23,10 @@ from tests.scenarios.domain_model.compensate_actions import (
     CompensatedOrderAction,
     CompensateTestParams,
 )
-from tests.scenarios.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.services import (
+    InventoryServiceResource,
+    PaymentServiceResource,
+)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TestCompensatorsCalledInReverseOrder
@@ -38,8 +41,8 @@ class TestCompensatorsCalledInReverseOrder:
         """If there is an error in the 3rd aspect, the 2nd and 1st compensators are called
         in reverse order."""
         # ── Arrange ──
-        mock_payment = compensate_bench.mocks[PaymentService]
-        mock_inventory = compensate_bench.mocks[InventoryService]
+        mock_payment = compensate_bench.mocks[PaymentServiceResource].service
+        mock_inventory = compensate_bench.mocks[InventoryServiceResource].service
 
         params = CompensateTestParams(
             user_id="user_123",
@@ -72,8 +75,8 @@ class TestCompensatorsCalledInReverseOrder:
     async def test_compensator_not_called_for_failed_aspect(self, compensate_bench) -> None:
         """For an aspect that has fallen, its compensator is not called."""
         # ── Arrange ──
-        mock_payment = compensate_bench.mocks[PaymentService]
-        mock_inventory = compensate_bench.mocks[InventoryService]
+        mock_payment = compensate_bench.mocks[PaymentServiceResource].service
+        mock_inventory = compensate_bench.mocks[InventoryServiceResource].service
 
         params = CompensateTestParams(
             user_id="user_123",
@@ -110,8 +113,8 @@ class TestCompensatorReceivesCorrectData:
         from state_after - indirect check that params and state_after
         were transmitted correctly."""
         # ── Arrange ──
-        mock_payment = compensate_bench.mocks[PaymentService]
-        mock_inventory = compensate_bench.mocks[InventoryService]
+        mock_payment = compensate_bench.mocks[PaymentServiceResource].service
+        mock_inventory = compensate_bench.mocks[InventoryServiceResource].service
 
         params = CompensateTestParams(
             user_id="user_456",
@@ -148,8 +151,8 @@ class TestFrameNotAddedForFailedAspect:
         """If an aspect throws an exception, its frame is not on the stack.
         and the compensator is not called."""
         # ── Arrange ──
-        mock_payment = compensate_bench.mocks[PaymentService]
-        mock_inventory = compensate_bench.mocks[InventoryService]
+        mock_payment = compensate_bench.mocks[PaymentServiceResource].service
+        mock_inventory = compensate_bench.mocks[InventoryServiceResource].service
 
         params = CompensateTestParams(
             user_id="user_123",

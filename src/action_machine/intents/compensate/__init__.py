@@ -71,7 +71,7 @@ EXAMPLE
 
         @regular_aspect("Charge payment")
         async def process_payment_aspect(self, params, state, box, connections):
-            payment = box.resolve(PaymentService)
+            payment = box.resolve(PaymentServiceResource).service
             txn_id = await payment.charge(params.user_id, state.amount)
             return {"txn_id": txn_id}
 
@@ -81,7 +81,7 @@ EXAMPLE
             if state_after is None:
                 return  # checker rejected output; txn_id is unknown
             try:
-                payment = box.resolve(PaymentService)
+                payment = box.resolve(PaymentServiceResource).service
                 await payment.refund(state_after.txn_id)
             except Exception as e:
                 await box.critical(

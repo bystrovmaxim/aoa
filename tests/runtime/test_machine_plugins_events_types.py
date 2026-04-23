@@ -16,13 +16,12 @@ from action_machine.plugin.events import (
 )
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.runtime._machine_plugins_helpers import extract_event_types
-from tests.scenarios.domain_model import (
-    FullAction,
+from tests.scenarios.domain_model import FullAction, OrdersDbManager, PingAction, SimpleAction
+from tests.scenarios.domain_model.services import (
     NotificationService,
-    OrdersDbManager,
+    NotificationServiceResource,
     PaymentService,
-    PingAction,
-    SimpleAction,
+    PaymentServiceResource,
 )
 
 
@@ -82,7 +81,10 @@ class TestEventTypes:
             context=context,
             action=action,
             params=params,
-            resources={PaymentService: mock_payment, NotificationService: mock_notification},
+            resources={
+                PaymentServiceResource: PaymentServiceResource(mock_payment),
+                NotificationServiceResource: NotificationServiceResource(mock_notification),
+            },
             connections={"db": mock_db},
             nested_level=0,
             rollup=False,

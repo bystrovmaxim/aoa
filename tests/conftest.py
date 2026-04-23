@@ -68,13 +68,16 @@ from action_machine.legacy.core import Core
 from action_machine.testing import TestBench
 from graph.graph_coordinator import GraphCoordinator
 
-from .scenarios.domain_model import (
-    InventoryService,
-    NotificationService,
-    OrdersDbManager,
-    PaymentService,
-)
+from .scenarios.domain_model import OrdersDbManager
 from .scenarios.domain_model.roles import AdminRole, ManagerRole
+from .scenarios.domain_model.services import (
+    InventoryService,
+    InventoryServiceResource,
+    NotificationService,
+    NotificationServiceResource,
+    PaymentService,
+    PaymentServiceResource,
+)
 
 
 @pytest.fixture
@@ -163,8 +166,8 @@ def bench(
     return TestBench(
         coordinator=coordinator,
         mocks={
-            PaymentService: mock_payment,
-            NotificationService: mock_notification,
+            PaymentServiceResource: PaymentServiceResource(mock_payment),
+            NotificationServiceResource: NotificationServiceResource(mock_notification),
         },
         log_coordinator=AsyncMock(),
     )
@@ -189,8 +192,8 @@ def compensate_bench(
     return TestBench(
         coordinator=coordinator,
         mocks={
-            PaymentService: mock_payment,
-            InventoryService: mock_inventory,
+            PaymentServiceResource: PaymentServiceResource(mock_payment),
+            InventoryServiceResource: InventoryServiceResource(mock_inventory),
         },
         log_coordinator=AsyncMock(),
     )

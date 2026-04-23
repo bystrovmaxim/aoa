@@ -59,15 +59,14 @@ from action_machine.plugin.events import (
 )
 from action_machine.plugin.plugin import Plugin
 from action_machine.testing import TestBench
-from tests.scenarios.domain_model import (
-    FullAction,
-    NotificationService,
-    OrdersDbManager,
-    PaymentService,
-    PingAction,
-    SimpleAction,
-)
+from tests.scenarios.domain_model import FullAction, OrdersDbManager, PingAction, SimpleAction
 from tests.scenarios.domain_model.roles import ManagerRole
+from tests.scenarios.domain_model.services import (
+    NotificationService,
+    NotificationServiceResource,
+    PaymentService,
+    PaymentServiceResource,
+)
 
 # ═════════════════════════════════════════════════════════════════════════════
 #Plugins with external storage for verification from tests
@@ -319,8 +318,8 @@ class TestPluginsIntegration:
             coordinator=Core.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
             mocks={
-                PaymentService: mock_payment,
-                NotificationService: mock_notification,
+                PaymentServiceResource: PaymentServiceResource(mock_payment),
+                NotificationServiceResource: NotificationServiceResource(mock_notification),
             },
             plugins=[plugin],
         ).with_user(user_id="mgr_1", roles=(ManagerRole,))

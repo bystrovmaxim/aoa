@@ -7,9 +7,9 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 The richest Action in the test domain: two regular aspects with checkers,
-one summary aspect, two service dependencies (PaymentService, NotificationService),
+one summary aspect, two service dependencies (``PaymentServiceResource``, ``NotificationServiceResource``),
 ``@depends(OrdersDbManager)`` and ``@connection(OrdersDbManager)`` — **class references**, same
-as ``@depends(PaymentService)``; graph merges to one ``resource_manager`` node. Role "manager".
+pattern as ``@depends(PaymentServiceResource, factory=...)``; graph merges to one ``resource_manager`` node. Role "manager".
 
 Exercises role checks, connection validation, dependency resolution via
 box.resolve(), per-aspect checkers, and building the result from state.
@@ -19,7 +19,7 @@ ASPECT PIPELINE
 ═══════════════════════════════════════════════════════════════════════════════
 
     1. process_payment (regular)
-       - Resolves PaymentService via box.resolve().
+       - Resolves ``PaymentServiceResource`` via ``box.resolve()`` (``.service`` for the client).
        - Calls payment.charge(amount, currency).
        - Writes txn_id to state.
        - Checker: result_string("txn_id", required=True, min_length=1).
@@ -52,7 +52,10 @@ USAGE IN TESTS
     mock_db = AsyncMock(spec=OrdersDbManager)
 
     bench = TestBench(
-        mocks={PaymentService: mock_payment, NotificationService: mock_notification},
+        mocks={
+            PaymentServiceResource: PaymentServiceResource(mock_payment),
+            NotificationServiceResource: NotificationServiceResource(mock_notification),
+        },
     ).with_user(user_id="mgr_1", roles=(ManagerRole,))
 
     result = await bench.run(
@@ -83,14 +86,27 @@ from action_machine.runtime.tools_box import ToolsBox
 
 from .domains import OrdersDomain
 from .roles import ManagerRole
-from .services import NotificationService, PaymentService
+from .services import (
+    NotificationServiceResource,
+    PaymentServiceResource,
+    default_notification_service_resource,
+    default_payment_service_resource,
+)
 from .test_db_manager import OrdersDbManager
 
 
 @meta(description="Create order with payment and notification", domain=OrdersDomain)
 @check_roles(ManagerRole)
-@depends(PaymentService, description="Payment processing service")
-@depends(NotificationService, description="Notification service")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payment processing service",
+)
+@depends(
+    NotificationServiceResource,
+    factory=default_notification_service_resource,
+    description="Notification service",
+)
 @depends(OrdersDbManager, description="DB resource (class — same vertex as @connection)")
 @connection(OrdersDbManager, key="db", description="Primary database")
 class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
@@ -147,7 +163,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         Returns:
             dict with key txn_id — transaction identifier.
         """
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         txn_id = await payment.charge(params.amount, params.currency)
         return {"txn_id": txn_id}
 
@@ -189,7 +205,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         Returns:
             FullAction.Result with order_id, txn_id, total, status.
         """
-        notification = box.resolve(NotificationService)
+        notification = box.resolve(NotificationServiceResource).service
         await notification.send(params.user_id, f"Order created: {state['txn_id']}")
 
         return FullAction.Result(

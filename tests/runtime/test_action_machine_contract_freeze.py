@@ -84,14 +84,16 @@ from tests.scenarios.domain_model import (
     CompensateTestParams,
     ErrorHandledAction,
     ErrorTestParams,
-    InventoryService,
     NoErrorHandlerAction,
-    PaymentService,
     SimpleAction,
 )
 from tests.scenarios.domain_model.compensate_plugins import SagaObserverPlugin
 from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
+from tests.scenarios.domain_model.services import (
+    InventoryServiceResource,
+    PaymentServiceResource,
+)
 
 
 def _context() -> Context:
@@ -300,8 +302,8 @@ class TestActionMachineContractFreeze:
             coordinator=Core.create_coordinator(),
             log_coordinator=LogCoordinator(loggers=[]),
             mocks={
-                PaymentService: mock_payment,
-                InventoryService: mock_inventory,
+                PaymentServiceResource: PaymentServiceResource(mock_payment),
+                InventoryServiceResource: InventoryServiceResource(mock_inventory),
             },
             plugins=[observer],
         )
