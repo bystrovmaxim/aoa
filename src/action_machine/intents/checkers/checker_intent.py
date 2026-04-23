@@ -17,8 +17,10 @@ ARCHITECTURE / DATA FLOW
 
     class BaseAction[P, R](
         ABC,
+        MetaIntent,
         CheckRolesIntent,
-        DependsIntent[object],
+        DependsEligible,
+        DependsIntent[DependsEligible],
         CheckerIntent,                ← marker: allows checkers on methods
         AspectIntent,
         ConnectionIntent,

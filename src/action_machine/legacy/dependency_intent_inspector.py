@@ -54,7 +54,7 @@ from action_machine.legacy.interchange_vertex_labels import (
 )
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
-from action_machine.runtime.dependency_factory import DependencyInfo
+from action_machine.runtime.dependency_info import DependencyInfo
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.facet_edge import FacetEdge

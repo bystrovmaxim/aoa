@@ -6,14 +6,16 @@ from pydantic import Field
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
-from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
 from action_machine.intents.meta.meta_decorator import meta
+from action_machine.intents.meta.meta_intent import MetaIntent
 from action_machine.legacy.core import Core
 from action_machine.legacy.meta_intent_inspector import MetaIntentInspector
 from action_machine.legacy.role_intent_inspector import RoleIntentInspector
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
+from action_machine.model.params_stub import ParamsStub
+from action_machine.model.result_stub import ResultStub
 from graph.base_intent_inspector import BaseIntentInspector
 from tests.scenarios.domain_model.roles import AdminRole
 
@@ -61,7 +63,7 @@ class _FacetOrdersDomain(BaseDomain):
 
 
 @meta(description="Meta facet probe", domain=_FacetOrdersDomain)
-class _MetaFacetProbe(ActionMetaIntent):
+class _MetaFacetProbe(MetaIntent):
     pass
 
 
@@ -86,7 +88,7 @@ def test_meta_facet_snapshot_matches_inspect_payload() -> None:
 
 
 def test_no_snapshot_for_class_without_check_roles() -> None:
-    class _NoRoleAction(BaseAction[BaseParams, BaseResult]):
+    class _NoRoleAction(BaseAction[ParamsStub, ResultStub]):
         pass
 
     coord = Core.create_coordinator()

@@ -28,6 +28,8 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
+from action_machine.model.params_stub import ParamsStub
+from action_machine.model.result_stub import ResultStub
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
@@ -139,22 +141,23 @@ async def test_no_summary_custom_result_type_raises_type_error(
 
 
 @pytest.mark.asyncio
-async def test_no_summary_base_result_action_returns_empty_base_result(
+async def test_no_summary_result_stub_action_returns_synthetic_result(
     context: Context,
 ) -> None:
-    """Only ``BaseAction[..., BaseResult]`` may omit summary (synthetic empty result)."""
+    """``BaseAction[..., ResultStub]`` without summary yields a synthetic ``ResultStub()``."""
 
-    @meta(description="no summary, base result only", domain=TestDomain)
+    @meta(description="no summary, result stub only", domain=TestDomain)
     @check_roles(NoneRole)
-    class _NoSummaryBaseResultAction(BaseAction[BaseParams, BaseResult]):
+    class _NoSummaryResultStubAction(BaseAction[ParamsStub, ResultStub]):
         pass
 
     machine = ActionProductMachine(
         mode="test",
         log_coordinator=LogCoordinator(loggers=[]),
     )
-    result = await machine.run(context, _NoSummaryBaseResultAction(), BaseParams())
-    assert type(result) is BaseResult
+    result = await machine.run(context, _NoSummaryResultStubAction(), ParamsStub())
+    assert type(result) is ResultStub
+    assert result.ok is True
 
 
 @pytest.mark.asyncio
@@ -257,14 +260,18 @@ def test_bind_pipeline_result_accepts_instance_of_declared_r() -> None:
     assert out.ok is True
 
 
-def test_synthetic_summary_when_missing_aspect_base_result_only() -> None:
-    @meta(description="synthetic probe", domain=TestDomain)
-    @check_roles(NoneRole)
-    class _SynthProbeAction(BaseAction[BaseParams, BaseResult]):
-        pass
+# Module-level: pytest's assertion rewriter can corrupt ``BaseAction[P, R]`` subscripts
+# inside some sync tests that also contain heavy ``assert`` rewrites.
+@meta(description="synthetic probe", domain=TestDomain)
+@check_roles(NoneRole)
+class _SyntheticSummaryProbeAction(BaseAction[ParamsStub, ResultStub]):
+    pass
 
-    r = synthetic_summary_result_when_missing_aspect(_SynthProbeAction)
-    assert type(r) is BaseResult
+
+def test_synthetic_summary_when_missing_aspect_result_stub() -> None:
+    r = synthetic_summary_result_when_missing_aspect(_SyntheticSummaryProbeAction)
+    assert type(r) is ResultStub
+    assert r.ok is True
 
 
 def test_synthetic_summary_when_missing_aspect_custom_r_raises() -> None:

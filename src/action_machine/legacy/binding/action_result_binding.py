@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
               v
     resolve declared R (generic extraction)
               |
-              +--> no summary path: maybe synthesize BaseResult()
+              +--> no summary path: maybe synthesize ``BaseResult()`` or ``ResultStub()``
               |
               v
     validate runtime result object type
@@ -42,6 +42,7 @@ from action_machine.legacy.binding.extract_action_params_result_types import (
     extract_action_params_result_types,
 )
 from action_machine.model.base_result import BaseResult
+from action_machine.model.result_stub import ResultStub
 
 
 def require_resolved_action_result_type(action_cls: type) -> type:
@@ -68,15 +69,20 @@ def synthetic_summary_result_when_missing_aspect(action_cls: type) -> BaseResult
     """
     Result used when the action has no ``@summary_aspect``.
 
-    Only ``BaseAction[..., BaseResult]`` (exact ``BaseResult``) may synthesize
-    an empty ``BaseResult()``; any custom ``Result`` subtype requires a summary.
+    Synthesis is allowed only for the non-graph roots used as placeholders:
+    exact :class:`~action_machine.model.base_result.BaseResult` (empty model) or
+    :class:`~action_machine.model.result_stub.ResultStub` (default ``ok=True``).
+    Any other declared ``R`` subtype still requires a ``@summary_aspect``.
     """
     r_type = require_resolved_action_result_type(action_cls)
     if r_type is BaseResult:
         return BaseResult()
+    if r_type is ResultStub:
+        return ResultStub()
     raise MissingSummaryAspectError(
         f"{action_cls.__name__} declares Result type {r_type.__name__} but has no "
-        "@summary_aspect; add a summary method or use BaseAction[..., BaseResult]."
+        "@summary_aspect; add a summary method or bind ``R`` to ``BaseResult`` or "
+        "``ResultStub`` when a synthetic placeholder outcome is acceptable."
     )
 
 

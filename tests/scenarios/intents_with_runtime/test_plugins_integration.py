@@ -62,10 +62,10 @@ from action_machine.testing import TestBench
 from tests.scenarios.domain_model import (
     FullAction,
     NotificationService,
+    OrdersDbManager,
     PaymentService,
     PingAction,
     SimpleAction,
-    TestDbManager,
 )
 from tests.scenarios.domain_model.roles import ManagerRole
 
@@ -310,7 +310,7 @@ class TestPluginsIntegration:
         mock_payment.charge.return_value = "TXN-INTEGRATION-001"
         mock_notification = AsyncMock(spec=NotificationService)
         mock_notification.send.return_value = True
-        mock_db = AsyncMock(spec=TestDbManager)
+        mock_db = AsyncMock(spec=OrdersDbManager)
 
         #Arrange - storage and plugin
         storage: list = []

@@ -25,8 +25,8 @@ from action_machine.intents.connection import connection
 from action_machine.intents.connection.connection_intent import ConnectionIntent
 from action_machine.intents.depends import depends
 from action_machine.intents.depends.depends_intent import DependsIntent
-from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
 from action_machine.intents.meta.meta_decorator import meta
+from action_machine.intents.meta.meta_intent import MetaIntent
 from action_machine.legacy.connection_intent_inspector import ConnectionIntentInspector
 from action_machine.legacy.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.legacy.meta_intent_inspector import MetaIntentInspector
@@ -41,11 +41,11 @@ class _OrdersDomain(BaseDomain):
 
 
 @meta(description="Meta with domain", domain=_OrdersDomain)
-class _MetaWithDomain(ActionMetaIntent):
+class _MetaWithDomain(MetaIntent):
     pass
 
 
-class _MetaMissing(ActionMetaIntent):
+class _MetaMissing(MetaIntent):
     pass
 
 

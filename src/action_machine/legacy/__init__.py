@@ -11,7 +11,7 @@ from typing import Any
 # Resolve public symbols lazily (PEP 562).
 
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
-    "ActionMetaIntent": ("action_machine.intents.meta.action_meta_intent", "ActionMetaIntent"),
+    "MetaIntent": ("action_machine.intents.meta.meta_intent", "MetaIntent"),
     "AspectIntent": ("action_machine.intents.aspects.aspect_intent", "AspectIntent"),
     "AspectIntentInspector": (
         "action_machine.legacy.aspect_intent_inspector",
@@ -97,10 +97,6 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "OnErrorIntentInspector",
     ),
     "OnIntent": ("action_machine.intents.on.on_intent", "OnIntent"),
-    "ResourceMetaIntent": (
-        "action_machine.intents.meta.resource_meta_intent",
-        "ResourceMetaIntent",
-    ),
     "RoleClassInspector": (
         "action_machine.legacy.role_class_inspector",
         "RoleClassInspector",

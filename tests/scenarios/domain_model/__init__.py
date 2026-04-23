@@ -16,7 +16,7 @@ ACTIONS
 
 PingAction              — summary only, NoneRole.
 SimpleAction            — regular + summary, NoneRole.
-FullAction              — two regular + summary, ``@depends``/``@connection`` on ``TestDbManager``, role "manager".
+FullAction              — two regular + summary, ``@depends``/``@connection`` on ``OrdersDbManager``, role "manager".
 ChildAction             — nested call target for box.run().
 AdminAction             — admin-only Action.
 
@@ -97,7 +97,7 @@ from .full_action import FullAction
 from .ping_action import PingAction
 from .services import InventoryService, NotificationService, PaymentService
 from .simple_action import SimpleAction
-from .test_db_manager import TestDbManager
+from .test_db_manager import OrdersDbManager
 
 __all__ = [
     "AdminAction",
@@ -124,6 +124,7 @@ __all__ = [
     "MultiErrorAction",
     "NoErrorHandlerAction",
     "NotificationService",
+    "OrdersDbManager",
     # Domains
     "OrdersDomain",
     "PartialCompensateAction",
@@ -133,5 +134,4 @@ __all__ = [
     "SagaObserverPlugin",
     "SimpleAction",
     "SystemDomain",
-    "TestDbManager",
 ]

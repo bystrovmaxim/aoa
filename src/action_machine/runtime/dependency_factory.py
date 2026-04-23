@@ -41,35 +41,13 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from action_machine.resources.base_resource import BaseResource
+from action_machine.runtime.dependency_info import DependencyInfo
 
 if TYPE_CHECKING:
     from graph.graph_coordinator import GraphCoordinator
-
-
-@dataclass(frozen=True)
-class DependencyInfo:
-    """
-    Immutable information about a single action dependency.
-
-    Created by the ``@depends`` decorator and stored on ``cls._depends_info``.
-    The ``DependencyIntentInspector`` builds a snapshot from this data, and
-    ``GraphCoordinator`` passes the tuple to ``DependencyFactory``.
-
-    Attributes:
-        cls: The dependency class (type requested via ``box.resolve``).
-        factory: Optional factory callable for creating the instance.
-                 If ``None``, the default constructor ``klass()`` is used.
-                 Use a lambda for singletons, e.g. ``lambda: shared_instance``.
-        description: Human‑readable description for documentation and introspection.
-    """
-    cls: type
-    factory: Callable[..., Any] | None = None
-    description: str = ""
 
 
 class DependencyFactory:

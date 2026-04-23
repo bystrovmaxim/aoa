@@ -21,8 +21,10 @@ ARCHITECTURE / DATA FLOW
 
     class BaseAction[P, R](
         ABC,
+        MetaIntent,
         CheckRolesIntent,
-        DependsIntent[object],
+        DependsEligible,
+        DependsIntent[DependsEligible],
         CheckerIntent,
         AspectIntent,
         ConnectionIntent,             <- marker: enables @connection

@@ -59,15 +59,15 @@ from action_machine.legacy.core import Core
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.dependency_factory import (
     DependencyFactory,
-    DependencyInfo,
     cached_dependency_factory,
 )
+from action_machine.runtime.dependency_info import DependencyInfo
 from tests.scenarios.domain_model import (
     FullAction,
     NotificationService,
+    OrdersDbManager,
     PaymentService,
     PingAction,
-    TestDbManager,
 )
 from tests.scenarios.domain_model.domains import TestDomain
 
@@ -455,7 +455,7 @@ class TestDomainIntegration:
         and NotificationService.
 
         FullAction declares @depends(PaymentService), @depends(NotificationService),
-        and @depends(TestDbManager). The coordinator collects metadata and builds a
+        and @depends(OrdersDbManager). The coordinator collects metadata and builds a
         DependencyFactory with those classes.
         """
         # Arrange — coordinator registering FullAction
@@ -465,7 +465,7 @@ class TestDomainIntegration:
         # Act & Assert — services and resource manager type registered
         assert factory.has(PaymentService)
         assert factory.has(NotificationService)
-        assert factory.has(TestDbManager)
+        assert factory.has(OrdersDbManager)
 
     def test_ping_action_factory_is_empty(self) -> None:
         """

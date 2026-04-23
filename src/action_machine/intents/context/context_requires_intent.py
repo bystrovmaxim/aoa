@@ -17,9 +17,10 @@ BASEACTION MRO INTENTS
 grammar segment: which decorators are allowed and what tooling may rely on
 via ``issubclass``:
 
-    ActionMetaIntent       -> @meta
+    MetaIntent             -> @meta
     CheckRolesIntent             -> @check_roles
-    DependsIntent       -> @depends
+    DependsEligible        -> nominal @depends targets
+    DependsIntent          -> @depends (``DependsEligible`` bound)
     CheckerIntent          -> result_* checkers
     AspectIntent           -> @regular_aspect / @summary_aspect
     CompensateIntent       -> @compensate
@@ -36,9 +37,10 @@ ARCHITECTURE / DATA FLOW
 
     class BaseAction[P, R](
         ABC,
-        ActionMetaIntent,
+        MetaIntent,
         CheckRolesIntent,
-        DependsIntent[object],
+        DependsEligible,
+        DependsIntent[DependsEligible],
         CheckerIntent,
         AspectIntent,
         CompensateIntent,

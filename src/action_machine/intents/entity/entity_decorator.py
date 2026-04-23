@@ -26,7 +26,7 @@ WHY NOT ``@meta``
 Actions and resource managers use ``@meta``. Entities use ``@entity``. Different
 intent markers, different scratch keys:
 
-    @meta   → ActionMetaIntent or ResourceMetaIntent  → ``_meta_info``
+    @meta   → MetaIntent  → ``_meta_info``
     @entity → EntityIntent                             → ``_entity_info``
 
 Reasons:
