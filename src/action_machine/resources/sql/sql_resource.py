@@ -1,4 +1,4 @@
-# src/action_machine/resources/sql/sql_manager.py
+# src/action_machine/resources/sql/sql_resource.py
 """
 Transactional SQL manager interface.
 
@@ -6,18 +6,18 @@ Transactional SQL manager interface.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``SqlManager`` is an abstract base class for transactional SQL connection
+``SqlResource`` is an abstract base class for transactional SQL connection
 managers. It defines the contract:
 ``open()``, ``begin()``, ``commit()``, ``rollback()``, ``execute()``.
 
-By inheriting ``BaseResourceManager`` it keeps metadata/wrapper contracts and
+By inheriting ``BaseResource`` it keeps metadata/wrapper contracts and
 rollup capability checks aligned with the resource subsystem.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ROLLUP SUPPORT
 ═══════════════════════════════════════════════════════════════════════════════
 
-``SqlManager`` supports rollup mode natively. Constructor stores ``rollup``
+``SqlResource`` supports rollup mode natively. Constructor stores ``rollup``
 flag in ``self._rollup``.
 
 When ``rollup=True``, ``commit()`` calls ``rollback()`` instead of a real
@@ -40,7 +40,7 @@ ROLLUP LIFECYCLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     # Caller creates manager with rollup=True:
-    db = PostgresConnectionManager(params, rollup=True)
+    db = PostgresResource(params, rollup=True)
 
     # Aspect code runs as usual:
     await db.open()
@@ -55,7 +55,7 @@ ROLLUP LIFECYCLE
 ROLLUP PROPAGATION TO CHILD ACTIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-``WrapperSqlManager`` exposes ``rollup`` by delegating to the wrapped manager.
+``WrapperSqlResource`` exposes ``rollup`` by delegating to the wrapped manager.
 Child actions receive consistent rollup visibility without storing a separate
 flag on the proxy.
 
@@ -63,35 +63,35 @@ flag on the proxy.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseResourceManager (ABC)
+    BaseResource (ABC)
         │
-        └── SqlManager (ABC)
+        └── SqlResource (ABC)
                 │   _rollup: bool
                 │   check_rollup_support() → True
                 │   commit() → rollback() when _rollup=True
                 │
-                ├── PostgresConnectionManager
+                ├── PostgresResource
                 │       __init__(params, rollup=False)
                 │       begin() → transaction start (root action)
                 │
-                └── WrapperSqlManager (proxy)
+                └── WrapperSqlResource (proxy)
                         __init__(connection_manager)
                         rollup read from inner (delegation)
                         begin/open/commit/rollback prohibited
 
 """
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any
 
-from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.resources.sql.protocol_sql_manager import ProtocolSqlManager
-from action_machine.resources.sql.wrapper_sql_manager import WrapperSqlManager
+from action_machine.resources.base_resource import BaseResource
+from action_machine.resources.sql.protocol_sql_resource import ProtocolSqlResource
+from action_machine.resources.sql.wrapper_sql_resource import WrapperSqlResource
 
 
-class SqlManager(BaseResourceManager, ProtocolSqlManager):
+class SqlResource(BaseResource, ProtocolSqlResource, ABC):
     """
-    Base class for transaction-capable SQL connection managers.
+    Abstract base class for transaction-capable SQL connection managers.
     """
 
     def __init__(self, rollup: bool = False) -> None:
@@ -107,9 +107,9 @@ class SqlManager(BaseResourceManager, ProtocolSqlManager):
         """Confirm rollup support for this manager type."""
         return True
 
-    def get_wrapper_class(self) -> type[BaseResourceManager] | None:
+    def get_wrapper_class(self) -> type[BaseResource] | None:
         """Return proxy class that blocks nested transaction control."""
-        return WrapperSqlManager
+        return WrapperSqlResource
 
     @abstractmethod
     async def open(self) -> None:

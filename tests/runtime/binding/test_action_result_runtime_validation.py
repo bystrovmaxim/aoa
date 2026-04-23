@@ -28,7 +28,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.testing import TestBench
@@ -65,7 +65,7 @@ async def test_summary_wrong_result_type_raises_action_result_type_error(
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
         ) -> _R:
             return _WrongR()  # type: ignore[return-value]
 
@@ -93,7 +93,7 @@ async def test_on_error_wrong_result_type_raises_action_result_type_error(
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
         ) -> dict[str, str]:
             raise ValueError("fail")
 
@@ -103,7 +103,7 @@ async def test_on_error_wrong_result_type_raises_action_result_type_error(
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
             error: Exception,
         ) -> _R:
             return _WrongR()  # type: ignore[return-value]
@@ -168,7 +168,7 @@ async def test_summary_returns_declared_result_succeeds(context: Context) -> Non
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
         ) -> _R:
             return _R(ok=True)
 
@@ -193,7 +193,7 @@ async def test_on_error_returns_declared_result_succeeds(bench: TestBench) -> No
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
         ) -> dict[str, str]:
             raise ValueError("boom")
 
@@ -203,7 +203,7 @@ async def test_on_error_returns_declared_result_succeeds(bench: TestBench) -> No
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
             error: Exception,
         ) -> _R:
             return _R(ok=False)
@@ -244,7 +244,7 @@ def test_bind_pipeline_result_accepts_instance_of_declared_r() -> None:
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
         ) -> _R:
             return _R()
 
@@ -288,7 +288,7 @@ async def test_action_result_type_error_message_mentions_source() -> None:
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
         ) -> _R:
             return _WrongR()  # type: ignore[return-value]
 
@@ -321,7 +321,7 @@ async def test_forward_ref_action_wrong_summary_type_raises(bench: TestBench) ->
             params: Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
         ) -> Result:
             return BaseResult()  # type: ignore[return-value]
 
@@ -345,7 +345,7 @@ async def test_summary_contract_violation_still_unwinds_saga(bench: TestBench) -
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
         ) -> dict[str, str]:
             return {}
 
@@ -356,7 +356,7 @@ async def test_summary_contract_violation_still_unwinds_saga(bench: TestBench) -
             state_before: BaseState,
             state_after: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
             error: Exception,
         ) -> None:
             rollback_calls.append("rollback")
@@ -367,7 +367,7 @@ async def test_summary_contract_violation_still_unwinds_saga(bench: TestBench) -
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
         ) -> _R:
             return _WrongR()  # type: ignore[return-value]
 
@@ -393,7 +393,7 @@ async def test_summary_contract_violation_without_compensators_does_not_call_sag
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
         ) -> dict[str, str]:
             return {}
 
@@ -403,7 +403,7 @@ async def test_summary_contract_violation_without_compensators_does_not_call_sag
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
         ) -> _R:
             return _WrongR()  # type: ignore[return-value]
 
@@ -429,7 +429,7 @@ async def test_missing_summary_aspect_unwinds_saga_when_compensators_exist(
             params: _P,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
         ) -> dict[str, str]:
             return {}
 
@@ -440,7 +440,7 @@ async def test_missing_summary_aspect_unwinds_saga_when_compensators_exist(
             state_before: BaseState,
             state_after: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResourceManager],
+            connections: dict[str, BaseResource],
             error: Exception,
         ) -> None:
             rollback_calls.append("rollback")

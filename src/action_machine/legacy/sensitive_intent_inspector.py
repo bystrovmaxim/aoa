@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Walks concrete subclasses of ``BaseSchema``, ``BaseAction``, and
-``BaseResourceManager``, collects ``_sensitive_config`` on declaring members, and
+``BaseResource``, collects ``_sensitive_config`` on declaring members, and
 emits:
 
 * one interchange vertex per sensitive property — ``node_type`` ``sensitive_field``,
@@ -28,7 +28,7 @@ from typing import Any
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE, ENTITY_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_schema import BaseSchema
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.facet_edge import FacetEdge
@@ -44,7 +44,7 @@ AI-CORE-BEGIN
     AI-CORE-END
 """
 
-    _target_intents: tuple[type, ...] = (BaseSchema, BaseAction, BaseResourceManager)
+    _target_intents: tuple[type, ...] = (BaseSchema, BaseAction, BaseResource)
 
     @classmethod
     def _subclasses_recursive(cls) -> list[type]:
@@ -133,7 +133,7 @@ AI-CORE-BEGIN
 
         if issubclass(declaring_klass, BaseAction):
             return ACTION_VERTEX_TYPE, cls._make_node_name(declaring_klass)
-        if issubclass(declaring_klass, BaseResourceManager):
+        if issubclass(declaring_klass, BaseResource):
             return "resource_manager", cls._make_node_name(declaring_klass)
         if issubclass(declaring_klass, EntityIntent):
             return ENTITY_VERTEX_TYPE, cls._make_node_name(declaring_klass)

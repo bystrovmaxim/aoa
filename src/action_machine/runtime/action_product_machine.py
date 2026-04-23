@@ -99,7 +99,7 @@ from action_machine.plugin.plugin import Plugin
 from action_machine.plugin.plugin_coordinator import PluginCoordinator
 from action_machine.plugin.plugin_emit_support import PluginEmitSupport
 from action_machine.plugin.plugin_run_context import PluginRunContext
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.aspect_executor import AspectExecutor
 from action_machine.runtime.base_action_machine import BaseActionMachine
 from action_machine.runtime.connection_validator import ConnectionValidator
@@ -383,7 +383,7 @@ AI-CORE-BEGIN
         action: BaseAction[P, R],
         params: P,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
         context: Context,
         runtime: _ActionExecutionCache,
         plugin_ctx: PluginRunContext,
@@ -464,7 +464,7 @@ AI-CORE-BEGIN
         action: BaseAction[P, R],
         params: P,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
         context: Context,
         runtime: _ActionExecutionCache,
         plugin_ctx: PluginRunContext,
@@ -503,7 +503,7 @@ AI-CORE-BEGIN
         action: BaseAction[P, R],
         params: P,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
         context: Context,
         plugin_ctx: PluginRunContext,
     ) -> None:
@@ -526,7 +526,7 @@ AI-CORE-BEGIN
         action: BaseAction[P, R],
         params: P,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
         context: Context,
         runtime: _ActionExecutionCache,
         plugin_ctx: PluginRunContext,
@@ -662,7 +662,7 @@ AI-CORE-BEGIN
         context: Context,
         action: BaseAction[P, R],
         params: P,
-        connections: dict[str, BaseResourceManager] | None = None,
+        connections: dict[str, BaseResource] | None = None,
     ) -> R:
         """Execute one action; production uses ``rollup=False`` and ``nested_level=0``."""
         # pylint: disable=invalid-overridden-method
@@ -682,7 +682,7 @@ AI-CORE-BEGIN
         action: BaseAction[P, R],
         params: P,
         resources: dict[type, Any] | None,
-        connections: dict[str, BaseResourceManager] | None,
+        connections: dict[str, BaseResource] | None,
         nested_level: int,
         rollup: bool,
     ) -> R:
@@ -704,7 +704,7 @@ AI-CORE-BEGIN
         async def run_child(
             action: BaseAction[Any, Any],
             params: BaseParams,
-            connections: dict[str, BaseResourceManager] | None = None,
+            connections: dict[str, BaseResource] | None = None,
         ) -> BaseResult:
             return await self._run_internal(
                 context=context,

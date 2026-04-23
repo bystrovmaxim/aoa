@@ -2,8 +2,8 @@
 """Клиент поискового индекса (stub) для ``@depends`` и ресурсный менеджер для ``connections``."""
 
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.resources.external_service.external_service_manager import (
-    ExternalServiceManager,
+from action_machine.resources.external_service.external_service_resource import (
+    ExternalServiceResource,
 )
 from maxitor.samples.catalog.domain import CatalogDomain
 
@@ -17,5 +17,5 @@ class IndexSyncClient:
     description="Search index sync client for aspects/connections (stub)",
     domain=CatalogDomain,
 )
-class IndexSyncClientResource(ExternalServiceManager[IndexSyncClient]):
+class IndexSyncClientResource(ExternalServiceResource[IndexSyncClient]):
     pass

@@ -1,8 +1,8 @@
-# tests/resources/test_sql_manager.py
+# tests/resources/test_sql_resource.py
 """
-Tests for SqlManager — abstract base for transactional SQL connections.
+Tests for SqlResource — abstract base for transactional SQL connections.
 
-SqlManager extends BaseResourceManager with transaction lifecycle:
+SqlResource extends BaseResource with transaction lifecycle:
 open(), begin(), commit(), rollback(), execute(). It supports rollup mode where commit()
 calls rollback() instead of real commit. The rollup property uses getattr
 with a False fallback for resilience against subclasses that skip super().__init__().
@@ -22,15 +22,15 @@ Scenarios covered:
 
 import pytest
 
-from action_machine.resources.sql import SqlManager
+from action_machine.resources.sql import SqlResource
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Concrete subclass for testing — SqlManager is abstract.
+# Concrete subclass for testing — SqlResource is abstract.
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class _TestConnectionManager(SqlManager):
-    """Minimal concrete implementation for testing SqlManager behavior."""
+class _TestConnectionManager(SqlResource):
+    """Minimal concrete implementation for testing SqlResource behavior."""
 
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
@@ -64,7 +64,7 @@ class _TestConnectionManager(SqlManager):
         self.committed = True
 
 
-class _NoSuperInitManager(SqlManager):
+class _NoSuperInitManager(SqlResource):
     """Subclass that intentionally skips super().__init__()."""
 
     def __init__(self) -> None:
@@ -122,10 +122,10 @@ class TestRollupProperty:
 
 
 class TestCheckRollupSupport:
-    """Verify that SqlManager always supports rollup."""
+    """Verify that SqlResource always supports rollup."""
 
     def test_returns_true(self) -> None:
-        """check_rollup_support() returns True for any SqlManager."""
+        """check_rollup_support() returns True for any SqlResource."""
         mgr = _TestConnectionManager()
         assert mgr.check_rollup_support() is True
 
@@ -170,11 +170,11 @@ class TestCommitRollup:
 
     @pytest.mark.asyncio
     async def test_base_commit_with_rollup(self) -> None:
-        """SqlManager.commit() itself calls rollback when rollup=True."""
+        """SqlResource.commit() itself calls rollback when rollup=True."""
         mgr = _TestConnectionManager(rollup=True)
 
         # Call the base class commit directly
-        await SqlManager.commit(mgr)
+        await SqlResource.commit(mgr)
 
         assert mgr.rolled_back is True
 
@@ -190,7 +190,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_open(self) -> None:
         """Subclass missing open() cannot be instantiated."""
 
-        class _Incomplete(SqlManager):
+        class _Incomplete(SqlResource):
             def get_wrapper_class(self):
                 return None
 
@@ -209,7 +209,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_begin(self) -> None:
         """Subclass missing begin() cannot be instantiated."""
 
-        class _Incomplete(SqlManager):
+        class _Incomplete(SqlResource):
             def get_wrapper_class(self):
                 return None
 
@@ -228,7 +228,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_rollback(self) -> None:
         """Subclass missing rollback() cannot be instantiated."""
 
-        class _Incomplete(SqlManager):
+        class _Incomplete(SqlResource):
             def get_wrapper_class(self):
                 return None
 
@@ -247,7 +247,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_execute(self) -> None:
         """Subclass missing execute() cannot be instantiated."""
 
-        class _Incomplete(SqlManager):
+        class _Incomplete(SqlResource):
             def get_wrapper_class(self):
                 return None
 

@@ -75,7 +75,7 @@ from action_machine.plugin.events import (
     BeforeOnErrorAspectEvent,
 )
 from action_machine.plugin.plugin import Plugin
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.testing import StubTesterRole, TestBench
@@ -163,7 +163,7 @@ class _NestedChildAction(BaseAction[_NestedParams, _NestedResult]):
         params: _NestedParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> _NestedResult:
         return _NestedResult(trace=f"child_nest={box.nested_level};child_rollup={box.rollup}")
 
@@ -178,7 +178,7 @@ class _NestedParentAction(BaseAction[_NestedParams, _NestedResult]):
         params: _NestedParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict:
         child = await box.run(_NestedChildAction, _NestedParams(value=params.value))
         return {
@@ -194,7 +194,7 @@ class _NestedParentAction(BaseAction[_NestedParams, _NestedResult]):
         params: _NestedParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> _NestedResult:
         return _NestedResult(trace=state["trace"])
 

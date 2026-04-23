@@ -50,7 +50,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 
 from .domains import OrdersDomain
@@ -116,7 +116,7 @@ class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         if params.should_fail:
             raise ValueError(f"Processing error: {params.value}")
@@ -128,7 +128,7 @@ class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> ErrorTestResult:
         return ErrorTestResult(status="ok", detail=state["processed"])
 
@@ -138,7 +138,7 @@ class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> ErrorTestResult:
         return ErrorTestResult(status="handled", detail=str(error))
@@ -174,7 +174,7 @@ class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         if params.value == "insufficient":
             raise InsufficientFundsError("Insufficient funds")
@@ -190,7 +190,7 @@ class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> ErrorTestResult:
         return ErrorTestResult(status="ok", detail=state["processed"])
 
@@ -200,7 +200,7 @@ class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> ErrorTestResult:
         return ErrorTestResult(status="insufficient_funds", detail=str(error))
@@ -211,7 +211,7 @@ class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> ErrorTestResult:
         return ErrorTestResult(status="gateway_error", detail=str(error))
@@ -222,7 +222,7 @@ class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> ErrorTestResult:
         return ErrorTestResult(status="unknown_error", detail=str(error))
@@ -251,7 +251,7 @@ class NoErrorHandlerAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         if params.should_fail:
             raise ValueError(f"Error: {params.value}")
@@ -263,7 +263,7 @@ class NoErrorHandlerAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> ErrorTestResult:
         return ErrorTestResult(status="ok", detail=state["processed"])
 
@@ -295,7 +295,7 @@ class HandlerRaisesAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         if params.should_fail:
             raise ValueError(f"Error: {params.value}")
@@ -307,7 +307,7 @@ class HandlerRaisesAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> ErrorTestResult:
         return ErrorTestResult(status="ok", detail=state["processed"])
 
@@ -317,7 +317,7 @@ class HandlerRaisesAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> ErrorTestResult:
         raise RuntimeError(f"Error in handler: {error}")

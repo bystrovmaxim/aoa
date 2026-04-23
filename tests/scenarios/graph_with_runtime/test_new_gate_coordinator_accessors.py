@@ -17,7 +17,7 @@ from action_machine.legacy.interchange_vertex_labels import (
     REGULAR_ASPECT_VERTEX_TYPE,
 )
 from action_machine.legacy.on_error_intent_inspector import OnErrorIntentInspector
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.facet_edge import FacetEdge
 from graph.facet_vertex import FacetVertex
@@ -34,7 +34,7 @@ class _DemoAction:
     pass
 
 
-class _DbManagerStub(BaseResourceManager):
+class _DbManagerStub(BaseResource):
     def get_wrapper_class(self):
         return None
 

@@ -44,7 +44,7 @@ from action_machine.intents.depends.dependency_intent import (
     DependencyIntent,
     _extract_bound,
 )
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from tests.scenarios.domain_model import FullAction, PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -58,8 +58,8 @@ class _AnyDepsHost(DependencyIntent[object]):
     pass
 
 
-class _ResourceOnlyHost(DependencyIntent[BaseResourceManager]):
-    """Host with bound ``BaseResourceManager`` — resource managers only."""
+class _ResourceOnlyHost(DependencyIntent[BaseResource]):
+    """Host with bound ``BaseResource`` — resource managers only."""
     pass
 
 
@@ -93,22 +93,22 @@ class TestExtractBound:
         assert bound is object
 
     def test_specific_bound(self) -> None:
-        """``DependencyIntent[BaseResourceManager]`` -> bound is ``BaseResourceManager``."""
+        """``DependencyIntent[BaseResource]`` -> bound is ``BaseResource``."""
         bound = _extract_bound(_ResourceOnlyHost)
 
-        assert bound is BaseResourceManager
+        assert bound is BaseResource
 
     def test_inherited_bound(self) -> None:
         """Subclass without its own generic inherits the parent's bound."""
         bound = _extract_bound(_ChildOfResourceHost)
 
-        assert bound is BaseResourceManager
+        assert bound is BaseResource
 
     def test_grandchild_inherited_bound(self) -> None:
         """Grandchild inherits bound through the MRO chain."""
         bound = _extract_bound(_GrandchildOfResourceHost)
 
-        assert bound is BaseResourceManager
+        assert bound is BaseResource
 
     def test_plain_class_returns_object(self) -> None:
         """Class without ``DependencyIntent`` ancestors -> ``object``."""
@@ -129,7 +129,7 @@ class TestGetDependsBound:
         """Returns the bound installed in ``__init_subclass__``."""
         bound = _ResourceOnlyHost.get_depends_bound()
 
-        assert bound is BaseResourceManager
+        assert bound is BaseResource
 
     def test_returns_object_for_any_host(self) -> None:
         """``DependencyIntent[object]`` -> ``get_depends_bound()`` is ``object``."""

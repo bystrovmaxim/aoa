@@ -33,7 +33,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 
 from .domains import SystemDomain
@@ -62,7 +62,7 @@ class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
         params: "PingAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> "PingAction.Result":
         """Return a fixed Result with message 'pong'."""
         return PingAction.Result(message="pong")

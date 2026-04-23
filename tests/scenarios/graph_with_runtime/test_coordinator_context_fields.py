@@ -65,7 +65,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.dependency_factory import clear_dependency_factory_cache
 from action_machine.runtime.tools_box import ToolsBox
 from graph.graph_coordinator import GraphCoordinator
@@ -117,7 +117,7 @@ class _SingleContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
     async def audit_aspect(
         self, params: _CtxTestParams, state: BaseState,
-        box: ToolsBox, connections: dict[str, BaseResourceManager],
+        box: ToolsBox, connections: dict[str, BaseResource],
         ctx: object,
     ) -> dict:
         return {}
@@ -125,7 +125,7 @@ class _SingleContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     @summary_aspect("Result")
     async def result_summary(
         self, params: _CtxTestParams, state: BaseState,
-        box: ToolsBox, connections: dict[str, BaseResourceManager],
+        box: ToolsBox, connections: dict[str, BaseResource],
     ) -> _CtxTestResult:
         return _CtxTestResult(status="ok")
 
@@ -139,7 +139,7 @@ class _SharedContextFieldAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     @context_requires(Ctx.User.user_id)
     async def first_aspect(
         self, params: _CtxTestParams, state: BaseState,
-        box: ToolsBox, connections: dict[str, BaseResourceManager],
+        box: ToolsBox, connections: dict[str, BaseResource],
         ctx: object,
     ) -> dict:
         return {}
@@ -148,7 +148,7 @@ class _SharedContextFieldAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     @context_requires(Ctx.User.user_id, Ctx.User.roles)
     async def second_aspect(
         self, params: _CtxTestParams, state: BaseState,
-        box: ToolsBox, connections: dict[str, BaseResourceManager],
+        box: ToolsBox, connections: dict[str, BaseResource],
         ctx: object,
     ) -> dict:
         return {}
@@ -156,7 +156,7 @@ class _SharedContextFieldAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     @summary_aspect("Result")
     async def result_summary(
         self, params: _CtxTestParams, state: BaseState,
-        box: ToolsBox, connections: dict[str, BaseResourceManager],
+        box: ToolsBox, connections: dict[str, BaseResource],
     ) -> _CtxTestResult:
         return _CtxTestResult(status="ok")
 
@@ -169,14 +169,14 @@ class _ErrorHandlerContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     @regular_aspect("Operation")
     async def operation_aspect(
         self, params: _CtxTestParams, state: BaseState,
-        box: ToolsBox, connections: dict[str, BaseResourceManager],
+        box: ToolsBox, connections: dict[str, BaseResource],
     ) -> dict:
         return {}
 
     @summary_aspect("Result")
     async def result_summary(
         self, params: _CtxTestParams, state: BaseState,
-        box: ToolsBox, connections: dict[str, BaseResourceManager],
+        box: ToolsBox, connections: dict[str, BaseResource],
     ) -> _CtxTestResult:
         return _CtxTestResult(status="ok")
 
@@ -184,7 +184,7 @@ class _ErrorHandlerContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     @context_requires(Ctx.User.user_id, Ctx.Request.client_ip)
     async def handle_value_on_error(
         self, params: _CtxTestParams, state: BaseState,
-        box: ToolsBox, connections: dict[str, BaseResourceManager],
+        box: ToolsBox, connections: dict[str, BaseResource],
         error: Exception, ctx: object,
     ) -> _CtxTestResult:
         return _CtxTestResult(status="error_handled")
@@ -198,14 +198,14 @@ class _NoContextAction(BaseAction[_CtxTestParams, _CtxTestResult]):
     @regular_aspect("Simple aspect")
     async def simple_aspect(
         self, params: _CtxTestParams, state: BaseState,
-        box: ToolsBox, connections: dict[str, BaseResourceManager],
+        box: ToolsBox, connections: dict[str, BaseResource],
     ) -> dict:
         return {}
 
     @summary_aspect("Result")
     async def result_summary(
         self, params: _CtxTestParams, state: BaseState,
-        box: ToolsBox, connections: dict[str, BaseResourceManager],
+        box: ToolsBox, connections: dict[str, BaseResource],
     ) -> _CtxTestResult:
         return _CtxTestResult(status="ok")
 

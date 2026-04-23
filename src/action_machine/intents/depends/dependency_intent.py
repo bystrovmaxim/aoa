@@ -15,7 +15,7 @@ PURPOSE
 2. **Type bound**: generic parameter ``T`` restricts which classes are
    allowed as dependencies. For example:
    - ``DependencyIntent[object]`` — any class.
-   - ``DependencyIntent[BaseResourceManager]`` — only resource managers.
+   - ``DependencyIntent[BaseResource]`` — only resource managers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

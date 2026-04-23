@@ -8,7 +8,7 @@ PURPOSE
 
 This package defines public resource-connection contracts used by actions:
 base manager abstraction, ``@connection`` declaration API, marker intent, and
-the runtime ``connections`` mapping (``dict[str, BaseResourceManager]``).
+the runtime ``connections`` mapping (``dict[str, BaseResource]``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -35,10 +35,10 @@ ARCHITECTURE / DATA FLOW
 
 from action_machine.intents.connection.connection_decorator import ConnectionInfo, connection
 from action_machine.intents.connection.connection_intent import ConnectionIntent
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 
 __all__ = [
-    "BaseResourceManager",
+    "BaseResource",
     "ConnectionInfo",
     "ConnectionIntent",
     "connection",

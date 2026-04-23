@@ -7,7 +7,7 @@ import importlib
 from typing import Any
 
 # Eager imports on ``action_machine.legacy`` would run before heavy submodules
-# and create import cycles with ``BaseResourceManager`` / ``BaseAction``.
+# and create import cycles with ``BaseResource`` / ``BaseAction``.
 # Resolve public symbols lazily (PEP 562).
 
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {

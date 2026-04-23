@@ -34,7 +34,7 @@ ARCHITECTURE / DATA FLOW
             │
             ├─ factory(*args, **kwargs) or klass(*args, **kwargs)
             │
-            └─ if rollup=True and instance is BaseResourceManager:
+            └─ if rollup=True and instance is BaseResource:
                    instance.check_rollup_support()
 
 """
@@ -45,7 +45,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 
 if TYPE_CHECKING:
     from graph.graph_coordinator import GraphCoordinator
@@ -129,13 +129,13 @@ AI-CORE-BEGIN
             1. Look up ``DependencyInfo`` by class.
             2. If ``info.factory`` is set, call ``info.factory(*args, **kwargs)``.
             3. Otherwise, call ``klass(*args, **kwargs)``.
-            4. If ``rollup=True`` and the result is a ``BaseResourceManager``,
+            4. If ``rollup=True`` and the result is a ``BaseResource``,
                call ``instance.check_rollup_support()``.
 
         Args:
             klass: Dependency class (the same as passed to ``@depends``).
             *args: Positional arguments for the factory or constructor.
-            rollup: If ``True``, verify rollup support for ``BaseResourceManager``
+            rollup: If ``True``, verify rollup support for ``BaseResource``
                     instances. Defaults to ``False``.
             **kwargs: Keyword arguments for the factory or constructor.
 
@@ -145,7 +145,7 @@ AI-CORE-BEGIN
         Raises:
             ValueError: If the dependency was not declared via ``@depends``.
             RollupNotSupportedError: If ``rollup=True`` and the instance is a
-                ``BaseResourceManager`` that does not support rollup.
+                ``BaseResource`` that does not support rollup.
         """
         info = self._deps.get(klass)
         if info is None:
@@ -160,7 +160,7 @@ AI-CORE-BEGIN
         else:
             instance = klass(*args, **kwargs)
 
-        if rollup and isinstance(instance, BaseResourceManager):
+        if rollup and isinstance(instance, BaseResource):
             instance.check_rollup_support()
 
         return instance

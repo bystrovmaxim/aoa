@@ -35,7 +35,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.testing import TestBench
 from tests.scenarios.domain_model.domains import TestDomain
@@ -124,7 +124,7 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         params: NestedParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         payment = box.resolve(PaymentService)
         txn_id = await payment.charge(100.0, "RUB")
@@ -137,7 +137,7 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> None:
         if state_after is None:
@@ -152,7 +152,7 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         params: NestedParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         """Calls FailableChildAction via box.run().
         Wraps in try/except: if the child fails, returns
@@ -173,7 +173,7 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> None:
         """Compensator for call_child_aspect.
@@ -188,7 +188,7 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         params: NestedParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         if params.should_parent_fail:
             raise ValueError("Error finalizing parent")
@@ -200,7 +200,7 @@ class ParentWithNestedCallAction(BaseAction[NestedParams, NestedResult]):
         params: NestedParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> NestedResult:
         return NestedResult(status="parent_ok")
 

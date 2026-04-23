@@ -2,12 +2,12 @@
 from typing import Any
 
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.resources.sql import SqlManager
+from action_machine.resources.sql import SqlResource
 from maxitor.samples.messaging.domain import MessagingDomain
 
 
 @meta(description="Dead-letter queue store (stub)", domain=MessagingDomain)
-class MessagingDeadLetterStore(SqlManager):
+class MessagingDeadLetterStore(SqlResource):
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
 

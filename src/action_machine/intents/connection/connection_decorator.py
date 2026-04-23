@@ -47,7 +47,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, cast
 
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Dataclass carrying one connection declaration
@@ -65,7 +65,7 @@ class ConnectionInfo:
     ``connections`` mapping passed into ``run``.
 
     Attributes:
-        cls: ``BaseResourceManager`` subclass (resource type).
+        cls: ``BaseResource`` subclass (resource type).
         key: Non-empty string key for ``connections[key]`` inside aspects.
         description: Human-readable label for introspection and docs.
     """
@@ -89,10 +89,10 @@ def _validate_connection_args(klass: Any, key: str, description: str) -> None:
             f"Pass a resource manager class."
         )
 
-    if not issubclass(klass, BaseResourceManager):
+    if not issubclass(klass, BaseResource):
         raise TypeError(
-            f"@connection: class {klass.__name__} is not a BaseResourceManager "
-            f"subclass. Resource manager must inherit BaseResourceManager."
+            f"@connection: class {klass.__name__} is not a BaseResource "
+            f"subclass. Resource manager must inherit BaseResource."
         )
 
     if not isinstance(key, str):

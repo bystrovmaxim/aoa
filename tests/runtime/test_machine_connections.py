@@ -7,7 +7,7 @@ PURPOSE
 
 ``ConnectionValidator.validate()`` (invoked from ``ActionProductMachine._run_internal``)
 is the connections gate: declared keys vs passed ``connections`` and
-``BaseResourceManager`` value types.
+``BaseResource`` value types.
 
 Two-level validation:
 
@@ -15,7 +15,7 @@ Two-level validation:
    with actual ones.
 
 2. Type checking - every value must be an instance
-   BaseResourceManager.
+   BaseResource.
 
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
 SCENARIOS COVERED
@@ -29,7 +29,7 @@ Action with one @connection:
     - Correct connections with matching key → OK.
     - Without connections → ConnectionValidationError.
     - Extra key → ConnectionValidationError.
-    - The value is not BaseResourceManager -> ConnectionValidationError.
+    - The value is not BaseResource -> ConnectionValidationError.
 
 Action with two @connections:
     - Both keys have been transferred → OK.
@@ -56,7 +56,7 @@ from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import FullAction, NotificationService, PaymentService, PingAction, TestDbManager
 from tests.scenarios.domain_model.domains import TestDomain
@@ -66,8 +66,8 @@ from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
 def _validate_connections(
     machine: ActionProductMachine,
     action: BaseAction[BaseParams, BaseResult],  # any concrete action binding
-    connections: dict[str, BaseResourceManager] | None,
-) -> dict[str, BaseResourceManager]:
+    connections: dict[str, BaseResource] | None,
+) -> dict[str, BaseResource]:
     rt = machine._get_execution_cache(action.__class__)
     return machine._connection_validator.validate(action, connections, rt)
 
@@ -86,8 +86,8 @@ class _TwoConnResult(BaseResult):
 
 
 @meta(description="Resource manager stub for connections tests", domain=TestDomain)
-class _MockResourceManager(BaseResourceManager):
-    """Minimal implementation of BaseResourceManager for tests."""
+class _MockResourceManager(BaseResource):
+    """Minimal implementation of BaseResource for tests."""
 
     def get_wrapper_class(self):
         return None
@@ -212,7 +212,7 @@ class TestSingleConnection:
         connections = {"db": "it's a string, not a manager"}
 
         # Act & Assert - checking value type
-        with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
+        with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResource"):
             _validate_connections(machine, action, connections)
 
     def test_value_none_raises(self, machine, context) -> None:
@@ -224,7 +224,7 @@ class TestSingleConnection:
         connections = {"db": None}
 
         # Act & Assert
-        with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
+        with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResource"):
             _validate_connections(machine, action, connections)
 
     def test_value_int_raises(self, machine, context) -> None:
@@ -236,7 +236,7 @@ class TestSingleConnection:
         connections = {"db": 42}
 
         # Act & Assert
-        with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResourceManager"):
+        with pytest.raises(ConnectionValidationError, match="must be an instance of BaseResource"):
             _validate_connections(machine, action, connections)
 
 

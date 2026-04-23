@@ -37,8 +37,8 @@ resolve() for a missing dependency:
     - ValueError with an informative message.
 
 resolve() with rollup:
-    - rollup=True for BaseResourceManager → check_rollup_support().
-    - rollup=True for non-BaseResourceManager → no check.
+    - rollup=True for BaseResource → check_rollup_support().
+    - rollup=True for non-BaseResource → no check.
     - rollup=False → no check for any class.
     - RollupNotSupportedError for a manager without rollup support.
 
@@ -56,7 +56,7 @@ import pytest
 from action_machine.exceptions import RollupNotSupportedError
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.legacy.core import Core
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.dependency_factory import (
     DependencyFactory,
     DependencyInfo,
@@ -91,7 +91,7 @@ class _ConfigurableService:
 
 
 @meta(description="Mock manager for rollup tests", domain=TestDomain)
-class _MockResourceManager(BaseResourceManager):
+class _MockResourceManager(BaseResource):
     """Resource manager WITHOUT rollup support (default)."""
 
     def get_wrapper_class(self):
@@ -99,7 +99,7 @@ class _MockResourceManager(BaseResourceManager):
 
 
 @meta(description="Mock manager with rollup support", domain=TestDomain)
-class _RollupSupportedManager(BaseResourceManager):
+class _RollupSupportedManager(BaseResource):
     """Resource manager WITH rollup support."""
 
     def check_rollup_support(self) -> bool:
@@ -348,7 +348,7 @@ class TestResolveRollup:
         rollup=True for a manager WITHOUT rollup support → RollupNotSupportedError.
 
         _MockResourceManager does not override check_rollup_support(),
-        so the default from BaseResourceManager applies,
+        so the default from BaseResource applies,
         which raises RollupNotSupportedError.
         """
         # Arrange — factory with manager without rollup support
@@ -362,13 +362,13 @@ class TestResolveRollup:
 
     def test_rollup_true_for_non_resource_manager(self) -> None:
         """
-        rollup=True for a class that does not inherit BaseResourceManager →
+        rollup=True for a class that does not inherit BaseResource →
         rollup check is NOT performed.
 
-        check_rollup_support() applies only to BaseResourceManager instances.
+        check_rollup_support() applies only to BaseResource instances.
         Ordinary services resolve without that check.
         """
-        # Arrange — factory with ordinary service (not BaseResourceManager)
+        # Arrange — factory with ordinary service (not BaseResource)
         factory = DependencyFactory((
             DependencyInfo(cls=_SimpleService, description="Ordinary service"),
         ))

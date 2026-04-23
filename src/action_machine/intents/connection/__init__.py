@@ -10,7 +10,7 @@ __all__ = ["ConnectionInfo", "ConnectionIntent", "connection"]
 
 
 def __getattr__(name: str) -> Any:
-    """Lazy imports avoid cycles (``connection_decorator`` ↔ ``BaseResourceManager`` / ``resources``)."""
+    """Lazy imports avoid cycles (``connection_decorator`` ↔ ``BaseResource`` / ``resources``)."""
     if name == "ConnectionIntent":
         from action_machine.intents.connection.connection_intent import ConnectionIntent
 

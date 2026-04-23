@@ -70,7 +70,7 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.base_schema import BaseSchema
 from action_machine.plugin.events import GlobalStartEvent
 from action_machine.plugin.plugin import Plugin
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.dependency_factory import (
     cached_dependency_factory,
     clear_dependency_factory_cache,
@@ -169,7 +169,7 @@ class _ServiceB:
 
 
 @meta("Coordinator graph resource manager", domain=TestDomain)
-class _CoordinatorGraphResourceManager(BaseResourceManager):
+class _CoordinatorGraphResourceManager(BaseResource):
     """Resource manager **class** for ``@depends`` / ``@connection`` in graph tests only."""
 
     def get_wrapper_class(self):

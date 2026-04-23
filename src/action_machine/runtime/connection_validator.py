@@ -21,7 +21,7 @@ ARCHITECTURE / DATA FLOW
         └── ConnectionValidator.validate(action, connections, runtime)
                 │
                 ├── validates declared/actual key contracts
-                ├── validates value types (BaseResourceManager)
+                ├── validates value types (BaseResource)
                 └── returns normalized dictionary
 
 """
@@ -34,7 +34,7 @@ from action_machine.exceptions import ConnectionValidationError
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from graph.graph_coordinator import GraphCoordinator
 
 
@@ -109,19 +109,19 @@ class ConnectionValidator:
         connections: dict[str, Any],
     ) -> str | None:
         for key, value in connections.items():
-            if not isinstance(value, BaseResourceManager):
+            if not isinstance(value, BaseResource):
                 return (
                     f"Connection '{key}' for action {action_name} must be an instance "
-                    f"of BaseResourceManager, got {type(value).__name__}: {value!r}."
+                    f"of BaseResource, got {type(value).__name__}: {value!r}."
                 )
         return None
 
     def validate(
         self,
         action: BaseAction[BaseParams, BaseResult],
-        connections: dict[str, BaseResourceManager] | None,
+        connections: dict[str, BaseResource] | None,
         runtime: _ConnectionRuntime,
-    ) -> dict[str, BaseResourceManager]:
+    ) -> dict[str, BaseResource]:
         """Validate connections against declared runtime keys."""
         _ = self._coordinator
         declared_keys: set[str] = set(runtime.connection_keys)

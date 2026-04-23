@@ -39,7 +39,7 @@ from typing import Any
 from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
 from action_machine.intents.meta.resource_meta_intent import ResourceMetaIntent
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE, DOMAIN_VERTEX_TYPE
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.facet_vertex import FacetVertex
@@ -83,7 +83,7 @@ AI-CORE-BEGIN
                         is_structural=False,
                     ),
                 )
-            if issubclass(self.class_ref, BaseResourceManager):
+            if issubclass(self.class_ref, BaseResource):
                 return FacetVertex(
                     node_type="resource_manager",
                     node_name=MetaIntentInspector._make_node_name(self.class_ref),

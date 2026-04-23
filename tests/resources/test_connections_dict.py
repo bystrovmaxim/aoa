@@ -1,15 +1,15 @@
 # tests/resources/test_connections_dict.py
 """
-Tests for typing the ``connections`` mapping as ``dict[str, BaseResourceManager]``.
+Tests for typing the ``connections`` mapping as ``dict[str, BaseResource]``.
 
 Aspects and ``machine.run(..., connections=...)`` accept a plain dict at runtime;
 this module checks that a typical payload type-checks as the shared annotation.
 """
 
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 
 
-class DummyResourceManager(BaseResourceManager):
+class DummyResourceManager(BaseResource):
     """Stub resource manager for tests."""
 
     def get_wrapper_class(self):
@@ -17,7 +17,7 @@ class DummyResourceManager(BaseResourceManager):
 
 
 def test_connections_dict_annotation() -> None:
-    """A dict with key 'connection' satisfies dict[str, BaseResourceManager]."""
+    """A dict with key 'connection' satisfies dict[str, BaseResource]."""
     res = DummyResourceManager()
-    conn: dict[str, BaseResourceManager] = {"connection": res}
+    conn: dict[str, BaseResource] = {"connection": res}
     assert conn["connection"] is res

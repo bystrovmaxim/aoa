@@ -10,7 +10,7 @@ Covers two dependency components:
 
 1. **DependencyFactory** — stateless factory for instances of classes declared
    with ``@depends``. Supports default constructors and custom factory callables,
-   rollup checks for ``BaseResourceManager``, and both ``DependencyInfo`` and
+   rollup checks for ``BaseResource``, and both ``DependencyInfo`` and
    legacy dict input shapes.
 
 2. **DependencyIntent** — generic marker mixin enabling ``@depends``. Type
