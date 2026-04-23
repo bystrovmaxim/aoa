@@ -6,7 +6,7 @@ Test resource manager class for ``@depends`` / ``@connection`` (same pattern: pa
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Concrete ``BaseResourceManager`` used as the **type** in decorators, e.g.::
+Concrete ``BaseResource`` used as the **type** in decorators, e.g.::
 
     @depends(TestDbManager, description="…")
     @connection(TestDbManager, key="db", description="…")
@@ -20,7 +20,7 @@ Tests inject instances via ``connections={\"db\": mock}`` and mock ``box.resolve
 from __future__ import annotations
 
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 
 from .domains import OrdersDomain
 
@@ -29,8 +29,8 @@ from .domains import OrdersDomain
     description="Test database resource manager for order-scenario actions",
     domain=OrdersDomain,
 )
-class TestDbManager(BaseResourceManager):
+class TestDbManager(BaseResource):
     """Minimal manager; runtime tests use ``AsyncMock(spec=TestDbManager)``."""
 
-    def get_wrapper_class(self) -> type[BaseResourceManager] | None:
+    def get_wrapper_class(self) -> type[BaseResource] | None:
         return None

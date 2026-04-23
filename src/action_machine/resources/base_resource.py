@@ -1,4 +1,4 @@
-# src/action_machine/resources/base_resource_manager.py
+# src/action_machine/resources/base_resource.py
 """
 Base abstract class for all resource managers.
 
@@ -19,7 +19,7 @@ REQUIRED @meta DECORATOR
 ═══════════════════════════════════════════════════════════════════════════════
 
 Every resource manager must declare ``@meta(...)`` with description/domain.
-This is enforced through ``ResourceMetaIntent`` in ``BaseResourceManager``
+This is enforced through ``ResourceMetaIntent`` in ``BaseResource``
 inheritance and validated during metadata build.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -34,28 +34,28 @@ Default implementation raises ``RollupNotSupportedError``. Managers that support
 rollup (for example SQL managers) override the method.
 
 When ``DependencyFactory.resolve(..., rollup=True)`` builds managers, it calls
-``check_rollup_support()`` for each ``BaseResourceManager`` instance and fails
+``check_rollup_support()`` for each ``BaseResource`` instance and fails
 fast on unsupported resources.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    class BaseResourceManager(ABC, ResourceMetaIntent):
+    class BaseResource(ABC, ResourceMetaIntent):
         check_rollup_support() → raises RollupNotSupportedError
         get_wrapper_class()    → type | None
 
-    class SqlManager(BaseResourceManager):
+    class SqlResource(BaseResource):
         check_rollup_support() → True  (overrides, supports rollup)
         __init__(rollup=False)         (accepts rollup flag)
         commit()                       (with rollup=True -> rollback instead of commit)
 
     @meta(description="PostgreSQL manager", domain=WarehouseDomain)
-    class PostgresConnectionManager(SqlManager):
+    class PostgresResource(SqlResource):
         __init__(params, rollup=False) (passes rollup to super)
 
     @meta(description="Redis cache manager", domain=CacheDomain)
-    class RedisManager(BaseResourceManager):
+    class RedisManager(BaseResource):
         check_rollup_support()         (not overridden -> RollupNotSupportedError)
 
 """
@@ -66,7 +66,7 @@ from action_machine.exceptions import RollupNotSupportedError
 from action_machine.intents.meta.resource_meta_intent import ResourceMetaIntent
 
 
-class BaseResourceManager(ABC, ResourceMetaIntent):
+class BaseResource(ABC, ResourceMetaIntent):
     """
     Base abstract contract for all resource manager implementations.
     """
@@ -85,7 +85,7 @@ class BaseResourceManager(ABC, ResourceMetaIntent):
         )
 
     @abstractmethod
-    def get_wrapper_class(self) -> type["BaseResourceManager"] | None:
+    def get_wrapper_class(self) -> type["BaseResource"] | None:
         """
         Return wrapper (proxy) class for nested action propagation.
 

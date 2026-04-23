@@ -164,7 +164,7 @@ from action_machine.legacy.interchange_vertex_labels import (
     SUMMARY_ASPECT_VERTEX_TYPE,
 )
 from action_machine.model.base_action import BaseAction
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from graph.graph_coordinator import GraphCoordinator
 from mcp.server.fastmcp import FastMCP
@@ -409,7 +409,7 @@ def _make_tool_handler(
     record: McpRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
+    connections_factory: Callable[..., dict[str, BaseResource]] | None,
     gate_coordinator: GraphCoordinator,
 ) -> Callable[..., Any]:
     """
@@ -500,7 +500,7 @@ async def _execute_tool_call(
     record: McpRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
+    connections_factory: Callable[..., dict[str, BaseResource]] | None,
     has_params_mapper: bool,
     has_response_mapper: bool,
 ) -> Any:
@@ -612,7 +612,7 @@ AI-CORE-BEGIN
         self,
         machine: ActionProductMachine,
         auth_coordinator: Any,
-        connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = None,
+        connections_factory: Callable[..., dict[str, BaseResource]] | None = None,
         *,
         gate_coordinator: GraphCoordinator | None = None,
         server_name: str = "ActionMachine MCP",

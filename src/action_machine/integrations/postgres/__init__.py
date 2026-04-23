@@ -16,7 +16,7 @@ ARCHITECTURE / DATA FLOW
     App bootstrap
          |
          v
-    PostgresConnectionManager
+    PostgresResource
          |
          v
     asyncpg pool / connections
@@ -34,7 +34,7 @@ INSTALLATION
 COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``PostgresConnectionManager``: resource manager for PostgreSQL connections.
+- ``PostgresResource``: resource manager for PostgreSQL connections.
 """
 try:
     import asyncpg  # noqa: F401
@@ -44,6 +44,6 @@ except ImportError:
         "pip install aoa-run[postgres]"
     ) from None
 
-from action_machine.integrations.postgres.postgres_connection_manager import PostgresConnectionManager
+from action_machine.integrations.postgres.postgres_resource import PostgresResource
 
-__all__ = ["PostgresConnectionManager"]
+__all__ = ["PostgresResource"]

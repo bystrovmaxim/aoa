@@ -1,4 +1,4 @@
-# src/action_machine/resources/sql/wrapper_sql_manager.py
+# src/action_machine/resources/sql/wrapper_sql_resource.py
 """
 Proxy wrapper that forbids transaction control in nested scopes.
 
@@ -6,7 +6,7 @@ Proxy wrapper that forbids transaction control in nested scopes.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``WrapperSqlManager`` wraps a manager that implements ``ProtocolSqlManager``.
+``WrapperSqlResource`` wraps a manager that implements ``ProtocolSqlResource``.
 It is created when connections are propagated to child actions via
 ``ToolsBox.run()``. The wrapper forbids lifecycle operations
 (``open``, ``begin``, ``commit``, ``rollback``) for nested actions, but allows
@@ -25,9 +25,9 @@ proxy always reflects the inner manager's value.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ProtocolSqlManager (real manager, e.g. Postgres)
+    ProtocolSqlResource (real manager, e.g. Postgres)
         │
-        └── WrapperSqlManager (BaseResourceManager + Protocol)
+        └── WrapperSqlResource (BaseResource + Protocol)
                 open/begin/commit/rollback -> TransactionProhibitedError
                 execute() -> delegates to inner
                 rollup -> delegates to inner
@@ -37,11 +37,11 @@ ARCHITECTURE / DATA FLOW
 from typing import Any
 
 from action_machine.exceptions import HandleError, TransactionProhibitedError
-from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.resources.sql.protocol_sql_manager import ProtocolSqlManager
+from action_machine.resources.base_resource import BaseResource
+from action_machine.resources.sql.protocol_sql_resource import ProtocolSqlResource
 
 
-class WrapperSqlManager(BaseResourceManager, ProtocolSqlManager):
+class WrapperSqlResource(BaseResource, ProtocolSqlResource):
     """
     SQL manager proxy for nested actions.
 
@@ -49,7 +49,7 @@ class WrapperSqlManager(BaseResourceManager, ProtocolSqlManager):
     rollup visibility to the wrapped manager.
     """
 
-    def __init__(self, connection_manager: ProtocolSqlManager) -> None:
+    def __init__(self, connection_manager: ProtocolSqlResource) -> None:
         """Initialize proxy; rollup is always read from ``connection_manager``."""
         self._connection_manager = connection_manager
 
@@ -97,6 +97,6 @@ class WrapperSqlManager(BaseResourceManager, ProtocolSqlManager):
         except Exception as e:
             raise HandleError(f"SQL execution error: {e}") from e
 
-    def get_wrapper_class(self) -> type[BaseResourceManager] | None:
+    def get_wrapper_class(self) -> type[BaseResource] | None:
         """Return wrapper class for further nesting levels."""
-        return WrapperSqlManager
+        return WrapperSqlResource

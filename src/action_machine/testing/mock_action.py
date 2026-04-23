@@ -80,7 +80,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 
 
@@ -137,7 +137,7 @@ class MockAction(BaseAction[MockActionParams, MockActionResult]):  # pylint: dis
         params: BaseParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> BaseResult:
         """
         Summary aspect stub for full-pipeline compatibility.

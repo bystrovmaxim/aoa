@@ -76,7 +76,7 @@ from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.dependency_factory import DependencyFactory
 
 P = TypeVar("P", bound=BaseParams)
@@ -177,14 +177,14 @@ class ToolsBox:
         return self.__factory.resolve(cls, *args, rollup=self.__rollup, **kwargs)
 
     def _wrap_connections(
-        self, connections: dict[str, BaseResourceManager] | None,
-    ) -> dict[str, BaseResourceManager] | None:
+        self, connections: dict[str, BaseResource] | None,
+    ) -> dict[str, BaseResource] | None:
         """
         Wrap each resource with its wrapper class for child-action propagation.
         """
         if connections is None:
             return None
-        wrapped: dict[str, BaseResourceManager] = {}
+        wrapped: dict[str, BaseResource] = {}
         for key, connection in connections.items():
             wrapper_class = connection.get_wrapper_class()
             if wrapper_class is not None:
@@ -197,7 +197,7 @@ class ToolsBox:
         self,
         action_class: type[BaseAction[P, R]],
         params: P,
-        connections: dict[str, BaseResourceManager] | None = None,
+        connections: dict[str, BaseResource] | None = None,
     ) -> R:
         """
         Run child action; ``Context`` is propagated by ``run_child`` closure.

@@ -19,7 +19,7 @@ USAGE IN TESTS
 - Nesting: root Action calls ChildAction via
   box.run(ChildAction, ChildAction.Params(value="test")).
 - nest_level increases on nested runs.
-- WrapperSqlManager: connections passed into box.run() reach the child.
+- WrapperSqlResource: connections passed into box.run() reach the child.
 - Rollup: rollup propagates through box.run().
 
     async def some_aspect(self, params, state, box, connections):
@@ -48,7 +48,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 
 from .domains import SystemDomain
@@ -84,7 +84,7 @@ class ChildAction(BaseAction["ChildAction.Params", "ChildAction.Result"]):
         params: "ChildAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict:
         """
         Prefix "processed:" to params.value.
@@ -100,7 +100,7 @@ class ChildAction(BaseAction["ChildAction.Params", "ChildAction.Result"]):
         params: "ChildAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> "ChildAction.Result":
         """
         Build Result from processed_value in state.

@@ -35,7 +35,7 @@ ARCHITECTURE / DATA FLOW
 
     # @connection validation:
     #   1. issubclass(DataAction, ConnectionIntent) -> True -> OK
-    #   2. issubclass(PostgresManager, BaseResourceManager) -> True -> OK
+    #   2. issubclass(PostgresManager, BaseResource) -> True -> OK
     #   3. key="db" is non-empty string -> OK
     #   4. Key duplicates are absent -> OK
     #   5. Writes ConnectionInfo into cls._connection_info

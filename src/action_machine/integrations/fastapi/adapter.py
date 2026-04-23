@@ -133,7 +133,7 @@ from action_machine.context.context import Context
 from action_machine.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.integrations.fastapi.route_record import FastApiRouteRecord
 from action_machine.model.base_action import BaseAction
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -225,7 +225,7 @@ def _make_endpoint_with_body(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
+    connections_factory: Callable[..., dict[str, BaseResource]] | None,
 ) -> Callable[..., Any]:
     """
     Create endpoint for methods with JSON body (POST, PUT, PATCH).
@@ -294,7 +294,7 @@ def _make_endpoint_with_query(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
+    connections_factory: Callable[..., dict[str, BaseResource]] | None,
 ) -> Callable[..., Any]:
     """
     Create endpoint for GET/DELETE with query/path parameters.
@@ -389,7 +389,7 @@ def _make_endpoint_no_params(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
+    connections_factory: Callable[..., dict[str, BaseResource]] | None,
 ) -> Callable[..., Any]:
     """
     Create endpoint for actions with empty Params (no fields).
@@ -454,7 +454,7 @@ def _make_endpoint(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
+    connections_factory: Callable[..., dict[str, BaseResource]] | None,
 ) -> Callable[..., Any]:
     """
     Endpoint factory for FastAPI.
@@ -542,7 +542,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         self,
         machine: ActionProductMachine,
         auth_coordinator: Any,
-        connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = None,
+        connections_factory: Callable[..., dict[str, BaseResource]] | None = None,
         *,
         gate_coordinator: GraphCoordinator | None = None,
         title: str = "ActionMachine API",

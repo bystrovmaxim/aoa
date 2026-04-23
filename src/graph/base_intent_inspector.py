@@ -30,7 +30,7 @@ MARKER VS INSPECTOR
 Each intent is represented twice:
 
     Marker mixin (``CheckRolesIntent``, ``AspectIntent``, ``DependencyIntent[T]``, …)
-        Lives in the MRO of ``BaseAction`` (or ``BaseEntity``, ``BaseResourceManager``).
+        Lives in the MRO of ``BaseAction`` (or ``BaseEntity``, ``BaseResource``).
         Declares intent for the matching decorator grammar via ``issubclass`` checks.
         Contains no inspection logic. Does not inherit ``BaseIntentInspector``.
         Stays stable across refactors.

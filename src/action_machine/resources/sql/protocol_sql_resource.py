@@ -1,7 +1,7 @@
-# src/action_machine/resources/sql/protocol_sql_manager.py
+# src/action_machine/resources/sql/protocol_sql_resource.py
 # pylint: disable=unnecessary-ellipsis  # Protocol member bodies use ellipsis per PEP 544 stubs.
 """
-ProtocolSqlManager — structural contract for transactional SQL access.
+ProtocolSqlResource — structural contract for transactional SQL access.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -18,11 +18,11 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    ProtocolSqlManager (typing.Protocol)
+    ProtocolSqlResource (typing.Protocol)
               │
               △ structural match
               │
-    SqlManager / wrappers / integrations
+    SqlResource / wrappers / integrations
 
 """
 
@@ -30,7 +30,7 @@ from typing import Any, Protocol, runtime_checkable
 
 
 @runtime_checkable
-class ProtocolSqlManager(Protocol):
+class ProtocolSqlResource(Protocol):
     """
 AI-CORE-BEGIN
     ROLE: Typed contract for async SQL connection lifecycle and execution.
@@ -45,7 +45,7 @@ AI-CORE-END
         ...
 
     def check_rollup_support(self) -> bool:
-        """Same contract as ``BaseResourceManager.check_rollup_support`` for SQL managers."""
+        """Same contract as ``BaseResource.check_rollup_support`` for SQL managers."""
         ...
 
     async def open(self) -> None:

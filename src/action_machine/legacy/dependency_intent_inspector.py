@@ -37,7 +37,7 @@ ARCHITECTURE / DATA FLOW
 
     Coordinator materialization adds informational ``belongs_to`` from each
         synthesized **Service** stub to the ``Application`` vertex when
-    that vertex exists. ``BaseAction`` / ``BaseResourceManager`` targets reuse
+    that vertex exists. ``BaseAction`` / ``BaseResource`` targets reuse
     the canonical ``action`` / ``resource_manager`` vertices (no application edge).
 """
 
@@ -53,7 +53,7 @@ from action_machine.legacy.interchange_vertex_labels import (
     SERVICE_VERTEX_TYPE,
 )
 from action_machine.model.base_action import BaseAction
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.dependency_factory import DependencyInfo
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_intent_inspector import BaseIntentInspector
@@ -96,7 +96,7 @@ AI-CORE-BEGIN
         Interchange target kind for a ``@depends`` class.
 
         ``BaseAction`` subclasses use ``node_type`` ``\"Action\"`` so edges merge into
-        the primary action vertex. ``BaseResourceManager`` subclasses use
+        the primary action vertex. ``BaseResource`` subclasses use
         ``\"resource_manager\"`` — the same key as ``@connection``, so depends and
         connection share one canonical manager node.
 
@@ -106,7 +106,7 @@ AI-CORE-BEGIN
         """
         if issubclass(dep_cls, BaseAction):
             return ACTION_VERTEX_TYPE
-        if issubclass(dep_cls, BaseResourceManager):
+        if issubclass(dep_cls, BaseResource):
             return "resource_manager"
         return SERVICE_VERTEX_TYPE
 
@@ -128,7 +128,7 @@ AI-CORE-BEGIN
                 stub: tuple[FacetEdge, ...] = ()
                 if not issubclass(dep_cls, BaseAction) and not issubclass(
                     dep_cls,
-                    BaseResourceManager,
+                    BaseResource,
                 ):
                     stub = DependencyIntentInspector.stub_outgoing_edges_for_class_dependency()
                 dep_edges_list.append(

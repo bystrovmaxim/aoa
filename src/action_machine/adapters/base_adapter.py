@@ -86,7 +86,7 @@ from collections.abc import Callable
 from typing import Any, Self
 
 from action_machine.adapters.base_route_record import BaseRouteRecord
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from graph.graph_coordinator import GraphCoordinator
 
@@ -104,7 +104,7 @@ AI-CORE-BEGIN
         self,
         machine: ActionProductMachine,
         auth_coordinator: Any,
-        connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = None,
+        connections_factory: Callable[..., dict[str, BaseResource]] | None = None,
         *,
         gate_coordinator: GraphCoordinator | None = None,
     ) -> None:
@@ -134,7 +134,7 @@ AI-CORE-BEGIN
             if gate_coordinator is not None
             else machine.gate_coordinator
         )
-        self._connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = connections_factory
+        self._connections_factory: Callable[..., dict[str, BaseResource]] | None = connections_factory
         self._routes: list[R] = []
 
     @property
@@ -153,7 +153,7 @@ AI-CORE-BEGIN
         return self._gate_coordinator
 
     @property
-    def connections_factory(self) -> Callable[..., dict[str, BaseResourceManager]] | None:
+    def connections_factory(self) -> Callable[..., dict[str, BaseResource]] | None:
         """Returns the connections factory (or None)."""
         return self._connections_factory
 

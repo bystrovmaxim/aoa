@@ -49,7 +49,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 
 from .domains import SystemDomain
@@ -87,7 +87,7 @@ class AdminAction(BaseAction["AdminAction.Params", "AdminAction.Result"]):
         params: "AdminAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict:
         """
         Run an administrative operation on the target.
@@ -105,7 +105,7 @@ class AdminAction(BaseAction["AdminAction.Params", "AdminAction.Result"]):
         params: "AdminAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> "AdminAction.Result":
         """
         Build administrative Result.

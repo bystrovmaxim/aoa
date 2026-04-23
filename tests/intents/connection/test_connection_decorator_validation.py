@@ -7,10 +7,10 @@ from action_machine.intents.connection.connection_decorator import (
     _validate_connection_args,
     connection,
 )
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 
 
-class _Mgr(BaseResourceManager):
+class _Mgr(BaseResource):
     def get_wrapper_class(self):
         return None
 
@@ -25,7 +25,7 @@ def test_validate_connection_args_rejects_non_class_manager() -> None:
 
 
 def test_validate_connection_args_rejects_non_resource_manager() -> None:
-    with pytest.raises(TypeError, match="BaseResourceManager"):
+    with pytest.raises(TypeError, match="BaseResource"):
         _validate_connection_args(_NotManager, "db", "d")
 
 

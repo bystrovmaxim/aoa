@@ -13,7 +13,7 @@ from action_machine.intents.meta.meta_decorator import (
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 
 
 class _OrdersDomain(BaseDomain):
@@ -70,7 +70,7 @@ def test_validate_meta_target_accepts_plain_class() -> None:
 
 def test_meta_decorator_attaches_meta_info_on_resource_manager() -> None:
     @meta(description="resource meta", domain=_OrdersDomain)
-    class _MetaResourceManager(BaseResourceManager):
+    class _MetaResourceManager(BaseResource):
         def get_wrapper_class(self):
             return None
 

@@ -53,7 +53,7 @@ from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.graph_coordinator import GraphCoordinator
 
@@ -140,7 +140,7 @@ class _NoDomainAction(BaseAction["_Params", "_Result"]):
 
 
 @meta("Order Manager", domain=_OrdersDomain)
-class _OrderManager(BaseResourceManager):
+class _OrderManager(BaseResource):
     pass
 
 
@@ -148,7 +148,7 @@ class _OrderManager(BaseResourceManager):
 
 
 @meta("Manager with domain payments", domain=_PaymentsDomain)
-class _NoDomainManager(BaseResourceManager):
+class _NoDomainManager(BaseResource):
     pass
 
 

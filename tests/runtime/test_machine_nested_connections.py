@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 
 
@@ -14,12 +14,12 @@ class TestConnectionWrapping:
 
     def test_wrap_connections_with_wrapper_class(self) -> None:
         from action_machine.resources.sql import (
-            SqlManager,
-            WrapperSqlManager,
+            SqlResource,
+            WrapperSqlResource,
         )
 
-        mock_manager = MagicMock(spec=SqlManager)
-        mock_manager.get_wrapper_class.return_value = WrapperSqlManager
+        mock_manager = MagicMock(spec=SqlResource)
+        mock_manager.get_wrapper_class.return_value = WrapperSqlResource
         mock_manager.rollup = False
 
         box = ToolsBox(
@@ -35,10 +35,10 @@ class TestConnectionWrapping:
 
         assert wrapped is not None
         assert "db" in wrapped
-        assert isinstance(wrapped["db"], WrapperSqlManager)
+        assert isinstance(wrapped["db"], WrapperSqlResource)
 
     def test_wrap_connections_without_wrapper_class(self) -> None:
-        mock_manager = MagicMock(spec=BaseResourceManager)
+        mock_manager = MagicMock(spec=BaseResource)
         mock_manager.get_wrapper_class.return_value = None
 
         box = ToolsBox(

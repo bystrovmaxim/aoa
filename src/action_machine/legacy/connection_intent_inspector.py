@@ -14,7 +14,7 @@ PURPOSE
 
 Translate ``@connection`` declarations into structural ``connection`` edges from
 the **action** host to the canonical **resource_manager** vertex for the manager
-class (same ``node_name`` as ``@meta`` on ``BaseResourceManager``). Decorator
+class (same ``node_name`` as ``@meta`` on ``BaseResource``). Decorator
 fields (``key``, ``description``, …) live on **edge_meta** only; no separate
 ``…:connection`` facet nodes.
 

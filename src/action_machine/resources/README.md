@@ -4,13 +4,13 @@ Reference layout: `sql/` – protocol → concrete manager → wrapper.
 
 ## 1. Protocol
 
-Define a `typing.Protocol` (e.g. `ProtocolSqlManager`) with the surface that aspects need: lifecycle methods, `execute`, `rollup`, `check_rollup_support`. One module, no imports of concrete managers.
+Define a `typing.Protocol` (e.g. `ProtocolSqlResource`) with the surface that aspects need: lifecycle methods, `execute`, `rollup`, `check_rollup_support`. One module, no imports of concrete managers.
 
 ```python
 from typing import Any, Protocol
 
 
-class ProtocolSqlManager(Protocol):
+class ProtocolSqlResource(Protocol):
     @property
     def rollup(self) -> bool: ...
 
@@ -29,10 +29,10 @@ class ProtocolSqlManager(Protocol):
 
 ## 2. Concrete Manager
 
-Subclass `BaseResourceManager` and implement the protocol (e.g. `SqlManager`). Provide real behaviour (connect, transactions, queries). Implement `get_wrapper_class()` → returns the wrapper class used for nested actions.
+Subclass `BaseResource` and implement the protocol (e.g. `SqlResource`). Provide real behaviour (connect, transactions, queries). Implement `get_wrapper_class()` → returns the wrapper class used for nested actions.
 
 ```python
-class SqlManager(BaseResourceManager, ProtocolSqlManager):
+class SqlResource(BaseResource, ProtocolSqlResource):
     def __init__(self, rollup: bool = False):
         self._rollup = rollup
 
@@ -43,8 +43,8 @@ class SqlManager(BaseResourceManager, ProtocolSqlManager):
     def check_rollup_support(self) -> bool:
         return True
 
-    def get_wrapper_class(self) -> type["BaseResourceManager"] | None:
-        return WrapperSqlManager
+    def get_wrapper_class(self) -> type["BaseResource"] | None:
+        return WrapperSqlResource
 
     async def open(self) -> None: ...
 
@@ -59,11 +59,11 @@ class SqlManager(BaseResourceManager, ProtocolSqlManager):
 
 ## 3. Wrapper
 
-Subclass `BaseResourceManager` and implement the same protocol. **Do not subclass the concrete manager**. Hold an inner `Protocol…` instance; `rollup` and `check_rollup_support` delegate to it; `execute` delegates; `open` / `begin` / `commit` / `rollback` raise `TransactionProhibitedError`. `get_wrapper_class()` returns the wrapper class again for deeper nesting.
+Subclass `BaseResource` and implement the same protocol. **Do not subclass the concrete manager**. Hold an inner `Protocol…` instance; `rollup` and `check_rollup_support` delegate to it; `execute` delegates; `open` / `begin` / `commit` / `rollback` raise `TransactionProhibitedError`. `get_wrapper_class()` returns the wrapper class again for deeper nesting.
 
 ```python
-class WrapperSqlManager(BaseResourceManager, ProtocolSqlManager):
-    def __init__(self, inner: ProtocolSqlManager):
+class WrapperSqlResource(BaseResource, ProtocolSqlResource):
+    def __init__(self, inner: ProtocolSqlResource):
         self._inner = inner
 
     @property
@@ -89,7 +89,7 @@ class WrapperSqlManager(BaseResourceManager, ProtocolSqlManager):
         raise TransactionProhibitedError("Rollback not allowed in nested action")
 
     def get_wrapper_class(self):
-        return WrapperSqlManager
+        return WrapperSqlResource
 ```
 
 ## Why a Wrapper?
@@ -105,14 +105,14 @@ Child actions receive connections via `ToolsBox.run(..., connections)`. The runt
 
 ```text
 Root action:
-    manager = SqlManager(rollup=False)
+    manager = SqlResource(rollup=False)
     connections = {"db": manager}
     await run(...)   # passes connections to child action
 
        │
        ▼
 ToolsBox.run() wraps each manager:
-    wrapped = WrapperSqlManager(manager)
+    wrapped = WrapperSqlResource(manager)
     connections = {"db": wrapped}
     calls child action
 
@@ -127,8 +127,8 @@ Child action:
        │
        ▼
 If child action itself runs a deeper action:
-    wrapped.get_wrapper_class() → WrapperSqlManager
-    new action gets WrapperSqlManager(wrapped)
+    wrapped.get_wrapper_class() → WrapperSqlResource
+    new action gets WrapperSqlResource(wrapped)
     and so on – transaction control always blocked, rollup propagated through the chain.
 ```
 

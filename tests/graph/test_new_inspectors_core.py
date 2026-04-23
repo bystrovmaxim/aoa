@@ -30,7 +30,7 @@ from action_machine.intents.meta.meta_decorator import meta
 from action_machine.legacy.connection_intent_inspector import ConnectionIntentInspector
 from action_machine.legacy.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.legacy.meta_intent_inspector import MetaIntentInspector
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.graph_coordinator import GraphCoordinator
 
@@ -67,7 +67,7 @@ class _NoDependsAction(DependencyIntent[object]):
     pass
 
 
-class _DbManager(BaseResourceManager):
+class _DbManager(BaseResource):
     def get_wrapper_class(self):
         return None
 

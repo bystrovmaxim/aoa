@@ -5,7 +5,7 @@ Tests for DependencyFactory — stateless factory for creating dependency instan
 DependencyFactory accepts a tuple of DependencyInfo (from coordinator snapshots) and
 provides resolve() to create instances. Each resolve() call creates a new
 instance — no caching. Supports custom factory functions, rollup checking for
-BaseResourceManager subclasses, and both DependencyInfo tuples and legacy
+BaseResource subclasses, and both DependencyInfo tuples and legacy
 dict-based input formats.
 
 Scenarios covered:
@@ -13,8 +13,8 @@ Scenarios covered:
     - resolve() with custom factory calls the factory function.
     - resolve() passes *args and **kwargs to factory/constructor.
     - resolve() for unregistered class raises ValueError.
-    - rollup=True on a BaseResourceManager subclass calls check_rollup_support.
-    - rollup=True on a non-BaseResourceManager is ignored (no error).
+    - rollup=True on a BaseResource subclass calls check_rollup_support.
+    - rollup=True on a non-BaseResource is ignored (no error).
     - has() returns True for registered and False for unregistered classes.
     - get_all_classes() returns all registered dependency classes.
     - Legacy dict format is accepted and converted to DependencyInfo.
@@ -25,7 +25,7 @@ Scenarios covered:
 
 import pytest
 
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.dependency_factory import DependencyFactory, DependencyInfo
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ class _NoArgService:
     pass
 
 
-class _FakeResourceManager(BaseResourceManager):
+class _FakeResourceManager(BaseResource):
     """A fake resource manager that supports rollup."""
 
     def get_wrapper_class(self):
@@ -55,7 +55,7 @@ class _FakeResourceManager(BaseResourceManager):
         return True
 
 
-class _UnsupportedManager(BaseResourceManager):
+class _UnsupportedManager(BaseResource):
     """A resource manager that does NOT support rollup."""
 
     def get_wrapper_class(self):
@@ -198,7 +198,7 @@ class TestResolveUnregistered:
 
 
 class TestRollupSupport:
-    """Verify rollup checking for BaseResourceManager instances."""
+    """Verify rollup checking for BaseResource instances."""
 
     def test_rollup_true_calls_check(self) -> None:
         """rollup=True on a resource manager calls check_rollup_support."""
@@ -211,12 +211,12 @@ class TestRollupSupport:
         assert isinstance(instance, _FakeResourceManager)
 
     def test_rollup_true_on_non_manager_is_safe(self) -> None:
-        """rollup=True on a non-BaseResourceManager is silently ignored."""
+        """rollup=True on a non-BaseResource is silently ignored."""
         factory = DependencyFactory((
             DependencyInfo(cls=_SimpleService),
         ))
 
-        # Should not raise — _SimpleService is not a BaseResourceManager
+        # Should not raise — _SimpleService is not a BaseResource
         instance = factory.resolve(_SimpleService, rollup=True)
         assert isinstance(instance, _SimpleService)
 

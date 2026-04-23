@@ -53,7 +53,7 @@ from action_machine.context.context import Context
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
@@ -73,7 +73,7 @@ class BaseActionMachine(ABC):
         context: Context,
         action: BaseAction[P, R],
         params: P,
-        connections: dict[str, BaseResourceManager] | None = None,
+        connections: dict[str, BaseResource] | None = None,
     ) -> R:
         """
         Execute action and return typed result.
@@ -89,7 +89,7 @@ class BaseActionMachine(ABC):
         action: BaseAction[P, R],
         params: P,
         resources: dict[type[Any], Any] | None,
-        connections: dict[str, BaseResourceManager] | None,
+        connections: dict[str, BaseResource] | None,
         nested_level: int,
         rollup: bool,
     ) -> R:

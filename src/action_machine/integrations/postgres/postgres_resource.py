@@ -1,4 +1,4 @@
-# src/action_machine/integrations/postgres/postgres_connection_manager.py
+# src/action_machine/integrations/postgres/postgres_resource.py
 """
 Concrete PostgreSQL connection manager implementation.
 
@@ -6,12 +6,12 @@ Concrete PostgreSQL connection manager implementation.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``PostgresConnectionManager`` is a ``SqlManager`` implementation
+``PostgresResource`` is a ``SqlResource`` implementation
 backed by ``asyncpg``. It performs direct database operations: connect,
 transaction control, and SQL execution.
 
 Connection-state policy for child actions is enforced by
-``WrapperSqlManager``; this class handles low-level DB interaction.
+``WrapperSqlResource``; this class handles low-level DB interaction.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -20,7 +20,7 @@ ARCHITECTURE / DATA FLOW
     machine/action
          |
          v
-    PostgresConnectionManager
+    PostgresResource
       | open()    -> asyncpg.connect(...)
       | begin()   -> "BEGIN"
       | execute() -> SQL statement
@@ -45,10 +45,10 @@ from typing import Any
 import asyncpg
 
 from action_machine.exceptions import HandleError
-from action_machine.resources.sql import SqlManager
+from action_machine.resources.sql import SqlResource
 
 
-class PostgresConnectionManager(SqlManager):
+class PostgresResource(SqlResource):
     """
 AI-CORE-BEGIN
     ROLE: Concrete SQL manager for Postgres runtime operations.
