@@ -150,3 +150,22 @@ def test_default_coordinator_factory_builds() -> None:
     coord = Core.create_coordinator()
     assert coord.is_built is True
     assert coord.graph_node_count > 0
+
+
+def test_node_graph_coordinator_property_is_lazy_and_cached(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[object] = []
+    sentinel = object()
+
+    def _factory() -> object:
+        calls.append(object())
+        return sentinel
+
+    monkeypatch.setattr("graph.graph_coordinator.create_node_graph_coordinator", _factory)
+    coord = GraphCoordinator()
+
+    assert calls == []
+    assert coord._node_graph_coordinator is sentinel  # pylint: disable=protected-access
+    assert coord._node_graph_coordinator is sentinel  # pylint: disable=protected-access
+    assert len(calls) == 1

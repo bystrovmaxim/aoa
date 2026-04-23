@@ -6,40 +6,28 @@ ActionMachine resource connection package.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-This package defines public resource-connection contracts used by actions:
-base manager abstraction, ``@connection`` declaration API, marker intent, and
-the runtime ``connections`` mapping (``dict[str, BaseResource]``).
+This package defines public resource contracts used by actions:
+base manager abstraction, resource marker intent, and the runtime
+``connections`` mapping (``dict[str, BaseResource]``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    Action class + @connection(...)
+    Action class
               |
               v
-    class-level _connection_info scratch
+    runtime ``connections`` mapping
               |
               v
-    ConnectionIntentInspector at GraphCoordinator.build()
-              |
-              v
-    Facet snapshot / graph metadata
-              |
-              v
-    ActionProductMachine._check_connections()
-              |
-              v
-    Aspect methods receive connections["key"] manager instances
+    Aspect methods receive manager instances
 
 """
 
-from action_machine.intents.connection.connection_decorator import ConnectionInfo, connection
 from action_machine.intents.connection.connection_intent import ConnectionIntent
 from action_machine.resources.base_resource import BaseResource
 
 __all__ = [
     "BaseResource",
-    "ConnectionInfo",
     "ConnectionIntent",
-    "connection",
 ]
