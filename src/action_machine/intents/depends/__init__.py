@@ -1,7 +1,7 @@
 # src/action_machine/intents/depends/__init__.py
-"""Class-level ``@depends`` decorator for ``DependencyIntent``."""
+"""Class-level ``@depends`` decorator for ``DependsIntent``."""
 
-from action_machine.intents.depends.dependency_intent import DependencyIntent
 from action_machine.intents.depends.depends_decorator import depends
+from action_machine.intents.depends.depends_intent import DependsIntent
 
-__all__ = ["DependencyIntent", "depends"]
+__all__ = ["DependsIntent", "depends"]

@@ -29,7 +29,7 @@ MARKER VS INSPECTOR
 
 Each intent is represented twice:
 
-    Marker mixin (``CheckRolesIntent``, ``AspectIntent``, ``DependencyIntent[T]``, …)
+    Marker mixin (``CheckRolesIntent``, ``AspectIntent``, ``DependsIntent[T]``, …)
         Lives in the MRO of ``BaseAction`` (or ``BaseEntity``, ``BaseResource``).
         Declares intent for the matching decorator grammar via ``issubclass`` checks.
         Contains no inspection logic. Does not inherit ``BaseIntentInspector``.
@@ -209,7 +209,7 @@ EXAMPLE — INSPECTOR WITH EDGES
 ═══════════════════════════════════════════════════════════════════════════════
 
     class DependencyIntentInspector(BaseIntentInspector):
-        _target_intent = DependencyIntent
+        _target_intent = DependsIntent
 
         @classmethod
         def _subclasses_recursive(cls) -> list[type]:

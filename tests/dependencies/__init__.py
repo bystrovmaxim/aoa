@@ -13,18 +13,18 @@ Covers two dependency components:
    rollup checks for ``BaseResource``, and both ``DependencyInfo`` and
    legacy dict input shapes.
 
-2. **DependencyIntent** — generic marker mixin enabling ``@depends``. Type
+2. **DependsIntent** — generic marker mixin enabling ``@depends``. Type
    parameter ``T`` is the **bound**: every declared dependency must be a subclass
-   of that bound. ``_extract_bound`` reads ``T`` from ``DependencyIntent[T]`` in
+   of that bound. ``_extract_bound`` reads ``T`` from ``DependsIntent[T]`` in
    ``__init_subclass__``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 TEST MODULES
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``test_dependency_intent.py`` — ``_extract_bound`` for ``DependencyIntent[object]``,
-  ``DependencyIntent[concrete_type]``, bound inheritance from parent, class
-  without ``DependencyIntent`` -> ``object``, ``get_depends_bound()``,
+- ``test_depends_intent.py`` — ``_extract_bound`` for ``DependsIntent[object]``,
+  ``DependsIntent[concrete_type]``, bound inheritance from parent, class
+  without ``DependsIntent`` -> ``object``, ``get_depends_bound()``,
   integration with ``BaseAction`` (``PingAction``, ``FullAction``).
 
 - ``test_depends_decorator_validation.py`` — ``@depends`` argument and target validation.

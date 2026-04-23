@@ -22,7 +22,7 @@ ARCHITECTURE / DATA FLOW
     class BaseAction[P, R](
         ABC,
         CheckRolesIntent,
-        DependencyIntent[object],
+        DependsIntent[object],
         CheckerIntent,
         AspectIntent,
         ConnectionIntent,             <- marker: enables @connection

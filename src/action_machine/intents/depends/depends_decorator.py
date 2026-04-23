@@ -96,7 +96,7 @@ def depends(
         1. ``cls`` is a class.
         2. ``klass`` is a subclass of the dependency bound (``object`` if the
            class does not define ``get_depends_bound``, e.g. without
-           ``DependencyIntent`` in the MRO).
+           ``DependsIntent`` in the MRO).
         3. No duplicate declarations.
 
         Then appends ``DependencyInfo`` to ``cls._depends_info``.

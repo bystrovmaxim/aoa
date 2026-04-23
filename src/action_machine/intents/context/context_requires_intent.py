@@ -19,7 +19,7 @@ via ``issubclass``:
 
     ActionMetaIntent       -> @meta
     CheckRolesIntent             -> @check_roles
-    DependencyIntent       -> @depends
+    DependsIntent       -> @depends
     CheckerIntent          -> result_* checkers
     AspectIntent           -> @regular_aspect / @summary_aspect
     CompensateIntent       -> @compensate
@@ -38,7 +38,7 @@ ARCHITECTURE / DATA FLOW
         ABC,
         ActionMetaIntent,
         CheckRolesIntent,
-        DependencyIntent[object],
+        DependsIntent[object],
         CheckerIntent,
         AspectIntent,
         CompensateIntent,
