@@ -50,15 +50,14 @@ from action_machine.exceptions import AuthorizationError, ConnectionValidationEr
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
-from tests.scenarios.domain_model import (
-    FullAction,
-    NotificationService,
-    OrdersDbManager,
-    PaymentService,
-    PingAction,
-    SimpleAction,
-)
+from tests.scenarios.domain_model import FullAction, OrdersDbManager, PingAction, SimpleAction
 from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
+from tests.scenarios.domain_model.services import (
+    NotificationService,
+    NotificationServiceResource,
+    PaymentService,
+    PaymentServiceResource,
+)
 
 # ═════════════════════════════════════════════════════════════════════════════
 #Fittings
@@ -150,7 +149,10 @@ class TestSyncBasicExecution:
                 context=context_manager,
                 action=action,
                 params=params,
-                resources={PaymentService: mock_payment, NotificationService: mock_notification},
+                resources={
+                    PaymentServiceResource: PaymentServiceResource(mock_payment),
+                    NotificationServiceResource: NotificationServiceResource(mock_notification),
+                },
                 connections={"db": mock_db},
                 nested_level=0,
                 rollup=False,

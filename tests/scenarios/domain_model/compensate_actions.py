@@ -54,7 +54,14 @@ from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 
 from .domains import OrdersDomain
-from .services import InventoryService, PaymentService, SagaCompensateTraceService
+from .services import (
+    InventoryServiceResource,
+    PaymentServiceResource,
+    SagaCompensateTraceServiceResource,
+    default_inventory_service_resource,
+    default_payment_service_resource,
+    default_saga_compensate_trace_service_resource,
+)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Shared Params / Result for compensating Actions
@@ -90,8 +97,16 @@ class CompensateTestResult(BaseResult):
     domain=OrdersDomain,
 )
 @check_roles(NoneRole)
-@depends(PaymentService, description="Payment processing service")
-@depends(InventoryService, description="Inventory service")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payment processing service",
+)
+@depends(
+    InventoryServiceResource,
+    factory=default_inventory_service_resource,
+    description="Inventory service",
+)
 class CompensatedOrderAction(
     BaseAction[CompensateTestParams, CompensateTestResult],
 ):
@@ -124,7 +139,7 @@ class CompensatedOrderAction(
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         """Charge funds via PaymentService."""
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -146,7 +161,7 @@ class CompensatedOrderAction(
         """
         if state_after is None:
             return
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Reserve inventory")
@@ -159,7 +174,7 @@ class CompensatedOrderAction(
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         """Reserve stock via InventoryService."""
-        inventory = box.resolve(InventoryService)
+        inventory = box.resolve(InventoryServiceResource).service
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
@@ -181,7 +196,7 @@ class CompensatedOrderAction(
         """
         if state_after is None:
             return
-        inventory = box.resolve(InventoryService)
+        inventory = box.resolve(InventoryServiceResource).service
         await inventory.unreserve(state_after["reservation_id"])
 
     @regular_aspect("Finalize order")
@@ -223,7 +238,11 @@ class CompensatedOrderAction(
     domain=OrdersDomain,
 )
 @check_roles(NoneRole)
-@depends(PaymentService, description="Payment processing service")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payment processing service",
+)
 class PartialCompensateAction(
     BaseAction[CompensateTestParams, CompensateTestResult],
 ):
@@ -249,7 +268,7 @@ class PartialCompensateAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -265,7 +284,7 @@ class PartialCompensateAction(
     ) -> None:
         if state_after is None:
             return
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Log operation")
@@ -313,8 +332,16 @@ class PartialCompensateAction(
     domain=OrdersDomain,
 )
 @check_roles(NoneRole)
-@depends(PaymentService, description="Payment processing service")
-@depends(InventoryService, description="Inventory service")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payment processing service",
+)
+@depends(
+    InventoryServiceResource,
+    factory=default_inventory_service_resource,
+    description="Inventory service",
+)
 class CompensateErrorAction(
     BaseAction[CompensateTestParams, CompensateTestResult],
 ):
@@ -343,7 +370,7 @@ class CompensateErrorAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -369,7 +396,7 @@ class CompensateErrorAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        inventory = box.resolve(InventoryService)
+        inventory = box.resolve(InventoryServiceResource).service
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
@@ -386,7 +413,7 @@ class CompensateErrorAction(
         """Compensator that succeeds (does not raise)."""
         if state_after is None:
             return
-        inventory = box.resolve(InventoryService)
+        inventory = box.resolve(InventoryServiceResource).service
         await inventory.unreserve(state_after["reservation_id"])
 
     @regular_aspect("Finalize with error")
@@ -421,8 +448,16 @@ class CompensateErrorAction(
     domain=OrdersDomain,
 )
 @check_roles(NoneRole)
-@depends(PaymentService, description="Payment processing service")
-@depends(InventoryService, description="Inventory service")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payment processing service",
+)
+@depends(
+    InventoryServiceResource,
+    factory=default_inventory_service_resource,
+    description="Inventory service",
+)
 class CompensateAndOnErrorAction(
     BaseAction[CompensateTestParams, CompensateTestResult],
 ):
@@ -447,7 +482,7 @@ class CompensateAndOnErrorAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -463,7 +498,7 @@ class CompensateAndOnErrorAction(
     ) -> None:
         if state_after is None:
             return
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Reserve inventory")
@@ -475,7 +510,7 @@ class CompensateAndOnErrorAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        inventory = box.resolve(InventoryService)
+        inventory = box.resolve(InventoryServiceResource).service
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
@@ -491,7 +526,7 @@ class CompensateAndOnErrorAction(
     ) -> None:
         if state_after is None:
             return
-        inventory = box.resolve(InventoryService)
+        inventory = box.resolve(InventoryServiceResource).service
         await inventory.unreserve(state_after["reservation_id"])
 
     @regular_aspect("Finalize with error")
@@ -608,7 +643,11 @@ class FirstRegularFailsOnErrorAction(
     domain=OrdersDomain,
 )
 @check_roles(NoneRole)
-@depends(PaymentService, description="Payment processing service")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payment processing service",
+)
 class SecondRegularFailsOnErrorAction(
     BaseAction[CompensateTestParams, CompensateTestResult],
 ):
@@ -628,7 +667,7 @@ class SecondRegularFailsOnErrorAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -644,7 +683,7 @@ class SecondRegularFailsOnErrorAction(
     ) -> None:
         if state_after is None:
             return
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Second fails")
@@ -695,8 +734,16 @@ class SecondRegularFailsOnErrorAction(
     domain=OrdersDomain,
 )
 @check_roles(NoneRole)
-@depends(PaymentService, description="Payment processing service")
-@depends(InventoryService, description="Inventory service")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payment processing service",
+)
+@depends(
+    InventoryServiceResource,
+    factory=default_inventory_service_resource,
+    description="Inventory service",
+)
 class SummaryFailsOnErrorStateAction(
     BaseAction[CompensateTestParams, CompensateTestResult],
 ):
@@ -716,7 +763,7 @@ class SummaryFailsOnErrorStateAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -732,7 +779,7 @@ class SummaryFailsOnErrorStateAction(
     ) -> None:
         if state_after is None:
             return
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Reserve inventory")
@@ -744,7 +791,7 @@ class SummaryFailsOnErrorStateAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        inventory = box.resolve(InventoryService)
+        inventory = box.resolve(InventoryServiceResource).service
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
@@ -760,7 +807,7 @@ class SummaryFailsOnErrorStateAction(
     ) -> None:
         if state_after is None:
             return
-        inventory = box.resolve(InventoryService)
+        inventory = box.resolve(InventoryServiceResource).service
         await inventory.unreserve(state_after["reservation_id"])
 
     @regular_aspect("Finalize order")
@@ -813,8 +860,16 @@ class SummaryFailsOnErrorStateAction(
     domain=OrdersDomain,
 )
 @check_roles(NoneRole)
-@depends(PaymentService, description="Payment processing service")
-@depends(SagaCompensateTraceService, description="Test trace for second compensator")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payment processing service",
+)
+@depends(
+    SagaCompensateTraceServiceResource,
+    factory=default_saga_compensate_trace_service_resource,
+    description="Test trace for second compensator",
+)
 class CheckerRejectionSagaAction(
     BaseAction[CompensateTestParams, CompensateTestResult],
 ):
@@ -835,7 +890,7 @@ class CheckerRejectionSagaAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -851,7 +906,7 @@ class CheckerRejectionSagaAction(
     ) -> None:
         if state_after is None:
             return
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Second step — invalid token length")
@@ -875,7 +930,7 @@ class CheckerRejectionSagaAction(
         connections: dict[str, BaseResource],
         error: Exception,
     ) -> None:
-        trace = box.resolve(SagaCompensateTraceService)
+        trace = box.resolve(SagaCompensateTraceServiceResource).service
         await trace.record_second_rollback(state_after_none=(state_after is None))
 
     @summary_aspect("Unreachable summary")
@@ -899,7 +954,11 @@ class CheckerRejectionSagaAction(
     domain=OrdersDomain,
 )
 @check_roles(NoneRole)
-@depends(PaymentService, description="Payment processing service")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payment processing service",
+)
 class CompensateWithContextAction(
     BaseAction[CompensateTestParams, CompensateTestResult],
 ):
@@ -925,7 +984,7 @@ class CompensateWithContextAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -949,7 +1008,7 @@ class CompensateWithContextAction(
         _ = ctx.get(Ctx.User.user_id)
         if state_after is None:
             return
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Finalize with error")

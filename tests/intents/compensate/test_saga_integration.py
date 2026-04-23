@@ -24,7 +24,10 @@ from tests.scenarios.domain_model.compensate_actions import (
     CompensateWithContextAction,
 )
 from tests.scenarios.domain_model.compensate_plugins import SagaObserverPlugin
-from tests.scenarios.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.services import (
+    InventoryServiceResource,
+    PaymentServiceResource,
+)
 
 # ═════════════════════════════════════════════════════════════════════════════
 #Fittings
@@ -48,8 +51,8 @@ def e2e_bench(
     """TestBench with mocks and SagaObserverPlugin - for E2E scenarios."""
     return TestBench(
         mocks={
-            PaymentService: mock_payment,
-            InventoryService: mock_inventory,
+            PaymentServiceResource: PaymentServiceResource(mock_payment),
+            InventoryServiceResource: InventoryServiceResource(mock_inventory),
         },
         plugins=[saga_observer],
         log_coordinator=AsyncMock(),
@@ -170,7 +173,7 @@ class TestFullSagaE2E:
         """The compensator with @context_requires gets the ContextView with user_id."""
         # ── Arrange ──
         bench = TestBench(
-            mocks={PaymentService: mock_payment},
+            mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
             plugins=[saga_observer],
             log_coordinator=AsyncMock(),
         ).with_user(user_id="ctx_user_42", roles=(StubTesterRole,))

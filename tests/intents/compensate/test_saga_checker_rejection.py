@@ -14,8 +14,9 @@ from tests.scenarios.domain_model.compensate_actions import (
 )
 from tests.scenarios.domain_model.compensate_plugins import SagaObserverPlugin
 from tests.scenarios.domain_model.services import (
-    PaymentService,
+    PaymentServiceResource,
     SagaCompensateTraceService,
+    SagaCompensateTraceServiceResource,
 )
 
 
@@ -39,8 +40,8 @@ def checker_reject_bench(
 ) -> TestBench:
     return TestBench(
         mocks={
-            PaymentService: mock_payment,
-            SagaCompensateTraceService: mock_trace,
+            PaymentServiceResource: PaymentServiceResource(mock_payment),
+            SagaCompensateTraceServiceResource: SagaCompensateTraceServiceResource(mock_trace),
         },
         plugins=[saga_observer],
         log_coordinator=AsyncMock(),

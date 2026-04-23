@@ -46,7 +46,10 @@ from tests.scenarios.domain_model.compensate_actions import (
     PartialCompensateAction,
 )
 from tests.scenarios.domain_model.compensate_plugins import SagaObserverPlugin
-from tests.scenarios.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.services import (
+    InventoryServiceResource,
+    PaymentServiceResource,
+)
 
 # ═════════════════════════════════════════════════════════════════════════════
 #Fixture: TestBench with SagaObserverPlugin
@@ -72,8 +75,8 @@ def observed_bench(
     CompensatedOrderAction, CompensateErrorAction, PartialCompensateAction."""
     return TestBench(
         mocks={
-            PaymentService: mock_payment,
-            InventoryService: mock_inventory,
+            PaymentServiceResource: PaymentServiceResource(mock_payment),
+            InventoryServiceResource: InventoryServiceResource(mock_inventory),
         },
         plugins=[saga_observer],
         log_coordinator=AsyncMock(),

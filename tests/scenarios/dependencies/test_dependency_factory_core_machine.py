@@ -13,7 +13,8 @@ There is no instance cache — the factory behaves as a pure function.
 
 The factory is built with ``cached_dependency_factory(coordinator, cls)`` from
 the coordinator's ``depends`` snapshot and passed into ToolsBox; aspects then
-obtain dependencies via box.resolve(PaymentService).
+obtain dependencies via ``box.resolve(PaymentServiceResource)`` (the
+``@depends`` resource class; use ``.service`` for the client when applicable).
 
 ═══════════════════════════════════════════════════════════════════════════════
 SCENARIOS COVERED
@@ -64,9 +65,9 @@ from action_machine.runtime.dependency_factory import (
 from action_machine.runtime.dependency_info import DependencyInfo
 from tests.scenarios.domain_model import (
     FullAction,
-    NotificationService,
+    NotificationServiceResource,
     OrdersDbManager,
-    PaymentService,
+    PaymentServiceResource,
     PingAction,
 )
 from tests.scenarios.domain_model.domains import TestDomain
@@ -454,17 +455,17 @@ class TestDomainIntegration:
         ``cached_dependency_factory(coordinator, FullAction)`` includes PaymentService
         and NotificationService.
 
-        FullAction declares @depends(PaymentService), @depends(NotificationService),
-        and @depends(OrdersDbManager). The coordinator collects metadata and builds a
-        DependencyFactory with those classes.
+        FullAction declares ``@depends`` on ``PaymentServiceResource``,
+        ``NotificationServiceResource``, and ``OrdersDbManager``. The coordinator
+        collects metadata and builds a DependencyFactory with those classes.
         """
         # Arrange — coordinator registering FullAction
         coordinator = Core.create_coordinator()
         factory = cached_dependency_factory(coordinator, FullAction)
 
         # Act & Assert — services and resource manager type registered
-        assert factory.has(PaymentService)
-        assert factory.has(NotificationService)
+        assert factory.has(PaymentServiceResource)
+        assert factory.has(NotificationServiceResource)
         assert factory.has(OrdersDbManager)
 
     def test_ping_action_factory_is_empty(self) -> None:
@@ -483,16 +484,16 @@ class TestDomainIntegration:
 
     def test_factory_creates_payment_service(self) -> None:
         """
-        factory.resolve(PaymentService) creates a PaymentService instance.
+        factory.resolve(PaymentServiceResource) creates a PaymentServiceResource.
 
-        Real resolve via default constructor, no mocks.
+        Real resolve via default factory from ``@depends``, no mocks.
         """
         # Arrange — factory from coordinator
         coordinator = Core.create_coordinator()
         factory = cached_dependency_factory(coordinator, FullAction)
 
         # Act — resolve real service
-        service = factory.resolve(PaymentService)
+        service = factory.resolve(PaymentServiceResource)
 
         # Assert — instance created
-        assert isinstance(service, PaymentService)
+        assert isinstance(service, PaymentServiceResource)

@@ -532,9 +532,6 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
     from action_machine.domain.graph_model.entity_graph_node_inspector import (
         EntityGraphNodeInspector,
     )
-    from action_machine.resources.graph_model.resource_graph_node_inspector import (
-        ResourceGraphNodeInspector,
-    )
     from action_machine.model.graph_model.action_graph_node_inspector import (
         ActionGraphNodeInspector,
     )
@@ -543,6 +540,9 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
     )
     from action_machine.model.graph_model.result_graph_node_inspector import (
         ResultGraphNodeInspector,
+    )
+    from action_machine.resources.graph_model.resource_graph_node_inspector import (
+        ResourceGraphNodeInspector,
     )
 
     return [

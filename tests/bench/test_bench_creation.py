@@ -36,7 +36,7 @@ from unittest.mock import AsyncMock
 
 from action_machine.testing import TestBench
 from graph.graph_coordinator import GraphCoordinator
-from tests.scenarios.domain_model import PaymentService
+from tests.scenarios.domain_model.services import PaymentService, PaymentServiceResource
 
 
 class TestWithoutArguments:
@@ -65,17 +65,17 @@ class TestWithMocks:
     """User-supplied mocks are normalized once at construction."""
 
     def test_regular_object_stored_as_is(self) -> None:
-        """Plain ``PaymentService`` instance is stored unchanged for direct calls."""
-        payment = PaymentService()
+        """Plain ``PaymentServiceResource`` instance is stored unchanged for direct calls."""
+        payment = PaymentServiceResource(PaymentService())
 
-        b = TestBench(mocks={PaymentService: payment})
+        b = TestBench(mocks={PaymentServiceResource: payment})
 
-        assert b._prepared_mocks[PaymentService] is payment
+        assert b._prepared_mocks[PaymentServiceResource] is payment
 
     def test_async_mock_stored_as_is(self) -> None:
         """``AsyncMock`` is recognized as ``Mock`` before callable wrapping."""
         mock = AsyncMock(spec=PaymentService)
 
-        b = TestBench(mocks={PaymentService: mock})
+        b = TestBench(mocks={PaymentServiceResource: mock})
 
-        assert b._prepared_mocks[PaymentService] is mock
+        assert b._prepared_mocks[PaymentServiceResource] is mock

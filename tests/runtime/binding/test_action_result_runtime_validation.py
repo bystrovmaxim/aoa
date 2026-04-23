@@ -268,6 +268,13 @@ class _SyntheticSummaryProbeAction(BaseAction[ParamsStub, ResultStub]):
     pass
 
 
+def test_synthetic_summary_when_missing_aspect_base_result_only() -> None:
+    """Use module-level action class: nested ``BaseAction[P, R]`` under pytest assert rewrite can break ``R``."""
+    r = synthetic_summary_result_when_missing_aspect(_SyntheticSummaryProbeAction)
+    assert type(r) is ResultStub
+    assert r.ok is True
+
+
 def test_synthetic_summary_when_missing_aspect_result_stub() -> None:
     r = synthetic_summary_result_when_missing_aspect(_SyntheticSummaryProbeAction)
     assert type(r) is ResultStub

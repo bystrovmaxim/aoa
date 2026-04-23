@@ -59,8 +59,9 @@ TestBench prepares mocks through ``_prepare_mock()`` using these rules
 2. ``BaseAction`` -> as is (real action instance).
 3. ``unittest.mock.Mock`` -> as is (mock object for ``box.resolve()``).
    Includes ``Mock``, ``MagicMock``, ``AsyncMock`` and subclasses.
-   Critical rule: ``AsyncMock(spec=PaymentService)`` is passed directly into
-   ``resources`` so ``box.resolve(PaymentService)`` returns the mock.
+   Critical rule: ``AsyncMock(spec=PaymentClient)`` is keyed by the declared
+   ``@depends`` resource class (e.g. ``PaymentServiceResource``) so
+   ``box.resolve(PaymentServiceResource)`` returns the mock or wrapper.
 4. ``BaseResult`` -> wrapped in ``MockAction(result=value)``.
 5. ``callable`` -> wrapped in ``MockAction(side_effect=value)``.
 6. anything else -> as is (for ``box.resolve()``).
@@ -124,7 +125,7 @@ Each fluent method returns a NEW ``TestBench`` instance:
 
     from action_machine.testing import StubTesterRole
 
-    bench = TestBench(mocks={PaymentService: mock})
+    bench = TestBench(mocks={PaymentServiceResource: mock})
     admin_bench = bench.with_user(user_id="admin", roles=(StubTesterRole,))
     # bench and admin_bench are different objects.
     # bench is unchanged after with_user call.
@@ -232,13 +233,36 @@ def _prepare_all_mocks(mocks: dict[type, Any]) -> dict[type, Any]:
     return {cls: _prepare_mock(val) for cls, val in mocks.items()}
 
 
-def _reset_all_mocks(mocks: dict[type, Any]) -> None:
+def _reset_mock_tree(value: Any) -> None:
     """
-    Reset state of all ``Mock`` objects in mapping.
+    Clear call history on unittest mocks, including doubles held on resources.
+
+    Handles: bare ``Mock`` / ``AsyncMock``, ``ExternalServiceResource.service``,
+    and ``WrapperExternalServiceResource`` chains (``_inner``).
     """
+    if isinstance(value, Mock):
+        value.reset_mock()
+        return
+    service = getattr(value, "service", None)
+    if isinstance(service, Mock):
+        service.reset_mock()
+        return
+    inner = getattr(value, "_inner", None)
+    if inner is not None:
+        _reset_mock_tree(inner)
+
+
+def _reset_all_mocks(mocks: dict[type, Any] | None) -> None:
+    """
+    Reset state of all unittest mocks reachable from ``mocks`` values.
+
+    Used between async and sync ``TestBench.run()`` so assertions see only the
+    final machine's side effects.
+    """
+    if not mocks:
+        return
     for value in mocks.values():
-        if isinstance(value, Mock):
-            value.reset_mock()
+        _reset_mock_tree(value)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -424,8 +448,10 @@ class TestBench:
             rollup=rollup,
         )
 
-        # Reset mocks between runs
+        # Reset mocks between runs (``_prepared_mocks`` is usually the same
+        # instances as ``_mocks``, but reset both maps for robustness).
         _reset_all_mocks(self._mocks)
+        _reset_all_mocks(self._prepared_mocks)
 
         # Run 2: sync machine
         sync_machine = self._build_sync_machine()

@@ -6,8 +6,9 @@ Dependency service types for the test domain model.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Service interfaces used by `@depends`. Tests replace implementations with
-`AsyncMock(spec=ServiceClass)` and call them via `box.resolve(...)`.
+Service interfaces used as ``.service`` clients. ``@depends`` targets are
+``*Resource`` wrappers; tests pass ``AsyncMock(spec=Client)`` into
+``ResourceClass(mock)`` and map ``{ResourceClass: instance}`` on ``TestBench``.
 
 Key rule: every method used by aspects/compensators must be declared here,
 otherwise spec mocks raise `AttributeError`.
@@ -25,23 +26,23 @@ EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     async def charge_aspect(self, params, state, box, connections):
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         txn_id = await payment.charge(params.amount, params.currency)
         return {"txn_id": txn_id}
 
     async def rollback_charge_compensate(self, params, state_before,
                                          state_after, box, connections, error):
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         await payment.refund(state_after["txn_id"])
 
     async def reserve_aspect(self, params, state, box, connections):
-        inventory = box.resolve(InventoryService)
+        inventory = box.resolve(InventoryServiceResource).service
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
     # Tests
     mock_payment = AsyncMock(spec=PaymentService)
-    bench = TestBench(mocks={PaymentService: mock_payment})
+    bench = TestBench(mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)})
 
 ═══════════════════════════════════════════════════════════════════════════════
 LIMITATIONS
@@ -49,7 +50,19 @@ LIMITATIONS
 
 This module defines only interfaces and intentionally raises
 `NotImplementedError`. Behavior lives in mocks/fixtures.
+
+Concrete ``@depends`` targets are ``*Resource`` subclasses of
+:class:`~action_machine.resources.external_service.external_service_resource.ExternalServiceResource`
+wrapping each client type (formal model: external services are resources).
 """
+
+
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.resources.external_service.external_service_resource import (
+    ExternalServiceResource,
+)
+
+from .domains import TestDomain
 
 
 class PaymentService:
@@ -93,6 +106,11 @@ class PaymentService:
         raise NotImplementedError("PaymentService.refund() is not implemented")
 
 
+@meta(description="Payment service resource (test domain)", domain=TestDomain)
+class PaymentServiceResource(ExternalServiceResource[PaymentService]):
+    """Resource manager wrapping :class:`PaymentService` for ``@depends`` / mocks."""
+
+
 class NotificationService:
     """
     Notification service.
@@ -113,6 +131,11 @@ class NotificationService:
             True if the send succeeded.
         """
         raise NotImplementedError("NotificationService.send() is not implemented")
+
+
+@meta(description="Notification service resource (test domain)", domain=TestDomain)
+class NotificationServiceResource(ExternalServiceResource[NotificationService]):
+    """Resource manager wrapping :class:`NotificationService` for ``@depends`` / mocks."""
 
 
 class InventoryService:
@@ -154,6 +177,11 @@ class InventoryService:
         raise NotImplementedError("InventoryService.unreserve() is not implemented")
 
 
+@meta(description="Inventory service resource (test domain)", domain=TestDomain)
+class InventoryServiceResource(ExternalServiceResource[InventoryService]):
+    """Resource manager wrapping :class:`InventoryService` for ``@depends`` / mocks."""
+
+
 class SagaCompensateTraceService:
     """
     Test helper: compensators call this so tests assert rollback order and args.
@@ -166,3 +194,24 @@ class SagaCompensateTraceService:
         raise NotImplementedError(
             "SagaCompensateTraceService.record_second_rollback() is not implemented",
         )
+
+
+@meta(description="Saga compensate trace resource (test domain)", domain=TestDomain)
+class SagaCompensateTraceServiceResource(ExternalServiceResource[SagaCompensateTraceService]):
+    """Resource manager wrapping :class:`SagaCompensateTraceService` for ``@depends`` / mocks."""
+
+
+def default_payment_service_resource() -> PaymentServiceResource:
+    return PaymentServiceResource(PaymentService())
+
+
+def default_notification_service_resource() -> NotificationServiceResource:
+    return NotificationServiceResource(NotificationService())
+
+
+def default_inventory_service_resource() -> InventoryServiceResource:
+    return InventoryServiceResource(InventoryService())
+
+
+def default_saga_compensate_trace_service_resource() -> SagaCompensateTraceServiceResource:
+    return SagaCompensateTraceServiceResource(SagaCompensateTraceService())

@@ -95,7 +95,16 @@ from .error_actions import (
 from .error_plugins import ErrorCounterPlugin, ErrorObserverPlugin
 from .full_action import FullAction
 from .ping_action import PingAction
-from .services import InventoryService, NotificationService, PaymentService
+from .services import (
+    InventoryService,
+    InventoryServiceResource,
+    NotificationService,
+    NotificationServiceResource,
+    PaymentService,
+    PaymentServiceResource,
+    SagaCompensateTraceService,
+    SagaCompensateTraceServiceResource,
+)
 from .simple_action import SimpleAction
 from .test_db_manager import OrdersDbManager
 
@@ -121,16 +130,21 @@ __all__ = [
     "HandlerRaisesAction",
     # Services
     "InventoryService",
+    "InventoryServiceResource",
     "MultiErrorAction",
     "NoErrorHandlerAction",
     "NotificationService",
+    "NotificationServiceResource",
     "OrdersDbManager",
     # Domains
     "OrdersDomain",
     "PartialCompensateAction",
     "PaymentService",
+    "PaymentServiceResource",
     # Base actions
     "PingAction",
+    "SagaCompensateTraceService",
+    "SagaCompensateTraceServiceResource",
     "SagaObserverPlugin",
     "SimpleAction",
     "SystemDomain",

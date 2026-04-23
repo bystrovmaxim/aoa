@@ -63,7 +63,7 @@ async def test_full_action_calls_payment_service(
     """
     FullAction calls PaymentService.charge() with amount and currency from params.
 
-    Ensures process_payment resolves PaymentService via box.resolve() and passes arguments.
+    Ensures process_payment resolves the payment resource and passes arguments.
     """
     # Arrange
     action = FullAction()
@@ -87,7 +87,7 @@ async def test_full_action_calls_notification_service(
     """
     FullAction calls NotificationService.send() with user_id and message.
 
-    Ensures build_result resolves NotificationService and sends order-created notification.
+    Ensures build_result resolves the notification resource and sends order-created notification.
     """
     # Arrange
     action = FullAction()

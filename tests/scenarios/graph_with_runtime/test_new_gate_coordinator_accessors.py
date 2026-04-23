@@ -23,7 +23,10 @@ from graph.facet_edge import FacetEdge
 from graph.facet_vertex import FacetVertex
 from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model import FullAction
-from tests.scenarios.domain_model.services import NotificationService, PaymentService
+from tests.scenarios.domain_model.services import (
+    NotificationServiceResource,
+    PaymentServiceResource,
+)
 
 
 class _DemoEntity:
@@ -312,8 +315,8 @@ def test_coordinator_get_dependency_classes_and_connections() -> None:
     deps_snap = coordinator.get_snapshot(FullAction, "depends")
     assert deps_snap is not None
     classes = tuple(d.cls for d in deps_snap.dependencies)
-    assert PaymentService in classes
-    assert NotificationService in classes
+    assert PaymentServiceResource in classes
+    assert NotificationServiceResource in classes
     conn_snap = coordinator.get_snapshot(FullAction, "connections")
     assert conn_snap is not None
     conns = tuple(conn_snap.connections)
