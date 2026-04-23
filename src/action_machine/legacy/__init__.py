@@ -122,10 +122,6 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "action_machine.legacy.sensitive_intent_inspector",
         "SensitiveIntentInspector",
     ),
-    "SubscriptionIntentInspector": (
-        "action_machine.legacy.subscription_intent_inspector",
-        "SubscriptionIntentInspector",
-    ),
 }
 
 __all__ = sorted(_LAZY_EXPORTS)
