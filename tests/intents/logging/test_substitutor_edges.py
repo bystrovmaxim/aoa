@@ -10,12 +10,12 @@ Scenarios covered:
 import pytest
 
 from action_machine.context.context import Context
+from action_machine.exceptions import LogTemplateError
 from action_machine.logging.expression_evaluator import ExpressionEvaluator
 from action_machine.logging.log_scope import LogScope
 from action_machine.logging.variable_substitutor import VariableSubstitutor
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
-from action_machine.exceptions import LogTemplateError
 
 
 @pytest.fixture()

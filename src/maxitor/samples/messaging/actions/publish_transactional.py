@@ -22,18 +22,40 @@ from action_machine.intents.sensitive import sensitive
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from maxitor.samples.messaging import NotificationGateway
-from maxitor.samples.messaging.dependencies import SmtpTransportStub, WebhookFanoutStub
 from maxitor.samples.messaging.domain import MessagingDomain
 from maxitor.samples.messaging.resources import MessagingDeadLetterStore, OutboxPrimaryDatabase
+from maxitor.samples.messaging.resources.notification_gateway import (
+    NotificationGateway,
+    NotificationGatewayResource,
+)
+from maxitor.samples.messaging.resources.smtp_transport import (
+    SmtpTransportStub,
+    SmtpTransportStubResource,
+)
+from maxitor.samples.messaging.resources.webhook_fanout import (
+    WebhookFanoutStub,
+    WebhookFanoutStubResource,
+)
 from maxitor.samples.roles import EditorRole
 
 
 @meta(description="Publish through outbox with full graph facets (messaging demo)", domain=MessagingDomain)
 @check_roles(EditorRole)
-@depends(NotificationGateway, description="In-app notifier")
-@depends(SmtpTransportStub, description="SMTP transport")
-@depends(WebhookFanoutStub, description="Webhook fan-out")
+@depends(
+    NotificationGatewayResource,
+    factory=lambda: NotificationGatewayResource(NotificationGateway()),
+    description="In-app notifier",
+)
+@depends(
+    SmtpTransportStubResource,
+    factory=lambda: SmtpTransportStubResource(SmtpTransportStub()),
+    description="SMTP transport",
+)
+@depends(
+    WebhookFanoutStubResource,
+    factory=lambda: WebhookFanoutStubResource(WebhookFanoutStub()),
+    description="Webhook fan-out",
+)
 @connection(OutboxPrimaryDatabase, key="outbox_db", description="Outbox primary")
 @connection(MessagingDeadLetterStore, key="dlq", description="DLQ store")
 class PublishTransactionalOutboxAction(
@@ -77,10 +99,10 @@ class PublishTransactionalOutboxAction(
         box: Any,
         connections: Any,
     ) -> dict[str, Any]:
-        notifier = box.resolve(NotificationGateway)
-        await notifier.send(params.body)
-        smtp = box.resolve(SmtpTransportStub)
-        receipt = await smtp.send_raw("ops@example.com", params.body)
+        notifier = box.resolve(NotificationGatewayResource)
+        await notifier.service.send(params.body)
+        smtp = box.resolve(SmtpTransportStubResource)
+        receipt = await smtp.service.send_raw("ops@example.com", params.body)
         oid = f"OB-{params.topic}-1"
         return {"outbound_id": oid, "smtp_receipt": receipt}
 
@@ -95,8 +117,8 @@ class PublishTransactionalOutboxAction(
         error: Exception,
     ) -> None:
         if state_after is not None:
-            notifier = box.resolve(NotificationGateway)
-            await notifier.send(f"UNDO:{state_after.outbound_id}")
+            notifier = box.resolve(NotificationGatewayResource)
+            await notifier.service.send(f"UNDO:{state_after.outbound_id}")
 
     @on_error(ValueError, description="Envelope validation failed")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)

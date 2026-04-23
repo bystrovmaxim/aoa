@@ -23,18 +23,40 @@ from action_machine.intents.sensitive import sensitive
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from maxitor.samples.billing import PaymentGateway
-from maxitor.samples.billing.dependencies import LedgerArchiveService, TaxQuoteService
 from maxitor.samples.billing.domain import BillingDomain
 from maxitor.samples.billing.resources import BillingReadReplica, BillingWarehouse
+from maxitor.samples.billing.resources.ledger_archive import (
+    LedgerArchiveService,
+    LedgerArchiveServiceResource,
+)
+from maxitor.samples.billing.resources.payment_gateway import (
+    PaymentGateway,
+    PaymentGatewayResource,
+)
+from maxitor.samples.billing.resources.tax_quote import (
+    TaxQuoteService,
+    TaxQuoteServiceResource,
+)
 from maxitor.samples.roles import EditorRole
 
 
 @meta(description="Settle invoice with full graph facets (billing demo)", domain=BillingDomain)
 @check_roles(EditorRole)
-@depends(PaymentGateway, description="Card capture")
-@depends(LedgerArchiveService, description="Ledger append")
-@depends(TaxQuoteService, description="Tax rate lookup")
+@depends(
+    PaymentGatewayResource,
+    factory=lambda: PaymentGatewayResource(PaymentGateway()),
+    description="Card capture",
+)
+@depends(
+    LedgerArchiveServiceResource,
+    factory=lambda: LedgerArchiveServiceResource(LedgerArchiveService()),
+    description="Ledger append",
+)
+@depends(
+    TaxQuoteServiceResource,
+    factory=lambda: TaxQuoteServiceResource(TaxQuoteService()),
+    description="Tax rate lookup",
+)
 @connection(BillingWarehouse, key="warehouse", description="Billing warehouse")
 @connection(BillingReadReplica, key="replica", description="Read replica")
 class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettleAction.Result"]):
@@ -75,9 +97,9 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         box: Any,
         connections: Any,
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentGateway)
+        payment = box.resolve(PaymentGatewayResource)
         cents = float(params.gross_cents)
-        txn = await payment.charge(cents / 100.0)
+        txn = await payment.service.charge(cents / 100.0)
         return {"capture_txn": txn, "captured_cents": cents}
 
     @compensate("capture_aspect", "Void capture on failure")
@@ -91,8 +113,8 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         error: Exception,
     ) -> None:
         if state_after is not None:
-            payment = box.resolve(PaymentGateway)
-            await payment.refund(state_after.capture_txn)
+            payment = box.resolve(PaymentGatewayResource)
+            await payment.service.refund(state_after.capture_txn)
 
     @on_error(ValueError, description="Invoice validation failed")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)

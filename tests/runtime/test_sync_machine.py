@@ -46,8 +46,8 @@ import pytest
 
 from action_machine.context.context import Context
 from action_machine.context.user_info import UserInfo
-from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.exceptions import AuthorizationError, ConnectionValidationError
+from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
 from tests.scenarios.domain_model import (

@@ -40,6 +40,7 @@ import time
 from typing import Any, Protocol, cast
 
 from action_machine.context.context_view import ContextView
+from action_machine.exceptions import ValidationFieldError
 from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
 from action_machine.legacy.binding.action_result_binding import (
     bind_pipeline_result_to_action,
@@ -53,7 +54,6 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.exceptions import ValidationFieldError
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox

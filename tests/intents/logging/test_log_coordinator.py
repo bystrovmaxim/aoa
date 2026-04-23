@@ -58,6 +58,7 @@ from typing import Any
 import pytest
 
 from action_machine.context.context import Context
+from action_machine.exceptions import LogTemplateError
 from action_machine.logging.base_logger import BaseLogger
 from action_machine.logging.channel import Channel, channel_mask_label
 from action_machine.logging.level import Level, level_label
@@ -66,7 +67,6 @@ from action_machine.logging.log_scope import LogScope
 from action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
-from action_machine.exceptions import LogTemplateError
 
 
 def _valid_emit_var(**extra: Any) -> dict[str, Any]:

@@ -49,12 +49,12 @@ import pytest
 from pydantic import ConfigDict, Field
 
 from action_machine.context.context import Context
+from action_machine.exceptions import LogTemplateError
 from action_machine.logging.log_scope import LogScope
 from action_machine.logging.variable_substitutor import VariableSubstitutor
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.base_state import BaseState
-from action_machine.exceptions import LogTemplateError
 from action_machine.testing.stubs import ContextStub
 
 # ─────────────────────────────────────────────────────────────────────────────
