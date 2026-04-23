@@ -111,11 +111,9 @@ class BaseAction[P: BaseParams, R: BaseResult](
 AI-CORE-BEGIN
     ROLE: Public base type for all async/sync actions.
     CONTRACT: Subclasses end with ``Action``; carry marker mixins; use required decorators.
-    INVARIANTS: Stateless at instance level regarding metadata; ``_full_class_name`` cache on class.
+    INVARIANTS: Stateless at instance level regarding metadata.
     AI-CORE-END
 """
-
-    _full_class_name: str | None = None
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Enforce the ``"Action"`` name suffix for every concrete subclass."""
@@ -129,17 +127,8 @@ AI-CORE-BEGIN
             )
 
     def get_full_class_name(self) -> str:
-        """
-        Return ``module.qualname`` for this action class, cached on the class.
-
-        Same rules as :meth:`TypeIntrospection.full_qualname` (e.g. bare
-        ``__qualname__`` in ``__main__`` / missing module). Used by plugins
-        (e.g. regex filters) to decide which hooks apply.
-        """
-        cls = self.__class__
-        if cls._full_class_name is None:
-            cls._full_class_name = TypeIntrospection.full_qualname(cls)
-        return cls._full_class_name
+        """``module.qualname`` via :meth:`TypeIntrospection.full_qualname` (plugins, logging)."""
+        return TypeIntrospection.full_qualname(self.__class__)
 
 
 # ---------------------------------------------------------------------------
