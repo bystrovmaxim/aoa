@@ -86,6 +86,7 @@ from action_machine.intents.depends.depends_eligible import DependsEligible
 from action_machine.intents.depends.depends_intent import DependsIntent
 from action_machine.intents.meta.meta_intent import MetaIntent
 from action_machine.intents.on_error.on_error_intent import OnErrorIntent
+from action_machine.introspection_tools.type_introspection import TypeIntrospection
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.exceptions import NamingSuffixError
@@ -131,12 +132,14 @@ AI-CORE-BEGIN
         """
         Return ``module.qualname`` for this action class, cached on the class.
 
-        Used by plugins (e.g. regex filters) to decide which hooks apply.
+        Same rules as :meth:`TypeIntrospection.full_qualname` (e.g. bare
+        ``__qualname__`` in ``__main__`` / missing module). Used by plugins
+        (e.g. regex filters) to decide which hooks apply.
         """
-        if self.__class__._full_class_name is None:
-            module: str = self.__class__.__module__ or ""
-            self.__class__._full_class_name = f"{module}.{self.__class__.__qualname__}"
-        return self.__class__._full_class_name
+        cls = self.__class__
+        if cls._full_class_name is None:
+            cls._full_class_name = TypeIntrospection.full_qualname(cls)
+        return cls._full_class_name
 
 
 # ---------------------------------------------------------------------------
