@@ -17,12 +17,10 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
 from graph.node_graph_coordinator import NodeGraphCoordinator
 from maxitor.samples.build import _MODULES
-from maxitor.viz2.interchange_graph_visualizer import (
-    all_axis_graph_node_inspectors,
-    export_interchange_axes_graph_html,
-)
+from maxitor.viz2.interchange_graph_visualizer import export_interchange_axes_graph_html
 
 
 def build_sample_node_graph_coordinator() -> NodeGraphCoordinator:

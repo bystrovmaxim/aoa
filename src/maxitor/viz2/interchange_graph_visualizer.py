@@ -51,8 +51,8 @@ from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAs
 from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
+from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
 from graph.edge_relationship import Composition
 from graph.node_graph_coordinator import NodeGraphCoordinator
 from maxitor.viz2.visualizer_icons import svg_data_uri_for_vertex_icon
@@ -509,50 +509,6 @@ def interchange_pygraph_for_g6(coordinator: NodeGraphCoordinator) -> Any:
             t = id_to_idx[edge.target_node_id]
             out.add_edge(s, t, interchange_edge_to_visual_dict(edge))
     return out
-
-
-def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
-    """
-    Built-in axis inspectors for **sample** / demo HTML.
-
-    Includes ``Domain``, ``Resource``, ``Entity``, and ``Action`` so :class:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode`
-    ``domain`` / ``params`` / ``result`` edges resolve to existing vertices. This module does not
-    inject missing nodes; :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.build` still
-    validates every ``target_node_id``.
-    """
-    # pylint: disable=import-outside-toplevel
-    from action_machine.auth.graph_model.role_graph_node_inspector import (
-        RoleGraphNodeInspector,
-    )
-    from action_machine.domain.graph_model.domain_graph_node_inspector import (
-        DomainGraphNodeInspector,
-    )
-    from action_machine.domain.graph_model.entity_graph_node_inspector import (
-        EntityGraphNodeInspector,
-    )
-    from action_machine.model.graph_model.action_graph_node_inspector import (
-        ActionGraphNodeInspector,
-    )
-    from action_machine.model.graph_model.params_graph_node_inspector import (
-        ParamsGraphNodeInspector,
-    )
-    from action_machine.model.graph_model.result_graph_node_inspector import (
-        ResultGraphNodeInspector,
-    )
-    from action_machine.resources.graph_model.resource_graph_node_inspector import (
-        ResourceGraphNodeInspector,
-    )
-
-    return [
-        ParamsGraphNodeInspector(),
-        ResultGraphNodeInspector(),
-        RoleGraphNodeInspector(),
-        DomainGraphNodeInspector(),
-        ResourceGraphNodeInspector(),
-        EntityGraphNodeInspector(),
-        ActionGraphNodeInspector(),
-    ]
-
 
 def generate_interchange_g6_html(  # pylint: disable=too-many-statements
     coordinator: NodeGraphCoordinator,
