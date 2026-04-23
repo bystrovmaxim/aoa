@@ -59,16 +59,22 @@ Edge case: empty inspector list completes without error.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 
 import rustworkx as rx
 
+from action_machine.introspection_tools.type_introspection import TypeIntrospection
+from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.model.graph_model.regular_aspect_graph_node import (
+    RegularAspectGraphNode,
+)
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
+from graph.protocol_node_graph_coordinator import ProtocolNodeGraphCoordinator
 
 
-class NodeGraphCoordinator:
+class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
     """
     AI-CORE-BEGIN
     ROLE: Build rustworkx graph from ``BaseGraphNode`` contributions.
@@ -78,10 +84,11 @@ class NodeGraphCoordinator:
     AI-CORE-END
     """
 
-    __slots__ = ("_built", "_rx_graph")
+    __slots__ = ("_built", "_node_index", "_rx_graph")
 
     def __init__(self) -> None:
         self._built: bool = False
+        self._node_index: dict[str, int] = {}
         self._rx_graph: rx.PyDiGraph | None = None
 
     def build(self, inspectors: Sequence[BaseGraphNodeInspector[Any]]) -> None:
@@ -134,6 +141,41 @@ class NodeGraphCoordinator:
         """
         return tuple(self.rx_graph.nodes())
 
+    def get_node_by_id(
+        self,
+        node_id: str,
+        node_type: str | None = None,
+    ) -> BaseGraphNode[object]:
+        """Return the graph node identified by ``node_id``."""
+        node_idx = self._node_index.get(node_id)
+        if node_idx is None:
+            msg = f"Node {node_id!r} was not found in the node graph."
+            raise LookupError(msg)
+        node = cast(BaseGraphNode[object], self.rx_graph[node_idx])
+        if node_type is not None and node.node_type != node_type:
+            article = "an" if node_type[:1].lower() in "aeiou" else "a"
+            msg = f"Node {node_id!r} is not {article} {node_type} node; got {node.node_type!r}."
+            raise InvalidGraphError(msg)
+        return node
+
+    def get_regular_aspect_nodes(
+        self,
+        action_cls: type,
+    ) -> list[RegularAspectGraphNode]:
+        """Return regular-aspect nodes linked from the action node for ``action_cls``."""
+        action_node_id = TypeIntrospection.full_qualname(action_cls)
+        action_node = self.get_node_by_id(action_node_id, ActionGraphNode.NODE_TYPE)
+        regular_nodes: list[RegularAspectGraphNode] = []
+        for edge in action_node.edges:
+            if edge.target_node_type != RegularAspectGraphNode.NODE_TYPE:
+                continue
+            target = self.get_node_by_id(
+                edge.target_node_id,
+                RegularAspectGraphNode.NODE_TYPE,
+            )
+            regular_nodes.append(cast(RegularAspectGraphNode, target))
+        return regular_nodes
+
     def _inspector_label(self, inspector: BaseGraphNodeInspector[Any]) -> str:
         return type(inspector).__qualname__
 
@@ -141,12 +183,7 @@ class NodeGraphCoordinator:
         self,
         inspectors: Sequence[BaseGraphNodeInspector[Any]],
     ) -> list[tuple[BaseGraphNode[Any], str]]:
-        """
-        Concatenate ``get_graph_nodes()`` from every inspector in order.
-
-        Each entry is ``(node, inspector_qualname)`` so a later merge step can report
-        :class:`~graph.exceptions.DuplicateNodeError` with both sources.
-        """
+        """Collect ``(node, inspector_qualname)`` pairs from each inspector in order."""
         out: list[tuple[BaseGraphNode[Any], str]] = []
         for insp in inspectors:
             label = self._inspector_label(insp)
@@ -216,4 +253,5 @@ class NodeGraphCoordinator:
             for edge in node.edges:
                 tidx = id_to_idx[edge.target_node_id]
                 g.add_edge(sidx, tidx, edge)
+        self._node_index = id_to_idx
         self._rx_graph = g
