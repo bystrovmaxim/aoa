@@ -7,7 +7,7 @@ from __future__ import annotations
 import pytest
 
 import graph.graph_coordinator as gate_coordinator_mod
-from action_machine.model.exceptions import CyclicDependencyError
+from action_machine.exceptions import CyclicDependencyError
 from graph.graph_edge import GraphEdge
 from graph.graph_vertex import GraphVertex
 

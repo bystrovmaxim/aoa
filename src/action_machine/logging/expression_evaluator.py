@@ -73,7 +73,7 @@ from pydantic import BaseModel
 from simpleeval import EvalWithCompoundTypes, NameNotDefined
 
 from action_machine.logging.masking import mask_value
-from action_machine.model.exceptions import LogTemplateError
+from action_machine.exceptions import LogTemplateError
 
 # Regex for finding {iif(...)} in templates.
 # Important: intentionally does NOT support nested template-level iif.

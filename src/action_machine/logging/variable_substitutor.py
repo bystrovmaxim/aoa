@@ -49,7 +49,7 @@ from action_machine.logging.log_scope import LogScope
 from action_machine.logging.masking import mask_value
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
-from action_machine.model.exceptions import LogTemplateError
+from action_machine.exceptions import LogTemplateError
 from action_machine.runtime.navigation import _SENTINEL, DotPathNavigator
 
 # ---------------------------------------------------------------------------

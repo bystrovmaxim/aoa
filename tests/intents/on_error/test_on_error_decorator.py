@@ -16,7 +16,7 @@ inside test methods and are not part of the working domain model.
 import pytest
 
 from action_machine.intents.on_error import on_error
-from action_machine.model.exceptions import NamingSuffixError
+from action_machine.exceptions import NamingSuffixError
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Successful decoration

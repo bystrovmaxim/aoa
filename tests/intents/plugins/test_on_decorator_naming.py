@@ -7,7 +7,7 @@ Violations raise ``NamingPrefixError``.
 
 import pytest
 
-from action_machine.model.exceptions import NamingPrefixError
+from action_machine.exceptions import NamingPrefixError
 
 
 class TestPluginOnPrefix:

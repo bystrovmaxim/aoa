@@ -63,7 +63,7 @@ ARCHITECTURE / DATA FLOW
 from abc import ABC, abstractmethod
 
 from action_machine.intents.meta.resource_meta_intent import ResourceMetaIntent
-from action_machine.model.exceptions import RollupNotSupportedError
+from action_machine.exceptions import RollupNotSupportedError
 
 
 class BaseResourceManager(ABC, ResourceMetaIntent):

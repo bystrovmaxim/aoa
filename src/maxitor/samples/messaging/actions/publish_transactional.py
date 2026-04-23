@@ -22,9 +22,9 @@ from action_machine.intents.sensitive import sensitive
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
+from maxitor.samples.messaging import NotificationGateway
 from maxitor.samples.messaging.dependencies import SmtpTransportStub, WebhookFanoutStub
 from maxitor.samples.messaging.domain import MessagingDomain
-from maxitor.samples.messaging.notification_gateway import NotificationGateway
 from maxitor.samples.messaging.resources import MessagingDeadLetterStore, OutboxPrimaryDatabase
 from maxitor.samples.roles import EditorRole
 
