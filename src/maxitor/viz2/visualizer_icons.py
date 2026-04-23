@@ -10,6 +10,7 @@ Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.model.gr
 :class:`~action_machine.model.graph_model.params_graph_node.ParamsGraphNode`, :class:`~action_machine.model.graph_model.result_graph_node.ResultGraphNode`,
 :class:`~action_machine.model.graph_model.field_graph_node.FieldGraphNode`, :class:`~action_machine.model.graph_model.property_field_graph_node.PropertyFieldGraphNode`,
 :class:`~action_machine.domain.graph_model.entity_graph_node.EntityGraphNode`, :class:`~action_machine.domain.graph_model.domain_graph_node.DomainGraphNode`,
+:class:`~action_machine.resources.graph_model.resource_graph_node.ResourceGraphNode`,
 and :class:`~action_machine.auth.graph_model.role_graph_node.RoleGraphNode`. Other keys are facet-only strings (no graph-node class).
 """
 
@@ -36,6 +37,7 @@ from action_machine.model.graph_model.regular_aspect_graph_node import (
 )
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
+from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
 
 # ``ErrorHandler``: amber disk + darker amber glyph (single hue family; avoids neon yellow / fire-engine red).
 _ERROR_HANDLER_INNER_STROKE: str = "#B45309"
@@ -130,7 +132,7 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<circle cx="12" cy="12" r="9" /> '
         '<circle cx="12" cy="12" r="4" />'
     ),
-    "resource_manager": (
+    ResourceGraphNode.NODE_TYPE: (
         '<line x1="22" x2="2" y1="12" y2="12" /> '
         '<path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /> '
         '<line x1="6" x2="6.01" y1="16" y2="16" /> '
@@ -216,6 +218,9 @@ VERTEX_TYPE_LUCIDE_INNER_SVG[SERVICE_VERTEX_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG
     "dependency"
 ]
 VERTEX_TYPE_LUCIDE_INNER_SVG[RoleGraphNode.NODE_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG["role_class"]
+VERTEX_TYPE_LUCIDE_INNER_SVG["resource_manager"] = VERTEX_TYPE_LUCIDE_INNER_SVG[
+    ResourceGraphNode.NODE_TYPE
+]
 
 # Scale Lucide paths (native 24×24) about the center so strokes sit inside the disk with margin.
 _ICON_INNER_SCALE: float = 0.58
