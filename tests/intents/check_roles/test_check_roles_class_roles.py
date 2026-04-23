@@ -20,7 +20,7 @@ from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.model.exceptions import NamingSuffixError
+from action_machine.exceptions import NamingSuffixError
 from tests.scenarios.domain_model.domains import TestDomain
 
 

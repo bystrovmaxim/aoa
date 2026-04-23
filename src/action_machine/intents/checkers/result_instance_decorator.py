@@ -47,7 +47,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.model.exceptions import ValidationFieldError
+from action_machine.exceptions import ValidationFieldError
 
 
 class FieldInstanceChecker:

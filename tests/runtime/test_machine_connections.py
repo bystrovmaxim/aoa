@@ -55,7 +55,7 @@ from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.model.exceptions import ConnectionValidationError
+from action_machine.exceptions import ConnectionValidationError
 from action_machine.resources.base_resource_manager import BaseResourceManager
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import FullAction, NotificationService, PaymentService, PingAction, TestDbManager

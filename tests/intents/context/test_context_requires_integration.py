@@ -38,7 +38,7 @@ from action_machine.intents.on_error import on_error
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.model.exceptions import ContextAccessError
+from action_machine.exceptions import ContextAccessError
 from action_machine.testing import TestBench
 from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole

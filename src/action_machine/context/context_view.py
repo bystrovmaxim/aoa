@@ -53,7 +53,7 @@ If field does not exist, ``resolve()`` returns ``None``.
 
 from typing import Any
 
-from action_machine.model.exceptions import ContextAccessError
+from action_machine.exceptions import ContextAccessError
 
 
 class ContextView:

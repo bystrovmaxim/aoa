@@ -7,8 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 This package exports the base model contracts used by actions:
-``BaseAction``, ``BaseParams``, ``BaseResult``, ``BaseSchema``, ``BaseState``,
-and shared model-level exceptions.
+``BaseAction``, ``BaseParams``, ``BaseResult``, ``BaseSchema``, ``BaseState``.
+Framework exceptions live in :mod:`action_machine.exceptions`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -36,21 +36,19 @@ Happy path:
     defines strongly typed params/state/result models for one action.
 
 Edge case:
-    A model validation or contract misuse raises an exception re-exported here
-    from ``action_machine.model.exceptions``.
+    A model validation or contract misuse raises an exception from
+    :mod:`action_machine.exceptions`.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from action_machine.model import exceptions as _exceptions
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.base_state import BaseState
-from action_machine.model.exceptions import *  # noqa: F403
 from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
@@ -104,7 +102,6 @@ __all__ = [
     "ParamsGraphNodeInspector",
     "RegularAspectGraphNode",
     "ResultGraphNode",
-    "SummaryAspectGraphNode",
     "ResultGraphNodeInspector",
-    *_exceptions.__all__,
+    "SummaryAspectGraphNode",
 ]

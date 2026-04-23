@@ -8,7 +8,7 @@
 
 from maxitor.samples.messaging.domain import MessagingDomain
 from maxitor.samples.messaging.entities import OutboxMessageEntity
-from maxitor.samples.messaging.notification_gateway import NotificationGateway
+from maxitor.samples.messaging.resources.notification_gateway import NotificationGateway
 
 _shared_notifier = NotificationGateway(channel="shared")
 

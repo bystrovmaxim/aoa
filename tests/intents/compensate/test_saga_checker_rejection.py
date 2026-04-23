@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.model.exceptions import ValidationFieldError
+from action_machine.exceptions import ValidationFieldError
 from action_machine.testing import TestBench
 from tests.scenarios.domain_model.compensate_actions import (
     CheckerRejectionSagaAction,

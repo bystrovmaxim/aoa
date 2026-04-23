@@ -40,7 +40,7 @@ from typing import Any
 from action_machine.context.context_view import ContextView
 from action_machine.legacy.binding.action_result_binding import bind_pipeline_result_to_action
 from action_machine.model.base_result import BaseResult
-from action_machine.model.exceptions import (
+from action_machine.exceptions import (
     ActionResultDeclarationError,
     ActionResultTypeError,
     OnErrorHandlerError,

@@ -72,7 +72,7 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, ClassVar
 
-from action_machine.model.exceptions import NamingSuffixError
+from action_machine.exceptions import NamingSuffixError
 
 # Suffix required for every class that inherits BaseDomain (directly or indirectly).
 _REQUIRED_SUFFIX = "Domain"

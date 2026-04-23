@@ -299,7 +299,7 @@ class TestNamingPrefixValidation:
 
     def test_missing_prefix_raises(self) -> None:
         """Method without on_ prefix raises NamingPrefixError."""
-        from action_machine.model.exceptions import NamingPrefixError
+        from action_machine.exceptions import NamingPrefixError
 
         with pytest.raises(NamingPrefixError, match="on_"):
             @on(GlobalFinishEvent)
@@ -308,7 +308,7 @@ class TestNamingPrefixValidation:
 
     def test_wrong_prefix_raises(self) -> None:
         """Method with wrong prefix raises NamingPrefixError."""
-        from action_machine.model.exceptions import NamingPrefixError
+        from action_machine.exceptions import NamingPrefixError
 
         with pytest.raises(NamingPrefixError, match="on_"):
             @on(GlobalFinishEvent)

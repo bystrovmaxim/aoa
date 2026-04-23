@@ -39,7 +39,7 @@ Decorator:
 import pytest
 
 from action_machine.intents.checkers.result_int_decorator import FieldIntChecker, result_int
-from action_machine.model.exceptions import ValidationFieldError
+from action_machine.exceptions import ValidationFieldError
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Valid values

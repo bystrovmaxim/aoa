@@ -66,7 +66,7 @@ from action_machine.logging.log_scope import LogScope
 from action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
-from action_machine.model.exceptions import LogTemplateError
+from action_machine.exceptions import LogTemplateError
 
 
 def _valid_emit_var(**extra: Any) -> dict[str, Any]:

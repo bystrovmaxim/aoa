@@ -54,7 +54,7 @@ from action_machine.logging.variable_substitutor import VariableSubstitutor
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.base_state import BaseState
-from action_machine.model.exceptions import LogTemplateError
+from action_machine.exceptions import LogTemplateError
 from action_machine.testing.stubs import ContextStub
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -8,6 +8,6 @@
 
 from maxitor.samples.billing.domain import BillingDomain
 from maxitor.samples.billing.entities import PaymentEventLogEntity
-from maxitor.samples.billing.payment_gateway import PaymentGateway
+from maxitor.samples.billing.resources.payment_gateway import PaymentGateway
 
 __all__ = ["BillingDomain", "PaymentEventLogEntity", "PaymentGateway"]

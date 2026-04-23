@@ -94,7 +94,7 @@ from action_machine.integrations.mcp.adapter import (
 )
 from action_machine.integrations.mcp.route_record import McpRouteRecord
 from action_machine.legacy.core import Core
-from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
+from action_machine.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import PingAction, SimpleAction
 from tests.scenarios.domain_model.roles import AdminRole

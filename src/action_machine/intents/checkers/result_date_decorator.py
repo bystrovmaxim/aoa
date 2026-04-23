@@ -48,7 +48,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from action_machine.model.exceptions import ValidationFieldError
+from action_machine.exceptions import ValidationFieldError
 
 
 class FieldDateChecker:

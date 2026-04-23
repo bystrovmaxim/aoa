@@ -85,7 +85,7 @@ from action_machine.intents.depends.dependency_intent import DependencyIntent
 from action_machine.intents.meta.action_meta_intent import ActionMetaIntent
 from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 from action_machine.model.base_schema import BaseSchema
-from action_machine.model.exceptions import NamingSuffixError
+from action_machine.exceptions import NamingSuffixError
 
 _REQUIRED_SUFFIX = "Action"
 

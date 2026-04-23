@@ -62,7 +62,7 @@ class _UnsupportedManager(BaseResourceManager):
         return None
 
     def check_rollup_support(self) -> bool:
-        from action_machine.model.exceptions import HandleError
+        from action_machine.exceptions import HandleError
         raise HandleError("Rollup not supported")
 
 

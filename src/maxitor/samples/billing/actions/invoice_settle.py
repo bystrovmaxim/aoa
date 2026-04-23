@@ -23,9 +23,9 @@ from action_machine.intents.sensitive import sensitive
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
+from maxitor.samples.billing import PaymentGateway
 from maxitor.samples.billing.dependencies import LedgerArchiveService, TaxQuoteService
 from maxitor.samples.billing.domain import BillingDomain
-from maxitor.samples.billing.payment_gateway import PaymentGateway
 from maxitor.samples.billing.resources import BillingReadReplica, BillingWarehouse
 from maxitor.samples.roles import EditorRole
 

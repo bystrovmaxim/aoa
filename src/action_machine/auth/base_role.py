@@ -42,7 +42,7 @@ from abc import ABC
 from typing import Any, ClassVar
 
 from action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
-from action_machine.model.exceptions import NamingSuffixError
+from action_machine.exceptions import NamingSuffixError
 
 _REQUIRED_SUFFIX = "Role"
 

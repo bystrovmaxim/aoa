@@ -161,7 +161,7 @@ from typing import Any, Literal
 
 import rustworkx as rx
 
-from action_machine.model.exceptions import CyclicDependencyError
+from action_machine.exceptions import CyclicDependencyError
 from action_machine.runtime.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_intent_inspector import BaseIntentInspector
