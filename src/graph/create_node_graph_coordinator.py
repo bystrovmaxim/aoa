@@ -23,6 +23,7 @@ from action_machine.model.graph_model.result_graph_node_inspector import ResultG
 from action_machine.resources.graph_model.resource_graph_node_inspector import ResourceGraphNodeInspector
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.node_graph_coordinator import NodeGraphCoordinator
+from graph.protocol_node_graph_coordinator import ProtocolNodeGraphCoordinator
 
 
 def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
@@ -38,7 +39,7 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
     ]
 
 
-def create_node_graph_coordinator() -> NodeGraphCoordinator:
+def create_node_graph_coordinator() -> ProtocolNodeGraphCoordinator:
     """Create and build the default ``NodeGraphCoordinator`` used by viz2."""
     coordinator = NodeGraphCoordinator()
     coordinator.build(all_axis_graph_node_inspectors())

@@ -70,7 +70,6 @@ from graph.graph_builder import GraphBuilder, build_interchange_from_facet_verti
 from graph.graph_coordinator import GraphCoordinator
 from graph.graph_edge import GraphEdge
 from graph.graph_vertex import GraphVertex, GraphVertexParseError, ParsedGraphVertex
-from graph.node_graph_coordinator import NodeGraphCoordinator
 from graph.validation import require_non_empty_str, require_non_null
 
 __all__ = [
@@ -102,7 +101,6 @@ __all__ = [
     "GraphVertexParseError",
     "InspectGraphPair",
     "LineStyle",
-    "NodeGraphCoordinator",
     "ParsedGraphVertex",
     "assert_dag_edges_acyclic",
     "build_interchange_from_facet_vertices",
