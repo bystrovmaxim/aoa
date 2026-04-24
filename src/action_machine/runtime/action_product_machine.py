@@ -80,6 +80,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from action_machine.context.context import Context
@@ -531,16 +532,7 @@ AI-CORE-BEGIN
         runtime: _ActionExecutionCache,
         plugin_ctx: PluginRunContext,
     ) -> R:
-        """Aspect pipeline: regular + summary; on error, saga then ``@on_error``.
-
-        ``saga_stack`` is created before ``try`` so ``except`` sees frames for aspects
-        whose ``call()`` finished before the failure (including checker rejection
-        after ``call()`` returned).
-
-        ``@on_error`` receives the ``BaseState`` that was passed into the failing
-        regular or summary step (``execute_regular`` / ``execute_summary`` input), or
-        the merged state after that aspect when only the ``emit_after_*`` hook fails.
-        """
+        """Run regular and summary aspects; on failure, unwind saga then handle error."""
         saga_stack: list[SagaFrame] = []
         failed_aspect_name: str | None = None
         state: BaseState | None = None
@@ -686,12 +678,7 @@ AI-CORE-BEGIN
         nested_level: int,
         rollup: bool,
     ) -> R:
-        """Single run level: gates, ``ToolsBox``, plugin lifecycle via support, aspects.
-
-        Creates a **fresh** ``PluginRunContext`` for this invocation (nested
-        ``run_child`` → another ``_run_internal`` → another context). Saga stack
-        is also local to this call.
-        """
+        """Single run level with fresh plugin context and local saga stack."""
         current_nest = nested_level + 1
         start_time = time.time()
 
@@ -700,21 +687,13 @@ AI-CORE-BEGIN
         self._role_checker.check(action, context, runtime)
         conns = self._connection_validator.validate(action, connections, runtime)
         plugin_ctx = await self._plugin_coordinator.create_run_context()
-
-        async def run_child(
-            action: BaseAction[Any, Any],
-            params: BaseParams,
-            connections: dict[str, BaseResource] | None = None,
-        ) -> BaseResult:
-            return await self._run_internal(
-                context=context,
-                action=action,
-                params=params,
-                resources=resources,
-                connections=connections,
-                nested_level=current_nest,
-                rollup=rollup,
-            )
+        run_child = partial(
+            self._run_child,
+            context=context,
+            resources=resources,
+            nested_level=current_nest,
+            rollup=rollup,
+        )
 
         box = self._tools_box_factory.create(
             factory_resolver=self,
@@ -754,3 +733,25 @@ AI-CORE-BEGIN
         )
 
         return result
+
+    async def _run_child(
+        self,
+        action: BaseAction[Any, Any],
+        params: BaseParams,
+        connections: dict[str, BaseResource] | None = None,
+        *,
+        context: Context,
+        resources: dict[type, Any] | None,
+        nested_level: int,
+        rollup: bool,
+    ) -> BaseResult:
+        """Run a child action within the current execution scope."""
+        return await self._run_internal(
+            context=context,
+            action=action,
+            params=params,
+            resources=resources,
+            connections=connections,
+            nested_level=nested_level,
+            rollup=rollup,
+        )

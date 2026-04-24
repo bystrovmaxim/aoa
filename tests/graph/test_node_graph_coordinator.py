@@ -41,10 +41,8 @@ def _edge(
         is_dag=is_dag,
         source_node_id=source_node_id,
         source_node_type="Test",
-        source_node_obj=object(),
         target_node_id=target_node_id,
         target_node_type="Test",
-        target_node_obj=object(),
         edge_relationship=ASSOCIATION,
     )
 
@@ -211,10 +209,8 @@ def test_get_regular_aspect_nodes_uses_action_edges() -> None:
                         is_dag=False,
                         source_node_id=action_node_id,
                         source_node_type=ActionGraphNode.NODE_TYPE,
-                        source_node_obj=_RegularAspectHostAction,
                         target_node_id=aspect_node.node_id,
                         target_node_type=RegularAspectGraphNode.NODE_TYPE,
-                        target_node_obj=aspect_node.node_obj,
                         edge_relationship=COMPOSITION,
                     ),
                 ],

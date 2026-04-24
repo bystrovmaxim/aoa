@@ -8,7 +8,7 @@ PURPOSE
 
 Represents one outgoing semantic edge from a :class:`BaseGraphNode`: the slot key
 (e.g. ``domain``, ``params``), whether it participates in **acyclicity** (DAG) reasoning,
-then **source** and **target** interchange ids, kinds, host objects, a single
+then **source** and **target** interchange ids, kinds, a single
 **ArchiMate-style relationship** for the edge, and optional **properties** (always a ``dict``,
 never ``None``; defaults to empty).
 
@@ -31,10 +31,8 @@ EXAMPLES
         is_dag=False,
         source_node_id="pkg.actions.MyAction",
         source_node_type="Action",
-        source_node_obj=MyAction,
         target_node_id="pkg.domains.SystemDomain",
         target_node_type="Domain",
-        target_node_obj=SystemDomain,
         edge_relationship=ASSOCIATION,
     )
 
@@ -45,20 +43,23 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from graph.edge_relationship import EdgeRelationship
 from graph.validation import require_non_empty_str, require_non_null
+
+if TYPE_CHECKING:
+    from graph.base_graph_node import BaseGraphNode
 
 
 @dataclass(init=False, frozen=True)
 class BaseGraphEdge:
     """
     AI-CORE-BEGIN
-    ROLE: Interchange edge descriptor (slot, DAG, source/target ids, kinds, hosts, relationship, properties).
+    ROLE: Interchange edge descriptor (slot, DAG, source/target ids, kinds, relationship, properties).
     CONTRACT: ``edge_relationship`` uses :class:`~graph.edge_relationship.EdgeRelationship` (ArchiMate-style kinds).
     INVARIANTS: Frozen; ``is_dag`` is always set explicitly by the caller. ``properties`` is always a ``dict`` (never ``None``).
-    String fields must be non-empty (after strip); object fields (``*_node_obj``, ``edge_relationship``) must not be ``None``.
+    String fields must be non-empty (after strip); ``edge_relationship`` must not be ``None``.
     AI-CORE-END
     """
 
@@ -66,10 +67,10 @@ class BaseGraphEdge:
     is_dag: bool
     source_node_id: str
     source_node_type: str
-    source_node_obj: object
+    source_node: BaseGraphNode[Any] | None
     target_node_id: str
     target_node_type: str
-    target_node_obj: object
+    target_node: BaseGraphNode[Any] | None
     edge_relationship: EdgeRelationship
     properties: dict[str, Any]
 
@@ -80,10 +81,10 @@ class BaseGraphEdge:
         is_dag: bool,
         source_node_id: str,
         source_node_type: str,
-        source_node_obj: object,
+        source_node: BaseGraphNode[Any] | None = None,
         target_node_id: str,
         target_node_type: str,
-        target_node_obj: object,
+        target_node: BaseGraphNode[Any] | None = None,
         edge_relationship: EdgeRelationship,
         properties: dict[str, Any] | None = None,
     ) -> None:
@@ -97,10 +98,10 @@ class BaseGraphEdge:
         object.__setattr__(self, "is_dag", is_dag)
         object.__setattr__(self, "source_node_id", source_node_id_s)
         object.__setattr__(self, "source_node_type", source_node_type_s)
-        object.__setattr__(self, "source_node_obj", require_non_null("source_node_obj", source_node_obj))
+        object.__setattr__(self, "source_node", source_node)
         object.__setattr__(self, "target_node_id", target_node_id_s)
         object.__setattr__(self, "target_node_type", target_node_type_s)
-        object.__setattr__(self, "target_node_obj", require_non_null("target_node_obj", target_node_obj))
+        object.__setattr__(self, "target_node", target_node)
         er_raw = require_non_null("edge_relationship", edge_relationship)
         if not isinstance(er_raw, EdgeRelationship):
             msg = f"edge_relationship must be EdgeRelationship, not {type(er_raw).__name__}"

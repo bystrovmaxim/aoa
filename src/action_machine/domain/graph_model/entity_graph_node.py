@@ -94,10 +94,8 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             is_dag=False,
             source_node_id=TypeIntrospection.full_qualname(entity_cls),
             source_node_type=cls.NODE_TYPE,
-            source_node_obj=entity_cls,
             target_node_id=TypeIntrospection.full_qualname(domain_cls),
             target_node_type=DomainGraphNode.NODE_TYPE,
-            target_node_obj=domain_cls,
             edge_relationship=ASSOCIATION,
         )
 

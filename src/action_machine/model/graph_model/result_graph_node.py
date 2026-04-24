@@ -109,10 +109,8 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
                 is_dag=False,
                 source_node_id=result_node_id,
                 source_node_type=ResultGraphNode.NODE_TYPE,
-                source_node_obj=result_cls,
                 target_node_id=fd.node_id,
                 target_node_type=FieldGraphNode.NODE_TYPE,
-                target_node_obj=fd.node_obj,
                 edge_relationship=COMPOSITION,
             )
             for fd in fields
@@ -167,10 +165,8 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
                 is_dag=False,
                 source_node_id=result_node_id,
                 source_node_type=ResultGraphNode.NODE_TYPE,
-                source_node_obj=result_cls,
                 target_node_id=p.node_id,
                 target_node_type=PropertyFieldGraphNode.NODE_TYPE,
-                target_node_obj=p.node_obj,
                 edge_relationship=COMPOSITION,
             )
             for p in props

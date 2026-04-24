@@ -81,10 +81,8 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
                 is_dag=True,
                 source_node_id=TypeIntrospection.full_qualname(resource_cls),
                 source_node_type=cls.NODE_TYPE,
-                source_node_obj=resource_cls,
                 target_node_id=TypeIntrospection.full_qualname(domain_cls),
                 target_node_type=DomainGraphNode.NODE_TYPE,
-                target_node_obj=domain_cls,
                 edge_relationship=ASSOCIATION,
             ),
         ]
