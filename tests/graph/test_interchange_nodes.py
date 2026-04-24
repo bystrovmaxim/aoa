@@ -44,7 +44,6 @@ def test_regular_aspect_graph_node_interchange_shape() -> None:
     assert len(node.edges) == 1
     assert node.edges[0].source_node_id == node.node_id
     assert node.edges[0].target_node_type == CheckerGraphNode.NODE_TYPE
-    assert node.edges[0].target_node_obj is node.companion_nodes[0].node_obj
 
 
 def test_summary_aspect_graph_node_interchange_shape() -> None:
@@ -119,7 +118,6 @@ def test_params_graph_node_interchange_shape() -> None:
     assert node.edges[0].edge_name == "field:token"
     assert node.edges[0].source_node_id == node.node_id
     assert node.edges[0].target_node_type == FieldGraphNode.NODE_TYPE
-    assert node.edges[0].target_node_obj is node.companion_nodes[0].node_obj
     assert node.edges[0].edge_relationship is COMPOSITION
 
 
@@ -140,7 +138,6 @@ def test_result_graph_node_interchange_shape() -> None:
     assert node.edges[0].edge_name == "field:ok"
     assert node.edges[0].source_node_id == node.node_id
     assert node.edges[0].target_node_type == FieldGraphNode.NODE_TYPE
-    assert node.edges[0].target_node_obj is node.companion_nodes[0].node_obj
     assert node.edges[0].edge_relationship is COMPOSITION
 
 
@@ -193,10 +190,8 @@ def test_action_graph_node_links_and_helpers() -> None:
             is_dag=True,
             source_node_id=host,
             source_node_type="Action",
-            source_node_obj=PingAction,
             target_node_id=dom_id,
             target_node_type="Domain",
-            target_node_obj=SystemDomain,
             edge_relationship=ASSOCIATION,
         ),
         BaseGraphEdge(
@@ -204,10 +199,8 @@ def test_action_graph_node_links_and_helpers() -> None:
             is_dag=False,
             source_node_id=host,
             source_node_type="Action",
-            source_node_obj=PingAction,
             target_node_id=params_id,
             target_node_type="Params",
-            target_node_obj=PingAction.Params,
             edge_relationship=AGGREGATION,
         ),
         BaseGraphEdge(
@@ -215,10 +208,8 @@ def test_action_graph_node_links_and_helpers() -> None:
             is_dag=False,
             source_node_id=host,
             source_node_type="Action",
-            source_node_obj=PingAction,
             target_node_id=result_id,
             target_node_type="Result",
-            target_node_obj=PingAction.Result,
             edge_relationship=AGGREGATION,
         ),
         BaseGraphEdge(
@@ -226,10 +217,8 @@ def test_action_graph_node_links_and_helpers() -> None:
             is_dag=False,
             source_node_id=host,
             source_node_type="Action",
-            source_node_obj=PingAction,
             target_node_id=f"{host}:pong_summary",
             target_node_type=SummaryAspectGraphNode.NODE_TYPE,
-            target_node_obj=PingAction.pong_summary,
             edge_relationship=COMPOSITION,
         ),
     ]
@@ -240,10 +229,8 @@ def test_action_graph_node_links_and_helpers() -> None:
             is_dag=True,
             source_node_id=host,
             source_node_type="Action",
-            source_node_obj=PingAction,
             target_node_id=dom_id,
             target_node_type="Domain",
-            target_node_obj=SystemDomain,
             edge_relationship=ASSOCIATION,
         ),
     ]
@@ -253,10 +240,8 @@ def test_action_graph_node_links_and_helpers() -> None:
             is_dag=False,
             source_node_id=host,
             source_node_type="Action",
-            source_node_obj=PingAction,
             target_node_id=params_id,
             target_node_type="Params",
-            target_node_obj=PingAction.Params,
             edge_relationship=AGGREGATION,
         ),
     ]
@@ -266,10 +251,8 @@ def test_action_graph_node_links_and_helpers() -> None:
             is_dag=False,
             source_node_id=host,
             source_node_type="Action",
-            source_node_obj=PingAction,
             target_node_id=result_id,
             target_node_type="Result",
-            target_node_obj=PingAction.Result,
             edge_relationship=AGGREGATION,
         ),
     ]
@@ -297,10 +280,8 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
             is_dag=False,
             source_node_id=host,
             source_node_type="Entity",
-            source_node_obj=SampleEntity,
             target_node_id=dom_id,
             target_node_type="Domain",
-            target_node_obj=TestDomain,
             edge_relationship=ASSOCIATION,
         ),
     ]
@@ -310,10 +291,8 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
         is_dag=False,
         source_node_id=host,
         source_node_type="Entity",
-        source_node_obj=SampleEntity,
         target_node_id=dom_id,
         target_node_type="Domain",
-        target_node_obj=TestDomain,
         edge_relationship=ASSOCIATION,
     )
     assert EntityGraphNode._get_all_edges(SampleEntity) == node.edges

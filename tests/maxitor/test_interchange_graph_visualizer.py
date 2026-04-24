@@ -59,10 +59,8 @@ def test_interchange_node_and_edge_to_visual_dicts() -> None:
         is_dag=False,
         source_node_id="a",
         source_node_type="Domain",
-        source_node_obj=object(),
         target_node_id=n.node_id,
         target_node_type="Application",
-        target_node_obj=object(),
         edge_relationship=ASSOCIATION,
     )
     ed = interchange_edge_to_visual_dict(e)
@@ -81,10 +79,8 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_regular_aspec
         is_dag=False,
         source_node_id="pkg.Action",
         source_node_type="Action",
-        source_node_obj=object(),
         target_node_id="pkg.Action:my_aspect",
         target_node_type=RegularAspectGraphNode.NODE_TYPE,
-        target_node_obj=object(),
         edge_relationship=COMPOSITION,
     )
     ed = interchange_edge_to_visual_dict(e)
@@ -98,10 +94,8 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_summary_aspec
         is_dag=False,
         source_node_id="pkg.Action",
         source_node_type="Action",
-        source_node_obj=object(),
         target_node_id="pkg.Action:pong_summary",
         target_node_type=SummaryAspectGraphNode.NODE_TYPE,
-        target_node_obj=object(),
         edge_relationship=COMPOSITION,
     )
     ed = interchange_edge_to_visual_dict(e)
@@ -115,10 +109,8 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_compensator_t
         is_dag=False,
         source_node_id="pkg.Action",
         source_node_type="Action",
-        source_node_obj=object(),
         target_node_id="pkg.Action:rollback_charge_compensate",
         target_node_type=CompensatorGraphNode.NODE_TYPE,
-        target_node_obj=object(),
         edge_relationship=COMPOSITION,
     )
     ed = interchange_edge_to_visual_dict(e)
@@ -132,10 +124,8 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_error_handler
         is_dag=False,
         source_node_id="pkg.Action",
         source_node_type="Action",
-        source_node_obj=object(),
         target_node_id="pkg.Action:handle_finalize_on_error",
         target_node_type=ErrorHandlerGraphNode.NODE_TYPE,
-        target_node_obj=object(),
         edge_relationship=COMPOSITION,
     )
     ed = interchange_edge_to_visual_dict(e)
@@ -164,10 +154,8 @@ class _PygraphRoundTripInspector(BaseGraphNodeInspector[_PygraphRoundTripAxis]):
             is_dag=False,
             source_node_id="tests.a",
             source_node_type="Action",
-            source_node_obj=object(),
             target_node_id="tests.b",
             target_node_type="Params",
-            target_node_obj=object(),
             edge_relationship=ASSOCIATION,
         )
         a = BaseGraphNode(
@@ -279,10 +267,8 @@ class _BadRefInspector(BaseGraphNodeInspector[_BadRefAxis]):
                     is_dag=False,
                     source_node_id="tests.viz2.bad_domain",
                     source_node_type="Domain",
-                    source_node_obj=object(),
                     target_node_id="tests.viz2.MISSING_APPLICATION_TARGET",
                     target_node_type="Application",
-                    target_node_obj=object(),
                     edge_relationship=ASSOCIATION,
                 ),
             ],

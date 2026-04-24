@@ -118,10 +118,8 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
                 is_dag=False,
                 source_node_id=aspect_node_id,
                 source_node_type=RegularAspectGraphNode.NODE_TYPE,
-                source_node_obj=aspect_callable,
                 target_node_id=ch.node_id,
                 target_node_type=CheckerGraphNode.NODE_TYPE,
-                target_node_obj=ch.node_obj,
                 edge_relationship=COMPOSITION,
             )
             for ch in checkers
