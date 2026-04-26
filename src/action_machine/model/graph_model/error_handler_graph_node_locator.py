@@ -1,13 +1,6 @@
-# src/action_machine/model/graph_model/error_handler_graph_node_inspector.py
+# src/action_machine/model/graph_model/error_handler_graph_node_locator.py
 """
-ErrorHandlerGraphNodeInspector — minimal error-handler node inspector.
-
-═══════════════════════════════════════════════════════════════════════════════
-PURPOSE
-═══════════════════════════════════════════════════════════════════════════════
-
-Provide an explicit entry point for error-handler node inspection in the
-node-graph model.
+ErrorHandlerGraphNodeLocator — locate error-handler graph nodes for one action type.
 """
 
 from __future__ import annotations
@@ -22,11 +15,11 @@ from graph.base_graph_node import BaseGraphNode
 from graph.validation import require_non_null
 
 
-class ErrorHandlerGraphNodeInspector:
-    """Minimal inspector for error-handler graph nodes."""
+class ErrorHandlerGraphNodeLocator:
+    """Locate error-handler graph nodes for a single target type."""
 
     @staticmethod
-    def inspect(target_type: type | None) -> list[BaseGraphNode[Any]]:
+    def locate(target_type: type | None) -> list[BaseGraphNode[Any]]:
         """Return error-handler nodes for ``target_type`` in class declaration order."""
         target_type = require_non_null("target_type", target_type)
         error_handler_callables = IntentIntrospection.collect_own_class_callables_by_callable_kind(

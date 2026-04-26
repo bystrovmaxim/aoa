@@ -1,13 +1,6 @@
-# src/action_machine/model/graph_model/summary_aspect_graph_node_inspector.py
+# src/action_machine/model/graph_model/summary_aspect_graph_node_locator.py
 """
-SummaryAspectGraphNodeInspector — minimal summary-aspect node inspector.
-
-═══════════════════════════════════════════════════════════════════════════════
-PURPOSE
-═══════════════════════════════════════════════════════════════════════════════
-
-Provide an explicit entry point for summary-aspect node inspection in the
-node-graph model.
+SummaryAspectGraphNodeLocator — locate summary-aspect graph nodes for one action type.
 """
 
 from __future__ import annotations
@@ -22,11 +15,11 @@ from graph.base_graph_node import BaseGraphNode
 from graph.validation import require_non_null
 
 
-class SummaryAspectGraphNodeInspector:
-    """Minimal inspector for summary-aspect graph nodes."""
+class SummaryAspectGraphNodeLocator:
+    """Locate summary-aspect graph nodes for a single target type."""
 
     @staticmethod
-    def inspect(target_type: type | None) -> list[BaseGraphNode[Any]]:
+    def locate(target_type: type | None) -> list[BaseGraphNode[Any]]:
         """Return summary-aspect nodes for ``target_type`` in class declaration order."""
         target_type = require_non_null("target_type", target_type)
         summary_aspect_callables = IntentIntrospection.collect_own_class_callables_by_callable_kind(
