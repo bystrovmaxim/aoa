@@ -38,7 +38,6 @@ from action_machine.introspection_tools import IntentIntrospection, TypeIntrospe
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
-from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
@@ -64,12 +63,12 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     """
 
     NODE_TYPE: ClassVar[str] = "Action"
-    params: AggregationGraphEdge | None = field(init=False, repr=False, compare=False)
-    result: AggregationGraphEdge | None = field(init=False, repr=False, compare=False)
-    regular_aspect: list[CompositionGraphEdge]
-    summary_aspect: list[CompositionGraphEdge]
-    compensator_graph: list[CompositionGraphEdge]
-    error_handler_graph: list[CompositionGraphEdge]
+    params_edge: BaseGraphEdge | None = field(init=False, repr=False, compare=False)
+    result_edge: BaseGraphEdge | None = field(init=False, repr=False, compare=False)
+    regular_aspect_edges: list[CompositionGraphEdge]
+    summary_aspect_edges: list[CompositionGraphEdge]
+    compensator_graph_edges: list[CompositionGraphEdge]
+    error_handler_graph_edges: list[CompositionGraphEdge]
 
     def __init__(self, action_cls: type[TAction]) -> None:
         node_id = TypeIntrospection.full_qualname(action_cls)
@@ -81,41 +80,41 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             edges=list(ActionGraphNode._get_all_edges(action_cls)),
             node_obj=action_cls,
         )
-        params = self.get_params_edge(action_cls)
-        result = self.get_result_edge(action_cls)
-        regular_aspect = self.get_composition_graph_eges(
+        params_edge = self.get_params_edge(action_cls)
+        result_edge = self.get_result_edge(action_cls)
+        regular_aspect_edges = self.get_composition_graph_eges(
             AspectGraphNodeLocator.locate(action_cls),
             node_id,
         )
-        summary_aspect = self.get_composition_graph_eges(
+        summary_aspect_edges = self.get_composition_graph_eges(
             SummaryAspectGraphNodeLocator.locate(action_cls),
             node_id,
         )
-        compensator_graph = self.get_composition_graph_eges(
+        compensator_graph_edges = self.get_composition_graph_eges(
             CompensatorGraphNodeLocator.locate(action_cls),
             node_id,
         )
-        error_handler_graph = self.get_composition_graph_eges(
+        error_handler_graph_edges = self.get_composition_graph_eges(
             ErrorHandlerGraphNodeLocator.locate(action_cls),
             node_id,
         )
-        object.__setattr__(self, "params", params[0] if params else None)
-        object.__setattr__(self, "result", result[0] if result else None)
-        object.__setattr__(self, "regular_aspect", regular_aspect)
-        object.__setattr__(self, "summary_aspect", summary_aspect)
-        object.__setattr__(self, "compensator_graph", compensator_graph)
-        object.__setattr__(self, "error_handler_graph", error_handler_graph)
+        object.__setattr__(self, "params_edge", params_edge[0] if params_edge else None)
+        object.__setattr__(self, "result_edge", result_edge[0] if result_edge else None)
+        object.__setattr__(self, "regular_aspect_edges", regular_aspect_edges)
+        object.__setattr__(self, "summary_aspect_edges", summary_aspect_edges)
+        object.__setattr__(self, "compensator_graph_edges", compensator_graph_edges)
+        object.__setattr__(self, "error_handler_graph_edges", error_handler_graph_edges)
         object.__setattr__(
             self,
             "edges",
             [
                 *self.get_all_edges(),
-                *regular_aspect,
-                *summary_aspect,
-                *compensator_graph,
-                *error_handler_graph,
-                *params,
-                *result,
+                *regular_aspect_edges,
+                *summary_aspect_edges,
+                *compensator_graph_edges,
+                *error_handler_graph_edges,
+                *params_edge,
+                *result_edge,
             ],
         )
 
@@ -150,9 +149,8 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             )
         return edges
 
-    @classmethod
     def get_params_edge(
-        cls,
+        self,
         action_cls: type[TAction],
     ) -> list[BaseGraphEdge]:
         """Zero or one params schema edge (``AGGREGATION``); empty when the params type does not resolve."""
@@ -164,16 +162,17 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 edge_name="params",
                 is_dag=False,
                 source_node_id=TypeIntrospection.full_qualname(action_cls),
-                source_node_type=cls.NODE_TYPE,
+                source_node_type=self.NODE_TYPE,
+                source_node=self,
                 target_node_id=TypeIntrospection.full_qualname(params_type),
                 target_node_type=ParamsGraphNode.NODE_TYPE,
+                target_node=None,
                 edge_relationship=AGGREGATION,
             ),
         ]
 
-    @classmethod
     def get_result_edge(
-        cls,
+        self,
         action_cls: type[TAction],
     ) -> list[BaseGraphEdge]:
         """Zero or one result schema edge (``AGGREGATION``); empty when the result type does not resolve."""
@@ -185,9 +184,11 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 edge_name="result",
                 is_dag=False,
                 source_node_id=TypeIntrospection.full_qualname(action_cls),
-                source_node_type=cls.NODE_TYPE,
+                source_node_type=self.NODE_TYPE,
+                source_node=self,
                 target_node_id=TypeIntrospection.full_qualname(result_type),
                 target_node_type=ResultGraphNode.NODE_TYPE,
+                target_node=None,
                 edge_relationship=AGGREGATION,
             ),
         ]
