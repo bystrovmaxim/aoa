@@ -17,7 +17,7 @@ ARCHITECTURE / DATA FLOW
     type[TAction]   (``TAction`` bound to ``BaseAction``)
               │
               v
-    ``BaseAction[P, R]``  →  :meth:`get_schema_generic_binding` with index ``0`` / ``1`` (or :meth:`get_params_edge` / :meth:`get_result_edge`)
+    ``BaseAction[P, R]``  →  ``ActionSchemaIntentResolver`` (or :meth:`get_params_edge` / :meth:`get_result_edge`)
 
     ``_depends_info`` (``@depends``)  →  :meth:`get_depends_edges`
 
@@ -26,27 +26,30 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, ClassVar, Literal, TypeVar, get_args, get_origin
+from dataclasses import dataclass, field
+from typing import Any, ClassVar, TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
+from action_machine.intents.action_schema.action_schema_intent_resolver import (
+    ActionSchemaIntentResolver,
+)
 from action_machine.introspection_tools import IntentIntrospection, TypeIntrospection
-from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
+from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
 from graph.edge_relationship import AGGREGATION, ASSOCIATION
 
-from .aspect_graph_node_inspector import AspectGraphNodeInspector
-from .compensator_graph_node_inspector import CompensatorGraphNodeInspector
-from .error_handler_graph_node_inspector import ErrorHandlerGraphNodeInspector
+from .aspect_graph_node_locator import AspectGraphNodeLocator
+from .compensator_graph_node_locator import CompensatorGraphNodeLocator
+from .error_handler_graph_node_locator import ErrorHandlerGraphNodeLocator
 from .params_graph_node import ParamsGraphNode
 from .result_graph_node import ResultGraphNode
-from .summary_aspect_graph_node_inspector import SummaryAspectGraphNodeInspector
+from .summary_aspect_graph_node_locator import SummaryAspectGraphNodeLocator
 
 TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
 
@@ -61,10 +64,12 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     """
 
     NODE_TYPE: ClassVar[str] = "Action"
-    regular_aspect_nodes: list[CompositionGraphEdge]
-    summary_aspect_nodes: list[CompositionGraphEdge]
-    compensator_graph_nodes: list[CompositionGraphEdge]
-    error_handler_graph_nodes: list[CompositionGraphEdge]
+    params: AggregationGraphEdge | None = field(init=False, repr=False, compare=False)
+    result: AggregationGraphEdge | None = field(init=False, repr=False, compare=False)
+    regular_aspect: list[CompositionGraphEdge]
+    summary_aspect: list[CompositionGraphEdge]
+    compensator_graph: list[CompositionGraphEdge]
+    error_handler_graph: list[CompositionGraphEdge]
 
     def __init__(self, action_cls: type[TAction]) -> None:
         node_id = TypeIntrospection.full_qualname(action_cls)
@@ -76,63 +81,43 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             edges=list(ActionGraphNode._get_all_edges(action_cls)),
             node_obj=action_cls,
         )
-        regular_aspect_nodes = self.get_composition_graph_eges(
-            AspectGraphNodeInspector.inspect(action_cls),
+        params = self.get_params_edge(action_cls)
+        result = self.get_result_edge(action_cls)
+        regular_aspect = self.get_composition_graph_eges(
+            AspectGraphNodeLocator.locate(action_cls),
             node_id,
         )
-        summary_aspect_nodes = self.get_composition_graph_eges(
-            SummaryAspectGraphNodeInspector.inspect(action_cls),
+        summary_aspect = self.get_composition_graph_eges(
+            SummaryAspectGraphNodeLocator.locate(action_cls),
             node_id,
         )
-        compensator_graph_nodes = self.get_composition_graph_eges(
-            CompensatorGraphNodeInspector.inspect(action_cls),
+        compensator_graph = self.get_composition_graph_eges(
+            CompensatorGraphNodeLocator.locate(action_cls),
             node_id,
         )
-        error_handler_graph_nodes = self.get_composition_graph_eges(
-            ErrorHandlerGraphNodeInspector.inspect(action_cls),
+        error_handler_graph = self.get_composition_graph_eges(
+            ErrorHandlerGraphNodeLocator.locate(action_cls),
             node_id,
         )
-        object.__setattr__(self, "regular_aspect_nodes", regular_aspect_nodes)
-        object.__setattr__(self, "summary_aspect_nodes", summary_aspect_nodes)
-        object.__setattr__(self, "compensator_graph_nodes", compensator_graph_nodes)
-        object.__setattr__(self, "error_handler_graph_nodes", error_handler_graph_nodes)
+        object.__setattr__(self, "params", params[0] if params else None)
+        object.__setattr__(self, "result", result[0] if result else None)
+        object.__setattr__(self, "regular_aspect", regular_aspect)
+        object.__setattr__(self, "summary_aspect", summary_aspect)
+        object.__setattr__(self, "compensator_graph", compensator_graph)
+        object.__setattr__(self, "error_handler_graph", error_handler_graph)
         object.__setattr__(
             self,
             "edges",
             [
                 *self.get_all_edges(),
-                *regular_aspect_nodes,
-                *summary_aspect_nodes,
-                *compensator_graph_nodes,
-                *error_handler_graph_nodes,
+                *regular_aspect,
+                *summary_aspect,
+                *compensator_graph,
+                *error_handler_graph,
+                *params,
+                *result,
             ],
         )
-
-    @classmethod
-    def get_schema_generic_binding(
-        cls,
-        action_cls: type[TAction],
-        type_arg_index: Literal[0, 1],
-    ) -> type | None:
-        """
-        Resolve one schema type parameter from the first parameterized ``BaseAction[P, R]`` base
-        in the action MRO.
-
-        Args:
-            action_cls: Concrete action class.
-            type_arg_index: ``0`` for params ``P`` (``args[0]``), ``1`` for result ``R`` (``args[1]``).
-
-        Returns:
-            Resolved type, or ``None`` when no matching base, too few type args, or unresolved type.
-        """
-        for klass in action_cls.__mro__:
-            for base in getattr(klass, "__orig_bases__", ()):
-                if get_origin(base) is BaseAction:
-                    args = get_args(base)
-                    if len(args) <= type_arg_index:
-                        return None
-                    return _resolve_generic_arg(args[type_arg_index], action_cls)
-        return None
 
     @classmethod
     def _depends_target_node_type(cls, dep_cls: type) -> str:
@@ -171,7 +156,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         action_cls: type[TAction],
     ) -> list[BaseGraphEdge]:
         """Zero or one params schema edge (``AGGREGATION``); empty when the params type does not resolve."""
-        params_type = cls.get_schema_generic_binding(action_cls, 0)
+        params_type = ActionSchemaIntentResolver.resolve_params_type(action_cls)
         if params_type is None:
             return []
         return [
@@ -192,7 +177,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         action_cls: type[TAction],
     ) -> list[BaseGraphEdge]:
         """Zero or one result schema edge (``AGGREGATION``); empty when the result type does not resolve."""
-        result_type = cls.get_schema_generic_binding(action_cls, 1)
+        result_type = ActionSchemaIntentResolver.resolve_result_type(action_cls)
         if result_type is None:
             return []
         return [
@@ -301,6 +286,4 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             cls.get_domain_edge(action_cls)
             + cls.get_depends_edges(action_cls)
             + cls.get_connection_edges(action_cls)
-            + cls.get_params_edge(action_cls)
-            + cls.get_result_edge(action_cls)
         )

@@ -7,13 +7,16 @@ from pydantic import Field
 
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
+from action_machine.intents.action_schema.action_schema_intent_resolver import (
+    ActionSchemaIntentResolver,
+)
 from action_machine.introspection_tools import TypeIntrospection
 from action_machine.legacy.application_context_inspector import ApplicationContextInspector
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
-from action_machine.model.graph_model.aspect_graph_node_inspector import (
-    AspectGraphNodeInspector,
+from action_machine.model.graph_model.aspect_graph_node_locator import (
+    AspectGraphNodeLocator,
 )
 from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
@@ -23,8 +26,8 @@ from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.model.graph_model.summary_aspect_graph_node_inspector import (
-    SummaryAspectGraphNodeInspector,
+from action_machine.model.graph_model.summary_aspect_graph_node_locator import (
+    SummaryAspectGraphNodeLocator,
 )
 from graph.base_graph_edge import BaseGraphEdge
 from graph.composition_graph_edge import CompositionGraphEdge
@@ -169,7 +172,7 @@ def test_action_graph_node_links_and_helpers() -> None:
     params_id = TypeIntrospection.full_qualname(PingAction.Params)
     result_id = TypeIntrospection.full_qualname(PingAction.Result)
     host = TypeIntrospection.full_qualname(PingAction)
-    summary_node = SummaryAspectGraphNodeInspector.inspect(PingAction)[0]
+    summary_node = SummaryAspectGraphNodeLocator.locate(PingAction)[0]
 
     assert node.node_type == "Action"
     assert node.label == "PingAction"
@@ -183,6 +186,16 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node_id=dom_id,
             target_node_type="Domain",
             edge_relationship=ASSOCIATION,
+        ),
+        CompositionGraphEdge(
+            edge_name="pong_summary",
+            is_dag=False,
+            source_node_id=host,
+            source_node_type="Action",
+            source_node=node,
+            target_node_id=f"{host}:pong_summary",
+            target_node_type=SummaryAspectGraphNode.NODE_TYPE,
+            target_node=summary_node,
         ),
         BaseGraphEdge(
             edge_name="params",
@@ -201,16 +214,6 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node_id=result_id,
             target_node_type="Result",
             edge_relationship=AGGREGATION,
-        ),
-        CompositionGraphEdge(
-            edge_name="pong_summary",
-            is_dag=False,
-            source_node_id=host,
-            source_node_type="Action",
-            source_node=node,
-            target_node_id=f"{host}:pong_summary",
-            target_node_type=SummaryAspectGraphNode.NODE_TYPE,
-            target_node=summary_node,
         ),
     ]
 
@@ -248,13 +251,13 @@ def test_action_graph_node_links_and_helpers() -> None:
         ),
     ]
 
-    p_type = ActionGraphNode.get_schema_generic_binding(PingAction, 0)
-    r_type = ActionGraphNode.get_schema_generic_binding(PingAction, 1)
+    p_type = ActionSchemaIntentResolver.resolve_params_type(PingAction)
+    r_type = ActionSchemaIntentResolver.resolve_result_type(PingAction)
     assert p_type is PingAction.Params and r_type is PingAction.Result
     assert TypeIntrospection.full_qualname(p_type) == params_id
     assert TypeIntrospection.full_qualname(r_type) == result_id
-    assert node.regular_aspect_nodes == []
-    assert node.summary_aspect_nodes == [
+    assert node.regular_aspect == []
+    assert node.summary_aspect == [
         CompositionGraphEdge(
             edge_name="pong_summary",
             is_dag=False,
@@ -266,9 +269,9 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node=summary_node,
         ),
     ]
-    assert node.compensator_graph_nodes == []
-    assert node.error_handler_graph_nodes == []
-    assert node.get_all_edges()[-1] == CompositionGraphEdge(
+    assert node.compensator_graph == []
+    assert node.error_handler_graph == []
+    assert CompositionGraphEdge(
         edge_name="pong_summary",
         is_dag=False,
         source_node_id=host,
@@ -277,13 +280,13 @@ def test_action_graph_node_links_and_helpers() -> None:
         target_node_id=f"{host}:pong_summary",
         target_node_type=SummaryAspectGraphNode.NODE_TYPE,
         target_node=summary_node,
-    )
+    ) in node.get_all_edges()
 
 
 def test_action_graph_node_appends_regular_aspect_edges() -> None:
     node = ActionGraphNode(ChildAction)
     host = TypeIntrospection.full_qualname(ChildAction)
-    aspect_node = AspectGraphNodeInspector.inspect(ChildAction)[0]
+    aspect_node = AspectGraphNodeLocator.locate(ChildAction)[0]
 
     expected_edge = CompositionGraphEdge(
         edge_name="process_aspect",
@@ -295,7 +298,7 @@ def test_action_graph_node_appends_regular_aspect_edges() -> None:
         target_node_type=RegularAspectGraphNode.NODE_TYPE,
         target_node=aspect_node,
     )
-    assert node.regular_aspect_nodes == [expected_edge]
+    assert node.regular_aspect == [expected_edge]
     assert expected_edge in node.get_all_edges()
 
 
