@@ -12,6 +12,9 @@ from action_machine.legacy.application_context_inspector import ApplicationConte
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.model.graph_model.aspect_graph_node_inspector import (
+    AspectGraphNodeInspector,
+)
 from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
@@ -20,7 +23,11 @@ from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
+from action_machine.model.graph_model.summary_aspect_graph_node_inspector import (
+    SummaryAspectGraphNodeInspector,
+)
 from graph.base_graph_edge import BaseGraphEdge
+from graph.composition_graph_edge import CompositionGraphEdge
 from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
 from graph.facet_vertex import FacetVertex
 from tests.scenarios.domain_model.child_action import ChildAction
@@ -41,9 +48,10 @@ def test_regular_aspect_graph_node_interchange_shape() -> None:
     assert node.properties == {"description": "Process value"}
     assert node.node_id == f"{TypeIntrospection.full_qualname(ChildAction)}:process_aspect"
     assert len(node.companion_nodes) == 1
-    assert len(node.edges) == 1
-    assert node.edges[0].source_node_id == node.node_id
-    assert node.edges[0].target_node_type == CheckerGraphNode.NODE_TYPE
+    edges = node.get_all_edges()
+    assert len(edges) == 1
+    assert edges[0].source_node_id == node.node_id
+    assert edges[0].target_node_type == CheckerGraphNode.NODE_TYPE
 
 
 def test_summary_aspect_graph_node_interchange_shape() -> None:
@@ -52,7 +60,7 @@ def test_summary_aspect_graph_node_interchange_shape() -> None:
     assert node.node_type == SummaryAspectGraphNode.NODE_TYPE
     assert node.label == "pong_summary"
     assert node.properties == {"description": "Build pong response"}
-    assert node.edges == []
+    assert node.get_all_edges() == []
     assert node.node_id == f"{TypeIntrospection.full_qualname(PingAction)}:pong_summary"
 
 
@@ -62,22 +70,10 @@ def test_compensator_graph_node_interchange_shape() -> None:
     assert node.node_type == CompensatorGraphNode.NODE_TYPE
     assert node.label == "rollback_charge_compensate"
     assert node.properties == {"description": "Rollback payment — refund"}
-    assert node.edges == []
+    assert node.get_all_edges() == []
     assert node.node_id == (
         f"{TypeIntrospection.full_qualname(CompensatedOrderAction)}:rollback_charge_compensate"
     )
-
-
-def test_action_graph_node_get_compensator_edges() -> None:
-    host = TypeIntrospection.full_qualname(CompensatedOrderAction)
-    edges = ActionGraphNode.get_compensator_edges(CompensatedOrderAction)
-    assert len(edges) == 2
-    assert {e.target_node_id for e in edges} == {
-        f"{host}:rollback_charge_compensate",
-        f"{host}:rollback_reserve_compensate",
-    }
-    assert all(e.target_node_type == CompensatorGraphNode.NODE_TYPE for e in edges)
-    assert all(e.edge_relationship is COMPOSITION for e in edges)
 
 
 def test_error_handler_graph_node_interchange_shape() -> None:
@@ -86,19 +82,10 @@ def test_error_handler_graph_node_interchange_shape() -> None:
     assert node.node_type == ErrorHandlerGraphNode.NODE_TYPE
     assert node.label == "handle_finalize_on_error"
     assert node.properties == {"description": "Handle finalize error"}
-    assert node.edges == []
+    assert node.get_all_edges() == []
     assert node.node_id == (
         f"{TypeIntrospection.full_qualname(CompensateAndOnErrorAction)}:handle_finalize_on_error"
     )
-
-
-def test_action_graph_node_get_error_handler_edges() -> None:
-    host = TypeIntrospection.full_qualname(CompensateAndOnErrorAction)
-    edges = ActionGraphNode.get_error_handler_edges(CompensateAndOnErrorAction)
-    assert len(edges) == 1
-    assert edges[0].target_node_id == f"{host}:handle_finalize_on_error"
-    assert edges[0].target_node_type == ErrorHandlerGraphNode.NODE_TYPE
-    assert edges[0].edge_relationship is COMPOSITION
 
 
 def test_params_graph_node_interchange_shape() -> None:
@@ -114,11 +101,12 @@ def test_params_graph_node_interchange_shape() -> None:
     assert node.node_id == TypeIntrospection.full_qualname(PongParams)
     assert node.properties == {}
     assert len(node.companion_nodes) == 1
-    assert len(node.edges) == 1
-    assert node.edges[0].edge_name == "field:token"
-    assert node.edges[0].source_node_id == node.node_id
-    assert node.edges[0].target_node_type == FieldGraphNode.NODE_TYPE
-    assert node.edges[0].edge_relationship is COMPOSITION
+    edges = node.get_all_edges()
+    assert len(edges) == 1
+    assert edges[0].edge_name == "field:token"
+    assert edges[0].source_node_id == node.node_id
+    assert edges[0].target_node_type == FieldGraphNode.NODE_TYPE
+    assert edges[0].edge_relationship is COMPOSITION
 
 
 def test_result_graph_node_interchange_shape() -> None:
@@ -134,11 +122,12 @@ def test_result_graph_node_interchange_shape() -> None:
     assert node.node_id == TypeIntrospection.full_qualname(PongResult)
     assert node.properties == {}
     assert len(node.companion_nodes) == 1
-    assert len(node.edges) == 1
-    assert node.edges[0].edge_name == "field:ok"
-    assert node.edges[0].source_node_id == node.node_id
-    assert node.edges[0].target_node_type == FieldGraphNode.NODE_TYPE
-    assert node.edges[0].edge_relationship is COMPOSITION
+    edges = node.get_all_edges()
+    assert len(edges) == 1
+    assert edges[0].edge_name == "field:ok"
+    assert edges[0].source_node_id == node.node_id
+    assert edges[0].target_node_type == FieldGraphNode.NODE_TYPE
+    assert edges[0].edge_relationship is COMPOSITION
 
 
 def test_domain_node_interchange_shape() -> None:
@@ -153,7 +142,7 @@ def test_domain_node_interchange_shape() -> None:
         "name": TestDomain.name,
         "description": TestDomain.description,
     }
-    assert node.edges == []
+    assert node.get_all_edges() == []
 
     from_facets = ApplicationContextInspector._domain_payload_or_none(TestDomain)
     assert from_facets is not None
@@ -180,11 +169,12 @@ def test_action_graph_node_links_and_helpers() -> None:
     params_id = TypeIntrospection.full_qualname(PingAction.Params)
     result_id = TypeIntrospection.full_qualname(PingAction.Result)
     host = TypeIntrospection.full_qualname(PingAction)
+    summary_node = SummaryAspectGraphNodeInspector.inspect(PingAction)[0]
 
     assert node.node_type == "Action"
     assert node.label == "PingAction"
     assert node.node_id == host
-    assert node.edges == [
+    assert node.get_all_edges() == [
         BaseGraphEdge(
             edge_name="domain",
             is_dag=True,
@@ -212,14 +202,15 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node_type="Result",
             edge_relationship=AGGREGATION,
         ),
-        BaseGraphEdge(
+        CompositionGraphEdge(
             edge_name="pong_summary",
             is_dag=False,
             source_node_id=host,
             source_node_type="Action",
+            source_node=node,
             target_node_id=f"{host}:pong_summary",
             target_node_type=SummaryAspectGraphNode.NODE_TYPE,
-            edge_relationship=COMPOSITION,
+            target_node=summary_node,
         ),
     ]
 
@@ -262,6 +253,50 @@ def test_action_graph_node_links_and_helpers() -> None:
     assert p_type is PingAction.Params and r_type is PingAction.Result
     assert TypeIntrospection.full_qualname(p_type) == params_id
     assert TypeIntrospection.full_qualname(r_type) == result_id
+    assert node.regular_aspect_nodes == []
+    assert node.summary_aspect_nodes == [
+        CompositionGraphEdge(
+            edge_name="pong_summary",
+            is_dag=False,
+            source_node_id=host,
+            source_node_type="Action",
+            source_node=node,
+            target_node_id=f"{host}:pong_summary",
+            target_node_type=SummaryAspectGraphNode.NODE_TYPE,
+            target_node=summary_node,
+        ),
+    ]
+    assert node.compensator_graph_nodes == []
+    assert node.error_handler_graph_nodes == []
+    assert node.get_all_edges()[-1] == CompositionGraphEdge(
+        edge_name="pong_summary",
+        is_dag=False,
+        source_node_id=host,
+        source_node_type="Action",
+        source_node=node,
+        target_node_id=f"{host}:pong_summary",
+        target_node_type=SummaryAspectGraphNode.NODE_TYPE,
+        target_node=summary_node,
+    )
+
+
+def test_action_graph_node_appends_regular_aspect_edges() -> None:
+    node = ActionGraphNode(ChildAction)
+    host = TypeIntrospection.full_qualname(ChildAction)
+    aspect_node = AspectGraphNodeInspector.inspect(ChildAction)[0]
+
+    expected_edge = CompositionGraphEdge(
+        edge_name="process_aspect",
+        is_dag=False,
+        source_node_id=host,
+        source_node_type="Action",
+        source_node=node,
+        target_node_id=f"{host}:process_aspect",
+        target_node_type=RegularAspectGraphNode.NODE_TYPE,
+        target_node=aspect_node,
+    )
+    assert node.regular_aspect_nodes == [expected_edge]
+    assert expected_edge in node.get_all_edges()
 
 
 def test_entity_node_links_properties_and_domain_helpers() -> None:
@@ -274,7 +309,7 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
     assert node.label == "SampleEntity"
     assert node.node_id == host
     assert node.properties == {"description": "Simple test entity"}
-    assert node.edges == [
+    assert node.get_all_edges() == [
         BaseGraphEdge(
             edge_name="domain",
             is_dag=False,
@@ -295,4 +330,4 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
         target_node_type="Domain",
         edge_relationship=ASSOCIATION,
     )
-    assert EntityGraphNode._get_all_edges(SampleEntity) == node.edges
+    assert EntityGraphNode._get_all_edges(SampleEntity) == node.get_all_edges()

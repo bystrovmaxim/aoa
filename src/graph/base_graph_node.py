@@ -78,3 +78,9 @@ class BaseGraphNode[T: object]:
         object.__setattr__(self, "properties", properties)
         object.__setattr__(self, "edges", edges)
         object.__setattr__(self, "companion_nodes", companion_nodes)
+
+    def get_all_edges(self) -> list[BaseGraphEdge]:
+        return self.edges
+
+    def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
+        return []
