@@ -202,8 +202,10 @@ def test_action_graph_node_links_and_helpers() -> None:
             is_dag=False,
             source_node_id=host,
             source_node_type="Action",
+            source_node=node,
             target_node_id=params_id,
             target_node_type="Params",
+            target_node=None,
             edge_relationship=AGGREGATION,
         ),
         BaseGraphEdge(
@@ -211,8 +213,10 @@ def test_action_graph_node_links_and_helpers() -> None:
             is_dag=False,
             source_node_id=host,
             source_node_type="Action",
+            source_node=node,
             target_node_id=result_id,
             target_node_type="Result",
+            target_node=None,
             edge_relationship=AGGREGATION,
         ),
     ]
@@ -228,25 +232,29 @@ def test_action_graph_node_links_and_helpers() -> None:
             edge_relationship=ASSOCIATION,
         ),
     ]
-    assert ActionGraphNode.get_params_edge(PingAction) == [
+    assert node.get_params_edge(PingAction) == [
         BaseGraphEdge(
             edge_name="params",
             is_dag=False,
             source_node_id=host,
             source_node_type="Action",
+            source_node=node,
             target_node_id=params_id,
             target_node_type="Params",
+            target_node=None,
             edge_relationship=AGGREGATION,
         ),
     ]
-    assert ActionGraphNode.get_result_edge(PingAction) == [
+    assert node.get_result_edge(PingAction) == [
         BaseGraphEdge(
             edge_name="result",
             is_dag=False,
             source_node_id=host,
             source_node_type="Action",
+            source_node=node,
             target_node_id=result_id,
             target_node_type="Result",
+            target_node=None,
             edge_relationship=AGGREGATION,
         ),
     ]
@@ -256,8 +264,8 @@ def test_action_graph_node_links_and_helpers() -> None:
     assert p_type is PingAction.Params and r_type is PingAction.Result
     assert TypeIntrospection.full_qualname(p_type) == params_id
     assert TypeIntrospection.full_qualname(r_type) == result_id
-    assert node.regular_aspect == []
-    assert node.summary_aspect == [
+    assert node.regular_aspect_edges == []
+    assert node.summary_aspect_edges == [
         CompositionGraphEdge(
             edge_name="pong_summary",
             is_dag=False,
@@ -269,8 +277,8 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node=summary_node,
         ),
     ]
-    assert node.compensator_graph == []
-    assert node.error_handler_graph == []
+    assert node.compensator_graph_edges == []
+    assert node.error_handler_graph_edges == []
     assert CompositionGraphEdge(
         edge_name="pong_summary",
         is_dag=False,
@@ -298,7 +306,7 @@ def test_action_graph_node_appends_regular_aspect_edges() -> None:
         target_node_type=RegularAspectGraphNode.NODE_TYPE,
         target_node=aspect_node,
     )
-    assert node.regular_aspect == [expected_edge]
+    assert node.regular_aspect_edges == [expected_edge]
     assert expected_edge in node.get_all_edges()
 
 
