@@ -505,7 +505,7 @@ def interchange_pygraph_for_g6(coordinator: NodeGraphCoordinator) -> Any:
         id_to_idx[n.node_id] = out.add_node(interchange_node_to_visual_dict(n))
     for n in nodes:
         s = id_to_idx[n.node_id]
-        for edge in n.edges:
+        for edge in n.get_all_edges():
             t = id_to_idx[edge.target_node_id]
             out.add_edge(s, t, interchange_edge_to_visual_dict(edge))
     return out
@@ -587,7 +587,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
     id_to_idx = {n.node_id: i for i, n in enumerate(nodes_tuple)}
     ei = 0
     for src_idx, interchange_node in enumerate(nodes_tuple):
-        for edge in interchange_node.edges:
+        for edge in interchange_node.get_all_edges():
             tgt = id_to_idx[edge.target_node_id]
             if src_idx == tgt:
                 continue

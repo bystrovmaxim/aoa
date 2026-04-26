@@ -166,7 +166,7 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
         action_node_id = TypeIntrospection.full_qualname(action_cls)
         action_node = self.get_node_by_id(action_node_id, ActionGraphNode.NODE_TYPE)
         regular_nodes: list[RegularAspectGraphNode] = []
-        for edge in action_node.edges:
+        for edge in action_node.get_all_edges():
             if edge.target_node_type != RegularAspectGraphNode.NODE_TYPE:
                 continue
             target = self.get_node_by_id(
@@ -216,7 +216,7 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
     def _validate_referential_integrity(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
         ids = set(nodes.keys())
         for source_id, node in nodes.items():
-            for edge in node.edges:
+            for edge in node.get_all_edges():
                 if edge.target_node_id not in ids:
                     raise InvalidGraphError(
                         f"Edge {edge.edge_name!r} from {source_id!r} references "
@@ -231,7 +231,7 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
         idx = {nid: g.add_node(nid) for nid in ids}
         has_dag = False
         for source_id, node in nodes.items():
-            for edge in node.edges:
+            for edge in node.get_all_edges():
                 if not edge.is_dag:
                     continue
                 has_dag = True
@@ -250,7 +250,7 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
             id_to_idx[nid] = g.add_node(nodes[nid])
         for source_id, node in nodes.items():
             sidx = id_to_idx[source_id]
-            for edge in node.edges:
+            for edge in node.get_all_edges():
                 tidx = id_to_idx[edge.target_node_id]
                 g.add_edge(sidx, tidx, edge)
         self._node_index = id_to_idx
