@@ -84,8 +84,9 @@ class _NodeGraphTestInspector(BaseGraphNodeInspector[_GraphInspectorTestRoot]):
 
 
 def test_node_graph_coordinator_builds_chain() -> None:
+    edge = _edge("a", "b")
     b = _make_node("b", [])
-    a = _make_node("a", [_edge("a", "b")])
+    a = _make_node("a", [edge])
     coord = NodeGraphCoordinator()
     coord.build([_NodeGraphTestInspector([a, b])])
     assert coord._built
@@ -97,6 +98,8 @@ def test_node_graph_coordinator_builds_chain() -> None:
     all_nodes = coord.get_all_nodes()
     assert [n.node_id for n in all_nodes] == ["a", "b"]
     assert all_nodes[0] is a and all_nodes[1] is b
+    assert edge.source_node is a
+    assert edge.target_node is b
 
 
 def test_rx_graph_unavailable_before_build() -> None:
@@ -136,6 +139,13 @@ def test_missing_target_raises() -> None:
     a = _make_node("a", [_edge("a", "missing")])
     coord = NodeGraphCoordinator()
     with pytest.raises(InvalidGraphError, match="missing"):
+        coord.build([_NodeGraphTestInspector([a])])
+
+
+def test_missing_source_raises() -> None:
+    a = _make_node("a", [_edge("missing", "a")])
+    coord = NodeGraphCoordinator()
+    with pytest.raises(InvalidGraphError, match="missing source_node_id"):
         coord.build([_NodeGraphTestInspector([a])])
 
 
