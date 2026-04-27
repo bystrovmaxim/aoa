@@ -19,10 +19,9 @@ Read it via :attr:`NodeGraphCoordinator.rx_graph` after a successful :meth:`buil
 or list interchange nodes without touching rustworkx via :meth:`get_all_nodes`.
 
 This coordinator is **domain-agnostic**: it does not interpret ``node_type`` or
-``edge_name`` beyond validation and DAG checks. It does **not** recurse into
-:attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes`; each inspector's
-:meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` must already
-include every ``node_id`` referenced by emitted edges (flatten companions there).
+``edge_name`` beyond validation and DAG checks. It expands inspector rows with each
+node's :meth:`~graph.base_graph_node.BaseGraphNode.get_companion_nodes` result before
+validating and materializing the graph.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -33,7 +32,7 @@ ARCHITECTURE / DATA FLOW
     inspectors: Sequence[BaseGraphNodeInspector[Any]]  (instances)
               │
               v
-    for each: inspector.get_graph_nodes()  ->  flat list of (node, inspector_label)
+    for each: inspector.get_graph_nodes()  ->  flat list of (node + companions, inspector_label)
               │
               v
     dict[node_id -> BaseGraphNode] with unique ids
@@ -105,8 +104,9 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
         if self._built:
             msg = "NodeGraphCoordinator.build() was already called on this instance."
             raise RuntimeError(msg)
-        flat = self._gather_all_nodes(inspectors)
-        nodes = self._map_unique_node_ids(flat)
+        inspector_nodes = self._gather_all_nodes(inspectors)
+        graph_nodes = self._include_companion_nodes(inspector_nodes)
+        nodes = self._map_unique_node_ids(graph_nodes)
         self._validate_referential_integrity(nodes)
         self._validate_dag_acyclicity(nodes)
         self._materialize_rustworkx_graph(nodes)
@@ -190,6 +190,22 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
             for node in insp.get_graph_nodes():
                 out.append((node, label))
         return out
+
+    def _include_companion_nodes(
+        self,
+        flat: list[tuple[BaseGraphNode[Any], str]],
+    ) -> list[tuple[BaseGraphNode[Any], str]]:
+        """Append each gathered node's companion nodes under the same inspector label."""
+        out = list(flat)
+        seen_node_ids = {node.node_id for node, _ in flat}
+        for node, label in flat:
+            for companion_node in node.get_companion_nodes():
+                if companion_node.node_id in seen_node_ids:
+                    continue
+                seen_node_ids.add(companion_node.node_id)
+                out.append((companion_node, label))
+        return out
+
 
     def _map_unique_node_ids(
         self,

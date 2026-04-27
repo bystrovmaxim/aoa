@@ -189,16 +189,6 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node_type="Domain",
             target_node=None,
         ),
-        CompositionGraphEdge(
-            edge_name="pong_summary",
-            is_dag=False,
-            source_node_id=host,
-            source_node_type="Action",
-            source_node=node,
-            target_node_id=f"{host}:pong_summary",
-            target_node_type=SummaryAspectGraphNode.NODE_TYPE,
-            target_node=summary_node,
-        ),
         AggregationGraphEdge(
             edge_name="params",
             is_dag=False,
@@ -218,6 +208,16 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node_id=result_id,
             target_node_type="Result",
             target_node=None,
+        ),
+        CompositionGraphEdge(
+            edge_name="pong_summary",
+            is_dag=False,
+            source_node_id=host,
+            source_node_type="Action",
+            source_node=node,
+            target_node_id=f"{host}:pong_summary",
+            target_node_type=SummaryAspectGraphNode.NODE_TYPE,
+            target_node=summary_node,
         ),
     ]
 
@@ -309,7 +309,7 @@ def test_action_graph_node_appends_regular_aspect_edges() -> None:
     assert aspect_node in node.get_companion_nodes()
     assert aspect_node.get_companion_nodes()[0] in node.get_companion_nodes()
     assert expected_edge in node.get_all_edges()
-    assert aspect_node.get_all_edges()[0] in node.get_all_edges()
+    assert aspect_node.get_all_edges()[0] not in node.get_all_edges()
 
 
 def test_action_graph_node_stores_depends_and_connection_edges() -> None:

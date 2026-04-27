@@ -119,28 +119,17 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         object.__setattr__(self, "error_handler_graph_edges", error_handler_graph_edges)
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        edges: list[BaseGraphEdge] = []
-        if self.domain_edge is not None:
-            edges.append(self.domain_edge)
-        edges.extend(self.depends_edges)
-        edges.extend(self.connection_edges)
-        edges.extend(self.regular_aspect_edges)
-        edges.extend(self.summary_aspect_edges)
-        edges.extend(self.compensator_graph_edges)
-        edges.extend(self.error_handler_graph_edges)
-        for edge in (
+        return [
+            *([] if self.domain_edge is None else [self.domain_edge]),
+            *([] if self.params_edge is None else [self.params_edge]),
+            *([] if self.result_edge is None else [self.result_edge]),
+            *self.depends_edges,
+            *self.connection_edges,
             *self.regular_aspect_edges,
             *self.summary_aspect_edges,
             *self.compensator_graph_edges,
             *self.error_handler_graph_edges,
-        ):
-            if edge.target_node is not None:
-                edges.extend(edge.target_node.get_all_edges())
-        if self.params_edge is not None:
-            edges.append(self.params_edge)
-        if self.result_edge is not None:
-            edges.append(self.result_edge)
-        return edges
+        ]
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         return [
