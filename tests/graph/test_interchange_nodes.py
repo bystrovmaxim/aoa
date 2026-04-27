@@ -31,9 +31,8 @@ from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.association_graph_edge import AssociationGraphEdge
-from graph.base_graph_edge import BaseGraphEdge
 from graph.composition_graph_edge import CompositionGraphEdge
-from graph.edge_relationship import ASSOCIATION, COMPOSITION
+from graph.edge_relationship import COMPOSITION
 from graph.facet_vertex import FacetVertex
 from tests.scenarios.domain_model.child_action import ChildAction
 from tests.scenarios.domain_model.compensate_actions import (
@@ -331,25 +330,16 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
     assert node.label == "SampleEntity"
     assert node.node_id == host
     assert node.properties == {"description": "Simple test entity"}
-    assert node.get_all_edges() == [
-        BaseGraphEdge(
-            edge_name="domain",
-            is_dag=False,
-            source_node_id=host,
-            source_node_type="Entity",
-            target_node_id=dom_id,
-            target_node_type="Domain",
-            edge_relationship=ASSOCIATION,
-        ),
-    ]
-
-    assert EntityGraphNode.get_domain_edge(SampleEntity) == BaseGraphEdge(
+    assert node.domain_edge == AssociationGraphEdge(
         edge_name="domain",
         is_dag=False,
         source_node_id=host,
         source_node_type="Entity",
+        source_node=node,
         target_node_id=dom_id,
         target_node_type="Domain",
-        edge_relationship=ASSOCIATION,
+        target_node=None,
     )
-    assert EntityGraphNode._get_all_edges(SampleEntity) == node.get_all_edges()
+    assert node.get_all_edges() == [
+        node.domain_edge,
+    ]

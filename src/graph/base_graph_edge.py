@@ -24,16 +24,15 @@ EXAMPLES
 
 ::
 
-    from graph.edge_relationship import ASSOCIATION
+    from graph.association_graph_edge import AssociationGraphEdge
 
-    BaseGraphEdge(
+    AssociationGraphEdge(
         edge_name="domain",
         is_dag=False,
         source_node_id="pkg.actions.MyAction",
         source_node_type="Action",
         target_node_id="pkg.domains.SystemDomain",
         target_node_type="Domain",
-        edge_relationship=ASSOCIATION,
     )
 
 Edge case: same ``edge_name`` on different nodes — distinguish by ``source_node_id``.
@@ -41,6 +40,7 @@ Edge case: same ``edge_name`` on different nodes — distinguish by ``source_nod
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(init=False, frozen=True)
-class BaseGraphEdge:
+class BaseGraphEdge(ABC):
     """
     AI-CORE-BEGIN
     ROLE: Interchange edge descriptor (slot, DAG, source/target ids, kinds, relationship, properties).
@@ -74,6 +74,7 @@ class BaseGraphEdge:
     edge_relationship: EdgeRelationship
     properties: dict[str, Any]
 
+    @abstractmethod
     def __init__(
         self,
         *,

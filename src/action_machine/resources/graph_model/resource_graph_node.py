@@ -27,16 +27,16 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar
 
-from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
-from action_machine.introspection_tools import IntentIntrospection, TypeIntrospection
+from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
+from action_machine.introspection_tools import TypeIntrospection
 from action_machine.resources.base_resource import BaseResource
+from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.edge_relationship import ASSOCIATION
 
 TResource = TypeVar("TResource", bound=BaseResource)
 
@@ -46,62 +46,56 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseResource`` host class.
-    CONTRACT: ``get_properties`` from ``@meta`` ``description``; ``get_domain_edge`` returns
+    CONTRACT: ``_get_properties`` from ``@meta`` ``description``; ``_get_domain_edge`` returns
     zero or one ``ASSOCIATION`` edge to :class:`~action_machine.domain.graph_model.domain_graph_node.DomainGraphNode` when ``domain`` is a ``BaseDomain`` subclass.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Resource"
-    resource_edges: list[BaseGraphEdge]
+    domain_edge: AssociationGraphEdge | None = field(init=False, repr=False, compare=False)
 
     def __init__(self, resource_cls: type[TResource]) -> None:
-        resource_edges = ResourceGraphNode._get_all_edges(resource_cls)
         super().__init__(
             node_id=TypeIntrospection.full_qualname(resource_cls),
             node_type=ResourceGraphNode.NODE_TYPE,
             label=resource_cls.__name__,
-            properties=dict(ResourceGraphNode.get_properties(resource_cls)),
+            properties=dict(ResourceGraphNode._get_properties(resource_cls)),
             node_obj=resource_cls,
         )
-        object.__setattr__(self, "resource_edges", resource_edges)
+        domain_edge = self._get_domain_edge(resource_cls)
+        object.__setattr__(self, "domain_edge", domain_edge[0] if domain_edge else None)
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return resource relationship edges materialized in the explicit edge field."""
-        return self.resource_edges
-
-    @classmethod
-    def get_domain_edge(
-        cls,
-        resource_cls: type[TResource],
-    ) -> list[BaseGraphEdge]:
-        """Zero or one domain edge; empty when ``@meta`` has no valid ``BaseDomain`` in ``domain``."""
-        meta_info_dict = IntentIntrospection.meta_info_dict(resource_cls)
-        domain_cls = meta_info_dict.get("domain")
-        if domain_cls is None:
-            return []
-        if not isinstance(domain_cls, type) or not issubclass(domain_cls, BaseDomain):
-            return []
         return [
-            BaseGraphEdge(
-                edge_name="domain",
-                is_dag=True,
-                source_node_id=TypeIntrospection.full_qualname(resource_cls),
-                source_node_type=cls.NODE_TYPE,
-                target_node_id=TypeIntrospection.full_qualname(domain_cls),
-                target_node_type=DomainGraphNode.NODE_TYPE,
-                edge_relationship=ASSOCIATION,
-            ),
+            *([] if self.domain_edge is None else [self.domain_edge]),
         ]
 
     @classmethod
-    def get_properties(cls, resource_cls: type[TResource]) -> dict[str, Any]:
+    def _get_properties(cls, resource_cls: type[TResource]) -> dict[str, Any]:
         """``description`` from ``_meta_info`` when ``@meta(description=...)`` is present."""
         properties: dict[str, Any] = {}
-        desc = IntentIntrospection.meta_info_dict(resource_cls).get("description")
-        if isinstance(desc, str) and desc.strip():
+        desc = MetaIntentResolver.resolve_description(resource_cls)
+        if desc is not None:
             properties["description"] = desc.strip()
         return properties
 
-    @classmethod
-    def _get_all_edges(cls, resource_cls: type[TResource]) -> list[BaseGraphEdge]:
-        return cls.get_domain_edge(resource_cls)
+    def _get_domain_edge(
+        self,
+        resource_cls: type[TResource],
+    ) -> list[AssociationGraphEdge]:
+        """Zero or one domain edge; empty when ``@meta`` has no valid ``BaseDomain`` in ``domain``."""
+        return [
+            AssociationGraphEdge(
+                edge_name="domain",
+                is_dag=True,
+                source_node_id=TypeIntrospection.full_qualname(resource_cls),
+                source_node_type=self.NODE_TYPE,
+                source_node=self,
+                target_node_id=TypeIntrospection.full_qualname(domain_cls),
+                target_node_type=DomainGraphNode.NODE_TYPE,
+                target_node=None,
+            )
+            for domain_cls in [MetaIntentResolver.resolve_domain_type(resource_cls)]
+            if domain_cls is not None
+        ]
