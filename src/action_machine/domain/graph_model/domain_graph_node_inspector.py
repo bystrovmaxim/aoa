@@ -6,16 +6,14 @@ DomainGraphNodeInspector — graph-node contributor for ``BaseDomain`` subclasse
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseDomain`` strict subclass tree and emits one :class:`DomainGraphNode` per
-visited concrete domain class. The ``BaseDomain`` axis is excluded via
-:meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`
-(``DomainGraphNode`` expects ``name`` / ``description`` on concrete domains).
+Walks the loaded ``BaseDomain`` subclass tree and emits one :class:`DomainGraphNode` per
+visited domain class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseDomain  (root axis, skipped in walk)
+    BaseDomain  (root axis)
               │
               v
     each strict subclass ``cls``  ->  ``[DomainGraphNode(cls)]`` when ``issubclass(cls, BaseDomain)``
@@ -36,12 +34,9 @@ class DomainGraphNodeInspector(BaseGraphNodeInspector[BaseDomain]):
     """
     AI-CORE-BEGIN
     ROLE: Emit ``DomainGraphNode`` rows for every loaded ``BaseDomain`` subclass.
-    CONTRACT: Root axis ``BaseDomain`` from ``BaseGraphNodeInspector[BaseDomain]``; one node per strict subclass with a valid ``DomainGraphNode`` shape (root excluded via :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`).
+    CONTRACT: Root axis ``BaseDomain`` from ``BaseGraphNodeInspector[BaseDomain]``; one node per visited domain class.
     AI-CORE-END
     """
-
-    def _graph_node_walk_excluded_types(self) -> frozenset[type]:
-        return frozenset({BaseDomain})
 
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         if isinstance(cls, type) and issubclass(cls, BaseDomain):

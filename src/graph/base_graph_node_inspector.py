@@ -10,8 +10,7 @@ PURPOSE
 rows from inspector **instances**. Concrete subclasses specialize ``TRoot`` (the
 axis type, e.g. ``BaseAction``) as ``class Foo(BaseGraphNodeInspector[BaseAction[Any, Any]]): ...``,
 implement only :meth:`_get_type_nodes`; :meth:`_get_inspector_type` returns that ``TRoot`` class object.
-:meth:`get_graph_nodes` walks the root plus all strict subclasses (see :meth:`_all_descendant_types`),
-skipping any ``type`` returned by :meth:`_graph_node_walk_excluded_types` (empty by default).
+:meth:`get_graph_nodes` walks the root plus all strict subclasses (see :meth:`_all_descendant_types`).
 
 Inspectors that also participate in the main facet graph typically inherit both
 :class:`~graph.base_intent_inspector.BaseIntentInspector` and ``BaseGraphNodeInspector``.
@@ -60,14 +59,7 @@ class BaseGraphNodeInspector[TRoot](ABC):
 
     @staticmethod
     def _all_descendant_types(root: type) -> tuple[type, ...]:
-        """
-        Return every **strict** subclass of ``root`` (transitive), each ``type`` once.
-
-        Order is deterministic: ``(module, qualname)`` lexicographic sort. ``root`` itself is not included.
-
-        Raises:
-            TypeError: ``root`` is not a :class:`type`.
-        """
+        """Return all transitive subclasses of ``root`` in deterministic order."""
         if not isinstance(root, type):
             msg = f"root must be a type, not {type(root).__name__}"
             raise TypeError(msg)
@@ -85,13 +77,7 @@ class BaseGraphNodeInspector[TRoot](ABC):
         return tuple(found)
 
     def _get_inspector_type(self) -> type:
-        """
-        Return the root axis class object for this inspector's ``BaseGraphNodeInspector[TRoot]`` specialization.
-
-        ``TRoot`` exists only in static types; at runtime the class object is read from ``type(self).__orig_bases__``
-        (unwraps subscripted generics, e.g. ``BaseAction[Any, Any]`` → ``BaseAction``). ``type(TRoot)`` is not valid
-        Python — ``TRoot`` is not a value.
-        """
+        """Return the root axis type from ``BaseGraphNodeInspector[TRoot]``."""
         owner_cls = type(self)
         bases = getattr(owner_cls, "__orig_bases__", ()) or ()
         for base in bases:
@@ -122,40 +108,11 @@ class BaseGraphNodeInspector[TRoot](ABC):
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         """Return interchange nodes for a single concrete or abstract ``cls`` (may be empty)."""
 
-    def _graph_node_walk_excluded_types(self) -> frozenset[type]:
-        """
-        Axis ``type`` objects omitted from the :meth:`get_graph_nodes` walk.
-
-        Neither the root from :meth:`_get_inspector_type` nor any listed descendant is passed
-        to :meth:`_get_type_nodes`. Override in a subclass to skip abstract intermediates or
-        branches that must not emit interchange rows.
-
-        Returns:
-            Empty :class:`frozenset` by default.
-        """
-        return frozenset()
-
     def get_graph_nodes(self) -> list[BaseGraphNode[Any]]:
-        """
-        Collect nodes for the inspector root type, then for each strict subclass in deterministic order.
-
-        Calls :meth:`_get_type_nodes` on the root from :meth:`_get_inspector_type`, then on every type
-        returned by :meth:`_all_descendant_types` for that root, skipping types in
-        :meth:`_graph_node_walk_excluded_types`. For an abstract root, :meth:`_get_type_nodes`
-        may return an empty list while concrete subclasses still contribute nodes.
-
-        Every ``target_node_id`` on every emitted edge must appear as some returned node's
-        :attr:`~graph.base_graph_node.BaseGraphNode.node_id` (including vertices listed only on
-        a host's :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes`, which must be
-        flattened into this list by the inspector).
-        """
+        """Collect nodes for the root axis and all descendant types."""
         root = self._get_inspector_type()
-        excluded = self._graph_node_walk_excluded_types()
         out: list[BaseGraphNode[Any]] = []
-        if root not in excluded:
-            out.extend(self._get_type_nodes(root))
+        out.extend(self._get_type_nodes(root))
         for cls in self._all_descendant_types(root):
-            if cls in excluded:
-                continue
             out.extend(self._get_type_nodes(cls))
         return out
