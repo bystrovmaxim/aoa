@@ -107,6 +107,7 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
         inspector_nodes = self._gather_all_nodes(inspectors)
         graph_nodes = self._include_companion_nodes(inspector_nodes)
         nodes = self._map_unique_node_ids(graph_nodes)
+        self._resolve_edge_node_refs(nodes)
         self._validate_referential_integrity(nodes)
         self._validate_dag_acyclicity(nodes)
         self._materialize_rustworkx_graph(nodes)
@@ -229,14 +230,46 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
             owners[nid] = label
         return nodes
 
+    def _resolve_edge_node_refs(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
+        """Fill missing edge ``source_node`` / ``target_node`` references from resolved node ids."""
+        for node in nodes.values():
+            for edge in node.get_all_edges():
+                source_node = nodes.get(edge.source_node_id)
+                if edge.source_node is None and source_node is not None:
+                    object.__setattr__(edge, "source_node", source_node)
+                target_node = nodes.get(edge.target_node_id)
+                if edge.target_node is None and target_node is not None:
+                    object.__setattr__(edge, "target_node", target_node)
+
     def _validate_referential_integrity(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
-        ids = set(nodes.keys())
         for source_id, node in nodes.items():
             for edge in node.get_all_edges():
-                if edge.target_node_id not in ids:
+                source_node = nodes.get(edge.source_node_id)
+                if source_node is None:
+                    raise InvalidGraphError(
+                        f"Edge {edge.edge_name!r} from {source_id!r} references "
+                        f"missing source_node_id {edge.source_node_id!r}.",
+                    )
+                if edge.source_node is not source_node:
+                    raise InvalidGraphError(
+                        f"Edge {edge.edge_name!r} from {source_id!r} has broken source_node "
+                        f"for source_node_id {edge.source_node_id!r}.",
+                    )
+                if edge.source_node_id != source_id:
+                    raise InvalidGraphError(
+                        f"Edge {edge.edge_name!r} from {source_id!r} declares "
+                        f"source_node_id {edge.source_node_id!r}.",
+                    )
+                target_node = nodes.get(edge.target_node_id)
+                if target_node is None:
                     raise InvalidGraphError(
                         f"Edge {edge.edge_name!r} from {source_id!r} references "
                         f"missing target_node_id {edge.target_node_id!r}.",
+                    )
+                if edge.target_node is not target_node:
+                    raise InvalidGraphError(
+                        f"Edge {edge.edge_name!r} from {source_id!r} has broken target_node "
+                        f"for target_node_id {edge.target_node_id!r}.",
                     )
 
     def _validate_dag_acyclicity(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
