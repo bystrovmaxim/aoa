@@ -41,5 +41,5 @@ class ResultGraphNodeInspector(BaseGraphNodeInspector[BaseResult]):
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         if isinstance(cls, type) and issubclass(cls, BaseResult):
             node = ResultGraphNode(cls)
-            return [node, *node.companion_nodes]
+            return [node, *node.get_companion_nodes()]
         return []
