@@ -30,6 +30,7 @@ from action_machine.model.graph_model.regular_aspect_graph_node import RegularAs
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from graph.aggregation_graph_edge import AggregationGraphEdge
+from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.composition_graph_edge import CompositionGraphEdge
 from graph.edge_relationship import ASSOCIATION, COMPOSITION
@@ -41,6 +42,7 @@ from tests.scenarios.domain_model.compensate_actions import (
 )
 from tests.scenarios.domain_model.domains import SystemDomain
 from tests.scenarios.domain_model.entities import SampleEntity, TestDomain
+from tests.scenarios.domain_model.full_action import FullAction
 from tests.scenarios.domain_model.ping_action import PingAction
 
 
@@ -181,14 +183,15 @@ def test_action_graph_node_links_and_helpers() -> None:
     assert node.label == "PingAction"
     assert node.node_id == host
     assert node.get_all_edges() == [
-        BaseGraphEdge(
+        AssociationGraphEdge(
             edge_name="domain",
             is_dag=True,
             source_node_id=host,
             source_node_type="Action",
+            source_node=node,
             target_node_id=dom_id,
             target_node_type="Domain",
-            edge_relationship=ASSOCIATION,
+            target_node=None,
         ),
         CompositionGraphEdge(
             edge_name="pong_summary",
@@ -222,41 +225,36 @@ def test_action_graph_node_links_and_helpers() -> None:
         ),
     ]
 
-    assert ActionGraphNode.get_domain_edge(PingAction) == [
-        BaseGraphEdge(
-            edge_name="domain",
-            is_dag=True,
-            source_node_id=host,
-            source_node_type="Action",
-            target_node_id=dom_id,
-            target_node_type="Domain",
-            edge_relationship=ASSOCIATION,
-        ),
-    ]
-    assert node.get_params_edge(PingAction) == [
-        AggregationGraphEdge(
-            edge_name="params",
-            is_dag=False,
-            source_node_id=host,
-            source_node_type="Action",
-            source_node=node,
-            target_node_id=params_id,
-            target_node_type="Params",
-            target_node=None,
-        ),
-    ]
-    assert node.get_result_edge(PingAction) == [
-        AggregationGraphEdge(
-            edge_name="result",
-            is_dag=False,
-            source_node_id=host,
-            source_node_type="Action",
-            source_node=node,
-            target_node_id=result_id,
-            target_node_type="Result",
-            target_node=None,
-        ),
-    ]
+    assert node.domain_edge == AssociationGraphEdge(
+        edge_name="domain",
+        is_dag=True,
+        source_node_id=host,
+        source_node_type="Action",
+        source_node=node,
+        target_node_id=dom_id,
+        target_node_type="Domain",
+        target_node=None,
+    )
+    assert node.params_edge == AggregationGraphEdge(
+        edge_name="params",
+        is_dag=False,
+        source_node_id=host,
+        source_node_type="Action",
+        source_node=node,
+        target_node_id=params_id,
+        target_node_type="Params",
+        target_node=None,
+    )
+    assert node.result_edge == AggregationGraphEdge(
+        edge_name="result",
+        is_dag=False,
+        source_node_id=host,
+        source_node_type="Action",
+        source_node=node,
+        target_node_id=result_id,
+        target_node_type="Result",
+        target_node=None,
+    )
 
     p_type = ActionSchemaIntentResolver.resolve_params_type(PingAction)
     r_type = ActionSchemaIntentResolver.resolve_result_type(PingAction)
@@ -309,6 +307,15 @@ def test_action_graph_node_appends_regular_aspect_edges() -> None:
     )
     assert node.regular_aspect_edges == [expected_edge]
     assert expected_edge in node.get_all_edges()
+
+
+def test_action_graph_node_stores_depends_and_connection_edges() -> None:
+    node = ActionGraphNode(FullAction)
+
+    assert len(node.depends_edges) == 3
+    assert len(node.connection_edges) == 1
+    assert all(edge in node.get_all_edges() for edge in node.depends_edges)
+    assert all(edge in node.get_all_edges() for edge in node.connection_edges)
 
 
 def test_entity_node_links_properties_and_domain_helpers() -> None:
