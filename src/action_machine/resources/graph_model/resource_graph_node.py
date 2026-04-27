@@ -52,16 +52,22 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
     """
 
     NODE_TYPE: ClassVar[str] = "Resource"
+    resource_edges: list[BaseGraphEdge]
 
     def __init__(self, resource_cls: type[TResource]) -> None:
+        resource_edges = ResourceGraphNode._get_all_edges(resource_cls)
         super().__init__(
             node_id=TypeIntrospection.full_qualname(resource_cls),
             node_type=ResourceGraphNode.NODE_TYPE,
             label=resource_cls.__name__,
             properties=dict(ResourceGraphNode.get_properties(resource_cls)),
-            edges=list(ResourceGraphNode._get_all_edges(resource_cls)),
             node_obj=resource_cls,
         )
+        object.__setattr__(self, "resource_edges", resource_edges)
+
+    def get_all_edges(self) -> list[BaseGraphEdge]:
+        """Return resource relationship edges materialized in the explicit edge field."""
+        return self.resource_edges
 
     @classmethod
     def get_domain_edge(

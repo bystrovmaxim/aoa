@@ -22,7 +22,6 @@ class _StubNode(BaseGraphNode[object]):
             node_type="Test",
             label="stub",
             properties={},
-            edges=[],
             node_obj=object(),
         )
 

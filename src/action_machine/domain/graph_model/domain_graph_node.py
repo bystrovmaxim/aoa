@@ -68,6 +68,5 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
                 "name": domain_cls.name,
                 "description": domain_cls.description,
             },
-            edges=[],
             node_obj=domain_cls,
         )

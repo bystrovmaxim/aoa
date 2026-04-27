@@ -67,15 +67,12 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
         params_node_id = TypeIntrospection.full_qualname(params_cls)
         field_edges = ParamsGraphNode._get_field_edges(params_cls, params_node_id)
         property_edges = ParamsGraphNode._get_property_edges(params_cls, params_node_id)
-        companion_nodes = []
         super().__init__(
             node_id=params_node_id,
             node_type=ParamsGraphNode.NODE_TYPE,
             label=params_cls.__name__,
             properties={},
-            edges=[],
             node_obj=params_cls,
-            companion_nodes=companion_nodes,
         )
         object.__setattr__(self, "field_edges", field_edges)
         object.__setattr__(self, "property_edges", property_edges)

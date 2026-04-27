@@ -27,7 +27,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar, cast
 
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
@@ -82,7 +82,6 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             node_type=ActionGraphNode.NODE_TYPE,
             label=action_cls.__name__,
             properties=dict(ActionGraphNode._get_properties(action_cls)),
-            edges=[],
             node_obj=action_cls,
         )
         domain_edge = self._get_domain_edge(action_cls)
@@ -114,16 +113,6 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         edges.extend(self.summary_aspect_edges)
         edges.extend(self.compensator_graph_edges)
         edges.extend(self.error_handler_graph_edges)
-        if self.params_edge is not None:
-            edges.append(self.params_edge)
-        if self.result_edge is not None:
-            edges.append(self.result_edge)
-        for companion_node in self.get_companion_nodes():
-            edges.extend(companion_node.get_all_edges())
-        return edges
-
-    def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
-        nodes: list[BaseGraphNode[Any]] = []
         for edge in (
             *self.regular_aspect_edges,
             *self.summary_aspect_edges,
@@ -131,9 +120,40 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             *self.error_handler_graph_edges,
         ):
             if edge.target_node is not None:
-                nodes.append(edge.target_node)
-                nodes.extend(edge.target_node.get_companion_nodes())
-        return nodes
+                edges.extend(edge.target_node.get_all_edges())
+        if self.params_edge is not None:
+            edges.append(self.params_edge)
+        if self.result_edge is not None:
+            edges.append(self.result_edge)
+        return edges
+
+    def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
+        return [
+            *(cast(BaseGraphNode[Any], edge.target_node) for edge in self.regular_aspect_edges),
+            *(cast(BaseGraphNode[Any], edge.target_node) for edge in self.summary_aspect_edges),
+            *(cast(BaseGraphNode[Any], edge.target_node) for edge in self.compensator_graph_edges),
+            *(cast(BaseGraphNode[Any], edge.target_node) for edge in self.error_handler_graph_edges),
+            *(
+                node
+                for edge in self.regular_aspect_edges
+                for node in cast(BaseGraphNode[Any], edge.target_node).get_companion_nodes()
+            ),
+            *(
+                node
+                for edge in self.summary_aspect_edges
+                for node in cast(BaseGraphNode[Any], edge.target_node).get_companion_nodes()
+            ),
+            *(
+                node
+                for edge in self.compensator_graph_edges
+                for node in cast(BaseGraphNode[Any], edge.target_node).get_companion_nodes()
+            ),
+            *(
+                node
+                for edge in self.error_handler_graph_edges
+                for node in cast(BaseGraphNode[Any], edge.target_node).get_companion_nodes()
+            ),
+        ]
 
     @classmethod
     def _get_properties(cls, action_cls: type[TAction]) -> dict[str, Any]:

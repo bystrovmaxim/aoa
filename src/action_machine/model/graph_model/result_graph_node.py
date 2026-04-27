@@ -67,15 +67,12 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
         result_node_id = TypeIntrospection.full_qualname(result_cls)
         field_edges = ResultGraphNode._get_field_edges(result_cls, result_node_id)
         property_edges = ResultGraphNode._get_property_edges(result_cls, result_node_id)
-        companion_nodes = []
         super().__init__(
             node_id=result_node_id,
             node_type=ResultGraphNode.NODE_TYPE,
             label=result_cls.__name__,
             properties={},
-            edges=[],
             node_obj=result_cls,
-            companion_nodes=companion_nodes,
         )
         object.__setattr__(self, "field_edges", field_edges)
         object.__setattr__(self, "property_edges", property_edges)

@@ -53,8 +53,7 @@ def test_regular_aspect_graph_node_interchange_shape() -> None:
     assert node.label == "process_aspect"
     assert node.properties == {"description": "Process value"}
     assert node.node_id == f"{TypeIntrospection.full_qualname(ChildAction)}:process_aspect"
-    assert len(node.companion_nodes) == 1
-    assert node.get_companion_nodes() == node.companion_nodes
+    assert len(node.get_companion_nodes()) == 1
     edges = node.get_all_edges()
     assert len(edges) == 1
     assert edges[0].source_node_id == node.node_id
@@ -103,7 +102,7 @@ def test_params_graph_node_interchange_shape() -> None:
     assert node.label == "PongParams"
     assert node.node_id == TypeIntrospection.full_qualname(PongParams)
     assert node.properties == {}
-    assert len(node.companion_nodes) == 1
+    assert len(node.get_companion_nodes()) == 1
     edges = node.get_all_edges()
     assert len(edges) == 1
     assert edges[0].edge_name == "field:token"
@@ -124,7 +123,7 @@ def test_result_graph_node_interchange_shape() -> None:
     assert node.label == "PongResult"
     assert node.node_id == TypeIntrospection.full_qualname(PongResult)
     assert node.properties == {}
-    assert len(node.companion_nodes) == 1
+    assert len(node.get_companion_nodes()) == 1
     edges = node.get_all_edges()
     assert len(edges) == 1
     assert edges[0].edge_name == "field:ok"

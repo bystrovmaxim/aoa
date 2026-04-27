@@ -76,6 +76,5 @@ class PropertyFieldGraphNode(BaseGraphNode[PropertyFieldGraphPayload]):
             properties={
                 "required": required,
             },
-            edges=[],
             node_obj=node_obj,
         )

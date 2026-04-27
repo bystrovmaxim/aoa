@@ -55,14 +55,17 @@ def _make_node(
 
     class _N(BaseGraphNode[object]):
         def __init__(self, obj: object) -> None:
+            self._edges = list(edge_list)
             super().__init__(
                 node_id=node_id,
                 node_type="Test",
                 label="L",
                 properties={},
-                edges=list(edge_list),
                 node_obj=obj,
             )
+
+        def get_all_edges(self) -> list[BaseGraphEdge]:
+            return self._edges
 
     return _N(object())
 
@@ -198,24 +201,27 @@ def test_get_regular_aspect_nodes_uses_action_edges() -> None:
 
     class _ActionNode(BaseGraphNode[type[_RegularAspectHostAction]]):
         def __init__(self) -> None:
+            self._edges = [
+                BaseGraphEdge(
+                    edge_name="run",
+                    is_dag=False,
+                    source_node_id=action_node_id,
+                    source_node_type=ActionGraphNode.NODE_TYPE,
+                    target_node_id=aspect_node.node_id,
+                    target_node_type=RegularAspectGraphNode.NODE_TYPE,
+                    edge_relationship=COMPOSITION,
+                ),
+            ]
             super().__init__(
                 node_id=action_node_id,
                 node_type=ActionGraphNode.NODE_TYPE,
                 label="_Action",
                 properties={},
-                edges=[
-                    BaseGraphEdge(
-                        edge_name="run",
-                        is_dag=False,
-                        source_node_id=action_node_id,
-                        source_node_type=ActionGraphNode.NODE_TYPE,
-                        target_node_id=aspect_node.node_id,
-                        target_node_type=RegularAspectGraphNode.NODE_TYPE,
-                        edge_relationship=COMPOSITION,
-                    ),
-                ],
                 node_obj=_RegularAspectHostAction,
             )
+
+        def get_all_edges(self) -> list[BaseGraphEdge]:
+            return self._edges
 
     action_node = _ActionNode()
     coord = NodeGraphCoordinator()
@@ -238,7 +244,6 @@ def test_get_regular_aspect_nodes_raises_when_node_is_not_action() -> None:
                 node_type="Domain",
                 label="_RegularAspectHostAction",
                 properties={},
-                edges=[],
                 node_obj=_RegularAspectHostAction,
             )
 

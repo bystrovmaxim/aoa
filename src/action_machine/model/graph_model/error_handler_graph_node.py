@@ -54,6 +54,5 @@ class ErrorHandlerGraphNode(BaseGraphNode[Callable[..., Any]]):
             node_type=ErrorHandlerGraphNode.NODE_TYPE,
             label=method_name,
             properties={"description": desc} if desc is not None else {},
-            edges=[],
             node_obj=handler_func,
         )
