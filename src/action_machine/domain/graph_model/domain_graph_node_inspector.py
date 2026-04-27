@@ -39,6 +39,6 @@ class DomainGraphNodeInspector(BaseGraphNodeInspector[BaseDomain]):
     """
 
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
-        if isinstance(cls, type) and issubclass(cls, BaseDomain):
+        if isinstance(cls, type) and cls is not BaseDomain and issubclass(cls, BaseDomain):
             return [DomainGraphNode(cls)]
         return []
