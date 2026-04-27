@@ -83,4 +83,4 @@ class BaseGraphNode[T: object]:
         return self.edges
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
-        return []
+        return self.companion_nodes

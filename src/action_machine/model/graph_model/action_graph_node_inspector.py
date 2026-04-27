@@ -28,19 +28,15 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
-from action_machine.introspection_tools import CallableKind, IntentIntrospection
 from action_machine.model.base_action import BaseAction
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 
 from .action_graph_node import ActionGraphNode
 from .checker_graph_node import CheckerGraphNode
-from .compensator_graph_node import CompensatorGraphNode
-from .error_handler_graph_node import ErrorHandlerGraphNode
 from .regular_aspect_graph_node import RegularAspectGraphNode
-from .summary_aspect_graph_node import SummaryAspectGraphNode
 
 
 class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
@@ -53,66 +49,26 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
     """
 
     @staticmethod
-    def _regular_aspect_and_checker_graph_nodes_for_class(
-        action_cls: type,
-    ) -> tuple[list[RegularAspectGraphNode], list[CheckerGraphNode]]:
-        """Return ``(regular_aspect_nodes, checker_nodes)`` for ``action_cls`` (checkers from each aspect's ``companion_nodes``)."""
-        regular_out: list[RegularAspectGraphNode] = []
-        all_checkers: list[CheckerGraphNode] = []
-        for aspect_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
-            action_cls,
-            CallableKind.REGULAR_ASPECT,
-        ):
-            aspect_node = RegularAspectGraphNode(aspect_callable)
-            regular_out.append(aspect_node)
-            # Flatten companions: coordinator only sees ids from get_graph_nodes(), not nested lists.
-            all_checkers.extend(cast(list[CheckerGraphNode], aspect_node.companion_nodes))
-        return regular_out, all_checkers
-
-    @staticmethod
-    def _summary_aspect_graph_nodes_for_class(action_cls: type) -> list[SummaryAspectGraphNode]:
-        """Interchange nodes for each own-class ``@summary_aspect`` on ``action_cls``."""
-        return [
-            SummaryAspectGraphNode(aspect_callable)
-            for aspect_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
-                action_cls,
-                CallableKind.SUMMARY_ASPECT,
-            )
-        ]
-
-    @staticmethod
-    def _compensator_graph_nodes_for_class(action_cls: type) -> list[CompensatorGraphNode]:
-        """Interchange nodes for each own-class ``@compensate`` on ``action_cls``."""
-        return [
-            CompensatorGraphNode(compensator_callable)
-            for compensator_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
-                action_cls,
-                CallableKind.COMPENSATE,
-            )
-        ]
-
-    @staticmethod
-    def _error_handler_graph_nodes_for_class(action_cls: type) -> list[ErrorHandlerGraphNode]:
-        """Interchange nodes for each own-class ``@on_error`` on ``action_cls``."""
-        return [
-            ErrorHandlerGraphNode(handler_callable)
-            for handler_callable in IntentIntrospection.collect_own_class_callables_by_callable_kind(
-                action_cls,
-                CallableKind.ON_ERROR,
-            )
-        ]
+    def _regular_checkers_from_companion_nodes(
+        companion_nodes: list[BaseGraphNode[Any]],
+    ) -> list[CheckerGraphNode]:
+        """Checker nodes carried by regular-aspect companion nodes."""
+        checkers: list[CheckerGraphNode] = []
+        for companion_node in companion_nodes:
+            if isinstance(companion_node, RegularAspectGraphNode):
+                checkers.extend(
+                    checker for checker in companion_node.get_companion_nodes() if isinstance(checker, CheckerGraphNode)
+                )
+        return checkers
 
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         if not (isinstance(cls, type) and issubclass(cls, BaseAction)):
             return []
-        regular_aspects, regular_checkers = ActionGraphNodeInspector._regular_aspect_and_checker_graph_nodes_for_class(
-            cls,
-        )
+        action_node = ActionGraphNode(cls)
+        companion_nodes = action_node.get_companion_nodes()
+        regular_checkers = self._regular_checkers_from_companion_nodes(companion_nodes)
         return [
-            ActionGraphNode(cls),
-            *regular_aspects,
-            *self._summary_aspect_graph_nodes_for_class(cls),
+            action_node,
+            *companion_nodes,
             *regular_checkers,
-            *self._compensator_graph_nodes_for_class(cls),
-            *self._error_handler_graph_nodes_for_class(cls),
         ]

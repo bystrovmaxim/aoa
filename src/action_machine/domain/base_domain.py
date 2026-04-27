@@ -67,10 +67,11 @@ LIFECYCLE (IMPORT VS BUILD)
   extra validation in this file.
 
 """
+
 from __future__ import annotations
 
-from abc import ABC
-from typing import Any, ClassVar
+from abc import ABC, abstractmethod
+from typing import Any
 
 from action_machine.exceptions import NamingSuffixError
 
@@ -80,15 +81,24 @@ _REQUIRED_SUFFIX = "Domain"
 
 class BaseDomain(ABC):
     """
-AI-CORE-BEGIN
-    ROLE: Typed domain identity marker.
-    CONTRACT: Exposes validated class metadata used by decorators and inspectors.
-    INVARIANTS: No instances required; class definition enforces suffix and metadata quality.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Typed domain identity marker.
+        CONTRACT: Exposes validated class metadata used by decorators and inspectors.
+        INVARIANTS: No instances required; class definition enforces suffix and metadata quality.
+        AI-CORE-END
+    """
 
-    name: ClassVar[str] = "base"
-    description: ClassVar[str] = "Base domain"
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Domain machine-readable name supplied as a class attribute by subclasses."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def description(self) -> str:
+        """Domain human-readable description supplied as a class attribute by subclasses."""
+        raise NotImplementedError
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """
@@ -151,7 +161,7 @@ def _validate_class_attr(cls: type, attr_name: str) -> None:
         raise ValueError(
             f"Class '{cls.__name__}' inherits from BaseDomain but does not define "
             f"the class attribute '{attr_name}'. "
-            f"Set e.g. {attr_name} = \"...\" in the class body."
+            f'Set e.g. {attr_name} = "..." in the class body.'
         )
 
     raw_value = cls.__dict__[attr_name]
@@ -165,5 +175,5 @@ def _validate_class_attr(cls: type, attr_name: str) -> None:
     if not raw_value.strip():
         raise ValueError(
             f"Class attribute '{attr_name}' on '{cls.__name__}' cannot be empty "
-            f"or whitespace-only. Set a non-empty string, e.g. {attr_name} = \"...\"."
+            f'or whitespace-only. Set a non-empty string, e.g. {attr_name} = "...".'
         )

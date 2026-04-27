@@ -54,6 +54,7 @@ def test_regular_aspect_graph_node_interchange_shape() -> None:
     assert node.properties == {"description": "Process value"}
     assert node.node_id == f"{TypeIntrospection.full_qualname(ChildAction)}:process_aspect"
     assert len(node.companion_nodes) == 1
+    assert node.get_companion_nodes() == node.companion_nodes
     edges = node.get_all_edges()
     assert len(edges) == 1
     assert edges[0].source_node_id == node.node_id
@@ -77,9 +78,7 @@ def test_compensator_graph_node_interchange_shape() -> None:
     assert node.label == "rollback_charge_compensate"
     assert node.properties == {"description": "Rollback payment — refund"}
     assert node.get_all_edges() == []
-    assert node.node_id == (
-        f"{TypeIntrospection.full_qualname(CompensatedOrderAction)}:rollback_charge_compensate"
-    )
+    assert node.node_id == (f"{TypeIntrospection.full_qualname(CompensatedOrderAction)}:rollback_charge_compensate")
 
 
 def test_error_handler_graph_node_interchange_shape() -> None:
@@ -89,9 +88,7 @@ def test_error_handler_graph_node_interchange_shape() -> None:
     assert node.label == "handle_finalize_on_error"
     assert node.properties == {"description": "Handle finalize error"}
     assert node.get_all_edges() == []
-    assert node.node_id == (
-        f"{TypeIntrospection.full_qualname(CompensateAndOnErrorAction)}:handle_finalize_on_error"
-    )
+    assert node.node_id == (f"{TypeIntrospection.full_qualname(CompensateAndOnErrorAction)}:handle_finalize_on_error")
 
 
 def test_params_graph_node_interchange_shape() -> None:
@@ -261,7 +258,7 @@ def test_action_graph_node_links_and_helpers() -> None:
     assert p_type is PingAction.Params and r_type is PingAction.Result
     assert TypeIntrospection.full_qualname(p_type) == params_id
     assert TypeIntrospection.full_qualname(r_type) == result_id
-    assert node.regular_aspect_edges == []
+    assert not node.regular_aspect_edges
     assert node.summary_aspect_edges == [
         CompositionGraphEdge(
             edge_name="pong_summary",
@@ -274,18 +271,22 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node=summary_node,
         ),
     ]
-    assert node.compensator_graph_edges == []
-    assert node.error_handler_graph_edges == []
-    assert CompositionGraphEdge(
-        edge_name="pong_summary",
-        is_dag=False,
-        source_node_id=host,
-        source_node_type="Action",
-        source_node=node,
-        target_node_id=f"{host}:pong_summary",
-        target_node_type=SummaryAspectGraphNode.NODE_TYPE,
-        target_node=summary_node,
-    ) in node.get_all_edges()
+    assert not node.compensator_graph_edges
+    assert not node.error_handler_graph_edges
+    assert node.get_companion_nodes() == [summary_node]
+    assert (
+        CompositionGraphEdge(
+            edge_name="pong_summary",
+            is_dag=False,
+            source_node_id=host,
+            source_node_type="Action",
+            source_node=node,
+            target_node_id=f"{host}:pong_summary",
+            target_node_type=SummaryAspectGraphNode.NODE_TYPE,
+            target_node=summary_node,
+        )
+        in node.get_all_edges()
+    )
 
 
 def test_action_graph_node_appends_regular_aspect_edges() -> None:
@@ -306,6 +307,7 @@ def test_action_graph_node_appends_regular_aspect_edges() -> None:
         target_node=aspect_node,
     )
     assert node.regular_aspect_edges == [expected_edge]
+    assert aspect_node in node.get_companion_nodes()
     assert expected_edge in node.get_all_edges()
 
 
