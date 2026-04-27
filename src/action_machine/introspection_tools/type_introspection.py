@@ -102,6 +102,29 @@ class TypeIntrospection:
         return tuple(vars(owner).keys())
 
     @staticmethod
+    def collect_own_class_callables(
+        owner_class: type,
+        predicate: Callable[[Callable[..., Any]], bool],
+    ) -> list[Callable[..., Any]]:
+        """Own-class callables from ``vars(owner_class)`` that satisfy ``predicate``."""
+        result: list[Callable[..., Any]] = []
+
+        for _name, namespace_entry in vars(owner_class).items():
+            candidate = (
+                namespace_entry.fget
+                if isinstance(namespace_entry, property) and namespace_entry.fget is not None
+                else namespace_entry
+            )
+
+            if not callable(candidate):
+                continue
+
+            if predicate(candidate):
+                result.append(candidate)
+
+        return result
+
+    @staticmethod
     def property_members(host_cls: type) -> dict[str, property]:
         """Public ``property`` objects on ``host_cls`` MRO (subclass wins); skip ``_`` names and Pydantic extras."""
         found: dict[str, property] = {}

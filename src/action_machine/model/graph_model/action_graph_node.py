@@ -26,6 +26,7 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar
 
@@ -34,21 +35,34 @@ from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
+from action_machine.intents.aspects.regular_aspect_intent_resolver import (
+    RegularAspectIntentResolver,
+)
+from action_machine.intents.aspects.summary_aspect_intent_resolver import (
+    SummaryAspectIntentResolver,
+)
+from action_machine.intents.compensate.compensate_intent_resolver import (
+    CompensateIntentResolver,
+)
+from action_machine.intents.on_error.on_error_intent_resolver import (
+    OnErrorIntentResolver,
+)
 from action_machine.introspection_tools import IntentIntrospection, TypeIntrospection
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
+from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
-from graph.edge_relationship import AGGREGATION, ASSOCIATION
+from graph.edge_relationship import ASSOCIATION
 
-from .aspect_graph_node_locator import AspectGraphNodeLocator
-from .compensator_graph_node_locator import CompensatorGraphNodeLocator
-from .error_handler_graph_node_locator import ErrorHandlerGraphNodeLocator
+from .compensator_graph_node import CompensatorGraphNode
+from .error_handler_graph_node import ErrorHandlerGraphNode
 from .params_graph_node import ParamsGraphNode
+from .regular_aspect_graph_node import RegularAspectGraphNode
 from .result_graph_node import ResultGraphNode
-from .summary_aspect_graph_node_locator import SummaryAspectGraphNodeLocator
+from .summary_aspect_graph_node import SummaryAspectGraphNode
 
 TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
 
@@ -63,8 +77,8 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     """
 
     NODE_TYPE: ClassVar[str] = "Action"
-    params_edge: BaseGraphEdge | None = field(init=False, repr=False, compare=False)
-    result_edge: BaseGraphEdge | None = field(init=False, repr=False, compare=False)
+    params_edge: AggregationGraphEdge | None = field(init=False, repr=False, compare=False)
+    result_edge: AggregationGraphEdge | None = field(init=False, repr=False, compare=False)
     regular_aspect_edges: list[CompositionGraphEdge]
     summary_aspect_edges: list[CompositionGraphEdge]
     compensator_graph_edges: list[CompositionGraphEdge]
@@ -82,20 +96,24 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         )
         params_edge = self.get_params_edge(action_cls)
         result_edge = self.get_result_edge(action_cls)
-        regular_aspect_edges = self.get_composition_graph_eges(
-            AspectGraphNodeLocator.locate(action_cls),
+        regular_aspect_edges = self.get_callable_edges(
+            RegularAspectGraphNode,
+            RegularAspectIntentResolver.resolve_regular_aspects(action_cls),
             node_id,
         )
-        summary_aspect_edges = self.get_composition_graph_eges(
-            SummaryAspectGraphNodeLocator.locate(action_cls),
+        summary_aspect_edges = self.get_callable_edges(
+            SummaryAspectGraphNode,
+            SummaryAspectIntentResolver.resolve_summary_aspects(action_cls),
             node_id,
         )
-        compensator_graph_edges = self.get_composition_graph_eges(
-            CompensatorGraphNodeLocator.locate(action_cls),
+        compensator_graph_edges = self.get_callable_edges(
+            CompensatorGraphNode,
+            CompensateIntentResolver.resolve_compensators(action_cls),
             node_id,
         )
-        error_handler_graph_edges = self.get_composition_graph_eges(
-            ErrorHandlerGraphNodeLocator.locate(action_cls),
+        error_handler_graph_edges = self.get_callable_edges(
+            ErrorHandlerGraphNode,
+            OnErrorIntentResolver.resolve_error_handlers(action_cls),
             node_id,
         )
         object.__setattr__(self, "params_edge", params_edge[0] if params_edge else None)
@@ -152,13 +170,13 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     def get_params_edge(
         self,
         action_cls: type[TAction],
-    ) -> list[BaseGraphEdge]:
+    ) -> list[AggregationGraphEdge]:
         """Zero or one params schema edge (``AGGREGATION``); empty when the params type does not resolve."""
         params_type = ActionSchemaIntentResolver.resolve_params_type(action_cls)
         if params_type is None:
             return []
         return [
-            BaseGraphEdge(
+            AggregationGraphEdge(
                 edge_name="params",
                 is_dag=False,
                 source_node_id=TypeIntrospection.full_qualname(action_cls),
@@ -167,20 +185,19 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 target_node_id=TypeIntrospection.full_qualname(params_type),
                 target_node_type=ParamsGraphNode.NODE_TYPE,
                 target_node=None,
-                edge_relationship=AGGREGATION,
             ),
         ]
 
     def get_result_edge(
         self,
         action_cls: type[TAction],
-    ) -> list[BaseGraphEdge]:
+    ) -> list[AggregationGraphEdge]:
         """Zero or one result schema edge (``AGGREGATION``); empty when the result type does not resolve."""
         result_type = ActionSchemaIntentResolver.resolve_result_type(action_cls)
         if result_type is None:
             return []
         return [
-            BaseGraphEdge(
+            AggregationGraphEdge(
                 edge_name="result",
                 is_dag=False,
                 source_node_id=TypeIntrospection.full_qualname(action_cls),
@@ -189,28 +206,29 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 target_node_id=TypeIntrospection.full_qualname(result_type),
                 target_node_type=ResultGraphNode.NODE_TYPE,
                 target_node=None,
-                edge_relationship=AGGREGATION,
             ),
         ]
 
-    def get_composition_graph_eges(
+    def get_callable_edges(
         self,
-        graph_nodes: list[BaseGraphNode[Any]],
+        graph_node_factory: Callable[[Any], BaseGraphNode[Any]],
+        graph_node_objects: list[Any],
         action_id: str,
     ) -> list[CompositionGraphEdge]:
         """Return ``COMPOSITION`` edges from the action to the given graph nodes."""
         edges: list[CompositionGraphEdge] = []
-        for aspect_node in graph_nodes:
+        for graph_node_obj in graph_node_objects:
+            graph_node = graph_node_factory(graph_node_obj)
             edges.append(
                 CompositionGraphEdge(
-                    edge_name=aspect_node.label,
+                    edge_name=graph_node.label,
                     is_dag=False,
                     source_node_id=action_id,
                     source_node_type=self.NODE_TYPE,
                     source_node=self,
-                    target_node_id=aspect_node.node_id,
-                    target_node_type=aspect_node.node_type,
-                    target_node=aspect_node,
+                    target_node_id=graph_node.node_id,
+                    target_node_type=graph_node.node_type,
+                    target_node=graph_node,
                 ),
             )
         return edges

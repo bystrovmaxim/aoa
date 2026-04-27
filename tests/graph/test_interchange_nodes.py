@@ -10,14 +10,17 @@ from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
+from action_machine.intents.aspects.regular_aspect_intent_resolver import (
+    RegularAspectIntentResolver,
+)
+from action_machine.intents.aspects.summary_aspect_intent_resolver import (
+    SummaryAspectIntentResolver,
+)
 from action_machine.introspection_tools import TypeIntrospection
 from action_machine.legacy.application_context_inspector import ApplicationContextInspector
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
-from action_machine.model.graph_model.aspect_graph_node_locator import (
-    AspectGraphNodeLocator,
-)
 from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
@@ -26,12 +29,10 @@ from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.model.graph_model.summary_aspect_graph_node_locator import (
-    SummaryAspectGraphNodeLocator,
-)
+from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.composition_graph_edge import CompositionGraphEdge
-from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
+from graph.edge_relationship import ASSOCIATION, COMPOSITION
 from graph.facet_vertex import FacetVertex
 from tests.scenarios.domain_model.child_action import ChildAction
 from tests.scenarios.domain_model.compensate_actions import (
@@ -172,7 +173,9 @@ def test_action_graph_node_links_and_helpers() -> None:
     params_id = TypeIntrospection.full_qualname(PingAction.Params)
     result_id = TypeIntrospection.full_qualname(PingAction.Result)
     host = TypeIntrospection.full_qualname(PingAction)
-    summary_node = SummaryAspectGraphNodeLocator.locate(PingAction)[0]
+    summary_node = SummaryAspectGraphNode(
+        SummaryAspectIntentResolver.resolve_summary_aspects(PingAction)[0],
+    )
 
     assert node.node_type == "Action"
     assert node.label == "PingAction"
@@ -197,7 +200,7 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node_type=SummaryAspectGraphNode.NODE_TYPE,
             target_node=summary_node,
         ),
-        BaseGraphEdge(
+        AggregationGraphEdge(
             edge_name="params",
             is_dag=False,
             source_node_id=host,
@@ -206,9 +209,8 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node_id=params_id,
             target_node_type="Params",
             target_node=None,
-            edge_relationship=AGGREGATION,
         ),
-        BaseGraphEdge(
+        AggregationGraphEdge(
             edge_name="result",
             is_dag=False,
             source_node_id=host,
@@ -217,7 +219,6 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node_id=result_id,
             target_node_type="Result",
             target_node=None,
-            edge_relationship=AGGREGATION,
         ),
     ]
 
@@ -233,7 +234,7 @@ def test_action_graph_node_links_and_helpers() -> None:
         ),
     ]
     assert node.get_params_edge(PingAction) == [
-        BaseGraphEdge(
+        AggregationGraphEdge(
             edge_name="params",
             is_dag=False,
             source_node_id=host,
@@ -242,11 +243,10 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node_id=params_id,
             target_node_type="Params",
             target_node=None,
-            edge_relationship=AGGREGATION,
         ),
     ]
     assert node.get_result_edge(PingAction) == [
-        BaseGraphEdge(
+        AggregationGraphEdge(
             edge_name="result",
             is_dag=False,
             source_node_id=host,
@@ -255,7 +255,6 @@ def test_action_graph_node_links_and_helpers() -> None:
             target_node_id=result_id,
             target_node_type="Result",
             target_node=None,
-            edge_relationship=AGGREGATION,
         ),
     ]
 
@@ -294,7 +293,9 @@ def test_action_graph_node_links_and_helpers() -> None:
 def test_action_graph_node_appends_regular_aspect_edges() -> None:
     node = ActionGraphNode(ChildAction)
     host = TypeIntrospection.full_qualname(ChildAction)
-    aspect_node = AspectGraphNodeLocator.locate(ChildAction)[0]
+    aspect_node = RegularAspectGraphNode(
+        RegularAspectIntentResolver.resolve_regular_aspects(ChildAction)[0],
+    )
 
     expected_edge = CompositionGraphEdge(
         edge_name="process_aspect",
