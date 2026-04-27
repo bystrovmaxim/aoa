@@ -17,9 +17,9 @@ ARCHITECTURE / DATA FLOW
     type[TAction]   (``TAction`` bound to ``BaseAction``)
               │
               v
-    ``BaseAction[P, R]``  →  ``ActionSchemaIntentResolver`` (or :meth:`get_params_edge` / :meth:`get_result_edge`)
+    ``BaseAction[P, R]``  →  ``ActionSchemaIntentResolver``
 
-    ``_depends_info`` (``@depends``)  →  :meth:`get_depends_edges`
+    ``_depends_info`` (``@depends``)  →  ``depends_edges``
 
     ActionGraphNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
 """
@@ -30,7 +30,6 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar
 
-from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
@@ -44,18 +43,23 @@ from action_machine.intents.aspects.summary_aspect_intent_resolver import (
 from action_machine.intents.compensate.compensate_intent_resolver import (
     CompensateIntentResolver,
 )
+from action_machine.intents.connection.connection_intent_resolver import (
+    ConnectionIntentResolver,
+)
+from action_machine.intents.depends.depends_intent_resolver import DependsIntentResolver
+from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from action_machine.intents.on_error.on_error_intent_resolver import (
     OnErrorIntentResolver,
 )
-from action_machine.introspection_tools import IntentIntrospection, TypeIntrospection
+from action_machine.introspection_tools import TypeIntrospection
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
 from graph.aggregation_graph_edge import AggregationGraphEdge
+from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
-from graph.edge_relationship import ASSOCIATION
 
 from .compensator_graph_node import CompensatorGraphNode
 from .error_handler_graph_node import ErrorHandlerGraphNode
@@ -72,13 +76,16 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
-    CONTRACT: ``get_properties``; ``get_domain_edge`` / ``get_depends_edges`` / ``get_connection_edges`` / ``get_params_edge`` / ``get_result_edge`` each return ``list[BaseGraphEdge]``. Own-class ``@regular_aspect`` / ``@summary_aspect`` / ``@compensate`` / ``@on_error`` composition edges are stored in dedicated fields and appended to ``edges``.
+    CONTRACT: Materializes action metadata and every outgoing edge into explicit fields; ``get_all_edges`` returns the composed edge list.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Action"
+    domain_edge: AssociationGraphEdge | None = field(init=False, repr=False, compare=False)
     params_edge: AggregationGraphEdge | None = field(init=False, repr=False, compare=False)
     result_edge: AggregationGraphEdge | None = field(init=False, repr=False, compare=False)
+    depends_edges: list[AssociationGraphEdge]
+    connection_edges: list[AssociationGraphEdge]
     regular_aspect_edges: list[CompositionGraphEdge]
     summary_aspect_edges: list[CompositionGraphEdge]
     compensator_graph_edges: list[CompositionGraphEdge]
@@ -90,84 +97,140 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             node_id=node_id,
             node_type=ActionGraphNode.NODE_TYPE,
             label=action_cls.__name__,
-            properties=dict(ActionGraphNode.get_properties(action_cls)),
-            edges=list(ActionGraphNode._get_all_edges(action_cls)),
+            properties=dict(ActionGraphNode._get_properties(action_cls)),
+            edges=[],
             node_obj=action_cls,
         )
-        params_edge = self.get_params_edge(action_cls)
-        result_edge = self.get_result_edge(action_cls)
-        regular_aspect_edges = self.get_callable_edges(
+        domain_edge = self._get_domain_edge(action_cls)
+        depends_edges = self._get_depends_edges(action_cls)
+        connection_edges = self._get_connection_edges(action_cls)
+        params_edge = self._get_params_edge(action_cls)
+        result_edge = self._get_result_edge(action_cls)
+        regular_aspect_edges = self._get_callable_edges(
             RegularAspectGraphNode,
             RegularAspectIntentResolver.resolve_regular_aspects(action_cls),
             node_id,
         )
-        summary_aspect_edges = self.get_callable_edges(
+        summary_aspect_edges = self._get_callable_edges(
             SummaryAspectGraphNode,
             SummaryAspectIntentResolver.resolve_summary_aspects(action_cls),
             node_id,
         )
-        compensator_graph_edges = self.get_callable_edges(
+        compensator_graph_edges = self._get_callable_edges(
             CompensatorGraphNode,
             CompensateIntentResolver.resolve_compensators(action_cls),
             node_id,
         )
-        error_handler_graph_edges = self.get_callable_edges(
+        error_handler_graph_edges = self._get_callable_edges(
             ErrorHandlerGraphNode,
             OnErrorIntentResolver.resolve_error_handlers(action_cls),
             node_id,
         )
+        object.__setattr__(self, "domain_edge", domain_edge[0] if domain_edge else None)
         object.__setattr__(self, "params_edge", params_edge[0] if params_edge else None)
         object.__setattr__(self, "result_edge", result_edge[0] if result_edge else None)
+        object.__setattr__(self, "depends_edges", depends_edges)
+        object.__setattr__(self, "connection_edges", connection_edges)
         object.__setattr__(self, "regular_aspect_edges", regular_aspect_edges)
         object.__setattr__(self, "summary_aspect_edges", summary_aspect_edges)
         object.__setattr__(self, "compensator_graph_edges", compensator_graph_edges)
         object.__setattr__(self, "error_handler_graph_edges", error_handler_graph_edges)
-        object.__setattr__(
-            self,
-            "edges",
-            [
-                *self.get_all_edges(),
-                *regular_aspect_edges,
-                *summary_aspect_edges,
-                *compensator_graph_edges,
-                *error_handler_graph_edges,
-                *params_edge,
-                *result_edge,
-            ],
-        )
+
+    def get_all_edges(self) -> list[BaseGraphEdge]:
+        edges: list[BaseGraphEdge] = []
+        if self.domain_edge is not None:
+            edges.append(self.domain_edge)
+        edges.extend(self.depends_edges)
+        edges.extend(self.connection_edges)
+        edges.extend(self.regular_aspect_edges)
+        edges.extend(self.summary_aspect_edges)
+        edges.extend(self.compensator_graph_edges)
+        edges.extend(self.error_handler_graph_edges)
+        if self.params_edge is not None:
+            edges.append(self.params_edge)
+        if self.result_edge is not None:
+            edges.append(self.result_edge)
+        return edges
 
     @classmethod
-    def _depends_target_node_type(cls, dep_cls: type) -> str:
-        """Interchange ``target_node_type`` for a ``@depends`` dependency class."""
-        if issubclass(dep_cls, BaseAction):
+    def _get_properties(cls, action_cls: type[TAction]) -> dict[str, Any]:
+        """``description`` from ``_meta_info`` when ``@meta(description=...)`` is present."""
+        properties: dict[str, Any] = {}
+        desc = MetaIntentResolver.resolve_description(action_cls)
+        if desc is not None:
+            properties["description"] = desc.strip()
+        return properties
+
+    @classmethod
+    def _resolve_target_node_type(cls, target_cls: type) -> str:
+        """Interchange ``target_node_type`` for an associated target class."""
+        if issubclass(target_cls, BaseAction):
             return cls.NODE_TYPE
-        if issubclass(dep_cls, BaseResource):
+        if issubclass(target_cls, BaseResource):
             return ResourceGraphNode.NODE_TYPE
         return "UncknownTypeNode"
 
-    @classmethod
-    def _association_edges_to_declared_types(
-        cls,
+    def _get_domain_edge(
+        self,
         action_cls: type[TAction],
-        declared_types: list[type],
-    ) -> list[BaseGraphEdge]:
-        action_id = TypeIntrospection.full_qualname(action_cls)
-        edges: list[BaseGraphEdge] = []
-        for target_cls in declared_types:
-            edges.append(
-                BaseGraphEdge(
-                    edge_name=target_cls.__name__,
-                    is_dag=True,
-                    source_node_id=action_id,
-                    source_node_type=cls.NODE_TYPE,
-                    target_node_id=TypeIntrospection.full_qualname(target_cls),
-                    target_node_type=cls._depends_target_node_type(target_cls),
-                    edge_relationship=ASSOCIATION,
-                ),
+    ) -> list[AssociationGraphEdge]:
+        """Zero or one domain edge; empty when ``@meta`` has no valid ``BaseDomain`` in ``domain``."""
+        return [
+            AssociationGraphEdge(
+                edge_name="domain",
+                is_dag=True,
+                source_node_id=TypeIntrospection.full_qualname(action_cls),
+                source_node_type=self.NODE_TYPE,
+                source_node=self,
+                target_node_id=TypeIntrospection.full_qualname(domain_cls),
+                target_node_type=DomainGraphNode.NODE_TYPE,
+                target_node=None,
             )
-        return edges
+            for domain_cls in [MetaIntentResolver.resolve_domain_type(action_cls)]
+            if domain_cls is not None
+        ]
 
-    def get_params_edge(
+    def _get_depends_edges(
+        self,
+        action_cls: type[TAction],
+    ) -> list[AssociationGraphEdge]:
+        """One ``ASSOCIATION`` edge per ``@depends`` declaration from this action to the declared class."""
+        action_id = TypeIntrospection.full_qualname(action_cls)
+        return [
+            AssociationGraphEdge(
+                edge_name=dependency_type.__name__,
+                is_dag=True,
+                source_node_id=action_id,
+                source_node_type=self.NODE_TYPE,
+                source_node=self,
+                target_node_id=TypeIntrospection.full_qualname(dependency_type),
+                target_node_type=self._resolve_target_node_type(dependency_type),
+                target_node=None,
+            )
+            for dependency_type in DependsIntentResolver.resolve_dependency_types(action_cls)
+        ]
+
+    def _get_connection_edges(
+        self,
+        action_cls: type[TAction],
+    ) -> list[AssociationGraphEdge]:
+        """One ``ASSOCIATION`` edge per ``@connection`` declaration from this action to the resource class."""
+        action_id = TypeIntrospection.full_qualname(action_cls)
+        return [
+            AssociationGraphEdge(
+                edge_name=connection_type.__name__,
+                is_dag=True,
+                source_node_id=action_id,
+                source_node_type=self.NODE_TYPE,
+                source_node=self,
+                target_node_id=TypeIntrospection.full_qualname(connection_type),
+                target_node_type=self._resolve_target_node_type(connection_type),
+                target_node=None,
+            )
+            for connection_type in ConnectionIntentResolver.resolve_connection_types(action_cls)
+        ]
+
+    def _get_params_edge(
         self,
         action_cls: type[TAction],
     ) -> list[AggregationGraphEdge]:
@@ -188,7 +251,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             ),
         ]
 
-    def get_result_edge(
+    def _get_result_edge(
         self,
         action_cls: type[TAction],
     ) -> list[AggregationGraphEdge]:
@@ -209,7 +272,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             ),
         ]
 
-    def get_callable_edges(
+    def _get_callable_edges(
         self,
         graph_node_factory: Callable[[Any], BaseGraphNode[Any]],
         graph_node_objects: list[Any],
@@ -232,77 +295,3 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 ),
             )
         return edges
-
-    @classmethod
-    def get_domain_edge(
-        cls,
-        action_cls: type[TAction],
-    ) -> list[BaseGraphEdge]:
-        """Zero or one domain edge; empty when ``@meta`` has no valid ``BaseDomain`` in ``domain``."""
-        meta_info_dict = IntentIntrospection.meta_info_dict(action_cls)
-        domain_cls = meta_info_dict.get("domain")
-        if domain_cls is None:
-            return []
-        if not isinstance(domain_cls, type) or not issubclass(domain_cls, BaseDomain):
-            return []
-        return [
-            BaseGraphEdge(
-                edge_name="domain",
-                is_dag=True,
-                source_node_id=TypeIntrospection.full_qualname(action_cls),
-                source_node_type=cls.NODE_TYPE,
-                target_node_id=TypeIntrospection.full_qualname(domain_cls),
-                target_node_type=DomainGraphNode.NODE_TYPE,
-                edge_relationship=ASSOCIATION,
-            ),
-        ]
-
-    @classmethod
-    def get_depends_edges(
-        cls,
-        action_cls: type[TAction],
-    ) -> list[BaseGraphEdge]:
-        """
-        One ``ASSOCIATION`` edge per ``@depends`` declaration from this action to the declared class.
-
-        Uses :meth:`~action_machine.introspection_tools.intent_introspection.IntentIntrospection.depends_declared_types`.
-        """
-        return cls._association_edges_to_declared_types(
-            action_cls,
-            IntentIntrospection.depends_declared_types(action_cls),
-        )
-
-    @classmethod
-    def get_connection_edges(
-        cls,
-        action_cls: type[TAction],
-    ) -> list[BaseGraphEdge]:
-        """
-        One ``ASSOCIATION`` edge per ``@connection`` declaration from this action to the resource class.
-
-        Uses :meth:`~action_machine.introspection_tools.intent_introspection.IntentIntrospection.connection_declared_types`.
-        """
-        return cls._association_edges_to_declared_types(
-            action_cls,
-            IntentIntrospection.connection_declared_types(action_cls),
-        )
-
-    @classmethod
-    def get_properties(cls, action_cls: type[TAction]) -> dict[str, Any]:
-        """``description`` from ``_meta_info`` when ``@meta(description=...)`` is present."""
-        properties: dict[str, Any] = {}
-        desc = IntentIntrospection.meta_info_dict(action_cls).get("description")
-        if isinstance(desc, str) and desc.strip():
-            properties["description"] = desc.strip()
-        return properties
-
-    @classmethod
-    def _get_all_edges(
-        cls,
-        action_cls: type[TAction],
-    ) -> list[BaseGraphEdge]:
-        return (
-            cls.get_domain_edge(action_cls)
-            + cls.get_depends_edges(action_cls)
-            + cls.get_connection_edges(action_cls)
-        )
