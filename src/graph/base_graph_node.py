@@ -73,7 +73,9 @@ class BaseGraphNode[T: object](ABC):
         object.__setattr__(self, "properties", properties)
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
+        """Return outgoing graph edges exposed by this node."""
         return []
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
+        """Return additional graph nodes that must be included with this node."""
         return []

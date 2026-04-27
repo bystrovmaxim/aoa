@@ -24,7 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import ClassVar
 
-from action_machine.introspection_tools import TypeIntrospection
+from action_machine.system_core import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 

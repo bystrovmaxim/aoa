@@ -1,4 +1,4 @@
-from action_machine.introspection_tools.type_introspection import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 
 
 class _CallableHost:

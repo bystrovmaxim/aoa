@@ -10,7 +10,7 @@ Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` for one regu
 aspect **callable** on a concrete ``BaseAction`` subclass: ``node_id`` is the action
 dotted id plus ``:`` plus the method name, interchange ``node_type`` is
 ``RegularAspect``, ``label`` is the method name; ``properties`` may carry ``description`` from
-``IntentIntrospection.description_for_callable`` (``CallableKind.REGULAR_ASPECT``) when present.
+``RegularAspectIntentResolver.resolve_description`` when present.
 The node **self-inspects** ``_checker_meta`` on ``aspect_func``, materializes
 :class:`CheckerGraphNode` companions, passes them as :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes`
 (checkers have no class-based graph inspector), and emits ``COMPOSITION`` edges from this aspect to each checker.
@@ -31,7 +31,8 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
-from action_machine.introspection_tools import CallableKind, IntentIntrospection, TypeIntrospection
+from action_machine.intents.aspects.regular_aspect_intent_resolver import RegularAspectIntentResolver
+from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_intent_inspector import BaseIntentInspector
@@ -45,7 +46,7 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a regular aspect callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``RegularAspect``; ``properties`` include ``description`` when ``IntentIntrospection.description_for_callable(..., REGULAR_ASPECT)`` returns it; ``edges`` and :attr:`companion_nodes` (``CheckerGraphNode`` list) from ``_checker_meta`` on ``aspect_func`` (see :meth:`checkers_for_method`).
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``RegularAspect``; ``properties`` include ``description`` when ``RegularAspectIntentResolver.resolve_description(...)`` returns it; ``edges`` and :attr:`companion_nodes` (``CheckerGraphNode`` list) from ``_checker_meta`` on ``aspect_func`` (see :meth:`checkers_for_method`).
     AI-CORE-END
     """
 
@@ -59,7 +60,7 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
         action_id = TypeIntrospection.full_qualname(action_cls)
         node_id = f"{action_id}:{method_name}"
         edges = RegularAspectGraphNode._composition_edges_to_checkers(aspect_func, node_id, checkers)
-        desc = IntentIntrospection.description_for_callable(aspect_func, CallableKind.REGULAR_ASPECT)
+        desc = RegularAspectIntentResolver.resolve_description(aspect_func)
         super().__init__(
             node_id=node_id,
             node_type=RegularAspectGraphNode.NODE_TYPE,

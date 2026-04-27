@@ -32,8 +32,8 @@ from typing import Any, ClassVar, TypeVar
 
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
-from action_machine.introspection_tools import TypeIntrospection
 from action_machine.resources.base_resource import BaseResource
+from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode

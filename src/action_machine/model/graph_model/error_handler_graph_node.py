@@ -10,7 +10,7 @@ Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` for one erro
 **callable** on a concrete ``BaseAction`` subclass: ``node_id`` is the action
 dotted id plus ``:`` plus the method name, interchange ``node_type`` is
 ``error_handler``, ``label`` is the method name; ``properties`` may carry ``description`` from
-``IntentIntrospection.description_for_callable`` (``CallableKind.ON_ERROR``) when present;
+``OnErrorIntentResolver.resolve_description`` when present;
 ``edges`` are empty. Host class and method name come from :class:`TypeIntrospection`.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -29,7 +29,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
-from action_machine.introspection_tools import CallableKind, IntentIntrospection, TypeIntrospection
+from action_machine.intents.on_error.on_error_intent_resolver import OnErrorIntentResolver
+from action_machine.system_core import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 
@@ -38,7 +39,7 @@ class ErrorHandlerGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for an ``@on_error`` callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``error_handler``; ``properties`` include ``description`` when ``IntentIntrospection.description_for_callable(..., ON_ERROR)`` returns it; ``edges`` empty.
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``error_handler``; ``properties`` include ``description`` when ``OnErrorIntentResolver.resolve_description(...)`` returns it; ``edges`` empty.
     AI-CORE-END
     """
 
@@ -48,7 +49,7 @@ class ErrorHandlerGraphNode(BaseGraphNode[Callable[..., Any]]):
         action_cls = TypeIntrospection.owner_type_for_method(handler_func)
         method_name = TypeIntrospection.unwrapped_callable_name(handler_func)
         action_id = TypeIntrospection.full_qualname(action_cls)
-        desc = IntentIntrospection.description_for_callable(handler_func, CallableKind.ON_ERROR)
+        desc = OnErrorIntentResolver.resolve_description(handler_func)
         super().__init__(
             node_id=f"{action_id}:{method_name}",
             node_type=ErrorHandlerGraphNode.NODE_TYPE,

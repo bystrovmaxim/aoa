@@ -6,7 +6,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.introspection_tools.type_introspection import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
+from graph.base_intent_inspector import BaseIntentInspector
 
 
 class OnErrorIntentResolver:
@@ -24,3 +25,9 @@ class OnErrorIntentResolver:
             action_cls,
             lambda fn: getattr(fn, "_on_error_meta", None) is not None,
         )
+
+    @staticmethod
+    def resolve_description(call_like: Any) -> str | None:
+        """Return ``@on_error`` description from callable scratch when present."""
+        func = BaseIntentInspector._unwrap_declaring_class_member(call_like)
+        return TypeIntrospection.description_from_meta(getattr(func, "_on_error_meta", None))

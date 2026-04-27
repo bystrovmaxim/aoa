@@ -11,12 +11,12 @@ from unittest.mock import patch
 import pytest
 import rustworkx as rx
 
-from action_machine.introspection_tools import TypeIntrospection
 from action_machine.legacy.application_context import ApplicationContext
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
+from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode

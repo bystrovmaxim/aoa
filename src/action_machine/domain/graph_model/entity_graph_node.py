@@ -42,7 +42,8 @@ from typing import Any, ClassVar, TypeVar
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
-from action_machine.introspection_tools import IntentIntrospection, TypeIntrospection
+from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
+from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -119,5 +120,5 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         raw_entity = getattr(entity_cls, "_entity_info", None)
         if isinstance(raw_entity, dict):
             out.update(raw_entity)
-        out.update(IntentIntrospection.meta_info_dict(entity_cls))
+        out.update(MetaIntentResolver.meta_info_dict(entity_cls))
         return out
