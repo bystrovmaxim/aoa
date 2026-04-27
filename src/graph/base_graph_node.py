@@ -22,7 +22,7 @@ String fields must be non-empty (after strip); ``node_obj`` must not be ``None``
 is frozen, the constructor uses :func:`object.__setattr__`.
 
 Each :class:`~graph.base_graph_edge.BaseGraphEdge` records ``edge_name``, ``is_dag``, **source** and **target**
-``*_node_id``, ``*_node_type``, ``*_node_obj``, ``edge_relationship``, and ``properties`` (set by each ``*Node`` when building outgoing edges).
+``*_node_id``, ``*_node_type``, ``*_node_obj``, and ``properties``; concrete edge classes expose their fixed ``edge_relationship``.
 """
 
 from __future__ import annotations
