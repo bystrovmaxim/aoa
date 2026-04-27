@@ -36,8 +36,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, ClassVar, TypeVar
 
-from action_machine.introspection_tools import TypeIntrospection
 from action_machine.model.base_result import BaseResult
+from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge

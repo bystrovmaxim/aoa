@@ -62,11 +62,11 @@ from typing import Any, cast
 
 import rustworkx as rx
 
-from action_machine.introspection_tools.type_introspection import TypeIntrospection
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import (
     RegularAspectGraphNode,
 )
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.exceptions import DuplicateNodeError, InvalidGraphError

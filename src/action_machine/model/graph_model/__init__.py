@@ -18,7 +18,6 @@ from typing import Any
 __all__ = [
     "ActionGraphNode",
     "ActionGraphNodeInspector",
-    "CallableKind",
     "CheckerGraphNode",
     "CompensatorGraphNode",
     "ErrorHandlerGraphNode",
@@ -35,7 +34,6 @@ _LAZY: dict[str, str] = {
     "ActionGraphNodeInspector": "action_machine.model.graph_model.action_graph_node_inspector",
     "CompensatorGraphNode": "action_machine.model.graph_model.compensator_graph_node",
     "ErrorHandlerGraphNode": "action_machine.model.graph_model.error_handler_graph_node",
-    "CallableKind": "action_machine.introspection_tools.intent_introspection",
     "CheckerGraphNode": "action_machine.model.graph_model.checker_graph_node",
     "ParamsGraphNode": "action_machine.model.graph_model.params_graph_node",
     "ParamsGraphNodeInspector": "action_machine.model.graph_model.params_graph_node_inspector",

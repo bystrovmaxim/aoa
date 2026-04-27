@@ -12,8 +12,7 @@ per ``@regular_aspect``, one :class:`~graph.summary_aspect_graph_node.SummaryAsp
 ``@summary_aspect``, one :class:`~action_machine.model.graph_model.checker_graph_node.CheckerGraphNode`
 per checker on each regular aspect (via ``_checker_meta``), with ``COMPOSITION`` edges from each :class:`~action_machine.model.graph_model.regular_aspect_graph_node.RegularAspectGraphNode` to its checker nodes, one :class:`~graph.compensator_graph_node.CompensatorGraphNode` per
 ``@compensate``, and one :class:`~graph.error_handler_graph_node.ErrorHandlerGraphNode` per
-``@on_error`` method declared on that class (own ``vars`` only; see
-:meth:`IntentIntrospection.collect_own_class_callables_by_callable_kind`).
+``@on_error`` method declared on that class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

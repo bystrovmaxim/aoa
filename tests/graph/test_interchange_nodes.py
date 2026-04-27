@@ -16,7 +16,6 @@ from action_machine.intents.aspects.regular_aspect_intent_resolver import (
 from action_machine.intents.aspects.summary_aspect_intent_resolver import (
     SummaryAspectIntentResolver,
 )
-from action_machine.introspection_tools import TypeIntrospection
 from action_machine.legacy.application_context_inspector import ApplicationContextInspector
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
@@ -29,6 +28,7 @@ from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
+from action_machine.system_core import TypeIntrospection
 from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.composition_graph_edge import CompositionGraphEdge

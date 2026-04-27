@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from action_machine.introspection_tools import IntentIntrospection
+from typing import Any
 
 
 class MetaIntentResolver:
@@ -16,13 +16,21 @@ class MetaIntentResolver:
     """
 
     @staticmethod
+    def meta_info_dict(host_cls: type) -> dict[str, Any]:
+        """
+        Return ``_meta_info`` written by ``@meta`` on ``host_cls``, or ``{}`` when absent or not a mapping.
+        """
+        raw = getattr(host_cls, "_meta_info", None)
+        return raw if isinstance(raw, dict) else {}
+
+    @staticmethod
     def resolve_domain_type(host_cls: type) -> type | None:
         """Return the domain type declared by ``@meta`` when present."""
-        domain_cls = IntentIntrospection.meta_info_dict(host_cls).get("domain")
+        domain_cls = MetaIntentResolver.meta_info_dict(host_cls).get("domain")
         return domain_cls if isinstance(domain_cls, type) else None
 
     @staticmethod
     def resolve_description(host_cls: type) -> str | None:
         """Return the description declared by ``@meta`` when present."""
-        description = IntentIntrospection.meta_info_dict(host_cls).get("description")
+        description = MetaIntentResolver.meta_info_dict(host_cls).get("description")
         return description if isinstance(description, str) and description else None

@@ -10,7 +10,7 @@ Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` for one summ
 aspect **callable** on a concrete ``BaseAction`` subclass: ``node_id`` is the action
 dotted id plus ``:`` plus the method name, interchange ``node_type`` is
 ``SummaryAspect``, ``label`` is the method name; ``properties`` may carry ``description`` from
-``IntentIntrospection.description_for_callable`` (``CallableKind.SUMMARY_ASPECT``) when present;
+``SummaryAspectIntentResolver.resolve_description`` when present;
 ``edges`` are empty. Host class and method name come from :class:`TypeIntrospection`.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -29,7 +29,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
-from action_machine.introspection_tools import CallableKind, IntentIntrospection, TypeIntrospection
+from action_machine.intents.aspects.summary_aspect_intent_resolver import SummaryAspectIntentResolver
+from action_machine.system_core import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 
@@ -38,7 +39,7 @@ class SummaryAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a summary aspect callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``SummaryAspect``; ``properties`` include ``description`` when ``IntentIntrospection.description_for_callable(..., SUMMARY_ASPECT)`` returns it; ``edges`` empty.
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``SummaryAspect``; ``properties`` include ``description`` when ``SummaryAspectIntentResolver.resolve_description(...)`` returns it; ``edges`` empty.
     AI-CORE-END
     """
 
@@ -48,7 +49,7 @@ class SummaryAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
         action_cls = TypeIntrospection.owner_type_for_method(summary_func)
         method_name = TypeIntrospection.unwrapped_callable_name(summary_func)
         action_id = TypeIntrospection.full_qualname(action_cls)
-        desc = IntentIntrospection.description_for_callable(summary_func, CallableKind.SUMMARY_ASPECT)
+        desc = SummaryAspectIntentResolver.resolve_description(summary_func)
         super().__init__(
             node_id=f"{action_id}:{method_name}",
             node_type=SummaryAspectGraphNode.NODE_TYPE,

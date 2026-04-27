@@ -50,10 +50,10 @@ from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from action_machine.intents.on_error.on_error_intent_resolver import (
     OnErrorIntentResolver,
 )
-from action_machine.introspection_tools import TypeIntrospection
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
+from action_machine.system_core import TypeIntrospection
 from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge

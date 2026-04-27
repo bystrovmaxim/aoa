@@ -1,4 +1,4 @@
-# src/action_machine/introspection_tools/type_introspection.py
+# src/action_machine/system_core/type_introspection.py
 """
 Small, dependency-light helpers for runtime introspection of types, objects, and callables (no intent scratch).
 """
@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import inspect
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from types import MethodType
 from typing import Any, cast
 
@@ -95,6 +95,16 @@ class TypeIntrospection:
         """``__module__`` when present and a non-empty string."""
         mod = getattr(obj, "__module__", None)
         return mod if isinstance(mod, str) and mod else None
+
+    @staticmethod
+    def description_from_meta(meta: Any) -> str | None:
+        """Return strip-trimmed ``description`` from metadata mapping."""
+        if not isinstance(meta, Mapping):
+            return None
+        raw = meta.get("description")
+        if isinstance(raw, str) and raw.strip():
+            return raw.strip()
+        return None
 
     @staticmethod
     def own_namespace_keys(owner: type) -> tuple[str, ...]:

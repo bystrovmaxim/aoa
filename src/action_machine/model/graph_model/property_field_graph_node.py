@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
 
     ``parent_type`` (params or result host) + property name (+ optional ``required``)  ->  ``PropertyFieldGraphNode(...)``
 
-Graph emitters combine Pydantic ``model_computed_fields`` with :meth:`action_machine.introspection_tools.TypeIntrospection.property_members`
+Graph emitters combine Pydantic ``model_computed_fields`` with :meth:`action_machine.system_core.TypeIntrospection.property_members`
 to list every public ``property`` on the host class (MRO ``__dict__``).
 """
 
@@ -27,7 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import ClassVar
 
-from action_machine.introspection_tools import TypeIntrospection
+from action_machine.system_core import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 
