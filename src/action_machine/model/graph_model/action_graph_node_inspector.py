@@ -50,8 +50,6 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
         if not (isinstance(cls, type) and issubclass(cls, BaseAction)):
             return []
         action_node = ActionGraphNode(cls)
-        companion_nodes = action_node.get_companion_nodes()
         return [
-            action_node,
-            *companion_nodes,
+            action_node
         ]
