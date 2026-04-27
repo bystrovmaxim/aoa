@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any
 
 from action_machine.intents.aspects.regular_aspect_intent_resolver import (
@@ -32,7 +31,7 @@ class CallableGraphNodeLocator:
     """
     AI-CORE-BEGIN
     ROLE: Build composition edges from a source graph node to callable-owned graph nodes.
-    CONTRACT: Materializes target graph nodes through the provided factory and attaches them to each edge.
+    CONTRACT: Attaches already materialized target graph nodes to each edge.
     INVARIANTS: Preserves callable order and does not inspect intent metadata itself.
     AI-CORE-END
     """
@@ -45,8 +44,10 @@ class CallableGraphNodeLocator:
         """Return regular aspect composition edges for ``action_cls``."""
         return CallableGraphNodeLocator._get_callable_edges(
             source_node,
-            RegularAspectGraphNode,
-            RegularAspectIntentResolver.resolve_regular_aspects(action_cls),
+            [
+                RegularAspectGraphNode(aspect_callable)
+                for aspect_callable in RegularAspectIntentResolver.resolve_regular_aspects(action_cls)
+            ],
         )
 
     @staticmethod
@@ -57,8 +58,10 @@ class CallableGraphNodeLocator:
         """Return summary aspect composition edges for ``action_cls``."""
         return CallableGraphNodeLocator._get_callable_edges(
             source_node,
-            SummaryAspectGraphNode,
-            SummaryAspectIntentResolver.resolve_summary_aspects(action_cls),
+            [
+                SummaryAspectGraphNode(aspect_callable)
+                for aspect_callable in SummaryAspectIntentResolver.resolve_summary_aspects(action_cls)
+            ],
         )
 
     @staticmethod
@@ -69,8 +72,10 @@ class CallableGraphNodeLocator:
         """Return compensator composition edges for ``action_cls``."""
         return CallableGraphNodeLocator._get_callable_edges(
             source_node,
-            CompensatorGraphNode,
-            CompensateIntentResolver.resolve_compensators(action_cls),
+            [
+                CompensatorGraphNode(compensator_callable)
+                for compensator_callable in CompensateIntentResolver.resolve_compensators(action_cls)
+            ],
         )
 
     @staticmethod
@@ -81,20 +86,20 @@ class CallableGraphNodeLocator:
         """Return error handler composition edges for ``action_cls``."""
         return CallableGraphNodeLocator._get_callable_edges(
             source_node,
-            ErrorHandlerGraphNode,
-            OnErrorIntentResolver.resolve_error_handlers(action_cls),
+            [
+                ErrorHandlerGraphNode(error_handler_callable)
+                for error_handler_callable in OnErrorIntentResolver.resolve_error_handlers(action_cls)
+            ],
         )
 
     @staticmethod
     def _get_callable_edges(
         source_node: BaseGraphNode[Any],
-        graph_node_factory: Callable[[Any], BaseGraphNode[Any]],
-        graph_node_objects: list[Any],
+        graph_nodes: list[BaseGraphNode[Any]],
     ) -> list[CompositionGraphEdge]:
         """Return ``COMPOSITION`` edges from ``source_node`` to callable graph nodes."""
         edges: list[CompositionGraphEdge] = []
-        for graph_node_obj in graph_node_objects:
-            graph_node = graph_node_factory(graph_node_obj)
+        for graph_node in graph_nodes:
             edges.append(
                 CompositionGraphEdge(
                     edge_name=graph_node.label,

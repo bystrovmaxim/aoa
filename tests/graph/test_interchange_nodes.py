@@ -308,7 +308,9 @@ def test_action_graph_node_appends_regular_aspect_edges() -> None:
     )
     assert node.regular_aspect_edges == [expected_edge]
     assert aspect_node in node.get_companion_nodes()
+    assert aspect_node.get_companion_nodes()[0] in node.get_companion_nodes()
     assert expected_edge in node.get_all_edges()
+    assert aspect_node.get_all_edges()[0] in node.get_all_edges()
 
 
 def test_action_graph_node_stores_depends_and_connection_edges() -> None:

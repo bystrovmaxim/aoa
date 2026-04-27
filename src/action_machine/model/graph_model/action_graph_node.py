@@ -118,6 +118,8 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             edges.append(self.params_edge)
         if self.result_edge is not None:
             edges.append(self.result_edge)
+        for companion_node in self.get_companion_nodes():
+            edges.extend(companion_node.get_all_edges())
         return edges
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
@@ -130,6 +132,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         ):
             if edge.target_node is not None:
                 nodes.append(edge.target_node)
+                nodes.extend(edge.target_node.get_companion_nodes())
         return nodes
 
     @classmethod
