@@ -61,6 +61,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
 
     NODE_TYPE: ClassVar[str] = "Entity"
+    entity_edges: list[BaseGraphEdge]
 
     @classmethod
     def _declaration_dict(cls, entity_cls: type[TEntity]) -> dict[str, Any]:
@@ -115,11 +116,16 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         return properties
 
     def __init__(self, entity_cls: type[TEntity]) -> None:
+        entity_edges = EntityGraphNode._get_all_edges(entity_cls)
         super().__init__(
             node_id=TypeIntrospection.full_qualname(entity_cls),
             node_type=EntityGraphNode.NODE_TYPE,
             label=entity_cls.__name__,
             properties=dict(EntityGraphNode.get_properties(entity_cls)),
-            edges=list(EntityGraphNode._get_all_edges(entity_cls)),
             node_obj=entity_cls,
         )
+        object.__setattr__(self, "entity_edges", entity_edges)
+
+    def get_all_edges(self) -> list[BaseGraphEdge]:
+        """Return entity relationship edges materialized in the explicit edge field."""
+        return self.entity_edges

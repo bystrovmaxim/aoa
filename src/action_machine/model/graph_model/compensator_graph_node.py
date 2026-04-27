@@ -54,6 +54,5 @@ class CompensatorGraphNode(BaseGraphNode[Callable[..., Any]]):
             node_type=CompensatorGraphNode.NODE_TYPE,
             label=method_name,
             properties={"description": desc} if desc is not None else {},
-            edges=[],
             node_obj=compensator_func,
         )

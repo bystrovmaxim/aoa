@@ -101,6 +101,5 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
             node_type=CheckerGraphNode.NODE_TYPE,
             label=field_name.strip(),
             properties=merged_properties,
-            edges=[],
             node_obj=node_obj,
         )

@@ -36,18 +36,39 @@ from maxitor.viz2.interchange_graph_visualizer import (
 )
 
 
+class _TestGraphNode(BaseGraphNode[object]):
+    def __init__(
+        self,
+        *,
+        node_id: str,
+        node_type: str,
+        label: str,
+        node_obj: object,
+        edges: list[BaseGraphEdge] | None = None,
+    ) -> None:
+        self._edges = [] if edges is None else list(edges)
+        super().__init__(
+            node_id=node_id,
+            node_type=node_type,
+            label=label,
+            properties={},
+            node_obj=node_obj,
+        )
+
+    def get_all_edges(self) -> list[BaseGraphEdge]:
+        return self._edges
+
+
 def _import_sample_modules() -> None:
     for name in _MODULES:
         importlib.import_module(name)
 
 
 def test_interchange_node_and_edge_to_visual_dicts() -> None:
-    n = BaseGraphNode(
+    n = _TestGraphNode(
         node_id=TypeIntrospection.full_qualname(ApplicationContext),
         node_type="Application",
         label=ApplicationContext.__name__,
-        properties={},
-        edges=[],
         node_obj=ApplicationContext,
     )
     d = interchange_node_to_visual_dict(n)
@@ -141,12 +162,10 @@ class _PygraphRoundTripInspector(BaseGraphNodeInspector[_PygraphRoundTripAxis]):
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         if cls is not _PygraphRoundTripAxis:
             return []
-        b = BaseGraphNode(
+        b = _TestGraphNode(
             node_id="tests.b",
             node_type="Params",
             label="B",
-            properties={},
-            edges=[],
             node_obj=object(),
         )
         edge = BaseGraphEdge(
@@ -158,11 +177,10 @@ class _PygraphRoundTripInspector(BaseGraphNodeInspector[_PygraphRoundTripAxis]):
             target_node_type="Params",
             edge_relationship=ASSOCIATION,
         )
-        a = BaseGraphNode(
+        a = _TestGraphNode(
             node_id="tests.a",
             node_type="Action",
             label="A",
-            properties={},
             edges=[edge],
             node_obj=object(),
         )
@@ -178,12 +196,10 @@ class _SingleActionHtmlInspector(BaseGraphNodeInspector[_SingleHtmlAxis]):
         if cls is not _SingleHtmlAxis:
             return []
         return [
-            BaseGraphNode(
+            _TestGraphNode(
                 node_id="tests.html_only",
                 node_type="Action",
                 label="HtmlOnly",
-                properties={},
-                edges=[],
                 node_obj=object(),
             ),
         ]
@@ -256,11 +272,10 @@ class _BadRefInspector(BaseGraphNodeInspector[_BadRefAxis]):
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         if cls is not _BadRefAxis:
             return []
-        dom = BaseGraphNode(
+        dom = _TestGraphNode(
             node_id="tests.viz2.bad_domain",
             node_type="Domain",
             label="BadDomain",
-            properties={},
             edges=[
                 BaseGraphEdge(
                     edge_name="belongs_to",

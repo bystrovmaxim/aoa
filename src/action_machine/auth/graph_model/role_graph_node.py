@@ -61,6 +61,5 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
             node_type=RoleGraphNode.NODE_TYPE,
             label=role_cls.__name__,
             properties={},
-            edges=[],
             node_obj=role_cls,
         )

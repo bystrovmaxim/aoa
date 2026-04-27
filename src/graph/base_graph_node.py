@@ -51,10 +51,7 @@ class BaseGraphNode[T: object]:
     node_type: str
     label: str
     properties: dict[str, Any]
-    edges: list[BaseGraphEdge]
     node_obj: T
-    # Child interchange vertices without their own axis (see module docstring); often empty.
-    companion_nodes: list[BaseGraphNode[Any]]
 
     def __init__(
         self,
@@ -64,23 +61,17 @@ class BaseGraphNode[T: object]:
         label: str,
         node_obj: T,
         properties: dict[str, Any] | None = None,
-        edges: list[BaseGraphEdge] | None = None,
-        companion_nodes: list[BaseGraphNode[Any]] | None = None,
     ) -> None:
         properties = {} if properties is None else dict(properties)
-        edges = [] if edges is None else list(edges)
-        companion_nodes = [] if companion_nodes is None else list(companion_nodes)
 
         object.__setattr__(self, "node_id", require_non_empty_str("node_id", node_id))
         object.__setattr__(self, "node_type", require_non_empty_str("node_type", node_type))
         object.__setattr__(self, "label", require_non_empty_str("label", label))
         object.__setattr__(self, "node_obj", require_non_null("node_obj", node_obj))
         object.__setattr__(self, "properties", properties)
-        object.__setattr__(self, "edges", edges)
-        object.__setattr__(self, "companion_nodes", companion_nodes)
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        return self.edges
+        return []
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
-        return self.companion_nodes
+        return []

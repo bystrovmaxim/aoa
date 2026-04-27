@@ -77,6 +77,5 @@ class FieldGraphNode(BaseGraphNode[FieldGraphPayload]):
                 "required": required,
                 "description": "" if description is None else description,
             },
-            edges=[],
             node_obj=node_obj,
         )

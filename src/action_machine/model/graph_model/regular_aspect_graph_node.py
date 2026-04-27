@@ -35,7 +35,7 @@ from action_machine.introspection_tools import CallableKind, IntentIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_intent_inspector import BaseIntentInspector
-from graph.edge_relationship import COMPOSITION
+from graph.composition_graph_edge import CompositionGraphEdge
 
 from .checker_graph_node import CheckerGraphNode
 
@@ -50,6 +50,7 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
 
     NODE_TYPE: ClassVar[str] = "RegularAspect"
+    checker_edges: list[CompositionGraphEdge]
 
     def __init__(self, aspect_func: Callable[..., Any]) -> None:
         checkers = RegularAspectGraphNode._checker_nodes_for_aspect(aspect_func)
@@ -64,11 +65,17 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
             node_type=RegularAspectGraphNode.NODE_TYPE,
             label=method_name,
             properties={"description": desc} if desc is not None else {},
-            edges=edges,
             node_obj=aspect_func,
-            # Same checker instances as in edges' target ids; inspector flattens into graph node list.
-            companion_nodes=list(checkers),
         )
+        object.__setattr__(self, "checker_edges", edges)
+
+    def get_all_edges(self) -> list[BaseGraphEdge]:
+        """Return checker composition edges materialized in the explicit edge field."""
+        return [*self.checker_edges]
+
+    def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
+        """Return checker nodes carried as targets by explicit composition edges."""
+        return [edge.target_node for edge in self.checker_edges if edge.target_node is not None]
 
     @staticmethod
     def checkers_for_method(method: Any) -> list[dict[str, Any]]:
@@ -111,16 +118,16 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
         aspect_callable: Callable[..., Any],
         aspect_node_id: str,
         checkers: list[CheckerGraphNode],
-    ) -> list[BaseGraphEdge]:
+    ) -> list[CompositionGraphEdge]:
         return [
-            BaseGraphEdge(
+            CompositionGraphEdge(
                 edge_name=f"checker:{ch.node_obj.field_name.strip() or '_'}",
                 is_dag=False,
                 source_node_id=aspect_node_id,
                 source_node_type=RegularAspectGraphNode.NODE_TYPE,
                 target_node_id=ch.node_id,
                 target_node_type=CheckerGraphNode.NODE_TYPE,
-                edge_relationship=COMPOSITION,
+                target_node=ch,
             )
             for ch in checkers
         ]
