@@ -87,8 +87,8 @@ AI-CORE-BEGIN
     AI-CORE-END
 """
 
-    name: ClassVar[str]
-    description: ClassVar[str]
+    name: ClassVar[str] = "base"
+    description: ClassVar[str] = "Base domain"
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """

@@ -7,27 +7,23 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Walks the loaded ``BaseRole`` subclass tree and emits one :class:`RoleGraphNode` per
-visited class, skipping ``BaseRole``, ``SystemRole``, and ``ApplicationRole`` via
-:meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`
-(taxonomy anchors and abstract branches without interchange rows).
+visited class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseRole / ``SystemRole`` / ``ApplicationRole``  (skipped)
+    BaseRole
               │
               v
-    each other loaded subclass ``cls``  ->  ``[RoleGraphNode(cls)]`` when ``issubclass(cls, BaseRole)``
+    each visited ``cls``  ->  ``[RoleGraphNode(cls)]`` when ``issubclass(cls, BaseRole)``
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from action_machine.auth.application_role import ApplicationRole
 from action_machine.auth.base_role import BaseRole
-from action_machine.auth.system_role import SystemRole
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 
@@ -37,13 +33,10 @@ from .role_graph_node import RoleGraphNode
 class RoleGraphNodeInspector(BaseGraphNodeInspector[BaseRole]):
     """
     AI-CORE-BEGIN
-    ROLE: Emit ``RoleGraphNode`` rows for loaded ``BaseRole`` subclasses except excluded taxonomy roots.
-    CONTRACT: Root axis ``BaseRole`` from ``BaseGraphNodeInspector[BaseRole]``; ``BaseRole``, ``SystemRole``, and ``ApplicationRole`` are excluded from the walk.
+    ROLE: Emit ``RoleGraphNode`` rows for visited ``BaseRole`` classes.
+    CONTRACT: Root axis ``BaseRole`` from ``BaseGraphNodeInspector[BaseRole]``; one node per visited role class.
     AI-CORE-END
     """
-
-    def _graph_node_walk_excluded_types(self) -> frozenset[type]:
-        return frozenset({BaseRole, SystemRole, ApplicationRole})
 
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         if isinstance(cls, type) and issubclass(cls, BaseRole):

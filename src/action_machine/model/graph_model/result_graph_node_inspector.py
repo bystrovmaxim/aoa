@@ -6,15 +6,14 @@ ResultGraphNodeInspector — graph-node contributor for ``BaseResult`` subclasse
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseResult`` strict subclass tree and emits one :class:`ResultGraphNode` per
-visited subtype plus that node's :class:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (``FieldGraphNode`` rows). The ``BaseResult`` axis is excluded via
-:meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`.
+Walks the loaded ``BaseResult`` subclass tree and emits one :class:`ResultGraphNode` per
+visited subtype plus that node's :class:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (``FieldGraphNode`` rows).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseResult  (root axis, skipped in walk)
+    BaseResult  (root axis)
               │
               v
     each loaded strict subclass ``cls``  ->  ``ResultGraphNode(cls)`` plus :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (field rows) in the flat list when ``issubclass(cls, BaseResult)``
@@ -34,13 +33,10 @@ from .result_graph_node import ResultGraphNode
 class ResultGraphNodeInspector(BaseGraphNodeInspector[BaseResult]):
     """
     AI-CORE-BEGIN
-    ROLE: Emit ``ResultGraphNode`` rows for every loaded strict ``BaseResult`` subclass (not the root axis).
+    ROLE: Emit ``ResultGraphNode`` rows for visited ``BaseResult`` classes.
     CONTRACT: Root axis ``BaseResult`` from ``BaseGraphNodeInspector[BaseResult]``; one ``ResultGraphNode`` per visited strict subtype, then its ``companion_nodes`` in the same flat list.
     AI-CORE-END
     """
-
-    def _graph_node_walk_excluded_types(self) -> frozenset[type]:
-        return frozenset({BaseResult})
 
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         if isinstance(cls, type) and issubclass(cls, BaseResult):

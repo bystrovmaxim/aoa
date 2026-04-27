@@ -8,15 +8,13 @@ PURPOSE
 
 Walks the loaded ``BaseResource`` strict subclass tree and emits one
 :class:`~action_machine.resources.graph_model.resource_graph_node.ResourceGraphNode` per
-visited concrete or abstract resource class. The ``BaseResource`` axis is excluded via
-:meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`
-so the abstract root does not emit an interchange row.
+visited concrete or abstract resource class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseResource  (root axis, skipped in walk)
+    BaseResource  (root axis)
               │
               v
     each strict subclass ``cls``  ->  ``[ResourceGraphNode(cls)]`` when ``issubclass(cls, BaseResource)``
@@ -37,12 +35,9 @@ class ResourceGraphNodeInspector(BaseGraphNodeInspector[BaseResource]):
     """
     AI-CORE-BEGIN
     ROLE: Emit ``ResourceGraphNode`` rows for every loaded ``BaseResource`` subclass.
-    CONTRACT: Root axis ``BaseResource`` from ``BaseGraphNodeInspector[BaseResource]``; one node per strict subtype (root excluded via :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._graph_node_walk_excluded_types`).
+    CONTRACT: Root axis ``BaseResource`` from ``BaseGraphNodeInspector[BaseResource]``; one node per visited resource class.
     AI-CORE-END
     """
-
-    def _graph_node_walk_excluded_types(self) -> frozenset[type]:
-        return frozenset({BaseResource})
 
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         if isinstance(cls, type) and issubclass(cls, BaseResource):
