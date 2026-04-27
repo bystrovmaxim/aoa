@@ -9,7 +9,7 @@ PURPOSE
 ``NodeGraphCoordinator`` aggregates :class:`~graph.base_graph_node.BaseGraphNode`
 rows from inspector **instances**. Concrete subclasses specialize ``TRoot`` (the
 axis type, e.g. ``BaseAction``) as ``class Foo(BaseGraphNodeInspector[BaseAction[Any, Any]]): ...``,
-implement only :meth:`_get_type_nodes`; :meth:`_get_inspector_type` returns that ``TRoot`` class object.
+implement only :meth:`_get_node`; :meth:`_get_inspector_type` returns that ``TRoot`` class object.
 :meth:`get_graph_nodes` walks the root plus all strict subclasses (see :meth:`_all_descendant_types`).
 
 Inspectors that also participate in the main facet graph typically inherit both
@@ -24,7 +24,7 @@ ARCHITECTURE / DATA FLOW
     _get_inspector_type()  ->  ``type`` (root class object from ``BaseGraphNodeInspector[TRoot]``)
               │
               v
-    _get_type_nodes(root)  +  for each T in _all_descendant_types(root): _get_type_nodes(T)
+    _get_node(root)  +  for each T in _all_descendant_types(root): _get_node(T)
               │
               v
     get_graph_nodes()  ->  list[BaseGraphNode[Any]]
@@ -32,11 +32,9 @@ ARCHITECTURE / DATA FLOW
               v
     NodeGraphCoordinator.build([...])
 
-When a host emits edges to targets that have **no** dedicated inspector axis (no ``type`` to walk),
-attach those ``BaseGraphNode`` instances on the host's
-:attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` and **also** append the same instances
-to the flat list returned from :meth:`get_graph_nodes` so :class:`~graph.node_graph_coordinator.NodeGraphCoordinator`
-can resolve ``target_node_id``.
+Hosts can expose additional target nodes through
+:meth:`~graph.base_graph_node.BaseGraphNode.get_companion_nodes`; :class:`~graph.node_graph_coordinator.NodeGraphCoordinator`
+adds those companions when assembling the full node set.
 """
 
 from __future__ import annotations
@@ -52,7 +50,7 @@ class BaseGraphNodeInspector[TRoot](ABC):
     """
     AI-CORE-BEGIN
     ROLE: Abstract contract for interchange-node emission into ``NodeGraphCoordinator``.
-    CONTRACT: Subclasses specialize ``TRoot`` in the base list and implement :meth:`_get_type_nodes` only; :meth:`get_graph_nodes` is final orchestration.
+    CONTRACT: Subclasses specialize ``TRoot`` in the base list and implement :meth:`_get_node` only; :meth:`get_graph_nodes` is final orchestration.
     INVARIANTS: Cannot be instantiated directly; not registered with ``GraphCoordinator`` by itself.
     AI-CORE-END
     """
@@ -105,14 +103,15 @@ class BaseGraphNodeInspector[TRoot](ABC):
         raise TypeError(msg)
 
     @abstractmethod
-    def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
-        """Return interchange nodes for a single concrete or abstract ``cls`` (may be empty)."""
+    def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
+        """Return the interchange node for a single concrete or abstract ``cls`` when applicable."""
 
     def get_graph_nodes(self) -> list[BaseGraphNode[Any]]:
         """Collect nodes for the root axis and all descendant types."""
         root = self._get_inspector_type()
         out: list[BaseGraphNode[Any]] = []
-        out.extend(self._get_type_nodes(root))
-        for cls in self._all_descendant_types(root):
-            out.extend(self._get_type_nodes(cls))
+        for cls in (root, *self._all_descendant_types(root)):
+            node = self._get_node(cls)
+            if node is not None:
+                out.append(node)
         return out

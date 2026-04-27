@@ -76,10 +76,11 @@ class _NodeGraphTestInspector(BaseGraphNodeInspector[_GraphInspectorTestRoot]):
     def __init__(self, nodes: list[BaseGraphNode[object]]) -> None:
         self._nodes = nodes
 
-    def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[object]]:
-        if cls is _GraphInspectorTestRoot:
-            return list(self._nodes)
-        return []
+    def _get_node(self, cls: type) -> BaseGraphNode[object] | None:
+        return None
+
+    def get_graph_nodes(self) -> list[BaseGraphNode[object]]:
+        return list(self._nodes)
 
 
 def test_node_graph_coordinator_builds_chain() -> None:
@@ -294,14 +295,14 @@ def test_get_graph_nodes_collects_root_then_sorted_descendants() -> None:
     n_b = _make_node("b", [])
 
     class _ComposingInspector(BaseGraphNodeInspector[_R]):
-        def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
+        def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
             if cls is _R:
-                return [n_root]
+                return n_root
             if cls is _A:
-                return [n_a]
+                return n_a
             if cls is _B:
-                return [n_b]
-            return []
+                return n_b
+            return None
 
     assert _ComposingInspector().get_graph_nodes() == [n_root, n_a, n_b]
 

@@ -34,12 +34,11 @@ class ResultGraphNodeInspector(BaseGraphNodeInspector[BaseResult]):
     """
     AI-CORE-BEGIN
     ROLE: Emit ``ResultGraphNode`` rows for visited ``BaseResult`` classes.
-    CONTRACT: Root axis ``BaseResult`` from ``BaseGraphNodeInspector[BaseResult]``; one ``ResultGraphNode`` per visited strict subtype, then its ``companion_nodes`` in the same flat list.
+    CONTRACT: Root axis ``BaseResult`` from ``BaseGraphNodeInspector[BaseResult]``; one ``ResultGraphNode`` per visited subtype.
     AI-CORE-END
     """
 
-    def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
+    def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         if isinstance(cls, type) and issubclass(cls, BaseResult):
-            node = ResultGraphNode(cls)
-            return [node, *node.get_companion_nodes()]
-        return []
+            return ResultGraphNode(cls)
+        return None

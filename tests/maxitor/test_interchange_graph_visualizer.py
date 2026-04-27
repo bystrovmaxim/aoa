@@ -159,9 +159,10 @@ class _PygraphRoundTripAxis:
 
 
 class _PygraphRoundTripInspector(BaseGraphNodeInspector[_PygraphRoundTripAxis]):
-    def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
-        if cls is not _PygraphRoundTripAxis:
-            return []
+    def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
+        return None
+
+    def get_graph_nodes(self) -> list[BaseGraphNode[Any]]:
         b = _TestGraphNode(
             node_id="tests.b",
             node_type="Params",
@@ -192,17 +193,15 @@ class _SingleHtmlAxis:
 
 
 class _SingleActionHtmlInspector(BaseGraphNodeInspector[_SingleHtmlAxis]):
-    def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
+    def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         if cls is not _SingleHtmlAxis:
-            return []
-        return [
-            _TestGraphNode(
-                node_id="tests.html_only",
-                node_type="Action",
-                label="HtmlOnly",
-                node_obj=object(),
-            ),
-        ]
+            return None
+        return _TestGraphNode(
+            node_id="tests.html_only",
+            node_type="Action",
+            label="HtmlOnly",
+            node_obj=object(),
+        )
 
 
 def test_interchange_pygraph_for_g6_round_trip_topology() -> None:
@@ -269,9 +268,9 @@ class _BadRefAxis:
 class _BadRefInspector(BaseGraphNodeInspector[_BadRefAxis]):
     """Emits one domain-like node whose ``belongs_to`` points at a missing target id."""
 
-    def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
+    def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         if cls is not _BadRefAxis:
-            return []
+            return None
         dom = _TestGraphNode(
             node_id="tests.viz2.bad_domain",
             node_type="Domain",
@@ -289,7 +288,7 @@ class _BadRefInspector(BaseGraphNodeInspector[_BadRefAxis]):
             ],
             node_obj=object(),
         )
-        return [dom]
+        return dom
 
 
 def test_coordinator_build_fails_on_dangling_edge_target() -> None:

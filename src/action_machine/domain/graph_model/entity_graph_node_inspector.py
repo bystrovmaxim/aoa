@@ -38,7 +38,7 @@ class EntityGraphNodeInspector(BaseGraphNodeInspector[BaseEntity]):
     AI-CORE-END
     """
 
-    def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
+    def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         if isinstance(cls, type) and issubclass(cls, BaseEntity):
-            return [EntityGraphNode(cls)]
-        return []
+            return EntityGraphNode(cls)
+        return None
