@@ -35,8 +35,6 @@ from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 
 from .action_graph_node import ActionGraphNode
-from .checker_graph_node import CheckerGraphNode
-from .regular_aspect_graph_node import RegularAspectGraphNode
 
 
 class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
@@ -48,27 +46,12 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
     AI-CORE-END
     """
 
-    @staticmethod
-    def _regular_checkers_from_companion_nodes(
-        companion_nodes: list[BaseGraphNode[Any]],
-    ) -> list[CheckerGraphNode]:
-        """Checker nodes carried by regular-aspect companion nodes."""
-        checkers: list[CheckerGraphNode] = []
-        for companion_node in companion_nodes:
-            if isinstance(companion_node, RegularAspectGraphNode):
-                checkers.extend(
-                    checker for checker in companion_node.get_companion_nodes() if isinstance(checker, CheckerGraphNode)
-                )
-        return checkers
-
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         if not (isinstance(cls, type) and issubclass(cls, BaseAction)):
             return []
         action_node = ActionGraphNode(cls)
         companion_nodes = action_node.get_companion_nodes()
-        regular_checkers = self._regular_checkers_from_companion_nodes(companion_nodes)
         return [
             action_node,
             *companion_nodes,
-            *regular_checkers,
         ]
