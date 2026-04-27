@@ -27,6 +27,7 @@ Each :class:`~graph.base_graph_edge.BaseGraphEdge` records ``edge_name``, ``is_d
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
@@ -35,7 +36,7 @@ from graph.validation import require_non_empty_str, require_non_null
 
 
 @dataclass(init=False, frozen=True)
-class BaseGraphNode[T: object]:
+class BaseGraphNode[T: object](ABC):
     """
     AI-CORE-BEGIN
     ROLE: Frozen interchange node (id, type, label, properties, edges, host object, optional companions).
@@ -53,6 +54,7 @@ class BaseGraphNode[T: object]:
     properties: dict[str, Any]
     node_obj: T
 
+    @abstractmethod
     def __init__(
         self,
         *,

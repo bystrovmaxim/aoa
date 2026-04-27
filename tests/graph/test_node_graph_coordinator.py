@@ -11,10 +11,11 @@ from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import (
     RegularAspectGraphNode,
 )
+from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
-from graph.edge_relationship import ASSOCIATION, COMPOSITION
+from graph.composition_graph_edge import CompositionGraphEdge
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
 from graph.node_graph_coordinator import NodeGraphCoordinator
 
@@ -36,14 +37,13 @@ def _edge(
     edge_name: str = "ref",
     is_dag: bool = False,
 ) -> BaseGraphEdge:
-    return BaseGraphEdge(
+    return AssociationGraphEdge(
         edge_name=edge_name,
         is_dag=is_dag,
         source_node_id=source_node_id,
         source_node_type="Test",
         target_node_id=target_node_id,
         target_node_type="Test",
-        edge_relationship=ASSOCIATION,
     )
 
 
@@ -203,14 +203,13 @@ def test_get_regular_aspect_nodes_uses_action_edges() -> None:
     class _ActionNode(BaseGraphNode[type[_RegularAspectHostAction]]):
         def __init__(self) -> None:
             self._edges = [
-                BaseGraphEdge(
+                CompositionGraphEdge(
                     edge_name="run",
                     is_dag=False,
                     source_node_id=action_node_id,
                     source_node_type=ActionGraphNode.NODE_TYPE,
                     target_node_id=aspect_node.node_id,
                     target_node_type=RegularAspectGraphNode.NODE_TYPE,
-                    edge_relationship=COMPOSITION,
                 ),
             ]
             super().__init__(
