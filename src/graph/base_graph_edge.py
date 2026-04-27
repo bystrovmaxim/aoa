@@ -8,9 +8,8 @@ PURPOSE
 
 Represents one outgoing semantic edge from a :class:`BaseGraphNode`: the slot key
 (e.g. ``domain``, ``params``), whether it participates in **acyclicity** (DAG) reasoning,
-then **source** and **target** interchange ids, kinds, a single
-**ArchiMate-style relationship** for the edge, and optional **properties** (always a ``dict``,
-never ``None``; defaults to empty).
+then **source** and **target** interchange ids, kinds, and optional **properties**
+(always a ``dict``, never ``None``; defaults to empty).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -46,7 +45,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from graph.edge_relationship import EdgeRelationship
-from graph.validation import require_non_empty_str, require_non_null
+from graph.validation import require_non_empty_str
 
 if TYPE_CHECKING:
     from graph.base_graph_node import BaseGraphNode
@@ -56,10 +55,10 @@ if TYPE_CHECKING:
 class BaseGraphEdge(ABC):
     """
     AI-CORE-BEGIN
-    ROLE: Interchange edge descriptor (slot, DAG, source/target ids, kinds, relationship, properties).
-    CONTRACT: ``edge_relationship`` uses :class:`~graph.edge_relationship.EdgeRelationship` (ArchiMate-style kinds).
+    ROLE: Interchange edge descriptor (slot, DAG, source/target ids, kinds, properties).
+    CONTRACT: Concrete subclasses expose ``edge_relationship`` as their fixed :class:`~graph.edge_relationship.EdgeRelationship`.
     INVARIANTS: Frozen; ``is_dag`` is always set explicitly by the caller. ``properties`` is always a ``dict`` (never ``None``).
-    String fields must be non-empty (after strip); ``edge_relationship`` must not be ``None``.
+    String fields must be non-empty (after strip).
     AI-CORE-END
     """
 
@@ -71,10 +70,8 @@ class BaseGraphEdge(ABC):
     target_node_id: str
     target_node_type: str
     target_node: BaseGraphNode[Any] | None
-    edge_relationship: EdgeRelationship
     properties: dict[str, Any]
 
-    @abstractmethod
     def __init__(
         self,
         *,
@@ -86,7 +83,6 @@ class BaseGraphEdge(ABC):
         target_node_id: str,
         target_node_type: str,
         target_node: BaseGraphNode[Any] | None = None,
-        edge_relationship: EdgeRelationship,
         properties: dict[str, Any] | None = None,
     ) -> None:
         edge_name_s = require_non_empty_str("edge_name", edge_name)
@@ -103,11 +99,6 @@ class BaseGraphEdge(ABC):
         object.__setattr__(self, "target_node_id", target_node_id_s)
         object.__setattr__(self, "target_node_type", target_node_type_s)
         object.__setattr__(self, "target_node", target_node)
-        er_raw = require_non_null("edge_relationship", edge_relationship)
-        if not isinstance(er_raw, EdgeRelationship):
-            msg = f"edge_relationship must be EdgeRelationship, not {type(er_raw).__name__}"
-            raise TypeError(msg)
-        object.__setattr__(self, "edge_relationship", er_raw)
 
         if properties is None:
             props: dict[str, Any] = {}
@@ -117,3 +108,8 @@ class BaseGraphEdge(ABC):
             msg = f"properties must be a mapping or None, not {type(properties).__name__}"
             raise TypeError(msg)
         object.__setattr__(self, "properties", props)
+
+    @property
+    @abstractmethod
+    def edge_relationship(self) -> EdgeRelationship:
+        """Return the fixed ArchiMate-style relationship for this concrete edge type."""
