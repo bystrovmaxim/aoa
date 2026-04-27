@@ -34,13 +34,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from action_machine.introspection_tools import TypeIntrospection
 from action_machine.model.base_params import BaseParams
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.edge_relationship import COMPOSITION
+from graph.composition_graph_edge import CompositionGraphEdge
 
 from .field_graph_node import FieldGraphNode
 from .property_field_graph_node import PropertyFieldGraphNode
@@ -55,29 +55,42 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
     ROLE: Interchange node for a ``BaseParams`` params host class.
     CONTRACT: Built from ``type[TParams]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label;
     empty ``properties``; ``edges`` / :attr:`companion_nodes` from ``model_fields`` and ``model_computed_fields``
-    (see :meth:`_field_graph_nodes_for_params`, :meth:`_property_field_graph_nodes_for_params`).
+    (see :meth:`_field_graph_nodes_for_params`, :meth:`_property_graph_nodes_for_params`).
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Params"
+    field_edges: list[CompositionGraphEdge]
+    property_edges: list[CompositionGraphEdge]
 
     def __init__(self, params_cls: type[TParams]) -> None:
-        fields = ParamsGraphNode._field_graph_nodes_for_params(params_cls)
-        prop_fields = ParamsGraphNode._property_field_graph_nodes_for_params(params_cls)
         params_node_id = TypeIntrospection.full_qualname(params_cls)
-        edges = [
-            *ParamsGraphNode._composition_edges_to_fields(params_cls, params_node_id, fields),
-            *ParamsGraphNode._composition_edges_to_property_fields(params_cls, params_node_id, prop_fields),
-        ]
+        field_edges = ParamsGraphNode._get_field_edges(params_cls, params_node_id)
+        property_edges = ParamsGraphNode._get_property_edges(params_cls, params_node_id)
+        companion_nodes = []
         super().__init__(
             node_id=params_node_id,
             node_type=ParamsGraphNode.NODE_TYPE,
             label=params_cls.__name__,
             properties={},
-            edges=edges,
+            edges=[],
             node_obj=params_cls,
-            companion_nodes=[*fields, *prop_fields],
+            companion_nodes=companion_nodes,
         )
+        object.__setattr__(self, "field_edges", field_edges)
+        object.__setattr__(self, "property_edges", property_edges)
+
+    def get_all_edges(self) -> list[BaseGraphEdge]:
+        """Return all outgoing composition edges materialized in explicit edge fields."""
+        return [*self.field_edges, *self.property_edges]
+
+    def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
+        """Return field and property nodes carried as targets by explicit composition edges."""
+        return [
+            edge.target_node
+            for edge in [*self.field_edges, *self.property_edges]
+            if edge.target_node is not None
+        ]
 
     @staticmethod
     def _field_graph_nodes_for_params(params_cls: type[BaseParams]) -> list[FieldGraphNode]:
@@ -98,26 +111,27 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
         return out
 
     @staticmethod
-    def _composition_edges_to_fields(
+    def _get_field_edges(
         params_cls: type[BaseParams],
         params_node_id: str,
-        fields: list[FieldGraphNode],
-    ) -> list[BaseGraphEdge]:
+    ) -> list[CompositionGraphEdge]:
+        """Build composition edges from params node to declared Pydantic field nodes."""
+        fields = ParamsGraphNode._field_graph_nodes_for_params(params_cls)
         return [
-            BaseGraphEdge(
+            CompositionGraphEdge(
                 edge_name=f"field:{fd.node_obj.field_name.strip() or '_'}",
                 is_dag=False,
                 source_node_id=params_node_id,
                 source_node_type=ParamsGraphNode.NODE_TYPE,
                 target_node_id=fd.node_id,
                 target_node_type=FieldGraphNode.NODE_TYPE,
-                edge_relationship=COMPOSITION,
+                target_node=fd,
             )
             for fd in fields
         ]
 
     @staticmethod
-    def _property_field_graph_nodes_for_params(
+    def _property_graph_nodes_for_params(
         params_cls: type[BaseParams],
     ) -> list[PropertyFieldGraphNode]:
         """One :class:`PropertyFieldGraphNode` per Pydantic computed field and per plain ``property`` on the class."""
@@ -154,20 +168,21 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
         return out
 
     @staticmethod
-    def _composition_edges_to_property_fields(
+    def _get_property_edges(
         params_cls: type[BaseParams],
         params_node_id: str,
-        props: list[PropertyFieldGraphNode],
-    ) -> list[BaseGraphEdge]:
+    ) -> list[CompositionGraphEdge]:
+        """Build composition edges from params node to computed/plain property nodes."""
+        props = ParamsGraphNode._property_graph_nodes_for_params(params_cls)
         return [
-            BaseGraphEdge(
+            CompositionGraphEdge(
                 edge_name=f"property:{p.node_obj.property_name.strip() or '_'}",
                 is_dag=False,
                 source_node_id=params_node_id,
                 source_node_type=ParamsGraphNode.NODE_TYPE,
                 target_node_id=p.node_id,
                 target_node_type=PropertyFieldGraphNode.NODE_TYPE,
-                edge_relationship=COMPOSITION,
+                target_node=p,
             )
             for p in props
         ]

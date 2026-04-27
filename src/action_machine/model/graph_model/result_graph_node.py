@@ -34,13 +34,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from action_machine.introspection_tools import TypeIntrospection
 from action_machine.model.base_result import BaseResult
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.edge_relationship import COMPOSITION
+from graph.composition_graph_edge import CompositionGraphEdge
 
 from .field_graph_node import FieldGraphNode
 from .property_field_graph_node import PropertyFieldGraphNode
@@ -55,29 +55,42 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
     ROLE: Interchange node for a ``BaseResult`` result host class.
     CONTRACT: Built from ``type[TResult]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label;
     empty ``properties``; ``edges`` / :attr:`companion_nodes` from ``model_fields`` and ``model_computed_fields``
-    (see :meth:`_field_graph_nodes_for_result`, :meth:`_property_field_graph_nodes_for_result`).
+    (see :meth:`_field_graph_nodes_for_result`, :meth:`_property_graph_nodes_for_result`).
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Result"
+    field_edges: list[CompositionGraphEdge]
+    property_edges: list[CompositionGraphEdge]
 
     def __init__(self, result_cls: type[TResult]) -> None:
-        fields = ResultGraphNode._field_graph_nodes_for_result(result_cls)
-        prop_fields = ResultGraphNode._property_field_graph_nodes_for_result(result_cls)
         result_node_id = TypeIntrospection.full_qualname(result_cls)
-        edges = [
-            *ResultGraphNode._composition_edges_to_fields(result_cls, result_node_id, fields),
-            *ResultGraphNode._composition_edges_to_property_fields(result_cls, result_node_id, prop_fields),
-        ]
+        field_edges = ResultGraphNode._get_field_edges(result_cls, result_node_id)
+        property_edges = ResultGraphNode._get_property_edges(result_cls, result_node_id)
+        companion_nodes = []
         super().__init__(
             node_id=result_node_id,
             node_type=ResultGraphNode.NODE_TYPE,
             label=result_cls.__name__,
             properties={},
-            edges=edges,
+            edges=[],
             node_obj=result_cls,
-            companion_nodes=[*fields, *prop_fields],
+            companion_nodes=companion_nodes,
         )
+        object.__setattr__(self, "field_edges", field_edges)
+        object.__setattr__(self, "property_edges", property_edges)
+
+    def get_all_edges(self) -> list[BaseGraphEdge]:
+        """Return all outgoing composition edges materialized in explicit edge fields."""
+        return [*self.field_edges, *self.property_edges]
+
+    def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
+        """Return field and property nodes carried as targets by explicit composition edges."""
+        return [
+            edge.target_node
+            for edge in [*self.field_edges, *self.property_edges]
+            if edge.target_node is not None
+        ]
 
     @staticmethod
     def _field_graph_nodes_for_result(result_cls: type[BaseResult]) -> list[FieldGraphNode]:
@@ -98,26 +111,27 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
         return out
 
     @staticmethod
-    def _composition_edges_to_fields(
+    def _get_field_edges(
         result_cls: type[BaseResult],
         result_node_id: str,
-        fields: list[FieldGraphNode],
-    ) -> list[BaseGraphEdge]:
+    ) -> list[CompositionGraphEdge]:
+        """Build composition edges from result node to declared Pydantic field nodes."""
+        fields = ResultGraphNode._field_graph_nodes_for_result(result_cls)
         return [
-            BaseGraphEdge(
+            CompositionGraphEdge(
                 edge_name=f"field:{fd.node_obj.field_name.strip() or '_'}",
                 is_dag=False,
                 source_node_id=result_node_id,
                 source_node_type=ResultGraphNode.NODE_TYPE,
                 target_node_id=fd.node_id,
                 target_node_type=FieldGraphNode.NODE_TYPE,
-                edge_relationship=COMPOSITION,
+                target_node=fd,
             )
             for fd in fields
         ]
 
     @staticmethod
-    def _property_field_graph_nodes_for_result(
+    def _property_graph_nodes_for_result(
         result_cls: type[BaseResult],
     ) -> list[PropertyFieldGraphNode]:
         """One :class:`PropertyFieldGraphNode` per Pydantic computed field and per plain ``property`` on the class."""
@@ -154,20 +168,21 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
         return out
 
     @staticmethod
-    def _composition_edges_to_property_fields(
+    def _get_property_edges(
         result_cls: type[BaseResult],
         result_node_id: str,
-        props: list[PropertyFieldGraphNode],
-    ) -> list[BaseGraphEdge]:
+    ) -> list[CompositionGraphEdge]:
+        """Build composition edges from result node to computed/plain property nodes."""
+        props = ResultGraphNode._property_graph_nodes_for_result(result_cls)
         return [
-            BaseGraphEdge(
+            CompositionGraphEdge(
                 edge_name=f"property:{p.node_obj.property_name.strip() or '_'}",
                 is_dag=False,
                 source_node_id=result_node_id,
                 source_node_type=ResultGraphNode.NODE_TYPE,
                 target_node_id=p.node_id,
                 target_node_type=PropertyFieldGraphNode.NODE_TYPE,
-                edge_relationship=COMPOSITION,
+                target_node=p,
             )
             for p in props
         ]

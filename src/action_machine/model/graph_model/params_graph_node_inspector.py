@@ -41,5 +41,5 @@ class ParamsGraphNodeInspector(BaseGraphNodeInspector[BaseParams]):
     def _get_type_nodes(self, cls: type) -> list[BaseGraphNode[Any]]:
         if isinstance(cls, type) and issubclass(cls, BaseParams):
             node = ParamsGraphNode(cls)
-            return [node, *node.companion_nodes]
+            return [node, *node.get_companion_nodes()]
         return []
