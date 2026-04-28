@@ -17,6 +17,7 @@ from action_machine.legacy.interchange_vertex_labels import (
     REGULAR_ASPECT_VERTEX_TYPE,
 )
 from action_machine.legacy.on_error_intent_inspector import OnErrorIntentInspector
+from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.resources.base_resource import BaseResource
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.facet_edge import FacetEdge
@@ -310,15 +311,13 @@ def test_gate_coordinator_get_graph_for_visualization_matches_get_graph() -> Non
         assert v[idx] == lg[idx]
 
 
-def test_coordinator_get_dependency_classes_and_connections() -> None:
+def test_coordinator_get_dependency_classes_and_action_graph_connections() -> None:
     coordinator = Core.create_coordinator()
     deps_snap = coordinator.get_snapshot(FullAction, "depends")
     assert deps_snap is not None
     classes = tuple(d.cls for d in deps_snap.dependencies)
     assert PaymentServiceResource in classes
     assert NotificationServiceResource in classes
-    conn_snap = coordinator.get_snapshot(FullAction, "connections")
-    assert conn_snap is not None
-    conns = tuple(conn_snap.connections)
-    assert len(conns) == 1
-    assert conns[0].key == "db"
+    action_node = ActionGraphNode(FullAction)
+    db_edges = [e for e in action_node.connection_edges if e.properties.get("key") == "db"]
+    assert len(db_edges) == 1

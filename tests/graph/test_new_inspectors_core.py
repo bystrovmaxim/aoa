@@ -5,7 +5,6 @@ Unit tests for newly introduced graph inspectors in metadata migration.
 Covered inspectors:
 - MetaIntentInspector
 - DependencyIntentInspector
-- ConnectionIntentInspector
 
 The tests verify inspector-local behavior only:
 - returns None when source metadata is missing
@@ -27,11 +26,9 @@ from action_machine.intents.depends import depends
 from action_machine.intents.depends.depends_intent import DependsIntent
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.intents.meta.meta_intent import MetaIntent
-from action_machine.legacy.connection_intent_inspector import ConnectionIntentInspector
 from action_machine.legacy.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.legacy.meta_intent_inspector import MetaIntentInspector
 from action_machine.resources.base_resource import BaseResource
-from graph.base_intent_inspector import BaseIntentInspector
 from graph.graph_coordinator import GraphCoordinator
 
 
@@ -72,15 +69,6 @@ class _DbManager(BaseResource):
         return None
 
 
-@connection(_DbManager, key="db", description="primary")
-class _ConnectionAction(ConnectionIntent):
-    pass
-
-
-class _NoConnectionAction(ConnectionIntent):
-    pass
-
-
 @depends(_ServiceA, description="svc")
 @connection(_DbManager, key="db", description="primary")
 class _DependsAndConnectionAction(DependsIntent[object], ConnectionIntent):
@@ -119,31 +107,15 @@ def test_dependency_inspector_builds_structural_depends_edges() -> None:
     assert all(edge.is_structural is True for edge in payload.edges)
 
 
-def test_connection_inspector_returns_none_without_connections() -> None:
-    assert ConnectionIntentInspector.inspect(_NoConnectionAction) is None
-
-
-def test_connection_inspector_builds_structural_connection_edge() -> None:
-    payload = ConnectionIntentInspector.inspect(_ConnectionAction)
-    assert payload is not None
-    assert payload.node_type == "Action"
-    assert len(payload.edges) == 1
-    edge = payload.edges[0]
-    assert edge.edge_type == "connection"
-    assert edge.is_structural is True
-    assert edge.target_node_type == "resource_manager"
-    assert edge.target_name == BaseIntentInspector._make_node_name(_DbManager)
-    assert edge.target_class_ref is _DbManager
-    assert dict(edge.edge_meta)["key"] == "db"
-
-
-def test_coordinator_merges_action_payloads_from_dependency_and_connection() -> None:
-    coord = GraphCoordinator().register(DependencyIntentInspector).register(ConnectionIntentInspector).build()
-    action_nodes = [n for n in coord.get_nodes_for_class(_DependsAndConnectionAction) if n.get("node_type") == "Action"]
+def test_coordinator_merged_action_node_carries_depends_only_without_connection_inspector() -> None:
+    """Without a connection inspector, only ``@depends`` contributes out-edges on the facet graph."""
+    coord = GraphCoordinator().register(DependencyIntentInspector).build()
+    action_nodes = [
+        n for n in coord.get_nodes_for_class(_DependsAndConnectionAction) if n.get("node_type") == "Action"
+    ]
     assert len(action_nodes) == 1
-    # committed graph stores edges separately; check via graph API if needed
     keys = coord._class_index.get(_DependsAndConnectionAction, [])  # pylint: disable=protected-access
     assert len(keys) == 1
     idx = coord._node_index[keys[0]]  # pylint: disable=protected-access
     out_edges = coord._facet_graph.out_edges(idx)  # pylint: disable=protected-access
-    assert len(out_edges) == 2
+    assert len(out_edges) == 1

@@ -49,10 +49,6 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "action_machine.intents.connection.connection_intent",
         "ConnectionIntent",
     ),
-    "ConnectionIntentInspector": (
-        "action_machine.legacy.connection_intent_inspector",
-        "ConnectionIntentInspector",
-    ),
     "ContextRequiresIntent": (
         "action_machine.intents.context.context_requires_intent",
         "ContextRequiresIntent",

@@ -42,9 +42,7 @@ ARCHITECTURE / DATA FLOW
     #   4. Key duplicates are absent -> OK
     #   5. Writes ConnectionInfo into cls._connection_info
 
-    # ConnectionIntentInspector reads cls._connection_info at build time.
-
-    # ActionProductMachine validates runtime keys against connections facet.
+    # ``ActionGraphNode`` / ``ConnectionIntentResolver`` read ``_connection_info`` for graph/validation.
 
 """
 
