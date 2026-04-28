@@ -34,20 +34,19 @@ from action_machine.exceptions import ConnectionValidationError
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
+from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.resources.base_resource import BaseResource
 from graph.graph_coordinator import GraphCoordinator
 
 
 class ConnectionValidator:
-    """Component entry point for connection-validation stage.
-
-    Step 3 implementation owning key/type validation for declared connections.
-    """
+    """Validate ``connections`` keys and ``BaseResource`` values for a machine run."""
 
     def __init__(self, coordinator: GraphCoordinator) -> None:
         self._coordinator = coordinator
 
     @staticmethod
+    # Declared none, caller passed at least one key — reject.
     def _validate_no_declarations_but_got_connections(
         action_name: str,
         declared_keys: set[str],
@@ -62,6 +61,7 @@ class ConnectionValidator:
         return None
 
     @staticmethod
+    # Declared at least one key, caller passed none — reject.
     def _validate_has_declarations_but_no_connections(
         action_name: str,
         declared_keys: set[str],
@@ -76,6 +76,7 @@ class ConnectionValidator:
         return None
 
     @staticmethod
+    # Caller keys must not exceed declared set.
     def _validate_extra_connection_keys(
         action_name: str,
         declared_keys: set[str],
@@ -90,6 +91,7 @@ class ConnectionValidator:
         return None
 
     @staticmethod
+    # Every declared key must be present in the caller mapping.
     def _validate_missing_connection_keys(
         action_name: str,
         declared_keys: set[str],
@@ -104,6 +106,7 @@ class ConnectionValidator:
         return None
 
     @staticmethod
+    # Each value must be a BaseResource instance.
     def _validate_connection_value_types(
         action_name: str,
         connections: dict[str, Any],
@@ -116,15 +119,25 @@ class ConnectionValidator:
                 )
         return None
 
+    @staticmethod
+    def _declared_keys_from_action_graph(runtime: _ConnectionRuntime) -> set[str]:
+        """Declared ``@connection`` keys from ``ActionGraphNode.connection_edges`` (``properties['key']``)."""
+        keys: set[str] = set()
+        for edge in runtime.action_node.connection_edges:
+            raw = edge.properties.get("key")
+            if isinstance(raw, str) and raw.strip():
+                keys.add(raw.strip())
+        return keys
+
     def validate(
         self,
         action: BaseAction[BaseParams, BaseResult],
         connections: dict[str, BaseResource] | None,
         runtime: _ConnectionRuntime,
     ) -> dict[str, BaseResource]:
-        """Validate connections against declared runtime keys."""
+        """Validate connections against keys from the action interchange graph."""
         _ = self._coordinator
-        declared_keys: set[str] = set(runtime.connection_keys)
+        declared_keys = self._declared_keys_from_action_graph(runtime)
         actual_keys: set[str] = set(connections.keys()) if connections else set()
         action_name: str = action.__class__.__name__
 
@@ -150,3 +163,6 @@ class ConnectionValidator:
 class _ConnectionRuntime(Protocol):
     @property
     def connection_keys(self) -> tuple[str, ...]: ...
+
+    @property
+    def action_node(self) -> ActionGraphNode[BaseAction[Any, Any]]: ...
