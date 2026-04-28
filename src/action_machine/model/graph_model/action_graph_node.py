@@ -168,7 +168,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return ActionGraphNode._get_callable_edges(
             source_node,
             [
-                RegularAspectGraphNode(aspect_callable)
+                RegularAspectGraphNode(aspect_callable, action_cls)
                 for aspect_callable in RegularAspectIntentResolver.resolve_regular_aspects(action_cls)
             ],
         )
@@ -182,7 +182,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return ActionGraphNode._get_callable_edges(
             source_node,
             [
-                SummaryAspectGraphNode(aspect_callable)
+                SummaryAspectGraphNode(aspect_callable, action_cls)
                 for aspect_callable in SummaryAspectIntentResolver.resolve_summary_aspects(action_cls)
             ],
         )
@@ -196,7 +196,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return ActionGraphNode._get_callable_edges(
             source_node,
             [
-                CompensatorGraphNode(compensator_callable)
+                CompensatorGraphNode(compensator_callable, action_cls)
                 for compensator_callable in CompensateIntentResolver.resolve_compensators(action_cls)
             ],
         )
@@ -210,7 +210,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return ActionGraphNode._get_callable_edges(
             source_node,
             [
-                ErrorHandlerGraphNode(error_handler_callable)
+                ErrorHandlerGraphNode(error_handler_callable, action_cls)
                 for error_handler_callable in OnErrorIntentResolver.resolve_error_handlers(action_cls)
             ],
         )

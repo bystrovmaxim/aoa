@@ -45,10 +45,9 @@ class ErrorHandlerGraphNode(BaseGraphNode[Callable[..., Any]]):
 
     NODE_TYPE: ClassVar[str] = "ErrorHandler"
 
-    def __init__(self, handler_func: Callable[..., Any]) -> None:
-        action_cls = TypeIntrospection.owner_type_for_method(handler_func)
+    def __init__(self, handler_func: Callable[..., Any], _action_cls: type[Any] | None = None) -> None:
         method_name = TypeIntrospection.unwrapped_callable_name(handler_func)
-        action_id = TypeIntrospection.full_qualname(action_cls)
+        action_id = TypeIntrospection.full_qualname(_action_cls)
         desc = OnErrorIntentResolver.resolve_description(handler_func)
         super().__init__(
             node_id=f"{action_id}:{method_name}",

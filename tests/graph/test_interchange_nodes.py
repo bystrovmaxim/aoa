@@ -46,7 +46,7 @@ from tests.scenarios.domain_model.ping_action import PingAction
 
 
 def test_regular_aspect_graph_node_interchange_shape() -> None:
-    node = RegularAspectGraphNode(ChildAction.process_aspect)
+    node = RegularAspectGraphNode(ChildAction.process_aspect, ChildAction)
     assert node.node_obj is ChildAction.process_aspect
     assert node.node_type == RegularAspectGraphNode.NODE_TYPE
     assert node.label == "process_aspect"
@@ -60,7 +60,7 @@ def test_regular_aspect_graph_node_interchange_shape() -> None:
 
 
 def test_summary_aspect_graph_node_interchange_shape() -> None:
-    node = SummaryAspectGraphNode(PingAction.pong_summary)
+    node = SummaryAspectGraphNode(PingAction.pong_summary, PingAction)
     assert node.node_obj is PingAction.pong_summary
     assert node.node_type == SummaryAspectGraphNode.NODE_TYPE
     assert node.label == "pong_summary"
@@ -70,7 +70,7 @@ def test_summary_aspect_graph_node_interchange_shape() -> None:
 
 
 def test_compensator_graph_node_interchange_shape() -> None:
-    node = CompensatorGraphNode(CompensatedOrderAction.rollback_charge_compensate)
+    node = CompensatorGraphNode(CompensatedOrderAction.rollback_charge_compensate, CompensatedOrderAction)
     assert node.node_obj is CompensatedOrderAction.rollback_charge_compensate
     assert node.node_type == CompensatorGraphNode.NODE_TYPE
     assert node.label == "rollback_charge_compensate"
@@ -80,7 +80,7 @@ def test_compensator_graph_node_interchange_shape() -> None:
 
 
 def test_error_handler_graph_node_interchange_shape() -> None:
-    node = ErrorHandlerGraphNode(CompensateAndOnErrorAction.handle_finalize_on_error)
+    node = ErrorHandlerGraphNode(CompensateAndOnErrorAction.handle_finalize_on_error, CompensateAndOnErrorAction)
     assert node.node_obj is CompensateAndOnErrorAction.handle_finalize_on_error
     assert node.node_type == ErrorHandlerGraphNode.NODE_TYPE
     assert node.label == "handle_finalize_on_error"
@@ -172,6 +172,7 @@ def test_action_graph_node_links_and_helpers() -> None:
     host = TypeIntrospection.full_qualname(PingAction)
     summary_node = SummaryAspectGraphNode(
         SummaryAspectIntentResolver.resolve_summary_aspects(PingAction)[0],
+        PingAction,
     )
 
     assert node.node_type == "Action"
@@ -292,6 +293,7 @@ def test_action_graph_node_appends_regular_aspect_edges() -> None:
     host = TypeIntrospection.full_qualname(ChildAction)
     aspect_node = RegularAspectGraphNode(
         RegularAspectIntentResolver.resolve_regular_aspects(ChildAction)[0],
+        ChildAction,
     )
 
     expected_edge = CompositionGraphEdge(
