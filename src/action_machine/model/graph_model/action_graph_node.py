@@ -299,11 +299,11 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         self,
         action_cls: type[TAction],
     ) -> list[AssociationGraphEdge]:
-        """One ``ASSOCIATION`` edge per ``@connection`` declaration from this action to the resource class."""
+        """One ``ASSOCIATION`` edge per ``@connection``; ``edge_name`` is ``connection``; declared key in ``properties['key']``."""
         action_id = TypeIntrospection.full_qualname(action_cls)
         return [
             AssociationGraphEdge(
-                edge_name=connection_type.__name__,
+                edge_name="connection",
                 is_dag=True,
                 source_node_id=action_id,
                 source_node_type=self.NODE_TYPE,
@@ -311,8 +311,11 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 target_node_id=TypeIntrospection.full_qualname(connection_type),
                 target_node_type=self._resolve_target_node_type(connection_type),
                 target_node=None,
+                properties={"key": connection_key},
             )
-            for connection_type in ConnectionIntentResolver.resolve_connection_types(action_cls)
+            for connection_type, connection_key in ConnectionIntentResolver.resolve_connection_types_and_keys(
+                action_cls,
+            )
         ]
 
     def _get_params_edge(
