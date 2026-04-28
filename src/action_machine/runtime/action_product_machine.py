@@ -96,6 +96,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
+from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.plugin.plugin import Plugin
 from action_machine.plugin.plugin_coordinator import PluginCoordinator
 from action_machine.plugin.plugin_emit_support import PluginEmitSupport
@@ -111,6 +112,7 @@ from action_machine.runtime.saga_coordinator import SagaCoordinator
 from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.runtime.tools_box_factory import ToolsBoxFactory
+from action_machine.system_core import TypeIntrospection
 from graph.graph_coordinator import GraphCoordinator
 
 if TYPE_CHECKING:
@@ -158,8 +160,9 @@ class _ActionExecutionCache:
     """
     Frozen bundle of facet-derived pipeline metadata for one ``run`` / ``_run_internal``.
 
-    Populated exclusively from ``get_snapshot``; field types align with inspector
-    ``Snapshot`` rows (see module INVARIANTS).
+    Populated from ``get_snapshot`` for facet rows; ``action_node`` is supplied by the
+    caller (typically :class:`ActionGraphNode`). Inspector ``Snapshot`` row types apply
+    where relevant (see module INVARIANTS).
     """
 
     role_spec: Any
@@ -173,6 +176,7 @@ class _ActionExecutionCache:
         str,
         CompensateIntentInspector.Snapshot.Compensator | None,
     ]
+    action_node: ActionGraphNode[BaseAction[Any, Any]]
 
     @classmethod
     def from_coordinator_facets(
@@ -180,10 +184,9 @@ class _ActionExecutionCache:
         action_cls: type,
         *,
         gate_coordinator: GraphCoordinator,
+        action_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> _ActionExecutionCache:
-        """Build cache from ``aspect``, ``checker``, ``compensator``, ``error_handler``,
-        ``connections``, and ``role`` facet snapshots (``get_snapshot``).
-        """
+        """Build cache from facet snapshots (``get_snapshot``); ``action_node`` is passed in."""
         asp_snap = gate_coordinator.get_snapshot(action_cls, "aspect")
         aspects = getattr(asp_snap, "aspects", ()) if asp_snap is not None else ()
         regular = tuple(a for a in aspects if a.aspect_type == "regular")
@@ -227,6 +230,7 @@ class _ActionExecutionCache:
             error_handlers=error_handlers,
             summary_aspect=summary,
             compensators_by_aspect=compensators_by_aspect,
+            action_node=action_node,
         )
 
 
@@ -236,7 +240,7 @@ AI-CORE-BEGIN
     ROLE: Public production machine entry point.
     CONTRACT: ``run`` → orchestrated pipeline; keyword-only component overrides.
     INVARIANTS: built ``GraphCoordinator``; per-run execution cache from facet
-      snapshots only.
+      snapshots plus ``ActionGraphNode`` for the action class.
     AI-CORE-END
 """
 
@@ -351,18 +355,20 @@ AI-CORE-BEGIN
         """Public read-only access to plugin event field helpers (base fields + emit extras)."""
         return self._plugin_emit
 
-    def _get_execution_cache(self, action_cls: type) -> _ActionExecutionCache:
-        """Build frozen pipeline metadata for ``action_cls`` from facet snapshots.
+    def get_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
+        """Return the materialized ``Action`` graph node for ``action_cls`` (same id as :class:`ActionGraphNode`)."""
+        node_id = TypeIntrospection.full_qualname(action_cls)
+        return cast(
+            ActionGraphNode[BaseAction[Any, Any]],
+            self._coordinator.get_node_by_id(node_id, ActionGraphNode.NODE_TYPE),
+        )
 
-        Returns an ``_ActionExecutionCache`` whose fields are derived only from
-        ``GraphCoordinator.get_snapshot`` (aspects, checkers, compensators,
-        error handlers, connections, role). Used for the whole ``_run_internal``
-        path so execution does not read parallel class-level scratch for these
-        facets.
-        """
+    def _get_execution_cache(self, action_cls: type) -> _ActionExecutionCache:
+        """Frozen facet snapshots + ``ActionGraphNode`` for one ``_run_internal`` of ``action_cls``."""
         return _ActionExecutionCache.from_coordinator_facets(
             action_cls,
             gate_coordinator=self._coordinator,
+            action_node=self.get_node_by_id(action_cls),
         )
 
     def _dependency_factory_for(self, action_cls: type) -> DependencyFactory:
