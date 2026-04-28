@@ -75,7 +75,7 @@ def _validate_connections(
     connections: dict[str, BaseResource] | None,
 ) -> dict[str, BaseResource]:
     rt = machine._get_execution_cache(action.__class__)
-    return machine._connection_validator.validate(action, connections, rt)
+    return machine._connection_validator.validate(action, connections, rt.action_node)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
