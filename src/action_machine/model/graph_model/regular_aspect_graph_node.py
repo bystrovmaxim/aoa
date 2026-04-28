@@ -14,15 +14,6 @@ dotted id plus ``:`` plus the method name, interchange ``node_type`` is
 The node **self-inspects** ``_checker_meta`` on ``aspect_func``, materializes
 :class:`CheckerGraphNode` companions, passes them as :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes`
 (checkers have no class-based graph inspector), and emits ``COMPOSITION`` edges from this aspect to each checker.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-    Callable[..., Any]   unbound/bound aspect method  ->  ``node_obj``
-              │
-              v
-    RegularAspectGraphNode(aspect_func, action_cls)  reads ``_checker_meta``, sets ``edges`` and ``companion_nodes`` (checker rows for coordinator flattening)
 """
 
 from __future__ import annotations
@@ -54,7 +45,7 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     checker_edges: list[CompositionGraphEdge]
 
     def __init__(self, aspect_func: Callable[..., Any], _action_cls: type[Any]) -> None:
-        checkers = RegularAspectGraphNode._checker_nodes_for_aspect(aspect_func)
+        checkers = RegularAspectGraphNode._checker_nodes_for_aspect(aspect_func, _action_cls)
         method_name = TypeIntrospection.unwrapped_callable_name(aspect_func)
         action_id = TypeIntrospection.full_qualname(_action_cls)
         node_id = f"{action_id}:{method_name}"
@@ -93,7 +84,7 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
         return out
 
     @staticmethod
-    def _checker_nodes_for_aspect(aspect_callable: Callable[..., Any]) -> list[CheckerGraphNode]:
+    def _checker_nodes_for_aspect(aspect_callable: Callable[..., Any], _action_cls: type[Any]) -> list[CheckerGraphNode]:
         nodes: list[CheckerGraphNode] = []
         for row in RegularAspectGraphNode.checkers_for_method(aspect_callable):
             cc = row.get("checker_class")
@@ -104,9 +95,10 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
             extra = {k: v for k, v in row.items() if k not in ("checker_class", "field_name", "required")}
             nodes.append(
                 CheckerGraphNode(
-                    aspect_callable,
-                    cc,
-                    field,
+                    aspect_callable=aspect_callable,
+                    _action_cls=_action_cls,
+                    checker_class=cc,
+                    field_name=field,
                     required=bool(row.get("required", False)),
                     properties=extra if extra else None,
                 ),
