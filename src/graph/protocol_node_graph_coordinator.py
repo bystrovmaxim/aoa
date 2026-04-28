@@ -14,9 +14,6 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from action_machine.model.graph_model.regular_aspect_graph_node import (
-    RegularAspectGraphNode,
-)
 from graph.base_graph_node import BaseGraphNode
 
 
@@ -29,9 +26,3 @@ class ProtocolNodeGraphCoordinator(Protocol):
         node_type: str | None = None,
     ) -> BaseGraphNode[object]:
         """Return the graph node identified by ``node_id``."""
-
-    def get_regular_aspect_nodes(
-        self,
-        action_cls: type,
-    ) -> list[RegularAspectGraphNode]:
-        """Return regular-aspect nodes linked from ``action_cls`` in the node graph."""

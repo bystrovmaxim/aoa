@@ -62,11 +62,6 @@ from typing import Any, cast
 
 import rustworkx as rx
 
-from action_machine.model.graph_model.action_graph_node import ActionGraphNode
-from action_machine.model.graph_model.regular_aspect_graph_node import (
-    RegularAspectGraphNode,
-)
-from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
@@ -158,24 +153,6 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
             msg = f"Node {node_id!r} is not {article} {node_type} node; got {node.node_type!r}."
             raise InvalidGraphError(msg)
         return node
-
-    def get_regular_aspect_nodes(
-        self,
-        action_cls: type,
-    ) -> list[RegularAspectGraphNode]:
-        """Return regular-aspect nodes linked from the action node for ``action_cls``."""
-        action_node_id = TypeIntrospection.full_qualname(action_cls)
-        action_node = self.get_node_by_id(action_node_id, ActionGraphNode.NODE_TYPE)
-        regular_nodes: list[RegularAspectGraphNode] = []
-        for edge in action_node.get_all_edges():
-            if edge.target_node_type != RegularAspectGraphNode.NODE_TYPE:
-                continue
-            target = self.get_node_by_id(
-                edge.target_node_id,
-                RegularAspectGraphNode.NODE_TYPE,
-            )
-            regular_nodes.append(cast(RegularAspectGraphNode, target))
-        return regular_nodes
 
     def _inspector_label(self, inspector: BaseGraphNodeInspector[Any]) -> str:
         return type(inspector).__qualname__
