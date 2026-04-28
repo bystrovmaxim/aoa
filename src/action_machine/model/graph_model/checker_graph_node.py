@@ -60,7 +60,7 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for one checker binding on a regular or summary aspect method.
-    CONTRACT: ``action_cls`` / ``aspect_method_name`` come from ``aspect_callable``; ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + aspect_method_name + ':' + field_name.strip()``;
+    CONTRACT: ``action_cls`` on payload from ``_action_cls``; ``aspect_method_name`` from ``aspect_callable``; ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + aspect_method_name + ':' + field_name.strip()``;
     ``label`` is ``field_name.strip()``; :attr:`NODE_TYPE` is ``Checker``; ``edges`` empty; interchange ``properties`` (on the node and on :class:`CheckerGraphPayload`) merge constructor ``properties`` with ``"TypeChecker"`` (middle segment of ``Field*Checker`` names) / ``"required"``.
     AI-CORE-END
     """
@@ -70,13 +70,13 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
     def __init__(
         self,
         aspect_callable: Callable[..., Any],
+        _action_cls: type[Any],
         checker_class: type,
         field_name: str,
         *,
         required: bool = False,
         properties: dict[str, Any] | None = None,
     ) -> None:
-        action_cls = TypeIntrospection.owner_type_for_method(aspect_callable)
         aspect_method_name = TypeIntrospection.unwrapped_callable_name(aspect_callable)
         if not isinstance(checker_class, type):
             msg = f"checker_class must be a type, got {type(checker_class).__name__}"
@@ -87,14 +87,14 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
             "required": required,
         }
         node_obj = CheckerGraphPayload(
-            action_cls=action_cls,
+            action_cls=_action_cls,
             aspect_method_name=aspect_method_name,
             checker_class=checker_class,
             field_name=field_name,
             required=required,
             properties=merged_properties,
         )
-        action_id = TypeIntrospection.full_qualname(action_cls)
+        action_id = TypeIntrospection.full_qualname(_action_cls)
         checker_node_id = f"{action_id}:{aspect_method_name}:{field_name.strip()}"
         super().__init__(
             node_id=checker_node_id,
