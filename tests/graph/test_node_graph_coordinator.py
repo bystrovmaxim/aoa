@@ -8,26 +8,16 @@ from typing import Any
 import pytest
 
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
-from action_machine.model.graph_model.regular_aspect_graph_node import (
-    RegularAspectGraphNode,
-)
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
-from graph.composition_graph_edge import CompositionGraphEdge
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
 from graph.node_graph_coordinator import NodeGraphCoordinator
 
 
 class _GraphInspectorTestRoot:
     """Module-level axis type for :class:`_NodeGraphTestInspector` specialization."""
-
-
-class _RegularAspectHostAction:
-    @staticmethod
-    def run() -> None:
-        pass
 
 
 def _edge(
@@ -201,66 +191,6 @@ def test_get_node_by_id_raises_when_type_mismatches() -> None:
     coord.build([_NodeGraphTestInspector([n])])
     with pytest.raises(InvalidGraphError, match="is not an Action node"):
         coord.get_node_by_id("a", ActionGraphNode.NODE_TYPE)
-
-
-def test_get_regular_aspect_nodes_uses_action_edges() -> None:
-    aspect_node = RegularAspectGraphNode(_RegularAspectHostAction.run)
-    action_node_id = (
-        f"{_RegularAspectHostAction.__module__}."
-        f"{_RegularAspectHostAction.__qualname__}"
-    )
-
-    class _ActionNode(BaseGraphNode[type[_RegularAspectHostAction]]):
-        def __init__(self) -> None:
-            self._edges = [
-                CompositionGraphEdge(
-                    edge_name="run",
-                    is_dag=False,
-                    source_node_id=action_node_id,
-                    source_node_type=ActionGraphNode.NODE_TYPE,
-                    target_node_id=aspect_node.node_id,
-                    target_node_type=RegularAspectGraphNode.NODE_TYPE,
-                ),
-            ]
-            super().__init__(
-                node_id=action_node_id,
-                node_type=ActionGraphNode.NODE_TYPE,
-                label="_Action",
-                properties={},
-                node_obj=_RegularAspectHostAction,
-            )
-
-        def get_all_edges(self) -> list[BaseGraphEdge]:
-            return self._edges
-
-    action_node = _ActionNode()
-    coord = NodeGraphCoordinator()
-    coord.build([_NodeGraphTestInspector([action_node, aspect_node])])
-    assert coord.get_regular_aspect_nodes(_RegularAspectHostAction) == [aspect_node]
-
-
-def test_get_regular_aspect_nodes_raises_when_action_missing() -> None:
-    coord = NodeGraphCoordinator()
-    coord.build([_NodeGraphTestInspector([])])
-    with pytest.raises(LookupError, match="not found"):
-        coord.get_regular_aspect_nodes(_RegularAspectHostAction)
-
-
-def test_get_regular_aspect_nodes_raises_when_node_is_not_action() -> None:
-    class _WrongActionNode(BaseGraphNode[type[_RegularAspectHostAction]]):
-        def __init__(self) -> None:
-            super().__init__(
-                node_id=f"{_RegularAspectHostAction.__module__}.{_RegularAspectHostAction.__qualname__}",
-                node_type="Domain",
-                label="_RegularAspectHostAction",
-                properties={},
-                node_obj=_RegularAspectHostAction,
-            )
-
-    coord = NodeGraphCoordinator()
-    coord.build([_NodeGraphTestInspector([_WrongActionNode()])])
-    with pytest.raises(InvalidGraphError, match="not an Action node"):
-        coord.get_regular_aspect_nodes(_RegularAspectHostAction)
 
 
 def test_all_descendant_types_transitive_and_excludes_root() -> None:

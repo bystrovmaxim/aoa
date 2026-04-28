@@ -162,9 +162,6 @@ from typing import Any, Literal
 import rustworkx as rx
 
 from action_machine.exceptions import CyclicDependencyError
-from action_machine.model.graph_model.regular_aspect_graph_node import (
-    RegularAspectGraphNode,
-)
 from action_machine.runtime.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_graph_node import BaseGraphNode
@@ -234,13 +231,6 @@ AI-CORE-BEGIN
     ) -> BaseGraphNode[object]:
         """Delegate node lookup to the lazy node coordinator."""
         return self._node_graph_coordinator.get_node_by_id(node_id, node_type)
-
-    def get_regular_aspect_nodes(
-        self,
-        action_cls: type,
-    ) -> list[RegularAspectGraphNode]:
-        """Delegate regular-aspect lookup to the lazy node coordinator."""
-        return self._node_graph_coordinator.get_regular_aspect_nodes(action_cls)
 
     # ═══════════════════════════════════════════════════════════════════
     # Fluent inspector registration
