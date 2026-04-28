@@ -86,8 +86,8 @@ class _ConnectionValidatorFake:
     def __init__(self) -> None:
         self.called = False
 
-    def validate(self, action, connections, runtime):
-        _ = (action, runtime)
+    def validate(self, action, connections, action_node):
+        _ = (action, action_node)
         self.called = True
         return connections or {}
 

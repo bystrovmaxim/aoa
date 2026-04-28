@@ -27,7 +27,7 @@ ARCHITECTURE / DATA FLOW
                 │
                 ├── runtime = _get_execution_cache(action_cls)
                 ├── _role_checker.check(action, context, runtime)
-                ├── conns = _connection_validator.validate(action, connections, runtime)
+                ├── conns = _connection_validator.validate(action, connections, runtime.action_node)
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
                 ├── box = _tools_box_factory.create(factory_resolver=self, ...,
                 │         mode, machine_class_name, nest_level, context, ...)
@@ -166,7 +166,6 @@ class _ActionExecutionCache:
     """
 
     role_spec: Any
-    connection_keys: tuple[str, ...]
     regular_aspects: tuple[AspectIntentInspector.Snapshot.Aspect, ...]
     checkers_by_aspect: dict[str, tuple[CheckerIntentInspector.Snapshot.Checker, ...]]
     has_compensators: bool
@@ -215,15 +214,8 @@ class _ActionExecutionCache:
         eh_snap = gate_coordinator.get_snapshot(action_cls, "error_handler")
         error_handlers = getattr(eh_snap, "error_handlers", ()) if eh_snap is not None else ()
 
-        conn_snap = gate_coordinator.get_snapshot(action_cls, "connections")
-        if conn_snap is not None and hasattr(conn_snap, "connections"):
-            connection_keys = tuple(c.key for c in conn_snap.connections)
-        else:
-            connection_keys = ()
-
         return cls(
             role_spec=_role_spec_from_coordinator(action_cls, gate_coordinator),
-            connection_keys=connection_keys,
             regular_aspects=regular,
             checkers_by_aspect=checkers_by_aspect,
             has_compensators=len(compensators) > 0,
@@ -691,7 +683,7 @@ AI-CORE-BEGIN
         action_cls = action.__class__
         runtime = self._get_execution_cache(action_cls)
         self._role_checker.check(action, context, runtime)
-        conns = self._connection_validator.validate(action, connections, runtime)
+        conns = self._connection_validator.validate(action, connections, runtime.action_node)
         plugin_ctx = await self._plugin_coordinator.create_run_context()
         run_child = partial(
             self._run_child,

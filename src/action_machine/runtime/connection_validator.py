@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
 
     ActionProductMachine
         │
-        └── ConnectionValidator.validate(action, connections, runtime)
+        └── ConnectionValidator.validate(action, connections, action_node)
                 │
                 ├── validates declared/actual key contracts
                 ├── validates value types (BaseResource)
@@ -28,7 +28,7 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Any
 
 from action_machine.exceptions import ConnectionValidationError
 from action_machine.model.base_action import BaseAction
@@ -120,10 +120,12 @@ class ConnectionValidator:
         return None
 
     @staticmethod
-    def _declared_keys_from_action_graph(runtime: _ConnectionRuntime) -> set[str]:
-        """Declared ``@connection`` keys from ``ActionGraphNode.connection_edges`` (``properties['key']``)."""
+    def _declared_keys_from_action_node(
+        action_node: ActionGraphNode[BaseAction[Any, Any]],
+    ) -> set[str]:
+        """Declared ``@connection`` keys from ``connection_edges`` (``properties['key']``)."""
         keys: set[str] = set()
-        for edge in runtime.action_node.connection_edges:
+        for edge in action_node.connection_edges:
             raw = edge.properties.get("key")
             if isinstance(raw, str) and raw.strip():
                 keys.add(raw.strip())
@@ -133,11 +135,11 @@ class ConnectionValidator:
         self,
         action: BaseAction[BaseParams, BaseResult],
         connections: dict[str, BaseResource] | None,
-        runtime: _ConnectionRuntime,
+        action_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> dict[str, BaseResource]:
-        """Validate connections against keys from the action interchange graph."""
+        """Validate connections against keys from ``action_node.connection_edges``."""
         _ = self._coordinator
-        declared_keys = self._declared_keys_from_action_graph(runtime)
+        declared_keys = self._declared_keys_from_action_node(action_node)
         actual_keys: set[str] = set(connections.keys()) if connections else set()
         action_name: str = action.__class__.__name__
 
@@ -158,11 +160,3 @@ class ConnectionValidator:
                 raise ConnectionValidationError(type_error)
 
         return connections or {}
-
-
-class _ConnectionRuntime(Protocol):
-    @property
-    def connection_keys(self) -> tuple[str, ...]: ...
-
-    @property
-    def action_node(self) -> ActionGraphNode[BaseAction[Any, Any]]: ...
