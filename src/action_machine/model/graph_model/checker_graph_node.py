@@ -8,7 +8,7 @@ PURPOSE
 
 Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` for a single checker
 row (``aspect_callable`` + ``checker_class`` + ``field``) on a concrete ``BaseAction`` subclass.
-Host action and aspect method name come from :meth:`~action_machine.system_core.TypeIntrospection.owner_type_for_method` / :meth:`~action_machine.system_core.TypeIntrospection.unwrapped_callable_name` on ``aspect_callable``.
+Host action class is the constructor ``_action_cls``; aspect method name comes from :meth:`~action_machine.system_core.TypeIntrospection.unwrapped_callable_name` on ``aspect_callable``.
 ``node_id`` joins ``action_dotted_id``, ``aspect_method_name``, and ``field_name.strip()`` with ``:``.
 ``node_obj`` is a frozen :class:`CheckerGraphPayload` with the constructor inputs.
 
