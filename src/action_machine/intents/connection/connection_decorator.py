@@ -23,11 +23,11 @@ ARCHITECTURE / DATA FLOW
         ▼  Decorator writes to cls._connection_info
     ConnectionInfo(cls=PostgresManager, key="db", description="Primary DB")
         │
-        ▼  ConnectionIntentInspector reads _connection_info
+        ▼  ``ConnectionIntentResolver`` / ``ActionGraphNode`` use ``_connection_info``
     get_connections(cls) → (ConnectionInfo(...), ...)
         │
         ▼  ActionProductMachine._check_connections(action, connections, metadata)
-    Compares declared keys (facet snapshot ``connections``) with provided runtime keys
+    Compares declared keys (from ``ActionGraphNode.connection_edges``) with provided runtime keys
         │
         ▼  Aspects receive connections["db"] (PostgresManager instance)
 
@@ -60,9 +60,8 @@ class ConnectionInfo:
     Immutable record for one declared resource connection.
 
     Created by ``@connection`` and stored on ``cls._connection_info``.
-    ``ConnectionIntentInspector`` builds the coordinator facet; the machine
-    compares keys from the ``connections`` facet snapshot to the runtime
-    ``connections`` mapping passed into ``run``.
+    The machine compares declared keys (via ``ActionGraphNode`` / validators)
+    to the runtime ``connections`` mapping passed into ``run``.
 
     Attributes:
         cls: ``BaseResource`` subclass (resource type).

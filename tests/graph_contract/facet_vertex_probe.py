@@ -15,7 +15,6 @@ from action_machine.legacy.checker_intent_inspector import CheckerIntentInspecto
 from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
-from action_machine.legacy.connection_intent_inspector import ConnectionIntentInspector
 from action_machine.legacy.dependency_intent_inspector import DependencyIntentInspector
 from action_machine.legacy.described_fields.described_fields_intent_inspector import (
     DescribedFieldsIntentInspector,
@@ -45,7 +44,6 @@ def graph_coordinator_default_inspectors_registered() -> GraphCoordinator:
         .register(RoleIntentInspector)
         .register(RoleModeIntentInspector)
         .register(DependencyIntentInspector)
-        .register(ConnectionIntentInspector)
         .register(DescribedFieldsIntentInspector)
         .register(ActionTypedSchemasInspector)
         .register(AspectIntentInspector)

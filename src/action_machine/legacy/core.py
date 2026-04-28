@@ -36,9 +36,6 @@ from action_machine.legacy.checker_intent_inspector import CheckerIntentInspecto
 from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
-from action_machine.legacy.connection_intent_inspector import (
-    ConnectionIntentInspector,
-)
 from action_machine.legacy.dependency_intent_inspector import (
     DependencyIntentInspector,
 )
@@ -77,7 +74,6 @@ class Core:
             .register(RoleIntentInspector)
             .register(RoleModeIntentInspector)
             .register(DependencyIntentInspector)
-            .register(ConnectionIntentInspector)
             .register(DescribedFieldsIntentInspector)
             .register(ActionTypedSchemasInspector)
             .register(AspectIntentInspector)

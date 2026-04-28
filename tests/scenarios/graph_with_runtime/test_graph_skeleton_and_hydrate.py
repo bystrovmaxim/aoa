@@ -8,6 +8,9 @@ from __future__ import annotations
 import pytest
 
 from action_machine.legacy.core import Core
+from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model import CompensatedOrderAction, FullAction, OrdersDbManager
@@ -134,7 +137,6 @@ def test_merged_action_node_records_all_hydration_keys() -> None:
     raw_map = coord._hydration_snapshot_key_by_graph_key
     assert raw_map[gk_action] == (
         "action_schemas",
-        "connections",
         "depends",
         "meta",
         "role",
@@ -142,7 +144,7 @@ def test_merged_action_node_records_all_hydration_keys() -> None:
 
 
 def test_connection_targets_resource_manager_not_connection_facet() -> None:
-    """``@connection`` adds edges from ``Action`` to ``resource_manager`` (no ``connection`` facet node)."""
+    """``@connection`` is modeled on ``ActionGraphNode`` (no ``connection`` facet node for the resource)."""
     coord = Core.create_coordinator()
     rm_nm = BaseIntentInspector._make_node_name(OrdersDbManager)
     assert [n for n in coord.get_nodes_by_type("resource_manager") if n["id"] == rm_nm]
@@ -152,18 +154,15 @@ def test_connection_targets_resource_manager_not_connection_facet() -> None:
         if n.get("class_ref") is OrdersDbManager
     ]
 
-    act_nm = BaseIntentInspector._make_node_name(FullAction)
-    g = coord.facet_topology_copy()
-    action_idx = next(
-        i
-        for i in g.node_indices()
-        if g[i]["node_type"] == "Action" and g[i]["id"] == act_nm
-    )
-    connection_targets: list[str] = []
-    for _s, t, ep in g.out_edges(action_idx):
-        if isinstance(ep, dict) and ep.get("edge_type") == "connection":
-            connection_targets.append(g[t]["id"])
-    assert rm_nm in connection_targets
+    node = ActionGraphNode(FullAction)
+    db_edges = [
+        e
+        for e in node.connection_edges
+        if e.properties.get("key") == "db"
+        and e.target_node_type == ResourceGraphNode.NODE_TYPE
+    ]
+    assert len(db_edges) == 1
+    assert db_edges[0].target_node_id == TypeIntrospection.full_qualname(OrdersDbManager)
 
 
 def test_stub_domain_node_hydrates_with_domain_snapshot_rows() -> None:

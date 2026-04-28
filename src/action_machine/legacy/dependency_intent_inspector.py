@@ -3,9 +3,8 @@
 DependencyIntentInspector — graph inspector for ``@depends`` structural edges.
 
 Emits one ``action`` facet node per class that declares dependencies.
-If the same action also declares ``@connection``, ``ConnectionIntentInspector``
-emits a second payload with the same graph key; ``GraphCoordinator`` merges
-those into a single node (concatenated edges).
+``@connection`` is not represented on the legacy facet graph; use
+``ActionGraphNode`` for connection edges.
 
 Typed data: ``Snapshot`` under cache key ``"depends"`` (not ``"action"``).
 
