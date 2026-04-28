@@ -283,7 +283,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         action_id = TypeIntrospection.full_qualname(action_cls)
         return [
             AssociationGraphEdge(
-                edge_name=dependency_type.__name__,
+                edge_name="@depends",
                 is_dag=True,
                 source_node_id=action_id,
                 source_node_type=self.NODE_TYPE,
@@ -299,11 +299,11 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         self,
         action_cls: type[TAction],
     ) -> list[AssociationGraphEdge]:
-        """One ``ASSOCIATION`` edge per ``@connection``; ``edge_name`` is ``connection``; declared key in ``properties['key']``."""
+        """One ``ASSOCIATION`` per ``@connection``; ``edge_name`` ``connection`` = role (from ``@connection``), not a unique id—use ``properties['key']`` and target to distinguish."""
         action_id = TypeIntrospection.full_qualname(action_cls)
         return [
             AssociationGraphEdge(
-                edge_name="connection",
+                edge_name="@connection",
                 is_dag=True,
                 source_node_id=action_id,
                 source_node_type=self.NODE_TYPE,
