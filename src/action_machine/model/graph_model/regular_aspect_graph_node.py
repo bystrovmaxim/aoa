@@ -22,7 +22,7 @@ ARCHITECTURE / DATA FLOW
     Callable[..., Any]   unbound/bound aspect method  ->  ``node_obj``
               │
               v
-    RegularAspectGraphNode(aspect_func)  reads ``_checker_meta``, sets ``edges`` and ``companion_nodes`` (checker rows for coordinator flattening)
+    RegularAspectGraphNode(aspect_func, action_cls)  reads ``_checker_meta``, sets ``edges`` and ``companion_nodes`` (checker rows for coordinator flattening)
 """
 
 from __future__ import annotations
@@ -46,18 +46,17 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a regular aspect callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``RegularAspect``; ``properties`` include ``description`` when ``RegularAspectIntentResolver.resolve_description(...)`` returns it; ``edges`` and :attr:`companion_nodes` (``CheckerGraphNode`` list) from ``_checker_meta`` on ``aspect_func`` (see :meth:`checkers_for_method`).
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``RegularAspect``; ``properties`` include ``description`` when ``RegularAspectIntentResolver.resolve_description(...)`` returns it; ``edges`` and :attr:`companion_nodes` (``CheckerGraphNode`` list) from ``_checker_meta`` on ``aspect_func`` (see :meth:`checkers_for_method`).
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "RegularAspect"
     checker_edges: list[CompositionGraphEdge]
 
-    def __init__(self, aspect_func: Callable[..., Any]) -> None:
+    def __init__(self, aspect_func: Callable[..., Any], _action_cls: type[Any]) -> None:
         checkers = RegularAspectGraphNode._checker_nodes_for_aspect(aspect_func)
-        action_cls = TypeIntrospection.owner_type_for_method(aspect_func)
         method_name = TypeIntrospection.unwrapped_callable_name(aspect_func)
-        action_id = TypeIntrospection.full_qualname(action_cls)
+        action_id = TypeIntrospection.full_qualname(_action_cls)
         node_id = f"{action_id}:{method_name}"
         edges = RegularAspectGraphNode._composition_edges_to_checkers(aspect_func, node_id, checkers)
         desc = RegularAspectIntentResolver.resolve_description(aspect_func)

@@ -45,10 +45,9 @@ class CompensatorGraphNode(BaseGraphNode[Callable[..., Any]]):
 
     NODE_TYPE: ClassVar[str] = "Compensator"
 
-    def __init__(self, compensator_func: Callable[..., Any]) -> None:
-        action_cls = TypeIntrospection.owner_type_for_method(compensator_func)
+    def __init__(self, compensator_func: Callable[..., Any], _action_cls: type[Any] | None = None) -> None:
         method_name = TypeIntrospection.unwrapped_callable_name(compensator_func)
-        action_id = TypeIntrospection.full_qualname(action_cls)
+        action_id = TypeIntrospection.full_qualname(_action_cls)
         desc = CompensateIntentResolver.resolve_description(compensator_func)
         super().__init__(
             node_id=f"{action_id}:{method_name}",
