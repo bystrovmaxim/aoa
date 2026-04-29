@@ -21,7 +21,8 @@ ARCHITECTURE / DATA FLOW
         │
         └── ErrorHandlerExecutor.handle(error, action, params,
                                         state, box, connections, context,
-                                        runtime, plugin_ctx, failed_aspect_name)
+                                        error_handler_nodes, plugin_ctx,
+                                        failed_aspect_name)
                 │
                 ├── plugin_emit.base_fields / emit_extra_kwargs
                 ├── resolve first matching handler by isinstance
@@ -43,8 +44,12 @@ from action_machine.exceptions import (
     ActionResultTypeError,
     OnErrorHandlerError,
 )
+from action_machine.intents.context_requires.context_requires_resolver import (
+    ContextRequiresResolver,
+)
 from action_machine.legacy.binding.action_result_binding import bind_pipeline_result_to_action
 from action_machine.model.base_result import BaseResult
+from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.plugin.events import (
     AfterOnErrorAspectEvent,
     BeforeOnErrorAspectEvent,
@@ -69,7 +74,6 @@ class ErrorHandlerExecutor:
         box: Any,
         connections: Any,
         context: Any,
-        runtime: Any,
         error_handler_nodes: list[ErrorHandlerGraphNode],
         plugin_ctx: Any,
         failed_aspect_name: str | None,
@@ -83,13 +87,14 @@ class ErrorHandlerExecutor:
         )
         plugin_kwargs = self._plugin_emit.emit_extra_kwargs(box.nested_level)
 
-        handler_meta = None
-        for candidate in runtime.error_handlers:
-            if isinstance(error, candidate.exception_types):
-                handler_meta = candidate
+        handler_node = None
+        for candidate in error_handler_nodes:
+            exception_types = candidate.properties.get("exception_types", ())
+            if isinstance(exception_types, tuple) and isinstance(error, exception_types):
+                handler_node = candidate
                 break
 
-        if handler_meta is None:
+        if handler_node is None:
             await plugin_ctx.emit_event(
                 UnhandledErrorEvent(
                     **base_fields,
@@ -100,21 +105,27 @@ class ErrorHandlerExecutor:
             )
             raise error
 
+        handler_name = handler_node.label
+        handler_ref = handler_node.node_obj
+        context_keys = frozenset(
+            ContextRequiresResolver.resolve_required_context_keys(handler_ref),
+        )
+
         await plugin_ctx.emit_event(
             BeforeOnErrorAspectEvent(
                 **base_fields,
-                aspect_name=handler_meta.method_name,
+                aspect_name=handler_name,
                 state_snapshot=state.to_dict(),
                 error=error,
-                handler_name=handler_meta.method_name,
+                handler_name=handler_name,
             ),
             **plugin_kwargs,
         )
         started_at = time.time()
         try:
-            if handler_meta.context_keys:
-                ctx_view = ContextView(context, handler_meta.context_keys)
-                result = await handler_meta.method_ref(
+            if context_keys:
+                ctx_view = ContextView(context, context_keys)
+                result = await handler_ref(
                     action,
                     params,
                     state,
@@ -124,7 +135,7 @@ class ErrorHandlerExecutor:
                     ctx_view,
                 )
             else:
-                result = await handler_meta.method_ref(
+                result = await handler_ref(
                     action,
                     params,
                     state,
@@ -135,16 +146,16 @@ class ErrorHandlerExecutor:
             bound = bind_pipeline_result_to_action(
                 type(action),
                 result,
-                source=f"@on_error handler `{handler_meta.method_name}`",
+                source=f"@on_error handler `{handler_name}`",
             )
             duration = time.time() - started_at
             await plugin_ctx.emit_event(
                 AfterOnErrorAspectEvent(
                     **base_fields,
-                    aspect_name=handler_meta.method_name,
+                    aspect_name=handler_name,
                     state_snapshot=state.to_dict(),
                     error=error,
-                    handler_name=handler_meta.method_name,
+                    handler_name=handler_name,
                     handler_result=bound,
                     duration_ms=duration * 1000,
                 ),
@@ -155,9 +166,9 @@ class ErrorHandlerExecutor:
             raise
         except Exception as handler_error:
             raise OnErrorHandlerError(
-                f"Error handler '{handler_meta.method_name}' in "
+                f"Error handler '{handler_name}' in "
                 f"{action.__class__.__name__} raised while handling "
                 f"{type(error).__name__}: {handler_error}",
-                handler_name=handler_meta.method_name,
+                handler_name=handler_name,
                 original_error=error,
             ) from handler_error

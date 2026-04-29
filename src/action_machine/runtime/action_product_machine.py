@@ -481,7 +481,6 @@ AI-CORE-BEGIN
             state=error_state,
             box=box,
             connections=connections,
-            runtime=runtime,
             error_handler_nodes=error_handler_nodes,
             context=context,
             plugin_ctx=plugin_ctx,
