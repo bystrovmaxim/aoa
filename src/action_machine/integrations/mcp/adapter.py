@@ -28,11 +28,7 @@ ARCHITECTURE / DATA FLOW
     McpRouteRecord list
             |
             v
-    build()
-      |                     v                v
-  MCP Tool(s)     system://graph
-      |                |
-      +-------> machine.run() <------+
+    build()  --->  MCP Tool(s)  --->  machine.run()
 
 Mapper naming convention:
     params_mapper   -> returns params   (request -> params)
@@ -88,26 +84,6 @@ To control results or speed, stub ``machine.run`` only — not the whole stack.
 
 See ``BaseAdapter`` module docstring (ADAPTER TESTING CONTRACT) for the full
 adapter-level picture.
-
-═══════════════════════════════════════════════════════════════════════════════
-RESOURCE system://graph
-═══════════════════════════════════════════════════════════════════════════════
-
-During ``build()``, the adapter registers MCP resource ``system://graph``.
-The resource returns coordinator graph JSON with nodes and edges:
-
-    {
-      "nodes": [
-        {"id": "...", "type": "Action", "description": "...", "domain": "..."},
-        {"id": "...", "type": "Domain", "domain_label": "..."}
-      ],
-      "edges": [
-        {"from": "...", "to": "...", "type": "belongs_to"}
-      ]
-    }
-
-This lets AI agents inspect runtime architecture: available actions, domains,
-and dependency relations.
 
 ═══════════════════════════════════════════════════════════════════════════════
 REGISTER_ALL METHOD
@@ -180,14 +156,7 @@ logger = logging.getLogger(__name__)
 
 
 def _envelope_ok(data: Any) -> str:
-    """
-    Serialize MCP tool success body as a single JSON object.
-
-    Shape: ``ok`` (true), ``code`` (``OK``), ``data`` (payload from
-    ``_serialize_result``, expected JSON-compatible when models use
-    ``model_dump(mode="json")``). ``default=str`` remains a fallback for odd
-    nested values.
-    """
+    """JSON success body: ``ok``, ``code`` ``OK``, ``data`` (``default=str`` fallback)."""
     return json.dumps(
         {"ok": True, "code": "OK", "data": data},
         ensure_ascii=False,
@@ -200,13 +169,7 @@ def _envelope_error(
     message: str,
     details: dict[str, Any] | None = None,
 ) -> str:
-    """
-    Serialize MCP tool error body as a single JSON object.
-
-    Shape: ``ok`` (false), ``code`` (machine-readable), ``message`` (human text),
-    ``details`` (object, often empty). Uses ``default=str`` for odd values in
-    ``details``.
-    """
+    """JSON error body: ``ok`` false, ``code``, ``message``, ``details``."""
     return json.dumps(
         {"ok": False, "code": code, "message": message, "details": details or {}},
         ensure_ascii=False,
@@ -215,25 +178,7 @@ def _envelope_error(
 
 
 def _validate_tool_request_kwargs(kwargs: dict[str, Any], req_model: type) -> Any:
-    """
-    Validate MCP tool kwargs against the effective request model.
-
-    Centralizes Pydantic ``model_validate`` and maps failures to
-    ``ValidationFieldError`` so ``_execute_tool_call`` and tests can share one
-    contract without going through the full tool handler.
-
-    Args:
-        kwargs: arguments from the MCP host.
-        req_model: Pydantic model type (typically ``effective_request_model``).
-
-    Returns:
-        Validated model instance.
-
-    Raises:
-        ValidationFieldError: always with message ``Tool input validation failed``
-            and ``details`` containing Pydantic ``errors()`` (any validation path:
-            types, constraints, ``field_validator``, etc.).
-    """
+    """Validate ``kwargs`` with ``req_model``; ``ValidationFieldError`` on failure."""
     try:
         return req_model.model_validate(kwargs)  # type: ignore[attr-defined]
     except PydanticValidationError as exc:
@@ -248,20 +193,7 @@ def _get_action_class_description(
     *,
     coordinator: GraphCoordinator | None = None,
 ) -> str:
-    """
-    Extract MCP tool description from the action class ``@meta`` declaration.
-
-    Prefers the MetaIntent snapshot registered under storage key ``"meta"``
-    (``get_snapshot(action_class, "meta")``); falls back to class scratch
-    ``_meta_info`` if snapshot is unavailable.
-
-    Args:
-        action_class: action class.
-        coordinator: optional built coordinator.
-
-    Returns:
-        Description string or empty string.
-    """
+    """``@meta`` description: coordinator ``meta`` snapshot, else ``_meta_info``."""
     if coordinator is not None and coordinator.is_built:
         snap = coordinator.get_snapshot(action_class, "meta")
         if snap is not None:
@@ -273,18 +205,7 @@ def _get_action_class_description(
 
 
 def _class_name_to_snake_case(name: str) -> str:
-    """
-    Convert a CamelCase class name to snake_case.
-
-    Removes ``Action`` suffix before conversion.
-    Example: ``CreateOrderAction -> create_order``.
-
-    Args:
-        name: class name in CamelCase.
-
-    Returns:
-        Name in snake_case without ``Action`` suffix.
-    """
+    """CamelCase → snake_case after stripping trailing ``Action`` (e.g. ``CreateOrderAction`` → ``create_order``)."""
     if name.endswith("Action") and len(name) > len("Action"):
         name = name[: -len("Action")]
 
@@ -334,18 +255,7 @@ def _mcp_apply_facet_rows_to_node(
 
 
 def _build_graph_json(coordinator: GraphCoordinator) -> str:
-    """
-    Build JSON representation of system graph from coordinator.
-
-    Extracts nodes and edges from coordinator graph and returns compact JSON
-    with ``nodes`` and ``edges`` arrays.
-
-    Args:
-        coordinator: built ``GraphCoordinator``.
-
-    Returns:
-        JSON string with graph structure.
-    """
+    """Pretty-printed JSON with ``nodes`` / ``edges`` from the facet graph."""
     # Facet skeleton payloads are required: ``hydrate_graph_node`` resolves
     # ``node_type`` / ``id`` keys from the facet layer (see ``_facet_pygraph_for_mcp_json``).
     graph = _facet_pygraph_for_mcp_json(coordinator)
@@ -412,36 +322,13 @@ def _make_tool_handler(
     connections_factory: Callable[..., dict[str, BaseResource]] | None,
     gate_coordinator: GraphCoordinator,
 ) -> Callable[..., Any]:
-    """
-    Create async handler for one MCP tool.
-
-    Handler accepts kwargs from MCP host, deserializes into request model,
-    executes action via ``machine.run()``, and returns ``CallToolResult`` whose
-    ``TextContent`` is always one JSON object (success or error envelope). On
-    failure, returns ``CallToolResult(isError=True)`` with ``_envelope_error`` JSON.
-
-    Args:
-        record: route configuration with action class and mappers.
-        machine: action execution machine.
-        auth_coordinator: authentication coordinator.
-        connections_factory: optional connections factory.
-        gate_coordinator: coordinator used for tool metadata.
-
-    Returns:
-        Async function suitable for MCP tool registration.
-    """
+    """Async MCP handler: validate input, ``machine.run``, JSON envelope in ``CallToolResult``."""
     req_model = record.effective_request_model
     has_params_mapper = record.params_mapper is not None
     has_response_mapper = record.response_mapper is not None
 
     async def handler(**kwargs: Any) -> CallToolResult:
-        """
-        Execute one MCP tool call and return protocol-level result.
-
-        Returns:
-            ``CallToolResult`` with JSON envelope text and ``isError`` set from
-            outcome (see module ERROR HANDLING).
-        """
+        """One tool invocation; JSON text + ``isError`` from outcome."""
         try:
             payload = await _execute_tool_call(
                 kwargs, req_model, record, machine,
@@ -504,34 +391,7 @@ async def _execute_tool_call(
     has_params_mapper: bool,
     has_response_mapper: bool,
 ) -> Any:
-    """
-    Execute one MCP tool call: deserialize, map, run, serialize.
-
-    Request parsing uses ``_validate_tool_request_kwargs`` so Pydantic failures
-    become ``ValidationFieldError`` and the handler maps them to
-    ``INVALID_PARAMS`` instead of ``INTERNAL_ERROR``.
-
-    Args:
-        kwargs: tool call arguments from agent.
-        req_model: request model for input validation.
-        record: route configuration.
-        machine: action machine.
-        auth_coordinator: authentication coordinator.
-        connections_factory: optional connections factory.
-        has_params_mapper: whether params mapper is configured.
-        has_response_mapper: whether response mapper is configured.
-
-    Returns:
-        Serializable payload for the success envelope ``data`` field (not yet
-        wrapped in ``_envelope_ok``; the handler applies the envelope).
-
-    Raises:
-        ValidationFieldError: when tool kwargs fail Pydantic validation (via
-            ``_validate_tool_request_kwargs``).
-
-    Other exceptions from ``machine.run`` (for example ``AuthorizationError``)
-    propagate to the tool handler, which maps them to envelopes.
-    """
+    """Validate kwargs, map params, ``machine.run``, return data for ``_envelope_ok`` (not wrapped)."""
     body = _validate_tool_request_kwargs(kwargs, req_model)
 
     params = record.params_mapper(body) if has_params_mapper else body  # type: ignore[misc]
@@ -560,28 +420,7 @@ def _serialize_result(
     record: McpRouteRecord,
     has_response_mapper: bool,
 ) -> Any:
-    """
-    Build a JSON-serializable payload from the action result.
-
-    Applies ``response_mapper`` before conversion when configured. The MCP
-    handler wraps the return value in ``_envelope_ok`` (single ``json.dumps``).
-
-    Args:
-        result: action result object.
-        record: route configuration.
-        has_response_mapper: whether response mapper is configured.
-
-    Returns:
-        Object suitable for embedding in the success envelope ``data`` field.
-        For ``BaseModel`` results (and mapped responses), uses
-        ``model_dump(mode="json")`` so nested dates, enums, and similar types
-        become JSON-native values before ``_envelope_ok`` calls ``json.dumps``.
-
-    Note:
-        Non-model ``result`` values pass through unchanged; the caller must
-        ensure they are JSON-serializable or rely on ``_envelope_ok``'s
-        ``default=str``.
-    """
+    """Map result if needed; ``model_dump(mode="json")`` for Pydantic models (else pass-through)."""
     if has_response_mapper:
         mapped = record.response_mapper(result)  # type: ignore[misc]
         ensure_protocol_response(
@@ -604,7 +443,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
 AI-CORE-BEGIN
     ROLE: Exposes ActionMachine actions as MCP tools/resources.
     CONTRACT: BaseAdapter[McpRouteRecord] with tool(), register_all(), build().
-    INVARIANTS: auth coordinator required; graph resource on build; tool text is JSON envelope.
+    INVARIANTS: auth coordinator required; tool text is JSON envelope.
     AI-CORE-END
 """
 
@@ -618,17 +457,7 @@ AI-CORE-BEGIN
         server_name: str = "ActionMachine MCP",
         server_version: str = "0.1.0",
     ) -> None:
-        """
-        Initialize MCP adapter.
-
-        Args:
-            machine: action execution machine.
-            auth_coordinator: authentication coordinator; required.
-            connections_factory: optional connection factory per call.
-            gate_coordinator: optional explicit coordinator.
-            server_name: MCP server display name.
-            server_version: MCP server version string.
-        """
+        """Wire machine, auth, optional connections / ``gate_coordinator``, server name/version."""
         super().__init__(
             machine=machine,
             auth_coordinator=auth_coordinator,
@@ -666,24 +495,7 @@ AI-CORE-BEGIN
         response_mapper: Callable[..., Any] | None = None,
         description: str = "",
     ) -> Self:
-        """
-        Register one MCP tool and return ``self`` for fluent chaining.
-
-        ``inputSchema`` is derived from ``effective_request_model``.
-        If ``description`` is empty, action ``@meta`` description is used.
-
-        Args:
-            name: MCP tool name visible to agents.
-            action_class: action class (``BaseAction[P, R]`` subtype).
-            request_model: optional protocol request model.
-            response_model: optional protocol response model.
-            params_mapper: optional request->params transformer.
-            response_mapper: optional result->response transformer.
-            description: optional tool description override.
-
-        Returns:
-            Current adapter instance.
-        """
+        """Add one tool (``inputSchema`` from request model; ``@meta`` description if description empty)."""
         effective_description = description or _get_action_class_description(
             action_class,
             coordinator=self.gate_coordinator,
@@ -705,15 +517,7 @@ AI-CORE-BEGIN
     # ─────────────────────────────────────────────────────────────────────
 
     def register_all(self) -> Self:
-        """
-        Auto-register all coordinator actions as MCP tools.
-
-        Iterates over ``aspect`` nodes and registers actions that have
-        non-empty aspect snapshots.
-
-        Returns:
-            Current adapter instance.
-        """
+        """Register tools for coordinator aspect nodes with a non-empty ``aspect`` snapshot."""
         coordinator = self.gate_coordinator
 
         seen: set[type] = set()
@@ -751,23 +555,9 @@ AI-CORE-BEGIN
     # ─────────────────────────────────────────────────────────────────────
 
     def build(self) -> FastMCP:
-        """
-        Build MCP server from registered routes.
-
-        Order:
-        1. Build ``Tool`` objects for routes.
-        2. Create MCP host with server name and tool list.
-        3. Register ``system://graph`` resource.
-
-        Returns:
-            Ready MCP server with registered tools and graph resource.
-        """
+        """Create ``FastMCP`` with registered tools."""
         tools = [self._make_mcp_tool(record) for record in self._routes]
-        mcp = FastMCP(self._server_name, tools=tools)
-
-        self._register_graph_resource(mcp)
-
-        return mcp
+        return FastMCP(self._server_name, tools=tools)
 
     # ─────────────────────────────────────────────────────────────────────
     # MCP tool build (inputSchema + arg validation)
@@ -831,30 +621,3 @@ AI-CORE-BEGIN
             icons=None,
             meta=None,
         )
-
-    # ─────────────────────────────────────────────────────────────────────
-    # Register system://graph resource
-    # ─────────────────────────────────────────────────────────────────────
-
-    def _register_graph_resource(self, mcp: FastMCP) -> None:
-        """
-        Register MCP resource ``system://graph`` on server.
-
-        Agents can request it to inspect runtime structure: actions, domains,
-        and dependency edges.
-
-        Args:
-            mcp: MCP host where resource is registered.
-        """
-        coordinator = self.gate_coordinator
-
-        @mcp.resource("system://graph")
-        def get_system_graph() -> str:
-            """
-            ActionMachine runtime graph structure.
-
-            Returns JSON with coordinator graph nodes (actions, domains,
-            dependencies, resource managers) and edges
-            (depends, belongs_to, connection).
-            """
-            return _build_graph_json(coordinator)
