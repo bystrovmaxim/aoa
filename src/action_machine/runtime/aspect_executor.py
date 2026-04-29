@@ -57,6 +57,7 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
+from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.resources.base_resource import BaseResource
@@ -169,6 +170,7 @@ class AspectExecutor:
         *,
         action: BaseAction[Any, Any],
         aspect_node: RegularAspectGraphNode,
+        compensator_node: CompensatorGraphNode | None,
         params: BaseParams,
         state: BaseState,
         box: ToolsBox,
@@ -178,6 +180,7 @@ class AspectExecutor:
         saga_stack: list[SagaFrame],
     ) -> tuple[BaseState, dict[str, Any], float]:
         """Execute one regular aspect with checker validation and state merge."""
+        _ = compensator_node
         state_before = state
         aspect_start = time.time()
         new_state_dict = await self.call_aspect(
