@@ -64,7 +64,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.legacy.core import Core
 from action_machine.testing import TestBench
 from graph.graph_coordinator import GraphCoordinator
 
@@ -83,7 +82,9 @@ from .scenarios.domain_model.services import (
 @pytest.fixture
 def coordinator() -> GraphCoordinator:
     """Built coordinator with default inspectors plus checker (needed for bench state validation)."""
-    return Core.create_coordinator_with_checker_inspector()
+    from tests.graph_contract.facet_vertex_probe import built_coordinator_with_checker_inspector
+
+    return built_coordinator_with_checker_inspector()
 
 
 @pytest.fixture

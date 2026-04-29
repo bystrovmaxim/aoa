@@ -80,6 +80,7 @@ from action_machine.runtime.dependency_factory import (
 )
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.graph_coordinator import GraphCoordinator
+from tests.graph_contract.facet_vertex_probe import built_coordinator_with_checker_inspector
 from tests.scenarios.domain_model.domains import TestDomain
 from tests.scenarios.domain_model.roles import AdminRole
 
@@ -414,7 +415,7 @@ class TestAspectsAndCheckers:
 
     def test_checkers_create_nodes_and_edges(self):
         """Checkers create nodes and edges in a graph."""
-        coord = Core.create_coordinator_with_checker_inspector()
+        coord = built_coordinator_with_checker_inspector()
         coord.get_snapshot(_ActionWithCheckersAction, "meta")
         nodes = coord.get_nodes_by_type(CHECKER_VERTEX_TYPE)
         assert len(nodes) >= 1

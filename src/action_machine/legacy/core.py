@@ -32,7 +32,6 @@ from __future__ import annotations
 
 from action_machine.legacy.application_context_inspector import ApplicationContextInspector
 from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
-from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
 from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
@@ -79,19 +78,6 @@ class Core:
             .register(CompensateIntentInspector)
             .register(SensitiveIntentInspector)
             .register(EntityIntentInspector)
-        )
-
-    @staticmethod
-    def create_coordinator_with_checker_inspector() -> GraphCoordinator:
-        """Built coordinator: production defaults plus :class:`~action_machine.legacy.checker_intent_inspector.CheckerIntentInspector`.
-
-        Production :meth:`create_coordinator` omits checker registration; bench and
-        state-validator tests need checker facet snapshots.
-        """
-        return (
-            Core.register_default_inspectors(GraphCoordinator()).register(
-                CheckerIntentInspector,
-            ).build()
         )
 
     @staticmethod
