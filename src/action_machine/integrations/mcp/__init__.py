@@ -12,9 +12,6 @@ the adapter derives an MCP input schema from ``Params`` (Pydantic),
 description from action ``@meta``, and a handler that delegates to
 ``machine.run()``.
 
-The package also exposes the ``system://graph`` resource, allowing agents to
-inspect the action graph (nodes, edges, metadata) from the runtime coordinator.
-
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
@@ -30,11 +27,8 @@ ARCHITECTURE / DATA FLOW
                  v
           McpAdapter.build()
                  |
-      +----------+-----------+
-      |                      |
-      v                      v
-   MCP tools           MCP resource
- (call -> machine.run)  system://graph
+                 v
+   MCP tools (call -> machine.run)
 
 ═══════════════════════════════════════════════════════════════════════════════
 INSTALLATION
