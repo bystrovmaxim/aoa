@@ -163,12 +163,12 @@ class _ActionExecutionCache:
     @classmethod
     def from_coordinator_facets(
         cls,
-        action_cls: type,
         *,
         gate_coordinator: GraphCoordinator,
         action_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> _ActionExecutionCache:
-        """Build cache: ``role`` snapshot + caller-supplied ``action_node``."""
+        """Build cache: ``role`` snapshot + ``ActionGraphNode`` (class from ``action_node.node_obj``)."""
+        action_cls = action_node.node_obj
         return cls(
             role_spec=_role_spec_from_coordinator(action_cls, gate_coordinator),
             action_node=action_node,
@@ -204,19 +204,14 @@ AI-CORE-BEGIN
         error_handler_executor: ErrorHandlerExecutor | None = None,
         saga_coordinator: SagaCoordinator | None = None,
     ) -> None:
-        """Build machine with optional keyword-only component overrides (all after ``*``).
+        """Build the machine (arguments after ``*`` are keyword-only overrides).
 
-        Defaults wire ``RoleChecker`` → ``ConnectionValidator`` → ``ToolsBoxFactory`` →
-        ``AspectExecutor`` → ``ErrorHandlerExecutor`` → ``SagaCoordinator`` in that order.
-        Custom ``saga_coordinator`` must accept ``PluginEmitSupport`` (and other
-        deps) if replaced; default wiring passes ``self._plugin_emit``.
-        Custom ``AspectExecutor`` must be constructed with ``log_coordinator``,
-        ``machine_class_name``, and ``mode``. Custom ``ToolsBoxFactory`` only
-        receives ``LogCoordinator``; ``create`` supplies resolver and strings explicitly.
+        Default wiring chain: ``RoleChecker`` → ``ConnectionValidator`` →
+        ``ToolsBoxFactory`` → ``AspectExecutor`` → ``ErrorHandlerExecutor`` → ``SagaCoordinator``.
 
         Raises:
-            ValueError: empty ``mode``.
-            RuntimeError: ``coordinator`` passed but not built.
+            ValueError: ``mode`` is empty.
+            RuntimeError: ``coordinator`` is set but not built.
         """
         if not mode:
             raise ValueError("mode must be non-empty")
@@ -307,7 +302,6 @@ AI-CORE-BEGIN
     def _get_execution_cache(self, action_cls: type) -> _ActionExecutionCache:
         """``role_spec`` facet + ``ActionGraphNode`` for one ``_run_internal`` of ``action_cls``."""
         return _ActionExecutionCache.from_coordinator_facets(
-            action_cls,
             gate_coordinator=self._coordinator,
             action_node=self.get_node_by_id(action_cls),
         )
