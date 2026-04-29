@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from action_machine.intents.aspects.regular_aspect_intent_resolver import RegularAspectIntentResolver
 from action_machine.intents.context_requires.context_requires_resolver import (
@@ -82,6 +82,15 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
         chk = [edge.target_node for edge in self.checker_edges if edge.target_node is not None]
         ctx = [edge.target_node for edge in self.required_context_edges if edge.target_node is not None]
         return [*chk, *ctx]
+
+    def get_checker_graph_nodes(self) -> list[CheckerGraphNode]:
+        """Interchange checker vertices for this aspect (composition targets on ``checker_edges``)."""
+        out: list[CheckerGraphNode] = []
+        for edge in self.checker_edges:
+            if edge.target_node is None:
+                continue
+            out.append(cast(CheckerGraphNode, edge.target_node))
+        return out
 
     def get_required_context_keys(self) -> frozenset[str]:
         """Return dot-path keys from ``required_context_edges`` (``properties['key']`` per edge)."""
