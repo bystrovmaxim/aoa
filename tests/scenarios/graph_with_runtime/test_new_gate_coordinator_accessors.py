@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
+from action_machine.intents.checkers.checker_facet import CheckerFacetSnapshot
 from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
-from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
 from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
 )
@@ -202,10 +202,10 @@ def test_new_coordinator_runtime_accessors() -> None:
         )
     )
     coordinator._facet_snapshots[(_DemoAction, "checker")] = (  # pylint: disable=protected-access
-        CheckerIntentInspector.Snapshot(
+        CheckerFacetSnapshot(
             class_ref=_DemoAction,
             checkers=(
-                CheckerIntentInspector.Snapshot.Checker(
+                CheckerFacetSnapshot.Checker(
                     method_name="do_aspect",
                     checker_class=object,
                     field_name="value",

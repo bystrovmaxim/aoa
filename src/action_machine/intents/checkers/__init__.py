@@ -27,7 +27,7 @@ ARCHITECTURE / DATA FLOW
 
           │ decorator writes _checker_meta on method
           ▼
-    CheckerIntentInspector collects _checker_meta → checker snapshot
+    ``_checker_meta`` on methods → graph ``Checker`` rows / typed facet helpers
           │
           ▼
     ActionProductMachine._apply_checkers()

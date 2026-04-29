@@ -26,7 +26,7 @@ ENTITY_VERTEX_TYPE: Final[str] = "Entity"
 REGULAR_ASPECT_VERTEX_TYPE: Final[str] = "RegularAspect"
 SUMMARY_ASPECT_VERTEX_TYPE: Final[str] = "SummaryAspect"
 
-# Per-result-field checker vertices from ``CheckerIntentInspector``.
+# Per-result-field checker vertices (facet / ``CheckerGraphNode`` interchange rows).
 CHECKER_VERTEX_TYPE: Final[str] = "Checker"
 
 # Per-method compensator vertices from ``CompensateIntentInspector`` (``@compensate``).

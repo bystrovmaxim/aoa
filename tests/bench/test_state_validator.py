@@ -15,7 +15,9 @@ predecessor rules, full rollup for summary, unknown aspect names, and
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    Fixture ``coordinator`` (defaults + checker inspector)  ->  snapshots
+    Fixture ``coordinator`` mirrors :meth:`Core.create_coordinator` graph; checker
+    metadata for validation is read via :func:`facet_snapshot_for_checkers
+    <action_machine.intents.checkers.checker_facet.facet_snapshot_for_checkers>`.
               |
               v
     aspect + checker snapshots (via get_snapshot)
@@ -37,13 +39,13 @@ INVARIANTS
 
 import pytest
 
+from action_machine.intents.checkers.checker_facet import facet_snapshot_for_checkers
 from action_machine.testing.state_validator import (
     StateValidationError,
     validate_state_for_aspect,
     validate_state_for_summary,
 )
 from graph.graph_coordinator import GraphCoordinator
-from tests.graph_contract.facet_vertex_probe import built_coordinator_with_checker_inspector
 from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -53,8 +55,10 @@ from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 @pytest.fixture()
 def coordinator() -> GraphCoordinator:
-    """Built coordinator with default inspectors plus checker (facet snapshots)."""
-    return built_coordinator_with_checker_inspector()
+    """Built coordinator matching production defaults."""
+    from action_machine.legacy.core import Core
+
+    return Core.create_coordinator()
 
 
 def _coord_aspects(c: GraphCoordinator, cls: type):
@@ -62,9 +66,9 @@ def _coord_aspects(c: GraphCoordinator, cls: type):
     return getattr(snap, "aspects", ()) if snap is not None else ()
 
 
-def _coord_checkers_for_aspect(c: GraphCoordinator, cls: type):
-    ch = c.get_snapshot(cls, "checker")
-    rows = getattr(ch, "checkers", ()) if ch is not None else ()
+def _coord_checkers_for_aspect(_c: GraphCoordinator, cls: type):
+    snap = facet_snapshot_for_checkers(cls)
+    rows = getattr(snap, "checkers", ()) if snap is not None else ()
     return lambda n: tuple(x for x in rows if x.method_name == n)
 
 
