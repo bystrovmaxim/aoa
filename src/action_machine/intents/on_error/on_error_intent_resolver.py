@@ -31,3 +31,15 @@ class OnErrorIntentResolver:
         """Return ``@on_error`` description from callable scratch when present."""
         func = BaseIntentInspector._unwrap_declaring_class_member(call_like)
         return TypeIntrospection.description_from_meta(getattr(func, "_on_error_meta", None))
+
+    @staticmethod
+    def resolve_exception_types(call_like: Any) -> tuple[type[Exception], ...]:
+        """Return ``@on_error`` exception types from callable scratch when present."""
+        func = BaseIntentInspector._unwrap_declaring_class_member(call_like)
+        meta = getattr(func, "_on_error_meta", None)
+        if not isinstance(meta, dict):
+            return ()
+        raw = meta.get("exception_types")
+        if isinstance(raw, tuple) and all(isinstance(item, type) for item in raw):
+            return raw
+        return ()
