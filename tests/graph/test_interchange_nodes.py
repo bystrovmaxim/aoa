@@ -144,7 +144,10 @@ def test_error_handler_graph_node_interchange_shape() -> None:
     assert node.node_obj is CompensateAndOnErrorAction.handle_finalize_on_error
     assert node.node_type == ErrorHandlerGraphNode.NODE_TYPE
     assert node.label == "handle_finalize_on_error"
-    assert node.properties == {"description": "Handle finalize error"}
+    assert node.properties == {
+        "description": "Handle finalize error",
+        "exception_types": (ValueError,),
+    }
     assert node.get_all_edges() == []
     assert node.node_id == (f"{TypeIntrospection.full_qualname(CompensateAndOnErrorAction)}:handle_finalize_on_error")
 
