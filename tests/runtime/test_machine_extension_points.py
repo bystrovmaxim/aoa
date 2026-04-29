@@ -97,7 +97,7 @@ class _AspectExecutorFake:
         self.regular_called = 0
         self.summary_called = 0
 
-    async def call(self, **kwargs: Any):
+    async def call_aspect(self, **kwargs: Any):
         _ = kwargs
         return {}
 

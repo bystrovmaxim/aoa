@@ -302,7 +302,7 @@ AI-CORE-BEGIN
         self._connection_validator = (
             connection_validator
             if connection_validator is not None
-            else ConnectionValidator(self._coordinator)
+            else ConnectionValidator()
         )
         self._tools_box_factory = (
             tools_box_factory

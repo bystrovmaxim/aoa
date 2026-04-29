@@ -36,14 +36,10 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.resources.base_resource import BaseResource
-from graph.graph_coordinator import GraphCoordinator
 
 
 class ConnectionValidator:
     """Validate ``connections`` keys and ``BaseResource`` values for a machine run."""
-
-    def __init__(self, coordinator: GraphCoordinator) -> None:
-        self._coordinator = coordinator
 
     @staticmethod
     # Declared none, caller passed at least one key — reject.
@@ -138,7 +134,6 @@ class ConnectionValidator:
         action_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> dict[str, BaseResource]:
         """Validate connections against keys from ``action_node.connection_edges``."""
-        _ = self._coordinator
         declared_keys = self._declared_keys_from_action_node(action_node)
         actual_keys: set[str] = set(connections.keys()) if connections else set()
         action_name: str = action.__class__.__name__
