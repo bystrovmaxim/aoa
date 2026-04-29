@@ -167,8 +167,8 @@ class SagaObserverPlugin(Plugin):
         """
         Record the moment before one compensator runs.
 
-        BeforeCompensateAspectEvent fires per frame that has a compensator
-        (frames without compensators are skipped). Useful to assert reverse order.
+        BeforeCompensateAspectEvent fires once per saga frame (each has a compensator).
+        Useful to assert reverse order.
         """
         entry = {
             "event_type": "BeforeCompensateAspectEvent",

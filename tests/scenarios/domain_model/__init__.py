@@ -34,7 +34,7 @@ COMPENSATION ACTIONS (@compensate)
 ═══════════════════════════════════════════════════════════════════════════════
 
 CompensatedOrderAction      — baseline reverse-order unwind.
-PartialCompensateAction     — skipped frames (no compensator on some aspects).
+PartialCompensateAction     — only some aspects expose @compensate (sparse undo stack).
 CompensateErrorAction       — compensator failure suppression.
 CompensateAndOnErrorAction  — order: compensate first, then @on_error.
 CompensateWithContextAction — compensator receives ContextView.

@@ -131,7 +131,10 @@ def test_compensator_graph_node_interchange_shape() -> None:
     assert node.node_obj is CompensatedOrderAction.rollback_charge_compensate
     assert node.node_type == CompensatorGraphNode.NODE_TYPE
     assert node.label == "rollback_charge_compensate"
-    assert node.properties == {"description": "Rollback payment — refund"}
+    assert node.properties == {
+        "description": "Rollback payment — refund",
+        "target_aspect_name": "charge_aspect",
+    }
     assert node.get_all_edges() == []
     assert node.node_id == (f"{TypeIntrospection.full_qualname(CompensatedOrderAction)}:rollback_charge_compensate")
 

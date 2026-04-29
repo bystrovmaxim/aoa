@@ -6,10 +6,11 @@ Saga compensation stack frame.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Each regular aspect whose ``call()`` finished contributes one ``SagaFrame``
-once result validation has run: on success the frame holds merged
-``state_after``; on validation failure after ``call()`` the frame has
-``state_after=None``. Frames are unwound in reverse order when the pipeline
+Each regular aspect whose ``call()`` finished may contribute one ``SagaFrame``
+after validation: only when that aspect has a compensator snapshot from the
+facet cache (aspects without ``@compensate`` do not push a frame). On success
+the frame holds merged ``state_after``; on validation failure after ``call()`` the
+frame has ``state_after=None``. Frames are unwound in reverse order when the pipeline
 fails.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -24,10 +25,10 @@ ARCHITECTURE / DATA FLOW
          +-- fail -> SagaFrame(..., state_after=None) -> raise
          |
          v
-    merge state -> SagaFrame(..., state_after=merged)
+    merge state -> optional SagaFrame(..., state_after=merged) if compensator exists
          |
          v
-    append to local saga stack (for current _run_internal call)
+    append to local saga stack (undoable aspects only)
          |
          v
     failure path -> reverse stack unwind in SagaCoordinator
@@ -35,7 +36,7 @@ ARCHITECTURE / DATA FLOW
 Frame stores only aspect-unique rollback data:
 - ``state_before``: state before aspect call
 - ``state_after``: state after aspect call (or ``None`` when rejected)
-- ``compensator``: compensator metadata (or ``None``)
+- ``compensator``: compensator metadata (required for pushed frames; stack holds only actionable undo)
 - ``aspect_name``: aspect identifier for diagnostics/events
 
 Pipeline-common values (params, connections, context, box) are passed to
@@ -59,7 +60,8 @@ class SagaFrame:
     """
     One immutable compensation-stack frame.
 
-    Captures per-aspect rollback metadata needed by saga coordinator.
+    Appended only for regular aspects that have a compensator; rollback metadata
+    flows to saga coordinator.
     """
 
     compensator: CompensateIntentInspector.Snapshot.Compensator | None

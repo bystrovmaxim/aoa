@@ -66,6 +66,16 @@ class TypeIntrospection:
         return None
 
     @staticmethod
+    def target_aspect_name_from_meta(meta: Any) -> str | None:
+        """Return strip-trimmed ``target_aspect_name`` from metadata mapping."""
+        if not isinstance(meta, Mapping):
+            return None
+        raw = meta.get("target_aspect_name")
+        if isinstance(raw, str) and raw.strip():
+            return raw.strip()
+        return None
+
+    @staticmethod
     def own_namespace_keys(owner: type) -> tuple[str, ...]:
         """Insertion-order keys of ``vars(owner)`` (own dict, no MRO walk)."""
         return tuple(vars(owner).keys())

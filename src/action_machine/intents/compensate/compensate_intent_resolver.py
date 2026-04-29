@@ -31,3 +31,9 @@ class CompensateIntentResolver:
         """Return ``@compensate`` description from callable scratch when present."""
         func = BaseIntentInspector._unwrap_declaring_class_member(call_like)
         return TypeIntrospection.description_from_meta(getattr(func, "_compensate_meta", None))
+
+    @staticmethod
+    def resolve_target_aspect_name(call_like: Any) -> str | None:
+        """Return ``@compensate`` target_aspect_name from callable scratch when present."""
+        func = BaseIntentInspector._unwrap_declaring_class_member(call_like)
+        return TypeIntrospection.target_aspect_name_from_meta(getattr(func, "_compensate_meta", None))
