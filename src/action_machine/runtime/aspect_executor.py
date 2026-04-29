@@ -98,6 +98,25 @@ class AspectExecutor:
             )
             checker_instance.check(result)
 
+    def _append_checker_rejected_saga_frame(
+        self,
+        *,
+        runtime: _RuntimeLike,
+        saga_stack: list[SagaFrame],
+        aspect_label: str,
+        state_before: BaseState,
+    ) -> None:
+        if not runtime.has_compensators:
+            return
+        saga_stack.append(
+            SagaFrame(
+                compensator=runtime.compensators_by_aspect.get(aspect_label),
+                aspect_name=aspect_label,
+                state_before=state_before,
+                state_after=None,
+            ),
+        )
+
     async def call_aspect(
         self,
         *,
@@ -178,20 +197,6 @@ class AspectExecutor:
 
         checker_nodes = aspect_node.get_checker_graph_nodes()
 
-        def _append_checker_rejected_frame() -> None:
-            if not runtime.has_compensators:
-                return
-            saga_stack.append(
-                SagaFrame(
-                    compensator=runtime.compensators_by_aspect.get(
-                        aspect_node.label,
-                    ),
-                    aspect_name=aspect_node.label,
-                    state_before=state_before,
-                    state_after=None,
-                )
-            )
-
         try:
             if not checker_nodes and new_state_dict:
                 raise ValidationFieldError(
@@ -209,7 +214,12 @@ class AspectExecutor:
                     )
                 self._apply_checker_graph_nodes(checker_nodes, new_state_dict)
         except ValidationFieldError:
-            _append_checker_rejected_frame()
+            self._append_checker_rejected_saga_frame(
+                runtime=runtime,
+                saga_stack=saga_stack,
+                aspect_label=aspect_node.label,
+                state_before=state_before,
+            )
             raise
 
         merged_state = BaseState(**{**state.to_dict(), **new_state_dict})
