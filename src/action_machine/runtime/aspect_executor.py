@@ -45,7 +45,6 @@ from typing import Any, Protocol
 
 from action_machine.context.context_view import ContextView
 from action_machine.exceptions import ValidationFieldError
-from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
 from action_machine.legacy.binding.action_result_binding import (
     bind_pipeline_result_to_action,
     synthetic_summary_result_when_missing_aspect,
@@ -58,6 +57,8 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
+from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox
@@ -94,7 +95,7 @@ class AspectExecutor:
     async def call_aspect(
         self,
         *,
-        aspect_meta: AspectIntentInspector.Snapshot.Aspect,
+        aspect_node: RegularAspectGraphNode | SummaryAspectGraphNode,
         action: BaseAction[Any, Any],
         params: BaseParams,
         state: BaseState,
@@ -106,8 +107,7 @@ class AspectExecutor:
         Shared primitive: invoke one regular or summary aspect callable only.
 
         Not for compensators, saga rollback, ``@on_error``, or non-aspect hooks.
-        Wraps ``aspect_meta.method_ref`` with per-aspect ``ScopedLogger``,
-        ``ToolsBox``, and optional ``ContextView`` when ``context_keys`` is set.
+        ``aspect_node`` is a regular or summary interchange vertex; wraps ``node_obj`` with scoped log / ``ContextView``.
         """
         aspect_log = ScopedLogger(
             coordinator=self._log_coordinator,
@@ -115,7 +115,7 @@ class AspectExecutor:
             machine_name=self._machine_class_name,
             mode=self._mode,
             action_name=action.get_full_class_name(),
-            aspect_name=aspect_meta.method_name,
+            aspect_name=aspect_node.label,
             context=context,
             state=state,
             params=params,
@@ -129,19 +129,20 @@ class AspectExecutor:
             nested_level=box.nested_level,
             rollup=box.rollup,
         )
-        if aspect_meta.context_keys:
-            ctx_view = ContextView(context, aspect_meta.context_keys)
-            return await aspect_meta.method_ref(
+        context_keys = aspect_node.get_required_context_keys()
+        if context_keys:
+            ctx_view = ContextView(context, context_keys)
+            return await aspect_node.node_obj(
                 action, params, state, aspect_box, connections, ctx_view,
             )
-        return await aspect_meta.method_ref(
+        return await aspect_node.node_obj(
             action, params, state, aspect_box, connections,
         )
 
     async def execute_regular(
         self,
         *,
-        aspect_meta: AspectIntentInspector.Snapshot.Aspect,
+        aspect_node: RegularAspectGraphNode,
         action: BaseAction[Any, Any],
         params: BaseParams,
         state: BaseState,
@@ -155,7 +156,7 @@ class AspectExecutor:
         state_before = state
         aspect_start = time.time()
         new_state_dict = await self.call_aspect(
-            aspect_meta=aspect_meta,
+            aspect_node=aspect_node,
             action=action,
             params=params,
             state=state,
@@ -165,11 +166,11 @@ class AspectExecutor:
         )
         if not isinstance(new_state_dict, dict):
             raise TypeError(
-                f"Aspect {aspect_meta.method_name} must return a dict, "
+                f"Aspect {aspect_node.label} must return a dict, "
                 f"got {type(new_state_dict).__name__}"
             )
 
-        checkers = runtime.checkers_by_aspect.get(aspect_meta.method_name, ())
+        checkers = runtime.checkers_by_aspect.get(aspect_node.label, ())
 
         def _append_checker_rejected_frame() -> None:
             if not runtime.has_compensators:
@@ -177,9 +178,9 @@ class AspectExecutor:
             saga_stack.append(
                 SagaFrame(
                     compensator=runtime.compensators_by_aspect.get(
-                        aspect_meta.method_name,
+                        aspect_node.label,
                     ),
-                    aspect_name=aspect_meta.method_name,
+                    aspect_name=aspect_node.label,
                     state_before=state_before,
                     state_after=None,
                 )
@@ -188,7 +189,7 @@ class AspectExecutor:
         try:
             if not checkers and new_state_dict:
                 raise ValidationFieldError(
-                    f"Aspect {aspect_meta.method_name} has no checkers, "
+                    f"Aspect {aspect_node.label} has no checkers, "
                     f"but returned non-empty state: {new_state_dict}. "
                     f"Either add checkers for all fields, or return an empty dict."
                 )
@@ -197,7 +198,7 @@ class AspectExecutor:
                 extra_fields = set(new_state_dict.keys()) - allowed_fields
                 if extra_fields:
                     raise ValidationFieldError(
-                        f"Aspect {aspect_meta.method_name} returned extra fields: "
+                        f"Aspect {aspect_node.label} returned extra fields: "
                         f"{extra_fields}. Allowed only: {allowed_fields}"
                     )
                 self._apply_checkers(checkers, new_state_dict)
@@ -207,11 +208,11 @@ class AspectExecutor:
 
         merged_state = BaseState(**{**state.to_dict(), **new_state_dict})
         if runtime.has_compensators:
-            compensator = runtime.compensators_by_aspect.get(aspect_meta.method_name)
+            compensator = runtime.compensators_by_aspect.get(aspect_node.label)
             saga_stack.append(
                 SagaFrame(
                     compensator=compensator,
-                    aspect_name=aspect_meta.method_name,
+                    aspect_name=aspect_node.label,
                     state_before=state_before,
                     state_after=merged_state,
                 )
@@ -223,7 +224,7 @@ class AspectExecutor:
     async def execute_summary(
         self,
         *,
-        summary_meta: AspectIntentInspector.Snapshot.Aspect | None,
+        summary_node: SummaryAspectGraphNode | None,
         action: BaseAction[Any, Any],
         params: BaseParams,
         state: BaseState,
@@ -233,11 +234,11 @@ class AspectExecutor:
     ) -> tuple[BaseResult, float]:
         """Execute summary aspect and return result with duration."""
         action_cls = type(action)
-        if summary_meta is None:
+        if summary_node is None:
             return synthetic_summary_result_when_missing_aspect(action_cls), 0.0
         summary_start = time.time()
         raw = await self.call_aspect(
-            aspect_meta=summary_meta,
+            aspect_node=summary_node,
             action=action,
             params=params,
             state=state,
@@ -248,7 +249,7 @@ class AspectExecutor:
         result = bind_pipeline_result_to_action(
             action_cls,
             raw,
-            source=f"summary aspect `{summary_meta.method_name}`",
+            source=f"summary aspect `{summary_node.label}`",
         )
         return result, (time.time() - summary_start)
 

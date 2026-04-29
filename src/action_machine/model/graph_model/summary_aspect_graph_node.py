@@ -21,6 +21,9 @@ from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from action_machine.intents.aspects.summary_aspect_intent_resolver import SummaryAspectIntentResolver
+from action_machine.intents.context_requires.context_requires_resolver import (
+    ContextRequiresResolver,
+)
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
@@ -47,3 +50,8 @@ class SummaryAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
             properties={"description": desc} if desc is not None else {},
             node_obj=summary_func,
         )
+
+    def get_required_context_keys(self) -> frozenset[str]:
+        """Declare ``@context_requires`` keys via resolver (same behaviour as runtime)."""
+        return frozenset(ContextRequiresResolver.resolve_required_context_keys(self.node_obj))
+
