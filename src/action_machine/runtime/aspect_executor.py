@@ -27,11 +27,10 @@ ARCHITECTURE / DATA FLOW
         ├── AspectExecutor(log_coordinator, machine_class_name, mode)
         │
         ├── execute_regular(...)
+        │       ├── optional saga frame append before call (state_after=None)
         │       ├── call_aspect(...)
-        │       ├── checker application (on failure: saga frame with
-        │       │       state_after=None, then raise)
-        │       ├── state merge
-        │       └── optional saga frame append (state_after=merged)
+        │       ├── state merge + frame replacement (state_after=merged)
+        │       └── checker application
         │
         └── execute_summary(...)
                 └── call_aspect(...)
@@ -99,28 +98,6 @@ class AspectExecutor:
             )
             checker_instance.check(result)
 
-    def _append_checker_rejected_saga_frame(
-        self,
-        *,
-        runtime: _RuntimeLike,
-        saga_stack: list[SagaFrame],
-        aspect_label: str,
-        state_before: BaseState,
-    ) -> None:
-        if not runtime.has_compensators:
-            return
-        compensator = runtime.compensators_by_aspect.get(aspect_label)
-        if compensator is None:
-            return
-        saga_stack.append(
-            SagaFrame(
-                compensator=compensator,
-                aspect_name=aspect_label,
-                state_before=state_before,
-                state_after=None,
-            ),
-        )
-
     async def call_aspect(
         self,
         *,
@@ -183,9 +160,25 @@ class AspectExecutor:
         saga_stack: list[SagaFrame],
     ) -> tuple[BaseState, dict[str, Any], float]:
         """Execute one regular aspect with checker validation and state merge."""
-        _ = compensator_node
         state_before = state
         aspect_start = time.time()
+        compensator = (
+            runtime.compensators_by_aspect.get(aspect_node.label)
+            if compensator_node is not None
+            else None
+        )
+        saga_frame_index: int | None = None
+        if compensator is not None:
+            saga_frame_index = len(saga_stack)
+            saga_stack.append(
+                SagaFrame(
+                    compensator=compensator,
+                    aspect_name=aspect_node.label,
+                    state_before=state_before,
+                    state_after=None,
+                )
+            )
+
         new_state_dict = await self.call_aspect(
             action=action,
             aspect_node=aspect_node,
@@ -202,44 +195,30 @@ class AspectExecutor:
             )
 
         checker_nodes = aspect_node.get_checker_graph_nodes()
-
-        try:
-            if not checker_nodes and new_state_dict:
-                raise ValidationFieldError(
-                    f"Aspect {aspect_node.label} has no checkers, "
-                    f"but returned non-empty state: {new_state_dict}. "
-                    f"Either add checkers for all fields, or return an empty dict."
-                )
-            if checker_nodes:
-                allowed_fields = {cn.label for cn in checker_nodes}
-                extra_fields = set(new_state_dict.keys()) - allowed_fields
-                if extra_fields:
-                    raise ValidationFieldError(
-                        f"Aspect {aspect_node.label} returned extra fields: "
-                        f"{extra_fields}. Allowed only: {allowed_fields}"
-                    )
-                self._apply_checker_graph_nodes(checker_nodes, new_state_dict)
-        except ValidationFieldError:
-            self._append_checker_rejected_saga_frame(
-                runtime=runtime,
-                saga_stack=saga_stack,
-                aspect_label=aspect_node.label,
-                state_before=state_before,
-            )
-            raise
-
         merged_state = BaseState(**{**state.to_dict(), **new_state_dict})
-        if compensator_node is not None:
-            compensator = runtime.compensators_by_aspect.get(aspect_node.label)
-            if compensator is not None:
-                saga_stack.append(
-                    SagaFrame(
-                        compensator=compensator,
-                        aspect_name=aspect_node.label,
-                        state_before=state_before,
-                        state_after=merged_state,
-                    )
+        if saga_frame_index is not None:
+            saga_stack[saga_frame_index] = SagaFrame(
+                compensator=compensator,
+                aspect_name=aspect_node.label,
+                state_before=state_before,
+                state_after=merged_state,
+            )
+
+        if not checker_nodes and new_state_dict:
+            raise ValidationFieldError(
+                f"Aspect {aspect_node.label} has no checkers, "
+                f"but returned non-empty state: {new_state_dict}. "
+                f"Either add checkers for all fields, or return an empty dict."
+            )
+        if checker_nodes:
+            allowed_fields = {cn.label for cn in checker_nodes}
+            extra_fields = set(new_state_dict.keys()) - allowed_fields
+            if extra_fields:
+                raise ValidationFieldError(
+                    f"Aspect {aspect_node.label} returned extra fields: "
+                    f"{extra_fields}. Allowed only: {allowed_fields}"
                 )
+            self._apply_checker_graph_nodes(checker_nodes, new_state_dict)
 
         duration_s = time.time() - aspect_start
         return merged_state, new_state_dict, duration_s
@@ -278,8 +257,5 @@ class AspectExecutor:
 
 
 class _RuntimeLike(Protocol):
-    @property
-    def has_compensators(self) -> bool: ...
-
     @property
     def compensators_by_aspect(self) -> dict[str, Any]: ...

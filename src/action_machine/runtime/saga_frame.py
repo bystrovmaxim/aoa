@@ -6,36 +6,38 @@ Saga compensation stack frame.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Each regular aspect whose ``call()`` finished may contribute one ``SagaFrame``
-after validation: only when that aspect has a compensator snapshot from the
-facet cache (aspects without ``@compensate`` do not push a frame). On success
-the frame holds merged ``state_after``; on validation failure after ``call()`` the
-frame has ``state_after=None``. Frames are unwound in reverse order when the pipeline
-fails.
+Each regular aspect with a compensator snapshot contributes one ``SagaFrame``
+before its ``call()`` starts. The initial frame has ``state_after=None`` so a
+mid-call exception can still be compensated. Once the call returns, the executor
+replaces the immutable frame with one carrying merged ``state_after`` before
+running checkers. Frames are unwound in reverse order when the pipeline fails.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
+    optional SagaFrame(..., state_after=None) if compensator exists
+         |
+         v
     regular aspect call() returned dict
+         |
+         +-- raise -> unwind pre-call frame
+         |
+         v
+    merge state -> replace frame with state_after=merged
          |
          v
     validate result (checkers / declared fields)
          |
-         +-- fail -> SagaFrame(..., state_after=None) -> raise
-         |
          v
-    merge state -> optional SagaFrame(..., state_after=merged) if compensator exists
-         |
-         v
-    append to local saga stack (undoable aspects only)
+    success continues; later failure unwinds current stack
          |
          v
     failure path -> reverse stack unwind in SagaCoordinator
 
 Frame stores only aspect-unique rollback data:
 - ``state_before``: state before aspect call
-- ``state_after``: state after aspect call (or ``None`` when rejected)
+- ``state_after``: state after aspect call (or ``None`` when the call did not finish)
 - ``compensator``: compensator metadata (required for pushed frames; stack holds only actionable undo)
 - ``aspect_name``: aspect identifier for diagnostics/events
 

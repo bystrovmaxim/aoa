@@ -23,7 +23,7 @@ SCENARIOS
 - `SummaryFailsOnErrorStateAction` — summary fails after regular; `@on_error` sees state.
 - `CompensateWithContextAction` — `@context_requires` in compensator.
 - `CheckerRejectionSagaAction` — second regular aspect fails checkers after
-  `call()`; both compensators run (second first, `state_after=None` on second).
+  `call()`; both compensators run (second first, with merged `state_after`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 LIMITATIONS
@@ -875,9 +875,9 @@ class CheckerRejectionSagaAction(
     """
     First aspect charges payment; second returns a dict that fails ``min_length``.
 
-    Used to assert that a ``SagaFrame`` with ``state_after=None`` is pushed for
-    the second aspect and its compensator runs before the first aspect's
-    compensator.
+    Used to assert that a pre-call ``SagaFrame`` is replaced with merged
+    ``state_after`` before checker validation; the second compensator runs before
+    the first aspect's compensator.
     """
 
     @regular_aspect("First step — charge")
