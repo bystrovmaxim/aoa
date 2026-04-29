@@ -45,7 +45,7 @@ class ConnectionValidator:
     # Declared none, caller passed at least one key — reject.
     def _validate_no_declarations_but_got_connections(
         action_name: str,
-        declared_keys: set[str],
+        declared_keys: frozenset[str],
         actual_keys: set[str],
     ) -> str | None:
         if not declared_keys and actual_keys:
@@ -60,7 +60,7 @@ class ConnectionValidator:
     # Declared at least one key, caller passed none — reject.
     def _validate_has_declarations_but_no_connections(
         action_name: str,
-        declared_keys: set[str],
+        declared_keys: frozenset[str],
         actual_keys: set[str],
     ) -> str | None:
         if declared_keys and not actual_keys:
@@ -75,7 +75,7 @@ class ConnectionValidator:
     # Caller keys must not exceed declared set.
     def _validate_extra_connection_keys(
         action_name: str,
-        declared_keys: set[str],
+        declared_keys: frozenset[str],
         actual_keys: set[str],
     ) -> str | None:
         extra = actual_keys - declared_keys
@@ -90,7 +90,7 @@ class ConnectionValidator:
     # Every declared key must be present in the caller mapping.
     def _validate_missing_connection_keys(
         action_name: str,
-        declared_keys: set[str],
+        declared_keys: frozenset[str],
         actual_keys: set[str],
     ) -> str | None:
         missing = declared_keys - actual_keys
@@ -115,26 +115,14 @@ class ConnectionValidator:
                 )
         return None
 
-    @staticmethod
-    def _declared_keys_from_action_node(
-        action_node: ActionGraphNode[BaseAction[Any, Any]],
-    ) -> set[str]:
-        """Declared ``@connection`` keys from ``connection_edges`` (``properties['key']``)."""
-        keys: set[str] = set()
-        for edge in action_node.connection_edges:
-            raw = edge.properties.get("key")
-            if isinstance(raw, str) and raw.strip():
-                keys.add(raw.strip())
-        return keys
-
     def validate(
         self,
         action: BaseAction[BaseParams, BaseResult],
         connections: dict[str, BaseResource] | None,
         action_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> dict[str, BaseResource]:
-        """Validate connections against keys from ``action_node.connection_edges``."""
-        declared_keys = self._declared_keys_from_action_node(action_node)
+        """Validate connections against keys from ``action_node.connection_keys``."""
+        declared_keys = action_node.connection_keys
         actual_keys: set[str] = set(connections.keys()) if connections else set()
         action_name: str = action.__class__.__name__
 

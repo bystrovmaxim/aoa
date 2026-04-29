@@ -118,6 +118,16 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         object.__setattr__(self, "compensator_graph_edges", compensator_graph_edges)
         object.__setattr__(self, "error_handler_graph_edges", error_handler_graph_edges)
 
+    @property
+    def connection_keys(self) -> frozenset[str]:
+        """Declared ``@connection`` slot keys (non-empty stripped ``properties[\"key\"]`` on connection edges)."""
+        keys: set[str] = set()
+        for edge in self.connection_edges:
+            raw = edge.properties.get("key")
+            if isinstance(raw, str) and raw.strip():
+                keys.add(raw.strip())
+        return frozenset(keys)
+
     def get_all_edges(self) -> list[BaseGraphEdge]:
         return [
             *([] if self.domain_edge is None else [self.domain_edge]),
