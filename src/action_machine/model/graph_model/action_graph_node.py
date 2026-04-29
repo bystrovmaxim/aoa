@@ -145,6 +145,24 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             return cast(SummaryAspectGraphNode, edge.target_node)
         return None
 
+    def get_compensator_graph_nodes(self) -> list[CompensatorGraphNode]:
+        """Interchange vertices for ``@compensate`` methods, in composition edge order."""
+        out: list[CompensatorGraphNode] = []
+        for edge in self.compensator_graph_edges:
+            if edge.target_node is None:
+                continue
+            out.append(cast(CompensatorGraphNode, edge.target_node))
+        return out
+
+    def get_error_handler_graph_nodes(self) -> list[ErrorHandlerGraphNode]:
+        """Interchange vertices for ``@on_error`` methods, in composition edge order."""
+        out: list[ErrorHandlerGraphNode] = []
+        for edge in self.error_handler_graph_edges:
+            if edge.target_node is None:
+                continue
+            out.append(cast(ErrorHandlerGraphNode, edge.target_node))
+        return out
+
     def get_all_edges(self) -> list[BaseGraphEdge]:
         return [
             *([] if self.domain_edge is None else [self.domain_edge]),
@@ -159,31 +177,19 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         ]
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
+        summary = self.get_summary_aspect_graph_node()
+        regular = self.get_regular_aspect_graph_nodes()
+        compensators = self.get_compensator_graph_nodes()
+        error_handlers = self.get_error_handler_graph_nodes()
         return [
-            *(cast(BaseGraphNode[Any], edge.target_node) for edge in self.regular_aspect_edges),
-            *(cast(BaseGraphNode[Any], edge.target_node) for edge in self.summary_aspect_edges),
-            *(cast(BaseGraphNode[Any], edge.target_node) for edge in self.compensator_graph_edges),
-            *(cast(BaseGraphNode[Any], edge.target_node) for edge in self.error_handler_graph_edges),
-            *(
-                node
-                for edge in self.regular_aspect_edges
-                for node in cast(BaseGraphNode[Any], edge.target_node).get_companion_nodes()
-            ),
-            *(
-                node
-                for edge in self.summary_aspect_edges
-                for node in cast(BaseGraphNode[Any], edge.target_node).get_companion_nodes()
-            ),
-            *(
-                node
-                for edge in self.compensator_graph_edges
-                for node in cast(BaseGraphNode[Any], edge.target_node).get_companion_nodes()
-            ),
-            *(
-                node
-                for edge in self.error_handler_graph_edges
-                for node in cast(BaseGraphNode[Any], edge.target_node).get_companion_nodes()
-            ),
+            *(cast(BaseGraphNode[Any], n) for n in regular),
+            *((cast(BaseGraphNode[Any], summary),) if summary is not None else ()),
+            *(cast(BaseGraphNode[Any], n) for n in compensators),
+            *(cast(BaseGraphNode[Any], n) for n in error_handlers),
+            *(node for n in regular for node in n.get_companion_nodes()),
+            *(summary.get_companion_nodes() if summary is not None else []),
+            *(node for n in compensators for node in n.get_companion_nodes()),
+            *(node for n in error_handlers for node in n.get_companion_nodes()),
         ]
 
     @staticmethod
