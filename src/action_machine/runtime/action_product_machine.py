@@ -458,6 +458,7 @@ AI-CORE-BEGIN
         connections: dict[str, BaseResource],
         context: Context,
         runtime: _ActionExecutionCache,
+        action_graph_node: ActionGraphNode[BaseAction[Any, Any]],
         plugin_ctx: PluginRunContext,
     ) -> R:
         """Saga unwind (if any), then ``@on_error`` / unhandled with ``error_state``."""
@@ -472,6 +473,7 @@ AI-CORE-BEGIN
                 context=context,
                 plugin_ctx=plugin_ctx,
             )
+        error_handler_nodes = action_graph_node.get_error_handler_graph_nodes()
         handled_result = await self._error_handler_executor.handle(
             error=aspect_error,
             action=action,
@@ -480,6 +482,7 @@ AI-CORE-BEGIN
             box=box,
             connections=connections,
             runtime=runtime,
+            error_handler_nodes=error_handler_nodes,
             context=context,
             plugin_ctx=plugin_ctx,
             failed_aspect_name=failed_aspect_name,
@@ -599,6 +602,7 @@ AI-CORE-BEGIN
                 connections=connections,
                 context=context,
                 runtime=runtime,
+                action_graph_node=action_graph_node,
                 plugin_ctx=plugin_ctx,
             )
         except (
@@ -632,6 +636,7 @@ AI-CORE-BEGIN
                 connections=connections,
                 context=context,
                 runtime=runtime,
+                action_graph_node=action_graph_node,
                 plugin_ctx=plugin_ctx,
             )
 

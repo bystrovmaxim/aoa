@@ -70,6 +70,7 @@ class ErrorHandlerExecutor:
         connections: Any,
         context: Any,
         runtime: Any,
+        error_handler_nodes: list[ErrorHandlerGraphNode],
         plugin_ctx: Any,
         failed_aspect_name: str | None,
     ) -> BaseResult:
