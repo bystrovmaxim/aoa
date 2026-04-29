@@ -140,7 +140,6 @@ from unittest.mock import Mock
 from action_machine.auth.base_role import BaseRole
 from action_machine.context.context import Context
 from action_machine.context.context_view import ContextView
-from action_machine.intents.checkers.checker_facet import facet_snapshot_for_checkers
 from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
@@ -154,10 +153,12 @@ from action_machine.runtime.action_product_machine import ActionProductMachine
 from action_machine.runtime.dependency_factory import cached_dependency_factory
 from action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
+from action_machine.testing.checker_facet_snapshot import CheckerFacetSnapshot
 from action_machine.testing.comparison import compare_results
 from action_machine.testing.mock_action import MockAction
 from action_machine.testing.state_validator import validate_state_for_aspect, validate_state_for_summary
 from action_machine.testing.stubs import RequestInfoStub, RuntimeInfoStub, UserInfoStub
+from graph.base_intent_inspector import BaseIntentInspector
 from graph.graph_coordinator import GraphCoordinator
 
 P = TypeVar("P", bound=BaseParams)
@@ -196,6 +197,35 @@ def _aspect_tuple_from_coordinator(
     return tuple(snap.aspects)
 
 
+def _checker_rows_from_action_class(
+    action_cls: type,
+) -> tuple[CheckerFacetSnapshot.Checker, ...]:
+    """Build checker facet rows from ``_checker_meta`` on aspect methods."""
+    out: list[CheckerFacetSnapshot.Checker] = []
+    for attr_name, attr_value in vars(action_cls).items():
+        func = BaseIntentInspector._unwrap_declaring_class_member(attr_value)
+        if not callable(func):
+            continue
+        checker_list = getattr(func, "_checker_meta", None)
+        if checker_list is None:
+            continue
+        for checker_dict in checker_list:
+            out.append(
+                CheckerFacetSnapshot.Checker(
+                    method_name=attr_name,
+                    checker_class=checker_dict.get("checker_class", type(None)),
+                    field_name=checker_dict.get("field_name", ""),
+                    required=checker_dict.get("required", False),
+                    extra_params={
+                        k: v
+                        for k, v in checker_dict.items()
+                        if k not in ("checker_class", "field_name", "required")
+                    },
+                ),
+            )
+    return tuple(out)
+
+
 def _checkers_for_aspect_name(
     coordinator: GraphCoordinator,
     action_cls: type,
@@ -203,7 +233,8 @@ def _checkers_for_aspect_name(
 ) -> tuple[Any, ...]:
     snap = coordinator.get_snapshot(action_cls, "checker")
     if snap is None or not hasattr(snap, "checkers"):
-        snap = facet_snapshot_for_checkers(action_cls)
+        chk = _checker_rows_from_action_class(action_cls)
+        snap = CheckerFacetSnapshot(class_ref=action_cls, checkers=chk) if chk else None
     if snap is None or not hasattr(snap, "checkers"):
         return ()
     return tuple(c for c in snap.checkers if c.method_name == method_name)

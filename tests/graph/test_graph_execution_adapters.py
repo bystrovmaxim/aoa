@@ -9,7 +9,6 @@ from action_machine.context.ctx_constants import Ctx
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.checkers.checker_facet import hydrate_checker_row
 from action_machine.intents.compensate.compensate_decorator import compensate
 from action_machine.intents.context_requires.context_requires_decorator import context_requires
 from action_machine.intents.on_error.on_error_decorator import on_error
@@ -31,8 +30,23 @@ from action_machine.legacy.on_error_intent_inspector import (
     OnErrorIntentInspector,
     hydrate_error_handler_row,
 )
+from action_machine.testing.checker_facet_snapshot import CheckerFacetSnapshot
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.facet_edge import FacetMetaRow
+
+
+def _checker_from_meta(row: FacetMetaRow) -> CheckerFacetSnapshot.Checker:
+    """Test-local rebuild of checker row meta (parity with coordinator facet rows)."""
+    d = dict(row)
+    extra = d["extra_params"]
+    ep = extra if isinstance(extra, dict) else dict(extra)
+    return CheckerFacetSnapshot.Checker(
+        method_name=d["method_name"],
+        checker_class=d["checker_class"],
+        field_name=d["field_name"],
+        required=bool(d["required"]),
+        extra_params=ep,
+    )
 
 
 class _RoundtripAspectAction(AspectIntent):
@@ -126,7 +140,7 @@ def test_checker_row_accepts_extra_params_as_dict() -> None:
         required=True,
         extra_params={"x": 1},
     )
-    ch = hydrate_checker_row(row)
+    ch = _checker_from_meta(row)
     assert ch.extra_params == {"x": 1}
 
 
@@ -138,7 +152,7 @@ def test_checker_row_extra_params_via_non_dict_mapping() -> None:
         ("required", True),
         ("extra_params", UserDict({"k": 1})),
     )
-    ch = hydrate_checker_row(row)
+    ch = _checker_from_meta(row)
     assert ch.extra_params == {"k": 1}
 
 

@@ -413,13 +413,13 @@ class TestAspectsAndCheckers:
         assert len(nodes) >= 1
 
     def test_checkers_create_nodes_and_edges(self):
-        """Checker metadata on aspects is reflected in typed checker facet snapshots."""
-        from action_machine.intents.checkers.checker_facet import facet_snapshot_for_checkers
+        """Checker metadata on aspects exposes at least one row from TestBench collector."""
+        from action_machine.testing.bench import _checker_rows_from_action_class
 
         coord = _new_coord()
         coord.get_snapshot(_ActionWithCheckersAction, "meta")
-        snap = facet_snapshot_for_checkers(_ActionWithCheckersAction)
-        assert snap is not None and len(snap.checkers) >= 1
+        rows = _checker_rows_from_action_class(_ActionWithCheckersAction)
+        assert len(rows) >= 1
 
 
 # ═════════════════════════════════════════════════════════════════════════════
