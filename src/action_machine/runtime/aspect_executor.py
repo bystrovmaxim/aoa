@@ -171,6 +171,7 @@ class AspectExecutor:
             )
 
         checkers = runtime.checkers_by_aspect.get(aspect_node.label, ())
+        checker_nodes = aspect_node.get_checker_graph_nodes()
 
         def _append_checker_rejected_frame() -> None:
             if not runtime.has_compensators:
