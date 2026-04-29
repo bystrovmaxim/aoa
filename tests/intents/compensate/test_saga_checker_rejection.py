@@ -66,7 +66,7 @@ async def test_saga_checker_rejection_compensate_order(
     mock_trace: AsyncMock,
     saga_observer: SagaObserverPlugin,
 ) -> None:
-    """Second aspect fails checkers: its compensator runs first with state_after=None."""
+    """Second aspect fails checkers after the frame has merged state_after."""
     params = CompensateTestParams(
         user_id="u_checker_saga",
         amount=10.0,
@@ -83,7 +83,7 @@ async def test_saga_checker_rejection_compensate_order(
 
     # ``TestBench.run`` stops on the first machine when the pipeline raises.
     assert mock_trace.record_second_rollback.await_count == 1
-    assert mock_trace.record_second_rollback.await_args.kwargs["state_after_none"] is True
+    assert mock_trace.record_second_rollback.await_args.kwargs["state_after_none"] is False
 
     assert mock_payment.refund.await_count == 1
 
