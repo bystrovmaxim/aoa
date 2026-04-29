@@ -382,6 +382,34 @@ def test_action_graph_node_stores_depends_and_connection_edges() -> None:
     assert all(edge in node.get_all_edges() for edge in node.connection_edges)
 
 
+def test_compensator_graph_node_for_aspect_matches_target_aspect_properties() -> None:
+    """Locator uses CompensatorGraphNode.properties[\"target_aspect_name\"] (facet-aligned)."""
+    action_node = ActionGraphNode(CompensatedOrderAction)
+    charge = action_node.compensator_graph_node_for_aspect("charge_aspect")
+    reserve = action_node.compensator_graph_node_for_aspect("reserve_aspect")
+    assert charge is not None
+    assert reserve is not None
+    assert isinstance(charge, CompensatorGraphNode)
+    assert isinstance(reserve, CompensatorGraphNode)
+    assert charge.properties["target_aspect_name"] == "charge_aspect"
+    assert reserve.properties["target_aspect_name"] == "reserve_aspect"
+    assert charge.node_id.endswith(":rollback_charge_compensate")
+    assert reserve.node_id.endswith(":rollback_reserve_compensate")
+    assert action_node.compensator_graph_node_for_aspect("no_such_aspect") is None
+
+
+def test_compensator_graph_node_for_aspect_strips_aspect_name() -> None:
+    action_node = ActionGraphNode(CompensatedOrderAction)
+    found = action_node.compensator_graph_node_for_aspect("  charge_aspect\t")
+    assert found is not None
+    assert found.label == "rollback_charge_compensate"
+
+
+def test_compensator_graph_node_for_aspect_none_when_action_has_no_compensators() -> None:
+    action_node = ActionGraphNode(PingAction)
+    assert action_node.compensator_graph_node_for_aspect("pong_aspect") is None
+
+
 def test_entity_node_links_properties_and_domain_helpers() -> None:
     node = EntityGraphNode(SampleEntity)
     assert node.node_obj is SampleEntity
