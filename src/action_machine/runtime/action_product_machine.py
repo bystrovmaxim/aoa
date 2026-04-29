@@ -457,7 +457,6 @@ AI-CORE-BEGIN
         box: ToolsBox,
         connections: dict[str, BaseResource],
         context: Context,
-        runtime: _ActionExecutionCache,
         action_graph_node: ActionGraphNode[BaseAction[Any, Any]],
         plugin_ctx: PluginRunContext,
     ) -> R:
@@ -521,7 +520,6 @@ AI-CORE-BEGIN
         box: ToolsBox,
         connections: dict[str, BaseResource],
         context: Context,
-        runtime: _ActionExecutionCache,
         plugin_ctx: PluginRunContext,
         action_graph_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> R:
@@ -600,7 +598,6 @@ AI-CORE-BEGIN
                 box=box,
                 connections=connections,
                 context=context,
-                runtime=runtime,
                 action_graph_node=action_graph_node,
                 plugin_ctx=plugin_ctx,
             )
@@ -634,7 +631,6 @@ AI-CORE-BEGIN
                 box=box,
                 connections=connections,
                 context=context,
-                runtime=runtime,
                 action_graph_node=action_graph_node,
                 plugin_ctx=plugin_ctx,
             )
@@ -678,8 +674,9 @@ AI-CORE-BEGIN
 
         action_cls = action.__class__
         runtime = self._get_execution_cache(action_cls)
+        action_node = runtime.action_node
         self._role_checker.check(action, context, runtime)
-        conns = self._connection_validator.validate(action, connections, runtime.action_node)
+        conns = self._connection_validator.validate(action, connections, action_node)
         plugin_ctx = await self._plugin_coordinator.create_run_context()
         run_child = partial(
             self._run_child,
@@ -711,7 +708,7 @@ AI-CORE-BEGIN
         )
 
         result = await self._execute_aspects_with_error_handling(
-            action, params, box, conns, context, runtime, plugin_ctx, runtime.action_node
+            action, params, box, conns, context, plugin_ctx, action_node
         )
 
         total_duration = time.time() - start_time
