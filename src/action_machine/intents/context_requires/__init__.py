@@ -108,18 +108,41 @@ For custom fields, use raw strings:
 
 """
 
-from action_machine.context.context import Context
+import importlib
+from typing import Any
+
 from action_machine.context.context_view import ContextView
 from action_machine.context.ctx_constants import Ctx
-from action_machine.context.request_info import RequestInfo
-from action_machine.context.runtime_info import RuntimeInfo
-from action_machine.context.user_info import UserInfo
 from action_machine.intents.context_requires.context_requires_decorator import context_requires
 from action_machine.intents.context_requires.context_requires_intent import ContextRequiresIntent
 from action_machine.intents.context_requires.context_requires_resolver import (
     ContextRequiresResolver,
 )
 
+# Eager imports of Context / *Info from context.* would run while
+# request_info / model are still initializing; lazy re-export breaks the cycle.
+_LAZY_CONTEXT_EXPORTS: dict[str, tuple[str, str]] = {
+    "Context": ("action_machine.context.context", "Context"),
+    "RequestInfo": ("action_machine.context.request_info", "RequestInfo"),
+    "RuntimeInfo": ("action_machine.context.runtime_info", "RuntimeInfo"),
+    "UserInfo": ("action_machine.context.user_info", "UserInfo"),
+}
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy re-export of context types (avoids circular import during package init)."""
+    mapped = _LAZY_CONTEXT_EXPORTS.get(name)
+    if mapped is not None:
+        mod_name, attr = mapped
+        obj = getattr(importlib.import_module(mod_name), attr)
+        globals()[name] = obj
+        return obj
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)
+
+
+# PEP 562 lazy re-exports — names are bound in __getattr__, not at import.
+# pylint: disable=undefined-all-variable
 __all__ = [
     "Context",
     "ContextRequiresIntent",

@@ -37,13 +37,13 @@ INVARIANTS
 
 import pytest
 
-from action_machine.legacy.core import Core
 from action_machine.testing.state_validator import (
     StateValidationError,
     validate_state_for_aspect,
     validate_state_for_summary,
 )
 from graph.graph_coordinator import GraphCoordinator
+from tests.graph_contract.facet_vertex_probe import built_coordinator_with_checker_inspector
 from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 @pytest.fixture()
 def coordinator() -> GraphCoordinator:
     """Built coordinator with default inspectors plus checker (facet snapshots)."""
-    return Core.create_coordinator_with_checker_inspector()
+    return built_coordinator_with_checker_inspector()
 
 
 def _coord_aspects(c: GraphCoordinator, cls: type):
