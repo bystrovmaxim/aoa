@@ -384,18 +384,16 @@ AI-CORE-BEGIN
         box: ToolsBox,
         connections: dict[str, BaseResource],
         context: Context,
-        runtime: _ActionExecutionCache,
         plugin_ctx: PluginRunContext,
         saga_stack: list[SagaFrame],
         action_graph_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> BaseState:
-        """Plugins and ``AspectExecutor.execute_regular`` per regular aspect; appends saga frames when ``runtime.has_compensators``."""
+        """Plugins and ``AspectExecutor.execute_regular`` per regular aspect."""
         state = BaseState()
-        # Local compensation stack for this pipeline (empty when rollup=True).
-        build_saga = runtime.has_compensators
 
         for aspect_node in action_graph_node.get_regular_aspect_graph_nodes():
             state_passed_into_aspect = state
+            compensator_node = action_graph_node.compensator_graph_node_for_aspect(aspect_node.label)
             try:
                 await self._plugin_emit.emit_before_regular_aspect(
                     plugin_ctx,
@@ -414,15 +412,13 @@ AI-CORE-BEGIN
                     await self._aspect_executor.execute_regular(
                         action=action,
                         aspect_node=aspect_node,
-                        compensator_node=action_graph_node.compensator_graph_node_for_aspect(
-                            aspect_node.label,
-                        ),
+                        compensator_node=compensator_node,
                         params=params,
                         state=state_passed_into_aspect,
                         box=box,
                         connections=connections,
                         context=context,
-                        saga_stack=saga_stack if build_saga else [],
+                        saga_stack=saga_stack,
                     )
                 )
             except Exception as exc:
@@ -534,7 +530,7 @@ AI-CORE-BEGIN
 
         try:
             state = await self._execute_regular_aspects(
-                action, params, box, connections, context, runtime, plugin_ctx, saga_stack, action_graph_node,
+                action, params, box, connections, context, plugin_ctx, saga_stack, action_graph_node,
             )
 
             summary_node = action_graph_node.get_summary_aspect_graph_node()
