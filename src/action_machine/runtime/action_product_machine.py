@@ -422,7 +422,6 @@ AI-CORE-BEGIN
                         box=box,
                         connections=connections,
                         context=context,
-                        runtime=runtime,
                         saga_stack=saga_stack if build_saga else [],
                     )
                 )

@@ -156,11 +156,9 @@ class AspectExecutor:
         box: ToolsBox,
         connections: dict[str, BaseResource],
         context: Any,
-        runtime: Any,
         saga_stack: list[SagaFrame],
     ) -> tuple[BaseState, dict[str, Any], float]:
         """Execute one regular aspect with checker validation and state merge."""
-        _ = runtime
         state_before = state
         aspect_start = time.time()
         saga_frame_index: int | None = None
