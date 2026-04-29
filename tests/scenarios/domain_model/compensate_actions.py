@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 These Actions cover Saga rollback behavior: reverse-order compensation,
-skipped frames, compensator-error suppression, interaction with `@on_error`,
+sparse stacks when only some aspects have compensators, compensator-error suppression, interaction with `@on_error`,
 and context-aware compensators.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -15,7 +15,7 @@ SCENARIOS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - `CompensatedOrderAction` — baseline rollback.
-- `PartialCompensateAction` — skipped frames without compensators.
+- `PartialCompensateAction` — not every regular aspect has @compensate (sparse undo stack).
 - `CompensateErrorAction` — compensator raises but rollback continues.
 - `CompensateAndOnErrorAction` — rollback before `@on_error`.
 - `FirstRegularFailsOnErrorAction` — first regular fails; `@on_error` and empty state.
@@ -249,8 +249,7 @@ class PartialCompensateAction(
     """
     Action with three regular aspects; only the first has a compensator.
 
-    Exercises skipped frames: the second and third aspects have no compensator —
-    their frames are skipped (skipped counter in SagaRollbackCompletedEvent).
+    Only the compensator-backed aspect pushes a saga frame; later aspects have no undo.
 
     Pipeline:
     1. charge_aspect (regular, with compensator).

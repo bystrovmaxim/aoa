@@ -109,9 +109,12 @@ class AspectExecutor:
     ) -> None:
         if not runtime.has_compensators:
             return
+        compensator = runtime.compensators_by_aspect.get(aspect_label)
+        if compensator is None:
+            return
         saga_stack.append(
             SagaFrame(
-                compensator=runtime.compensators_by_aspect.get(aspect_label),
+                compensator=compensator,
                 aspect_name=aspect_label,
                 state_before=state_before,
                 state_after=None,
@@ -228,14 +231,15 @@ class AspectExecutor:
         merged_state = BaseState(**{**state.to_dict(), **new_state_dict})
         if runtime.has_compensators:
             compensator = runtime.compensators_by_aspect.get(aspect_node.label)
-            saga_stack.append(
-                SagaFrame(
-                    compensator=compensator,
-                    aspect_name=aspect_node.label,
-                    state_before=state_before,
-                    state_after=merged_state,
+            if compensator is not None:
+                saga_stack.append(
+                    SagaFrame(
+                        compensator=compensator,
+                        aspect_name=aspect_node.label,
+                        state_before=state_before,
+                        state_after=merged_state,
+                    )
                 )
-            )
 
         duration_s = time.time() - aspect_start
         return merged_state, new_state_dict, duration_s

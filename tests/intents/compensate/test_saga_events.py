@@ -223,11 +223,10 @@ class TestSagaRollbackEvents:
         assert middle[3] == "AfterCompensateAspectEvent"
 
     @pytest.mark.anyio
-    async def test_completed_event_with_skipped_frames(
+    async def test_completed_event_sparse_stack_partial_compensate(
         self, observed_bench: TestBench, saga_observer: SagaObserverPlugin,
     ) -> None:
-        """PartialCompensateAction: compensator only for the first aspect.
-        The second aspect (log_aspect) does not have a compensator → skipped=1."""
+        """PartialCompensateAction: only the charge aspect pushes a saga frame."""
         # ── Arrange ──
         params = CompensateTestParams(
             user_id="user_skip",
@@ -248,9 +247,9 @@ class TestSagaRollbackEvents:
         events = get_last_run_events(saga_observer)
         completed = events[-1]
         assert completed["event_type"] == "SagaRollbackCompletedEvent"
-        assert completed["total_frames"] == 2
+        assert completed["total_frames"] == 1
         assert completed["succeeded"] == 1
-        assert completed["skipped"] == 1
+        assert completed["skipped"] == 0
         assert completed["failed"] == 0
 
 
@@ -262,9 +261,8 @@ class TestSagaRollbackEvents:
 class TestCompensateAspectEvents:
     """Checks BeforeCompensateAspectEvent and AfterCompensateAspectEvent.
 
-    These events are emitted for EVERY frame with a compensator.
-    Before - before the call, After - after successful completion.
-    Frames without a compensator are skipped (neither Before nor After)."""
+    Emitted once per saga stack frame (stack holds only actionable compensators).
+    Before — before the call; After — after successful completion."""
 
     @pytest.mark.anyio
     async def test_before_compensate_event_contains_compensator_name(

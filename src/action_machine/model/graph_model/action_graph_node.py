@@ -58,7 +58,6 @@ from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.base_intent_inspector import BaseIntentInspector
 from graph.composition_graph_edge import CompositionGraphEdge
 
 from .compensator_graph_node import CompensatorGraphNode
@@ -160,10 +159,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         aspect_name: str,
     ) -> CompensatorGraphNode | None:
         """Optional compensator for ``aspect_name``; at most one compensator references a regular aspect."""
+        needle = aspect_name.strip()
         for node in self.get_compensator_graph_nodes():
-            func = BaseIntentInspector._unwrap_declaring_class_member(node.node_obj)
-            meta = getattr(func, "_compensate_meta", None) or {}
-            if meta.get("target_aspect_name") == aspect_name:
+            raw = node.properties.get("target_aspect_name")
+            if isinstance(raw, str) and raw.strip() == needle:
                 return node
         return None
 
