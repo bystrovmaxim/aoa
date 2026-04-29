@@ -1,4 +1,4 @@
-# tests/intents/context/test_context_requires_decorator.py
+# tests/intents/context_requires/test_context_requires_decorator.py
 """
 Tests for @context_requires — recording context dependencies
 on the method attribute _required_context_keys.
@@ -7,7 +7,7 @@ on the method attribute _required_context_keys.
 import pytest
 
 from action_machine.context.ctx_constants import Ctx
-from action_machine.intents.context.context_requires_decorator import context_requires
+from action_machine.intents.context_requires.context_requires_decorator import context_requires
 
 
 class TestSingleKey:

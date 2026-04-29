@@ -1,4 +1,4 @@
-# tests/intents/context/__init__.py
+# tests/intents/context_requires/__init__.py
 """
 Tests for ActionMachine execution context components.
 

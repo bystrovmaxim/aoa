@@ -1,4 +1,4 @@
-# tests/intents/context/test_request_info.py
+# tests/intents/context_requires/test_request_info.py
 """
 Tests for RequestInfo — incoming request metadata.
 

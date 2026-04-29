@@ -1,4 +1,4 @@
-# tests/intents/context/test_user_info.py
+# tests/intents/context_requires/test_user_info.py
 """
 Tests for UserInfo — user identity in the execution context.
 

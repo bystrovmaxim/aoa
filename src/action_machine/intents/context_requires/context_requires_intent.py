@@ -1,4 +1,4 @@
-# src/action_machine/intents/context/context_requires_intent.py
+# src/action_machine/intents/context_requires/context_requires_intent.py
 """
 Context-requires intent marker.
 

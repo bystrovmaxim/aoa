@@ -50,7 +50,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "ConnectionIntent",
     ),
     "ContextRequiresIntent": (
-        "action_machine.intents.context.context_requires_intent",
+        "action_machine.intents.context_requires.context_requires_intent",
         "ContextRequiresIntent",
     ),
     "DescribedFieldsIntent": (
