@@ -58,6 +58,7 @@ from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
+from graph.base_intent_inspector import BaseIntentInspector
 from graph.composition_graph_edge import CompositionGraphEdge
 
 from .compensator_graph_node import CompensatorGraphNode
@@ -153,6 +154,18 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 continue
             out.append(cast(CompensatorGraphNode, edge.target_node))
         return out
+
+    def compensator_graph_node_for_aspect(
+        self,
+        aspect_name: str,
+    ) -> CompensatorGraphNode | None:
+        """Optional compensator for ``aspect_name``; at most one compensator references a regular aspect."""
+        for node in self.get_compensator_graph_nodes():
+            func = BaseIntentInspector._unwrap_declaring_class_member(node.node_obj)
+            meta = getattr(func, "_compensate_meta", None) or {}
+            if meta.get("target_aspect_name") == aspect_name:
+                return node
+        return None
 
     def get_error_handler_graph_nodes(self) -> list[ErrorHandlerGraphNode]:
         """Interchange vertices for ``@on_error`` methods, in composition edge order."""

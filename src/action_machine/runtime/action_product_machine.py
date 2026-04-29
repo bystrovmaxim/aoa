@@ -414,6 +414,9 @@ AI-CORE-BEGIN
                     await self._aspect_executor.execute_regular(
                         action=action,
                         aspect_node=aspect_node,
+                        compensator_node=action_graph_node.compensator_graph_node_for_aspect(
+                            aspect_node.label,
+                        ),
                         params=params,
                         state=state_passed_into_aspect,
                         box=box,

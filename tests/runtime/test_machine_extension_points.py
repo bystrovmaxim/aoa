@@ -105,7 +105,8 @@ class _AspectExecutorFake:
         self,
         *,
         action,
-        aspect_meta,
+        aspect_node,
+        compensator_node,
         params,
         state,
         box,
@@ -116,8 +117,10 @@ class _AspectExecutorFake:
     ) -> tuple[BaseState, dict[str, Any], float]:
         _ = (
             action,
-            aspect_meta,
+            aspect_node,
+            compensator_node,
             params,
+            state,
             box,
             connections,
             context,
