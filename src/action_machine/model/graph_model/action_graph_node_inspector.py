@@ -10,7 +10,8 @@ Walks the loaded ``BaseAction`` strict subclass tree and emits one :class:`Actio
 visited concrete/abstract subtype, plus one :class:`~graph.regular_aspect_graph_node.RegularAspectGraphNode`
 per ``@regular_aspect``, one :class:`~graph.summary_aspect_graph_node.SummaryAspectGraphNode` per
 ``@summary_aspect``, one :class:`~action_machine.model.graph_model.checker_graph_node.CheckerGraphNode`
-per checker on each regular aspect (via ``_checker_meta``), with ``COMPOSITION`` edges from each :class:`~action_machine.model.graph_model.regular_aspect_graph_node.RegularAspectGraphNode` to its checker nodes, one :class:`~graph.compensator_graph_node.CompensatorGraphNode` per
+per checker on each regular aspect (via ``_checker_meta``), one :class:`~action_machine.model.graph_model.required_context_graph_node.RequiredContextGraphNode`
+per ``@context_requires`` key on that aspect, with ``COMPOSITION`` edges from each :class:`~action_machine.model.graph_model.regular_aspect_graph_node.RegularAspectGraphNode` to its checker and required-context nodes, one :class:`~graph.compensator_graph_node.CompensatorGraphNode` per
 ``@compensate``, and one :class:`~graph.error_handler_graph_node.ErrorHandlerGraphNode` per
 ``@on_error`` method declared on that class.
 
@@ -40,7 +41,7 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Emit ``ActionGraphNode`` rows for visited ``BaseAction`` classes.
-    CONTRACT: Root axis ``BaseAction`` from ``BaseGraphNodeInspector[BaseAction[Any, Any]]``; one ``ActionGraphNode`` per visited ``BaseAction`` type, plus ``RegularAspectGraphNode`` (with ``COMPOSITION`` edges to checkers) / ``SummaryAspectGraphNode`` / ``CheckerGraphNode`` / ``CompensatorGraphNode`` / ``ErrorHandlerGraphNode`` for each own-class ``@regular_aspect`` / ``@summary_aspect`` / checker row / ``@compensate`` / ``@on_error`` method.
+    CONTRACT: Root axis ``BaseAction`` from ``BaseGraphNodeInspector[BaseAction[Any, Any]]``; one ``ActionGraphNode`` per visited ``BaseAction`` type, plus ``RegularAspectGraphNode`` (with ``COMPOSITION`` edges to checkers and required-context rows) / ``SummaryAspectGraphNode`` / ``CheckerGraphNode`` / ``RequiredContextGraphNode`` / ``CompensatorGraphNode`` / ``ErrorHandlerGraphNode`` for each own-class ``@regular_aspect`` / ``@summary_aspect`` / checker row / context key / ``@compensate`` / ``@on_error`` method.
     INVARIANTS: Other intents stay on facet inspectors only; this inspector emits aspect, checker, compensator, and error-handler interchange rows for actions. Checker vertices are flattened from :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` on each ``RegularAspectGraphNode`` (see :class:`~graph.base_graph_node.BaseGraphNode`).
     AI-CORE-END
     """

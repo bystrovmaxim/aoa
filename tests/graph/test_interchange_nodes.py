@@ -3,22 +3,32 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import Field
 
+from action_machine.context.context_view import ContextView
+from action_machine.context.ctx_constants import Ctx
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
 from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
+from action_machine.intents.aspects.aspect_intent import AspectIntent
+from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.regular_aspect_intent_resolver import (
     RegularAspectIntentResolver,
 )
 from action_machine.intents.aspects.summary_aspect_intent_resolver import (
     SummaryAspectIntentResolver,
 )
+from action_machine.intents.context_requires.context_requires_decorator import (
+    context_requires,
+)
 from action_machine.legacy.application_context_inspector import ApplicationContextInspector
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
+from action_machine.model.base_state import BaseState
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
@@ -26,8 +36,12 @@ from action_machine.model.graph_model.error_handler_graph_node import ErrorHandl
 from action_machine.model.graph_model.field_graph_node import FieldGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.model.graph_model.required_context_graph_node import (
+    RequiredContextGraphNode,
+)
 from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
+from action_machine.resources.base_resource import BaseResource
 from action_machine.system_core import TypeIntrospection
 from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.association_graph_edge import AssociationGraphEdge
@@ -57,6 +71,49 @@ def test_regular_aspect_graph_node_interchange_shape() -> None:
     assert len(edges) == 1
     assert edges[0].source_node_id == node.node_id
     assert edges[0].target_node_type == CheckerGraphNode.NODE_TYPE
+
+
+class _AspectCtxProbeParams(BaseParams):
+    token: str = Field(default="x")
+
+
+class _RegularAspectWithCtx(AspectIntent):
+    @regular_aspect("Step")
+    @context_requires(Ctx.Request.trace_id, Ctx.User.user_id)
+    async def step_aspect(
+        self,
+        params: _AspectCtxProbeParams,
+        state: BaseState,
+        box: Any,
+        connections: dict[str, BaseResource],
+        ctx: ContextView,
+    ) -> dict[str, str]:
+        return {}
+
+
+def test_regular_aspect_graph_node_materializes_required_context_companions() -> None:
+    node = RegularAspectGraphNode(_RegularAspectWithCtx.step_aspect, _RegularAspectWithCtx)
+    assert not node.checker_edges
+    assert len(node.required_context_edges) == 2
+    assert node.get_required_context_keys() == frozenset(
+        {"request.trace_id", "user.user_id"},
+    )
+    host = TypeIntrospection.full_qualname(_RegularAspectWithCtx)
+    assert [e.target_node_type for e in node.required_context_edges] == [
+        RequiredContextGraphNode.NODE_TYPE,
+        RequiredContextGraphNode.NODE_TYPE,
+    ]
+    tgts = []
+    for e in node.required_context_edges:
+        assert e.edge_name == "required_context"
+        assert e.target_node is not None
+        tgts.append((e.properties["key"], e.target_node.node_id))
+    assert sorted(tgts) == [
+        ("request.trace_id", f"{host}:step_aspect:reqctx:request.trace_id"),
+        ("user.user_id", f"{host}:step_aspect:reqctx:user.user_id"),
+    ]
+    assert len(node.get_companion_nodes()) == 2
+    assert all(isinstance(n, RequiredContextGraphNode) for n in node.get_companion_nodes())
 
 
 def test_summary_aspect_graph_node_interchange_shape() -> None:

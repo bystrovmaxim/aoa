@@ -39,6 +39,9 @@ Contains the full action-execution context system:
 - **ContextRequiresIntent** — marker mixin declaring support for
   ``@context_requires``. Inherited by ``BaseAction``.
 
+- **ContextRequiresResolver** — reads ``@context_requires`` keys from a callable
+  (bound or unbound); returns a sorted ``list[str]``.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
@@ -113,10 +116,14 @@ from action_machine.context.runtime_info import RuntimeInfo
 from action_machine.context.user_info import UserInfo
 from action_machine.intents.context_requires.context_requires_decorator import context_requires
 from action_machine.intents.context_requires.context_requires_intent import ContextRequiresIntent
+from action_machine.intents.context_requires.context_requires_resolver import (
+    ContextRequiresResolver,
+)
 
 __all__ = [
     "Context",
     "ContextRequiresIntent",
+    "ContextRequiresResolver",
     "ContextView",
     "Ctx",
     "RequestInfo",
