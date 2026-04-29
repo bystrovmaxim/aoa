@@ -38,8 +38,8 @@ import time
 from typing import Any, cast
 
 from action_machine.context.context_view import ContextView
-from action_machine.legacy.compensate_intent_inspector import (
-    CompensateIntentInspector,
+from action_machine.intents.context_requires.context_requires_resolver import (
+    ContextRequiresResolver,
 )
 from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.scoped_logger import ScopedLogger
@@ -123,14 +123,20 @@ class SagaCoordinator:
             if frame.compensator is None:
                 skipped += 1
                 continue
-            comp_meta: CompensateIntentInspector.Snapshot.Compensator = frame.compensator
+            comp_node = frame.compensator
+            compensator_name = comp_node.label
+            method_ref = cast(Any, comp_node.node_obj)
+            context_keys = frozenset(
+                ContextRequiresResolver.resolve_required_context_keys(comp_node.node_obj),
+            )
+
             await plugin_ctx.emit_event(
                 BeforeCompensateAspectEvent(
                     **base_fields,
                     aspect_name=frame.aspect_name,
                     state_snapshot=None,
                     error=error,
-                    compensator_name=comp_meta.method_name,
+                    compensator_name=compensator_name,
                     compensator_state_before=frame.state_before,
                     compensator_state_after=frame.state_after,
                 ),
@@ -145,7 +151,7 @@ class SagaCoordinator:
                     machine_name=self._plugin_emit.machine_class_name,
                     mode=self._plugin_emit.mode,
                     action_name=action.get_full_class_name(),
-                    aspect_name=comp_meta.method_name,
+                    aspect_name=compensator_name,
                     context=context,
                     state=(
                         frame.state_before
@@ -163,9 +169,8 @@ class SagaCoordinator:
                     nested_level=box.nested_level,
                     rollup=box.rollup,
                 )
-                if comp_meta.context_keys:
-                    ctx_view = ContextView(context, comp_meta.context_keys)
-                    method_ref = cast(Any, comp_meta.method_ref)
+                if context_keys:
+                    ctx_view = ContextView(context, context_keys)
                     await method_ref(
                         action,
                         params,
@@ -177,7 +182,6 @@ class SagaCoordinator:
                         ctx_view,
                     )
                 else:
-                    method_ref = cast(Any, comp_meta.method_ref)
                     await method_ref(
                         action,
                         params,
@@ -194,7 +198,7 @@ class SagaCoordinator:
                         aspect_name=frame.aspect_name,
                         state_snapshot=None,
                         error=error,
-                        compensator_name=comp_meta.method_name,
+                        compensator_name=compensator_name,
                         duration_ms=duration * 1000,
                     ),
                     **plugin_kwargs,
@@ -208,7 +212,7 @@ class SagaCoordinator:
                         state_snapshot=None,
                         original_error=error,
                         compensator_error=comp_error,
-                        compensator_name=comp_meta.method_name,
+                        compensator_name=compensator_name,
                         failed_for_aspect=frame.aspect_name,
                     ),
                     **plugin_kwargs,
