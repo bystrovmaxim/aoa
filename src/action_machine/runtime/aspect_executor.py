@@ -40,7 +40,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 import time
-from typing import Any, Protocol
+from typing import Any
 
 from action_machine.context.context_view import ContextView
 from action_machine.exceptions import ValidationFieldError
@@ -156,23 +156,19 @@ class AspectExecutor:
         box: ToolsBox,
         connections: dict[str, BaseResource],
         context: Any,
-        runtime: _RuntimeLike,
+        runtime: Any,
         saga_stack: list[SagaFrame],
     ) -> tuple[BaseState, dict[str, Any], float]:
         """Execute one regular aspect with checker validation and state merge."""
+        _ = runtime
         state_before = state
         aspect_start = time.time()
-        compensator = (
-            runtime.compensators_by_aspect.get(aspect_node.label)
-            if compensator_node is not None
-            else None
-        )
         saga_frame_index: int | None = None
-        if compensator is not None:
+        if compensator_node is not None:
             saga_frame_index = len(saga_stack)
             saga_stack.append(
                 SagaFrame(
-                    compensator=compensator,
+                    compensator=compensator_node,
                     aspect_name=aspect_node.label,
                     state_before=state_before,
                     state_after=None,
@@ -198,7 +194,7 @@ class AspectExecutor:
         merged_state = BaseState(**{**state.to_dict(), **new_state_dict})
         if saga_frame_index is not None:
             saga_stack[saga_frame_index] = SagaFrame(
-                compensator=compensator,
+                compensator=compensator_node,
                 aspect_name=aspect_node.label,
                 state_before=state_before,
                 state_after=merged_state,
@@ -254,8 +250,3 @@ class AspectExecutor:
             source=f"summary aspect `{summary_node.label}`",
         )
         return result, (time.time() - summary_start)
-
-
-class _RuntimeLike(Protocol):
-    @property
-    def compensators_by_aspect(self) -> dict[str, Any]: ...

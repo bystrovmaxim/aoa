@@ -6,7 +6,7 @@ Saga compensation stack frame.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Each regular aspect with a compensator snapshot contributes one ``SagaFrame``
+Each regular aspect with a compensator graph node contributes one ``SagaFrame``
 before its ``call()`` starts. The initial frame has ``state_after=None`` so a
 mid-call exception can still be compensated. Once the call returns, the executor
 replaces the immutable frame with one carrying merged ``state_after`` before
@@ -38,7 +38,7 @@ ARCHITECTURE / DATA FLOW
 Frame stores only aspect-unique rollback data:
 - ``state_before``: state before aspect call
 - ``state_after``: state after aspect call (or ``None`` when the call did not finish)
-- ``compensator``: compensator metadata (required for pushed frames; stack holds only actionable undo)
+- ``compensator``: compensator graph node (required for pushed frames; stack holds only actionable undo)
 - ``aspect_name``: aspect identifier for diagnostics/events
 
 Pipeline-common values (params, connections, context, box) are passed to
@@ -52,8 +52,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from action_machine.legacy.compensate_intent_inspector import (
-        CompensateIntentInspector,
+    from action_machine.model.graph_model.compensator_graph_node import (
+        CompensatorGraphNode,
     )
 
 
@@ -66,7 +66,7 @@ class SagaFrame:
     flows to saga coordinator.
     """
 
-    compensator: CompensateIntentInspector.Snapshot.Compensator | None
+    compensator: CompensatorGraphNode | None
     aspect_name: str
     state_before: object  # BaseState frozen instance
     state_after: object | None  # BaseState | None frozen instance
