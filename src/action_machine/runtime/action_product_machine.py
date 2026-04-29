@@ -387,6 +387,7 @@ AI-CORE-BEGIN
         runtime: _ActionExecutionCache,
         plugin_ctx: PluginRunContext,
         saga_stack: list[SagaFrame],
+        action_graph_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> BaseState:
         """Run regular aspects: plugin events + ``AspectExecutor.execute_regular``.
 
@@ -396,11 +397,14 @@ AI-CORE-BEGIN
         """
         state = BaseState()
         regular_aspects = runtime.regular_aspects
+        regular_aspects_nodes = action_graph_node.get_aspect_graph_nodes()
+        facet_meta_by_method_name = {meta.method_name: meta for meta in regular_aspects}
 
         # Local compensation stack for this pipeline (empty when rollup=True).
         build_saga = runtime.has_compensators
 
-        for aspect_meta in regular_aspects:
+        for aspect_node in regular_aspects_nodes:
+            aspect_meta = facet_meta_by_method_name[aspect_node.label]
             state_passed_into_aspect = state
             try:
                 await self._plugin_emit.emit_before_regular_aspect(
@@ -529,6 +533,7 @@ AI-CORE-BEGIN
         context: Context,
         runtime: _ActionExecutionCache,
         plugin_ctx: PluginRunContext,
+        action_graph_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> R:
         """Run regular and summary aspects; on failure, unwind saga then handle error."""
         saga_stack: list[SagaFrame] = []
@@ -537,8 +542,7 @@ AI-CORE-BEGIN
 
         try:
             state = await self._execute_regular_aspects(
-                action, params, box, connections, context, runtime, plugin_ctx,
-                saga_stack,
+                action, params, box, connections, context, runtime, plugin_ctx, saga_stack, action_graph_node,
             )
 
             summary_meta = runtime.summary_aspect
@@ -715,7 +719,7 @@ AI-CORE-BEGIN
         )
 
         result = await self._execute_aspects_with_error_handling(
-            action, params, box, conns, context, runtime, plugin_ctx,
+            action, params, box, conns, context, runtime, plugin_ctx, runtime.action_node
         )
 
         total_duration = time.time() - start_time
