@@ -24,12 +24,8 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "CheckRolesIntent": ("action_machine.intents.check_roles.check_roles_intent", "CheckRolesIntent"),
     "CheckerIntent": ("action_machine.intents.checkers.checker_intent", "CheckerIntent"),
     "CheckerFacetSnapshot": (
-        "action_machine.intents.checkers.checker_facet",
+        "action_machine.testing.checker_facet_snapshot",
         "CheckerFacetSnapshot",
-    ),
-    "hydrate_checker_row": (
-        "action_machine.intents.checkers.checker_facet",
-        "hydrate_checker_row",
     ),
     "CompensateIntent": ("action_machine.intents.compensate.compensate_intent", "CompensateIntent"),
     "CompensateIntentInspector": (

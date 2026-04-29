@@ -16,8 +16,8 @@ ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     Fixture ``coordinator`` mirrors :meth:`Core.create_coordinator` graph; checker
-    metadata for validation is read via :func:`facet_snapshot_for_checkers
-    <action_machine.intents.checkers.checker_facet.facet_snapshot_for_checkers>`.
+    rows mirror :func:`~action_machine.testing.bench._checker_rows_from_action_class`
+    when the coordinator has no ``"checker"`` facet snapshot.
               |
               v
     aspect + checker snapshots (via get_snapshot)
@@ -39,7 +39,8 @@ INVARIANTS
 
 import pytest
 
-from action_machine.intents.checkers.checker_facet import facet_snapshot_for_checkers
+from action_machine.testing.bench import _checker_rows_from_action_class
+from action_machine.testing.checker_facet_snapshot import CheckerFacetSnapshot
 from action_machine.testing.state_validator import (
     StateValidationError,
     validate_state_for_aspect,
@@ -67,7 +68,8 @@ def _coord_aspects(c: GraphCoordinator, cls: type):
 
 
 def _coord_checkers_for_aspect(_c: GraphCoordinator, cls: type):
-    snap = facet_snapshot_for_checkers(cls)
+    chk = _checker_rows_from_action_class(cls)
+    snap = CheckerFacetSnapshot(class_ref=cls, checkers=chk) if chk else None
     rows = getattr(snap, "checkers", ()) if snap is not None else ()
     return lambda n: tuple(x for x in rows if x.method_name == n)
 
