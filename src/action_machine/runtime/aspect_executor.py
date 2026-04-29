@@ -49,7 +49,6 @@ from action_machine.legacy.binding.action_result_binding import (
     bind_pipeline_result_to_action,
     synthetic_summary_result_when_missing_aspect,
 )
-from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
 from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
@@ -57,6 +56,7 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
+from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.resources.base_resource import BaseResource
@@ -79,16 +79,22 @@ class AspectExecutor:
         self._mode = mode
 
     @staticmethod
-    def _apply_checkers(
-        checkers: tuple[CheckerIntentInspector.Snapshot.Checker, ...],
+    def _apply_checker_graph_nodes(
+        checker_nodes: list[CheckerGraphNode],
         result: dict[str, Any],
     ) -> None:
-        """Run checker instances against a regular-aspect state patch."""
-        for checker_meta in checkers:
-            checker_instance = checker_meta.checker_class(
-                checker_meta.field_name,
-                required=checker_meta.required,
-                **checker_meta.extra_params,
+        """Run checker instances from interchange vertices against a regular-aspect state patch."""
+        for cn in checker_nodes:
+            payload = cn.node_obj
+            extras = {
+                k: v
+                for k, v in payload.properties.items()
+                if k not in ("TypeChecker", "required")
+            }
+            checker_instance = payload.checker_class(
+                payload.field_name,
+                required=payload.required,
+                **extras,
             )
             checker_instance.check(result)
 
@@ -170,7 +176,6 @@ class AspectExecutor:
                 f"got {type(new_state_dict).__name__}"
             )
 
-        checkers = runtime.checkers_by_aspect.get(aspect_node.label, ())
         checker_nodes = aspect_node.get_checker_graph_nodes()
 
         def _append_checker_rejected_frame() -> None:
@@ -188,21 +193,21 @@ class AspectExecutor:
             )
 
         try:
-            if not checkers and new_state_dict:
+            if not checker_nodes and new_state_dict:
                 raise ValidationFieldError(
                     f"Aspect {aspect_node.label} has no checkers, "
                     f"but returned non-empty state: {new_state_dict}. "
                     f"Either add checkers for all fields, or return an empty dict."
                 )
-            if checkers:
-                allowed_fields = {c.field_name for c in checkers}
+            if checker_nodes:
+                allowed_fields = {cn.label for cn in checker_nodes}
                 extra_fields = set(new_state_dict.keys()) - allowed_fields
                 if extra_fields:
                     raise ValidationFieldError(
                         f"Aspect {aspect_node.label} returned extra fields: "
                         f"{extra_fields}. Allowed only: {allowed_fields}"
                     )
-                self._apply_checkers(checkers, new_state_dict)
+                self._apply_checker_graph_nodes(checker_nodes, new_state_dict)
         except ValidationFieldError:
             _append_checker_rejected_frame()
             raise
@@ -256,11 +261,6 @@ class AspectExecutor:
 
 
 class _RuntimeLike(Protocol):
-    @property
-    def checkers_by_aspect(
-        self,
-    ) -> dict[str, tuple[CheckerIntentInspector.Snapshot.Checker, ...]]: ...
-
     @property
     def has_compensators(self) -> bool: ...
 
