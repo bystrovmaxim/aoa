@@ -9,6 +9,10 @@ PURPOSE
 Provide a dedicated component for aspect execution in machine orchestration.
 This component owns regular/summary execution paths, including
 ``context_requires`` handling, checker validation, and immutable state merge.
+``execute_regular`` and ``execute_summary`` share ``call_aspect`` as the sole
+aspect-method dispatcher (facet ``AspectIntentInspector`` only; not compensators
+or saga rollback).
+
 Logging metadata (``LogCoordinator``, ``mode``, ``machine_class_name``) is
 injected at construction so aspect calls stay decoupled from machine internals.
 
@@ -23,21 +27,21 @@ ARCHITECTURE / DATA FLOW
         ├── AspectExecutor(log_coordinator, machine_class_name, mode)
         │
         ├── execute_regular(...)
-        │       ├── call(...)
+        │       ├── call_aspect(...)
         │       ├── checker application (on failure: saga frame with
         │       │       state_after=None, then raise)
         │       ├── state merge
         │       └── optional saga frame append (state_after=merged)
         │
         └── execute_summary(...)
-                └── call(...)
+                └── call_aspect(...)
 
 """
 
 from __future__ import annotations
 
 import time
-from typing import Any, Protocol, cast
+from typing import Any, Protocol
 
 from action_machine.context.context_view import ContextView
 from action_machine.exceptions import ValidationFieldError
@@ -60,7 +64,7 @@ from action_machine.runtime.tools_box import ToolsBox
 
 
 class AspectExecutor:
-    """Component owning regular/summary aspect execution behavior."""
+    """Regular and summary pipelines; shared primitive ``call_aspect`` invokes only facet aspect methods."""
 
     def __init__(
         self,
@@ -87,10 +91,10 @@ class AspectExecutor:
             )
             checker_instance.check(result)
 
-    async def call(
+    async def call_aspect(
         self,
         *,
-        aspect_meta: AspectIntentInspector.Snapshot.Aspect | None,
+        aspect_meta: AspectIntentInspector.Snapshot.Aspect,
         action: BaseAction[Any, Any],
         params: BaseParams,
         state: BaseState,
@@ -98,10 +102,13 @@ class AspectExecutor:
         connections: dict[str, BaseResource],
         context: Any,
     ) -> Any:
-        """Call one aspect preserving ContextView and per-aspect logging."""
-        if aspect_meta is None:
-            return BaseResult()
+        """
+        Shared primitive: invoke one regular or summary aspect callable only.
 
+        Not for compensators, saga rollback, ``@on_error``, or non-aspect hooks.
+        Wraps ``aspect_meta.method_ref`` with per-aspect ``ScopedLogger``,
+        ``ToolsBox``, and optional ``ContextView`` when ``context_keys`` is set.
+        """
         aspect_log = ScopedLogger(
             coordinator=self._log_coordinator,
             nest_level=box.nested_level,
@@ -124,14 +131,13 @@ class AspectExecutor:
         )
         if aspect_meta.context_keys:
             ctx_view = ContextView(context, aspect_meta.context_keys)
-            method_ref = cast(Any, aspect_meta.method_ref)
-            return await method_ref(
+            return await aspect_meta.method_ref(
                 action, params, state, aspect_box, connections, ctx_view,
             )
-        method_ref = cast(Any, aspect_meta.method_ref)
-        return await method_ref(
-            action, params, state, aspect_box, connections,
-        )
+        else:
+            return await aspect_meta.method_ref(
+                action, params, state, aspect_box, connections,
+            )
 
     async def execute_regular(
         self,
@@ -149,7 +155,7 @@ class AspectExecutor:
         """Execute one regular aspect with checker validation and state merge."""
         state_before = state
         aspect_start = time.time()
-        new_state_dict = await self.call(
+        new_state_dict = await self.call_aspect(
             aspect_meta=aspect_meta,
             action=action,
             params=params,
@@ -231,7 +237,7 @@ class AspectExecutor:
         if summary_meta is None:
             return synthetic_summary_result_when_missing_aspect(action_cls), 0.0
         summary_start = time.time()
-        raw = await self.call(
+        raw = await self.call_aspect(
             aspect_meta=summary_meta,
             action=action,
             params=params,

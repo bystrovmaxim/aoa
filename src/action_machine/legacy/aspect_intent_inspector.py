@@ -32,7 +32,9 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.legacy.interchange_vertex_labels import (
@@ -114,7 +116,7 @@ AI-CORE-BEGIN
             method_name: str
             aspect_type: str
             description: str
-            method_ref: object
+            method_ref: Callable[..., Any]
             context_keys: frozenset[str]
 
         class_ref: type

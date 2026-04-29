@@ -1,53 +1,15 @@
 # src/action_machine/context/context_view.py
 """
-ContextView — frozen object with controlled context-field access.
+ContextView — least-privilege read access to ``Context`` for ``@context_requires``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``ContextView`` is a mediator between aspect code and full ``Context``.
-Runtime (``ActionProductMachine``) creates it for each aspect/error-handler call
-that declares ``@context_requires``. It receives full ``Context`` plus
-frozenset of allowed keys. Public method ``get(key)`` checks key membership in
-allowed set and delegates value resolution to ``context.resolve(key)``.
-
-═══════════════════════════════════════════════════════════════════════════════
-LEAST-PRIVILEGE PRINCIPLE
-═══════════════════════════════════════════════════════════════════════════════
-
-Aspect gets access only to fields explicitly declared via
-``@context_requires``. Accessing any other field immediately raises
-``ContextAccessError``. This:
-
-- makes context dependencies explicit in code;
-- prevents accidental reads of sensitive fields;
-- simplifies testing: only requested fields must be prepared.
-
-═══════════════════════════════════════════════════════════════════════════════
-FROZEN OBJECT
-═══════════════════════════════════════════════════════════════════════════════
-
-ContextView is fully immutable:
-- ``__setattr__`` raises ``AttributeError`` (except initialization through
-  ``object.__setattr__``).
-- ``__delattr__`` raises ``AttributeError``.
-- No mutation methods are exposed.
-- ``__slots__`` is intentionally not used because custom ``__setattr__`` +
-  ``__slots__`` makes static analysis around ``object.__setattr__`` harder.
-  Class-level annotations are used instead.
-
-This guarantees that aspect code cannot accidentally mutate context view state.
-
-═══════════════════════════════════════════════════════════════════════════════
-CUSTOM FIELDS
-═══════════════════════════════════════════════════════════════════════════════
-
-``UserInfo``, ``RequestInfo``, and ``RuntimeInfo`` may be extended by
-inheritance with extra fields. ``ContextView`` does not validate key existence
-at creation time — it validates only key membership in ``allowed_keys``.
-Value resolution is delegated to ``context.resolve()`` with dot-path traversal.
-If field does not exist, ``resolve()`` returns ``None``.
+Holds full ``Context`` plus a frozenset of allowed dot-path keys. ``get(key)``
+delegates to ``context.resolve(key)`` when allowed; any other key raises
+``ContextAccessError``. Immutable after construction. Missing paths resolve to
+``None`` (membership in ``allowed_keys`` is checked, not whether the path exists).
 
 """
 

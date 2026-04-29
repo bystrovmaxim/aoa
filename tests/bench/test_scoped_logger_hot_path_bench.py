@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Anchor evidence that per-aspect ``ScopedLogger`` allocation (mirrors
-``AspectExecutor.call``) is cheap relative to typical service work. Counters
+``AspectExecutor.call_aspect``) is cheap relative to typical service work. Counters
 claims that "N aspects × RPS" object counts alone imply a bottleneck: raw
 construction throughput stays in the sub-millisecond range for thousands of
 instances on CI-class hardware.
