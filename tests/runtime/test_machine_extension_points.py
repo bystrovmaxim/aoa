@@ -130,7 +130,7 @@ class _AspectExecutorFake:
     async def execute_summary(
         self,
         *,
-        summary_meta,
+        summary_node,
         action,
         params,
         state,
@@ -138,7 +138,7 @@ class _AspectExecutorFake:
         connections,
         context,
     ) -> tuple[BaseResult, float]:
-        _ = (summary_meta, action, params, state, box, connections, context)
+        _ = (summary_node, action, params, state, box, connections, context)
         self.summary_called += 1
         return PingAction.Result(message="fake"), 0.0
 

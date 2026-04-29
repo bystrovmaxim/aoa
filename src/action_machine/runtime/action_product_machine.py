@@ -396,15 +396,10 @@ AI-CORE-BEGIN
         ``_execute_aspects_with_error_handling``.
         """
         state = BaseState()
-        regular_aspects = runtime.regular_aspects
-        regular_aspects_nodes = action_graph_node.get_aspect_graph_nodes()
-        facet_meta_by_method_name = {meta.method_name: meta for meta in regular_aspects}
-
         # Local compensation stack for this pipeline (empty when rollup=True).
         build_saga = runtime.has_compensators
 
-        for aspect_node in regular_aspects_nodes:
-            aspect_meta = facet_meta_by_method_name[aspect_node.label]
+        for aspect_node in action_graph_node.get_regular_aspect_graph_nodes():
             state_passed_into_aspect = state
             try:
                 await self._plugin_emit.emit_before_regular_aspect(
@@ -413,7 +408,7 @@ AI-CORE-BEGIN
                     context=context,
                     params=params,
                     nest_level=box.nested_level,
-                    aspect_name=aspect_meta.method_name,
+                    aspect_name=aspect_node.label,
                     state_snapshot=state_passed_into_aspect.to_dict(),
                 )
             except Exception as exc:
@@ -422,7 +417,7 @@ AI-CORE-BEGIN
             try:
                 state, new_state_dict, aspect_duration = (
                     await self._aspect_executor.execute_regular(
-                        aspect_meta=aspect_meta,
+                        aspect_node=aspect_node,
                         action=action,
                         params=params,
                         state=state_passed_into_aspect,
@@ -443,7 +438,7 @@ AI-CORE-BEGIN
                     context=context,
                     params=params,
                     nest_level=box.nested_level,
-                    aspect_name=aspect_meta.method_name,
+                    aspect_name=aspect_node.label,
                     state_snapshot=state.to_dict(),
                     aspect_result=new_state_dict,
                     duration_ms=aspect_duration * 1000,
@@ -545,8 +540,8 @@ AI-CORE-BEGIN
                 action, params, box, connections, context, runtime, plugin_ctx, saga_stack, action_graph_node,
             )
 
-            summary_meta = runtime.summary_aspect
-            summary_name = summary_meta.method_name if summary_meta else "summary"
+            summary_node = action_graph_node.get_summary_aspect_graph_node()
+            summary_name = summary_node.label if summary_node is not None else "summary"
             failed_aspect_name = summary_name
             state_passed_into_summary = state
 
@@ -565,7 +560,7 @@ AI-CORE-BEGIN
 
             try:
                 result, summary_duration = await self._aspect_executor.execute_summary(
-                    summary_meta=summary_meta,
+                    summary_node=summary_node,
                     action=action,
                     params=params,
                     state=state_passed_into_summary,

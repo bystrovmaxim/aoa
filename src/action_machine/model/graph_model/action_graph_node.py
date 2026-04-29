@@ -128,7 +128,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 keys.add(raw.strip())
         return frozenset(keys)
 
-    def get_aspect_graph_nodes(self) -> list[RegularAspectGraphNode]:
+    def get_regular_aspect_graph_nodes(self) -> list[RegularAspectGraphNode]:
         """Interchange vertices for ``@regular_aspect`` methods, in composition edge order."""
         out: list[RegularAspectGraphNode] = []
         for edge in self.regular_aspect_edges:
@@ -136,6 +136,14 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 continue
             out.append(cast(RegularAspectGraphNode, edge.target_node))
         return out
+
+    def get_summary_aspect_graph_node(self) -> SummaryAspectGraphNode | None:
+        """Interchange vertex for ``@summary_aspect`` if declared; at most one."""
+        for edge in self.summary_aspect_edges:
+            if edge.target_node is None:
+                continue
+            return cast(SummaryAspectGraphNode, edge.target_node)
+        return None
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         return [
