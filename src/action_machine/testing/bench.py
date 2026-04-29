@@ -140,6 +140,7 @@ from unittest.mock import Mock
 from action_machine.auth.base_role import BaseRole
 from action_machine.context.context import Context
 from action_machine.context.context_view import ContextView
+from action_machine.intents.checkers.checker_facet import facet_snapshot_for_checkers
 from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
@@ -201,6 +202,8 @@ def _checkers_for_aspect_name(
     method_name: str,
 ) -> tuple[Any, ...]:
     snap = coordinator.get_snapshot(action_cls, "checker")
+    if snap is None or not hasattr(snap, "checkers"):
+        snap = facet_snapshot_for_checkers(action_cls)
     if snap is None or not hasattr(snap, "checkers"):
         return ()
     return tuple(c for c in snap.checkers if c.method_name == method_name)

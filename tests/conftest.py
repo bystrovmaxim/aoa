@@ -81,10 +81,10 @@ from .scenarios.domain_model.services import (
 
 @pytest.fixture
 def coordinator() -> GraphCoordinator:
-    """Built coordinator with default inspectors plus checker (needed for bench state validation)."""
-    from tests.graph_contract.facet_vertex_probe import built_coordinator_with_checker_inspector
+    """Built coordinator with default inspectors (same graph as production helpers)."""
+    from action_machine.legacy.core import Core
 
-    return built_coordinator_with_checker_inspector()
+    return Core.create_coordinator()
 
 
 @pytest.fixture

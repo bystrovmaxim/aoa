@@ -40,7 +40,7 @@ ARCHITECTURE / DATA FLOW
     method._checker_meta entries
             |
             v
-    CheckerIntentInspector collection
+    graph / facet rows from ``_checker_meta``
             |
             v
     require_checker_intent_marker(...)

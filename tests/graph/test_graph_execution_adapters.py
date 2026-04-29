@@ -9,8 +9,7 @@ from action_machine.context.ctx_constants import Ctx
 from action_machine.intents.aspects.aspect_intent import AspectIntent
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.checkers.checker_intent import CheckerIntent
-from action_machine.intents.checkers.result_string_decorator import result_string
+from action_machine.intents.checkers.checker_facet import hydrate_checker_row
 from action_machine.intents.compensate.compensate_decorator import compensate
 from action_machine.intents.context_requires.context_requires_decorator import context_requires
 from action_machine.intents.on_error.on_error_decorator import on_error
@@ -18,10 +17,6 @@ from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 from action_machine.legacy.aspect_intent_inspector import (
     AspectIntentInspector,
     hydrate_aspect_row,
-)
-from action_machine.legacy.checker_intent_inspector import (
-    CheckerIntentInspector,
-    hydrate_checker_row,
 )
 from action_machine.legacy.compensate_intent_inspector import (
     CompensateIntentInspector,
@@ -49,13 +44,6 @@ class _RoundtripAspectAction(AspectIntent):
     @context_requires(Ctx.User.user_id)
     async def build_result_summary(self, params, state, box, connections, ctx):
         return {}
-
-
-class _RoundtripCheckerAction(CheckerIntent, AspectIntent):
-    @regular_aspect("Roundtrip")
-    @result_string("f", required=False, min_length=1)
-    async def only_aspect(self, params, state, box, connections):
-        return {"f": "x"}
 
 
 class _RoundtripCompensateAction(AspectIntent):
@@ -93,17 +81,6 @@ def test_aspect_row_roundtrip_matches_facet_snapshot() -> None:
     assert len(rows) == len(snap.aspects)
     for row, expected in zip(rows, snap.aspects, strict=True):
         assert hydrate_aspect_row(row) == expected
-
-
-def test_checker_row_roundtrip_matches_facet_snapshot() -> None:
-    snap = CheckerIntentInspector.facet_snapshot_for_class(_RoundtripCheckerAction)
-    assert snap is not None
-    produced = CheckerIntentInspector.inspect(_RoundtripCheckerAction)
-    assert isinstance(produced, list)
-    assert len(produced) == len(snap.checkers)
-    for payload, expected in zip(produced, snap.checkers, strict=True):
-        row = hydrate_checker_row(payload.node_meta)
-        assert row == expected
 
 
 def test_compensator_row_roundtrip_matches_facet_snapshot() -> None:

@@ -22,7 +22,7 @@ ARCHITECTURE / DATA FLOW
     method._checker_meta append
             |
             v
-    CheckerIntentInspector snapshot
+    ``CheckerGraphNode`` facet metadata
             |
             v
     runtime creates FieldInstanceChecker
