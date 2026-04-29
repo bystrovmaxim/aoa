@@ -104,8 +104,8 @@ class _AspectExecutorFake:
     async def execute_regular(
         self,
         *,
-        aspect_meta,
         action,
+        aspect_meta,
         params,
         state,
         box,
@@ -115,8 +115,8 @@ class _AspectExecutorFake:
         saga_stack: list[SagaFrame],
     ) -> tuple[BaseState, dict[str, Any], float]:
         _ = (
-            aspect_meta,
             action,
+            aspect_meta,
             params,
             box,
             connections,
