@@ -112,7 +112,6 @@ class _AspectExecutorFake:
         box,
         connections,
         context,
-        runtime,
         saga_stack: list[SagaFrame],
     ) -> tuple[BaseState, dict[str, Any], float]:
         _ = (
@@ -124,7 +123,6 @@ class _AspectExecutorFake:
             box,
             connections,
             context,
-            runtime,
             saga_stack,
         )
         self.regular_called += 1
