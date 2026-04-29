@@ -101,8 +101,8 @@ class AspectExecutor:
     async def call_aspect(
         self,
         *,
-        aspect_node: RegularAspectGraphNode | SummaryAspectGraphNode,
         action: BaseAction[Any, Any],
+        aspect_node: RegularAspectGraphNode | SummaryAspectGraphNode,
         params: BaseParams,
         state: BaseState,
         box: ToolsBox,
@@ -148,8 +148,8 @@ class AspectExecutor:
     async def execute_regular(
         self,
         *,
-        aspect_node: RegularAspectGraphNode,
         action: BaseAction[Any, Any],
+        aspect_node: RegularAspectGraphNode,
         params: BaseParams,
         state: BaseState,
         box: ToolsBox,
@@ -162,8 +162,8 @@ class AspectExecutor:
         state_before = state
         aspect_start = time.time()
         new_state_dict = await self.call_aspect(
-            aspect_node=aspect_node,
             action=action,
+            aspect_node=aspect_node,
             params=params,
             state=state,
             box=box,
@@ -244,8 +244,8 @@ class AspectExecutor:
             return synthetic_summary_result_when_missing_aspect(action_cls), 0.0
         summary_start = time.time()
         raw = await self.call_aspect(
-            aspect_node=summary_node,
             action=action,
+            aspect_node=summary_node,
             params=params,
             state=state,
             box=box,

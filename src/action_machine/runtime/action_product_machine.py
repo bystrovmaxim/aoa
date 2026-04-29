@@ -389,12 +389,7 @@ AI-CORE-BEGIN
         saga_stack: list[SagaFrame],
         action_graph_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> BaseState:
-        """Run regular aspects: plugin events + ``AspectExecutor.execute_regular``.
-
-        Mutates ``saga_stack`` in place when ``runtime.has_compensators`` and not rollup
-        (empty list passed otherwise). Aspect exceptions propagate to
-        ``_execute_aspects_with_error_handling``.
-        """
+        """Plugins and ``AspectExecutor.execute_regular`` per regular aspect; appends saga frames when ``runtime.has_compensators``."""
         state = BaseState()
         # Local compensation stack for this pipeline (empty when rollup=True).
         build_saga = runtime.has_compensators
@@ -417,8 +412,8 @@ AI-CORE-BEGIN
             try:
                 state, new_state_dict, aspect_duration = (
                     await self._aspect_executor.execute_regular(
-                        aspect_node=aspect_node,
                         action=action,
+                        aspect_node=aspect_node,
                         params=params,
                         state=state_passed_into_aspect,
                         box=box,

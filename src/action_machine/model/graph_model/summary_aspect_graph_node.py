@@ -54,4 +54,3 @@ class SummaryAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     def get_required_context_keys(self) -> frozenset[str]:
         """Declare ``@context_requires`` keys via resolver (same behaviour as runtime)."""
         return frozenset(ContextRequiresResolver.resolve_required_context_keys(self.node_obj))
-
