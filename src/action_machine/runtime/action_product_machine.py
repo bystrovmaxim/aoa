@@ -81,7 +81,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from action_machine.context.context import Context
 from action_machine.exceptions import (
@@ -114,14 +114,6 @@ from action_machine.runtime.tools_box import ToolsBox
 from action_machine.runtime.tools_box_factory import ToolsBoxFactory
 from action_machine.system_core import TypeIntrospection
 from graph.graph_coordinator import GraphCoordinator
-
-if TYPE_CHECKING:
-    from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
-    from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
-    from action_machine.legacy.compensate_intent_inspector import (
-        CompensateIntentInspector,
-    )
-    from action_machine.legacy.on_error_intent_inspector import OnErrorIntentInspector
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
@@ -158,23 +150,14 @@ def _role_spec_from_coordinator(action_cls: type, coordinator: GraphCoordinator)
 @dataclass(frozen=True)
 class _ActionExecutionCache:
     """
-    Frozen bundle of facet-derived pipeline metadata for one ``run`` / ``_run_internal``.
+    Frozen bundle of pipeline metadata for one ``run`` / ``_run_internal``.
 
-    Populated from ``get_snapshot`` for facet rows; ``action_node`` is supplied by the
-    caller (typically :class:`ActionGraphNode`). Inspector ``Snapshot`` row types apply
-    where relevant (see module INVARIANTS).
+    ``role_spec`` comes from the coordinator ``role`` facet; ``action_node``
+    is the materialized :class:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode`
+    (graph is source of truth for aspects, compensators, error handlers).
     """
 
     role_spec: Any
-    regular_aspects: tuple[AspectIntentInspector.Snapshot.Aspect, ...]
-    checkers_by_aspect: dict[str, tuple[CheckerIntentInspector.Snapshot.Checker, ...]]
-    has_compensators: bool
-    error_handlers: tuple[OnErrorIntentInspector.Snapshot.ErrorHandler, ...]
-    summary_aspect: AspectIntentInspector.Snapshot.Aspect | None
-    compensators_by_aspect: dict[
-        str,
-        CompensateIntentInspector.Snapshot.Compensator | None,
-    ]
     action_node: ActionGraphNode[BaseAction[Any, Any]]
 
     @classmethod
@@ -185,43 +168,9 @@ class _ActionExecutionCache:
         gate_coordinator: GraphCoordinator,
         action_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> _ActionExecutionCache:
-        """Build cache from facet snapshots (``get_snapshot``); ``action_node`` is passed in."""
-        asp_snap = gate_coordinator.get_snapshot(action_cls, "aspect")
-        aspects = getattr(asp_snap, "aspects", ()) if asp_snap is not None else ()
-        regular = tuple(a for a in aspects if a.aspect_type == "regular")
-        summary = next((a for a in aspects if a.aspect_type == "summary"), None)
-
-        ch_snap = gate_coordinator.get_snapshot(action_cls, "checker")
-        all_checkers = getattr(ch_snap, "checkers", ()) if ch_snap is not None else ()
-        checkers_by_aspect: dict[str, tuple[CheckerIntentInspector.Snapshot.Checker, ...]] = {}
-        for a in regular:
-            checkers_by_aspect[a.method_name] = tuple(
-                c for c in all_checkers if c.method_name == a.method_name
-            )
-
-        comp_snap = gate_coordinator.get_snapshot(action_cls, "compensator")
-        compensators = getattr(comp_snap, "compensators", ()) if comp_snap is not None else ()
-        compensators_by_aspect: dict[
-            str,
-            CompensateIntentInspector.Snapshot.Compensator | None,
-        ] = {}
-        for aspect in regular:
-            compensators_by_aspect[aspect.method_name] = next(
-                (c for c in compensators if c.target_aspect_name == aspect.method_name),
-                None,
-            )
-
-        eh_snap = gate_coordinator.get_snapshot(action_cls, "error_handler")
-        error_handlers = getattr(eh_snap, "error_handlers", ()) if eh_snap is not None else ()
-
+        """Build cache: ``role`` snapshot + caller-supplied ``action_node``."""
         return cls(
             role_spec=_role_spec_from_coordinator(action_cls, gate_coordinator),
-            regular_aspects=regular,
-            checkers_by_aspect=checkers_by_aspect,
-            has_compensators=len(compensators) > 0,
-            error_handlers=error_handlers,
-            summary_aspect=summary,
-            compensators_by_aspect=compensators_by_aspect,
             action_node=action_node,
         )
 
@@ -231,8 +180,8 @@ class ActionProductMachine(BaseActionMachine):
 AI-CORE-BEGIN
     ROLE: Public production machine entry point.
     CONTRACT: ``run`` → orchestrated pipeline; keyword-only component overrides.
-    INVARIANTS: built ``GraphCoordinator``; per-run execution cache from facet
-      snapshots plus ``ActionGraphNode`` for the action class.
+    INVARIANTS: built ``GraphCoordinator``; per-run cache with ``role_spec`` facet
+      and ``ActionGraphNode`` for the action class.
     AI-CORE-END
 """
 
@@ -356,7 +305,7 @@ AI-CORE-BEGIN
         )
 
     def _get_execution_cache(self, action_cls: type) -> _ActionExecutionCache:
-        """Frozen facet snapshots + ``ActionGraphNode`` for one ``_run_internal`` of ``action_cls``."""
+        """``role_spec`` facet + ``ActionGraphNode`` for one ``_run_internal`` of ``action_cls``."""
         return _ActionExecutionCache.from_coordinator_facets(
             action_cls,
             gate_coordinator=self._coordinator,

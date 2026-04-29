@@ -4,29 +4,13 @@ Test-only helpers: collect merged ``FacetVertex`` rows like ``GraphCoordinator.b
 
 Used by PR3-style tests to feed :mod:`graph.graph_builder`
 on a coordinator that mirrors :meth:`Core.create_coordinator` registration
-order **before** :meth:`GraphCoordinator.build`.
+order **before** :meth:`GraphCoordinator.build`. Checker facets for tests live in
+:class:`Core`'s separate :meth:`~Core.create_coordinator_with_checker_inspector`.
 """
 
 from __future__ import annotations
 
-from action_machine.legacy.application_context_inspector import ApplicationContextInspector
-from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
-from action_machine.legacy.checker_intent_inspector import CheckerIntentInspector
-from action_machine.legacy.compensate_intent_inspector import (
-    CompensateIntentInspector,
-)
-from action_machine.legacy.dependency_intent_inspector import DependencyIntentInspector
-from action_machine.legacy.described_fields.described_fields_intent_inspector import (
-    DescribedFieldsIntentInspector,
-)
-from action_machine.legacy.entity_intent_inspector import EntityIntentInspector
-from action_machine.legacy.meta_intent_inspector import MetaIntentInspector
-from action_machine.legacy.on_error_intent_inspector import OnErrorIntentInspector
-from action_machine.legacy.role_class_inspector import RoleClassInspector
-from action_machine.legacy.role_intent_inspector import RoleIntentInspector
-from action_machine.legacy.role_mode_intent_inspector import RoleModeIntentInspector
-from action_machine.legacy.sensitive_intent_inspector import SensitiveIntentInspector
-from action_machine.model.base_action import ActionTypedSchemasInspector
+from action_machine.legacy.core import Core
 from graph.facet_vertex import FacetVertex
 from graph.graph_coordinator import GraphCoordinator
 
@@ -36,23 +20,7 @@ def graph_coordinator_default_inspectors_registered() -> GraphCoordinator:
     Same fluent ``.register(...)`` chain as :meth:`Core.create_coordinator`,
     without calling :meth:`GraphCoordinator.build`.
     """
-    return (
-        GraphCoordinator()
-        .register(ApplicationContextInspector)
-        .register(MetaIntentInspector)
-        .register(RoleClassInspector)
-        .register(RoleIntentInspector)
-        .register(RoleModeIntentInspector)
-        .register(DependencyIntentInspector)
-        .register(DescribedFieldsIntentInspector)
-        .register(ActionTypedSchemasInspector)
-        .register(AspectIntentInspector)
-        .register(CheckerIntentInspector)
-        .register(OnErrorIntentInspector)
-        .register(CompensateIntentInspector)
-        .register(SensitiveIntentInspector)
-        .register(EntityIntentInspector)
-    )
+    return Core.register_default_inspectors(GraphCoordinator())
 
 
 def collect_merged_facet_vertices_unbuilt(coordinator: GraphCoordinator) -> list[FacetVertex]:

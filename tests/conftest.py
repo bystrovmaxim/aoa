@@ -82,8 +82,8 @@ from .scenarios.domain_model.services import (
 
 @pytest.fixture
 def coordinator() -> GraphCoordinator:
-    """Built coordinator with default inspector graph."""
-    return Core.create_coordinator()
+    """Built coordinator with default inspectors plus checker (needed for bench state validation)."""
+    return Core.create_coordinator_with_checker_inspector()
 
 
 @pytest.fixture

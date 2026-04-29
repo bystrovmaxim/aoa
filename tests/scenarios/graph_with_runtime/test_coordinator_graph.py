@@ -414,7 +414,7 @@ class TestAspectsAndCheckers:
 
     def test_checkers_create_nodes_and_edges(self):
         """Checkers create nodes and edges in a graph."""
-        coord = _new_coord()
+        coord = Core.create_coordinator_with_checker_inspector()
         coord.get_snapshot(_ActionWithCheckersAction, "meta")
         nodes = coord.get_nodes_by_type(CHECKER_VERTEX_TYPE)
         assert len(nodes) >= 1

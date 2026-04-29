@@ -15,7 +15,7 @@ predecessor rules, full rollup for summary, unknown aspect names, and
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    Core.create_coordinator()  ->  fixture ``coordinator``
+    Fixture ``coordinator`` (defaults + checker inspector)  ->  snapshots
               |
               v
     aspect + checker snapshots (via get_snapshot)
@@ -53,8 +53,8 @@ from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 @pytest.fixture()
 def coordinator() -> GraphCoordinator:
-    """Fresh GraphCoordinator that has scanned all domain actions."""
-    return Core.create_coordinator()
+    """Built coordinator with default inspectors plus checker (facet snapshots)."""
+    return Core.create_coordinator_with_checker_inspector()
 
 
 def _coord_aspects(c: GraphCoordinator, cls: type):

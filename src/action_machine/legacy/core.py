@@ -59,16 +59,14 @@ class Core:
     """Core factory for creating a fully built coordinator."""
 
     @staticmethod
-    def create_coordinator() -> GraphCoordinator:
-        """
-        Create a ``GraphCoordinator``, register all default inspectors, and build.
+    def register_default_inspectors(coordinator: GraphCoordinator) -> GraphCoordinator:
+        """Fluent ``.register(...)`` sequence used by ``create_coordinator`` (no ``build``).
 
-        Returns:
-            Built ``GraphCoordinator`` instance ready for snapshot reads.
+        Mirrors production defaults; callers may ``.register(...)`` extras (e.g. tests)
+        before :meth:`~graph.graph_coordinator.GraphCoordinator.build`.
         """
         return (
-            GraphCoordinator()
-            .register(ApplicationContextInspector)
+            coordinator.register(ApplicationContextInspector)
             .register(MetaIntentInspector)
             .register(RoleClassInspector)
             .register(RoleIntentInspector)
@@ -77,10 +75,31 @@ class Core:
             .register(DescribedFieldsIntentInspector)
             .register(ActionTypedSchemasInspector)
             .register(AspectIntentInspector)
-            .register(CheckerIntentInspector)
             .register(OnErrorIntentInspector)
             .register(CompensateIntentInspector)
             .register(SensitiveIntentInspector)
             .register(EntityIntentInspector)
-            .build()
         )
+
+    @staticmethod
+    def create_coordinator_with_checker_inspector() -> GraphCoordinator:
+        """Built coordinator: production defaults plus :class:`~action_machine.legacy.checker_intent_inspector.CheckerIntentInspector`.
+
+        Production :meth:`create_coordinator` omits checker registration; bench and
+        state-validator tests need checker facet snapshots.
+        """
+        return (
+            Core.register_default_inspectors(GraphCoordinator()).register(
+                CheckerIntentInspector,
+            ).build()
+        )
+
+    @staticmethod
+    def create_coordinator() -> GraphCoordinator:
+        """
+        Create a ``GraphCoordinator``, register all default inspectors, and build.
+
+        Returns:
+            Built ``GraphCoordinator`` instance ready for snapshot reads.
+        """
+        return Core.register_default_inspectors(GraphCoordinator()).build()
