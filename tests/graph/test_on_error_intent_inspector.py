@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from action_machine.context.ctx_constants import Ctx
-from action_machine.intents.context.context_requires_decorator import context_requires
+from action_machine.intents.context_requires.context_requires_decorator import context_requires
 from action_machine.intents.on_error.on_error_decorator import on_error
 from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 from action_machine.legacy.on_error_intent_inspector import (

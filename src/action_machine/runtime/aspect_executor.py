@@ -134,10 +134,9 @@ class AspectExecutor:
             return await aspect_meta.method_ref(
                 action, params, state, aspect_box, connections, ctx_view,
             )
-        else:
-            return await aspect_meta.method_ref(
-                action, params, state, aspect_box, connections,
-            )
+        return await aspect_meta.method_ref(
+            action, params, state, aspect_box, connections,
+        )
 
     async def execute_regular(
         self,

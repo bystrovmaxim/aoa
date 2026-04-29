@@ -1,4 +1,4 @@
-# tests/intents/context/test_context_view.py
+# tests/intents/context_requires/test_context_view.py
 """
 Tests for ContextView — frozen object with controlled access to context fields.
 

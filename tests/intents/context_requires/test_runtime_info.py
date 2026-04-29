@@ -1,4 +1,4 @@
-# tests/intents/context/test_runtime_info.py
+# tests/intents/context_requires/test_runtime_info.py
 """
 Tests for RuntimeInfo — execution environment metadata.
 

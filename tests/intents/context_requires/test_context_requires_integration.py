@@ -1,4 +1,4 @@
-# tests/intents/context/test_context_requires_integration.py
+# tests/intents/context_requires/test_context_requires_integration.py
 """Integration tests @context_requires - full run of Action through
 TestBench with testing of ContextView passing to aspects and error handlers.
 
@@ -33,7 +33,7 @@ from action_machine.intents.aspects.regular_aspect_decorator import regular_aspe
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles import NoneRole, check_roles
 from action_machine.intents.checkers import result_string
-from action_machine.intents.context.context_requires_decorator import context_requires
+from action_machine.intents.context_requires.context_requires_decorator import context_requires
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.intents.on_error import on_error
 from action_machine.model.base_action import BaseAction

@@ -1,4 +1,4 @@
-# src/action_machine/intents/context/context_requires_decorator.py
+# src/action_machine/intents/context_requires/context_requires_decorator.py
 """
 Decorator ``@context_requires`` — declare aspect access to context fields.
 

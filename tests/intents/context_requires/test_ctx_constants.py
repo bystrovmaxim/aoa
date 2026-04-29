@@ -1,4 +1,4 @@
-# tests/intents/context/test_ctx_constants.py
+# tests/intents/context_requires/test_ctx_constants.py
 """
 Tests for Ctx constants — string paths match UserInfo, RequestInfo, RuntimeInfo fields.
 

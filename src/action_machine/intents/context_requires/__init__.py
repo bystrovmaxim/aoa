@@ -1,4 +1,4 @@
-# src/action_machine/intents/context/__init__.py
+# src/action_machine/intents/context_requires/__init__.py
 """
 ActionMachine execution context package.
 
@@ -111,8 +111,8 @@ from action_machine.context.ctx_constants import Ctx
 from action_machine.context.request_info import RequestInfo
 from action_machine.context.runtime_info import RuntimeInfo
 from action_machine.context.user_info import UserInfo
-from action_machine.intents.context.context_requires_decorator import context_requires
-from action_machine.intents.context.context_requires_intent import ContextRequiresIntent
+from action_machine.intents.context_requires.context_requires_decorator import context_requires
+from action_machine.intents.context_requires.context_requires_intent import ContextRequiresIntent
 
 __all__ = [
     "Context",

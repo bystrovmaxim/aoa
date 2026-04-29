@@ -81,7 +81,7 @@ from action_machine.intents.check_roles.check_roles_intent import CheckRolesInte
 from action_machine.intents.checkers.checker_intent import CheckerIntent
 from action_machine.intents.compensate.compensate_intent import CompensateIntent
 from action_machine.intents.connection.connection_intent import ConnectionIntent
-from action_machine.intents.context.context_requires_intent import ContextRequiresIntent
+from action_machine.intents.context_requires.context_requires_intent import ContextRequiresIntent
 from action_machine.intents.depends.depends_eligible import DependsEligible
 from action_machine.intents.depends.depends_intent import DependsIntent
 from action_machine.intents.meta.meta_intent import MetaIntent
