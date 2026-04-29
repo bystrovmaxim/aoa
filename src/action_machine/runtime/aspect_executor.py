@@ -229,7 +229,7 @@ class AspectExecutor:
             raise
 
         merged_state = BaseState(**{**state.to_dict(), **new_state_dict})
-        if runtime.has_compensators:
+        if compensator_node is not None:
             compensator = runtime.compensators_by_aspect.get(aspect_node.label)
             if compensator is not None:
                 saga_stack.append(
