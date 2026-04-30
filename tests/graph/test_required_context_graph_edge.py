@@ -17,9 +17,13 @@ def test_required_context_graph_edge_matches_plain_composition_contract() -> Non
         _RegularAspectWithCtx,
         "request.trace_id",
     )
-    edge = RequiredContextGraphEdge(aspect_node=aspect, required_context_node=ctx_vertex)
+    edge = RequiredContextGraphEdge(
+        source_node_id=aspect.node_id,
+        source_node_type=aspect.node_type,
+        required_context_node=ctx_vertex,
+    )
     assert edge.edge_name == "required_context"
     assert edge.edge_relationship is COMPOSITION
     assert edge.properties["key"] == ctx_vertex.node_obj.context_key
     assert edge.target_node == ctx_vertex
-    assert edge.source_node == aspect
+    assert edge.source_node is None

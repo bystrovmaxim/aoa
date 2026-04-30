@@ -32,10 +32,10 @@ from action_machine.intents.context_requires.context_requires_resolver import (
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.composition_graph_edge import CompositionGraphEdge
 
 from .checker_graph_node import CheckerGraphNode
 from .edges.checker_graph_edge import CheckerGraphEdge
+from .edges.required_context_graph_edge import RequiredContextGraphEdge
 from .required_context_graph_node import RequiredContextGraphNode
 
 
@@ -44,24 +44,18 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a regular aspect callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``RegularAspect``; ``properties`` include ``description`` when ``RegularAspectIntentResolver.resolve_description(...)`` returns it; :attr:`checkers` (:class:`~action_machine.model.graph_model.edges.checker_graph_edge.CheckerGraphEdge` list) built via :meth:`~action_machine.model.graph_model.edges.checker_graph_edge.CheckerGraphEdge.edges_for_aspect`; :attr:`required_context` (:class:`~graph.composition_graph_edge.CompositionGraphEdge` list) and companion ``CheckerGraphNode`` / ``RequiredContextGraphNode`` rows from ``_checker_meta`` and ``@context_requires`` on ``aspect_func``. :meth:`get_required_context_keys` is the ``frozenset`` of ``properties['key']`` on edges in :attr:`required_context`.
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``RegularAspect``; ``properties`` include ``description`` when ``RegularAspectIntentResolver.resolve_description(...)`` returns it; :attr:`checkers` (:class:`~action_machine.model.graph_model.edges.checker_graph_edge.CheckerGraphEdge` list) built via :meth:`~action_machine.model.graph_model.edges.checker_graph_edge.CheckerGraphEdge.edges_for_aspect`; :attr:`required_context` (:class:`~action_machine.model.graph_model.edges.required_context_graph_edge.RequiredContextGraphEdge` list) and companion ``CheckerGraphNode`` / ``RequiredContextGraphNode`` rows from ``_checker_meta`` and ``@context_requires`` on ``aspect_func``. :meth:`get_required_context_keys` is the ``frozenset`` of ``properties['key']`` on edges in :attr:`required_context`.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "RegularAspect"
     checkers: list[CheckerGraphEdge]
-    required_context: list[CompositionGraphEdge]
+    required_context: list[RequiredContextGraphEdge]
 
     def __init__(self, aspect_func: Callable[..., Any], _action_cls: type[Any]) -> None:
         method_name = TypeIntrospection.unwrapped_callable_name(aspect_func)
         action_id = TypeIntrospection.full_qualname(_action_cls)
         node_id = f"{action_id}:{method_name}"
-        checkers = CheckerGraphEdge.edges_for_aspect(
-            aspect_func,
-            _action_cls,
-            node_id,
-            RegularAspectGraphNode.NODE_TYPE,
-        )
         req_ctx_rows = RegularAspectGraphNode._required_context_nodes_for_aspect(aspect_func, _action_cls)
         required_context = RegularAspectGraphNode._composition_edges_to_required_context(
             aspect_func, node_id, req_ctx_rows,
@@ -74,7 +68,7 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
             properties={"description": desc} if desc is not None else {},
             node_obj=aspect_func,
         )
-        object.__setattr__(self, "checkers", checkers)
+        object.__setattr__(self, "checkers", CheckerGraphEdge.edges_for_aspect(aspect_func, _action_cls, node_id, RegularAspectGraphNode.NODE_TYPE))
         object.__setattr__(self, "required_context", required_context)
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
@@ -119,18 +113,13 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
         _aspect_callable: Callable[..., Any],
         aspect_node_id: str,
         required_ctx: list[RequiredContextGraphNode],
-    ) -> list[CompositionGraphEdge]:
+    ) -> list[RequiredContextGraphEdge]:
         """``COMPOSITION`` edges: ``edge_name`` ``required_context``, dot-path key in ``properties['key']``."""
         return [
-            CompositionGraphEdge(
-                edge_name="required_context",
-                is_dag=False,
+            RequiredContextGraphEdge(
                 source_node_id=aspect_node_id,
                 source_node_type=RegularAspectGraphNode.NODE_TYPE,
-                target_node_id=rn.node_id,
-                target_node_type=RequiredContextGraphNode.NODE_TYPE,
-                target_node=rn,
-                properties={"key": rn.node_obj.context_key},
+                required_context_node=rn,
             )
             for rn in required_ctx
         ]
