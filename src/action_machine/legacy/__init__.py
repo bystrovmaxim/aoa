@@ -17,6 +17,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
         "action_machine.legacy.aspect_intent_inspector",
         "AspectIntentInspector",
     ),
+    "ActionTypedSchemasInspector": (
+        "action_machine.legacy.action_typed_schemas_inspector",
+        "ActionTypedSchemasInspector",
+    ),
     "hydrate_aspect_row": (
         "action_machine.legacy.aspect_intent_inspector",
         "hydrate_aspect_row",

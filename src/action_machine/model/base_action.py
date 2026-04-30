@@ -49,10 +49,9 @@ ARCHITECTURE — MARKER MIXINS
 Class-level decorators validate the marker immediately; method-level decorators
 are validated when the coordinator runs inspectors on the class.
 
-The graph inspector for ``BaseAction[P, R]`` schema bindings is
-:class:`ActionTypedSchemasInspector` at the end of this module (imports deferred
-until after ``BaseAction`` is defined to avoid cycles with
-:mod:`action_machine.legacy.binding.extract_action_params_result_types`).
+The legacy graph inspector for ``BaseAction[P, R]`` schema bindings is
+:class:`~action_machine.legacy.action_typed_schemas_inspector.ActionTypedSchemasInspector`
+(so :mod:`action_machine.model.base_action` avoids extractor imports at module tail).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -129,118 +128,3 @@ AI-CORE-BEGIN
     def get_full_class_name(self) -> str:
         """``module.qualname`` via :meth:`TypeIntrospection.full_qualname` (plugins, logging)."""
         return TypeIntrospection.full_qualname(self.__class__)
-
-
-# ---------------------------------------------------------------------------
-# Graph facet: ``BaseAction[P, R]`` → ``described_fields`` (registered by runtime)
-# Imports live here so :mod:`action_machine.legacy.binding.extract_action_params_result_types`
-# can import ``BaseAction`` above without a partially-initialized cycle.
-# ---------------------------------------------------------------------------
-
-# pylint: disable=wrong-import-order,wrong-import-position
-from dataclasses import dataclass  # noqa: E402
-
-from action_machine.legacy.binding.extract_action_params_result_types import (  # noqa: E402
-    extract_action_params_result_types,
-)
-from action_machine.legacy.described_fields.described_fields_intent_inspector import (  # noqa: E402
-    DescribedFieldsIntentInspector,
-)
-from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE  # noqa: E402
-from graph.base_facet_snapshot import BaseFacetSnapshot  # noqa: E402
-from graph.base_intent_inspector import BaseIntentInspector  # noqa: E402
-from graph.facet_edge import FacetEdge  # noqa: E402
-from graph.facet_vertex import FacetVertex  # noqa: E402
-# pylint: enable=wrong-import-order,wrong-import-position
-
-
-class ActionTypedSchemasInspector(BaseIntentInspector):
-    """
-AI-CORE-BEGIN
-    ROLE: Concrete inspector for action-to-schema graph mapping.
-    CONTRACT: Merged ``action`` payloads; snapshot storage key ``action_schemas``.
-    AI-CORE-END
-"""
-
-    _target_intent: type = BaseAction
-
-    @dataclass(frozen=True)
-    class Snapshot(BaseFacetSnapshot):
-        """Typed view: which schema classes an action uses."""
-
-        class_ref: type
-        params_type: type | None
-        result_type: type | None
-
-        def to_facet_vertex(self) -> FacetVertex:
-            edges: list[FacetEdge] = []
-            if self.params_type is not None:
-                p_nt, p_name = DescribedFieldsIntentInspector.facet_host_for_schema_type(
-                    self.params_type,
-                )
-                edges.append(
-                    FacetEdge(
-                        target_node_type=p_nt,
-                        target_name=p_name,
-                        edge_type="uses_params",
-                        is_structural=False,
-                        target_class_ref=self.params_type,
-                    ),
-                )
-            if self.result_type is not None:
-                r_nt, r_name = DescribedFieldsIntentInspector.facet_host_for_schema_type(
-                    self.result_type,
-                )
-                edges.append(
-                    FacetEdge(
-                        target_node_type=r_nt,
-                        target_name=r_name,
-                        edge_type="uses_result",
-                        is_structural=False,
-                        target_class_ref=self.result_type,
-                    ),
-                )
-            return FacetVertex(
-                node_type=ACTION_VERTEX_TYPE,
-                node_name=ActionTypedSchemasInspector._make_node_name(self.class_ref),
-                node_class=self.class_ref,
-                node_meta=ActionTypedSchemasInspector._make_meta(
-                    params_type=self.params_type,
-                    result_type=self.result_type,
-                ),
-                edges=tuple(edges),
-            )
-
-    @classmethod
-    def _subclasses_recursive(cls) -> list[type]:
-        return cls._collect_subclasses(cls._target_intent)
-
-    @classmethod
-    def inspect(cls, target_cls: type) -> FacetVertex | None:
-        p_type, r_type = extract_action_params_result_types(target_cls)
-        if p_type is None and r_type is None:
-            return None
-        return cls._build_payload(target_cls)
-
-    @classmethod
-    def facet_snapshot_for_class(cls, target_cls: type) -> Snapshot | None:
-        p_type, r_type = extract_action_params_result_types(target_cls)
-        if p_type is None and r_type is None:
-            return None
-        return cls.Snapshot(
-            class_ref=target_cls,
-            params_type=p_type,
-            result_type=r_type,
-        )
-
-    @classmethod
-    def facet_snapshot_storage_key(
-        cls, _target_cls: type, _payload: FacetVertex,
-    ) -> str:
-        return "action_schemas"
-
-    @classmethod
-    def _build_payload(cls, target_cls: type) -> FacetVertex:
-        snap = cls.facet_snapshot_for_class(target_cls)
-        assert snap is not None
-        return snap.to_facet_vertex()
