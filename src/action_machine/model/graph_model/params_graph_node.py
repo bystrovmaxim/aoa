@@ -62,6 +62,8 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
     property_edges: list[PropertyGraphEdge]
 
     def __init__(self, params_cls: type[TParams]) -> None:
+        # Deferred edge imports: loading `edges` from module top cycles via `edges.__init__`.
+        # pylint: disable=import-outside-toplevel
         from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
         from action_machine.model.graph_model.edges.property_graph_edge import PropertyGraphEdge
 
