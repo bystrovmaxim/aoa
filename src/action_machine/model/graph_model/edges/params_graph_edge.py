@@ -10,9 +10,7 @@ Centralize ``edge_name=\"params\"`` and aggregation semantics for edges whose ta
 is the declared params schema vertex. Resolves ``params`` type via
 :meth:`~action_machine.intents.action_schema.action_schema_intent_resolver.ActionSchemaIntentResolver.resolve_params_type`
 on ``action_cls``. Raises :exc:`~action_machine.exceptions.ParamsGraphEdgeResolutionError`
-when the params type cannot be resolved
-(unlike :meth:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode._get_params_edge`,
-which yields no edge in that case).
+when that resolver returns ``None``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

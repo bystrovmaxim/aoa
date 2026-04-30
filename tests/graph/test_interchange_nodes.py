@@ -33,6 +33,7 @@ from action_machine.model.base_state import BaseState
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
+from action_machine.model.graph_model.edges.params_graph_edge import ParamsGraphEdge
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.field_graph_node import FieldGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
@@ -246,16 +247,7 @@ def test_action_graph_node_links_and_helpers() -> None:
             source_node_type="Action",
             source_node=node,
         ),
-        AggregationGraphEdge(
-            edge_name="params",
-            is_dag=False,
-            source_node_id=host,
-            source_node_type="Action",
-            source_node=node,
-            target_node_id=params_id,
-            target_node_type="Params",
-            target_node=None,
-        ),
+        ParamsGraphEdge(PingAction, source_node_type="Action", source_node=node),
         AggregationGraphEdge(
             edge_name="result",
             is_dag=False,
@@ -283,15 +275,10 @@ def test_action_graph_node_links_and_helpers() -> None:
         source_node_type="Action",
         source_node=node,
     )
-    assert node.params_edge == AggregationGraphEdge(
-        edge_name="params",
-        is_dag=False,
-        source_node_id=host,
+    assert node.params_edge == ParamsGraphEdge(
+        PingAction,
         source_node_type="Action",
         source_node=node,
-        target_node_id=params_id,
-        target_node_type="Params",
-        target_node=None,
     )
     assert node.result_edge == AggregationGraphEdge(
         edge_name="result",
