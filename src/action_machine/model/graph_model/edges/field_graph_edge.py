@@ -55,34 +55,14 @@ class FieldGraphEdge(CompositionGraphEdge):
         )
 
     @classmethod
-    def for_params(
+    def get_field_edges(
         cls,
-        cls_type: type,
+        schema_cls: type,
         node_id: str,
         node_type: str,
     ) -> list[FieldGraphEdge]:
-        """Build composition edges from params node to declared Pydantic field nodes."""
-
-        fields = cls._field_graph_nodes_for_host(cls_type)
-        return [
-            cls(
-                node_id=node_id,
-                node_type=node_type,
-                field_node=fd,
-            )
-            for fd in fields
-        ]
-
-    @classmethod
-    def for_result(
-        cls,
-        cls_type: type,
-        node_id: str,
-        node_type: str,
-    ) -> list[FieldGraphEdge]:
-        """Build composition edges from result node to declared Pydantic field nodes."""
-
-        fields = cls._field_graph_nodes_for_host(cls_type)
+        """Build composition edges from params or result host to declared Pydantic field nodes."""
+        fields = cls._field_graph_nodes_for_host(schema_cls)
         return [
             cls(
                 node_id=node_id,

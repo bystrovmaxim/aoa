@@ -22,8 +22,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from action_machine.model.base_params import BaseParams
-from action_machine.model.base_result import BaseResult
 from action_machine.model.graph_model.property_field_graph_node import PropertyFieldGraphNode
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
@@ -59,32 +57,14 @@ class PropertyGraphEdge(CompositionGraphEdge):
         )
 
     @classmethod
-    def for_params(
+    def get_property_edges(
         cls,
-        cls_type: type[BaseParams],
+        schema_cls: type,
         node_id: str,
         node_type: str,
     ) -> list[PropertyGraphEdge]:
-        """Build composition edges from params node to computed/plain property nodes."""
-        vertices = cls._property_graph_nodes_for_host(cls_type)
-        return [
-            cls(
-                node_id=node_id,
-                node_type=node_type,
-                property_node=p,
-            )
-            for p in vertices
-        ]
-
-    @classmethod
-    def for_result(
-        cls,
-        cls_type: type[BaseResult],
-        node_id: str,
-        node_type: str,
-    ) -> list[PropertyGraphEdge]:
-        """Build composition edges from result node to computed/plain property nodes."""
-        vertices = cls._property_graph_nodes_for_host(cls_type)
+        """Build composition edges from params or result host to computed/plain property nodes."""
+        vertices = cls._property_graph_nodes_for_host(schema_cls)
         return [
             cls(
                 node_id=node_id,
