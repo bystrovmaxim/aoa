@@ -142,6 +142,12 @@ class TestConstructor:
         wrapper = WrapperSqlResource(mock_manager)
         assert wrapper.rollup is True
 
+    def test_check_rollup_support_is_delegated(
+        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager,
+    ) -> None:
+        """check_rollup_support() forwards to the wrapped manager."""
+        assert wrapper.check_rollup_support() == mock_manager.check_rollup_support()
+
     def test_is_instance_of_protocol_sql_resource(
         self, wrapper: WrapperSqlResource,
     ) -> None:

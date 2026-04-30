@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
 from pydantic import Field
 
 from action_machine.context.context_view import ContextView
@@ -298,6 +299,13 @@ def test_action_graph_node_links_and_helpers() -> None:
         )
         in node.get_all_edges()
     )
+
+
+def test_action_graph_node_get_summary_aspect_raises_when_no_summary_edges() -> None:
+    node = ActionGraphNode(PingAction)
+    object.__setattr__(node, "summary_aspect", [])
+    with pytest.raises(ValueError, match="no summary_aspect edges"):
+        node.get_summary_aspect_graph_node()
 
 
 def test_action_graph_node_appends_regular_aspect() -> None:

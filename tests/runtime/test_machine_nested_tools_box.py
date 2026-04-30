@@ -9,6 +9,7 @@ import pytest
 
 from action_machine.logging.channel import Channel
 from action_machine.runtime.tools_box import ToolsBox
+from tests.scenarios.domain_model.child_action import ChildAction
 
 
 class TestToolsBoxResolve:
@@ -127,3 +128,27 @@ class TestToolsBoxLoggingDelegates:
         mock_log.info.assert_awaited_once_with(ch, "i", extra=1)
         mock_log.warning.assert_awaited_once_with(ch, "w")
         mock_log.critical.assert_awaited_once_with(ch, "c", key="v")
+
+
+@pytest.mark.asyncio
+async def test_run_instantiates_action_and_calls_run_child() -> None:
+    mock_result = ChildAction.Result(processed="ok")
+    run_child = AsyncMock(return_value=mock_result)
+
+    box = ToolsBox(
+        run_child=run_child,
+        factory=MagicMock(),
+        resources=None,
+        log=MagicMock(),
+        nested_level=1,
+        rollup=False,
+    )
+
+    params = ChildAction.Params(value="x")
+    await box.run(ChildAction, params=params, connections=None)
+
+    run_child.assert_awaited_once()
+    forwarded = run_child.call_args.kwargs
+    assert isinstance(forwarded["action"], ChildAction)
+    assert forwarded["params"] == params
+    assert forwarded["connections"] is None

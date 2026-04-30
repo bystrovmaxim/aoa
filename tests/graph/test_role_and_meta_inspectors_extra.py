@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from action_machine.auth.application_role import ApplicationRole
 from action_machine.auth.base_role import BaseRole
+from action_machine.auth.graph_model.inspectors.role_graph_node_inspector import (
+    RoleGraphNodeInspector,
+)
 from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
 from action_machine.intents.meta.meta_intent import MetaIntent
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
@@ -59,3 +62,11 @@ def test_meta_intent_inspector_branches() -> None:
     assert payload.node_type == "meta"
     assert dict(payload.node_meta)["description"] == "desc"
     assert MetaIntentInspector._has_domain_invariant(_MetaFilled) is False
+
+
+def test_role_graph_node_inspector_axes() -> None:
+    insp = RoleGraphNodeInspector()
+    assert insp._get_node(object) is None  # pylint: disable=protected-access
+    rn = insp._get_node(_InspectFixtureRole)  # pylint: disable=protected-access
+    assert rn is not None
+    assert rn.node_obj is _InspectFixtureRole

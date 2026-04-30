@@ -49,6 +49,14 @@ def test_graph_model_inspectors_lazy_exports() -> None:
     assert "ParamsGraphNodeInspector" in inspectors_pkg.__dir__()
 
 
+def test_graph_model_inspectors_getattr_unknown_raises() -> None:
+    import action_machine.model.graph_model.inspectors as inspectors_pkg
+
+    bad = "NotARealGraphModelInspector884"
+    with pytest.raises(AttributeError, match="has no attribute"):
+        getattr(inspectors_pkg, bad)
+
+
 def test_action_graph_node_inspector_builds_vertex_for_concrete_action() -> None:
     inspector = ActionGraphNodeInspector()
     vertex = inspector._get_node(ChildAction)  # pylint: disable=protected-access

@@ -54,7 +54,7 @@ Integration with the domain model:
 
 import pytest
 
-from action_machine.exceptions import RollupNotSupportedError
+from graph.graph_coordinator import GraphCoordinator
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.legacy.core import Core
 from action_machine.resources.base_resource import BaseResource
@@ -497,3 +497,25 @@ class TestDomainIntegration:
 
         # Assert — instance created
         assert isinstance(service, PaymentServiceResource)
+
+
+def test_cached_dependency_factory_raises_when_graph_not_built() -> None:
+    coordinator = GraphCoordinator()
+    assert coordinator.is_built is False
+
+    with pytest.raises(RuntimeError, match="not built"):
+        cached_dependency_factory(coordinator, PingAction)
+
+
+def test_cached_dependency_factory_fallback_when_snapshot_missing_dependencies_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    coordinator = Core.create_coordinator()
+
+    monkeypatch.setattr(coordinator, "get_snapshot", lambda cls, facet: object())
+
+    factory = cached_dependency_factory(coordinator, PingAction)
+    assert factory.get_all_classes() == []
+
+    factory_repeat = cached_dependency_factory(coordinator, PingAction)
+    assert factory_repeat is factory
