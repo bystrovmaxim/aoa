@@ -30,17 +30,11 @@ from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar, cast
 
 from action_machine.domain.graph_model.edges.domain_graph_edge import DomainGraphEdge
-from action_machine.intents.compensate.compensate_intent_resolver import (
-    CompensateIntentResolver,
-)
 from action_machine.intents.connection.connection_intent_resolver import (
     ConnectionIntentResolver,
 )
 from action_machine.intents.depends.depends_intent_resolver import DependsIntentResolver
 from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
-from action_machine.intents.on_error.on_error_intent_resolver import (
-    OnErrorIntentResolver,
-)
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
@@ -48,9 +42,10 @@ from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.composition_graph_edge import CompositionGraphEdge
 
 from .compensator_graph_node import CompensatorGraphNode
+from .edges.compensator_graph_edge import CompensatorGraphEdge
+from .edges.error_handler_graph_edge import ErrorHandlerGraphEdge
 from .edges.params_graph_edge import ParamsGraphEdge
 from .edges.regular_aspect_graph_edge import RegularAspectGraphEdge
 from .edges.result_graph_edge import ResultGraphEdge
@@ -79,8 +74,8 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     connection_edges: list[AssociationGraphEdge]
     regular_aspect_edges: list[RegularAspectGraphEdge]
     summary_aspect_edges: list[SummaryAspectGraphEdge]
-    compensator_graph_edges: list[CompositionGraphEdge]
-    error_handler_graph_edges: list[CompositionGraphEdge]
+    compensator_graph_edges: list[CompensatorGraphEdge]
+    error_handler_graph_edges: list[ErrorHandlerGraphEdge]
 
     def __init__(self, action_cls: type[TAction]) -> None:
         node_id = TypeIntrospection.full_qualname(action_cls)
@@ -96,14 +91,12 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         connection_edges = self._get_connection_edges(action_cls)
         object.__setattr__(self, "params_edge", ParamsGraphEdge(action_cls, self.NODE_TYPE, self))
         object.__setattr__(self, "result_edge", ResultGraphEdge(action_cls, self.NODE_TYPE, self))
-        compensator_graph_edges = ActionGraphNode.get_compensator_edges(self, action_cls)
-        error_handler_graph_edges = ActionGraphNode.get_error_handler_edges(self, action_cls)
         object.__setattr__(self, "depends_edges", depends_edges)
         object.__setattr__(self, "connection_edges", connection_edges)
         object.__setattr__(self, "regular_aspect_edges", RegularAspectGraphEdge.edges_from_regular_aspects(self, action_cls))
         object.__setattr__(self, "summary_aspect_edges", SummaryAspectGraphEdge.edges_from_summary_aspects(self, action_cls))
-        object.__setattr__(self, "compensator_graph_edges", compensator_graph_edges)
-        object.__setattr__(self, "error_handler_graph_edges", error_handler_graph_edges)
+        object.__setattr__(self, "compensator_graph_edges", CompensatorGraphEdge.edges_from_compensators(self, action_cls))
+        object.__setattr__(self, "error_handler_graph_edges", ErrorHandlerGraphEdge.edges_from_error_handlers(self, action_cls))
 
     @property
     def connection_keys(self) -> frozenset[str]:
@@ -190,56 +183,6 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             *(node for n in compensators for node in n.get_companion_nodes()),
             *(node for n in error_handlers for node in n.get_companion_nodes()),
         ]
-
-    @staticmethod
-    def get_compensator_edges(
-        source_node: BaseGraphNode[Any],
-        action_cls: type[BaseAction[Any, Any]],
-    ) -> list[CompositionGraphEdge]:
-        """Return compensator composition edges for ``action_cls``."""
-        return ActionGraphNode._get_callable_edges(
-            source_node,
-            [
-                CompensatorGraphNode(compensator_callable, action_cls)
-                for compensator_callable in CompensateIntentResolver.resolve_compensators(action_cls)
-            ],
-        )
-
-    @staticmethod
-    def get_error_handler_edges(
-        source_node: BaseGraphNode[Any],
-        action_cls: type[BaseAction[Any, Any]],
-    ) -> list[CompositionGraphEdge]:
-        """Return error handler composition edges for ``action_cls``."""
-        return ActionGraphNode._get_callable_edges(
-            source_node,
-            [
-                ErrorHandlerGraphNode(error_handler_callable, action_cls)
-                for error_handler_callable in OnErrorIntentResolver.resolve_error_handlers(action_cls)
-            ],
-        )
-
-    @staticmethod
-    def _get_callable_edges(
-        source_node: BaseGraphNode[Any],
-        graph_nodes: list[BaseGraphNode[Any]],
-    ) -> list[CompositionGraphEdge]:
-        """Return ``COMPOSITION`` edges from ``source_node`` to callable graph nodes."""
-        edges: list[CompositionGraphEdge] = []
-        for graph_node in graph_nodes:
-            edges.append(
-                CompositionGraphEdge(
-                    edge_name=graph_node.label,
-                    is_dag=False,
-                    source_node_id=source_node.node_id,
-                    source_node_type=source_node.node_type,
-                    source_node=source_node,
-                    target_node_id=graph_node.node_id,
-                    target_node_type=graph_node.node_type,
-                    target_node=graph_node,
-                ),
-            )
-        return edges
 
     @classmethod
     def _get_properties(cls, action_cls: type[TAction]) -> dict[str, Any]:

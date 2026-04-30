@@ -20,6 +20,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.intents.on_error.on_error_intent_resolver import (
+    OnErrorIntentResolver,
+)
+from action_machine.model.base_action import BaseAction
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
@@ -50,3 +54,17 @@ class ErrorHandlerGraphEdge(CompositionGraphEdge):
             target_node_type=handler_node.node_type,
             target_node=handler_node,
         )
+
+    @staticmethod
+    def edges_from_error_handlers(
+        source_node: BaseGraphNode[Any],
+        action_cls: type[BaseAction[Any, Any]],
+    ) -> list[ErrorHandlerGraphEdge]:
+        """Return error handler composition edges for ``action_cls``."""
+        return [
+            ErrorHandlerGraphEdge(
+                source_node=source_node,
+                handler_node=ErrorHandlerGraphNode(error_handler_callable, action_cls),
+            )
+            for error_handler_callable in OnErrorIntentResolver.resolve_error_handlers(action_cls)
+        ]

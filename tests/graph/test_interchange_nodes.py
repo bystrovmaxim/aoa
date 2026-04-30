@@ -53,7 +53,6 @@ from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAs
 from action_machine.resources.base_resource import BaseResource
 from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
-from graph.composition_graph_edge import CompositionGraphEdge
 from graph.edge_relationship import COMPOSITION
 from graph.facet_vertex import FacetVertex
 from tests.scenarios.domain_model.child_action import ChildAction
