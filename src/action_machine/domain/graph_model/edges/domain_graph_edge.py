@@ -33,7 +33,6 @@ class DomainGraphEdge(AssociationGraphEdge):
 
     def __init__(
         self,
-        *,
         source_cls: type,
         source_node_type: str,
         source_node: BaseGraphNode[Any],

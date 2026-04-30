@@ -10,6 +10,7 @@ from pydantic import Field
 from action_machine.context.context_view import ContextView
 from action_machine.context.ctx_constants import Ctx
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
+from action_machine.domain.graph_model.edges.domain_graph_edge import DomainGraphEdge
 from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
@@ -53,7 +54,6 @@ from tests.scenarios.domain_model.compensate_actions import (
     CompensateAndOnErrorAction,
     CompensatedOrderAction,
 )
-from tests.scenarios.domain_model.domains import SystemDomain
 from tests.scenarios.domain_model.entities import SampleEntity, TestDomain
 from tests.scenarios.domain_model.full_action import FullAction
 from tests.scenarios.domain_model.ping_action import PingAction
@@ -229,7 +229,6 @@ def test_domain_node_interchange_shape() -> None:
 def test_action_graph_node_links_and_helpers() -> None:
     node = ActionGraphNode(PingAction)
     assert node.node_obj is PingAction
-    dom_id = TypeIntrospection.full_qualname(SystemDomain)
     params_id = TypeIntrospection.full_qualname(PingAction.Params)
     result_id = TypeIntrospection.full_qualname(PingAction.Result)
     host = TypeIntrospection.full_qualname(PingAction)
@@ -242,15 +241,10 @@ def test_action_graph_node_links_and_helpers() -> None:
     assert node.label == "PingAction"
     assert node.node_id == host
     assert node.get_all_edges() == [
-        AssociationGraphEdge(
-            edge_name="domain",
-            is_dag=True,
-            source_node_id=host,
+        DomainGraphEdge(
+            source_cls=PingAction,
             source_node_type="Action",
             source_node=node,
-            target_node_id=dom_id,
-            target_node_type="Domain",
-            target_node=None,
         ),
         AggregationGraphEdge(
             edge_name="params",
@@ -284,15 +278,10 @@ def test_action_graph_node_links_and_helpers() -> None:
         ),
     ]
 
-    assert node.domain_edge == AssociationGraphEdge(
-        edge_name="domain",
-        is_dag=True,
-        source_node_id=host,
+    assert node.domain_edge == DomainGraphEdge(
+        source_cls=PingAction,
         source_node_type="Action",
         source_node=node,
-        target_node_id=dom_id,
-        target_node_type="Domain",
-        target_node=None,
     )
     assert node.params_edge == AggregationGraphEdge(
         edge_name="params",
