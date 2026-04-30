@@ -20,6 +20,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.intents.compensate.compensate_intent_resolver import (
+    CompensateIntentResolver,
+)
+from action_machine.model.base_action import BaseAction
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
@@ -50,3 +54,17 @@ class CompensatorGraphEdge(CompositionGraphEdge):
             target_node_type=compensator_node.node_type,
             target_node=compensator_node,
         )
+
+    @staticmethod
+    def edges_from_compensators(
+        source_node: BaseGraphNode[Any],
+        action_cls: type[BaseAction[Any, Any]],
+    ) -> list[CompensatorGraphEdge]:
+        """Return compensator composition edges for ``action_cls``."""
+        return [
+            CompensatorGraphEdge(
+                source_node=source_node,
+                compensator_node=CompensatorGraphNode(compensator_callable, action_cls),
+            )
+            for compensator_callable in CompensateIntentResolver.resolve_compensators(action_cls)
+        ]

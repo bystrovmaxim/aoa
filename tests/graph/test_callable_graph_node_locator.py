@@ -2,6 +2,12 @@
 """Action graph node callable edge behavior."""
 
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.model.graph_model.edges.compensator_graph_edge import (
+    CompensatorGraphEdge,
+)
+from action_machine.model.graph_model.edges.error_handler_graph_edge import (
+    ErrorHandlerGraphEdge,
+)
 from action_machine.model.graph_model.edges.regular_aspect_graph_edge import (
     RegularAspectGraphEdge,
 )
@@ -30,10 +36,10 @@ def test_get_regular_aspect_edges_builds_edges_with_target_nodes() -> None:
 def test_get_compensator_edges_builds_edges() -> None:
     node = ActionGraphNode(ChildAction)
 
-    assert ActionGraphNode.get_compensator_edges(node, ChildAction) == node.compensator_graph_edges
+    assert CompensatorGraphEdge.edges_from_compensators(node, ChildAction) == node.compensator_graph_edges
 
 
 def test_get_error_handler_edges_builds_edges() -> None:
     node = ActionGraphNode(ChildAction)
 
-    assert ActionGraphNode.get_error_handler_edges(node, ChildAction) == node.error_handler_graph_edges
+    assert ErrorHandlerGraphEdge.edges_from_error_handlers(node, ChildAction) == node.error_handler_graph_edges
