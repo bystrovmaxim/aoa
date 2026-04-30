@@ -21,7 +21,7 @@ and emits ``COMPOSITION`` edges from this aspect to each checker and required-co
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar, cast
 
@@ -32,7 +32,6 @@ from action_machine.intents.context_requires.context_requires_resolver import (
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.base_intent_inspector import BaseIntentInspector
 from graph.composition_graph_edge import CompositionGraphEdge
 
 from .checker_graph_node import CheckerGraphNode
@@ -45,7 +44,7 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a regular aspect callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``RegularAspect``; ``properties`` include ``description`` when ``RegularAspectIntentResolver.resolve_description(...)`` returns it; :attr:`checkers` (:class:`~action_machine.model.graph_model.edges.checker_graph_edge.CheckerGraphEdge` list) / :attr:`required_context` (:class:`~graph.composition_graph_edge.CompositionGraphEdge` list) and :attr:`companion_nodes` (``CheckerGraphNode`` and ``RequiredContextGraphNode`` rows) from ``_checker_meta`` and ``@context_requires`` on ``aspect_func`` (see :meth:`checkers_for_method`). :meth:`get_required_context_keys` is the ``frozenset`` of ``properties['key']`` on edges in :attr:`required_context`.
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``RegularAspect``; ``properties`` include ``description`` when ``RegularAspectIntentResolver.resolve_description(...)`` returns it; :attr:`checkers` (:class:`~action_machine.model.graph_model.edges.checker_graph_edge.CheckerGraphEdge` list) built via :meth:`~action_machine.model.graph_model.edges.checker_graph_edge.CheckerGraphEdge.edges_for_aspect`; :attr:`required_context` (:class:`~graph.composition_graph_edge.CompositionGraphEdge` list) and companion ``CheckerGraphNode`` / ``RequiredContextGraphNode`` rows from ``_checker_meta`` and ``@context_requires`` on ``aspect_func``. :meth:`get_required_context_keys` is the ``frozenset`` of ``properties['key']`` on edges in :attr:`required_context`.
     AI-CORE-END
     """
 
@@ -57,7 +56,12 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
         method_name = TypeIntrospection.unwrapped_callable_name(aspect_func)
         action_id = TypeIntrospection.full_qualname(_action_cls)
         node_id = f"{action_id}:{method_name}"
-        checkers = RegularAspectGraphNode._checker_edges(aspect_func, _action_cls, node_id)
+        checkers = CheckerGraphEdge.edges_for_aspect(
+            aspect_func,
+            _action_cls,
+            node_id,
+            RegularAspectGraphNode.NODE_TYPE,
+        )
         req_ctx_rows = RegularAspectGraphNode._required_context_nodes_for_aspect(aspect_func, _action_cls)
         required_context = RegularAspectGraphNode._composition_edges_to_required_context(
             aspect_func, node_id, req_ctx_rows,
@@ -100,59 +104,6 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
             if isinstance(k, str):
                 out.add(k)
         return frozenset(out)
-
-    @staticmethod
-    def checkers_for_method(method: Any) -> list[dict[str, Any]]:
-        """Checker metadata dicts from ``_checker_meta`` on this aspect method (unwraps ``property``)."""
-        func = BaseIntentInspector._unwrap_declaring_class_member(method)
-        if not callable(func):
-            return []
-        raw = getattr(func, "_checker_meta", None)
-        if raw is None or isinstance(raw, (str, bytes)) or not isinstance(raw, Sequence):
-            return []
-        out: list[dict[str, Any]] = []
-        for row in raw:
-            if isinstance(row, Mapping):
-                out.append(dict(row))
-        return out
-
-    @staticmethod
-    def _checker_nodes_for_aspect(aspect_callable: Callable[..., Any], _action_cls: type[Any]) -> list[CheckerGraphNode]:
-        nodes: list[CheckerGraphNode] = []
-        for row in RegularAspectGraphNode.checkers_for_method(aspect_callable):
-            cc = row.get("checker_class")
-            if not isinstance(cc, type):
-                continue
-            raw = row.get("field_name", "")
-            field = raw if isinstance(raw, str) else str(raw)
-            extra = {k: v for k, v in row.items() if k not in ("checker_class", "field_name", "required")}
-            nodes.append(
-                CheckerGraphNode(
-                    aspect_callable=aspect_callable,
-                    _action_cls=_action_cls,
-                    checker_class=cc,
-                    field_name=field,
-                    required=bool(row.get("required", False)),
-                    properties=extra if extra else None,
-                ),
-            )
-        return nodes
-
-    @staticmethod
-    def _checker_edges(
-        aspect_callable: Callable[..., Any],
-        _action_cls: type[Any],
-        aspect_node_id: str,
-    ) -> list[CheckerGraphEdge]:
-        checker_nodes = RegularAspectGraphNode._checker_nodes_for_aspect(aspect_callable, _action_cls)
-        return [
-            CheckerGraphEdge(
-                checker_node=ch,
-                source_node_id=aspect_node_id,
-                source_node_type=RegularAspectGraphNode.NODE_TYPE,
-            )
-            for ch in checker_nodes
-        ]
 
     @staticmethod
     def _required_context_nodes_for_aspect(
