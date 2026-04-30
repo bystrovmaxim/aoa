@@ -7,15 +7,15 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Exports :class:`~action_machine.resources.graph_model.resource_graph_node.ResourceGraphNode`
-and :class:`~action_machine.resources.graph_model.resource_graph_node_inspector.ResourceGraphNodeInspector`
+and :class:`~action_machine.resources.graph_model.inspectors.resource_graph_node_inspector.ResourceGraphNodeInspector`
 for coordinator / tooling without pulling the full ``action_machine.model`` graph stack.
 """
 
 from __future__ import annotations
 
-from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
-from action_machine.resources.graph_model.resource_graph_node_inspector import (
+from action_machine.resources.graph_model.inspectors.resource_graph_node_inspector import (
     ResourceGraphNodeInspector,
 )
+from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
 
 __all__ = ["ResourceGraphNode", "ResourceGraphNodeInspector"]

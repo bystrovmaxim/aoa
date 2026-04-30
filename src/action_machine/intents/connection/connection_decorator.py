@@ -27,7 +27,7 @@ ARCHITECTURE / DATA FLOW
     get_connections(cls) → (ConnectionInfo(...), ...)
         │
         ▼  ActionProductMachine._check_connections(action, connections, metadata)
-    Compares declared keys (from ``ActionGraphNode.connection_keys``) with provided runtime keys
+    Compares declared keys (from ``ActionGraphNode.connection_keys()``) with provided runtime keys
         │
         ▼  Aspects receive connections["db"] (PostgresManager instance)
 

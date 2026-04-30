@@ -157,7 +157,7 @@ def test_connection_targets_resource_manager_not_connection_facet() -> None:
     node = ActionGraphNode(FullAction)
     db_edges = [
         e
-        for e in node.connection_edges
+        for e in node.connection
         if e.properties.get("key") == "db"
         and e.target_node_type == ResourceGraphNode.NODE_TYPE
     ]

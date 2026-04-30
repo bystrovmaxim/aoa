@@ -1,4 +1,4 @@
-# src/action_machine/model/graph_model/action_graph_node_inspector.py
+# src/action_machine/model/graph_model/inspectors/action_graph_node_inspector.py
 """
 ActionGraphNodeInspector — graph-node contributor for ``BaseAction`` subclasses.
 
@@ -34,7 +34,7 @@ from action_machine.model.base_action import BaseAction
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 
-from .action_graph_node import ActionGraphNode
+from ..action_graph_node import ActionGraphNode
 
 
 class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):

@@ -6,7 +6,7 @@ SummaryAspectGraphEdge — COMPOSITION from Action → SummaryAspect interchange
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Mirror :meth:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode.get_summary_aspect_edges`
+Mirror :meth:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode.get_summary_aspect`
 construction: composition keyed by summary node's ``label``, ``is_dag=False``.
 
 ═══════════════════════════════════════════════════════════════════════════════

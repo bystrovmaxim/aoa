@@ -32,17 +32,17 @@ __all__ = [
 
 _LAZY: dict[str, str] = {
     "ActionGraphNode": "action_machine.model.graph_model.action_graph_node",
-    "ActionGraphNodeInspector": "action_machine.model.graph_model.action_graph_node_inspector",
+    "ActionGraphNodeInspector": "action_machine.model.graph_model.inspectors.action_graph_node_inspector",
     "CompensatorGraphNode": "action_machine.model.graph_model.compensator_graph_node",
     "ErrorHandlerGraphNode": "action_machine.model.graph_model.error_handler_graph_node",
     "CheckerGraphNode": "action_machine.model.graph_model.checker_graph_node",
     "ParamsGraphNode": "action_machine.model.graph_model.params_graph_node",
-    "ParamsGraphNodeInspector": "action_machine.model.graph_model.params_graph_node_inspector",
+    "ParamsGraphNodeInspector": "action_machine.model.graph_model.inspectors.params_graph_node_inspector",
     "RegularAspectGraphNode": "action_machine.model.graph_model.regular_aspect_graph_node",
     "RequiredContextGraphNode": "action_machine.model.graph_model.required_context_graph_node",
     "ResultGraphNode": "action_machine.model.graph_model.result_graph_node",
     "SummaryAspectGraphNode": "action_machine.model.graph_model.summary_aspect_graph_node",
-    "ResultGraphNodeInspector": "action_machine.model.graph_model.result_graph_node_inspector",
+    "ResultGraphNodeInspector": "action_machine.model.graph_model.inspectors.result_graph_node_inspector",
 }
 
 

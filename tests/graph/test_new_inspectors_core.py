@@ -98,7 +98,7 @@ def test_dependency_inspector_returns_none_without_depends() -> None:
     assert DependencyIntentInspector.inspect(_NoDependsAction) is None
 
 
-def test_dependency_inspector_builds_structural_depends_edges() -> None:
+def test_dependency_inspector_builds_structural_depends() -> None:
     payload = DependencyIntentInspector.inspect(_DependsAction)
     assert payload is not None
     assert payload.node_type == "Action"

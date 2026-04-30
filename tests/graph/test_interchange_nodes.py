@@ -260,17 +260,17 @@ def test_action_graph_node_links_and_helpers() -> None:
         ),
     ]
 
-    assert node.domain_edge == DomainGraphEdge(
+    assert node.domain == DomainGraphEdge(
         source_cls=PingAction,
         source_node_type="Action",
         source_node=node,
     )
-    assert node.params_edge == ParamsGraphEdge(
+    assert node.params == ParamsGraphEdge(
         PingAction,
         source_node_type="Action",
         source_node=node,
     )
-    assert node.result_edge == ResultGraphEdge(
+    assert node.result == ResultGraphEdge(
         PingAction,
         source_node_type="Action",
         source_node=node,
@@ -281,15 +281,15 @@ def test_action_graph_node_links_and_helpers() -> None:
     assert p_type is PingAction.Params and r_type is PingAction.Result
     assert TypeIntrospection.full_qualname(p_type) == params_id
     assert TypeIntrospection.full_qualname(r_type) == result_id
-    assert not node.regular_aspect_edges
-    assert node.summary_aspect_edges == [
+    assert not node.regular_aspect
+    assert node.summary_aspect == [
         SummaryAspectGraphEdge(
             source_node=node,
             summary_node=summary_node,
         ),
     ]
-    assert not node.compensator_graph_edges
-    assert not node.error_handler_graph_edges
+    assert not node.compensator_graph
+    assert not node.error_handler_graph
     assert node.get_companion_nodes() == [summary_node]
     assert (
         SummaryAspectGraphEdge(
@@ -300,7 +300,7 @@ def test_action_graph_node_links_and_helpers() -> None:
     )
 
 
-def test_action_graph_node_appends_regular_aspect_edges() -> None:
+def test_action_graph_node_appends_regular_aspect() -> None:
     node = ActionGraphNode(ChildAction)
     aspect_node = RegularAspectGraphNode(
         RegularAspectIntentResolver.resolve_regular_aspects(ChildAction)[0],
@@ -311,20 +311,20 @@ def test_action_graph_node_appends_regular_aspect_edges() -> None:
         source_node=node,
         aspect_node=aspect_node,
     )
-    assert node.regular_aspect_edges == [expected_edge]
+    assert node.regular_aspect == [expected_edge]
     assert aspect_node in node.get_companion_nodes()
     assert aspect_node.get_companion_nodes()[0] in node.get_companion_nodes()
     assert expected_edge in node.get_all_edges()
     assert aspect_node.get_all_edges()[0] not in node.get_all_edges()
 
 
-def test_action_graph_node_stores_depends_and_connection_edges() -> None:
+def test_action_graph_node_stores_depends_and_connection() -> None:
     node = ActionGraphNode(FullAction)
 
-    assert len(node.depends_edges) == 3
-    assert len(node.connection_edges) == 1
-    assert all(edge in node.get_all_edges() for edge in node.depends_edges)
-    assert all(edge in node.get_all_edges() for edge in node.connection_edges)
+    assert len(node.depends) == 3
+    assert len(node.connection) == 1
+    assert all(edge in node.get_all_edges() for edge in node.depends)
+    assert all(edge in node.get_all_edges() for edge in node.connection)
 
 
 def test_compensator_graph_node_for_aspect_matches_target_aspect_properties() -> None:

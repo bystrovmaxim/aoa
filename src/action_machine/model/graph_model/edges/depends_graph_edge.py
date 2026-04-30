@@ -6,8 +6,8 @@ DependsGraphEdge — ASSOCIATION for ``@depends`` from Action → declared depen
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Mirror :meth:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode._get_depends_edges`:
-``edge_name`` ``@depends``, ``is_dag=True``, ``target_node`` stub until hydrated.
+Centralizes ``@depends`` edge construction: ``edge_name`` ``@depends``, ``is_dag=True``,
+``target_node`` stub until hydrated.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -20,6 +20,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.intents.depends.depends_intent_resolver import DependsIntentResolver
+from action_machine.model.base_action import BaseAction
+from action_machine.resources.base_resource import BaseResource
+from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
+from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_node import BaseGraphNode
 
@@ -53,3 +58,33 @@ class DependsGraphEdge(AssociationGraphEdge):
             target_node_type=target_node_type,
             target_node=target_node,
         )
+
+    @staticmethod
+    def edges_from_dependencies(
+        source_node: BaseGraphNode[Any],
+        action_cls: type[BaseAction[Any, Any]],
+    ) -> list[DependsGraphEdge]:
+        """Return one typed edge per ``@depends`` declaration on ``action_cls``."""
+        return [
+            DependsGraphEdge(
+                source_node_id=source_node.node_id,
+                source_node_type=source_node.node_type,
+                source_node=source_node,
+                target_node_id=TypeIntrospection.full_qualname(dependency_type),
+                target_node_type=DependsGraphEdge._resolve_target_node_type(
+                    source_node,
+                    dependency_type,
+                ),
+                target_node=None,
+            )
+            for dependency_type in DependsIntentResolver.resolve_dependency_types(action_cls)
+        ]
+
+    @staticmethod
+    def _resolve_target_node_type(source_node: BaseGraphNode[Any], target_cls: type) -> str:
+        """Interchange ``target_node_type`` for an associated dependency target."""
+        if issubclass(target_cls, BaseAction):
+            return source_node.node_type
+        if issubclass(target_cls, BaseResource):
+            return ResourceGraphNode.NODE_TYPE
+        return "UncknownTypeNode"

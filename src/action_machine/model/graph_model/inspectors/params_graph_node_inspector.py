@@ -1,45 +1,42 @@
-# src/action_machine/resources/graph_model/resource_graph_node_inspector.py
+# src/action_machine/model/graph_model/inspectors/params_graph_node_inspector.py
 """
-ResourceGraphNodeInspector — graph-node contributor for ``BaseResource`` subclasses.
+ParamsGraphNodeInspector — graph-node contributor for ``BaseParams`` subclasses.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseResource`` strict subclass tree and emits one
-:class:`~action_machine.resources.graph_model.resource_graph_node.ResourceGraphNode` per
-visited concrete or abstract resource class.
+Walks the loaded ``BaseParams`` subclass tree and emits one :class:`ParamsGraphNode` per
+visited subtype plus that node's :class:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (``FieldGraphNode`` rows).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseResource  (root axis)
+    BaseParams  (root axis)
               │
               v
-    each strict subclass ``cls``  ->  ``[ResourceGraphNode(cls)]`` when ``issubclass(cls, BaseResource)``
+    each loaded strict subclass ``cls``  ->  ``ParamsGraphNode(cls)`` plus :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (field rows) in the flat list when ``issubclass(cls, BaseParams)``
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from action_machine.resources.base_resource import BaseResource
+from action_machine.model.base_params import BaseParams
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 
-from .resource_graph_node import ResourceGraphNode
+from ..params_graph_node import ParamsGraphNode
 
 
-class ResourceGraphNodeInspector(BaseGraphNodeInspector[BaseResource]):
+class ParamsGraphNodeInspector(BaseGraphNodeInspector[BaseParams]):
     """
     AI-CORE-BEGIN
-    ROLE: Emit ``ResourceGraphNode`` rows for every loaded ``BaseResource`` subclass.
-    CONTRACT: Root axis ``BaseResource`` from ``BaseGraphNodeInspector[BaseResource]``; one node per visited resource class.
+    ROLE: Emit ``ParamsGraphNode`` rows for visited ``BaseParams`` classes.
+    CONTRACT: Root axis ``BaseParams`` from ``BaseGraphNodeInspector[BaseParams]``; one ``ParamsGraphNode`` per visited subtype.
     AI-CORE-END
     """
 
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        if isinstance(cls, type) and issubclass(cls, BaseResource):
-            return ResourceGraphNode(cls)
-        return None
+        return ParamsGraphNode(cls)
