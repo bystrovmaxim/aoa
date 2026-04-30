@@ -55,6 +55,7 @@ class ParamsGraphEdge(AggregationGraphEdge):
             qn = TypeIntrospection.full_qualname(action_cls)
             raise ParamsGraphEdgeResolutionError(qn)
 
+        # pylint: disable=import-outside-toplevel
         from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 
         super().__init__(

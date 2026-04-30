@@ -62,6 +62,7 @@ class FieldGraphEdge(CompositionGraphEdge):
         params_node_id: str,
     ) -> list[FieldGraphEdge]:
         """Build composition edges from params node to declared Pydantic field nodes."""
+        # pylint: disable=import-outside-toplevel
         from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 
         fields = cls._field_graph_nodes_for_params(params_cls)

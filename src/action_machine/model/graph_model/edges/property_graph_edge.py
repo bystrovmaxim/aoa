@@ -47,7 +47,6 @@ class PropertyGraphEdge(CompositionGraphEdge):
         property_node: PropertyFieldGraphNode,
         source_node: BaseGraphNode[Any] | None = None,
     ) -> None:
-        prop_name = property_node.node_obj.property_name.strip() or "_"
         super().__init__(
             edge_name="property",
             is_dag=False,
