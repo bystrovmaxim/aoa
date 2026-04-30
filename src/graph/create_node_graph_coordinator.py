@@ -26,14 +26,14 @@ from action_machine.graph_model.inspectors.entity_graph_node_inspector import (
 from action_machine.graph_model.inspectors.params_graph_node_inspector import (
     ParamsGraphNodeInspector,
 )
+from action_machine.graph_model.inspectors.resource_graph_node_inspector import (
+    ResourceGraphNodeInspector,
+)
 from action_machine.graph_model.inspectors.result_graph_node_inspector import (
     ResultGraphNodeInspector,
 )
 from action_machine.graph_model.inspectors.role_graph_node_inspector import (
     RoleGraphNodeInspector,
-)
-from action_machine.resources.graph_model.inspectors.resource_graph_node_inspector import (
-    ResourceGraphNodeInspector,
 )
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.node_graph_coordinator import NodeGraphCoordinator

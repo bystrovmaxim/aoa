@@ -1,4 +1,4 @@
-# src/action_machine/resources/graph_model/inspectors/resource_graph_node_inspector.py
+# src/action_machine/graph_model/inspectors/resource_graph_node_inspector.py
 """
 ResourceGraphNodeInspector — graph-node contributor for ``BaseResource`` subclasses.
 
