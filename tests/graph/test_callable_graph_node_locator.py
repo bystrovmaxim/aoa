@@ -5,6 +5,9 @@ from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.edges.regular_aspect_graph_edge import (
     RegularAspectGraphEdge,
 )
+from action_machine.model.graph_model.edges.summary_aspect_graph_edge import (
+    SummaryAspectGraphEdge,
+)
 from tests.scenarios.domain_model.child_action import ChildAction
 from tests.scenarios.domain_model.ping_action import PingAction
 
@@ -12,7 +15,7 @@ from tests.scenarios.domain_model.ping_action import PingAction
 def test_get_summary_aspect_edges_builds_edges() -> None:
     node = ActionGraphNode(PingAction)
 
-    assert ActionGraphNode.get_summary_aspect_edges(node, PingAction) == node.summary_aspect_edges
+    assert SummaryAspectGraphEdge.edges_from_summary_aspects(node, PingAction) == node.summary_aspect_edges
 
 
 def test_get_regular_aspect_edges_builds_edges_with_target_nodes() -> None:
