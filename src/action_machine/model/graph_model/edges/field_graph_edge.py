@@ -1,19 +1,19 @@
 # src/action_machine/model/graph_model/edges/field_graph_edge.py
 """
-FieldGraphEdge — COMPOSITION from Params → Field interchange vertex.
+FieldGraphEdge — COMPOSITION from Params / Result → Field interchange vertex.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Mirror params-schema field companions: composition with ``edge_name`` ``field:{name}``
-from a params interchange vertex to a :class:`~action_machine.model.graph_model.field_graph_node.FieldGraphNode`.
+Mirror params / result schema field companions: composition with ``edge_name`` ``field``
+from an interchange vertex to a :class:`~action_machine.model.graph_model.field_graph_node.FieldGraphNode`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    Params (source id + type)  ──{field:`name`}──►  FieldGraphNode
+    Params / Result (source id + type)  ──{field}──►  FieldGraphNode
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from action_machine.model.base_params import BaseParams
+from action_machine.model.base_result import BaseResult
 from action_machine.model.graph_model.field_graph_node import FieldGraphNode
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
@@ -30,8 +31,8 @@ from graph.composition_graph_edge import CompositionGraphEdge
 class FieldGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed composition edge Params host → declared field vertex.
-    CONTRACT: ``edge_name`` ``field:`` + stripped field name (``_`` when empty); ``is_dag`` False; ``target_node`` is the ``FieldGraphNode``.
+    ROLE: Typed composition edge schema host (params or result) → declared field vertex.
+    CONTRACT: ``edge_name`` literal ``field``; ``is_dag`` False; ``target_node`` is the ``FieldGraphNode``.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END
     """
@@ -65,7 +66,7 @@ class FieldGraphEdge(CompositionGraphEdge):
         # pylint: disable=import-outside-toplevel
         from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 
-        fields = cls._field_graph_nodes_for_params(params_cls)
+        fields = cls._field_graph_nodes_for_host(params_cls)
         return [
             cls(
                 params_node_id=params_node_id,
@@ -76,16 +77,36 @@ class FieldGraphEdge(CompositionGraphEdge):
         ]
 
     @classmethod
-    def _field_graph_nodes_for_params(cls, params_cls: type[BaseParams]) -> list[FieldGraphNode]:
-        """One ``FieldGraphNode`` per ``params_cls.model_fields`` entry (empty when none)."""
-        model_fields = getattr(params_cls, "model_fields", None)
+    def for_result(
+        cls,
+        result_cls: type[BaseResult],
+        result_node_id: str,
+    ) -> list[FieldGraphEdge]:
+        """Build composition edges from result node to declared Pydantic field nodes."""
+        # pylint: disable=import-outside-toplevel
+        from action_machine.model.graph_model.result_graph_node import ResultGraphNode
+
+        fields = cls._field_graph_nodes_for_host(result_cls)
+        return [
+            cls(
+                params_node_id=result_node_id,
+                params_node_type=ResultGraphNode.NODE_TYPE,
+                field_node=fd,
+            )
+            for fd in fields
+        ]
+
+    @classmethod
+    def _field_graph_nodes_for_host(cls, host_cls: type) -> list[FieldGraphNode]:
+        """One ``FieldGraphNode`` per ``host_cls.model_fields`` entry (empty when none)."""
+        model_fields = getattr(host_cls, "model_fields", None)
         if not isinstance(model_fields, Mapping):
             return []
         out: list[FieldGraphNode] = []
         for field_name, finfo in model_fields.items():
             out.append(
                 FieldGraphNode(
-                    params_cls,
+                    host_cls,
                     field_name,
                     description=finfo.description,
                     required=bool(finfo.is_required()),

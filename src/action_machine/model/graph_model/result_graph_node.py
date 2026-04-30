@@ -16,7 +16,7 @@ result vertex to that field (same pattern as :class:`RegularAspectGraphNode` and
 For each entry in ``model_computed_fields`` (``@computed_field``) and each public plain ``property`` on the class
 (``__dict__`` over MRO, excluding names that clash with ``model_fields`` or already emitted from computed fields), emits a
 :class:`PropertyFieldGraphNode` companion and a
-``COMPOSITION`` edge (``edge_name`` prefix ``property:``).
+``COMPOSITION`` edge (``edge_name`` ``property`` on the typed edge class).
 
 Interchange ``node_type`` is ``"Result"``; ``id`` is the dotted class path. (Legacy facet rows may still use the string ``result_schema``.)
 
@@ -32,18 +32,17 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, ClassVar, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 from action_machine.model.base_result import BaseResult
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.composition_graph_edge import CompositionGraphEdge
 
-from .field_graph_node import FieldGraphNode
-from .property_field_graph_node import PropertyFieldGraphNode
+if TYPE_CHECKING:
+    from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
+    from action_machine.model.graph_model.edges.property_graph_edge import PropertyGraphEdge
 
 TResult = TypeVar("TResult", bound=BaseResult)
 
@@ -55,18 +54,21 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
     ROLE: Interchange node for a ``BaseResult`` result host class.
     CONTRACT: Built from ``type[TResult]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label;
     empty ``properties`` (interchange dict); composition lists :attr:`fields` and :attr:`props`
-    (built via :meth:`_get_field_edges`, :meth:`_get_property_edges`); :attr:`companion_nodes` from field/property companions.
+    from ``FieldGraphEdge.for_result`` / ``PropertyGraphEdge.for_result``; :attr:`companion_nodes` from both.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Result"
-    fields: list[CompositionGraphEdge]
-    props: list[CompositionGraphEdge]
+    fields: list[FieldGraphEdge]
+    props: list[PropertyGraphEdge]
 
     def __init__(self, result_cls: type[TResult]) -> None:
+        # Deferred edge imports: loading `edges` from module top cycles via `edges.__init__`.
+        # pylint: disable=import-outside-toplevel
+        from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
+        from action_machine.model.graph_model.edges.property_graph_edge import PropertyGraphEdge
+
         result_node_id = TypeIntrospection.full_qualname(result_cls)
-        fields = ResultGraphNode._get_field_edges(result_cls, result_node_id)
-        props = ResultGraphNode._get_property_edges(result_cls, result_node_id)
         super().__init__(
             node_id=result_node_id,
             node_type=ResultGraphNode.NODE_TYPE,
@@ -74,8 +76,8 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
             properties={},
             node_obj=result_cls,
         )
-        object.__setattr__(self, "fields", fields)
-        object.__setattr__(self, "props", props)
+        object.__setattr__(self, "fields", FieldGraphEdge.for_result(result_cls, result_node_id))
+        object.__setattr__(self, "props", PropertyGraphEdge.for_result(result_cls, result_node_id))
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return all outgoing composition edges materialized in explicit edge fields."""
@@ -87,99 +89,4 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
             edge.target_node
             for edge in [*self.fields, *self.props]
             if edge.target_node is not None
-        ]
-
-    @staticmethod
-    def _field_graph_nodes_for_result(result_cls: type[BaseResult]) -> list[FieldGraphNode]:
-        """One :class:`FieldGraphNode` per entry in ``result_cls.model_fields`` (empty when none)."""
-        model_fields = getattr(result_cls, "model_fields", None)
-        if not isinstance(model_fields, Mapping):
-            return []
-        out: list[FieldGraphNode] = []
-        for field_name, finfo in model_fields.items():
-            out.append(
-                FieldGraphNode(
-                    result_cls,
-                    field_name,
-                    description=finfo.description,
-                    required=bool(finfo.is_required()),
-                ),
-            )
-        return out
-
-    @staticmethod
-    def _get_field_edges(
-        result_cls: type[BaseResult],
-        result_node_id: str,
-    ) -> list[CompositionGraphEdge]:
-        """Build composition edges from result node to declared Pydantic field nodes."""
-        fields = ResultGraphNode._field_graph_nodes_for_result(result_cls)
-        return [
-            CompositionGraphEdge(
-                edge_name=f"field:{fd.node_obj.field_name.strip() or '_'}",
-                is_dag=False,
-                source_node_id=result_node_id,
-                source_node_type=ResultGraphNode.NODE_TYPE,
-                target_node_id=fd.node_id,
-                target_node_type=FieldGraphNode.NODE_TYPE,
-                target_node=fd,
-            )
-            for fd in fields
-        ]
-
-    @staticmethod
-    def _property_graph_nodes_for_result(
-        result_cls: type[BaseResult],
-    ) -> list[PropertyFieldGraphNode]:
-        """One :class:`PropertyFieldGraphNode` per Pydantic computed field and per plain ``property`` on the class."""
-        out: list[PropertyFieldGraphNode] = []
-        seen: set[str] = set()
-
-        model_fields = getattr(result_cls, "model_fields", None)
-        model_field_names = set(model_fields) if isinstance(model_fields, Mapping) else set()
-
-        model_computed_fields = getattr(result_cls, "model_computed_fields", None)
-        if isinstance(model_computed_fields, Mapping):
-            for prop_name, _ in model_computed_fields.items():
-                seen.add(prop_name)
-                out.append(
-                    PropertyFieldGraphNode(
-                        result_cls,
-                        prop_name,
-                        required=False,
-                    ),
-                )
-
-        prop_members = TypeIntrospection.property_members(result_cls)
-        for prop_name in sorted(prop_members):
-            if prop_name in seen or prop_name in model_field_names:
-                continue
-            seen.add(prop_name)
-            out.append(
-                PropertyFieldGraphNode(
-                    result_cls,
-                    prop_name,
-                    required=False,
-                ),
-            )
-        return out
-
-    @staticmethod
-    def _get_property_edges(
-        result_cls: type[BaseResult],
-        result_node_id: str,
-    ) -> list[CompositionGraphEdge]:
-        """Build composition edges from result node to computed/plain property nodes."""
-        props = ResultGraphNode._property_graph_nodes_for_result(result_cls)
-        return [
-            CompositionGraphEdge(
-                edge_name=f"property:{p.node_obj.property_name.strip() or '_'}",
-                is_dag=False,
-                source_node_id=result_node_id,
-                source_node_type=ResultGraphNode.NODE_TYPE,
-                target_node_id=p.node_id,
-                target_node_type=PropertyFieldGraphNode.NODE_TYPE,
-                target_node=p,
-            )
-            for p in props
         ]
