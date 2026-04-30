@@ -89,6 +89,7 @@ from action_machine.exceptions import (
     ActionResultTypeError,
     MissingSummaryAspectError,
 )
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from action_machine.legacy.core import Core
 from action_machine.logging.console_logger import ConsoleLogger
 from action_machine.logging.log_coordinator import LogCoordinator
@@ -96,7 +97,6 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.plugin.plugin import Plugin
 from action_machine.plugin.plugin_coordinator import PluginCoordinator
 from action_machine.plugin.plugin_emit_support import PluginEmitSupport
@@ -153,7 +153,7 @@ class _ActionExecutionCache:
     Frozen bundle of pipeline metadata for one ``run`` / ``_run_internal``.
 
     ``role_spec`` comes from the coordinator ``role`` facet; ``action_node``
-    is the materialized :class:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode`
+    is the materialized :class:`~action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`
     (graph is source of truth for aspects, compensators, error handlers).
     """
 

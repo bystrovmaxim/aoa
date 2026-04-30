@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import pytest
 
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
 from action_machine.legacy.core import Core
-from action_machine.model.graph_model.action_graph_node import ActionGraphNode
-from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
 from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.graph_coordinator import GraphCoordinator

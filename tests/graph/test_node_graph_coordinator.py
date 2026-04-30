@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode

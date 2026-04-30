@@ -5,39 +5,39 @@ Lucide icon markup (inner SVG children only) per ``node_type``.
 Icons are from `lucide-static` (ISC, https://github.com/lucide-icons/lucide).
 Rendered as white strokes on the colored node disk in :mod:`maxitor.viz2.interchange_graph_visualizer`.
 
-Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode`,
-:class:`~action_machine.model.graph_model.checker_graph_node.CheckerGraphNode`,
-:class:`~action_machine.model.graph_model.params_graph_node.ParamsGraphNode`, :class:`~action_machine.model.graph_model.result_graph_node.ResultGraphNode`,
-:class:`~action_machine.model.graph_model.field_graph_node.FieldGraphNode`, :class:`~action_machine.model.graph_model.property_field_graph_node.PropertyFieldGraphNode`,
-:class:`~action_machine.domain.graph_model.entity_graph_node.EntityGraphNode`, :class:`~action_machine.domain.graph_model.domain_graph_node.DomainGraphNode`,
-:class:`~action_machine.resources.graph_model.resource_graph_node.ResourceGraphNode`,
-and :class:`~action_machine.auth.graph_model.role_graph_node.RoleGraphNode`. Other keys are facet-only strings (no graph-node class).
+Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`,
+:class:`~action_machine.graph_model.nodes.checker_graph_node.CheckerGraphNode`,
+:class:`~action_machine.graph_model.nodes.params_graph_node.ParamsGraphNode`, :class:`~action_machine.graph_model.nodes.result_graph_node.ResultGraphNode`,
+:class:`~action_machine.graph_model.nodes.field_graph_node.FieldGraphNode`, :class:`~action_machine.graph_model.nodes.property_field_graph_node.PropertyFieldGraphNode`,
+:class:`~action_machine.graph_model.nodes.entity_graph_node.EntityGraphNode`, :class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode`,
+:class:`~action_machine.graph_model.nodes.resource_graph_node.ResourceGraphNode`,
+and :class:`~action_machine.graph_model.nodes.role_graph_node.RoleGraphNode`. Other keys are facet-only strings (no graph-node class).
 """
 
 from __future__ import annotations
 
 from urllib.parse import quote
 
-from action_machine.auth.graph_model.role_graph_node import RoleGraphNode
-from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
-from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
+from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
+from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
+from action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
+from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandlerGraphNode
+from action_machine.graph_model.nodes.field_graph_node import FieldGraphNode
+from action_machine.graph_model.nodes.params_graph_node import ParamsGraphNode
+from action_machine.graph_model.nodes.property_field_graph_node import PropertyFieldGraphNode
+from action_machine.graph_model.nodes.regular_aspect_graph_node import (
+    RegularAspectGraphNode,
+)
+from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
+from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
+from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
+from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.legacy.interchange_vertex_labels import (
     APPLICATION_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
 )
-from action_machine.model.graph_model.action_graph_node import ActionGraphNode
-from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
-from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
-from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
-from action_machine.model.graph_model.field_graph_node import FieldGraphNode
-from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
-from action_machine.model.graph_model.property_field_graph_node import PropertyFieldGraphNode
-from action_machine.model.graph_model.regular_aspect_graph_node import (
-    RegularAspectGraphNode,
-)
-from action_machine.model.graph_model.result_graph_node import ResultGraphNode
-from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
 
 # ``ErrorHandler``: amber disk + darker amber glyph (single hue family; avoids neon yellow / fire-engine red).
 _ERROR_HANDLER_INNER_STROKE: str = "#B45309"

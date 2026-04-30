@@ -1,10 +1,10 @@
 # tests/graph/test_checker_graph_edge.py
-"""Constructor tests for :class:`~action_machine.model.graph_model.edges.checker_graph_edge.CheckerGraphEdge`."""
+"""Constructor tests for :class:`~action_machine.graph_model.edges.checker_graph_edge.CheckerGraphEdge`."""
 
 from __future__ import annotations
 
-from action_machine.model.graph_model.edges.checker_graph_edge import CheckerGraphEdge
-from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.graph_model.edges.checker_graph_edge import CheckerGraphEdge
+from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
 from graph.edge_relationship import COMPOSITION
 from tests.scenarios.domain_model.child_action import ChildAction
 

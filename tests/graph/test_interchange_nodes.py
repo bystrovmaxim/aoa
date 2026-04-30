@@ -10,9 +10,29 @@ from pydantic import Field
 
 from action_machine.context.context_view import ContextView
 from action_machine.context.ctx_constants import Ctx
-from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
-from action_machine.domain.graph_model.edges.domain_graph_edge import DomainGraphEdge
-from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
+from action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
+from action_machine.graph_model.edges.params_graph_edge import ParamsGraphEdge
+from action_machine.graph_model.edges.regular_aspect_graph_edge import (
+    RegularAspectGraphEdge,
+)
+from action_machine.graph_model.edges.result_graph_edge import ResultGraphEdge
+from action_machine.graph_model.edges.summary_aspect_graph_edge import (
+    SummaryAspectGraphEdge,
+)
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
+from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
+from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
+from action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
+from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandlerGraphNode
+from action_machine.graph_model.nodes.field_graph_node import FieldGraphNode
+from action_machine.graph_model.nodes.params_graph_node import ParamsGraphNode
+from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.graph_model.nodes.required_context_graph_node import (
+    RequiredContextGraphNode,
+)
+from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
+from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
@@ -31,26 +51,6 @@ from action_machine.legacy.application_context_inspector import ApplicationConte
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.model.graph_model.action_graph_node import ActionGraphNode
-from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
-from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
-from action_machine.model.graph_model.edges.params_graph_edge import ParamsGraphEdge
-from action_machine.model.graph_model.edges.regular_aspect_graph_edge import (
-    RegularAspectGraphEdge,
-)
-from action_machine.model.graph_model.edges.result_graph_edge import ResultGraphEdge
-from action_machine.model.graph_model.edges.summary_aspect_graph_edge import (
-    SummaryAspectGraphEdge,
-)
-from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
-from action_machine.model.graph_model.field_graph_node import FieldGraphNode
-from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
-from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
-from action_machine.model.graph_model.required_context_graph_node import (
-    RequiredContextGraphNode,
-)
-from action_machine.model.graph_model.result_graph_node import ResultGraphNode
-from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.resources.base_resource import BaseResource
 from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge

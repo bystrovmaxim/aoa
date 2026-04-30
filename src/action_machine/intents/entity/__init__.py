@@ -3,11 +3,11 @@
 """
 Entity intent package — ``@entity`` marker, decorator, graph inspector.
 
-``EntityGraphNode`` lives in :mod:`action_machine.domain.graph_model.entity_graph_node` and is
+``EntityGraphNode`` lives in :mod:`action_machine.graph_model.nodes.entity_graph_node` and is
 re-exported from :mod:`action_machine.domain` to avoid a cycle with
 :mod:`action_machine.domain.entity` (``BaseEntity`` ↔ ``EntityIntent``).
 ``DomainGraphNode`` is interchange for ``BaseDomain`` markers
-(:mod:`action_machine.domain.graph_model.domain_graph_node`).
+(:mod:`action_machine.graph_model.nodes.domain_graph_node`).
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ __all__ = [
 def __getattr__(name: str) -> Any:
     """Lazy imports avoid cycles while :mod:`action_machine.domain.entity` loads ``EntityIntent``."""
     if name == "DomainGraphNode":
-        from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
+        from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 
         return DomainGraphNode
     if name == "EntityIntentInspector":

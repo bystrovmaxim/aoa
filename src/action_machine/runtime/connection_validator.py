@@ -31,10 +31,10 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.exceptions import ConnectionValidationError
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.resources.base_resource import BaseResource
 
 

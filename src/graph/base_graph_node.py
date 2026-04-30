@@ -9,7 +9,7 @@ Constructor takes all interchange fields explicitly: ``node_id``, ``node_type``,
 
 ``companion_nodes`` lists **extra** interchange vertices shipped with this host row: nodes that have
 no own graph-inspector axis (no ``type`` to walk), e.g. runtime-only rows such as
-:class:`~action_machine.model.graph_model.checker_graph_node.CheckerGraphNode`. The host still wires
+:class:`~action_machine.graph_model.nodes.checker_graph_node.CheckerGraphNode`. The host still wires
 ``edges`` to them by ``target_node_id``; contributors must **also** flatten the same instances into
 :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` output so
 :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` receives one vertex per id (the

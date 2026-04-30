@@ -1,15 +1,15 @@
 # tests/model/test_lazy_model_graph_exports.py
 """
-Lazy public exports on ``action_machine.model``, ``model.graph_model``, and ``inspectors``.
+Lazy public exports on ``action_machine.model``, ``action_machine.graph_model``, and ``inspectors``.
 """
 
 from __future__ import annotations
 
 import pytest
 
+import action_machine.graph_model as graph_model_pkg
 import action_machine.model as model_pkg
-import action_machine.model.graph_model as graph_model_pkg
-from action_machine.model.graph_model.inspectors.action_graph_node_inspector import (
+from action_machine.graph_model.inspectors.action_graph_node_inspector import (
     ActionGraphNodeInspector,
 )
 from tests.scenarios.domain_model.child_action import ChildAction
@@ -42,7 +42,7 @@ def test_graph_model_dir_lists_public_names() -> None:
 
 
 def test_graph_model_inspectors_lazy_exports() -> None:
-    import action_machine.model.graph_model.inspectors as inspectors_pkg
+    import action_machine.graph_model.inspectors as inspectors_pkg
 
     for name in inspectors_pkg.__all__:
         getattr(inspectors_pkg, name)
@@ -50,7 +50,7 @@ def test_graph_model_inspectors_lazy_exports() -> None:
 
 
 def test_graph_model_inspectors_getattr_unknown_raises() -> None:
-    import action_machine.model.graph_model.inspectors as inspectors_pkg
+    import action_machine.graph_model.inspectors as inspectors_pkg
 
     bad = "NotARealGraphModelInspector884"
     with pytest.raises(AttributeError, match="has no attribute"):
