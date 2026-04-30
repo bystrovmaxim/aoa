@@ -52,7 +52,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from action_machine.model.graph_model.compensator_graph_node import (
+    from action_machine.graph_model.nodes.compensator_graph_node import (
         CompensatorGraphNode,
     )
 

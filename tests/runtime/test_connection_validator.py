@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from action_machine.exceptions import ConnectionValidationError
-from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from action_machine.runtime.connection_validator import ConnectionValidator
 from tests.scenarios.domain_model.child_action import ChildAction
 from tests.scenarios.domain_model.full_action import FullAction

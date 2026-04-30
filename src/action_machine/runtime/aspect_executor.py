@@ -44,6 +44,10 @@ from typing import Any
 
 from action_machine.context.context_view import ContextView
 from action_machine.exceptions import ValidationFieldError
+from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
+from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
+from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.legacy.binding.action_result_binding import (
     bind_pipeline_result_to_action,
     synthetic_summary_result_when_missing_aspect,
@@ -55,10 +59,6 @@ from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
-from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
-from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
-from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox

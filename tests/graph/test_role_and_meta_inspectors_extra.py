@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from action_machine.auth.application_role import ApplicationRole
 from action_machine.auth.base_role import BaseRole
-from action_machine.auth.graph_model.inspectors.role_graph_node_inspector import (
+from action_machine.graph_model.inspectors.role_graph_node_inspector import (
     RoleGraphNodeInspector,
 )
 from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent

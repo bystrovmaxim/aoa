@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Walks the loaded ``BaseResource`` strict subclass tree and emits one
-:class:`~action_machine.resources.graph_model.resource_graph_node.ResourceGraphNode` per
+:class:`~action_machine.graph_model.nodes.resource_graph_node.ResourceGraphNode` per
 visited concrete or abstract resource class.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -24,11 +24,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
 from action_machine.resources.base_resource import BaseResource
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
-
-from ..resource_graph_node import ResourceGraphNode
 
 
 class ResourceGraphNodeInspector(BaseGraphNodeInspector[BaseResource]):

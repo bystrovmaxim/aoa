@@ -31,24 +31,24 @@ from html import escape as html_escape
 from pathlib import Path
 from typing import Any
 
-from action_machine.auth.graph_model.role_graph_node import RoleGraphNode
-from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
-from action_machine.domain.graph_model.entity_graph_node import EntityGraphNode
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
+from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
+from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
+from action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
+from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandlerGraphNode
+from action_machine.graph_model.nodes.field_graph_node import FieldGraphNode
+from action_machine.graph_model.nodes.params_graph_node import ParamsGraphNode
+from action_machine.graph_model.nodes.property_field_graph_node import PropertyFieldGraphNode
+from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
+from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
+from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
+from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.legacy.interchange_vertex_labels import (
     APPLICATION_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
 )
-from action_machine.model.graph_model.action_graph_node import ActionGraphNode
-from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
-from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
-from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
-from action_machine.model.graph_model.field_graph_node import FieldGraphNode
-from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
-from action_machine.model.graph_model.property_field_graph_node import PropertyFieldGraphNode
-from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
-from action_machine.model.graph_model.result_graph_node import ResultGraphNode
-from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES

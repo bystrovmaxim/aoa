@@ -14,23 +14,23 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.auth.graph_model.inspectors.role_graph_node_inspector import (
-    RoleGraphNodeInspector,
-)
-from action_machine.domain.graph_model.inspectors.domain_graph_node_inspector import (
-    DomainGraphNodeInspector,
-)
-from action_machine.domain.graph_model.inspectors.entity_graph_node_inspector import (
-    EntityGraphNodeInspector,
-)
-from action_machine.model.graph_model.inspectors.action_graph_node_inspector import (
+from action_machine.graph_model.inspectors.action_graph_node_inspector import (
     ActionGraphNodeInspector,
 )
-from action_machine.model.graph_model.inspectors.params_graph_node_inspector import (
+from action_machine.graph_model.inspectors.domain_graph_node_inspector import (
+    DomainGraphNodeInspector,
+)
+from action_machine.graph_model.inspectors.entity_graph_node_inspector import (
+    EntityGraphNodeInspector,
+)
+from action_machine.graph_model.inspectors.params_graph_node_inspector import (
     ParamsGraphNodeInspector,
 )
-from action_machine.model.graph_model.inspectors.result_graph_node_inspector import (
+from action_machine.graph_model.inspectors.result_graph_node_inspector import (
     ResultGraphNodeInspector,
+)
+from action_machine.graph_model.inspectors.role_graph_node_inspector import (
+    RoleGraphNodeInspector,
 )
 from action_machine.resources.graph_model.inspectors.resource_graph_node_inspector import (
     ResourceGraphNodeInspector,

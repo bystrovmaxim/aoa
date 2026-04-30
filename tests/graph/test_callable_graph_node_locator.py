@@ -1,19 +1,19 @@
 # tests/graph/test_callable_graph_node_locator.py
 """Action graph node callable edge behavior."""
 
-from action_machine.model.graph_model.action_graph_node import ActionGraphNode
-from action_machine.model.graph_model.edges.compensator_graph_edge import (
+from action_machine.graph_model.edges.compensator_graph_edge import (
     CompensatorGraphEdge,
 )
-from action_machine.model.graph_model.edges.error_handler_graph_edge import (
+from action_machine.graph_model.edges.error_handler_graph_edge import (
     ErrorHandlerGraphEdge,
 )
-from action_machine.model.graph_model.edges.regular_aspect_graph_edge import (
+from action_machine.graph_model.edges.regular_aspect_graph_edge import (
     RegularAspectGraphEdge,
 )
-from action_machine.model.graph_model.edges.summary_aspect_graph_edge import (
+from action_machine.graph_model.edges.summary_aspect_graph_edge import (
     SummaryAspectGraphEdge,
 )
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from tests.scenarios.domain_model.child_action import ChildAction
 from tests.scenarios.domain_model.ping_action import PingAction
 

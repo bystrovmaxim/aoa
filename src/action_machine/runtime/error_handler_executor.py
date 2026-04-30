@@ -44,12 +44,12 @@ from action_machine.exceptions import (
     ActionResultTypeError,
     OnErrorHandlerError,
 )
+from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.intents.context_requires.context_requires_resolver import (
     ContextRequiresResolver,
 )
 from action_machine.legacy.binding.action_result_binding import bind_pipeline_result_to_action
 from action_machine.model.base_result import BaseResult
-from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.plugin.events import (
     AfterOnErrorAspectEvent,
     BeforeOnErrorAspectEvent,
