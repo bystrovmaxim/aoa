@@ -58,6 +58,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
     CONTRACT: Materializes action metadata and every outgoing edge into explicit fields; ``get_all_edges`` returns the composed edge list.
+    FAILURES: :exc:`~action_machine.exceptions.MissingMetaError` propagates from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` or :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type` (via ``DomainGraphEdge``) when ``@meta`` data is unusable.
     AI-CORE-END
     """
 
@@ -78,7 +79,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             node_id=node_id,
             node_type=ActionGraphNode.NODE_TYPE,
             label=action_cls.__name__,
-            properties=dict(ActionGraphNode._get_properties(action_cls)),
+            properties=dict({"description": MetaIntentResolver.resolve_description(action_cls)}),
             node_obj=action_cls,
         )
         object.__setattr__(self, "domain", DomainGraphEdge(action_cls, self.NODE_TYPE, self))
@@ -175,13 +176,3 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             *(node for n in compensators for node in n.get_companion_nodes()),
             *(node for n in error_handlers for node in n.get_companion_nodes()),
         ]
-
-    @staticmethod
-    def _get_properties(action_cls: type[TAction]) -> dict[str, Any]:
-        """``description`` from ``_meta_info`` when ``@meta(description=...)`` is present."""
-        properties: dict[str, Any] = {}
-        desc = MetaIntentResolver.resolve_description(action_cls)
-        if desc is not None:
-            properties["description"] = desc.strip()
-        return properties
-

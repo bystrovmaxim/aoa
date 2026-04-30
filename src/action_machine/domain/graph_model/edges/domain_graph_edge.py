@@ -16,7 +16,6 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
-from action_machine.exceptions import DomainGraphEdgeResolutionError
 from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
@@ -29,7 +28,7 @@ class DomainGraphEdge(AssociationGraphEdge):
     ROLE: Typed association edge ``host → domain``.
     CONTRACT: ``edge_name`` ``domain``, ``target_node_type`` matches ``DomainGraphNode.NODE_TYPE``; domain from ``resolve_domain_type(source_cls)``.
     INVARIANTS: Frozen via ``AssociationGraphEdge`` base; ``target_node`` resolves lazily elsewhere (``None`` stub).
-    FAILURES: :exc:`~action_machine.exceptions.DomainGraphEdgeResolutionError` when ``resolve_domain_type`` returns ``None``.
+    FAILURES: :exc:`~action_machine.exceptions.MissingMetaError` when ``resolve_domain_type`` cannot read a ``BaseDomain`` from ``@meta``.
     AI-CORE-END
     """
 
@@ -40,9 +39,6 @@ class DomainGraphEdge(AssociationGraphEdge):
         source_node: BaseGraphNode[Any],
     ) -> None:
         domain_cls = MetaIntentResolver.resolve_domain_type(source_cls)
-        if domain_cls is None:
-            qn = TypeIntrospection.full_qualname(source_cls)
-            raise DomainGraphEdgeResolutionError(qn)
         super().__init__(
             edge_name="domain",
             is_dag=True,

@@ -1,9 +1,13 @@
 # src/action_machine/intents/meta/meta_intent_resolver.py
+# src/action_machine/intents/meta/meta_intent_resolver.py
 """MetaIntentResolver — resolves normalized ``@meta`` declarations."""
 
 from __future__ import annotations
 
 from typing import Any
+
+from action_machine.domain.base_domain import BaseDomain
+from action_machine.exceptions import MissingMetaError
 
 
 class MetaIntentResolver:
@@ -12,6 +16,7 @@ class MetaIntentResolver:
     ROLE: Resolve class-level ``@meta`` declarations for graph model builders.
     CONTRACT: Reads normalized ``_meta_info`` scratch and returns only typed values needed by graph nodes.
     INVARIANTS: Does not validate decorator invariants and does not materialize graph nodes.
+    FAILURES: :exc:`~action_machine.exceptions.MissingMetaError` from :meth:`resolve_description` or :meth:`resolve_domain_type` when the required scratch value is absent or invalid.
     AI-CORE-END
     """
 
@@ -24,13 +29,17 @@ class MetaIntentResolver:
         return raw if isinstance(raw, dict) else {}
 
     @staticmethod
-    def resolve_domain_type(host_cls: type) -> type | None:
-        """Return the domain type declared by ``@meta`` when present."""
+    def resolve_domain_type(host_cls: type) -> type[BaseDomain]:
+        """Return the ``BaseDomain`` subclass from ``@meta`` or raise :exc:`MissingMetaError`."""
         domain_cls = MetaIntentResolver.meta_info_dict(host_cls).get("domain")
-        return domain_cls if isinstance(domain_cls, type) else None
+        if not isinstance(domain_cls, type) or not issubclass(domain_cls, BaseDomain):
+            raise MissingMetaError(host_cls, key="domain")
+        return domain_cls
 
     @staticmethod
-    def resolve_description(host_cls: type) -> str | None:
-        """Return the description declared by ``@meta`` when present."""
+    def resolve_description(host_cls: type) -> str:
+        """Return stripped ``@meta`` ``description`` or raise :exc:`MissingMetaError`."""
         description = MetaIntentResolver.meta_info_dict(host_cls).get("description")
-        return description if isinstance(description, str) and description else None
+        if not isinstance(description, str) or not description.strip():
+            raise MissingMetaError(host_cls, key="description")
+        return description.strip()

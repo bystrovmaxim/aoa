@@ -22,7 +22,7 @@ ARCHITECTURE / DATA FLOW
     ``@meta`` → ``_meta_info`` ``description`` / ``domain``
               │
               v
-    ``ResourceGraphNode``  →  frozen ``BaseGraphNode`` + optional domain ``ASSOCIATION`` edge
+    ``ResourceGraphNode``  →  frozen ``BaseGraphNode`` + domain ``ASSOCIATION`` edge
 """
 
 from __future__ import annotations
@@ -46,13 +46,13 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseResource`` host class.
-    CONTRACT: ``_get_properties`` from ``@meta`` ``description``; ``_get_domain_edge`` returns
-    zero or one ``ASSOCIATION`` edge to :class:`~action_machine.domain.graph_model.domain_graph_node.DomainGraphNode` when ``domain`` is a ``BaseDomain`` subclass.
+    CONTRACT: ``_get_properties`` from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` ``description``; ``domain_edge`` is the ``ASSOCIATION`` edge to :class:`~action_machine.domain.graph_model.domain_graph_node.DomainGraphNode` from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type`.
+    FAILURES: :exc:`~action_machine.exceptions.MissingMetaError` from ``resolve_description`` / ``resolve_domain_type`` when ``@meta`` scratch is absent or invalid.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Resource"
-    domain_edge: AssociationGraphEdge | None = field(init=False, repr=False, compare=False)
+    domain_edge: AssociationGraphEdge = field(init=False, repr=False, compare=False)
 
     def __init__(self, resource_cls: type[TResource]) -> None:
         super().__init__(
@@ -62,40 +62,28 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
             properties=dict(ResourceGraphNode._get_properties(resource_cls)),
             node_obj=resource_cls,
         )
-        domain_edge = self._get_domain_edge(resource_cls)
-        object.__setattr__(self, "domain_edge", domain_edge[0] if domain_edge else None)
+        domain_edge = self._build_domain_edge(resource_cls)
+        object.__setattr__(self, "domain_edge", domain_edge)
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return resource relationship edges materialized in the explicit edge field."""
-        return [
-            *([] if self.domain_edge is None else [self.domain_edge]),
-        ]
+        return [self.domain_edge]
 
     @classmethod
     def _get_properties(cls, resource_cls: type[TResource]) -> dict[str, Any]:
-        """``description`` from ``_meta_info`` when ``@meta(description=...)`` is present."""
-        properties: dict[str, Any] = {}
-        desc = MetaIntentResolver.resolve_description(resource_cls)
-        if desc is not None:
-            properties["description"] = desc.strip()
-        return properties
+        """``description`` from ``@meta(description=...)`` via :meth:`MetaIntentResolver.resolve_description`."""
+        return {"description": MetaIntentResolver.resolve_description(resource_cls)}
 
-    def _get_domain_edge(
-        self,
-        resource_cls: type[TResource],
-    ) -> list[AssociationGraphEdge]:
-        """Zero or one domain edge; empty when ``@meta`` has no valid ``BaseDomain`` in ``domain``."""
-        return [
-            AssociationGraphEdge(
-                edge_name="domain",
-                is_dag=True,
-                source_node_id=TypeIntrospection.full_qualname(resource_cls),
-                source_node_type=self.NODE_TYPE,
-                source_node=self,
-                target_node_id=TypeIntrospection.full_qualname(domain_cls),
-                target_node_type=DomainGraphNode.NODE_TYPE,
-                target_node=None,
-            )
-            for domain_cls in [MetaIntentResolver.resolve_domain_type(resource_cls)]
-            if domain_cls is not None
-        ]
+    def _build_domain_edge(self, resource_cls: type[TResource]) -> AssociationGraphEdge:
+        """``ASSOCIATION`` to the declared ``@meta`` domain vertex."""
+        domain_cls = MetaIntentResolver.resolve_domain_type(resource_cls)
+        return AssociationGraphEdge(
+            edge_name="domain",
+            is_dag=True,
+            source_node_id=TypeIntrospection.full_qualname(resource_cls),
+            source_node_type=self.NODE_TYPE,
+            source_node=self,
+            target_node_id=TypeIntrospection.full_qualname(domain_cls),
+            target_node_type=DomainGraphNode.NODE_TYPE,
+            target_node=None,
+        )
