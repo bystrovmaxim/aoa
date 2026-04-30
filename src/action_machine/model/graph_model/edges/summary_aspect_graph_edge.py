@@ -45,7 +45,7 @@ class SummaryAspectGraphEdge(CompositionGraphEdge):
         summary_node: SummaryAspectGraphNode,
     ) -> None:
         super().__init__(
-            edge_name=summary_node.label,
+            edge_name="@summary_aspect",
             is_dag=False,
             source_node_id=source_node.node_id,
             source_node_type=source_node.node_type,
