@@ -17,7 +17,7 @@ ARCHITECTURE / DATA FLOW
 
     RegularAspectGraphNode  ──@result_checker──►  CheckerGraphNode
 
-Factory helpers (:meth:`CheckerGraphEdge.checkers_for_method`, :meth:`CheckerGraphEdge.edges_for_aspect`)
+Factory helpers (:meth:`CheckerGraphEdge.checkers_for_method`, :meth:`CheckerGraphEdge.get_checker_edges`)
 read ``_checker_meta`` on the aspect callable and attach :class:`~action_machine.model.graph_model.checker_graph_node.CheckerGraphNode`
 targets to each typed edge.
 
@@ -38,7 +38,7 @@ class CheckerGraphEdge(CompositionGraphEdge):
     AI-CORE-BEGIN
     ROLE: Typed composition edge regular aspect vertex → checker row.
     CONTRACT: ``edge_name`` literal ``@result_checker``; ``is_dag`` False; ``source_node`` left unset (``None``) so frozen edge equality does not recurse through the host :class:`~action_machine.model.graph_model.regular_aspect_graph_node.RegularAspectGraphNode`; ``target_node`` is the checker vertex.
-    FACTORY: ``checkers_for_method`` parses ``_checker_meta``; ``edges_for_aspect`` materializes checker rows and attaches one edge per row (caller supplies ``aspect_vertex_type``).
+    FACTORY: ``checkers_for_method`` parses ``_checker_meta``; ``get_checker_edges`` materializes checker rows and attaches one edge per row (caller supplies ``aspect_node_type``).
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END
     """
@@ -69,7 +69,7 @@ class CheckerGraphEdge(CompositionGraphEdge):
         return CheckerGraphEdge._normalized_checker_meta_rows(raw)
 
     @staticmethod
-    def edges_for_aspect(
+    def get_checker_edges(
         aspect_callable: Callable[..., Any],
         _action_cls: type[Any],
         aspect_node_id: str,
