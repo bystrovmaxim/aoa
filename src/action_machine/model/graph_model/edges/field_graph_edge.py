@@ -56,24 +56,6 @@ class FieldGraphEdge(CompositionGraphEdge):
         )
 
     @classmethod
-    def _field_graph_nodes_for_params(cls, params_cls: type[BaseParams]) -> list[FieldGraphNode]:
-        """One ``FieldGraphNode`` per ``params_cls.model_fields`` entry (empty when none)."""
-        model_fields = getattr(params_cls, "model_fields", None)
-        if not isinstance(model_fields, Mapping):
-            return []
-        out: list[FieldGraphNode] = []
-        for field_name, finfo in model_fields.items():
-            out.append(
-                FieldGraphNode(
-                    params_cls,
-                    field_name,
-                    description=finfo.description,
-                    required=bool(finfo.is_required()),
-                ),
-            )
-        return out
-
-    @classmethod
     def for_params(
         cls,
         params_cls: type[BaseParams],
@@ -91,3 +73,21 @@ class FieldGraphEdge(CompositionGraphEdge):
             )
             for fd in fields
         ]
+
+    @classmethod
+    def _field_graph_nodes_for_params(cls, params_cls: type[BaseParams]) -> list[FieldGraphNode]:
+        """One ``FieldGraphNode`` per ``params_cls.model_fields`` entry (empty when none)."""
+        model_fields = getattr(params_cls, "model_fields", None)
+        if not isinstance(model_fields, Mapping):
+            return []
+        out: list[FieldGraphNode] = []
+        for field_name, finfo in model_fields.items():
+            out.append(
+                FieldGraphNode(
+                    params_cls,
+                    field_name,
+                    description=finfo.description,
+                    required=bool(finfo.is_required()),
+                ),
+            )
+        return out

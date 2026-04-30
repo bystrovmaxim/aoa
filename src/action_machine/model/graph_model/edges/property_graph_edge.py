@@ -19,11 +19,13 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from action_machine.model.base_params import BaseParams
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.property_field_graph_node import PropertyFieldGraphNode
+from action_machine.system_core import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
 
@@ -36,22 +38,6 @@ class PropertyGraphEdge(CompositionGraphEdge):
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END
     """
-
-    @staticmethod
-    def for_params(
-        params_cls: type[BaseParams],
-        params_node_id: str,
-    ) -> list[PropertyGraphEdge]:
-        """Build composition edges from params node to computed/plain property nodes."""
-        props = ParamsGraphNode._property_graph_nodes_for_params(params_cls)
-        return [
-            PropertyGraphEdge(
-                params_node_id=params_node_id,
-                params_node_type=ParamsGraphNode.NODE_TYPE,
-                property_node=p,
-            )
-            for p in props
-        ]
 
     def __init__(
         self,
@@ -72,3 +58,58 @@ class PropertyGraphEdge(CompositionGraphEdge):
             target_node_type=property_node.node_type,
             target_node=property_node,
         )
+
+    @classmethod
+    def for_params(
+        cls,
+        params_cls: type[BaseParams],
+        params_node_id: str,
+    ) -> list[PropertyGraphEdge]:
+        """Build composition edges from params node to computed/plain property nodes."""
+        props = cls._property_graph_nodes_for_params(params_cls)
+        return [
+            cls(
+                params_node_id=params_node_id,
+                params_node_type=ParamsGraphNode.NODE_TYPE,
+                property_node=p,
+            )
+            for p in props
+        ]
+
+    @classmethod
+    def _property_graph_nodes_for_params(
+        cls,
+        params_cls: type[BaseParams],
+    ) -> list[PropertyFieldGraphNode]:
+        """One :class:`PropertyFieldGraphNode` per Pydantic computed field and per plain ``property`` on the class."""
+        out: list[PropertyFieldGraphNode] = []
+        seen: set[str] = set()
+
+        model_fields = getattr(params_cls, "model_fields", None)
+        model_field_names = set(model_fields) if isinstance(model_fields, Mapping) else set()
+
+        model_computed_fields = getattr(params_cls, "model_computed_fields", None)
+        if isinstance(model_computed_fields, Mapping):
+            for prop_name, _ in model_computed_fields.items():
+                seen.add(prop_name)
+                out.append(
+                    PropertyFieldGraphNode(
+                        params_cls,
+                        prop_name,
+                        required=False,
+                    ),
+                )
+
+        prop_members = TypeIntrospection.property_members(params_cls)
+        for prop_name in sorted(prop_members):
+            if prop_name in seen or prop_name in model_field_names:
+                continue
+            seen.add(prop_name)
+            out.append(
+                PropertyFieldGraphNode(
+                    params_cls,
+                    prop_name,
+                    required=False,
+                ),
+            )
+        return out
