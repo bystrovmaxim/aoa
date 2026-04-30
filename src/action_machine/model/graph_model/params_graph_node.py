@@ -54,7 +54,7 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
     ROLE: Interchange node for a ``BaseParams`` params host class.
     CONTRACT: Built from ``type[TParams]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label;
     empty ``properties`` (interchange dict); composition lists :attr:`fields` and :attr:`props`
-    from ``FieldGraphEdge.for_params`` / ``PropertyGraphEdge.for_params``; :attr:`companion_nodes` from both.
+    from ``FieldGraphEdge.get_field_edges`` / ``PropertyGraphEdge.get_property_edges``; :attr:`companion_nodes` from both.
     AI-CORE-END
     """
 
@@ -76,8 +76,8 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
             properties={},
             node_obj=params_cls,
         )
-        object.__setattr__(self, "fields", FieldGraphEdge.for_params(params_cls, params_node_id, ParamsGraphNode.NODE_TYPE))
-        object.__setattr__(self, "props", PropertyGraphEdge.for_params(params_cls, params_node_id, ParamsGraphNode.NODE_TYPE))
+        object.__setattr__(self, "fields", FieldGraphEdge.get_field_edges(params_cls, params_node_id, ParamsGraphNode.NODE_TYPE))
+        object.__setattr__(self, "props", PropertyGraphEdge.get_property_edges(params_cls, params_node_id, ParamsGraphNode.NODE_TYPE))
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return all outgoing composition edges materialized in explicit edge fields."""
