@@ -112,7 +112,7 @@ def test_regular_aspect_graph_node_materializes_required_context_companions() ->
     ]
     tgts = []
     for e in node.required_context:
-        assert e.edge_name == "required_context"
+        assert e.edge_name == "@required_context"
         assert e.target_node is not None
         tgts.append((e.properties["key"], e.target_node.node_id))
     assert sorted(tgts) == [
@@ -289,8 +289,8 @@ def test_action_graph_node_links_and_helpers() -> None:
             summary_node=summary_node,
         ),
     ]
-    assert not node.compensator_graph
-    assert not node.error_handler_graph
+    assert not node.compensators
+    assert not node.on_error_handlers
     assert node.get_companion_nodes() == [summary_node]
     assert (
         SummaryAspectGraphEdge(
@@ -373,7 +373,7 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
     assert node.label == "SampleEntity"
     assert node.node_id == host
     assert node.properties == {"description": "Simple test entity"}
-    assert node.domain_edge == AssociationGraphEdge(
+    assert node.domain == AssociationGraphEdge(
         edge_name="domain",
         is_dag=False,
         source_node_id=host,
@@ -384,5 +384,5 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
         target_node=None,
     )
     assert node.get_all_edges() == [
-        node.domain_edge,
+        node.domain,
     ]

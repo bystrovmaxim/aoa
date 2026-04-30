@@ -36,10 +36,10 @@ def test_get_regular_aspect_builds_edges_with_target_nodes() -> None:
 def test_get_compensator_edges_builds_edges() -> None:
     node = ActionGraphNode(ChildAction)
 
-    assert CompensatorGraphEdge.get_compensator_edges(node, ChildAction) == node.compensator_graph
+    assert CompensatorGraphEdge.get_compensator_edges(node, ChildAction) == node.compensators
 
 
 def test_get_error_handler_edges_builds_edges() -> None:
     node = ActionGraphNode(ChildAction)
 
-    assert ErrorHandlerGraphEdge.get_on_error_handlers_edges(node, ChildAction) == node.error_handler_graph
+    assert ErrorHandlerGraphEdge.get_on_error_handlers_edges(node, ChildAction) == node.on_error_handlers

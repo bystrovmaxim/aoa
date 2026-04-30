@@ -70,8 +70,8 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     connection: list[ConnectionGraphEdge]
     regular_aspect: list[RegularAspectGraphEdge]
     summary_aspect: list[SummaryAspectGraphEdge]
-    compensator_graph: list[CompensatorGraphEdge]
-    error_handler_graph: list[ErrorHandlerGraphEdge]
+    compensators: list[CompensatorGraphEdge]
+    on_error_handlers: list[ErrorHandlerGraphEdge]
 
     def __init__(self, action_cls: type[TAction]) -> None:
         node_id = TypeIntrospection.full_qualname(action_cls)
@@ -89,9 +89,9 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         object.__setattr__(self, "connection", ConnectionGraphEdge.get_connection_edges(self, action_cls))
         object.__setattr__(self, "regular_aspect", RegularAspectGraphEdge.get_regular_aspect_edges(self, action_cls))
         object.__setattr__(self, "summary_aspect", SummaryAspectGraphEdge.get_summary_aspect_edges(self, action_cls))
-        object.__setattr__(self, "compensator_graph", CompensatorGraphEdge.get_compensator_edges(self, action_cls))
+        object.__setattr__(self, "compensators", CompensatorGraphEdge.get_compensator_edges(self, action_cls))
         object.__setattr__(
-            self, "error_handler_graph", ErrorHandlerGraphEdge.get_on_error_handlers_edges(self, action_cls)
+            self, "on_error_handlers", ErrorHandlerGraphEdge.get_on_error_handlers_edges(self, action_cls)
         )
 
     def connection_keys(self) -> frozenset[str]:
@@ -124,7 +124,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     def get_compensator_graph_nodes(self) -> list[CompensatorGraphNode]:
         """Interchange vertices for ``@compensate`` methods, in composition edge order."""
         out: list[CompensatorGraphNode] = []
-        for edge in self.compensator_graph:
+        for edge in self.compensators:
             out.append(cast(CompensatorGraphNode, edge.target_node))
         return out
 
@@ -143,7 +143,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     def get_error_handler_graph_nodes(self) -> list[ErrorHandlerGraphNode]:
         """Interchange vertices for ``@on_error`` methods, in composition edge order."""
         out: list[ErrorHandlerGraphNode] = []
-        for edge in self.error_handler_graph:
+        for edge in self.on_error_handlers:
             out.append(cast(ErrorHandlerGraphNode, edge.target_node))
         return out
 
@@ -156,8 +156,8 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             *self.connection,
             *self.regular_aspect,
             *self.summary_aspect,
-            *self.compensator_graph,
-            *self.error_handler_graph,
+            *self.compensators,
+            *self.on_error_handlers,
         ]
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:

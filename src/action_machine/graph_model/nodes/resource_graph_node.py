@@ -46,13 +46,13 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseResource`` host class.
-    CONTRACT: ``_get_properties`` from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` ``description``; ``domain_edge`` is the ``ASSOCIATION`` edge to :class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode` from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type`.
+    CONTRACT: ``_get_properties`` from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` ``description``; :attr:`domain` is the ``ASSOCIATION`` edge to :class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode` from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type`.
     FAILURES: :exc:`~action_machine.exceptions.MissingMetaError` from ``resolve_description`` / ``resolve_domain_type`` when ``@meta`` scratch is absent or invalid.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Resource"
-    domain_edge: AssociationGraphEdge = field(init=False, repr=False, compare=False)
+    domain: AssociationGraphEdge = field(init=False, repr=False, compare=False)
 
     def __init__(self, resource_cls: type[TResource]) -> None:
         super().__init__(
@@ -62,12 +62,12 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
             properties=dict(ResourceGraphNode._get_properties(resource_cls)),
             node_obj=resource_cls,
         )
-        domain_edge = self._build_domain_edge(resource_cls)
-        object.__setattr__(self, "domain_edge", domain_edge)
+        domain_assoc = self._build_domain_edge(resource_cls)
+        object.__setattr__(self, "domain", domain_assoc)
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return resource relationship edges materialized in the explicit edge field."""
-        return [self.domain_edge]
+        return [self.domain]
 
     @classmethod
     def _get_properties(cls, resource_cls: type[TResource]) -> dict[str, Any]:

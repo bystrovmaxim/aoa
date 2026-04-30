@@ -51,7 +51,7 @@ class RequiredContextGraphEdge(CompositionGraphEdge):
         required_context_node: RequiredContextGraphNode,
     ) -> None:
         super().__init__(
-            edge_name="required_context",
+            edge_name="@required_context",
             is_dag=False,
             source_node_id=source_node_id,
             source_node_type=source_node_type,
