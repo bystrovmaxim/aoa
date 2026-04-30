@@ -11,6 +11,9 @@ from action_machine.domain import BaseEntity, entity
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.intents.check_roles import check_roles
 from action_machine.intents.meta.meta_decorator import meta
+from action_machine.legacy.action_typed_schemas_inspector import (
+    ActionTypedSchemasInspector,
+)
 from action_machine.legacy.described_fields import (
     DescribedFieldsIntent,
     validate_described_schema,
@@ -18,7 +21,7 @@ from action_machine.legacy.described_fields import (
 )
 from action_machine.legacy.described_fields.described_fields_intent_inspector import DescribedFieldsIntentInspector
 from action_machine.legacy.interchange_vertex_labels import ENTITY_VERTEX_TYPE
-from action_machine.model.base_action import ActionTypedSchemasInspector, BaseAction
+from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 

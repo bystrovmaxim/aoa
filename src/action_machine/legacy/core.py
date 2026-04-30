@@ -30,6 +30,9 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+from action_machine.legacy.action_typed_schemas_inspector import (
+    ActionTypedSchemasInspector,
+)
 from action_machine.legacy.application_context_inspector import ApplicationContextInspector
 from action_machine.legacy.aspect_intent_inspector import AspectIntentInspector
 from action_machine.legacy.compensate_intent_inspector import (
@@ -50,7 +53,6 @@ from action_machine.legacy.role_mode_intent_inspector import RoleModeIntentInspe
 from action_machine.legacy.sensitive_intent_inspector import (
     SensitiveIntentInspector,
 )
-from action_machine.model.base_action import ActionTypedSchemasInspector
 from graph.graph_coordinator import GraphCoordinator
 
 
