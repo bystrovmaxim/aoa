@@ -32,7 +32,6 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
@@ -40,8 +39,6 @@ from action_machine.model.base_params import BaseParams
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-
-from .property_field_graph_node import PropertyFieldGraphNode
 
 if TYPE_CHECKING:
     from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
@@ -56,8 +53,7 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseParams`` params host class.
     CONTRACT: Built from ``type[TParams]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label;
-    empty ``properties``; ``edges`` / :attr:`companion_nodes` from ``FieldGraphEdge.for_params`` and ``PropertyGraphEdge.for_params``
-    (property vertices via :meth:`_property_graph_nodes_for_params`).
+    empty ``properties``; ``edges`` / :attr:`companion_nodes` from ``FieldGraphEdge.for_params`` and ``PropertyGraphEdge.for_params``.
     AI-CORE-END
     """
 
@@ -91,41 +87,3 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
             for edge in [*self.field_edges, *self.property_edges]
             if edge.target_node is not None
         ]
-
-
-    @staticmethod
-    def _property_graph_nodes_for_params(
-        params_cls: type[BaseParams],
-    ) -> list[PropertyFieldGraphNode]:
-        """One :class:`PropertyFieldGraphNode` per Pydantic computed field and per plain ``property`` on the class."""
-        out: list[PropertyFieldGraphNode] = []
-        seen: set[str] = set()
-
-        model_fields = getattr(params_cls, "model_fields", None)
-        model_field_names = set(model_fields) if isinstance(model_fields, Mapping) else set()
-
-        model_computed_fields = getattr(params_cls, "model_computed_fields", None)
-        if isinstance(model_computed_fields, Mapping):
-            for prop_name, _ in model_computed_fields.items():
-                seen.add(prop_name)
-                out.append(
-                    PropertyFieldGraphNode(
-                        params_cls,
-                        prop_name,
-                        required=False,
-                    ),
-                )
-
-        prop_members = TypeIntrospection.property_members(params_cls)
-        for prop_name in sorted(prop_members):
-            if prop_name in seen or prop_name in model_field_names:
-                continue
-            seen.add(prop_name)
-            out.append(
-                PropertyFieldGraphNode(
-                    params_cls,
-                    prop_name,
-                    required=False,
-                ),
-            )
-        return out
