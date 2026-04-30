@@ -28,6 +28,5 @@ Covers authentication components:
 - NoAuthCoordinator — provider for public APIs. Always returns anonymous Context with
   UserInfo(user_id=None, roles=()).
 
-Runtime role checks are in tests/runtime/test_machine_roles.py. This package focuses on
-@check_roles, coordinators, and related logic.
+This package focuses on @check_roles, coordinators, and related logic.
 """

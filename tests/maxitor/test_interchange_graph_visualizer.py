@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import importlib
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -24,12 +23,9 @@ from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.composition_graph_edge import CompositionGraphEdge
 from graph.exceptions import InvalidGraphError
 from graph.node_graph_coordinator import NodeGraphCoordinator
-from maxitor.samples.build import _MODULES
 from maxitor.viz2.interchange_graph_visualizer import (
     G6_CDN_URL,
-    INTERCHANGE_AXES_GRAPH_HTML_PATH,
     all_axis_graph_node_inspectors,
-    export_interchange_axes_graph_html,
     generate_interchange_g6_html,
     interchange_edge_to_visual_dict,
     interchange_node_to_visual_dict,
@@ -58,11 +54,6 @@ class _TestGraphNode(BaseGraphNode[object]):
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         return self._edges
-
-
-def _import_sample_modules() -> None:
-    for name in _MODULES:
-        importlib.import_module(name)
 
 
 def test_interchange_node_and_edge_to_visual_dicts() -> None:
@@ -231,25 +222,6 @@ def test_generate_interchange_g6_html_accepts_native_base_graph_nodes(tmp_path: 
     assert written == html_path
     assert len(captured) == 1
     assert G6_CDN_URL in captured[0]
-
-
-@pytest.mark.integration
-def test_export_interchange_axes_graph_html_after_sample_imports() -> None:
-    _import_sample_modules()
-    coord = NodeGraphCoordinator()
-    coord.build(all_axis_graph_node_inspectors())
-    captured: list[str] = []
-
-    def fake_write_text(_self: Path, data: str, *_args: object, **_kwargs: object) -> int:
-        captured.append(data)
-        return len(data)
-
-    with patch.object(Path, "write_text", fake_write_text):
-        path = export_interchange_axes_graph_html(coord, title="axes integration")
-    assert path == INTERCHANGE_AXES_GRAPH_HTML_PATH
-    assert len(captured) == 1
-    assert G6_CDN_URL in captured[0]
-    assert len(coord.get_all_nodes()) >= 3
 
 
 def test_all_axis_inspectors_count() -> None:

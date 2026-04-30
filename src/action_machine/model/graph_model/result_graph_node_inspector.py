@@ -39,6 +39,4 @@ class ResultGraphNodeInspector(BaseGraphNodeInspector[BaseResult]):
     """
 
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        if isinstance(cls, type) and issubclass(cls, BaseResult):
-            return ResultGraphNode(cls)
-        return None
+        return ResultGraphNode(cls)
