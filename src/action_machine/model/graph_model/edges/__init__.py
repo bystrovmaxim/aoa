@@ -15,7 +15,9 @@ from action_machine.model.graph_model.edges.depends_graph_edge import DependsGra
 from action_machine.model.graph_model.edges.error_handler_graph_edge import (
     ErrorHandlerGraphEdge,
 )
+from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
 from action_machine.model.graph_model.edges.params_graph_edge import ParamsGraphEdge
+from action_machine.model.graph_model.edges.property_graph_edge import PropertyGraphEdge
 from action_machine.model.graph_model.edges.regular_aspect_graph_edge import (
     RegularAspectGraphEdge,
 )
@@ -29,7 +31,9 @@ __all__ = [
     "ConnectionGraphEdge",
     "DependsGraphEdge",
     "ErrorHandlerGraphEdge",
+    "FieldGraphEdge",
     "ParamsGraphEdge",
+    "PropertyGraphEdge",
     "RegularAspectGraphEdge",
     "ResultGraphEdge",
     "SummaryAspectGraphEdge",
