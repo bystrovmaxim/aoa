@@ -96,10 +96,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             node_obj=action_cls,
         )
         object.__setattr__(self, "domain_edge", DomainGraphEdge(action_cls, self.NODE_TYPE, self))
-        object.__setattr__(self, "params_edge", ParamsGraphEdge(action_cls, self.NODE_TYPE, self))
-        object.__setattr__(self, "result_edge", ResultGraphEdge(action_cls, self.NODE_TYPE, self))
         depends_edges = self._get_depends_edges(action_cls)
         connection_edges = self._get_connection_edges(action_cls)
+        object.__setattr__(self, "params_edge", ParamsGraphEdge(action_cls, self.NODE_TYPE, self))
+        object.__setattr__(self, "result_edge", ResultGraphEdge(action_cls, self.NODE_TYPE, self))
         regular_aspect_edges = ActionGraphNode.get_regular_aspect_edges(self, action_cls)
         summary_aspect_edges = ActionGraphNode.get_summary_aspect_edges(self, action_cls)
         compensator_graph_edges = ActionGraphNode.get_compensator_edges(self, action_cls)
