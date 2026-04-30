@@ -24,7 +24,6 @@ from typing import Any
 
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.property_field_graph_node import PropertyFieldGraphNode
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
@@ -64,13 +63,14 @@ class PropertyGraphEdge(CompositionGraphEdge):
         cls,
         params_cls: type[BaseParams],
         params_node_id: str,
+        params_node_type: str,
     ) -> list[PropertyGraphEdge]:
         """Build composition edges from params node to computed/plain property nodes."""
         vertices = cls._property_graph_nodes_for_host(params_cls)
         return [
             cls(
                 params_node_id=params_node_id,
-                params_node_type=ParamsGraphNode.NODE_TYPE,
+                params_node_type=params_node_type,
                 property_node=p,
             )
             for p in vertices
@@ -81,16 +81,14 @@ class PropertyGraphEdge(CompositionGraphEdge):
         cls,
         result_cls: type[BaseResult],
         result_node_id: str,
+        result_node_type: str,
     ) -> list[PropertyGraphEdge]:
         """Build composition edges from result node to computed/plain property nodes."""
-        # pylint: disable=import-outside-toplevel
-        from action_machine.model.graph_model.result_graph_node import ResultGraphNode
-
         vertices = cls._property_graph_nodes_for_host(result_cls)
         return [
             cls(
                 params_node_id=result_node_id,
-                params_node_type=ResultGraphNode.NODE_TYPE,
+                params_node_type=result_node_type,
                 property_node=p,
             )
             for p in vertices

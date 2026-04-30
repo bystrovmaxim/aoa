@@ -21,8 +21,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from action_machine.model.base_params import BaseParams
-from action_machine.model.base_result import BaseResult
 from action_machine.model.graph_model.field_graph_node import FieldGraphNode
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
@@ -40,16 +38,16 @@ class FieldGraphEdge(CompositionGraphEdge):
     def __init__(
         self,
         *,
-        params_node_id: str,
-        params_node_type: str,
+        node_id: str,
+        node_type: str,
         field_node: FieldGraphNode,
         source_node: BaseGraphNode[Any] | None = None,
     ) -> None:
         super().__init__(
             edge_name="field",
             is_dag=False,
-            source_node_id=params_node_id,
-            source_node_type=params_node_type,
+            source_node_id=node_id,
+            source_node_type=node_type,
             source_node=source_node,
             target_node_id=field_node.node_id,
             target_node_type=field_node.node_type,
@@ -59,18 +57,18 @@ class FieldGraphEdge(CompositionGraphEdge):
     @classmethod
     def for_params(
         cls,
-        params_cls: type[BaseParams],
-        params_node_id: str,
+        params_cls: type,
+        node_id: str,
+        node_type: str,
     ) -> list[FieldGraphEdge]:
         """Build composition edges from params node to declared Pydantic field nodes."""
         # pylint: disable=import-outside-toplevel
-        from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 
         fields = cls._field_graph_nodes_for_host(params_cls)
         return [
             cls(
-                params_node_id=params_node_id,
-                params_node_type=ParamsGraphNode.NODE_TYPE,
+                node_id=node_id,
+                node_type=node_type,
                 field_node=fd,
             )
             for fd in fields
@@ -79,18 +77,18 @@ class FieldGraphEdge(CompositionGraphEdge):
     @classmethod
     def for_result(
         cls,
-        result_cls: type[BaseResult],
-        result_node_id: str,
+        result_cls: type,
+        node_id: str,
+        node_type: str,
     ) -> list[FieldGraphEdge]:
         """Build composition edges from result node to declared Pydantic field nodes."""
         # pylint: disable=import-outside-toplevel
-        from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 
         fields = cls._field_graph_nodes_for_host(result_cls)
         return [
             cls(
-                params_node_id=result_node_id,
-                params_node_type=ResultGraphNode.NODE_TYPE,
+                node_id=node_id,
+                node_type=node_type,
                 field_node=fd,
             )
             for fd in fields
