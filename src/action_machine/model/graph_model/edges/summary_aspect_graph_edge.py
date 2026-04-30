@@ -20,6 +20,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.intents.aspects.summary_aspect_intent_resolver import (
+    SummaryAspectIntentResolver,
+)
+from action_machine.model.base_action import BaseAction
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
@@ -50,3 +54,17 @@ class SummaryAspectGraphEdge(CompositionGraphEdge):
             target_node_type=summary_node.node_type,
             target_node=summary_node,
         )
+
+    @staticmethod
+    def edges_from_summary_aspects(
+        source_node: BaseGraphNode[Any],
+        action_cls: type[BaseAction[Any, Any]],
+    ) -> list[SummaryAspectGraphEdge]:
+        """Return summary aspect composition edges for ``action_cls``."""
+        return [
+            SummaryAspectGraphEdge(
+                source_node=source_node,
+                summary_node=SummaryAspectGraphNode(aspect_callable, action_cls),
+            )
+            for aspect_callable in SummaryAspectIntentResolver.resolve_summary_aspects(action_cls)
+        ]

@@ -38,6 +38,9 @@ from action_machine.model.graph_model.edges.regular_aspect_graph_edge import (
     RegularAspectGraphEdge,
 )
 from action_machine.model.graph_model.edges.result_graph_edge import ResultGraphEdge
+from action_machine.model.graph_model.edges.summary_aspect_graph_edge import (
+    SummaryAspectGraphEdge,
+)
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.field_graph_node import FieldGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
@@ -252,15 +255,9 @@ def test_action_graph_node_links_and_helpers() -> None:
         ),
         ParamsGraphEdge(PingAction, source_node_type="Action", source_node=node),
         ResultGraphEdge(PingAction, source_node_type="Action", source_node=node),
-        CompositionGraphEdge(
-            edge_name="pong_summary",
-            is_dag=False,
-            source_node_id=host,
-            source_node_type="Action",
+        SummaryAspectGraphEdge(
             source_node=node,
-            target_node_id=f"{host}:pong_summary",
-            target_node_type=SummaryAspectGraphNode.NODE_TYPE,
-            target_node=summary_node,
+            summary_node=summary_node,
         ),
     ]
 
@@ -287,30 +284,18 @@ def test_action_graph_node_links_and_helpers() -> None:
     assert TypeIntrospection.full_qualname(r_type) == result_id
     assert not node.regular_aspect_edges
     assert node.summary_aspect_edges == [
-        CompositionGraphEdge(
-            edge_name="pong_summary",
-            is_dag=False,
-            source_node_id=host,
-            source_node_type="Action",
+        SummaryAspectGraphEdge(
             source_node=node,
-            target_node_id=f"{host}:pong_summary",
-            target_node_type=SummaryAspectGraphNode.NODE_TYPE,
-            target_node=summary_node,
+            summary_node=summary_node,
         ),
     ]
     assert not node.compensator_graph_edges
     assert not node.error_handler_graph_edges
     assert node.get_companion_nodes() == [summary_node]
     assert (
-        CompositionGraphEdge(
-            edge_name="pong_summary",
-            is_dag=False,
-            source_node_id=host,
-            source_node_type="Action",
+        SummaryAspectGraphEdge(
             source_node=node,
-            target_node_id=f"{host}:pong_summary",
-            target_node_type=SummaryAspectGraphNode.NODE_TYPE,
-            target_node=summary_node,
+            summary_node=summary_node,
         )
         in node.get_all_edges()
     )
