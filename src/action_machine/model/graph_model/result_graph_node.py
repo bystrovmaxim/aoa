@@ -54,19 +54,19 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseResult`` result host class.
     CONTRACT: Built from ``type[TResult]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label;
-    empty ``properties``; ``edges`` / :attr:`companion_nodes` from ``model_fields`` and ``model_computed_fields``
-    (see :meth:`_field_graph_nodes_for_result`, :meth:`_property_graph_nodes_for_result`).
+    empty ``properties`` (interchange dict); composition lists :attr:`fields` and :attr:`props`
+    (built via :meth:`_get_field_edges`, :meth:`_get_property_edges`); :attr:`companion_nodes` from field/property companions.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Result"
-    field_edges: list[CompositionGraphEdge]
-    property_edges: list[CompositionGraphEdge]
+    fields: list[CompositionGraphEdge]
+    props: list[CompositionGraphEdge]
 
     def __init__(self, result_cls: type[TResult]) -> None:
         result_node_id = TypeIntrospection.full_qualname(result_cls)
-        field_edges = ResultGraphNode._get_field_edges(result_cls, result_node_id)
-        property_edges = ResultGraphNode._get_property_edges(result_cls, result_node_id)
+        fields = ResultGraphNode._get_field_edges(result_cls, result_node_id)
+        props = ResultGraphNode._get_property_edges(result_cls, result_node_id)
         super().__init__(
             node_id=result_node_id,
             node_type=ResultGraphNode.NODE_TYPE,
@@ -74,18 +74,18 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
             properties={},
             node_obj=result_cls,
         )
-        object.__setattr__(self, "field_edges", field_edges)
-        object.__setattr__(self, "property_edges", property_edges)
+        object.__setattr__(self, "fields", fields)
+        object.__setattr__(self, "props", props)
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return all outgoing composition edges materialized in explicit edge fields."""
-        return [*self.field_edges, *self.property_edges]
+        return [*self.fields, *self.props]
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Return field and property nodes carried as targets by explicit composition edges."""
         return [
             edge.target_node
-            for edge in [*self.field_edges, *self.property_edges]
+            for edge in [*self.fields, *self.props]
             if edge.target_node is not None
         ]
 
