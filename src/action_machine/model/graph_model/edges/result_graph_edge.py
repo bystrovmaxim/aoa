@@ -10,9 +10,7 @@ Centralize ``edge_name=\"result\"`` and aggregation semantics for edges whose ta
 is the declared result schema vertex. Resolves ``result`` type via
 :meth:`~action_machine.intents.action_schema.action_schema_intent_resolver.ActionSchemaIntentResolver.resolve_result_type`
 on ``action_cls``. Raises :exc:`~action_machine.exceptions.ResultGraphEdgeResolutionError`
-when the result type cannot be resolved
-(unlike :meth:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode._get_result_edge`,
-which yields no edge in that case).
+when the result type cannot be resolved.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
