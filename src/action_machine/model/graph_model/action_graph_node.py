@@ -58,7 +58,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
     CONTRACT: Materializes action metadata and every outgoing edge into explicit fields; ``get_all_edges`` returns the composed edge list.
-    FAILURES: :exc:`~action_machine.exceptions.MissingMetaError` propagates from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` or :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type` (via ``DomainGraphEdge``) when ``@meta`` data is unusable.
+    FAILURES: :exc:`~action_machine.exceptions.MissingMetaError` propagates from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` or :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type` (via ``DomainGraphEdge``) when ``@meta`` data is unusable. :meth:`get_summary_aspect_graph_node` raises :exc:`ValueError` when ``summary_aspect`` is empty.
     AI-CORE-END
     """
 
@@ -108,11 +108,16 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             out.append(cast(RegularAspectGraphNode, edge.target_node))
         return out
 
-    def get_summary_aspect_graph_node(self) -> SummaryAspectGraphNode | None:
-        """Interchange vertex for ``@summary_aspect`` if declared; at most one."""
-        for edge in self.summary_aspect:
-            return cast(SummaryAspectGraphNode, edge.target_node)
-        return None
+    def get_summary_aspect_graph_node(self) -> SummaryAspectGraphNode:
+        """Interchange vertex for ``@summary_aspect``; raises if the graph has no summary edges."""
+        if not self.summary_aspect:
+            action_name = getattr(self.node_obj, "__name__", "?")
+            msg = (
+                f"Action interchange {action_name!r} has no summary_aspect edges; "
+                "this helper requires a declared @summary_aspect."
+            )
+            raise ValueError(msg)
+        return cast(SummaryAspectGraphNode, self.summary_aspect[0].target_node)
 
     def get_compensator_graph_nodes(self) -> list[CompensatorGraphNode]:
         """Interchange vertices for ``@compensate`` methods, in composition edge order."""
@@ -154,7 +159,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         ]
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
-        summary = self.get_summary_aspect_graph_node()
+        summary = self.get_summary_aspect_graph_node() if self.summary_aspect else None
         regular = self.get_regular_aspect_graph_nodes()
         compensators = self.get_compensator_graph_nodes()
         error_handlers = self.get_error_handler_graph_nodes()

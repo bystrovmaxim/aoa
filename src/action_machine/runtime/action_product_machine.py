@@ -476,8 +476,12 @@ AI-CORE-BEGIN
                 action, params, box, connections, context, plugin_ctx, saga_stack, action_graph_node,
             )
 
-            summary_node = action_graph_node.get_summary_aspect_graph_node()
-            summary_name = summary_node.label if summary_node is not None else "summary"
+            if action_graph_node.summary_aspect:
+                summary_node = action_graph_node.get_summary_aspect_graph_node()
+                summary_name = summary_node.label
+            else:
+                summary_node = None
+                summary_name = "summary"
             failed_aspect_name = summary_name
             state_passed_into_summary = state
 
