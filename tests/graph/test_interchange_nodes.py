@@ -173,7 +173,7 @@ def test_params_graph_node_interchange_shape() -> None:
     assert len(node.get_companion_nodes()) == 1
     edges = node.get_all_edges()
     assert len(edges) == 1
-    assert edges[0].edge_name == "field:token"
+    assert edges[0].edge_name == "field"
     assert edges[0].source_node_id == node.node_id
     assert edges[0].target_node_type == FieldGraphNode.NODE_TYPE
     assert edges[0].edge_relationship is COMPOSITION

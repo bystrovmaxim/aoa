@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.model.base_params import BaseParams
+from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.model.graph_model.property_field_graph_node import PropertyFieldGraphNode
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
@@ -35,6 +37,22 @@ class PropertyGraphEdge(CompositionGraphEdge):
     AI-CORE-END
     """
 
+    @staticmethod
+    def for_params(
+        params_cls: type[BaseParams],
+        params_node_id: str,
+    ) -> list[PropertyGraphEdge]:
+        """Build composition edges from params node to computed/plain property nodes."""
+        props = ParamsGraphNode._property_graph_nodes_for_params(params_cls)
+        return [
+            PropertyGraphEdge(
+                params_node_id=params_node_id,
+                params_node_type=ParamsGraphNode.NODE_TYPE,
+                property_node=p,
+            )
+            for p in props
+        ]
+
     def __init__(
         self,
         *,
@@ -45,7 +63,7 @@ class PropertyGraphEdge(CompositionGraphEdge):
     ) -> None:
         prop_name = property_node.node_obj.property_name.strip() or "_"
         super().__init__(
-            edge_name=f"property",
+            edge_name="property",
             is_dag=False,
             source_node_id=params_node_id,
             source_node_type=params_node_type,
