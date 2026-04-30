@@ -15,6 +15,8 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
+# Public names resolve lazily via ``__getattr__``; not assigned at import time.
+# pylint: disable=undefined-all-variable
 __all__ = [
     "ActionGraphNodeInspector",
     "ParamsGraphNodeInspector",
