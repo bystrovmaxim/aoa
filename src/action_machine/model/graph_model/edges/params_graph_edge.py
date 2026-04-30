@@ -27,7 +27,6 @@ from action_machine.exceptions import ParamsGraphEdgeResolutionError
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
-from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
 from action_machine.system_core import TypeIntrospection
 from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -55,6 +54,9 @@ class ParamsGraphEdge(AggregationGraphEdge):
         if params_type is None:
             qn = TypeIntrospection.full_qualname(action_cls)
             raise ParamsGraphEdgeResolutionError(qn)
+
+        from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
+
         super().__init__(
             edge_name="generic:params",
             is_dag=False,

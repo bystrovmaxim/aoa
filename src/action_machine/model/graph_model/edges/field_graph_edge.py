@@ -18,9 +18,12 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from action_machine.model.graph_model.field_graph_node import FieldGraphNode
+
+if TYPE_CHECKING:
+    from action_machine.model.base_params import BaseParams
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
 
@@ -34,6 +37,24 @@ class FieldGraphEdge(CompositionGraphEdge):
     AI-CORE-END
     """
 
+    @staticmethod
+    def for_params(
+        params_cls: type[BaseParams],
+        params_node_id: str,
+    ) -> list[FieldGraphEdge]:
+        """Build composition edges from params node to declared Pydantic field nodes."""
+        from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
+
+        fields = ParamsGraphNode._field_graph_nodes_for_params(params_cls)
+        return [
+            FieldGraphEdge(
+                params_node_id=params_node_id,
+                params_node_type=ParamsGraphNode.NODE_TYPE,
+                field_node=fd,
+            )
+            for fd in fields
+        ]
+
     def __init__(
         self,
         *,
@@ -42,9 +63,8 @@ class FieldGraphEdge(CompositionGraphEdge):
         field_node: FieldGraphNode,
         source_node: BaseGraphNode[Any] | None = None,
     ) -> None:
-        field_name = field_node.node_obj.field_name.strip() or "_"
         super().__init__(
-            edge_name=f"field",
+            edge_name="field",
             is_dag=False,
             source_node_id=params_node_id,
             source_node_type=params_node_type,

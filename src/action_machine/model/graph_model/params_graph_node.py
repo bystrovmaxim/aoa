@@ -34,16 +34,19 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, ClassVar, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 from action_machine.model.base_params import BaseParams
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.composition_graph_edge import CompositionGraphEdge
 
 from .field_graph_node import FieldGraphNode
 from .property_field_graph_node import PropertyFieldGraphNode
+
+if TYPE_CHECKING:
+    from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
+    from action_machine.model.graph_model.edges.property_graph_edge import PropertyGraphEdge
 
 TParams = TypeVar("TParams", bound=BaseParams)
 
@@ -60,13 +63,14 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
     """
 
     NODE_TYPE: ClassVar[str] = "Params"
-    field_edges: list[CompositionGraphEdge]
-    property_edges: list[CompositionGraphEdge]
+    field_edges: list[FieldGraphEdge]
+    property_edges: list[PropertyGraphEdge]
 
     def __init__(self, params_cls: type[TParams]) -> None:
+        from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
+        from action_machine.model.graph_model.edges.property_graph_edge import PropertyGraphEdge
+
         params_node_id = TypeIntrospection.full_qualname(params_cls)
-        field_edges = ParamsGraphNode._get_field_edges(params_cls, params_node_id)
-        property_edges = ParamsGraphNode._get_property_edges(params_cls, params_node_id)
         super().__init__(
             node_id=params_node_id,
             node_type=ParamsGraphNode.NODE_TYPE,
@@ -74,8 +78,8 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
             properties={},
             node_obj=params_cls,
         )
-        object.__setattr__(self, "field_edges", field_edges)
-        object.__setattr__(self, "property_edges", property_edges)
+        object.__setattr__(self, "field_edges", FieldGraphEdge.for_params(params_cls, params_node_id))
+        object.__setattr__(self, "property_edges", PropertyGraphEdge.for_params(params_cls, params_node_id))
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return all outgoing composition edges materialized in explicit edge fields."""
@@ -106,26 +110,6 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
                 ),
             )
         return out
-
-    @staticmethod
-    def _get_field_edges(
-        params_cls: type[BaseParams],
-        params_node_id: str,
-    ) -> list[CompositionGraphEdge]:
-        """Build composition edges from params node to declared Pydantic field nodes."""
-        fields = ParamsGraphNode._field_graph_nodes_for_params(params_cls)
-        return [
-            CompositionGraphEdge(
-                edge_name=f"field:{fd.node_obj.field_name.strip() or '_'}",
-                is_dag=False,
-                source_node_id=params_node_id,
-                source_node_type=ParamsGraphNode.NODE_TYPE,
-                target_node_id=fd.node_id,
-                target_node_type=FieldGraphNode.NODE_TYPE,
-                target_node=fd,
-            )
-            for fd in fields
-        ]
 
     @staticmethod
     def _property_graph_nodes_for_params(
@@ -163,23 +147,3 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
                 ),
             )
         return out
-
-    @staticmethod
-    def _get_property_edges(
-        params_cls: type[BaseParams],
-        params_node_id: str,
-    ) -> list[CompositionGraphEdge]:
-        """Build composition edges from params node to computed/plain property nodes."""
-        props = ParamsGraphNode._property_graph_nodes_for_params(params_cls)
-        return [
-            CompositionGraphEdge(
-                edge_name=f"property:{p.node_obj.property_name.strip() or '_'}",
-                is_dag=False,
-                source_node_id=params_node_id,
-                source_node_type=ParamsGraphNode.NODE_TYPE,
-                target_node_id=p.node_id,
-                target_node_type=PropertyFieldGraphNode.NODE_TYPE,
-                target_node=p,
-            )
-            for p in props
-        ]
