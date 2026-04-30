@@ -22,6 +22,7 @@ __all__ = [
     "DomainGraphNodeInspector",
     "EntityGraphNodeInspector",
     "ParamsGraphNodeInspector",
+    "ResourceGraphNodeInspector",
     "ResultGraphNodeInspector",
     "RoleGraphNodeInspector",
 ]
@@ -31,6 +32,7 @@ _LAZY: dict[str, str] = {
     "DomainGraphNodeInspector": "action_machine.graph_model.inspectors.domain_graph_node_inspector",
     "EntityGraphNodeInspector": "action_machine.graph_model.inspectors.entity_graph_node_inspector",
     "ParamsGraphNodeInspector": "action_machine.graph_model.inspectors.params_graph_node_inspector",
+    "ResourceGraphNodeInspector": "action_machine.graph_model.inspectors.resource_graph_node_inspector",
     "ResultGraphNodeInspector": "action_machine.graph_model.inspectors.result_graph_node_inspector",
     "RoleGraphNodeInspector": "action_machine.graph_model.inspectors.role_graph_node_inspector",
 }

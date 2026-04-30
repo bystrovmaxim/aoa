@@ -36,7 +36,7 @@ PACKAGE CONTENTS
 
 Domains:
     BaseDomain — abstract base for all domain marker classes.
-    DomainGraphNode — interchange node for a concrete ``BaseDomain`` class (see :mod:`action_machine.domain.graph_model`).
+    DomainGraphNode — interchange node for a concrete ``BaseDomain`` class (see :mod:`action_machine.graph_model.nodes`).
 
 Entities:
     BaseEntity — abstract base for all entities (frozen, `extra="forbid"`).
@@ -111,12 +111,6 @@ from action_machine.domain.exceptions import (
     LifecycleValidationError,
     RelationNotLoadedError,
 )
-from action_machine.domain.graph_model import (
-    DomainGraphNode,
-    DomainGraphNodeInspector,
-    EntityGraphNode,
-    EntityGraphNodeInspector,
-)
 from action_machine.domain.hydration import build
 from action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
 from action_machine.domain.relation_containers import (
@@ -132,6 +126,14 @@ from action_machine.domain.relation_containers import (
 )
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
 from action_machine.domain.testing import make
+from action_machine.graph_model.inspectors.domain_graph_node_inspector import (
+    DomainGraphNodeInspector,
+)
+from action_machine.graph_model.inspectors.entity_graph_node_inspector import (
+    EntityGraphNodeInspector,
+)
+from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
+from action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
 from action_machine.intents.entity.entity_decorator import entity
 from action_machine.intents.entity.entity_intent import EntityIntent
 
