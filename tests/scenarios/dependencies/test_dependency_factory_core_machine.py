@@ -54,7 +54,7 @@ Integration with the domain model:
 
 import pytest
 
-from graph.graph_coordinator import GraphCoordinator
+from action_machine.exceptions import RollupNotSupportedError
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.legacy.core import Core
 from action_machine.resources.base_resource import BaseResource
@@ -63,6 +63,7 @@ from action_machine.runtime.dependency_factory import (
     cached_dependency_factory,
 )
 from action_machine.runtime.dependency_info import DependencyInfo
+from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model import (
     FullAction,
     NotificationServiceResource,
