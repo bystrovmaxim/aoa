@@ -8,7 +8,7 @@ PURPOSE
 
 Typed alternative to constructing a raw :class:`~graph.composition_graph_edge.CompositionGraphEdge`
 from a regular aspect host to its :class:`~action_machine.model.graph_model.checker_graph_node.CheckerGraphNode`
-companions (``edge_name`` ``checker:{field}``, ``is_dag`` False).
+companions (``edge_name`` ``@result_checker``, ``is_dag`` False).
 
 This module stays opt-in until wiring replaces generic composition edges on
 :class:`~action_machine.model.graph_model.regular_aspect_graph_node.RegularAspectGraphNode`.
@@ -17,7 +17,7 @@ This module stays opt-in until wiring replaces generic composition edges on
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    RegularAspectGraphNode  ──checker:{field}──►  CheckerGraphNode
+    RegularAspectGraphNode  ──@result_checker──►  CheckerGraphNode
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ class CheckerGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed composition edge regular aspect vertex → checker row.
-    CONTRACT: ``edge_name`` ``checker:{field}`` from ``checker_node.node_obj.field_name`` (fallback ``_``); ``is_dag`` False; ``source_node`` / ``target_node`` materialized when passed.
+    CONTRACT: ``edge_name`` literal ``@result_checker``; ``is_dag`` False; ``source_node`` / ``target_node`` materialized when passed.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END
     """
@@ -42,9 +42,8 @@ class CheckerGraphEdge(CompositionGraphEdge):
         aspect_node: RegularAspectGraphNode,
         checker_node: CheckerGraphNode,
     ) -> None:
-        field = checker_node.node_obj.field_name.strip() or "_"
         super().__init__(
-            edge_name=f"checker:{field}",
+            edge_name="@result_checker",
             is_dag=False,
             source_node_id=aspect_node.node_id,
             source_node_type=aspect_node.node_type,

@@ -16,7 +16,7 @@ The node **self-inspects** ``_checker_meta`` on ``aspect_func`` and ``@context_r
 materializes :class:`~action_machine.model.graph_model.checker_graph_node.CheckerGraphNode` and
 :class:`~action_machine.model.graph_model.required_context_graph_node.RequiredContextGraphNode` companions,
 and emits ``COMPOSITION`` edges from this aspect to each checker and required-context slot row
-(checkers: ``edge_name`` ``checker:…``; required context: ``edge_name`` ``required_context``, dot-path key in ``properties['key']``).
+(checkers: ``edge_name`` ``@result_checker``; required context: ``edge_name`` ``required_context``, dot-path key in ``properties['key']``).
 """
 
 from __future__ import annotations
@@ -146,7 +146,7 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     ) -> list[CompositionGraphEdge]:
         return [
             CompositionGraphEdge(
-                edge_name=f"checker:{ch.node_obj.field_name.strip() or '_'}",
+                edge_name="@result_checker",
                 is_dag=False,
                 source_node_id=aspect_node_id,
                 source_node_type=RegularAspectGraphNode.NODE_TYPE,
