@@ -56,7 +56,7 @@ class RegularAspectGraphEdge(CompositionGraphEdge):
         )
 
     @staticmethod
-    def edges_from_regular_aspects(
+    def get_regular_aspect_edges(
         source_node: BaseGraphNode[Any],
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[RegularAspectGraphEdge]:

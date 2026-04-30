@@ -64,7 +64,7 @@ class ConnectionGraphEdge(AssociationGraphEdge):
         )
 
     @staticmethod
-    def edges_from_connections(
+    def get_connection_edges(
         source_node: BaseGraphNode[Any],
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[ConnectionGraphEdge]:

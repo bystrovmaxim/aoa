@@ -6,7 +6,7 @@ CompensatorGraphEdge — COMPOSITION from Action → Compensator interchange ver
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Mirror :meth:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode.get_compensator_edges`:
+Mirror :meth:`~action_machine.model.graph_model.edges.compensator_graph_edge.CompensatorGraphEdge.get_compensator_edges`:
 composition keyed by compensator node's ``label``, ``is_dag=False``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -56,7 +56,7 @@ class CompensatorGraphEdge(CompositionGraphEdge):
         )
 
     @staticmethod
-    def edges_from_compensators(
+    def get_compensator_edges(
         source_node: BaseGraphNode[Any],
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[CompensatorGraphEdge]:

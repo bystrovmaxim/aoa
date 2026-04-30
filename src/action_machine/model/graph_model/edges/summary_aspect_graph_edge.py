@@ -56,7 +56,7 @@ class SummaryAspectGraphEdge(CompositionGraphEdge):
         )
 
     @staticmethod
-    def edges_from_summary_aspects(
+    def get_summary_aspect_edges(
         source_node: BaseGraphNode[Any],
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[SummaryAspectGraphEdge]:

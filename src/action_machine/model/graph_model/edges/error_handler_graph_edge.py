@@ -6,7 +6,7 @@ ErrorHandlerGraphEdge — COMPOSITION from Action → ErrorHandler interchange v
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Mirror :meth:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode.get_error_handler_edges`:
+Mirror :meth:`~action_machine.model.graph_model.edges.error_handler_graph_edge.ErrorHandlerGraphEdge.get_on_error_handlers_edges`:
 composition keyed by handler node's ``label``, ``is_dag=False``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -56,7 +56,7 @@ class ErrorHandlerGraphEdge(CompositionGraphEdge):
         )
 
     @staticmethod
-    def edges_from_error_handlers(
+    def get_on_error_handlers_edges(
         source_node: BaseGraphNode[Any],
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[ErrorHandlerGraphEdge]:

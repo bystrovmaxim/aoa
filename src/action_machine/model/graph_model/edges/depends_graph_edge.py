@@ -60,7 +60,7 @@ class DependsGraphEdge(AssociationGraphEdge):
         )
 
     @staticmethod
-    def edges_from_dependencies(
+    def get_dependency_edges(
         source_node: BaseGraphNode[Any],
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[DependsGraphEdge]:

@@ -85,12 +85,12 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         object.__setattr__(self, "domain", DomainGraphEdge(action_cls, self.NODE_TYPE, self))
         object.__setattr__(self, "params", ParamsGraphEdge(action_cls, self.NODE_TYPE, self))
         object.__setattr__(self, "result", ResultGraphEdge(action_cls, self.NODE_TYPE, self))
-        object.__setattr__(self, "depends", DependsGraphEdge.edges_from_dependencies(self, action_cls))
-        object.__setattr__(self, "connection", ConnectionGraphEdge.edges_from_connections(self, action_cls))
-        object.__setattr__(self, "regular_aspect", RegularAspectGraphEdge.edges_from_regular_aspects(self, action_cls))
-        object.__setattr__(self, "summary_aspect", SummaryAspectGraphEdge.edges_from_summary_aspects(self, action_cls))
-        object.__setattr__(self, "compensator_graph", CompensatorGraphEdge.edges_from_compensators(self, action_cls))
-        object.__setattr__(self, "error_handler_graph", ErrorHandlerGraphEdge.edges_from_error_handlers(self, action_cls))
+        object.__setattr__(self, "depends", DependsGraphEdge.get_dependency_edges(self, action_cls))
+        object.__setattr__(self, "connection", ConnectionGraphEdge.get_connection_edges(self, action_cls))
+        object.__setattr__(self, "regular_aspect", RegularAspectGraphEdge.get_regular_aspect_edges(self, action_cls))
+        object.__setattr__(self, "summary_aspect", SummaryAspectGraphEdge.get_summary_aspect_edges(self, action_cls))
+        object.__setattr__(self, "compensator_graph", CompensatorGraphEdge.get_compensator_edges(self, action_cls))
+        object.__setattr__(self, "error_handler_graph", ErrorHandlerGraphEdge.get_on_error_handlers_edges(self, action_cls))
 
     def connection_keys(self) -> frozenset[str]:
         """Declared ``@connection`` slot keys (non-empty stripped ``properties[\"key\"]`` on connection edges)."""
