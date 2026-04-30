@@ -30,9 +30,6 @@ from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar, cast
 
 from action_machine.domain.graph_model.edges.domain_graph_edge import DomainGraphEdge
-from action_machine.intents.connection.connection_intent_resolver import (
-    ConnectionIntentResolver,
-)
 from action_machine.intents.depends.depends_intent_resolver import DependsIntentResolver
 from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from action_machine.model.base_action import BaseAction
@@ -45,6 +42,7 @@ from graph.base_graph_node import BaseGraphNode
 
 from .compensator_graph_node import CompensatorGraphNode
 from .edges.compensator_graph_edge import CompensatorGraphEdge
+from .edges.connection_graph_edge import ConnectionGraphEdge
 from .edges.error_handler_graph_edge import ErrorHandlerGraphEdge
 from .edges.params_graph_edge import ParamsGraphEdge
 from .edges.regular_aspect_graph_edge import RegularAspectGraphEdge
@@ -71,7 +69,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     params_edge: ParamsGraphEdge = field(init=False, repr=False, compare=False)
     result_edge: ResultGraphEdge = field(init=False, repr=False, compare=False)
     depends_edges: list[AssociationGraphEdge]
-    connection_edges: list[AssociationGraphEdge]
+    connection_edges: list[ConnectionGraphEdge]
     regular_aspect_edges: list[RegularAspectGraphEdge]
     summary_aspect_edges: list[SummaryAspectGraphEdge]
     compensator_graph_edges: list[CompensatorGraphEdge]
@@ -88,11 +86,10 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         )
         object.__setattr__(self, "domain_edge", DomainGraphEdge(action_cls, self.NODE_TYPE, self))
         depends_edges = self._get_depends_edges(action_cls)
-        connection_edges = self._get_connection_edges(action_cls)
         object.__setattr__(self, "params_edge", ParamsGraphEdge(action_cls, self.NODE_TYPE, self))
         object.__setattr__(self, "result_edge", ResultGraphEdge(action_cls, self.NODE_TYPE, self))
         object.__setattr__(self, "depends_edges", depends_edges)
-        object.__setattr__(self, "connection_edges", connection_edges)
+        object.__setattr__(self, "connection_edges", ConnectionGraphEdge.edges_from_connections(self, action_cls))
         object.__setattr__(self, "regular_aspect_edges", RegularAspectGraphEdge.edges_from_regular_aspects(self, action_cls))
         object.__setattr__(self, "summary_aspect_edges", SummaryAspectGraphEdge.edges_from_summary_aspects(self, action_cls))
         object.__setattr__(self, "compensator_graph_edges", CompensatorGraphEdge.edges_from_compensators(self, action_cls))
@@ -222,25 +219,3 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             for dependency_type in DependsIntentResolver.resolve_dependency_types(action_cls)
         ]
 
-    def _get_connection_edges(
-        self,
-        action_cls: type[TAction],
-    ) -> list[AssociationGraphEdge]:
-        """One ``ASSOCIATION`` per ``@connection``; ``edge_name`` ``connection`` = role (from ``@connection``), not a unique id—use ``properties['key']`` and target to distinguish."""
-        action_id = TypeIntrospection.full_qualname(action_cls)
-        return [
-            AssociationGraphEdge(
-                edge_name="@connection",
-                is_dag=True,
-                source_node_id=action_id,
-                source_node_type=self.NODE_TYPE,
-                source_node=self,
-                target_node_id=TypeIntrospection.full_qualname(connection_type),
-                target_node_type=self._resolve_target_node_type(connection_type),
-                target_node=None,
-                properties={"key": connection_key},
-            )
-            for connection_type, connection_key in ConnectionIntentResolver.resolve_connection_types_and_keys(
-                action_cls,
-            )
-        ]
