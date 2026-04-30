@@ -33,16 +33,14 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from action_machine.model.base_params import BaseParams
+from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
+from action_machine.model.graph_model.edges.property_graph_edge import PropertyGraphEdge
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-
-if TYPE_CHECKING:
-    from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
-    from action_machine.model.graph_model.edges.property_graph_edge import PropertyGraphEdge
 
 TParams = TypeVar("TParams", bound=BaseParams)
 
@@ -63,11 +61,6 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
     props: list[PropertyGraphEdge]
 
     def __init__(self, params_cls: type[TParams]) -> None:
-        # Deferred edge imports: loading `edges` from module top cycles via `edges.__init__`.
-        # pylint: disable=import-outside-toplevel
-        from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
-        from action_machine.model.graph_model.edges.property_graph_edge import PropertyGraphEdge
-
         params_node_id = TypeIntrospection.full_qualname(params_cls)
         super().__init__(
             node_id=params_node_id,

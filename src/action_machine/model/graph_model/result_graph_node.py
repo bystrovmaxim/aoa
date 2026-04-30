@@ -33,16 +33,14 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from action_machine.model.base_result import BaseResult
+from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
+from action_machine.model.graph_model.edges.property_graph_edge import PropertyGraphEdge
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-
-if TYPE_CHECKING:
-    from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
-    from action_machine.model.graph_model.edges.property_graph_edge import PropertyGraphEdge
 
 TResult = TypeVar("TResult", bound=BaseResult)
 
@@ -63,11 +61,6 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
     props: list[PropertyGraphEdge]
 
     def __init__(self, result_cls: type[TResult]) -> None:
-        # Deferred edge imports: loading `edges` from module top cycles via `edges.__init__`.
-        # pylint: disable=import-outside-toplevel
-        from action_machine.model.graph_model.edges.field_graph_edge import FieldGraphEdge
-        from action_machine.model.graph_model.edges.property_graph_edge import PropertyGraphEdge
-
         result_node_id = TypeIntrospection.full_qualname(result_cls)
         super().__init__(
             node_id=result_node_id,

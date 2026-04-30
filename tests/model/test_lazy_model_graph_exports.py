@@ -21,8 +21,9 @@ def test_model_lazy_action_graph_node_exports() -> None:
 
 
 def test_model_getattr_unknown_raises() -> None:
+    name = "NotARealModelExport987"
     with pytest.raises(AttributeError, match="has no attribute"):
-        model_pkg.NotARealModelExport987
+        getattr(model_pkg, name)
 
 
 def test_graph_model_lazy_getattr_exports_every_all_name() -> None:
@@ -31,8 +32,9 @@ def test_graph_model_lazy_getattr_exports_every_all_name() -> None:
 
 
 def test_graph_model_getattr_unknown_raises() -> None:
+    name = "NotARealGraphModelExport987"
     with pytest.raises(AttributeError, match="has no attribute"):
-        graph_model_pkg.NotARealGraphModelExport987
+        getattr(graph_model_pkg, name)
 
 
 def test_graph_model_dir_lists_public_names() -> None:
