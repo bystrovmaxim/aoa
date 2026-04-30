@@ -20,6 +20,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.intents.aspects.regular_aspect_intent_resolver import (
+    RegularAspectIntentResolver,
+)
+from action_machine.model.base_action import BaseAction
 from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
@@ -50,3 +54,17 @@ class RegularAspectGraphEdge(CompositionGraphEdge):
             target_node_type=aspect_node.node_type,
             target_node=aspect_node,
         )
+
+    @staticmethod
+    def edges_from_regular_aspects(
+        source_node: BaseGraphNode[Any],
+        action_cls: type[BaseAction[Any, Any]],
+    ) -> list[RegularAspectGraphEdge]:
+        """Return regular aspect composition edges for ``action_cls``."""
+        return [
+            RegularAspectGraphEdge(
+                source_node=source_node,
+                aspect_node=RegularAspectGraphNode(aspect_callable, action_cls),
+            )
+            for aspect_callable in RegularAspectIntentResolver.resolve_regular_aspects(action_cls)
+        ]

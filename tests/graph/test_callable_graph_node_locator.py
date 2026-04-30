@@ -2,6 +2,9 @@
 """Action graph node callable edge behavior."""
 
 from action_machine.model.graph_model.action_graph_node import ActionGraphNode
+from action_machine.model.graph_model.edges.regular_aspect_graph_edge import (
+    RegularAspectGraphEdge,
+)
 from tests.scenarios.domain_model.child_action import ChildAction
 from tests.scenarios.domain_model.ping_action import PingAction
 
@@ -15,7 +18,7 @@ def test_get_summary_aspect_edges_builds_edges() -> None:
 def test_get_regular_aspect_edges_builds_edges_with_target_nodes() -> None:
     node = ActionGraphNode(ChildAction)
 
-    edges = ActionGraphNode.get_regular_aspect_edges(node, ChildAction)
+    edges = RegularAspectGraphEdge.edges_from_regular_aspects(node, ChildAction)
 
     assert edges == node.regular_aspect_edges
     assert [edge.target_node for edge in edges] == node.get_companion_nodes()[: len(edges)]

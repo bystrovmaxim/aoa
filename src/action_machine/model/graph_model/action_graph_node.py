@@ -30,9 +30,6 @@ from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar, cast
 
 from action_machine.domain.graph_model.edges.domain_graph_edge import DomainGraphEdge
-from action_machine.intents.aspects.regular_aspect_intent_resolver import (
-    RegularAspectIntentResolver,
-)
 from action_machine.intents.aspects.summary_aspect_intent_resolver import (
     SummaryAspectIntentResolver,
 )
@@ -58,6 +55,7 @@ from graph.composition_graph_edge import CompositionGraphEdge
 
 from .compensator_graph_node import CompensatorGraphNode
 from .edges.params_graph_edge import ParamsGraphEdge
+from .edges.regular_aspect_graph_edge import RegularAspectGraphEdge
 from .edges.result_graph_edge import ResultGraphEdge
 from .error_handler_graph_node import ErrorHandlerGraphNode
 from .regular_aspect_graph_node import RegularAspectGraphNode
@@ -81,7 +79,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     result_edge: ResultGraphEdge = field(init=False, repr=False, compare=False)
     depends_edges: list[AssociationGraphEdge]
     connection_edges: list[AssociationGraphEdge]
-    regular_aspect_edges: list[CompositionGraphEdge]
+    regular_aspect_edges: list[RegularAspectGraphEdge]
     summary_aspect_edges: list[CompositionGraphEdge]
     compensator_graph_edges: list[CompositionGraphEdge]
     error_handler_graph_edges: list[CompositionGraphEdge]
@@ -100,7 +98,8 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         connection_edges = self._get_connection_edges(action_cls)
         object.__setattr__(self, "params_edge", ParamsGraphEdge(action_cls, self.NODE_TYPE, self))
         object.__setattr__(self, "result_edge", ResultGraphEdge(action_cls, self.NODE_TYPE, self))
-        regular_aspect_edges = ActionGraphNode.get_regular_aspect_edges(self, action_cls)
+        source_node = self
+        regular_aspect_edges = RegularAspectGraphEdge.edges_from_regular_aspects(source_node, action_cls)
         summary_aspect_edges = ActionGraphNode.get_summary_aspect_edges(self, action_cls)
         compensator_graph_edges = ActionGraphNode.get_compensator_edges(self, action_cls)
         error_handler_graph_edges = ActionGraphNode.get_error_handler_edges(self, action_cls)
@@ -196,20 +195,6 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             *(node for n in compensators for node in n.get_companion_nodes()),
             *(node for n in error_handlers for node in n.get_companion_nodes()),
         ]
-
-    @staticmethod
-    def get_regular_aspect_edges(
-        source_node: BaseGraphNode[Any],
-        action_cls: type[BaseAction[Any, Any]],
-    ) -> list[CompositionGraphEdge]:
-        """Return regular aspect composition edges for ``action_cls``."""
-        return ActionGraphNode._get_callable_edges(
-            source_node,
-            [
-                RegularAspectGraphNode(aspect_callable, action_cls)
-                for aspect_callable in RegularAspectIntentResolver.resolve_regular_aspects(action_cls)
-            ],
-        )
 
     @staticmethod
     def get_summary_aspect_edges(

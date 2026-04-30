@@ -34,6 +34,9 @@ from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.edges.params_graph_edge import ParamsGraphEdge
+from action_machine.model.graph_model.edges.regular_aspect_graph_edge import (
+    RegularAspectGraphEdge,
+)
 from action_machine.model.graph_model.edges.result_graph_edge import ResultGraphEdge
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.field_graph_node import FieldGraphNode
@@ -315,21 +318,14 @@ def test_action_graph_node_links_and_helpers() -> None:
 
 def test_action_graph_node_appends_regular_aspect_edges() -> None:
     node = ActionGraphNode(ChildAction)
-    host = TypeIntrospection.full_qualname(ChildAction)
     aspect_node = RegularAspectGraphNode(
         RegularAspectIntentResolver.resolve_regular_aspects(ChildAction)[0],
         ChildAction,
     )
 
-    expected_edge = CompositionGraphEdge(
-        edge_name="process_aspect",
-        is_dag=False,
-        source_node_id=host,
-        source_node_type="Action",
+    expected_edge = RegularAspectGraphEdge(
         source_node=node,
-        target_node_id=f"{host}:process_aspect",
-        target_node_type=RegularAspectGraphNode.NODE_TYPE,
-        target_node=aspect_node,
+        aspect_node=aspect_node,
     )
     assert node.regular_aspect_edges == [expected_edge]
     assert aspect_node in node.get_companion_nodes()
