@@ -34,6 +34,7 @@ from action_machine.model.graph_model.action_graph_node import ActionGraphNode
 from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.edges.params_graph_edge import ParamsGraphEdge
+from action_machine.model.graph_model.edges.result_graph_edge import ResultGraphEdge
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.model.graph_model.field_graph_node import FieldGraphNode
 from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
@@ -45,7 +46,6 @@ from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.resources.base_resource import BaseResource
 from action_machine.system_core import TypeIntrospection
-from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.composition_graph_edge import CompositionGraphEdge
 from graph.edge_relationship import COMPOSITION
@@ -248,16 +248,7 @@ def test_action_graph_node_links_and_helpers() -> None:
             source_node=node,
         ),
         ParamsGraphEdge(PingAction, source_node_type="Action", source_node=node),
-        AggregationGraphEdge(
-            edge_name="result",
-            is_dag=False,
-            source_node_id=host,
-            source_node_type="Action",
-            source_node=node,
-            target_node_id=result_id,
-            target_node_type="Result",
-            target_node=None,
-        ),
+        ResultGraphEdge(PingAction, source_node_type="Action", source_node=node),
         CompositionGraphEdge(
             edge_name="pong_summary",
             is_dag=False,
@@ -280,15 +271,10 @@ def test_action_graph_node_links_and_helpers() -> None:
         source_node_type="Action",
         source_node=node,
     )
-    assert node.result_edge == AggregationGraphEdge(
-        edge_name="result",
-        is_dag=False,
-        source_node_id=host,
+    assert node.result_edge == ResultGraphEdge(
+        PingAction,
         source_node_type="Action",
         source_node=node,
-        target_node_id=result_id,
-        target_node_type="Result",
-        target_node=None,
     )
 
     p_type = ActionSchemaIntentResolver.resolve_params_type(PingAction)

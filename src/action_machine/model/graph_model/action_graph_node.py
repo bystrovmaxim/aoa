@@ -30,9 +30,6 @@ from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar, cast
 
 from action_machine.domain.graph_model.edges.domain_graph_edge import DomainGraphEdge
-from action_machine.intents.action_schema.action_schema_intent_resolver import (
-    ActionSchemaIntentResolver,
-)
 from action_machine.intents.aspects.regular_aspect_intent_resolver import (
     RegularAspectIntentResolver,
 )
@@ -54,7 +51,6 @@ from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.graph_model.resource_graph_node import ResourceGraphNode
 from action_machine.system_core import TypeIntrospection
-from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -62,9 +58,9 @@ from graph.composition_graph_edge import CompositionGraphEdge
 
 from .compensator_graph_node import CompensatorGraphNode
 from .edges.params_graph_edge import ParamsGraphEdge
+from .edges.result_graph_edge import ResultGraphEdge
 from .error_handler_graph_node import ErrorHandlerGraphNode
 from .regular_aspect_graph_node import RegularAspectGraphNode
-from .result_graph_node import ResultGraphNode
 from .summary_aspect_graph_node import SummaryAspectGraphNode
 
 TAction = TypeVar("TAction", bound=BaseAction[Any, Any])
@@ -82,7 +78,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     NODE_TYPE: ClassVar[str] = "Action"
     domain_edge: DomainGraphEdge = field(init=False, repr=False, compare=False)
     params_edge: ParamsGraphEdge = field(init=False, repr=False, compare=False)
-    result_edge: AggregationGraphEdge | None = field(init=False, repr=False, compare=False)
+    result_edge: ResultGraphEdge = field(init=False, repr=False, compare=False)
     depends_edges: list[AssociationGraphEdge]
     connection_edges: list[AssociationGraphEdge]
     regular_aspect_edges: list[CompositionGraphEdge]
@@ -99,18 +95,15 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             properties=dict(ActionGraphNode._get_properties(action_cls)),
             node_obj=action_cls,
         )
-        domain_edge = DomainGraphEdge(action_cls, self.NODE_TYPE, self)
+        object.__setattr__(self, "domain_edge", DomainGraphEdge(action_cls, self.NODE_TYPE, self))
+        object.__setattr__(self, "params_edge", ParamsGraphEdge(action_cls, self.NODE_TYPE, self))
+        object.__setattr__(self, "result_edge", ResultGraphEdge(action_cls, self.NODE_TYPE, self))
         depends_edges = self._get_depends_edges(action_cls)
         connection_edges = self._get_connection_edges(action_cls)
-        params_edge = ParamsGraphEdge(action_cls, self.NODE_TYPE, self)
-        result_edge = self._get_result_edge(action_cls)
         regular_aspect_edges = ActionGraphNode.get_regular_aspect_edges(self, action_cls)
         summary_aspect_edges = ActionGraphNode.get_summary_aspect_edges(self, action_cls)
         compensator_graph_edges = ActionGraphNode.get_compensator_edges(self, action_cls)
         error_handler_graph_edges = ActionGraphNode.get_error_handler_edges(self, action_cls)
-        object.__setattr__(self, "domain_edge", domain_edge)
-        object.__setattr__(self, "params_edge", params_edge)
-        object.__setattr__(self, "result_edge", result_edge[0] if result_edge else None)
         object.__setattr__(self, "depends_edges", depends_edges)
         object.__setattr__(self, "connection_edges", connection_edges)
         object.__setattr__(self, "regular_aspect_edges", regular_aspect_edges)
@@ -179,7 +172,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return [
             self.domain_edge,
             self.params_edge,
-            *([] if self.result_edge is None else [self.result_edge]),
+            self.result_edge,
             *self.depends_edges,
             *self.connection_edges,
             *self.regular_aspect_edges,
@@ -341,25 +334,4 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             for connection_type, connection_key in ConnectionIntentResolver.resolve_connection_types_and_keys(
                 action_cls,
             )
-        ]
-
-    def _get_result_edge(
-        self,
-        action_cls: type[TAction],
-    ) -> list[AggregationGraphEdge]:
-        """Zero or one result schema edge (``AGGREGATION``); empty when the result type does not resolve."""
-        result_type = ActionSchemaIntentResolver.resolve_result_type(action_cls)
-        if result_type is None:
-            return []
-        return [
-            AggregationGraphEdge(
-                edge_name="result",
-                is_dag=False,
-                source_node_id=TypeIntrospection.full_qualname(action_cls),
-                source_node_type=self.NODE_TYPE,
-                source_node=self,
-                target_node_id=TypeIntrospection.full_qualname(result_type),
-                target_node_type=ResultGraphNode.NODE_TYPE,
-                target_node=None,
-            ),
         ]
