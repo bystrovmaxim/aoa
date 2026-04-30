@@ -42,16 +42,16 @@ class PropertyGraphEdge(CompositionGraphEdge):
     def __init__(
         self,
         *,
-        params_node_id: str,
-        params_node_type: str,
+        node_id: str,
+        node_type: str,
         property_node: PropertyFieldGraphNode,
         source_node: BaseGraphNode[Any] | None = None,
     ) -> None:
         super().__init__(
             edge_name="property",
             is_dag=False,
-            source_node_id=params_node_id,
-            source_node_type=params_node_type,
+            source_node_id=node_id,
+            source_node_type=node_type,
             source_node=source_node,
             target_node_id=property_node.node_id,
             target_node_type=property_node.node_type,
@@ -61,16 +61,16 @@ class PropertyGraphEdge(CompositionGraphEdge):
     @classmethod
     def for_params(
         cls,
-        params_cls: type[BaseParams],
-        params_node_id: str,
-        params_node_type: str,
+        cls_type: type[BaseParams],
+        node_id: str,
+        node_type: str,
     ) -> list[PropertyGraphEdge]:
         """Build composition edges from params node to computed/plain property nodes."""
-        vertices = cls._property_graph_nodes_for_host(params_cls)
+        vertices = cls._property_graph_nodes_for_host(cls_type)
         return [
             cls(
-                params_node_id=params_node_id,
-                params_node_type=params_node_type,
+                node_id=node_id,
+                node_type=node_type,
                 property_node=p,
             )
             for p in vertices
@@ -79,16 +79,16 @@ class PropertyGraphEdge(CompositionGraphEdge):
     @classmethod
     def for_result(
         cls,
-        result_cls: type[BaseResult],
-        result_node_id: str,
-        result_node_type: str,
+        cls_type: type[BaseResult],
+        node_id: str,
+        node_type: str,
     ) -> list[PropertyGraphEdge]:
         """Build composition edges from result node to computed/plain property nodes."""
-        vertices = cls._property_graph_nodes_for_host(result_cls)
+        vertices = cls._property_graph_nodes_for_host(cls_type)
         return [
             cls(
-                params_node_id=result_node_id,
-                params_node_type=result_node_type,
+                node_id=node_id,
+                node_type=node_type,
                 property_node=p,
             )
             for p in vertices
