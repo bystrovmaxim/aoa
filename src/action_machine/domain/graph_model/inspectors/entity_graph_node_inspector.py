@@ -1,42 +1,44 @@
-# src/action_machine/model/graph_model/params_graph_node_inspector.py
+# src/action_machine/domain/graph_model/inspectors/entity_graph_node_inspector.py
 """
-ParamsGraphNodeInspector — graph-node contributor for ``BaseParams`` subclasses.
+EntityGraphNodeInspector — graph-node contributor for ``BaseEntity`` subclasses.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseParams`` subclass tree and emits one :class:`ParamsGraphNode` per
-visited subtype plus that node's :class:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (``FieldGraphNode`` rows).
+Walks the loaded ``BaseEntity`` subclass tree and emits one :class:`EntityGraphNode` per
+visited class (including the ``BaseEntity`` axis when :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` calls the root).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseParams  (root axis)
+    BaseEntity  (root)  ->  ``[EntityGraphNode(BaseEntity)]`` when included in the walk
               │
               v
-    each loaded strict subclass ``cls``  ->  ``ParamsGraphNode(cls)`` plus :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (field rows) in the flat list when ``issubclass(cls, BaseParams)``
+    each loaded subclass ``cls``  ->  ``[EntityGraphNode(cls)]`` when ``issubclass(cls, BaseEntity)``
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from action_machine.model.base_params import BaseParams
+from action_machine.domain.entity import BaseEntity
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 
-from .params_graph_node import ParamsGraphNode
+from ..entity_graph_node import EntityGraphNode
 
 
-class ParamsGraphNodeInspector(BaseGraphNodeInspector[BaseParams]):
+class EntityGraphNodeInspector(BaseGraphNodeInspector[BaseEntity]):
     """
     AI-CORE-BEGIN
-    ROLE: Emit ``ParamsGraphNode`` rows for visited ``BaseParams`` classes.
-    CONTRACT: Root axis ``BaseParams`` from ``BaseGraphNodeInspector[BaseParams]``; one ``ParamsGraphNode`` per visited subtype.
+    ROLE: Emit ``EntityGraphNode`` rows for every loaded ``BaseEntity`` subclass.
+    CONTRACT: Root axis ``BaseEntity`` from ``BaseGraphNodeInspector[BaseEntity]``; one node per visited subtype.
     AI-CORE-END
     """
 
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        return ParamsGraphNode(cls)
+        if isinstance(cls, type) and issubclass(cls, BaseEntity):
+            return EntityGraphNode(cls)
+        return None

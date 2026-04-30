@@ -6,7 +6,7 @@ ConnectionGraphEdge — ASSOCIATION for ``@connection`` from Action → resource
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Mirror :meth:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode._get_connection_edges`:
+Mirror :meth:`~action_machine.model.graph_model.action_graph_node.ActionGraphNode._get_connection`:
 ``edge_name`` ``@connection``, ``is_dag=True``, ``properties[\"key\"]`` holds the slot key.
 
 ═══════════════════════════════════════════════════════════════════════════════

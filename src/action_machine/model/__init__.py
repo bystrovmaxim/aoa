@@ -53,22 +53,22 @@ from action_machine.model.base_state import BaseState
 from action_machine.model.graph_model.checker_graph_node import CheckerGraphNode
 from action_machine.model.graph_model.compensator_graph_node import CompensatorGraphNode
 from action_machine.model.graph_model.error_handler_graph_node import ErrorHandlerGraphNode
-from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
-from action_machine.model.graph_model.params_graph_node_inspector import (
+from action_machine.model.graph_model.inspectors.params_graph_node_inspector import (
     ParamsGraphNodeInspector,
 )
-from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
-from action_machine.model.graph_model.result_graph_node import ResultGraphNode
-from action_machine.model.graph_model.result_graph_node_inspector import (
+from action_machine.model.graph_model.inspectors.result_graph_node_inspector import (
     ResultGraphNodeInspector,
 )
+from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
+from action_machine.model.graph_model.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.model.graph_model.result_graph_node import ResultGraphNode
 from action_machine.model.graph_model.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.model.params_stub import ParamsStub
 from action_machine.model.result_stub import ResultStub
 
 if TYPE_CHECKING:
     from action_machine.model.graph_model.action_graph_node import ActionGraphNode
-    from action_machine.model.graph_model.action_graph_node_inspector import (
+    from action_machine.model.graph_model.inspectors.action_graph_node_inspector import (
         ActionGraphNodeInspector,
     )
 
@@ -82,7 +82,7 @@ def __getattr__(name: str) -> Any:
 
         return ActionGraphNodeImpl
     if name == "ActionGraphNodeInspector":
-        from action_machine.model.graph_model.action_graph_node_inspector import (  # pylint: disable=import-outside-toplevel
+        from action_machine.model.graph_model.inspectors.action_graph_node_inspector import (  # pylint: disable=import-outside-toplevel
             ActionGraphNodeInspector as ActionGraphNodeInspectorImpl,
         )
 

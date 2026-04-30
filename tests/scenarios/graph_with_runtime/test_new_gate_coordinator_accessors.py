@@ -319,5 +319,5 @@ def test_coordinator_get_dependency_classes_and_action_graph_connections() -> No
     assert PaymentServiceResource in classes
     assert NotificationServiceResource in classes
     action_node = ActionGraphNode(FullAction)
-    db_edges = [e for e in action_node.connection_edges if e.properties.get("key") == "db"]
+    db_edges = [e for e in action_node.connection if e.properties.get("key") == "db"]
     assert len(db_edges) == 1

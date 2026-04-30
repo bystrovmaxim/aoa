@@ -121,8 +121,8 @@ class ConnectionValidator:
         connections: dict[str, BaseResource] | None,
         action_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> dict[str, BaseResource]:
-        """Validate connections against keys from ``action_node.connection_keys``."""
-        declared_keys = action_node.connection_keys
+        """Validate connections against keys from ``action_node.connection_keys()``."""
+        declared_keys = action_node.connection_keys()
         actual_keys: set[str] = set(connections.keys()) if connections else set()
         action_name: str = action.__class__.__name__
 

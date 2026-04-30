@@ -1,4 +1,4 @@
-# src/action_machine/auth/graph_model/role_graph_node_inspector.py
+# src/action_machine/auth/graph_model/inspectors/role_graph_node_inspector.py
 """
 RoleGraphNodeInspector — graph-node contributor for ``BaseRole`` subclasses.
 
@@ -27,7 +27,7 @@ from action_machine.auth.base_role import BaseRole
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 
-from .role_graph_node import RoleGraphNode
+from ..role_graph_node import RoleGraphNode
 
 
 class RoleGraphNodeInspector(BaseGraphNodeInspector[BaseRole]):

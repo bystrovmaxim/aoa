@@ -1,44 +1,44 @@
-# src/action_machine/domain/graph_model/entity_graph_node_inspector.py
+# src/action_machine/domain/graph_model/inspectors/domain_graph_node_inspector.py
 """
-EntityGraphNodeInspector — graph-node contributor for ``BaseEntity`` subclasses.
+DomainGraphNodeInspector — graph-node contributor for ``BaseDomain`` subclasses.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseEntity`` subclass tree and emits one :class:`EntityGraphNode` per
-visited class (including the ``BaseEntity`` axis when :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` calls the root).
+Walks the loaded ``BaseDomain`` subclass tree and emits one :class:`DomainGraphNode` per
+visited domain class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseEntity  (root)  ->  ``[EntityGraphNode(BaseEntity)]`` when included in the walk
+    BaseDomain  (root axis)
               │
               v
-    each loaded subclass ``cls``  ->  ``[EntityGraphNode(cls)]`` when ``issubclass(cls, BaseEntity)``
+    each strict subclass ``cls``  ->  ``[DomainGraphNode(cls)]`` when ``issubclass(cls, BaseDomain)``
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from action_machine.domain.entity import BaseEntity
+from action_machine.domain.base_domain import BaseDomain
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 
-from .entity_graph_node import EntityGraphNode
+from ..domain_graph_node import DomainGraphNode
 
 
-class EntityGraphNodeInspector(BaseGraphNodeInspector[BaseEntity]):
+class DomainGraphNodeInspector(BaseGraphNodeInspector[BaseDomain]):
     """
     AI-CORE-BEGIN
-    ROLE: Emit ``EntityGraphNode`` rows for every loaded ``BaseEntity`` subclass.
-    CONTRACT: Root axis ``BaseEntity`` from ``BaseGraphNodeInspector[BaseEntity]``; one node per visited subtype.
+    ROLE: Emit ``DomainGraphNode`` rows for every loaded ``BaseDomain`` subclass.
+    CONTRACT: Root axis ``BaseDomain`` from ``BaseGraphNodeInspector[BaseDomain]``; one node per visited domain class.
     AI-CORE-END
     """
 
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        if isinstance(cls, type) and issubclass(cls, BaseEntity):
-            return EntityGraphNode(cls)
+        if isinstance(cls, type) and cls is not BaseDomain and issubclass(cls, BaseDomain):
+            return DomainGraphNode(cls)
         return None
