@@ -47,6 +47,4 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
     """
 
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        if not (isinstance(cls, type) and issubclass(cls, BaseAction)):
-            return None
         return ActionGraphNode(cls)
