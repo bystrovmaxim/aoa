@@ -105,16 +105,12 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         """Interchange vertices for ``@regular_aspect`` methods, in composition edge order."""
         out: list[RegularAspectGraphNode] = []
         for edge in self.regular_aspect:
-            if edge.target_node is None:
-                continue
             out.append(cast(RegularAspectGraphNode, edge.target_node))
         return out
 
     def get_summary_aspect_graph_node(self) -> SummaryAspectGraphNode | None:
         """Interchange vertex for ``@summary_aspect`` if declared; at most one."""
         for edge in self.summary_aspect:
-            if edge.target_node is None:
-                continue
             return cast(SummaryAspectGraphNode, edge.target_node)
         return None
 
@@ -122,8 +118,6 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         """Interchange vertices for ``@compensate`` methods, in composition edge order."""
         out: list[CompensatorGraphNode] = []
         for edge in self.compensator_graph:
-            if edge.target_node is None:
-                continue
             out.append(cast(CompensatorGraphNode, edge.target_node))
         return out
 
@@ -143,8 +137,6 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         """Interchange vertices for ``@on_error`` methods, in composition edge order."""
         out: list[ErrorHandlerGraphNode] = []
         for edge in self.error_handler_graph:
-            if edge.target_node is None:
-                continue
             out.append(cast(ErrorHandlerGraphNode, edge.target_node))
         return out
 
