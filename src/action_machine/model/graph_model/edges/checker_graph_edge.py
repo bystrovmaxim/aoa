@@ -63,11 +63,40 @@ class CheckerGraphEdge(CompositionGraphEdge):
 
     @staticmethod
     def checkers_for_method(method: Any) -> list[dict[str, Any]]:
-        """Checker metadata dicts from ``_checker_meta`` on this aspect method (unwraps ``property``)."""
+        """Return normalized ``_checker_meta`` rows from method metadata."""
         func = BaseIntentInspector._unwrap_declaring_class_member(method)
-        if not callable(func):
-            return []
-        raw = getattr(func, "_checker_meta", None)
+        raw = getattr(func, "_checker_meta", None) if callable(func) else None
+        return CheckerGraphEdge._normalized_checker_meta_rows(raw)
+
+    @staticmethod
+    def edges_for_aspect(
+        aspect_callable: Callable[..., Any],
+        _action_cls: type[Any],
+        aspect_node_id: str,
+        aspect_node_type: str,
+    ) -> list[CheckerGraphEdge]:
+        """Typed ``@result_checker`` edges from ``_checker_meta`` on ``aspect_callable``."""
+        edges: list[CheckerGraphEdge] = []
+        for row in CheckerGraphEdge.checkers_for_method(aspect_callable):
+            checker_node = CheckerGraphEdge._build_checker_node(
+                aspect_callable=aspect_callable,
+                _action_cls=_action_cls,
+                row=row,
+            )
+            if checker_node is None:
+                continue
+            edges.append(
+                CheckerGraphEdge(
+                    checker_node=checker_node,
+                    source_node_id=aspect_node_id,
+                    source_node_type=aspect_node_type,
+                ),
+            )
+        return edges
+
+    @staticmethod
+    def _normalized_checker_meta_rows(raw: Any) -> list[dict[str, Any]]:
+        """Normalize raw ``_checker_meta`` payload into plain mapping rows."""
         if raw is None or isinstance(raw, (str, bytes)) or not isinstance(raw, Sequence):
             return []
         out: list[dict[str, Any]] = []
@@ -77,34 +106,29 @@ class CheckerGraphEdge(CompositionGraphEdge):
         return out
 
     @staticmethod
-    def edges_for_aspect(
+    def _build_checker_node(
+        *,
         aspect_callable: Callable[..., Any],
         _action_cls: type[Any],
-        aspect_node_id: str,
-        aspect_vertex_type: str,
-    ) -> list[CheckerGraphEdge]:
-        """Typed ``@result_checker`` edges from ``_checker_meta`` on ``aspect_callable``."""
-        edges: list[CheckerGraphEdge] = []
-        for row in CheckerGraphEdge.checkers_for_method(aspect_callable):
-            cc = row.get("checker_class")
-            if not isinstance(cc, type):
-                continue
-            raw = row.get("field_name", "")
-            field = raw if isinstance(raw, str) else str(raw)
-            extra = {k: v for k, v in row.items() if k not in ("checker_class", "field_name", "required")}
-            chk = CheckerGraphNode(
-                aspect_callable=aspect_callable,
-                _action_cls=_action_cls,
-                checker_class=cc,
-                field_name=field,
-                required=bool(row.get("required", False)),
-                properties=extra if extra else None,
-            )
-            edges.append(
-                CheckerGraphEdge(
-                    checker_node=chk,
-                    source_node_id=aspect_node_id,
-                    source_node_type=aspect_vertex_type,
-                ),
-            )
-        return edges
+        row: dict[str, Any],
+    ) -> CheckerGraphNode | None:
+        """Build ``CheckerGraphNode`` from one normalized metadata row."""
+        checker_class = row.get("checker_class")
+        if not isinstance(checker_class, type):
+            return None
+
+        raw_field_name = row.get("field_name", "")
+        field_name = raw_field_name if isinstance(raw_field_name, str) else str(raw_field_name)
+        extra_props = {
+            key: value
+            for key, value in row.items()
+            if key not in ("checker_class", "field_name", "required")
+        }
+        return CheckerGraphNode(
+            aspect_callable=aspect_callable,
+            _action_cls=_action_cls,
+            checker_class=checker_class,
+            field_name=field_name,
+            required=bool(row.get("required", False)),
+            properties=extra_props if extra_props else None,
+        )
