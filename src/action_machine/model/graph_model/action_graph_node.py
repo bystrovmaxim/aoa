@@ -108,7 +108,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         summary_aspect_edges = ActionGraphNode.get_summary_aspect_edges(self, action_cls)
         compensator_graph_edges = ActionGraphNode.get_compensator_edges(self, action_cls)
         error_handler_graph_edges = ActionGraphNode.get_error_handler_edges(self, action_cls)
-        object.__setattr__(self, "domain_edge", domain_edge[0] if domain_edge else None)
+        object.__setattr__(self, "domain_edge", domain_edge)
         object.__setattr__(self, "params_edge", params_edge[0] if params_edge else None)
         object.__setattr__(self, "result_edge", result_edge[0] if result_edge else None)
         object.__setattr__(self, "depends_edges", depends_edges)
@@ -303,22 +303,21 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     def _get_domain_edge(
         self,
         action_cls: type[TAction],
-    ) -> list[AssociationGraphEdge]:
-        """Zero or one domain edge; empty when ``@meta`` has no valid ``BaseDomain`` in ``domain``."""
-        return [
-            AssociationGraphEdge(
-                edge_name="domain",
-                is_dag=True,
-                source_node_id=TypeIntrospection.full_qualname(action_cls),
-                source_node_type=self.NODE_TYPE,
-                source_node=self,
-                target_node_id=TypeIntrospection.full_qualname(domain_cls),
-                target_node_type=DomainGraphNode.NODE_TYPE,
-                target_node=None,
-            )
-            for domain_cls in [MetaIntentResolver.resolve_domain_type(action_cls)]
-            if domain_cls is not None
-        ]
+    ) -> AssociationGraphEdge | None:
+        """At most one ``ASSOCIATION`` to domain; ``None`` when ``@meta`` has no valid ``BaseDomain``."""
+        domain_cls = MetaIntentResolver.resolve_domain_type(action_cls)
+        if domain_cls is None:
+            return None
+        return AssociationGraphEdge(
+            edge_name="domain",
+            is_dag=True,
+            source_node_id=TypeIntrospection.full_qualname(action_cls),
+            source_node_type=self.NODE_TYPE,
+            source_node=self,
+            target_node_id=TypeIntrospection.full_qualname(domain_cls),
+            target_node_type=DomainGraphNode.NODE_TYPE,
+            target_node=None,
+        )
 
     def _get_depends_edges(
         self,
