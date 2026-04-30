@@ -99,18 +99,18 @@ class _RegularAspectWithCtx(AspectIntent):
 
 def test_regular_aspect_graph_node_materializes_required_context_companions() -> None:
     node = RegularAspectGraphNode(_RegularAspectWithCtx.step_aspect, _RegularAspectWithCtx)
-    assert not node.checker_edges
-    assert len(node.required_context_edges) == 2
+    assert not node.checkers
+    assert len(node.required_context) == 2
     assert node.get_required_context_keys() == frozenset(
         {"request.trace_id", "user.user_id"},
     )
     host = TypeIntrospection.full_qualname(_RegularAspectWithCtx)
-    assert [e.target_node_type for e in node.required_context_edges] == [
+    assert [e.target_node_type for e in node.required_context] == [
         RequiredContextGraphNode.NODE_TYPE,
         RequiredContextGraphNode.NODE_TYPE,
     ]
     tgts = []
-    for e in node.required_context_edges:
+    for e in node.required_context:
         assert e.edge_name == "required_context"
         assert e.target_node is not None
         tgts.append((e.properties["key"], e.target_node.node_id))
