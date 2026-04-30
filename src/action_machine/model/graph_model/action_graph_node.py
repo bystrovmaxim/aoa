@@ -29,7 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar, cast
 
-from action_machine.domain.graph_model.domain_graph_node import DomainGraphNode
+from action_machine.domain.graph_model.edges.domain_graph_edge import DomainGraphEdge
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
@@ -80,7 +80,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     """
 
     NODE_TYPE: ClassVar[str] = "Action"
-    domain_edge: AssociationGraphEdge | None = field(init=False, repr=False, compare=False)
+    domain_edge: DomainGraphEdge = field(init=False, repr=False, compare=False)
     params_edge: AggregationGraphEdge | None = field(init=False, repr=False, compare=False)
     result_edge: AggregationGraphEdge | None = field(init=False, repr=False, compare=False)
     depends_edges: list[AssociationGraphEdge]
@@ -99,7 +99,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             properties=dict(ActionGraphNode._get_properties(action_cls)),
             node_obj=action_cls,
         )
-        domain_edge = self._get_domain_edge(action_cls)
+        domain_edge = DomainGraphEdge(action_cls, self.NODE_TYPE, self)
         depends_edges = self._get_depends_edges(action_cls)
         connection_edges = self._get_connection_edges(action_cls)
         params_edge = self._get_params_edge(action_cls)
@@ -177,7 +177,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         return [
-            *([] if self.domain_edge is None else [self.domain_edge]),
+            self.domain_edge,
             *([] if self.params_edge is None else [self.params_edge]),
             *([] if self.result_edge is None else [self.result_edge]),
             *self.depends_edges,
@@ -299,25 +299,6 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         if issubclass(target_cls, BaseResource):
             return ResourceGraphNode.NODE_TYPE
         return "UncknownTypeNode"
-
-    def _get_domain_edge(
-        self,
-        action_cls: type[TAction],
-    ) -> AssociationGraphEdge | None:
-        """At most one ``ASSOCIATION`` to domain; ``None`` when ``@meta`` has no valid ``BaseDomain``."""
-        domain_cls = MetaIntentResolver.resolve_domain_type(action_cls)
-        if domain_cls is None:
-            return None
-        return AssociationGraphEdge(
-            edge_name="domain",
-            is_dag=True,
-            source_node_id=TypeIntrospection.full_qualname(action_cls),
-            source_node_type=self.NODE_TYPE,
-            source_node=self,
-            target_node_id=TypeIntrospection.full_qualname(domain_cls),
-            target_node_type=DomainGraphNode.NODE_TYPE,
-            target_node=None,
-        )
 
     def _get_depends_edges(
         self,
