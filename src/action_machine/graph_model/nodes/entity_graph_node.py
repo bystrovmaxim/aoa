@@ -9,7 +9,7 @@ PURPOSE
 Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` from an
 entity **class** object: stable ``id`` (dotted path), ``node_type="Entity"``,
 ``label`` from the class name, ``properties`` from :meth:`_get_properties`, and
-an optional explicit ``domain_edge`` (``@entity`` / ``_entity_info`` merged with
+an optional explicit ``domain`` association (``@entity`` / ``_entity_info`` merged with
 ``@meta`` / ``_meta_info``; see :meth:`_declaration_dict`).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -58,12 +58,12 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE` for ``node_type``; ``_get_properties`` / ``_get_domain_edge`` via :meth:`_declaration_dict`.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE` for ``node_type``; ``_get_properties`` / :meth:`_get_domain_edge` via :meth:`_declaration_dict`.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Entity"
-    domain_edge: AssociationGraphEdge | None = field(init=False, repr=False, compare=False)
+    domain: AssociationGraphEdge | None = field(init=False, repr=False, compare=False)
 
     def __init__(self, entity_cls: type[TEntity]) -> None:
         super().__init__(
@@ -73,13 +73,13 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             properties=dict(EntityGraphNode._get_properties(entity_cls)),
             node_obj=entity_cls,
         )
-        domain_edge = self._get_domain_edge(entity_cls)
-        object.__setattr__(self, "domain_edge", domain_edge[0] if domain_edge else None)
+        domain_candidates = self._get_domain_edge(entity_cls)
+        object.__setattr__(self, "domain", domain_candidates[0] if domain_candidates else None)
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return entity relationship edges materialized in the explicit edge field."""
         return [
-            *([] if self.domain_edge is None else [self.domain_edge]),
+            *([] if self.domain is None else [self.domain]),
         ]
 
     @classmethod
