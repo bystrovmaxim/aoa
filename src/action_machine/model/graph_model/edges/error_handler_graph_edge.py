@@ -45,7 +45,7 @@ class ErrorHandlerGraphEdge(CompositionGraphEdge):
         handler_node: ErrorHandlerGraphNode,
     ) -> None:
         super().__init__(
-            edge_name=handler_node.label,
+            edge_name="@on_error",
             is_dag=False,
             source_node_id=source_node.node_id,
             source_node_type=source_node.node_type,

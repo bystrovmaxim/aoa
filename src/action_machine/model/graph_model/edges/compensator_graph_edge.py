@@ -45,7 +45,7 @@ class CompensatorGraphEdge(CompositionGraphEdge):
         compensator_node: CompensatorGraphNode,
     ) -> None:
         super().__init__(
-            edge_name=compensator_node.label,
+            edge_name="@compensate",
             is_dag=False,
             source_node_id=source_node.node_id,
             source_node_type=source_node.node_type,
