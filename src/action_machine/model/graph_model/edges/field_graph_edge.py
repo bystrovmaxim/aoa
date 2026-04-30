@@ -18,12 +18,11 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from collections.abc import Mapping
+from typing import Any
 
+from action_machine.model.base_params import BaseParams
 from action_machine.model.graph_model.field_graph_node import FieldGraphNode
-
-if TYPE_CHECKING:
-    from action_machine.model.base_params import BaseParams
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
 
@@ -36,24 +35,6 @@ class FieldGraphEdge(CompositionGraphEdge):
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END
     """
-
-    @staticmethod
-    def for_params(
-        params_cls: type[BaseParams],
-        params_node_id: str,
-    ) -> list[FieldGraphEdge]:
-        """Build composition edges from params node to declared Pydantic field nodes."""
-        from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
-
-        fields = ParamsGraphNode._field_graph_nodes_for_params(params_cls)
-        return [
-            FieldGraphEdge(
-                params_node_id=params_node_id,
-                params_node_type=ParamsGraphNode.NODE_TYPE,
-                field_node=fd,
-            )
-            for fd in fields
-        ]
 
     def __init__(
         self,
@@ -73,3 +54,40 @@ class FieldGraphEdge(CompositionGraphEdge):
             target_node_type=field_node.node_type,
             target_node=field_node,
         )
+
+    @classmethod
+    def _field_graph_nodes_for_params(cls, params_cls: type[BaseParams]) -> list[FieldGraphNode]:
+        """One ``FieldGraphNode`` per ``params_cls.model_fields`` entry (empty when none)."""
+        model_fields = getattr(params_cls, "model_fields", None)
+        if not isinstance(model_fields, Mapping):
+            return []
+        out: list[FieldGraphNode] = []
+        for field_name, finfo in model_fields.items():
+            out.append(
+                FieldGraphNode(
+                    params_cls,
+                    field_name,
+                    description=finfo.description,
+                    required=bool(finfo.is_required()),
+                ),
+            )
+        return out
+
+    @classmethod
+    def for_params(
+        cls,
+        params_cls: type[BaseParams],
+        params_node_id: str,
+    ) -> list[FieldGraphEdge]:
+        """Build composition edges from params node to declared Pydantic field nodes."""
+        from action_machine.model.graph_model.params_graph_node import ParamsGraphNode
+
+        fields = cls._field_graph_nodes_for_params(params_cls)
+        return [
+            cls(
+                params_node_id=params_node_id,
+                params_node_type=ParamsGraphNode.NODE_TYPE,
+                field_node=fd,
+            )
+            for fd in fields
+        ]

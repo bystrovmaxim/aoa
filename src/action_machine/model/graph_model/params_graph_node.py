@@ -41,7 +41,6 @@ from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 
-from .field_graph_node import FieldGraphNode
 from .property_field_graph_node import PropertyFieldGraphNode
 
 if TYPE_CHECKING:
@@ -57,8 +56,8 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseParams`` params host class.
     CONTRACT: Built from ``type[TParams]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label;
-    empty ``properties``; ``edges`` / :attr:`companion_nodes` from ``model_fields`` and ``model_computed_fields``
-    (see :meth:`_field_graph_nodes_for_params`, :meth:`_property_graph_nodes_for_params`).
+    empty ``properties``; ``edges`` / :attr:`companion_nodes` from ``FieldGraphEdge.for_params`` and ``PropertyGraphEdge.for_params``
+    (property vertices via :meth:`_property_graph_nodes_for_params`).
     AI-CORE-END
     """
 
@@ -93,23 +92,6 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
             if edge.target_node is not None
         ]
 
-    @staticmethod
-    def _field_graph_nodes_for_params(params_cls: type[BaseParams]) -> list[FieldGraphNode]:
-        """One :class:`FieldGraphNode` per entry in ``params_cls.model_fields`` (empty when none)."""
-        model_fields = getattr(params_cls, "model_fields", None)
-        if not isinstance(model_fields, Mapping):
-            return []
-        out: list[FieldGraphNode] = []
-        for field_name, finfo in model_fields.items():
-            out.append(
-                FieldGraphNode(
-                    params_cls,
-                    field_name,
-                    description=finfo.description,
-                    required=bool(finfo.is_required()),
-                ),
-            )
-        return out
 
     @staticmethod
     def _property_graph_nodes_for_params(
