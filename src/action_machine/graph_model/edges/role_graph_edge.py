@@ -21,9 +21,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
-from action_machine.auth.none_role import NoneRole
+from action_machine.intents.check_roles.check_roles_intent_resolver import (
+    CheckRolesIntentResolver,
+)
 from action_machine.model.base_action import BaseAction
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
@@ -60,7 +61,7 @@ class RoleGraphEdge(CompositionGraphEdge):
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[RoleGraphEdge]:
         """Return one composition stub per declared ``@check_roles`` concrete role."""
-        declared = RoleGraphEdge._declared_role_classes(action_cls)
+        declared = CheckRolesIntentResolver.resolve_required_role_types(action_cls)
         seen: set[str] = set()
         out: list[RoleGraphEdge] = []
         for role_cls in declared:
@@ -70,23 +71,3 @@ class RoleGraphEdge(CompositionGraphEdge):
             seen.add(nid)
             out.append(RoleGraphEdge(source_node=source_node, role_cls=role_cls))
         return out
-
-    @staticmethod
-    def _declared_role_classes(action_cls: type) -> tuple[type[BaseRole], ...]:
-        """Unpack ``cls._role_info['spec']`` into concrete ``BaseRole`` types (facet-aligned)."""
-
-        raw = getattr(action_cls, "_role_info", None)
-        if not isinstance(raw, dict):
-            return ()
-        spec = raw.get("spec")
-        return RoleGraphEdge._role_types_from_check_roles_spec(spec)
-
-    @staticmethod
-    def _role_types_from_check_roles_spec(spec: object) -> tuple[type[BaseRole], ...]:
-        if spec in (NoneRole, AnyRole):
-            return ()
-        if isinstance(spec, type) and issubclass(spec, BaseRole):
-            return (spec,)
-        if isinstance(spec, tuple):
-            return tuple(r for r in spec if isinstance(r, type) and issubclass(r, BaseRole))
-        return ()

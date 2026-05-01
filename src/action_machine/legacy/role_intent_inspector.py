@@ -47,10 +47,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
-from action_machine.auth.none_role import NoneRole
 from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
+from action_machine.intents.check_roles.check_roles_intent_resolver import (
+    CheckRolesIntentResolver,
+)
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.legacy.role_graph_roots import role_class_topology_anchor
 from graph.base_facet_snapshot import BaseFacetSnapshot
@@ -117,21 +118,11 @@ AI-CORE-BEGIN
         """Stable cache key; payload ``node_type`` is ``action`` after projection."""
         return "role"
 
-    @staticmethod
-    def _required_role_types_from_spec(spec: object) -> tuple[type[BaseRole], ...]:
-        if spec in (NoneRole, AnyRole):
-            return ()
-        if isinstance(spec, type) and issubclass(spec, BaseRole):
-            return (spec,)
-        if isinstance(spec, tuple):
-            return tuple(r for r in spec if isinstance(r, type) and issubclass(r, BaseRole))
-        return ()
-
     @classmethod
     def _edges_requires_role_to_role_classes(
         cls, spec: object,
     ) -> tuple[FacetEdge, ...]:
-        concretes = cls._required_role_types_from_spec(spec)
+        concretes = CheckRolesIntentResolver.role_types_from_spec(spec)
         if not concretes:
             return ()
         buckets: dict[type, list[type[BaseRole]]] = {}
