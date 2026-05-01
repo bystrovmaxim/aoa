@@ -71,9 +71,7 @@ def test_interchange_node_and_edge_to_visual_dicts() -> None:
         edge_name="belongs_to",
         is_dag=False,
         source_node_id="a",
-        source_node_type="Domain",
         target_node_id=n.node_id,
-        target_node_type="Application",
     )
     ed = interchange_edge_to_visual_dict(e)
     assert ed["edge_type"] == "belongs_to"
@@ -86,13 +84,25 @@ def test_interchange_node_and_edge_to_visual_dicts() -> None:
 
 def test_interchange_edge_visual_dict_swaps_composition_diamond_to_regular_aspect_target() -> None:
     """UML whole-part cap on the aspect end; interchange topology remains Action → aspect."""
+    tgt = _TestGraphNode(
+        node_id="pkg.Action:my_aspect",
+        node_type=RegularAspectGraphNode.NODE_TYPE,
+        label="Asp",
+        node_obj=object(),
+    )
+    src = _TestGraphNode(
+        node_id="pkg.Action",
+        node_type="Action",
+        label="Act",
+        node_obj=object(),
+    )
     e = CompositionGraphEdge(
         edge_name="my_aspect",
         is_dag=False,
-        source_node_id="pkg.Action",
-        source_node_type="Action",
-        target_node_id="pkg.Action:my_aspect",
-        target_node_type=RegularAspectGraphNode.NODE_TYPE,
+        source_node_id=src.node_id,
+        target_node_id=tgt.node_id,
+        source_node=src,
+        target_node=tgt,
     )
     ed = interchange_edge_to_visual_dict(e)
     assert ed["source_attachment"] == "none"
@@ -100,13 +110,25 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_regular_aspec
 
 
 def test_interchange_edge_visual_dict_swaps_composition_diamond_to_summary_aspect_target() -> None:
+    tgt = _TestGraphNode(
+        node_id="pkg.Action:pong_summary",
+        node_type=SummaryAspectGraphNode.NODE_TYPE,
+        label="Sum",
+        node_obj=object(),
+    )
+    src = _TestGraphNode(
+        node_id="pkg.Action",
+        node_type="Action",
+        label="Act",
+        node_obj=object(),
+    )
     e = CompositionGraphEdge(
         edge_name="pong_summary",
         is_dag=False,
-        source_node_id="pkg.Action",
-        source_node_type="Action",
-        target_node_id="pkg.Action:pong_summary",
-        target_node_type=SummaryAspectGraphNode.NODE_TYPE,
+        source_node_id=src.node_id,
+        target_node_id=tgt.node_id,
+        source_node=src,
+        target_node=tgt,
     )
     ed = interchange_edge_to_visual_dict(e)
     assert ed["source_attachment"] == "none"
@@ -114,13 +136,25 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_summary_aspec
 
 
 def test_interchange_edge_visual_dict_swaps_composition_diamond_to_compensator_target() -> None:
+    tgt = _TestGraphNode(
+        node_id="pkg.Action:rollback_charge_compensate",
+        node_type=CompensatorGraphNode.NODE_TYPE,
+        label="Comp",
+        node_obj=object(),
+    )
+    src = _TestGraphNode(
+        node_id="pkg.Action",
+        node_type="Action",
+        label="Act",
+        node_obj=object(),
+    )
     e = CompositionGraphEdge(
         edge_name="rollback_charge_compensate",
         is_dag=False,
-        source_node_id="pkg.Action",
-        source_node_type="Action",
-        target_node_id="pkg.Action:rollback_charge_compensate",
-        target_node_type=CompensatorGraphNode.NODE_TYPE,
+        source_node_id=src.node_id,
+        target_node_id=tgt.node_id,
+        source_node=src,
+        target_node=tgt,
     )
     ed = interchange_edge_to_visual_dict(e)
     assert ed["source_attachment"] == "none"
@@ -128,13 +162,25 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_compensator_t
 
 
 def test_interchange_edge_visual_dict_swaps_composition_diamond_to_error_handler_target() -> None:
+    tgt = _TestGraphNode(
+        node_id="pkg.Action:handle_finalize_on_error",
+        node_type=ErrorHandlerGraphNode.NODE_TYPE,
+        label="Eh",
+        node_obj=object(),
+    )
+    src = _TestGraphNode(
+        node_id="pkg.Action",
+        node_type="Action",
+        label="Act",
+        node_obj=object(),
+    )
     e = CompositionGraphEdge(
         edge_name="handle_finalize_on_error",
         is_dag=False,
-        source_node_id="pkg.Action",
-        source_node_type="Action",
-        target_node_id="pkg.Action:handle_finalize_on_error",
-        target_node_type=ErrorHandlerGraphNode.NODE_TYPE,
+        source_node_id=src.node_id,
+        target_node_id=tgt.node_id,
+        source_node=src,
+        target_node=tgt,
     )
     ed = interchange_edge_to_visual_dict(e)
     assert ed["source_attachment"] == "none"
@@ -160,9 +206,7 @@ class _PygraphRoundTripInspector(BaseGraphNodeInspector[_PygraphRoundTripAxis]):
             edge_name="params",
             is_dag=False,
             source_node_id="tests.a",
-            source_node_type="Action",
             target_node_id="tests.b",
-            target_node_type="Params",
         )
         a = _TestGraphNode(
             node_id="tests.a",
@@ -255,9 +299,7 @@ class _BadRefInspector(BaseGraphNodeInspector[_BadRefAxis]):
                     edge_name="belongs_to",
                     is_dag=False,
                     source_node_id="tests.viz2.bad_domain",
-                    source_node_type="Domain",
                     target_node_id="tests.viz2.MISSING_APPLICATION_TARGET",
-                    target_node_type="Application",
                 ),
             ],
             node_obj=object(),

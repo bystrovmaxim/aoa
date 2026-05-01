@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from action_machine.system_core import TypeIntrospection
@@ -27,7 +28,7 @@ class DomainGraphEdge(AssociationGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed association edge ``host → domain``.
-    CONTRACT: ``edge_name`` ``domain``, ``target_node_type`` ``\"Domain\"``; ``domain_cls`` required; use factories for meta/entity resolution.
+    CONTRACT: ``edge_name`` ``domain``; target is a ``Domain`` vertex (``target_node_type`` property); ``domain_cls`` required; use factories for meta/entity resolution.
     INVARIANTS: Frozen via ``AssociationGraphEdge`` base; ``target_node`` resolves lazily elsewhere (``None`` stub).
     FAILURES:
         :exc:`~action_machine.exceptions.MissingMetaError` from :meth:`from_meta_declared_host` when meta resolution fails;
@@ -38,7 +39,6 @@ class DomainGraphEdge(AssociationGraphEdge):
     def __init__(
         self,
         source_cls: type,
-        source_node_type: str,
         source_node: BaseGraphNode[Any],
         domain_cls: type,
     ) -> None:
@@ -46,24 +46,26 @@ class DomainGraphEdge(AssociationGraphEdge):
             edge_name="domain",
             is_dag=True,
             source_node_id=TypeIntrospection.full_qualname(source_cls),
-            source_node_type=source_node_type,
             source_node=source_node,
             target_node_id=TypeIntrospection.full_qualname(domain_cls),
-            target_node_type="Domain",
             target_node=None,
         )
+
+    @property
+    def target_node_type(self) -> str:
+        """Domain stub edges target the ``Domain`` interchange row before hydration."""
+
+        return DomainGraphNode.NODE_TYPE
 
     @classmethod
     def from_meta_declared_host(
         cls,
         source_cls: type,
-        source_node_type: str,
         source_node: BaseGraphNode[Any],
     ) -> DomainGraphEdge:
         """Materialize using :meth:`MetaIntentResolver.resolve_domain_type` (``@meta`` ``domain``)."""
         return cls(
             source_cls,
-            source_node_type,
             source_node,
             MetaIntentResolver.resolve_domain_type(source_cls),
         )
@@ -72,13 +74,11 @@ class DomainGraphEdge(AssociationGraphEdge):
     def from_entity_declared_host(
         cls,
         source_cls: type,
-        source_node_type: str,
         source_node: BaseGraphNode[Any],
     ) -> DomainGraphEdge:
         """Materialize using :meth:`EntityIntentResolver.resolve_domain_type` (``@entity`` ``domain``)."""
         return cls(
             source_cls,
-            source_node_type,
             source_node,
             EntityIntentResolver.resolve_domain_type(source_cls),
         )

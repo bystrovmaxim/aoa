@@ -70,7 +70,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             properties=dict({"description": EntityIntentResolver.resolve_description(entity_cls)}),
             node_obj=entity_cls,
         )
-        object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self.NODE_TYPE, self))
+        object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self))
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return entity relationship edges materialized in the explicit edge field."""

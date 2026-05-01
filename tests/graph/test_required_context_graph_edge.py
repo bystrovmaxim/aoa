@@ -19,7 +19,7 @@ def test_required_context_graph_edge_matches_plain_composition_contract() -> Non
     )
     edge = RequiredContextGraphEdge(
         source_node_id=aspect.node_id,
-        source_node_type=aspect.node_type,
+        aspect_vertex_type=aspect.node_type,
         required_context_node=ctx_vertex,
     )
     assert edge.edge_name == "@required_context"
