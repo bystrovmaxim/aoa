@@ -6,17 +6,13 @@ RegularAspectGraphNode — interchange node for a ``@regular_aspect`` method on 
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` for one regular
-aspect **callable** on a concrete ``BaseAction`` subclass: ``node_id`` is the action
-dotted id plus ``:`` plus the method name, interchange ``node_type`` is
-``RegularAspect``, ``label`` is the method name; ``properties`` include ``description`` from
-``RegularAspectIntentResolver.resolve_description`` or that call raises if ``@regular_aspect`` metadata or description is unusable.
-The node **self-inspects** ``_checker_meta`` on ``aspect_func`` and ``@context_requires`` keys
-(via :class:`~action_machine.intents.context_requires.context_requires_resolver.ContextRequiresResolver`),
-materializes :class:`~action_machine.graph_model.nodes.checker_graph_node.CheckerGraphNode` and
-:class:`~action_machine.graph_model.nodes.required_context_graph_node.RequiredContextGraphNode` companions,
-and emits ``COMPOSITION`` edges from this aspect to each checker and required-context slot row
-(checkers: ``edge_name`` ``@result_checker``; required context: ``edge_name`` ``required_context``, dot-path key in ``properties['key']``).
+One frozen vertex per ``@regular_aspect`` method on a ``BaseAction`` subclass:
+``node_id`` is ``<action dotted qualname>:<method name>``; ``label`` is the method name;
+``properties['description']`` comes from
+:meth:`~action_machine.intents.aspects.regular_aspect_intent_resolver.RegularAspectIntentResolver.resolve_description`
+(or that call raises on bad metadata).
+Builds checker and ``@context_requires`` companions and composition edges ``@result_checker`` /
+``@required_context`` (context key in ``properties['key']``).
 """
 
 from __future__ import annotations
