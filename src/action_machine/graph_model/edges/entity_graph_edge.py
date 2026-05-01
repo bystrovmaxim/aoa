@@ -26,9 +26,7 @@ from typing import Any
 
 from action_machine.domain.entity import BaseEntity
 from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
-from action_machine.intents.entity.entity_relation_intent_resolver import (
-    EntityRelationIntentResolver,
-)
+from action_machine.intents.entity.entity_relation_intent_resolver import EntityRelationIntentResolver
 from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_node import BaseGraphNode

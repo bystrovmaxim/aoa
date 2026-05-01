@@ -27,9 +27,7 @@ from collections.abc import Callable
 from typing import Any
 
 from action_machine.graph_model.nodes.required_context_graph_node import RequiredContextGraphNode
-from action_machine.intents.context_requires.context_requires_resolver import (
-    ContextRequiresResolver,
-)
+from action_machine.intents.context_requires.context_requires_resolver import ContextRequiresResolver
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
 

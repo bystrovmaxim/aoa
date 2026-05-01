@@ -21,9 +21,7 @@ from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from action_machine.intents.aspects.summary_aspect_intent_resolver import SummaryAspectIntentResolver
-from action_machine.intents.context_requires.context_requires_resolver import (
-    ContextRequiresResolver,
-)
+from action_machine.intents.context_requires.context_requires_resolver import ContextRequiresResolver
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 

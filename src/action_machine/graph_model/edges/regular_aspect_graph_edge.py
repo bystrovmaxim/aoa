@@ -21,9 +21,7 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
-from action_machine.intents.aspects.regular_aspect_intent_resolver import (
-    RegularAspectIntentResolver,
-)
+from action_machine.intents.aspects.regular_aspect_intent_resolver import RegularAspectIntentResolver
 from action_machine.model.base_action import BaseAction
 from graph.composition_graph_edge import CompositionGraphEdge
 
