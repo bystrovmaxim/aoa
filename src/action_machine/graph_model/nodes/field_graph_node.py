@@ -11,12 +11,6 @@ caller-supplied host ``parent_type`` (typically a params or result schema class)
 dotted id plus ``:`` plus the field name (``parent_type`` is only an argument to ``__init__``, not stored on the payload); ``node_obj`` is a frozen :class:`FieldGraphPayload`.
 
 Constructor inputs mirror :class:`CheckerGraphNode`: ``parent_type``, ``field_name``, optional ``description``, and ``required``. The class does **not** read Pydantic ``model_fields``; callers supply interchange metadata explicitly.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-    ``parent_type`` (params or result host) + field name (+ optional metadata)  ->  ``FieldGraphNode(...)``
 """
 
 from __future__ import annotations

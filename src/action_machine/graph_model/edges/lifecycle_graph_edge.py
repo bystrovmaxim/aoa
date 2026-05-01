@@ -75,12 +75,12 @@ class LifeCycleGraphEdge(AssociationGraphEdge):
     def state_transition_edges_from_lifecycle_vertex(
         lifecycle_vertex: LifeCycleGraphNode,
     ) -> list[StateGraphEdge]:
-        """
-        Delegate to :meth:`LifeCycleGraphNode.transition_edges` (same :class:`StateGraphEdge` rows).
-
-        Kept for callers that only hold a vertex reference.
-        """
-        return lifecycle_vertex.transition_edges()
+        """Flatten companion ``lifecycle_transition`` arcs tied to vertex ``states``."""
+        return [
+            edge
+            for state_row in lifecycle_vertex.states
+            for edge in state_row.lifecycle_transitions
+        ]
 
     @staticmethod
     def get_lifecycle_association_edges(entity_cls: type[BaseEntity]) -> tuple[LifeCycleGraphEdge, ...]:
@@ -110,5 +110,9 @@ def _materialize_entity_lifecycle_slices(
                 target_node=target_vertex,
             ),
         )
-        transitions.extend(target_vertex.transition_edges())
+        transitions.extend(
+            edge
+            for state_row in target_vertex.states
+            for edge in state_row.lifecycle_transitions
+        )
     return tuple(associations), tuple(transitions)
