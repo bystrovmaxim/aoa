@@ -14,14 +14,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.intents.entity.entity_decorator import entity
+from action_machine.intents.entity.entity_decorator import entity, entity_info_dict
 from action_machine.intents.entity.entity_intent import EntityIntent, entity_info_is_set
+from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 
 __all__ = [
     "DomainGraphNode",
     "EntityIntent",
     "EntityIntentInspector",
+    "EntityIntentResolver",
     "entity",
+    "entity_info_dict",
     "entity_info_is_set",
 ]
 

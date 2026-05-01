@@ -82,7 +82,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             properties=dict({"description": MetaIntentResolver.resolve_description(action_cls)}),
             node_obj=action_cls,
         )
-        object.__setattr__(self, "domain", DomainGraphEdge(action_cls, self.NODE_TYPE, self))
+        object.__setattr__(self, "domain", DomainGraphEdge.from_meta_declared_host(action_cls, self.NODE_TYPE, self))
         object.__setattr__(self, "params", ParamsGraphEdge(action_cls, self.NODE_TYPE, self))
         object.__setattr__(self, "result", ResultGraphEdge(action_cls, self.NODE_TYPE, self))
         object.__setattr__(self, "depends", DependsGraphEdge.get_dependency_edges(self, action_cls))
