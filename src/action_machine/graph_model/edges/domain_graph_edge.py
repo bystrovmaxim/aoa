@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
+from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -59,8 +61,6 @@ class DomainGraphEdge(AssociationGraphEdge):
         source_node: BaseGraphNode[Any],
     ) -> DomainGraphEdge:
         """Materialize using :meth:`MetaIntentResolver.resolve_domain_type` (``@meta`` ``domain``)."""
-        from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
-
         return cls(
             source_cls,
             source_node_type,
@@ -76,8 +76,6 @@ class DomainGraphEdge(AssociationGraphEdge):
         source_node: BaseGraphNode[Any],
     ) -> DomainGraphEdge:
         """Materialize using :meth:`EntityIntentResolver.resolve_domain_type` (``@entity`` ``domain``)."""
-        from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
-
         return cls(
             source_cls,
             source_node_type,

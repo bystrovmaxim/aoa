@@ -103,6 +103,9 @@ EXAMPLES
     order = build({"id": "123", "amount": 100.0}, OrderEntity)
 """
 
+# Deferred graph interchange symbols are bound in ``__getattr__``.
+# pylint: disable=undefined-all-variable
+
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
 from action_machine.domain.exceptions import (
@@ -126,16 +129,47 @@ from action_machine.domain.relation_containers import (
 )
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
 from action_machine.domain.testing import make
-from action_machine.graph_model.inspectors.domain_graph_node_inspector import (
-    DomainGraphNodeInspector,
-)
-from action_machine.graph_model.inspectors.entity_graph_node_inspector import (
-    EntityGraphNodeInspector,
-)
-from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
-from action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
 from action_machine.intents.entity.entity_decorator import entity
 from action_machine.intents.entity.entity_intent import EntityIntent
+
+
+def __getattr__(name: str) -> object:
+    """
+    Lazily expose graph interchange types.
+
+    Eager imports of these symbols here recurse when modules such as
+    :mod:`action_machine.graph_model.nodes.domain_graph_node` load
+    :mod:`action_machine.domain.base_domain` while the ``action_machine.domain``
+    initializer is still running.
+    """
+    # pylint: disable=import-outside-toplevel
+
+    if name == "DomainGraphNode":
+        from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
+
+        globals()["DomainGraphNode"] = DomainGraphNode
+        return DomainGraphNode
+    if name == "DomainGraphNodeInspector":
+        from action_machine.graph_model.inspectors.domain_graph_node_inspector import (
+            DomainGraphNodeInspector,
+        )
+
+        globals()["DomainGraphNodeInspector"] = DomainGraphNodeInspector
+        return DomainGraphNodeInspector
+    if name == "EntityGraphNode":
+        from action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
+
+        globals()["EntityGraphNode"] = EntityGraphNode
+        return EntityGraphNode
+    if name == "EntityGraphNodeInspector":
+        from action_machine.graph_model.inspectors.entity_graph_node_inspector import (
+            EntityGraphNodeInspector,
+        )
+
+        globals()["EntityGraphNodeInspector"] = EntityGraphNodeInspector
+        return EntityGraphNodeInspector
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "AggregateMany",
