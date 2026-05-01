@@ -27,7 +27,6 @@ class StateGraphEdge(CompositionGraphEdge):
     def __init__(
         self,
         *,
-        source_node: BaseGraphNode[Any],
         target_node_id: str,
         from_state: str,
         to_state: str,
@@ -36,7 +35,6 @@ class StateGraphEdge(CompositionGraphEdge):
         super().__init__(
             edge_name="lifecycle_transition",
             is_dag=False,
-            source=source_node,
             target_node_id=target_node_id,
             target_node=target_node,
             properties={

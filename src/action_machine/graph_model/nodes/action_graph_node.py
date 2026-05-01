@@ -85,15 +85,15 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             node_obj=action_cls,
         )
         object.__setattr__(self, "domain", DomainGraphEdge.from_meta_declared_host(action_cls, self))
-        object.__setattr__(self, "params", ParamsGraphEdge(action_cls, self))
-        object.__setattr__(self, "result", ResultGraphEdge(action_cls, self))
-        object.__setattr__(self, "depends", DependsGraphEdge.get_dependency_edges(self, action_cls))
-        object.__setattr__(self, "connection", ConnectionGraphEdge.get_connection_edges(self, action_cls))
-        object.__setattr__(self, "roles", RoleGraphEdge.get_role_edges(self, action_cls))
-        object.__setattr__(self, "regular_aspect", RegularAspectGraphEdge.get_regular_aspect_edges(self, action_cls))
-        object.__setattr__(self, "summary_aspect", SummaryAspectGraphEdge.get_summary_aspect_edges(self, action_cls))
-        object.__setattr__(self, "compensators", CompensatorGraphEdge.get_compensator_edges(self, action_cls))
-        object.__setattr__(self, "on_error_handlers", ErrorHandlerGraphEdge.get_on_error_handlers_edges(self, action_cls))
+        object.__setattr__(self, "params", ParamsGraphEdge(action_cls))
+        object.__setattr__(self, "result", ResultGraphEdge(action_cls))
+        object.__setattr__(self, "depends", DependsGraphEdge.get_dependency_edges(action_cls))
+        object.__setattr__(self, "connection", ConnectionGraphEdge.get_connection_edges(action_cls))
+        object.__setattr__(self, "roles", RoleGraphEdge.get_role_edges(action_cls))
+        object.__setattr__(self, "regular_aspect", RegularAspectGraphEdge.get_regular_aspect_edges(action_cls))
+        object.__setattr__(self, "summary_aspect", SummaryAspectGraphEdge.get_summary_aspect_edges(action_cls))
+        object.__setattr__(self, "compensators", CompensatorGraphEdge.get_compensator_edges(action_cls))
+        object.__setattr__(self, "on_error_handlers", ErrorHandlerGraphEdge.get_on_error_handlers_edges(action_cls))
 
     def connection_keys(self) -> frozenset[str]:
         """Declared ``@connection`` slot keys (non-empty stripped ``properties[\"key\"]`` on connection edges)."""

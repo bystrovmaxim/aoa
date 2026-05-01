@@ -45,7 +45,6 @@ class ResultGraphEdge(AggregationGraphEdge):
     def __init__(
         self,
         action_cls: type,
-        source_node: BaseGraphNode[Any],
         *,
         target_node: BaseGraphNode[Any] | None = None,
     ) -> None:
@@ -56,7 +55,6 @@ class ResultGraphEdge(AggregationGraphEdge):
         super().__init__(
             edge_name="generic:result",
             is_dag=False,
-            source=source_node,
             target_node_id=TypeIntrospection.full_qualname(result_type),
             target_node=target_node,
         )

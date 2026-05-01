@@ -27,7 +27,6 @@ from action_machine.intents.check_roles.check_roles_intent_resolver import (
 )
 from action_machine.model.base_action import BaseAction
 from action_machine.system_core import TypeIntrospection
-from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
 
 
@@ -43,20 +42,17 @@ class RoleGraphEdge(CompositionGraphEdge):
     def __init__(
         self,
         *,
-        source_node: BaseGraphNode[Any],
         role_cls: type[BaseRole],
     ) -> None:
         super().__init__(
             edge_name="@check_roles",
             is_dag=False,
-            source=source_node,
             target_node_id=TypeIntrospection.full_qualname(role_cls),
             target_node=None,
         )
 
     @staticmethod
     def get_role_edges(
-        source_node: BaseGraphNode[Any],
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[RoleGraphEdge]:
         """Return one composition stub per declared ``@check_roles`` concrete role."""
@@ -69,5 +65,5 @@ class RoleGraphEdge(CompositionGraphEdge):
             if nid in seen:
                 continue
             seen.add(nid)
-            out.append(RoleGraphEdge(source_node=source_node, role_cls=role_cls))
+            out.append(RoleGraphEdge(role_cls=role_cls))
         return out

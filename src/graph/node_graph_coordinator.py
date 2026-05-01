@@ -21,8 +21,7 @@ or list interchange nodes without touching rustworkx via :meth:`get_all_nodes`.
 This coordinator is **domain-agnostic**: it does not interpret ``node_type`` or
 ``edge_name`` beyond validation and DAG checks. It expands inspector rows with each
 node's :meth:`~graph.base_graph_node.BaseGraphNode.get_companion_nodes` result before
-validating and materializing the graph. Optional :meth:`~graph.base_graph_node.BaseGraphNode.allows_companion_sourced_outgoing_edges`
-lets a host list edges whose logical source is a registered companion (``source_node_id`` prefixed with ``<host.node_id>:``).
+validating and materializing the graph.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -209,12 +208,9 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
         return nodes
 
     def _resolve_edge_node_refs(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
-        """Fill missing edge ``source_node`` / ``target_node`` references from resolved node ids."""
+        """Fill missing edge ``target_node`` references from resolved node ids."""
         for node in nodes.values():
             for edge in node.get_all_edges():
-                source_node = nodes.get(edge.source_node_id)
-                if edge.source_node is None and source_node is not None:
-                    object.__setattr__(edge, "source_node", source_node)
                 target_node = nodes.get(edge.target_node_id)
                 if edge.target_node is None and target_node is not None:
                     object.__setattr__(edge, "target_node", target_node)
@@ -222,29 +218,6 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
     def _validate_referential_integrity(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
         for source_id, node in nodes.items():
             for edge in node.get_all_edges():
-                source_node = nodes.get(edge.source_node_id)
-                if source_node is None:
-                    raise InvalidGraphError(
-                        f"Edge {edge.edge_name!r} from {source_id!r} references "
-                        f"missing source_node_id {edge.source_node_id!r}.",
-                    )
-                if edge.source_node is not source_node:
-                    raise InvalidGraphError(
-                        f"Edge {edge.edge_name!r} from {source_id!r} has broken source_node "
-                        f"for source_node_id {edge.source_node_id!r}.",
-                    )
-                if edge.source_node_id != source_id:
-                    if not node.allows_companion_sourced_outgoing_edges():
-                        raise InvalidGraphError(
-                            f"Edge {edge.edge_name!r} from {source_id!r} declares "
-                            f"source_node_id {edge.source_node_id!r}.",
-                        )
-                    prefix = f"{source_id}:"
-                    if not edge.source_node_id.startswith(prefix):
-                        raise InvalidGraphError(
-                            f"Edge {edge.edge_name!r} from {source_id!r} declares "
-                            f"source_node_id {edge.source_node_id!r} outside namespace {prefix!r}.",
-                        )
                 target_node = nodes.get(edge.target_node_id)
                 if target_node is None:
                     raise InvalidGraphError(

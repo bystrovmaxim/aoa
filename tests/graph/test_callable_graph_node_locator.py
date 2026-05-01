@@ -21,13 +21,13 @@ from tests.scenarios.domain_model.ping_action import PingAction
 def test_get_summary_aspect_builds_edges() -> None:
     node = ActionGraphNode(PingAction)
 
-    assert SummaryAspectGraphEdge.get_summary_aspect_edges(node, PingAction) == node.summary_aspect
+    assert SummaryAspectGraphEdge.get_summary_aspect_edges(PingAction) == node.summary_aspect
 
 
 def test_get_regular_aspect_builds_edges_with_target_nodes() -> None:
     node = ActionGraphNode(ChildAction)
 
-    edges = RegularAspectGraphEdge.get_regular_aspect_edges(node, ChildAction)
+    edges = RegularAspectGraphEdge.get_regular_aspect_edges(ChildAction)
 
     assert edges == node.regular_aspect
     assert [edge.target_node for edge in edges] == node.get_companion_nodes()[: len(edges)]
@@ -36,10 +36,10 @@ def test_get_regular_aspect_builds_edges_with_target_nodes() -> None:
 def test_get_compensator_edges_builds_edges() -> None:
     node = ActionGraphNode(ChildAction)
 
-    assert CompensatorGraphEdge.get_compensator_edges(node, ChildAction) == node.compensators
+    assert CompensatorGraphEdge.get_compensator_edges(ChildAction) == node.compensators
 
 
 def test_get_error_handler_edges_builds_edges() -> None:
     node = ActionGraphNode(ChildAction)
 
-    assert ErrorHandlerGraphEdge.get_on_error_handlers_edges(node, ChildAction) == node.on_error_handlers
+    assert ErrorHandlerGraphEdge.get_on_error_handlers_edges(ChildAction) == node.on_error_handlers

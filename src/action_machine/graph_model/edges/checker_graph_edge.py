@@ -38,7 +38,7 @@ class CheckerGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed composition edge regular aspect vertex → checker row.
-    CONTRACT: ``edge_name`` literal ``@result_checker``; ``is_dag`` False; ``source_node`` is the emitting aspect interchange row; ``target_node`` is the checker vertex.
+    CONTRACT: ``edge_name`` literal ``@result_checker``; ``is_dag`` False; ``target_node`` is the checker vertex.
     FACTORY: ``checkers_for_method`` parses ``_checker_meta``; ``get_checker_edges`` materializes checker rows wired to ``aspect_node``.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END
@@ -48,12 +48,10 @@ class CheckerGraphEdge(CompositionGraphEdge):
         self,
         *,
         checker_node: CheckerGraphNode,
-        source_node: BaseGraphNode[Any],
     ) -> None:
         super().__init__(
             edge_name="@result_checker",
             is_dag=False,
-            source=source_node,
             target_node_id=checker_node.node_id,
             target_node=checker_node,
         )
@@ -69,7 +67,7 @@ class CheckerGraphEdge(CompositionGraphEdge):
     def get_checker_edges(
         aspect_callable: Callable[..., Any],
         _action_cls: type[Any],
-        aspect_node: BaseGraphNode[Any],
+        _aspect_node: BaseGraphNode[Any],
     ) -> list[CheckerGraphEdge]:
         """Typed ``@result_checker`` edges from ``_checker_meta`` on ``aspect_callable``."""
         edges: list[CheckerGraphEdge] = []
@@ -84,7 +82,6 @@ class CheckerGraphEdge(CompositionGraphEdge):
             edges.append(
                 CheckerGraphEdge(
                     checker_node=checker_node,
-                    source_node=aspect_node,
                 ),
             )
         return edges
