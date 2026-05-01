@@ -19,15 +19,6 @@ For each entry in ``model_computed_fields`` (``@computed_field``) and each publi
 ``COMPOSITION`` edge (``edge_name`` prefix ``property:``).
 
 Interchange ``node_type`` is ``"Params"``; ``id`` is the dotted class path. (Legacy facet rows may still use the string ``params_schema``.)
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-    type[TParams]   (``TParams`` bound to ``BaseParams``)
-              │
-              v
-    ParamsGraphNode(...)  ──>  frozen ``BaseGraphNode`` + ``FieldGraphNode`` / ``PropertyFieldGraphNode`` companions + edges
 """
 
 from __future__ import annotations
@@ -69,12 +60,8 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
             properties={},
             node_obj=params_cls,
         )
-        object.__setattr__(
-            self, "fields", FieldGraphEdge.get_field_edges(params_cls, self)
-        )
-        object.__setattr__(
-            self, "props", PropertyGraphEdge.get_property_edges(params_cls, self)
-        )
+        object.__setattr__(self, "fields", FieldGraphEdge.get_field_edges(params_cls, self))
+        object.__setattr__(self, "props", PropertyGraphEdge.get_property_edges(params_cls, self))
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return all outgoing composition edges materialized in explicit edge fields."""
