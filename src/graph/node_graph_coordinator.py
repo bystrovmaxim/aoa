@@ -19,9 +19,9 @@ Read it via :attr:`NodeGraphCoordinator.rx_graph` after a successful :meth:`buil
 or list interchange nodes without touching rustworkx via :meth:`get_all_nodes`.
 
 This coordinator is **domain-agnostic**: it does not interpret ``node_type`` or
-``edge_name`` beyond validation and DAG checks. It expands inspector rows with each
-node's :meth:`~graph.base_graph_node.BaseGraphNode.get_companion_nodes` result before
-validating and materializing the graph.
+``edge_name`` beyond validation and DAG checks. It recursively expands inspector rows
+with each node's :meth:`~graph.base_graph_node.BaseGraphNode.get_companion_nodes` result
+before validating and materializing the graph.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -32,7 +32,7 @@ ARCHITECTURE / DATA FLOW
     inspectors: Sequence[BaseGraphNodeInspector[Any]]  (instances)
               │
               v
-    for each: inspector.get_graph_nodes()  ->  flat list of (node + companions, inspector_label)
+    for each: inspector.get_graph_nodes()  ->  flat list of (node + recursive companions, inspector_label)
               │
               v
     dict[node_id -> BaseGraphNode] with unique ids
@@ -173,10 +173,13 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
         self,
         flat: list[tuple[BaseGraphNode[Any], str]],
     ) -> list[tuple[BaseGraphNode[Any], str]]:
-        """Append each gathered node's companion nodes under the same inspector label."""
+        """Append each gathered node's recursive companion nodes under the same inspector label."""
         out = list(flat)
         seen_node_ids = {node.node_id for node, _ in flat}
-        for node, label in flat:
+        cursor = 0
+        while cursor < len(out):
+            node, label = out[cursor]
+            cursor += 1
             for companion_node in node.get_companion_nodes():
                 if companion_node.node_id in seen_node_ids:
                     continue
