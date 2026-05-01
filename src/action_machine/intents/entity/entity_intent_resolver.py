@@ -3,13 +3,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from action_machine.domain.base_domain import BaseDomain
-
+from action_machine.domain.base_domain import BaseDomain
 from action_machine.exceptions.missing_entity_info_error import MissingEntityInfoError
-from action_machine.intents.entity.entity_decorator import entity_info_dict as _scratch_entity_info
 
 
 class EntityIntentResolver:
@@ -26,8 +23,12 @@ class EntityIntentResolver:
     def entity_info_dict(host_cls: type) -> dict[str, Any]:
         """
         Return ``_entity_info`` written by ``@entity`` on ``host_cls``, or ``{}`` when absent or not a mapping.
+
+        Kept identical to :func:`action_machine.intents.entity.entity_decorator.entity_info_dict`; duplicated here
+        to avoid importing ``entity_decorator`` at module scope (cycles with ``EntityGraphNode`` / package ``__init__``).
         """
-        return _scratch_entity_info(host_cls)
+        raw = getattr(host_cls, "_entity_info", None)
+        return raw if isinstance(raw, dict) else {}
 
     @staticmethod
     def resolve_description(host_cls: type) -> str:
@@ -45,8 +46,6 @@ class EntityIntentResolver:
         Raises:
             MissingEntityInfoError: ``domain`` is present but not a ``BaseDomain`` subclass.
         """
-        from action_machine.domain.base_domain import BaseDomain
-
         domain_cls = EntityIntentResolver.entity_info_dict(host_cls).get("domain")
         if domain_cls is None:
             return None
