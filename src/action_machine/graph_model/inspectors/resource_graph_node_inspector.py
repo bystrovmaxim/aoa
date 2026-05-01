@@ -8,13 +8,14 @@ PURPOSE
 
 Walks the loaded ``BaseResource`` strict subclass tree and emits one
 :class:`~action_machine.graph_model.nodes.resource_graph_node.ResourceGraphNode` per
-visited **non-abstract** subtype; abstract ABC markers are omitted by :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` before :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._get_node`.
+subtype that participates in interchange; classes opt out explicitly with
+:class:`~graph.exclude_graph_model.exclude_graph_model` (see :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseResource  (axis root — omitted when ABC / abstract)
+    BaseResource  (axis root — skipped when decorated with ``exclude_graph_model``)
               │
               v
     each strict subclass ``cls``  ->  ``[ResourceGraphNode(cls)]`` when ``issubclass(cls, BaseResource)``
@@ -34,7 +35,7 @@ class ResourceGraphNodeInspector(BaseGraphNodeInspector[BaseResource]):
     """
     AI-CORE-BEGIN
     ROLE: Emit ``ResourceGraphNode`` rows for every loaded ``BaseResource`` subclass.
-    CONTRACT: Root axis ``BaseResource`` from ``BaseGraphNodeInspector[BaseResource]``; one node per visited resource class.
+    CONTRACT: Root axis ``BaseResource`` from ``BaseGraphNodeInspector[BaseResource]``; one node per visited resource class unless the resource class declares ``exclude_graph_model``.
     AI-CORE-END
     """
 

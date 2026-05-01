@@ -95,8 +95,10 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict
 
 from action_machine.runtime.navigation import _SENTINEL, DotPathNavigator
+from graph.exclude_graph_model import exclude_graph_model
 
 
+@exclude_graph_model
 class BaseSchema(BaseModel):
     """
     Base Pydantic schema with dict-like reads and dot-path navigation.

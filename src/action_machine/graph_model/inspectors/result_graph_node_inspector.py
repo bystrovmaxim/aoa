@@ -7,13 +7,13 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Walks the loaded ``BaseResult`` strict subclass tree and emits one :class:`ResultGraphNode` per
-visited **non-abstract** subtype plus that node's :class:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (``FieldGraphNode`` rows); abstract markers are omitted by :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes`.
+subtype that participates in interchange plus that node's :class:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (``FieldGraphNode`` rows); opt out with :class:`~graph.exclude_graph_model.exclude_graph_model`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseResult  (axis root — omitted when ABC / abstract)
+    BaseResult  (axis root — skipped when decorated with ``exclude_graph_model``)
               │
               v
     each loaded strict subclass ``cls``  ->  ``ResultGraphNode(cls)`` plus :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (field rows) in the flat list when ``issubclass(cls, BaseResult)``

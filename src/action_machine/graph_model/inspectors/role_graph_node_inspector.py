@@ -7,13 +7,14 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Walks the loaded strict ``BaseRole`` subclass tree and emits one :class:`RoleGraphNode` per
-visited **non-abstract** subtype; abstract markers are omitted by :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` before :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._get_node`.
+subtype that participates in interchange; classes opt out with
+:class:`~graph.exclude_graph_model.exclude_graph_model` (see :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseRole  (axis root — omitted when ABC / abstract)
+    BaseRole  (axis root — skipped when decorated with ``exclude_graph_model``)
               │
               v
     each visited ``cls``  ->  ``[RoleGraphNode(cls)]`` when ``issubclass(cls, BaseRole)``

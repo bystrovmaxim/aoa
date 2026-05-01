@@ -43,10 +43,12 @@ from typing import Any, ClassVar
 
 from action_machine.exceptions import NamingSuffixError
 from action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
+from graph.exclude_graph_model import exclude_graph_model
 
 _REQUIRED_SUFFIX = "Role"
 
 
+@exclude_graph_model
 class BaseRole(RoleModeIntent, ABC):
     """
     Abstract base for role marker classes (type-as-capability, like ``BaseDomain``).

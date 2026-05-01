@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from typing import Any
 
 import pytest
@@ -52,26 +51,23 @@ def test_excluded_from_graph_model_not_inherited_by_subclasses() -> None:
     assert not excluded_from_graph_model(_Child)
 
 
-def test_should_skip_axis_host_honours_marker() -> None:
-    """``BaseGraphNodeInspector`` must not call ``_get_node`` for excluded hosts."""
-
-    class _Axis(ABC):
-        @abstractmethod
-        def _slot(self) -> None:
-            """Keeps the axis abstract so the root is omitted from the walk."""
+def test_get_graph_nodes_honours_exclude_graph_model_marker() -> None:
+    """``BaseGraphNodeInspector`` must not call ``_get_node`` for hosts marked ``exclude_graph_model``."""
 
     @exclude_graph_model
-    class _Hidden(_Axis):
-        def _slot(self) -> None:
-            return None
+    class _AxisScaffold:
+        """Excluded axis scaffold (explicit opt-out on the inspected root)."""
 
-    class _Visible(_Axis):
-        def _slot(self) -> None:
-            return None
+    @exclude_graph_model
+    class _Hidden(_AxisScaffold):
+        pass
+
+    class _Visible(_AxisScaffold):
+        pass
 
     n_visible = _stub_node("visible")
 
-    class _Inspector(BaseGraphNodeInspector[_Axis]):
+    class _Inspector(BaseGraphNodeInspector[_AxisScaffold]):
         def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
             if cls is _Hidden:
                 raise AssertionError("_get_node must not run for excluded class")
