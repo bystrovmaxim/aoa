@@ -11,9 +11,11 @@ entity **class** object: stable ``id`` (dotted path), ``node_type="Entity"``,
 ``label`` from the class name, ``properties`` from :meth:`~action_machine.intents.entity.entity_intent_resolver.EntityIntentResolver.resolve_description`,
 a ``domain`` edge built by :class:`~action_machine.graph_model.edges.domain_graph_edge.DomainGraphEdge`,
 ``entity_relation`` edges from :class:`~action_machine.graph_model.edges.entity_graph_edge.EntityGraphEdge`,
-:class:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge` lifecycle associations (:attr:`lifecycles`),
-and all template ``lifecycle_transition`` rows flattened on :attr:`states` (those are :class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge`
-records, **not** :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode` rows — companions still derive from wired lifecycle vertices).
+:class:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge`
+lifecycle associations (:attr:`lifecycles`).
+
+State rows belong to each wired :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`;
+the entity row contributes lifecycle vertices only.
 
 (``@entity`` ``domain``: :meth:`~action_machine.intents.entity.entity_intent_resolver.EntityIntentResolver.resolve_domain_type`).
 
@@ -27,12 +29,11 @@ ARCHITECTURE / DATA FLOW
     EntityGraphNode (``__init__``)
               ├─ :attr:`domain`     ← :class:`~action_machine.graph_model.edges.domain_graph_edge.DomainGraphEdge`
               ├─ :attr:`relations`  ← list[:class:`~action_machine.graph_model.edges.entity_graph_edge.EntityGraphEdge`]
-              ├─ :attr:`lifecycles` ← :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_association_edges`
-              └─ :attr:`states`     ← :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_transition_edges`
+              └─ :attr:`lifecycles` ← :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_association_edges`
               │
               v
-    :meth:`get_all_edges` → ``[domain, *relations, *lifecycles]``; :attr:`states` aggregates template ``lifecycle_transition`` rows (:class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge`).
-    :meth:`get_companion_nodes` → each :attr:`lifecycles` ``target_node`` (``LifeCycleGraphNode`` when wired) + its companion :attr:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.states` (entity :attr:`states` arcs are unrelated node-level aggregates)
+    :meth:`get_all_edges` → ``[domain, *relations, *lifecycles]``
+    :meth:`get_companion_nodes` → each wired lifecycle ``target_node`` + that lifecycle node's companions.
 """
 
 from __future__ import annotations
@@ -44,8 +45,6 @@ from action_machine.domain.entity import BaseEntity
 from action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
 from action_machine.graph_model.edges.entity_graph_edge import EntityGraphEdge
 from action_machine.graph_model.edges.lifecycle_graph_edge import LifeCycleGraphEdge
-from action_machine.graph_model.edges.state_graph_edge import StateGraphEdge
-from action_machine.graph_model.nodes.lifecycle_graph_node import LifeCycleGraphNode
 from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
@@ -59,7 +58,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`lifecycles` / :attr:`states` from :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_association_edges` and :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_transition_edges`. :meth:`get_all_edges` lists domain, relations, lifecycle associations only; :attr:`states` holds flattened ``lifecycle_transition`` **edges** (not interchange companion rows). :meth:`get_companion_nodes` gathers wired lifecycle interchange rows plus each lifecycle's companion :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode` list on :attr:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.states` — never by iterating entity :attr:`states`.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`lifecycles` from :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_association_edges`. :meth:`get_all_edges` lists domain, relations, lifecycle associations only; :meth:`get_companion_nodes` returns lifecycle target rows plus each lifecycle row's own companions.
     AI-CORE-END
     """
 
@@ -67,7 +66,6 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     domain: DomainGraphEdge = field(init=False, repr=False, compare=False)
     relations: list[EntityGraphEdge] = field(init=False)
     lifecycles: list[LifeCycleGraphEdge] = field(init=False)
-    states: list[StateGraphEdge] = field(init=False)
 
     def __init__(self, entity_cls: type[TEntity]) -> None:
         super().__init__(
@@ -80,17 +78,17 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self))
         object.__setattr__(self, "relations", EntityGraphEdge.get_entity_relation_edges(entity_cls))
         object.__setattr__(self, "lifecycles", list(LifeCycleGraphEdge.get_lifecycle_association_edges(entity_cls)))
-        object.__setattr__(self, "states", list(LifeCycleGraphEdge.get_lifecycle_transition_edges(entity_cls)))
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
-        """Contributed lifecycle rows plus embedded state vertices; :attr:`states` arcs are unrelated (see module PURPOSE)."""
+        """Contributed lifecycle rows plus each lifecycle row's companions."""
         out: list[BaseGraphNode[Any]] = []
         for edge in self.lifecycles:
             lifecycle_row = edge.target_node
-            if isinstance(lifecycle_row, LifeCycleGraphNode):
-                out += [lifecycle_row, *lifecycle_row.states]
+            if lifecycle_row is None:
+                continue
+            out += [lifecycle_row, *lifecycle_row.get_companion_nodes()]
         return out
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return ``domain``, entity relations, and lifecycle associations (transition rows on :attr:`states`)."""
+        """Return ``domain``, entity relations, and lifecycle associations."""
         return [self.domain, *self.relations, *self.lifecycles]
