@@ -14,9 +14,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.intents.entity.entity_decorator import entity, entity_info_dict
+# Resolver before decorator: importing this package wires ``entity_intent_resolver`` first so
+# ``DomainGraphEdge`` can load ``EntityIntentResolver`` without ``entity_decorator`` pulling
+# ``action_machine.domain`` (and graph inspectors) while ``domain_graph_edge`` still initializes.
 from action_machine.intents.entity.entity_intent import EntityIntent, entity_info_is_set
 from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
+from action_machine.intents.entity.entity_decorator import entity, entity_info_dict
 
 __all__ = [
     "DomainGraphNode",
