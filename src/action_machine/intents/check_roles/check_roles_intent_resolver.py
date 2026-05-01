@@ -6,16 +6,22 @@ from __future__ import annotations
 from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.none_role import NoneRole
+from action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 
 class CheckRolesIntentResolver:
     """
     AI-CORE-BEGIN
     ROLE: Resolve declared role types from ``_role_info`` / ``spec`` without materializing graph nodes.
-    CONTRACT: Single place for ``spec`` → concrete ``BaseRole`` types used by interchange edges and facet inspectors.
+    CONTRACT: Single place for ``spec`` → concrete ``BaseRole`` types used by interchange edges and facet inspectors; ``@role_mode`` via :meth:`resolve_role_mode`.
     INVARIANTS: ``NoneRole`` / ``AnyRole`` expand to empty; tuple members filtered to ``BaseRole`` subclasses.
     AI-CORE-END
     """
+
+    @staticmethod
+    def resolve_role_mode(role_cls: type[BaseRole]) -> RoleMode:
+        """Return ``RoleMode`` stored by ``@role_mode`` on ``role_cls`` (``_role_mode_info``)."""
+        return RoleMode.declared_for(role_cls)
 
     @staticmethod
     def resolve_required_role_types(action_cls: type) -> tuple[type[BaseRole], ...]:
