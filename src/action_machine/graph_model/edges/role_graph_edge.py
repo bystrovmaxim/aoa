@@ -35,7 +35,7 @@ class RoleGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed composition edge Action host → ``@check_roles`` role class vertex.
-    CONTRACT: ``edge_name`` ``@requires_role``; ``target_node_id`` dotted role class path; coordinator wires ``target_node``.
+    CONTRACT: ``edge_name`` ``@check_roles``; ``target_node_id`` dotted role class path; coordinator wires ``target_node``.
     INVARIANTS: Frozen via ``CompositionGraphEdge``; ``is_dag`` False.
     AI-CORE-END
     """
@@ -61,7 +61,10 @@ class RoleGraphEdge(CompositionGraphEdge):
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[RoleGraphEdge]:
         """Return one composition stub per declared ``@check_roles`` concrete role."""
-        declared = CheckRolesIntentResolver.resolve_required_role_types(action_cls)
+        spec = CheckRolesIntentResolver.resolve_required_role_types(action_cls)
+        if spec is None:
+            return []
+        declared = spec if isinstance(spec, tuple) else (spec,)
         seen: set[str] = set()
         out: list[RoleGraphEdge] = []
         for role_cls in declared:
