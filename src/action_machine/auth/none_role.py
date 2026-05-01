@@ -28,9 +28,11 @@ from typing import Any, final
 
 from action_machine.auth.system_role import SystemRole
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
+from graph.exclude_graph_model import exclude_graph_model
 
 
 @final
+@exclude_graph_model
 @role_mode(RoleMode.ALIVE)
 class NoneRole(SystemRole):
     """
