@@ -40,6 +40,4 @@ class ResourceGraphNodeInspector(BaseGraphNodeInspector[BaseResource]):
     """
 
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        if isinstance(cls, type) and issubclass(cls, BaseResource):
-            return ResourceGraphNode(cls)
-        return None
+        return ResourceGraphNode(cls)
