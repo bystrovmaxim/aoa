@@ -318,7 +318,7 @@ def test_action_graph_node_stores_depends_and_connection() -> None:
     assert len(node.connection) == 1
     assert len(node.roles) == 1
     rr = node.roles[0]
-    assert rr.edge_name == "@requires_role"
+    assert rr.edge_name == "@check_roles"
     assert rr.target_node_id == TypeIntrospection.full_qualname(ManagerRole)
     assert rr.source_node is node
     assert rr.target_node is None
