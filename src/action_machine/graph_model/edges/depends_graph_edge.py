@@ -39,7 +39,6 @@ class DependsGraphEdge(AssociationGraphEdge):
     def __init__(
         self,
         *,
-        source_node_id: str,
         source_node: BaseGraphNode[Any],
         target_node_id: str,
         target_node: BaseGraphNode[Any] | None = None,
@@ -47,8 +46,7 @@ class DependsGraphEdge(AssociationGraphEdge):
         super().__init__(
             edge_name="@depends",
             is_dag=True,
-            source_node_id=source_node_id,
-            source_node=source_node,
+            source=source_node,
             target_node_id=target_node_id,
             target_node=target_node,
         )
@@ -61,7 +59,6 @@ class DependsGraphEdge(AssociationGraphEdge):
         """Return one typed edge per ``@depends`` declaration on ``action_cls``."""
         return [
             DependsGraphEdge(
-                source_node_id=source_node.node_id,
                 source_node=source_node,
                 target_node_id=TypeIntrospection.full_qualname(dependency_type),
                 target_node=None,

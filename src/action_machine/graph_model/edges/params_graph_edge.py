@@ -57,8 +57,7 @@ class ParamsGraphEdge(AggregationGraphEdge):
         super().__init__(
             edge_name="generic:params",
             is_dag=False,
-            source_node_id=TypeIntrospection.full_qualname(action_cls),
-            source_node=source_node,
+            source=source_node,
             target_node_id=TypeIntrospection.full_qualname(params_type),
             target_node=target_node,
         )

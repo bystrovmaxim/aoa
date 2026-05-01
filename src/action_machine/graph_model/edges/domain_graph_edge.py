@@ -44,8 +44,7 @@ class DomainGraphEdge(AssociationGraphEdge):
         super().__init__(
             edge_name="domain",
             is_dag=True,
-            source_node_id=TypeIntrospection.full_qualname(source_cls),
-            source_node=source_node,
+            source=source_node,
             target_node_id=TypeIntrospection.full_qualname(domain_cls),
             target_node=None,
         )

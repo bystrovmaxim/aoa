@@ -32,7 +32,7 @@ def _edge(
     return AssociationGraphEdge(
         edge_name=edge_name,
         is_dag=is_dag,
-        source_node_id=source_node_id,
+        source=source_node_id,
         target_node_id=target_node_id,
     )
 
@@ -148,7 +148,7 @@ def test_host_may_list_edges_whose_logical_source_is_a_companion() -> None:
     e = AssociationGraphEdge(
         edge_name="lifecycle_transition",
         is_dag=False,
-        source_node_id=nid_s,
+        source=nid_s,
         target_node_id=nid_t,
     )
 
@@ -184,7 +184,7 @@ def test_aggregate_companion_sources_rejects_ids_outside_host_prefix() -> None:
     e = AssociationGraphEdge(
         edge_name="lifecycle_transition",
         is_dag=False,
-        source_node_id="other:s",
+        source="other:s",
         target_node_id=f"{lc}:t",
     )
 

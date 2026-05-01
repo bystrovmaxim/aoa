@@ -47,8 +47,7 @@ class RegularAspectGraphEdge(CompositionGraphEdge):
         super().__init__(
             edge_name="@regular_aspect",
             is_dag=False,
-            source_node_id=source_node.node_id,
-            source_node=source_node,
+            source=source_node,
             target_node_id=aspect_node.node_id,
             target_node=aspect_node,
         )

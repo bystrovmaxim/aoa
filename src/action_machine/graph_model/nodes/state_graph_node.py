@@ -111,7 +111,6 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
 
         return [
             StateGraphEdge(
-                source_node_id=vertex.node_id,
                 source_node=vertex,
                 target_node_id=f"{nid_root}:{to_key}",
                 from_state=vertex.node_obj.state_key,
