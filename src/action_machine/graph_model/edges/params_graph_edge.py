@@ -21,10 +21,9 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
 from action_machine.exceptions import ParamsGraphEdgeResolutionError
-from action_machine.graph_model.nodes.params_graph_node import ParamsGraphNode
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
@@ -37,7 +36,7 @@ class ParamsGraphEdge(AggregationGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed aggregation edge host Action → params schema vertex.
-    CONTRACT: ``edge_name`` ``params``, ``is_dag`` False; params type from ``resolve_params_type(action_cls)``; stub ``target_node_type`` property returns ``ParamsGraphNode.NODE_TYPE``.
+    CONTRACT: ``edge_name`` ``params``, ``is_dag`` False; params type from ``resolve_params_type(action_cls)``. ``target_node`` may be wired by the interchange coordinator.
     INVARIANTS: Frozen via ``AggregationGraphEdge``; ``target_node`` optional stub until hydrated.
     FAILURES: :exc:`~action_machine.exceptions.ParamsGraphEdgeResolutionError` when ``resolve_params_type`` returns ``None``.
     AI-CORE-END
@@ -63,10 +62,3 @@ class ParamsGraphEdge(AggregationGraphEdge):
             target_node_id=TypeIntrospection.full_qualname(params_type),
             target_node=target_node,
         )
-
-    @property
-    def target_node_type(self) -> str:
-        if self.target_node is not None:
-            return cast(str, self.target_node.node_type)
-
-        return ParamsGraphNode.NODE_TYPE

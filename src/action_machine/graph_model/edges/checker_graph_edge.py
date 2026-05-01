@@ -29,6 +29,7 @@ from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
+from graph.base_graph_node import BaseGraphNode
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.composition_graph_edge import CompositionGraphEdge
 
@@ -37,34 +38,26 @@ class CheckerGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed composition edge regular aspect vertex → checker row.
-    CONTRACT: ``edge_name`` literal ``@result_checker``; ``is_dag`` False; ``source_node`` left unset (``None``); ``target_node`` is the checker vertex.
-    FACTORY: ``checkers_for_method`` parses ``_checker_meta``; ``get_checker_edges`` materializes checker rows (``aspect_vertex_type`` duplicates the declarative interchange source kind without a wired source node reference).
+    CONTRACT: ``edge_name`` literal ``@result_checker``; ``is_dag`` False; ``source_node`` is the emitting aspect interchange row; ``target_node`` is the checker vertex.
+    FACTORY: ``checkers_for_method`` parses ``_checker_meta``; ``get_checker_edges`` materializes checker rows wired to ``aspect_node``.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END
     """
-
-    _aspect_vertex_type: str
 
     def __init__(
         self,
         *,
         checker_node: CheckerGraphNode,
-        source_node_id: str,
-        aspect_vertex_type: str,
+        source_node: BaseGraphNode[Any],
     ) -> None:
         super().__init__(
             edge_name="@result_checker",
             is_dag=False,
-            source_node_id=source_node_id,
-            source_node=None,
+            source_node_id=source_node.node_id,
+            source_node=source_node,
             target_node_id=checker_node.node_id,
             target_node=checker_node,
         )
-        object.__setattr__(self, "_aspect_vertex_type", aspect_vertex_type)
-
-    @property
-    def source_node_type(self) -> str:
-        return self._aspect_vertex_type
 
     @staticmethod
     def checkers_for_method(method: Any) -> list[dict[str, Any]]:
@@ -77,8 +70,7 @@ class CheckerGraphEdge(CompositionGraphEdge):
     def get_checker_edges(
         aspect_callable: Callable[..., Any],
         _action_cls: type[Any],
-        aspect_node_id: str,
-        aspect_vertex_type: str,
+        aspect_node: BaseGraphNode[Any],
     ) -> list[CheckerGraphEdge]:
         """Typed ``@result_checker`` edges from ``_checker_meta`` on ``aspect_callable``."""
         edges: list[CheckerGraphEdge] = []
@@ -93,8 +85,7 @@ class CheckerGraphEdge(CompositionGraphEdge):
             edges.append(
                 CheckerGraphEdge(
                     checker_node=checker_node,
-                    source_node_id=aspect_node_id,
-                    aspect_vertex_type=aspect_vertex_type,
+                    source_node=aspect_node,
                 ),
             )
         return edges

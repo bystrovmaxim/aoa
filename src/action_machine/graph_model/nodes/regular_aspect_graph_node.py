@@ -62,14 +62,12 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
         object.__setattr__(
             self,
             "checkers",
-            CheckerGraphEdge.get_checker_edges(aspect_func, _action_cls, node_id, RegularAspectGraphNode.NODE_TYPE),
+            CheckerGraphEdge.get_checker_edges(aspect_func, _action_cls, self),
         )
         object.__setattr__(
             self,
             "required_context",
-            RequiredContextGraphEdge.get_required_context_edges(
-                aspect_func, _action_cls, node_id, RegularAspectGraphNode.NODE_TYPE
-            ),
+            RequiredContextGraphEdge.get_required_context_edges(aspect_func, _action_cls, self),
         )
 
     def get_all_edges(self) -> list[BaseGraphEdge]:

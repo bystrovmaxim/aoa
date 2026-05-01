@@ -8,7 +8,6 @@ from __future__ import annotations
 import pytest
 
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
-from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
 from action_machine.legacy.core import Core
 from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_intent_inspector import BaseIntentInspector
@@ -155,12 +154,7 @@ def test_connection_targets_resource_manager_not_connection_facet() -> None:
     ]
 
     node = ActionGraphNode(FullAction)
-    db_edges = [
-        e
-        for e in node.connection
-        if e.properties.get("key") == "db"
-        and e.target_node_type == ResourceGraphNode.NODE_TYPE
-    ]
+    db_edges = [e for e in node.connection if e.properties.get("key") == "db"]
     assert len(db_edges) == 1
     assert db_edges[0].target_node_id == TypeIntrospection.full_qualname(OrdersDbManager)
 

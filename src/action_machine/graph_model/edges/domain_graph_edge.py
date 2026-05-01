@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from action_machine.system_core import TypeIntrospection
@@ -28,7 +27,7 @@ class DomainGraphEdge(AssociationGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed association edge ``host → domain``.
-    CONTRACT: ``edge_name`` ``domain``; target is a ``Domain`` vertex (``target_node_type`` property); ``domain_cls`` required; use factories for meta/entity resolution.
+    CONTRACT: ``edge_name`` ``domain``; ``target_node`` is wired by the coordinator when the domain vertex is present in the graph.
     INVARIANTS: Frozen via ``AssociationGraphEdge`` base; ``target_node`` resolves lazily elsewhere (``None`` stub).
     FAILURES:
         :exc:`~action_machine.exceptions.MissingMetaError` from :meth:`from_meta_declared_host` when meta resolution fails;
@@ -50,12 +49,6 @@ class DomainGraphEdge(AssociationGraphEdge):
             target_node_id=TypeIntrospection.full_qualname(domain_cls),
             target_node=None,
         )
-
-    @property
-    def target_node_type(self) -> str:
-        """Domain stub edges target the ``Domain`` interchange row before hydration."""
-
-        return DomainGraphNode.NODE_TYPE
 
     @classmethod
     def from_meta_declared_host(

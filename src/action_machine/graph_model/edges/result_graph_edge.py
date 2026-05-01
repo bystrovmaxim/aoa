@@ -21,10 +21,9 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
 from action_machine.exceptions import ResultGraphEdgeResolutionError
-from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
@@ -37,7 +36,7 @@ class ResultGraphEdge(AggregationGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed aggregation edge host Action → result schema vertex.
-    CONTRACT: ``edge_name`` ``result``, ``is_dag`` False; result type from ``resolve_result_type(action_cls)``; stub ``target_node_type`` property returns ``ResultGraphNode.NODE_TYPE``.
+    CONTRACT: ``edge_name`` ``result``, ``is_dag`` False; ``target_node`` may be wired by the interchange coordinator.
     INVARIANTS: Frozen via ``AggregationGraphEdge``; ``target_node`` optional stub until hydrated.
     FAILURES: :exc:`~action_machine.exceptions.ResultGraphEdgeResolutionError` when ``resolve_result_type`` returns ``None``.
     AI-CORE-END
@@ -62,9 +61,3 @@ class ResultGraphEdge(AggregationGraphEdge):
             target_node_id=TypeIntrospection.full_qualname(result_type),
             target_node=target_node,
         )
-
-    @property
-    def target_node_type(self) -> str:
-        if self.target_node is not None:
-            return cast(str, self.target_node.node_type)
-        return ResultGraphNode.NODE_TYPE
