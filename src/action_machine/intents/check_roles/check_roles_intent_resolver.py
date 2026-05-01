@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.auth.base_role import BaseRole
+from action_machine.exceptions.missing_check_roles_error import MissingCheckRolesError
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 
@@ -13,7 +14,7 @@ class CheckRolesIntentResolver:
     """
     AI-CORE-BEGIN
     ROLE: Surface ``_role_info`` / ``spec`` written by ``@check_roles`` and ``RoleMode`` from ``@role_mode``.
-    CONTRACT: ``resolve_required_role_types`` returns stored ``spec`` or ``None`` when ``_role_info`` is missing; :meth:`resolve_role_mode` reads ``@role_mode``.
+    CONTRACT: :meth:`resolve_check_roles` returns stored ``spec`` or raises :exc:`~action_machine.exceptions.MissingCheckRolesError`; :meth:`resolve_role_mode` reads ``@role_mode``.
     AI-CORE-END
     """
 
@@ -23,9 +24,9 @@ class CheckRolesIntentResolver:
         return RoleMode.declared_for(role_cls)
 
     @staticmethod
-    def resolve_required_role_types(action_cls: type) -> Any:
-        """Return `_role_info['spec']`, or ``None`` if ``@check_roles`` did not set storage."""
+    def resolve_check_roles(action_cls: type) -> Any:
+        """Return `_role_info['spec']` from ``@check_roles``. Raises ``MissingCheckRolesError`` when absent."""
         try:
             return action_cls._role_info["spec"]
-        except (AttributeError, KeyError, TypeError):
-            return None
+        except (AttributeError, KeyError, TypeError) as exc:
+            raise MissingCheckRolesError(action_cls) from exc
