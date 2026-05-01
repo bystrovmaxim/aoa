@@ -21,9 +21,10 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from action_machine.exceptions import ParamsGraphEdgeResolutionError
+from action_machine.graph_model.nodes.params_graph_node import ParamsGraphNode
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
@@ -36,7 +37,7 @@ class ParamsGraphEdge(AggregationGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed aggregation edge host Action → params schema vertex.
-    CONTRACT: ``edge_name`` ``params``, ``is_dag`` False; params type from ``resolve_params_type(action_cls)``; ``target_node_type`` is ``ParamsGraphNode.NODE_TYPE``.
+    CONTRACT: ``edge_name`` ``params``, ``is_dag`` False; params type from ``resolve_params_type(action_cls)``; stub ``target_node_type`` property returns ``ParamsGraphNode.NODE_TYPE``.
     INVARIANTS: Frozen via ``AggregationGraphEdge``; ``target_node`` optional stub until hydrated.
     FAILURES: :exc:`~action_machine.exceptions.ParamsGraphEdgeResolutionError` when ``resolve_params_type`` returns ``None``.
     AI-CORE-END
@@ -45,7 +46,6 @@ class ParamsGraphEdge(AggregationGraphEdge):
     def __init__(
         self,
         action_cls: type,
-        source_node_type: str,
         source_node: BaseGraphNode[Any],
         *,
         target_node: BaseGraphNode[Any] | None = None,
@@ -55,16 +55,18 @@ class ParamsGraphEdge(AggregationGraphEdge):
             qn = TypeIntrospection.full_qualname(action_cls)
             raise ParamsGraphEdgeResolutionError(qn)
 
-        # pylint: disable=import-outside-toplevel
-        from action_machine.graph_model.nodes.params_graph_node import ParamsGraphNode
-
         super().__init__(
             edge_name="generic:params",
             is_dag=False,
             source_node_id=TypeIntrospection.full_qualname(action_cls),
-            source_node_type=source_node_type,
             source_node=source_node,
             target_node_id=TypeIntrospection.full_qualname(params_type),
-            target_node_type=ParamsGraphNode.NODE_TYPE,
             target_node=target_node,
         )
+
+    @property
+    def target_node_type(self) -> str:
+        if self.target_node is not None:
+            return cast(str, self.target_node.node_type)
+
+        return ParamsGraphNode.NODE_TYPE

@@ -21,7 +21,7 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from action_machine.exceptions import ResultGraphEdgeResolutionError
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
@@ -37,7 +37,7 @@ class ResultGraphEdge(AggregationGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed aggregation edge host Action → result schema vertex.
-    CONTRACT: ``edge_name`` ``result``, ``is_dag`` False; result type from ``resolve_result_type(action_cls)``; ``target_node_type`` is ``ResultGraphNode.NODE_TYPE``.
+    CONTRACT: ``edge_name`` ``result``, ``is_dag`` False; result type from ``resolve_result_type(action_cls)``; stub ``target_node_type`` property returns ``ResultGraphNode.NODE_TYPE``.
     INVARIANTS: Frozen via ``AggregationGraphEdge``; ``target_node`` optional stub until hydrated.
     FAILURES: :exc:`~action_machine.exceptions.ResultGraphEdgeResolutionError` when ``resolve_result_type`` returns ``None``.
     AI-CORE-END
@@ -46,7 +46,6 @@ class ResultGraphEdge(AggregationGraphEdge):
     def __init__(
         self,
         action_cls: type,
-        source_node_type: str,
         source_node: BaseGraphNode[Any],
         *,
         target_node: BaseGraphNode[Any] | None = None,
@@ -59,9 +58,13 @@ class ResultGraphEdge(AggregationGraphEdge):
             edge_name="generic:result",
             is_dag=False,
             source_node_id=TypeIntrospection.full_qualname(action_cls),
-            source_node_type=source_node_type,
             source_node=source_node,
             target_node_id=TypeIntrospection.full_qualname(result_type),
-            target_node_type=ResultGraphNode.NODE_TYPE,
             target_node=target_node,
         )
+
+    @property
+    def target_node_type(self) -> str:
+        if self.target_node is not None:
+            return cast(str, self.target_node.node_type)
+        return ResultGraphNode.NODE_TYPE

@@ -61,7 +61,7 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
             properties=dict({"description": MetaIntentResolver.resolve_description(resource_cls)}),
             node_obj=resource_cls,
         )
-        object.__setattr__(self, "domain", DomainGraphEdge.from_meta_declared_host(resource_cls, self.NODE_TYPE, self))
+        object.__setattr__(self, "domain", DomainGraphEdge.from_meta_declared_host(resource_cls, self))
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return resource relationship edges materialized in the explicit edge field."""

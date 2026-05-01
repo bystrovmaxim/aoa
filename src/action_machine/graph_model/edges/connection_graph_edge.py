@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
 from action_machine.intents.connection.connection_intent_resolver import (
@@ -44,10 +44,8 @@ class ConnectionGraphEdge(AssociationGraphEdge):
         self,
         *,
         source_node_id: str,
-        source_node_type: str,
         source_node: BaseGraphNode[Any],
         target_node_id: str,
-        target_node_type: str,
         connection_key: str,
         target_node: BaseGraphNode[Any] | None = None,
     ) -> None:
@@ -55,13 +53,42 @@ class ConnectionGraphEdge(AssociationGraphEdge):
             edge_name="@connection",
             is_dag=True,
             source_node_id=source_node_id,
-            source_node_type=source_node_type,
             source_node=source_node,
             target_node_id=target_node_id,
-            target_node_type=target_node_type,
             target_node=target_node,
             properties={"key": connection_key},
         )
+
+    @property
+    def target_node_type(self) -> str:
+        if self.target_node is not None:
+            return cast(str, self.target_node.node_type)
+        slot_key = self.properties.get("key")
+        if not isinstance(slot_key, str):
+            msg = "@connection edge requires properties['key'] to resolve stub target_vertex_type."
+            raise RuntimeError(msg)
+
+        src = self.source_node
+        if src is None:
+            msg = "ConnectionGraphEdge: source_node is unset."
+            raise RuntimeError(msg)
+
+        action_cls = ConnectionGraphEdge._action_cls_from_source(src)
+
+        for connection_type, connection_key in ConnectionIntentResolver.resolve_connection_types_and_keys(
+            action_cls,
+        ):
+            if (
+                TypeIntrospection.full_qualname(connection_type) == self.target_node_id
+                and connection_key == slot_key
+            ):
+                return ConnectionGraphEdge._resolve_target_node_type(src, connection_type)
+
+        msg = (
+            "ConnectionGraphEdge: no declaration matches "
+            f"target_node_id={self.target_node_id!r} and properties['key']={slot_key!r}."
+        )
+        raise RuntimeError(msg)
 
     @staticmethod
     def get_connection_edges(
@@ -72,13 +99,8 @@ class ConnectionGraphEdge(AssociationGraphEdge):
         return [
             ConnectionGraphEdge(
                 source_node_id=source_node.node_id,
-                source_node_type=source_node.node_type,
                 source_node=source_node,
                 target_node_id=TypeIntrospection.full_qualname(connection_type),
-                target_node_type=ConnectionGraphEdge._resolve_target_node_type(
-                    source_node,
-                    connection_type,
-                ),
                 target_node=None,
                 connection_key=connection_key,
             )
@@ -86,6 +108,17 @@ class ConnectionGraphEdge(AssociationGraphEdge):
                 action_cls,
             )
         ]
+
+    @staticmethod
+    def _action_cls_from_source(source_node: BaseGraphNode[Any]) -> type[Any]:
+        obj = getattr(source_node, "node_obj", None)
+        if isinstance(obj, type):
+            return obj
+        msg = (
+            f"ConnectionGraphEdge: interchange source {source_node.node_id!r} "
+            "expects node_obj action class."
+        )
+        raise TypeError(msg)
 
     @staticmethod
     def _resolve_target_node_type(source_node: BaseGraphNode[Any], target_cls: type) -> str:

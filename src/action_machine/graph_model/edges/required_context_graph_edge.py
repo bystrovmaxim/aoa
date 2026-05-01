@@ -37,30 +37,35 @@ class RequiredContextGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed composition edge regular aspect → one ``@context_requires`` slot vertex.
-    CONTRACT: ``edge_name`` literal ``required_context``; ``properties['key']`` from ``required_context_node.node_obj.context_key``; ``is_dag`` False; source vertex is identified by caller-provided ``source_node_id`` / ``source_node_type``.
-    FACTORY: ``required_context_nodes_for_aspect`` builds companions from ``ContextRequiresResolver``; ``get_required_context_edges`` attaches one edge per node (caller supplies ``aspect_node_type``).
+    CONTRACT: ``edge_name`` literal ``required_context``; ``properties['key']`` from ``required_context_node.node_obj.context_key``; ``is_dag`` False; ``aspect_vertex_type`` repeats the declarative interchange source row kind when ``source_node`` is intentionally omitted.
+    FACTORY: ``required_context_nodes_for_aspect`` builds companions from ``ContextRequiresResolver``; ``get_required_context_edges`` attaches one edge per node.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END
     """
+
+    _aspect_vertex_type: str
 
     def __init__(
         self,
         *,
         source_node_id: str,
-        source_node_type: str,
+        aspect_vertex_type: str,
         required_context_node: RequiredContextGraphNode,
     ) -> None:
         super().__init__(
             edge_name="@required_context",
             is_dag=False,
             source_node_id=source_node_id,
-            source_node_type=source_node_type,
             source_node=None,
             target_node_id=required_context_node.node_id,
-            target_node_type=required_context_node.node_type,
             target_node=required_context_node,
             properties={"key": required_context_node.node_obj.context_key},
         )
+        object.__setattr__(self, "_aspect_vertex_type", aspect_vertex_type)
+
+    @property
+    def source_node_type(self) -> str:
+        return self._aspect_vertex_type
 
     @staticmethod
     def required_context_nodes_for_aspect(
@@ -76,13 +81,13 @@ class RequiredContextGraphEdge(CompositionGraphEdge):
         aspect_callable: Callable[..., Any],
         _action_cls: type[Any],
         aspect_node_id: str,
-        aspect_node_type: str,
+        aspect_vertex_type: str,
     ) -> list[RequiredContextGraphEdge]:
         """Typed ``required_context`` edges for every companion row on ``aspect_callable``."""
         return [
             RequiredContextGraphEdge(
                 source_node_id=aspect_node_id,
-                source_node_type=aspect_node_type,
+                aspect_vertex_type=aspect_vertex_type,
                 required_context_node=rn,
             )
             for rn in RequiredContextGraphEdge.required_context_nodes_for_aspect(

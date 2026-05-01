@@ -15,7 +15,7 @@ def test_checker_graph_edge_links_aspect_id_to_checker_target() -> None:
     edge = CheckerGraphEdge(
         checker_node=checker,
         source_node_id=aspect.node_id,
-        source_node_type=aspect.node_type,
+        aspect_vertex_type=aspect.node_type,
     )
     assert edge.edge_name == "@result_checker"
     assert edge.edge_relationship is COMPOSITION

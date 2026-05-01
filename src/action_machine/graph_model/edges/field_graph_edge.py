@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from action_machine.graph_model.nodes.field_graph_node import FieldGraphNode
 from graph.base_graph_node import BaseGraphNode
@@ -35,6 +35,8 @@ class FieldGraphEdge(CompositionGraphEdge):
     AI-CORE-END
     """
 
+    _schema_host_vertex_type: str
+
     def __init__(
         self,
         *,
@@ -47,12 +49,18 @@ class FieldGraphEdge(CompositionGraphEdge):
             edge_name="field",
             is_dag=False,
             source_node_id=node_id,
-            source_node_type=node_type,
             source_node=source_node,
             target_node_id=field_node.node_id,
-            target_node_type=field_node.node_type,
             target_node=field_node,
         )
+        object.__setattr__(self, "_schema_host_vertex_type", node_type)
+
+    @property
+    def source_node_type(self) -> str:
+        src = self.source_node
+        if src is not None:
+            return cast(str, src.node_type)
+        return self._schema_host_vertex_type
 
     @classmethod
     def get_field_edges(

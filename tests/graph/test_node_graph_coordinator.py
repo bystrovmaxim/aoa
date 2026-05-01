@@ -33,9 +33,7 @@ def _edge(
         edge_name=edge_name,
         is_dag=is_dag,
         source_node_id=source_node_id,
-        source_node_type="Test",
         target_node_id=target_node_id,
-        target_node_type="Test",
     )
 
 

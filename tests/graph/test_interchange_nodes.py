@@ -247,26 +247,18 @@ def test_action_graph_node_links_and_helpers() -> None:
     assert node.label == "PingAction"
     assert node.node_id == host
     assert node.get_all_edges() == [
-        DomainGraphEdge.from_meta_declared_host(PingAction, "Action", node),
-        ParamsGraphEdge(PingAction, source_node_type="Action", source_node=node),
-        ResultGraphEdge(PingAction, source_node_type="Action", source_node=node),
+        DomainGraphEdge.from_meta_declared_host(PingAction, node),
+        ParamsGraphEdge(PingAction, node),
+        ResultGraphEdge(PingAction, node),
         SummaryAspectGraphEdge(
             source_node=node,
             summary_node=summary_node,
         ),
     ]
 
-    assert node.domain == DomainGraphEdge.from_meta_declared_host(PingAction, "Action", node)
-    assert node.params == ParamsGraphEdge(
-        PingAction,
-        source_node_type="Action",
-        source_node=node,
-    )
-    assert node.result == ResultGraphEdge(
-        PingAction,
-        source_node_type="Action",
-        source_node=node,
-    )
+    assert node.domain == DomainGraphEdge.from_meta_declared_host(PingAction, node)
+    assert node.params == ParamsGraphEdge(PingAction, node)
+    assert node.result == ResultGraphEdge(PingAction, node)
 
     p_type = ActionSchemaIntentResolver.resolve_params_type(PingAction)
     r_type = ActionSchemaIntentResolver.resolve_result_type(PingAction)
@@ -363,7 +355,7 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
     assert node.label == "SampleEntity"
     assert node.node_id == host
     assert node.properties == {"description": "Simple test entity"}
-    assert node.domain == DomainGraphEdge.from_entity_declared_host(SampleEntity, "Entity", node)
+    assert node.domain == DomainGraphEdge.from_entity_declared_host(SampleEntity, node)
     assert node.get_all_edges() == [
         node.domain,
     ]
