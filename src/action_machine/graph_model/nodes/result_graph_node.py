@@ -69,12 +69,8 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
             properties={},
             node_obj=result_cls,
         )
-        object.__setattr__(
-            self, "fields", FieldGraphEdge.get_field_edges(result_cls, self)
-        )
-        object.__setattr__(
-            self, "props", PropertyGraphEdge.get_property_edges(result_cls, self)
-        )
+        object.__setattr__(self, "fields", FieldGraphEdge.get_field_edges(result_cls, self))
+        object.__setattr__(self, "props", PropertyGraphEdge.get_property_edges(result_cls, self))
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return all outgoing composition edges materialized in explicit edge fields."""

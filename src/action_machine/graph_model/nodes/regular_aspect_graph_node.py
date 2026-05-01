@@ -55,16 +55,8 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
             properties={"description": RegularAspectIntentResolver.resolve_description(aspect_func)},
             node_obj=aspect_func,
         )
-        object.__setattr__(
-            self,
-            "checkers",
-            CheckerGraphEdge.get_checker_edges(aspect_func, _action_cls, self),
-        )
-        object.__setattr__(
-            self,
-            "required_context",
-            RequiredContextGraphEdge.get_required_context_edges(aspect_func, _action_cls, self),
-        )
+        object.__setattr__(self, "checkers", CheckerGraphEdge.get_checker_edges(aspect_func, _action_cls, self))
+        object.__setattr__(self, "required_context", RequiredContextGraphEdge.get_required_context_edges(aspect_func, _action_cls, self))
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return checker and required-context composition edges materialized on this node."""

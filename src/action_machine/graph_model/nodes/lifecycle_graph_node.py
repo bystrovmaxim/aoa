@@ -14,20 +14,8 @@ caller-supplied lifecycle subtype class.
 
 Template transitions are modeled on companion :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode`
 rows (:class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge`):
-each companion :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode` lists its outgoing arcs in :meth:`~graph.base_graph_node.BaseGraphNode.get_all_edges`.
-The parent lifecycle row exposes the same instances in :attr:`~LifeCycleGraphNode.states` and :meth:`~LifeCycleGraphNode.get_all_edges`
-as composition links from lifecycle to its status transition graph.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-    :class:`LifeCycleGraphNode`  (this row; ``node_id`` … ``:lifecycle:`` …)
-              │
-              ├─ :meth:`LifeCycleGraphNode.get_all_edges` / :attr:`~LifeCycleGraphNode.states` → lifecycle composition view of status transitions
-              ├─ :attr:`~LifeCycleGraphNode.states` / :meth:`transition_edges` → flattened :class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge`
-              ├─ :meth:`LifeCycleGraphNode.state_companion_nodes` / :meth:`~graph.base_graph_node.BaseGraphNode.get_companion_nodes` → companion state vertices
-              └─ Companion :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode` rows emit ``lifecycle_transition`` via :meth:`~graph.base_graph_node.BaseGraphNode.get_all_edges`.
+each companion lists its outgoing arcs in :meth:`~graph.base_graph_node.BaseGraphNode.get_all_edges`.
+The parent lifecycle row keeps canonical vertices in :attr:`~LifeCycleGraphNode.state_vertices` and exposes the same edge instances in :attr:`~LifeCycleGraphNode.states` / :meth:`~LifeCycleGraphNode.get_all_edges` as composition links from lifecycle into the status-transition graph.
 """
 
 from __future__ import annotations
@@ -59,14 +47,15 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange vertex for one lifecycle-declared slot on ``host_cls``; **child interchange graph** is carried by companions of type :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode`.
-    CONTRACT: ``node_id`` is ``full_qualname(host_cls) + ':lifecycle:' + field_name.strip()``; ``label`` trimmed field key; ``lifecycle_class`` supplied by caller; ``properties`` empty on construction; ``node_obj`` is :class:`LifeCycleGraphPayload`. Canonical state vertices: :meth:`state_companion_nodes`; their ``node_id`` is ``<this.node_id>:<state_key>`` (same root as :attr:`~action_machine.graph_model.nodes.state_graph_node.StateGraphPayload.lifecycle_graph_node_id` on each companion's ``node_obj``).
+    CONTRACT: ``node_id`` is ``full_qualname(host_cls) + ':lifecycle:' + field_name.strip()``; ``label`` trimmed field key; ``lifecycle_class`` supplied by caller; ``properties`` empty on construction; ``node_obj`` is :class:`LifeCycleGraphPayload`. Canonical rows: :attr:`state_vertices` / :meth:`state_companion_nodes`; each ``node_id`` is ``<this.node_id>:<state_key>`` (same root as :attr:`~action_machine.graph_model.nodes.state_graph_node.StateGraphPayload.lifecycle_graph_node_id` on each companion's ``node_obj``).
     TRANSITION ROWS: :attr:`states`, :meth:`transition_edges`, and :meth:`get_all_edges` expose the same :class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge` instances held on companion :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode` rows in :attr:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode.lifecycle_transitions`.
-    INVARIANTS: Frozen; :attr:`states`, :meth:`transition_edges`, and :meth:`get_all_edges` always surface the same transition edges; :meth:`state_companion_nodes` recovers or synthesizes state vertices under this lifecycle namespace.
+    INVARIANTS: Frozen; :attr:`state_vertices` materializes exactly once per node; :attr:`states`, :meth:`transition_edges`, and :meth:`get_all_edges` flatten the same outgoing :class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge` instances from those companions.
     FAILURES: :exc:`ValueError` when ``field_name`` is blank after strip.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "lifecycle"
+    state_vertices: tuple[StateGraphNode, ...] = field(init=False)
     states: list[StateGraphEdge] = field(init=False)
 
     def __init__(
@@ -90,6 +79,7 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
             ),
         )
         verts = LifeCycleGraphNode._materialize_state_vertices(lifecycle_cls, self.node_id)
+        object.__setattr__(self, "state_vertices", verts)
         object.__setattr__(self, "states", [e for v in verts for e in v.lifecycle_transitions])
 
     @staticmethod
@@ -109,10 +99,8 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
         return tuple(StateGraphNode(lifecycle_cls, sk, lifecycle_node_id) for sk in sorted_keys)
 
     def state_companion_nodes(self) -> list[StateGraphNode]:
-        """Return every template state interchange row under this lifecycle vertex."""
-        lc_cls = self.node_obj.lifecycle_class
-        nid = self.node_id
-        return list(LifeCycleGraphNode._materialize_state_vertices(lc_cls, nid))
+        """Return every template state interchange row under this lifecycle vertex (canonical instances)."""
+        return list(self.state_vertices)
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         return cast("list[BaseGraphNode[Any]]", self.state_companion_nodes())

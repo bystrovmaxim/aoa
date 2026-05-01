@@ -8,21 +8,12 @@ interchange id plus ``:`` and the caller-supplied state key (trimmed).
 Outgoing :class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge`
 rows live in :attr:`lifecycle_transitions` and are returned from :meth:`~graph.base_graph_node.BaseGraphNode.get_all_edges`.
 
-The parent :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode` still flattens the **same instances** into
+The parent :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode` exposes canonical vertices via :attr:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.state_vertices` and flattens the **same instances** into
 :attr:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.states` /
 :meth:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.transition_edges` for convenience without duplicating graph assembly.
 
 Constructed only via :meth:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.state_companion_nodes` /
 :meth:`~graph.base_graph_node.BaseGraphNode.get_companion_nodes` on the lifecycle interchange row (**not** by listing companions on this vertex).
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-    Parent :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`
-              │
-              └─ :class:`StateGraphNode`  (``node_id`` = ``lifecycle_graph_node_id`` + ``:`` + ``state_key``)
-                     └─ :attr:`lifecycle_transitions` / :meth:`get_all_edges` → outgoing ``lifecycle_transition`` edges (same refs as parent's :attr:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.states`)
 """
 
 from __future__ import annotations
@@ -92,11 +83,7 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
             },
             node_obj=payload,
         )
-        object.__setattr__(
-            self,
-            "lifecycle_transitions",
-            StateGraphNode._build_lifecycle_transition_edges(self),
-        )
+        object.__setattr__(self, "lifecycle_transitions", StateGraphNode._build_lifecycle_transition_edges(self))
 
     @staticmethod
     def _build_lifecycle_transition_edges(vertex: StateGraphNode) -> list[StateGraphEdge]:

@@ -123,9 +123,7 @@ AI-CORE-BEGIN
         if self.channels is not None:
             validate_channels(self.channels)
         _validate_subscription_levels(self.levels)
-        object.__setattr__(
-            self, "domains", _normalize_subscription_domains(_domains_raw)
-        )
+        object.__setattr__(self, "domains", _normalize_subscription_domains(_domains_raw))
 
     def matches(self, var: dict[str, Any]) -> bool:
         """
