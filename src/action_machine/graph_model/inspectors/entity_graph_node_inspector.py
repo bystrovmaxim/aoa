@@ -39,6 +39,4 @@ class EntityGraphNodeInspector(BaseGraphNodeInspector[BaseEntity]):
     """
 
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        if isinstance(cls, type) and issubclass(cls, BaseEntity):
-            return EntityGraphNode(cls)
-        return None
+        return EntityGraphNode(cls)

@@ -40,6 +40,4 @@ class RoleGraphNodeInspector(BaseGraphNodeInspector[BaseRole]):
     """
 
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        if isinstance(cls, type) and issubclass(cls, BaseRole):
-            return RoleGraphNode(cls)
-        return None
+        return RoleGraphNode(cls)
