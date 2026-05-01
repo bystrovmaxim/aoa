@@ -139,6 +139,80 @@ def test_missing_source_raises() -> None:
         coord.build([_NodeGraphTestInspector([a])])
 
 
+def test_host_may_list_edges_whose_logical_source_is_a_companion() -> None:
+    """Hosts with :meth:`BaseGraphNode.allows_companion_sourced_outgoing_edges` reuse companion ids as ``source_node_id``."""
+
+    lc = "billing.Entity:lifecycle:lifecycle"
+    nid_s = f"{lc}:recorded"
+    nid_t = f"{lc}:settled"
+    e = AssociationGraphEdge(
+        edge_name="lifecycle_transition",
+        is_dag=False,
+        source_node_id=nid_s,
+        target_node_id=nid_t,
+    )
+
+    class _LifecycleHost(BaseGraphNode[object]):
+        def __init__(self, edges: list[BaseGraphEdge]) -> None:
+            self._edges = edges
+            super().__init__(
+                node_id=lc,
+                node_type="LifeCycle",
+                label="lifecycle",
+                properties={},
+                node_obj=object(),
+            )
+
+        def get_all_edges(self) -> list[BaseGraphEdge]:
+            return self._edges
+
+        def allows_companion_sourced_outgoing_edges(self) -> bool:
+            return True
+
+    n_s = _make_node(nid_s, [])
+    n_t = _make_node(nid_t, [])
+    host = _LifecycleHost([e])
+    coord = NodeGraphCoordinator()
+    coord.build([_NodeGraphTestInspector([host, n_s, n_t])])
+    assert coord.rx_graph.num_nodes() == 3
+    assert coord.rx_graph.num_edges() == 1
+    assert e.source_node is n_s and e.target_node is n_t
+
+
+def test_aggregate_companion_sources_rejects_ids_outside_host_prefix() -> None:
+    lc = "pkg:lc"
+    e = AssociationGraphEdge(
+        edge_name="lifecycle_transition",
+        is_dag=False,
+        source_node_id="other:s",
+        target_node_id=f"{lc}:t",
+    )
+
+    class _LifecycleHost(BaseGraphNode[object]):
+        def __init__(self) -> None:
+            self._edges = [e]
+            super().__init__(
+                node_id=lc,
+                node_type="LifeCycle",
+                label="lc",
+                properties={},
+                node_obj=object(),
+            )
+
+        def get_all_edges(self) -> list[BaseGraphEdge]:
+            return self._edges
+
+        def allows_companion_sourced_outgoing_edges(self) -> bool:
+            return True
+
+    host = _LifecycleHost()
+    n_o = _make_node("other:s", [])
+    n_t = _make_node(f"{lc}:t", [])
+    coord = NodeGraphCoordinator()
+    with pytest.raises(InvalidGraphError, match=r"outside namespace"):
+        coord.build([_NodeGraphTestInspector([host, n_o, n_t])])
+
+
 def test_dag_cycle_raises() -> None:
     a = _make_node("a", [_edge("a", "b", is_dag=True)])
     b = _make_node("b", [_edge("b", "a", is_dag=True)])

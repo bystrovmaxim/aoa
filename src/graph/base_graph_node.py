@@ -81,3 +81,7 @@ class BaseGraphNode[T: object](ABC):
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Return additional graph nodes that must be included with this node."""
         return []
+
+    def allows_companion_sourced_outgoing_edges(self) -> bool:
+        """When true, edges returned from :meth:`get_all_edges` may declare a different ``source_node_id`` that is still under this node's namespace (``<self.node_id>:…``)."""
+        return False
