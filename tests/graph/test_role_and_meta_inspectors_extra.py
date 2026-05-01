@@ -66,7 +66,9 @@ def test_meta_intent_inspector_branches() -> None:
 
 def test_role_graph_node_inspector_axes() -> None:
     insp = RoleGraphNodeInspector()
-    assert insp._get_node(object) is None  # pylint: disable=protected-access
+    root = insp._get_node(object)  # pylint: disable=protected-access
+    assert root is not None
+    assert root.node_obj is object
     rn = insp._get_node(_InspectFixtureRole)  # pylint: disable=protected-access
     assert rn is not None
     assert rn.node_obj is _InspectFixtureRole
