@@ -68,6 +68,7 @@ from action_machine.domain import (
     entity,
 )
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.intents.meta.meta_decorator import meta
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DOMAIN
@@ -107,6 +108,7 @@ class DraftLifecycle(Lifecycle):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+@meta(description="Simple test entity", domain=TestDomain)
 @entity(description="Simple test entity", domain=TestDomain)
 class SampleEntity(BaseEntity):
     """Minimal entity for basic tests. No relations or lifecycle."""

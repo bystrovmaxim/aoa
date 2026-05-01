@@ -53,7 +53,6 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource import BaseResource
 from action_machine.system_core import TypeIntrospection
-from graph.association_graph_edge import AssociationGraphEdge
 from graph.edge_relationship import COMPOSITION
 from graph.facet_vertex import FacetVertex
 from tests.scenarios.domain_model.child_action import ChildAction
@@ -366,22 +365,16 @@ def test_compensator_graph_node_for_aspect_none_when_action_has_no_compensators(
 def test_entity_node_links_properties_and_domain_helpers() -> None:
     node = EntityGraphNode(SampleEntity)
     assert node.node_obj is SampleEntity
-    dom_id = TypeIntrospection.full_qualname(TestDomain)
     host = TypeIntrospection.full_qualname(SampleEntity)
 
     assert node.node_type == "Entity"
     assert node.label == "SampleEntity"
     assert node.node_id == host
     assert node.properties == {"description": "Simple test entity"}
-    assert node.domain == AssociationGraphEdge(
-        edge_name="domain",
-        is_dag=False,
-        source_node_id=host,
+    assert node.domain == DomainGraphEdge(
+        source_cls=SampleEntity,
         source_node_type="Entity",
         source_node=node,
-        target_node_id=dom_id,
-        target_node_type="Domain",
-        target_node=None,
     )
     assert node.get_all_edges() == [
         node.domain,
