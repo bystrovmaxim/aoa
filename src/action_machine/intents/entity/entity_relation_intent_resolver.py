@@ -37,6 +37,20 @@ class EntityRelationIntentResolver:
     omit_graph_edge: bool = False
 
 
+def _union_contains_relation_container(annotation: Any) -> bool:
+    return any(
+        arg is not types.NoneType and _is_relation_container(arg)
+        for arg in get_args(annotation)
+    )
+
+
+def _origin_is_relation_container(origin: Any) -> bool:
+    return origin is not None and inspect.isclass(origin) and issubclass(
+        origin,
+        (BaseRelationOne, BaseRelationMany),
+    )
+
+
 def _is_relation_container(annotation: Any) -> bool:
     """
     True if ``annotation`` denotes ``BaseRelationOne`` / ``BaseRelationMany``
@@ -45,26 +59,16 @@ def _is_relation_container(annotation: Any) -> bool:
     Duplicated from :mod:`action_machine.legacy.entity_intent_inspector`; keep aligned manually.
     """
     if get_origin(annotation) is Annotated:
-        base = get_args(annotation)[0]
-        return _is_relation_container(base)
+        return _is_relation_container(get_args(annotation)[0])
 
-    origin = get_origin(annotation)
-    if origin is types.UnionType or origin is typing.Union:
-        for arg in get_args(annotation):
-            if arg is types.NoneType:
-                continue
-            if _is_relation_container(arg):
-                return True
-        return False
+    origin_bt = get_origin(annotation)
+    if origin_bt is types.UnionType or origin_bt is typing.Union:
+        return _union_contains_relation_container(annotation)
 
-    if origin is not None and inspect.isclass(origin):
-        if issubclass(origin, (BaseRelationOne, BaseRelationMany)):
-            return True
-
-    if isinstance(annotation, type) and issubclass(annotation, (BaseRelationOne, BaseRelationMany)):
+    if _origin_is_relation_container(origin_bt):
         return True
 
-    return False
+    return isinstance(annotation, type) and issubclass(annotation, (BaseRelationOne, BaseRelationMany))
 
 
 def _strip_annotated_metadata(annotation: Any) -> tuple[Any, tuple[Any, ...]]:

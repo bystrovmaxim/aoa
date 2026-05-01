@@ -15,7 +15,8 @@ caller-supplied lifecycle subtype class.
 Template transitions are modeled on companion :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode`
 rows (:class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge`):
 each companion lists its outgoing arcs in :meth:`~graph.base_graph_node.BaseGraphNode.get_all_edges`.
-The parent lifecycle row keeps canonical vertices in :attr:`~LifeCycleGraphNode.state_vertices` and exposes the same edge instances in :attr:`~LifeCycleGraphNode.states` / :meth:`~LifeCycleGraphNode.get_all_edges` as composition links from lifecycle into the status-transition graph.
+The parent lifecycle row keeps canonical companions in :attr:`~LifeCycleGraphNode.states` (each a :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode`);
+:meth:`~LifeCycleGraphNode.get_all_edges` flattens outgoing :class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge` instances from those rows (composition links).
 """
 
 from __future__ import annotations
@@ -24,7 +25,6 @@ from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar, cast
 
 from action_machine.domain.lifecycle import Lifecycle
-from action_machine.graph_model.edges.state_graph_edge import StateGraphEdge
 from action_machine.graph_model.nodes.state_graph_node import StateGraphNode
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
@@ -47,16 +47,15 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange vertex for one lifecycle-declared slot on ``host_cls``; **child interchange graph** is carried by companions of type :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode`.
-    CONTRACT: ``node_id`` is ``full_qualname(host_cls) + ':lifecycle:' + field_name.strip()``; ``label`` trimmed field key; ``lifecycle_class`` supplied by caller; ``properties`` empty on construction; ``node_obj`` is :class:`LifeCycleGraphPayload`. Canonical rows: :attr:`state_vertices` / :meth:`state_companion_nodes`; each ``node_id`` is ``<this.node_id>:<state_key>`` (same root as :attr:`~action_machine.graph_model.nodes.state_graph_node.StateGraphPayload.lifecycle_graph_node_id` on each companion's ``node_obj``).
-    TRANSITION ROWS: :attr:`states`, :meth:`transition_edges`, and :meth:`get_all_edges` expose the same :class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge` instances held on companion :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode` rows in :attr:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode.lifecycle_transitions`.
-    INVARIANTS: Frozen; :attr:`state_vertices` materializes exactly once per node; :attr:`states`, :meth:`transition_edges`, and :meth:`get_all_edges` flatten the same outgoing :class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge` instances from those companions.
+    CONTRACT: ``node_id`` is ``full_qualname(host_cls) + ':lifecycle:' + field_name.strip()``; ``label`` trimmed field key; ``lifecycle_class`` supplied by caller; ``properties`` empty on construction; ``node_obj`` is :class:`LifeCycleGraphPayload`. Canonical state rows live in :attr:`states`; :meth:`get_companion_nodes` returns a shallow copy typed as base interchange companions. Each state ``node_id`` is ``<this.node_id>:<state_key>`` (same root as :attr:`~action_machine.graph_model.nodes.state_graph_node.StateGraphPayload.lifecycle_graph_node_id` on each companion's ``node_obj``).
+    TRANSITION ROWS: :meth:`get_all_edges` exposes the same flattened :class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge` object instances as companion :attr:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode.lifecycle_transitions`.
+    INVARIANTS: Frozen interchange row; :attr:`states` list is filled once from the template (**do not mutate** its elements externally).
     FAILURES: :exc:`ValueError` when ``field_name`` is blank after strip.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "lifecycle"
-    state_vertices: tuple[StateGraphNode, ...] = field(init=False)
-    states: list[StateGraphEdge] = field(init=False)
+    states: list[StateGraphNode] = field(init=False)
 
     def __init__(
         self,
@@ -78,12 +77,10 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
                 lifecycle_class=lifecycle_cls,
             ),
         )
-        verts = LifeCycleGraphNode._materialize_state_vertices(lifecycle_cls, self.node_id)
-        object.__setattr__(self, "state_vertices", verts)
-        object.__setattr__(self, "states", [e for v in verts for e in v.lifecycle_transitions])
+        object.__setattr__(self, "states", list(LifeCycleGraphNode._materialize_state_nodes(lifecycle_cls, self.node_id)))
 
     @staticmethod
-    def _materialize_state_vertices(
+    def _materialize_state_nodes(
         lifecycle_cls: type[TLifecycle],
         lifecycle_node_id: str,
     ) -> tuple[StateGraphNode, ...]:
@@ -98,17 +95,14 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
         sorted_keys = sorted(keys)
         return tuple(StateGraphNode(lifecycle_cls, sk, lifecycle_node_id) for sk in sorted_keys)
 
-    def state_companion_nodes(self) -> list[StateGraphNode]:
-        """Return every template state interchange row under this lifecycle vertex (canonical instances)."""
-        return list(self.state_vertices)
-
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
-        return cast("list[BaseGraphNode[Any]]", self.state_companion_nodes())
-
-    def transition_edges(self) -> list[StateGraphEdge]:
-        """Same instances as :attr:`states` (composition arcs; coordinator hydrates ``target_node`` when graph is assembled)."""
-        return [*self.states]
+        """Template state interchange rows (:attr:`states`, shallow copy for typing)."""
+        return cast("list[BaseGraphNode[Any]]", list(self.states))
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Lifecycle composition view over status-transition edges."""
-        return [*self.states]
+        """Flatten companion ``lifecycle_transition`` arcs (:class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge`; same refs as row ``lifecycle_transitions``)."""
+        return [
+            edge
+            for state_row in self.states
+            for edge in state_row.lifecycle_transitions
+        ]

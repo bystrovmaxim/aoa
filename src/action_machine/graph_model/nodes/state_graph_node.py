@@ -8,12 +8,10 @@ interchange id plus ``:`` and the caller-supplied state key (trimmed).
 Outgoing :class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge`
 rows live in :attr:`lifecycle_transitions` and are returned from :meth:`~graph.base_graph_node.BaseGraphNode.get_all_edges`.
 
-The parent :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode` exposes canonical vertices via :attr:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.state_vertices` and flattens the **same instances** into
-:attr:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.states` /
-:meth:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.transition_edges` for convenience without duplicating graph assembly.
+The parent :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode` keeps companion rows in :attr:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.states`; :meth:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.get_all_edges` flattens the **same instances** carried here in :attr:`lifecycle_transitions`.
 
-Constructed only via :meth:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.state_companion_nodes` /
-:meth:`~graph.base_graph_node.BaseGraphNode.get_companion_nodes` on the lifecycle interchange row (**not** by listing companions on this vertex).
+Constructed only via :meth:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.get_companion_nodes`
+on the parent lifecycle interchange row (**not** by listing companions on this vertex).
 """
 
 from __future__ import annotations
