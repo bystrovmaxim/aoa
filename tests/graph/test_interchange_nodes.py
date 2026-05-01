@@ -16,6 +16,7 @@ from action_machine.graph_model.edges.regular_aspect_graph_edge import (
     RegularAspectGraphEdge,
 )
 from action_machine.graph_model.edges.result_graph_edge import ResultGraphEdge
+from action_machine.graph_model.edges.role_graph_edge import RoleGraphEdge
 from action_machine.graph_model.edges.summary_aspect_graph_edge import (
     SummaryAspectGraphEdge,
 )
@@ -44,6 +45,7 @@ from action_machine.intents.aspects.regular_aspect_intent_resolver import (
 from action_machine.intents.aspects.summary_aspect_intent_resolver import (
     SummaryAspectIntentResolver,
 )
+from action_machine.intents.check_roles import NoneRole
 from action_machine.intents.context_requires.context_requires_decorator import (
     context_requires,
 )
@@ -251,6 +253,7 @@ def test_action_graph_node_links_and_helpers() -> None:
         DomainGraphEdge.from_meta_declared_host(PingAction, node),
         ParamsGraphEdge(PingAction, node),
         ResultGraphEdge(PingAction, node),
+        RoleGraphEdge(source_node=node, role_cls=NoneRole),
         SummaryAspectGraphEdge(
             source_node=node,
             summary_node=summary_node,
@@ -266,7 +269,8 @@ def test_action_graph_node_links_and_helpers() -> None:
     assert p_type is PingAction.Params and r_type is PingAction.Result
     assert TypeIntrospection.full_qualname(p_type) == params_id
     assert TypeIntrospection.full_qualname(r_type) == result_id
-    assert not node.roles
+    assert len(node.roles) == 1
+    assert node.roles[0].target_node_id == TypeIntrospection.full_qualname(NoneRole)
     assert not node.regular_aspect
     assert node.summary_aspect == [
         SummaryAspectGraphEdge(

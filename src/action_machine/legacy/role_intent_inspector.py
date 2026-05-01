@@ -38,7 +38,7 @@ The inspector uses ``_target_intent = CheckRolesIntent`` to discover candidate
 classes. For each class with ``_role_info``, it builds an **action** payload
 (same collect key as structural ``@depends`` / folded ``@meta``) carrying
 ``node_meta`` with ``spec`` and **edges** toward existing ``role_class`` nodes
-(``RoleClassInspector``). ``NoneRole`` / ``AnyRole`` yield no role-class edges.
+(``RoleClassInspector``). Sentinels and concretes use the same ``role_class`` anchor (see topology helper).
 
 """
 
@@ -49,9 +49,6 @@ from typing import Any
 
 from action_machine.auth.base_role import BaseRole
 from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
-from action_machine.intents.check_roles.check_roles_intent_resolver import (
-    CheckRolesIntentResolver,
-)
 from action_machine.legacy.interchange_vertex_labels import ACTION_VERTEX_TYPE
 from action_machine.legacy.role_graph_roots import role_class_topology_anchor
 from graph.base_facet_snapshot import BaseFacetSnapshot
@@ -122,9 +119,7 @@ AI-CORE-BEGIN
     def _edges_requires_role_to_role_classes(
         cls, spec: object,
     ) -> tuple[FacetEdge, ...]:
-        concretes = CheckRolesIntentResolver.role_types_from_spec(spec)
-        if not concretes:
-            return ()
+        concretes = spec if isinstance(spec, tuple) else (spec,)
         buckets: dict[type, list[type[BaseRole]]] = {}
         for role_cls in concretes:
             anchor = role_class_topology_anchor(role_cls)

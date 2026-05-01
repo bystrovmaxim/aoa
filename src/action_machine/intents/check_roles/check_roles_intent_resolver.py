@@ -1,20 +1,19 @@
 # src/action_machine/intents/check_roles/check_roles_intent_resolver.py
-"""CheckRolesIntentResolver — unpacks ``@check_roles`` storage on action classes."""
+"""CheckRolesIntentResolver — reads ``@check_roles`` scratch on action classes."""
 
 from __future__ import annotations
 
-from action_machine.auth.any_role import AnyRole
+from typing import Any
+
 from action_machine.auth.base_role import BaseRole
-from action_machine.auth.none_role import NoneRole
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 
 class CheckRolesIntentResolver:
     """
     AI-CORE-BEGIN
-    ROLE: Resolve declared role types from ``_role_info`` / ``spec`` without materializing graph nodes.
-    CONTRACT: Single place for ``spec`` → concrete ``BaseRole`` types used by interchange edges and facet inspectors; ``@role_mode`` via :meth:`resolve_role_mode`.
-    INVARIANTS: ``NoneRole`` / ``AnyRole`` expand to empty; tuple members filtered to ``BaseRole`` subclasses.
+    ROLE: Surface ``_role_info`` / ``spec`` written by ``@check_roles`` and ``RoleMode`` from ``@role_mode``.
+    CONTRACT: ``resolve_required_role_types`` returns stored ``spec`` or ``None`` when ``_role_info`` is missing; :meth:`resolve_role_mode` reads ``@role_mode``.
     AI-CORE-END
     """
 
@@ -24,20 +23,9 @@ class CheckRolesIntentResolver:
         return RoleMode.declared_for(role_cls)
 
     @staticmethod
-    def resolve_required_role_types(action_cls: type) -> tuple[type[BaseRole], ...]:
-        """Return declared concrete roles for ``action_cls`` from ``_role_info`` ``spec``."""
-        raw = getattr(action_cls, "_role_info", None)
-        if not isinstance(raw, dict):
-            return ()
-        return CheckRolesIntentResolver.role_types_from_spec(raw.get("spec"))
-
-    @staticmethod
-    def role_types_from_spec(spec: object) -> tuple[type[BaseRole], ...]:
-        """Map normalized ``@check_roles`` ``spec`` to a tuple of ``BaseRole`` types (may be empty)."""
-        if spec in (NoneRole, AnyRole):
-            return ()
-        if isinstance(spec, type) and issubclass(spec, BaseRole):
-            return (spec,)
-        if isinstance(spec, tuple):
-            return tuple(r for r in spec if isinstance(r, type) and issubclass(r, BaseRole))
-        return ()
+    def resolve_required_role_types(action_cls: type) -> Any:
+        """Return `_role_info['spec']`, or ``None`` if ``@check_roles`` did not set storage."""
+        try:
+            return action_cls._role_info["spec"]
+        except (AttributeError, KeyError, TypeError):
+            return None
