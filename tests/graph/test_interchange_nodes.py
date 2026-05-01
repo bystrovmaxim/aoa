@@ -247,11 +247,7 @@ def test_action_graph_node_links_and_helpers() -> None:
     assert node.label == "PingAction"
     assert node.node_id == host
     assert node.get_all_edges() == [
-        DomainGraphEdge(
-            source_cls=PingAction,
-            source_node_type="Action",
-            source_node=node,
-        ),
+        DomainGraphEdge.from_meta_declared_host(PingAction, "Action", node),
         ParamsGraphEdge(PingAction, source_node_type="Action", source_node=node),
         ResultGraphEdge(PingAction, source_node_type="Action", source_node=node),
         SummaryAspectGraphEdge(
@@ -260,11 +256,7 @@ def test_action_graph_node_links_and_helpers() -> None:
         ),
     ]
 
-    assert node.domain == DomainGraphEdge(
-        source_cls=PingAction,
-        source_node_type="Action",
-        source_node=node,
-    )
+    assert node.domain == DomainGraphEdge.from_meta_declared_host(PingAction, "Action", node)
     assert node.params == ParamsGraphEdge(
         PingAction,
         source_node_type="Action",
@@ -371,11 +363,7 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
     assert node.label == "SampleEntity"
     assert node.node_id == host
     assert node.properties == {"description": "Simple test entity"}
-    assert node.domain == DomainGraphEdge(
-        source_cls=SampleEntity,
-        source_node_type="Entity",
-        source_node=node,
-    )
+    assert node.domain == DomainGraphEdge.from_entity_declared_host(SampleEntity, "Entity", node)
     assert node.get_all_edges() == [
         node.domain,
     ]

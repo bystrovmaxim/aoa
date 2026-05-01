@@ -92,7 +92,7 @@ from typing import Any
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.exceptions import EntityDecoratorError
 
-__all__ = ("EntityDecoratorError", "entity")
+__all__ = ("EntityDecoratorError", "entity", "entity_info_dict")
 
 
 def validate_entity_description(description: Any) -> None:
@@ -153,6 +153,17 @@ def validate_entity_decorator_target(cls: Any) -> None:
             f"@entity applies only to a class. "
             f"Got {type(cls).__name__}: {cls!r}."
         )
+
+
+def entity_info_dict(host_cls: type) -> dict[str, Any]:
+    """
+    Return ``_entity_info`` written by ``@entity`` on ``host_cls``, or ``{}`` when absent or not a mapping.
+
+    Mirrors :meth:`action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.meta_info_dict`
+    for the ``_meta_info`` / ``@meta`` grammar.
+    """
+    raw = getattr(host_cls, "_entity_info", None)
+    return raw if isinstance(raw, dict) else {}
 
 
 def entity(

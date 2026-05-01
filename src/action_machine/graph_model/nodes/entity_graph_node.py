@@ -8,9 +8,9 @@ PURPOSE
 
 Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` from an
 entity **class** object: stable ``id`` (dotted path), ``node_type="Entity"``,
-``label`` from the class name, ``properties`` from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description`, and
+``label`` from the class name, ``properties`` from :meth:`~action_machine.intents.meta.meta_intent_resolver.EntityIntentResolver.resolve_description`, and
 a ``domain`` edge built by :class:`~action_machine.graph_model.edges.domain_graph_edge.DomainGraphEdge`
-(``@meta`` ``domain``: :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type`).
+(``@meta`` ``domain``: :meth:`~action_machine.intents.meta.meta_intent_resolver.EntityIntentResolver.resolve_domain_type`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -42,7 +42,7 @@ from typing import ClassVar, TypeVar
 
 from action_machine.domain.entity import BaseEntity
 from action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
-from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
+from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from action_machine.system_core import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -55,7 +55,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE` for ``node_type``; ``properties["description"]`` via :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description`; ``domain`` via :class:`~action_machine.graph_model.edges.domain_graph_edge.DomainGraphEdge`.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE` for ``node_type``; ``properties["description"]`` via :meth:`~action_machine.intents.meta.meta_intent_resolver.EntityIntentResolver.resolve_description`; ``domain`` via :class:`~action_machine.graph_model.edges.domain_graph_edge.DomainGraphEdge`.
     AI-CORE-END
     """
 
@@ -67,10 +67,10 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             node_id=TypeIntrospection.full_qualname(entity_cls),
             node_type=EntityGraphNode.NODE_TYPE,
             label=entity_cls.__name__,
-            properties=dict({"description": MetaIntentResolver.resolve_description(entity_cls)}),
+            properties=dict({"description": EntityIntentResolver.resolve_description(entity_cls)}),
             node_obj=entity_cls,
         )
-        object.__setattr__(self, "domain", DomainGraphEdge(entity_cls, self.NODE_TYPE, self))
+        object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self.NODE_TYPE, self))
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return entity relationship edges materialized in the explicit edge field."""
