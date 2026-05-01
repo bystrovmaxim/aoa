@@ -20,9 +20,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.intents.connection.connection_intent_resolver import (
-    ConnectionIntentResolver,
-)
+from action_machine.intents.connection.connection_intent_resolver import ConnectionIntentResolver
 from action_machine.model.base_action import BaseAction
 from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge

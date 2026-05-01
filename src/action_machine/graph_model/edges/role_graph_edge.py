@@ -22,9 +22,7 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.auth.base_role import BaseRole
-from action_machine.intents.check_roles.check_roles_intent_resolver import (
-    CheckRolesIntentResolver,
-)
+from action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
 from action_machine.model.base_action import BaseAction
 from action_machine.system_core import TypeIntrospection
 from graph.composition_graph_edge import CompositionGraphEdge

@@ -21,9 +21,7 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandlerGraphNode
-from action_machine.intents.on_error.on_error_intent_resolver import (
-    OnErrorIntentResolver,
-)
+from action_machine.intents.on_error.on_error_intent_resolver import OnErrorIntentResolver
 from action_machine.model.base_action import BaseAction
 from graph.composition_graph_edge import CompositionGraphEdge
 

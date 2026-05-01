@@ -21,9 +21,7 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
-from action_machine.intents.compensate.compensate_intent_resolver import (
-    CompensateIntentResolver,
-)
+from action_machine.intents.compensate.compensate_intent_resolver import CompensateIntentResolver
 from action_machine.model.base_action import BaseAction
 from graph.composition_graph_edge import CompositionGraphEdge
 
