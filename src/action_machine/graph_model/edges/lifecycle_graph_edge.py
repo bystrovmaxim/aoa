@@ -5,10 +5,8 @@ LifeCycleGraphEdge — ASSOCIATION from entity (or host) interchange row to one 
 Wiring ``target_node`` to :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`
 aligns ``target_node_id`` with ``:lifecycle:`` interchange ids.
 
-:meth:`~LifeCycleGraphEdge.get_lifecycle_association_edges` /
-:meth:`~LifeCycleGraphEdge.get_lifecycle_transition_edges` return disjoint slices backed by **one memoized materialization**
-per ``entity_cls`` so lifecycle vertices referenced from associations remain the canonical owners of the returned ``lifecycle_transition`` rows.
-:class:`~action_machine.graph_model.nodes.entity_graph_node.EntityGraphNode` stores associations on :attr:`~action_machine.graph_model.nodes.entity_graph_node.EntityGraphNode.lifecycles` and those transition edges on :attr:`~action_machine.graph_model.nodes.entity_graph_node.EntityGraphNode.states`.
+:meth:`~LifeCycleGraphEdge.get_lifecycle_association_edges` returns association edges with wired lifecycle vertices.
+Those lifecycle vertices own state companions and template ``lifecycle_transition`` rows.
 Interchange companions for status vertices are chained only via :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode` reachable from ``LifeCycleGraphEdge.target_node``.
 :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode` rows never advertise companions.
 """
@@ -32,7 +30,7 @@ class LifeCycleGraphEdge(AssociationGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed association edge from an entity host interchange row to a lifecycle field vertex.
-    CONTRACT: ``edge_name`` ``lifecycle``; ``is_dag`` False; mandatory ``properties['field_name']``; optional wired ``LifeCycleGraphNode`` as ``target_node`` (else target id is lifecycle class dotted name). Static accessors :meth:`get_lifecycle_association_edges` and :meth:`get_lifecycle_transition_edges` split artifacts without exposing a merged list.
+    CONTRACT: ``edge_name`` ``lifecycle``; ``is_dag`` False; mandatory ``properties['field_name']``; optional wired ``LifeCycleGraphNode`` as ``target_node`` (else target id is lifecycle class dotted name). Static :meth:`get_lifecycle_association_edges` builds entity lifecycle associations only; state companions and transitions live on lifecycle/state nodes.
     INVARIANTS: Frozen via ``AssociationGraphEdge``.
     FAILURES: :exc:`ValueError` when ``field_name`` is blank after strip.
     AI-CORE-END
@@ -85,22 +83,14 @@ class LifeCycleGraphEdge(AssociationGraphEdge):
     @staticmethod
     def get_lifecycle_association_edges(entity_cls: type[BaseEntity]) -> tuple[LifeCycleGraphEdge, ...]:
         """``lifecycle`` associations (wired :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode` targets) for every declared field."""
-        assoc, _ = _materialize_entity_lifecycle_slices(entity_cls)
-        return assoc
-
-    @staticmethod
-    def get_lifecycle_transition_edges(entity_cls: type[BaseEntity]) -> tuple[StateGraphEdge, ...]:
-        """All template ``lifecycle_transition`` rows spanning every lifecycle field (same instances as on those vertices)."""
-        _, transitions = _materialize_entity_lifecycle_slices(entity_cls)
-        return transitions
+        return _materialize_entity_lifecycle_associations(entity_cls)
 
 
-@cache  # keyed by ``entity_cls`` — shared by lifecycle association / transition accessors
-def _materialize_entity_lifecycle_slices(
+@cache  # keyed by ``entity_cls`` so repeated entity nodes share lifecycle target instances
+def _materialize_entity_lifecycle_associations(
     entity_cls: type[BaseEntity],
-) -> tuple[tuple[LifeCycleGraphEdge, ...], tuple[StateGraphEdge, ...]]:
+) -> tuple[LifeCycleGraphEdge, ...]:
     associations: list[LifeCycleGraphEdge] = []
-    transitions: list[StateGraphEdge] = []
     for row in LifeCycleIntentResolver.resolve_lifecycle_fields(entity_cls):
         target_vertex = LifeCycleGraphNode(entity_cls, row.field_name, row.lifecycle_class)
         associations.append(
@@ -110,9 +100,4 @@ def _materialize_entity_lifecycle_slices(
                 target_node=target_vertex,
             ),
         )
-        transitions.extend(
-            edge
-            for state_row in target_vertex.states
-            for edge in state_row.lifecycle_transitions
-        )
-    return tuple(associations), tuple(transitions)
+    return tuple(associations)
