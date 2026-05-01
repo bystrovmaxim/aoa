@@ -20,12 +20,14 @@ from action_machine.intents.entity.entity_decorator import entity, entity_info_d
 # ``__init__`` still awaits ``entity_decorator`` if it were imported first alongside other work.
 from action_machine.intents.entity.entity_intent import EntityIntent, entity_info_is_set
 from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
+from action_machine.intents.entity.entity_relation_intent_resolver import EntityRelationIntentResolver
 
 __all__ = [
     "DomainGraphNode",
     "EntityIntent",
     "EntityIntentInspector",
     "EntityIntentResolver",
+    "EntityRelationIntentResolver",
     "entity",
     "entity_info_dict",
     "entity_info_is_set",

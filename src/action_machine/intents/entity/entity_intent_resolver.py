@@ -7,13 +7,17 @@ from typing import Any
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.exceptions.missing_entity_info_error import MissingEntityInfoError
+from action_machine.intents.entity.entity_relation_intent_resolver import (
+    EntityRelationIntentResolver,
+    gather_entity_relation_intent_resolvers,
+)
 
 
 class EntityIntentResolver:
     """
     AI-CORE-BEGIN
     ROLE: Resolve class-level ``@entity`` declarations for graph model builders (parallel to ``MetaIntentResolver``).
-    CONTRACT: Reads ``_entity_info`` scratch; :meth:`resolve_description` requires a usable description; ``domain`` may be omitted (see :meth:`resolve_domain_optional` vs :meth:`resolve_domain_type`).
+    CONTRACT: Reads ``_entity_info`` scratch; :meth:`resolve_description` requires a usable description; ``domain`` may be omitted (see :meth:`resolve_domain_optional` vs :meth:`resolve_domain_type`). Entity→entity refs use :mod:`action_machine.intents.entity.entity_relation_intent_resolver` (:class:`~action_machine.intents.entity.entity_relation_intent_resolver.EntityRelationIntentResolver` rows).
     INVARIANTS: Does not validate decorator grammar at decorator time — only interchange resolution semantics.
     FAILURES: :exc:`~action_machine.exceptions.MissingEntityInfoError` when a required resolved value is missing or invalid for the chosen API.
     AI-CORE-END
@@ -60,3 +64,12 @@ class EntityIntentResolver:
         if domain_cls is None:
             raise MissingEntityInfoError(host_cls, key="domain")
         return domain_cls
+
+    @staticmethod
+    def resolve_entity_relations(host_cls: type) -> list[EntityRelationIntentResolver]:
+        """
+        Fields on ``host_cls`` that reference other entities via relation containers.
+
+        Uses :func:`~action_machine.intents.entity.entity_relation_intent_resolver.gather_entity_relation_intent_resolvers`.
+        """
+        return gather_entity_relation_intent_resolvers(host_cls)
