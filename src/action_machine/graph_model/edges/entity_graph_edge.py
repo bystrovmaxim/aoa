@@ -6,7 +6,8 @@ EntityGraphEdge — ASSOCIATION for declarative entity→entity relation fields.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Centralizes relation edge construction: ``edge_name`` ``@entity_relation``, ``is_dag=True``,
+Centralizes relation edge construction: ``edge_name`` ``entity_relation`` (slot id, like ``domain`` — not a decorator),
+``is_dag=False`` (entity graphs may contain cycles),
 rich ``properties`` from :class:`~action_machine.intents.entity.entity_relation_intent_resolver.EntityRelationIntentResolver`,
 ``target_node`` stub until hydrated.
 
@@ -16,7 +17,7 @@ Skips rows where ``omit_graph_edge`` is set (parity with legacy facet emission).
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    EntityGraphNode  ──@entity_relation[field]──►  other ``BaseEntity`` class (interchange id)
+    EntityGraphNode  ──entity_relation[field]──►  other ``BaseEntity`` class (interchange id)
 """
 
 from __future__ import annotations
@@ -53,7 +54,7 @@ class EntityGraphEdge(AssociationGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed association edge for declarative relation fields on an ``@entity`` host.
-    CONTRACT: ``edge_name`` ``@entity_relation``, ``is_dag`` True; coordinator wires ``target_node``.
+    CONTRACT: ``edge_name`` ``entity_relation``; ``is_dag`` False; coordinator wires ``target_node``.
     INVARIANTS: Frozen via ``AssociationGraphEdge``.
     AI-CORE-END
     """
@@ -68,7 +69,7 @@ class EntityGraphEdge(AssociationGraphEdge):
         target_node: BaseGraphNode[Any] | None = None,
     ) -> None:
         super().__init__(
-            edge_name="@entity_relation",
+            edge_name="entity_relation",
             is_dag=False,
             source_node_id=source_node_id,
             source_node=source_node,
