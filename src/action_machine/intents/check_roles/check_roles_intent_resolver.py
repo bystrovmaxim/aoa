@@ -7,6 +7,7 @@ from typing import Any
 
 from action_machine.auth.base_role import BaseRole
 from action_machine.exceptions.missing_check_roles_error import MissingCheckRolesError
+from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 
@@ -24,7 +25,7 @@ class CheckRolesIntentResolver:
         return RoleMode.declared_for(role_cls)
 
     @staticmethod
-    def resolve_check_roles(action_cls: type) -> Any:
+    def resolve_check_roles(action_cls: type[CheckRolesIntent]) -> Any:
         """Return `_role_info['spec']` from ``@check_roles``. Raises ``MissingCheckRolesError`` when absent."""
         try:
             return action_cls._role_info["spec"]
