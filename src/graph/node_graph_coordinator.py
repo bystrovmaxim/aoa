@@ -173,17 +173,38 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
         self,
         flat: list[tuple[BaseGraphNode[Any], str]],
     ) -> list[tuple[BaseGraphNode[Any], str]]:
-        """Append each gathered node's recursive companion nodes under the same inspector label."""
-        out = list(flat)
-        seen_node_ids = {node.node_id for node, _ in flat}
+        """Append recursive companion nodes and fail immediately on duplicate ``node_id``."""
+        out: list[tuple[BaseGraphNode[Any], str]] = []
+        owners: dict[str, str] = {}
+        expanded_node_ids: set[str] = set()
+
+        for node, label in flat:
+            nid = node.node_id
+            if nid in owners:
+                raise DuplicateNodeError(
+                    key=nid,
+                    first_inspector=owners[nid],
+                    second_inspector=label,
+                )
+            owners[nid] = label
+            out.append((node, label))
+
         cursor = 0
         while cursor < len(out):
             node, label = out[cursor]
             cursor += 1
+            if node.node_id in expanded_node_ids:
+                continue
+            expanded_node_ids.add(node.node_id)
             for companion_node in node.get_companion_nodes():
-                if companion_node.node_id in seen_node_ids:
-                    continue
-                seen_node_ids.add(companion_node.node_id)
+                nid = companion_node.node_id
+                if nid in owners:
+                    raise DuplicateNodeError(
+                        key=nid,
+                        first_inspector=owners[nid],
+                        second_inspector=label,
+                    )
+                owners[nid] = label
                 out.append((companion_node, label))
         return out
 
