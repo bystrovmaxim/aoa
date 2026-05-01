@@ -21,6 +21,11 @@ from action_machine.intents.entity.entity_decorator import entity, entity_info_d
 from action_machine.intents.entity.entity_intent import EntityIntent, entity_info_is_set
 from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from action_machine.intents.entity.entity_relation_intent_resolver import EntityRelationIntentResolver
+from action_machine.intents.entity.lifecycle_intent_resolver import (
+    LifeCycleFieldResolution,
+    LifeCycleFiniteAutomaton,
+    LifeCycleIntentResolver,
+)
 
 __all__ = [
     "DomainGraphNode",
@@ -28,6 +33,9 @@ __all__ = [
     "EntityIntentInspector",
     "EntityIntentResolver",
     "EntityRelationIntentResolver",
+    "LifeCycleFieldResolution",
+    "LifeCycleFiniteAutomaton",
+    "LifeCycleIntentResolver",
     "entity",
     "entity_info_dict",
     "entity_info_is_set",

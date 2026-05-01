@@ -64,6 +64,7 @@ def test_intents_entity_lazy_inspector_symbols_resolve() -> None:
     ent = importlib.import_module("action_machine.intents.entity")
     assert ent.DomainGraphNode is not None
     assert ent.EntityIntentInspector is not None
+    assert ent.LifeCycleIntentResolver is not None
 
 
 def test_intents_meta_lazy_meta_decorator_resolve() -> None:
