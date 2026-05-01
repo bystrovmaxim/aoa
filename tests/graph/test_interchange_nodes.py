@@ -380,7 +380,7 @@ def test_entity_node_exposes_entity_relation_edges() -> None:
     node = EntityGraphNode(RelatedEntity)
     assert len(node.relations) == 2
     assert all(isinstance(e, EntityGraphEdge) for e in node.relations)
-    assert all(e.edge_name == "@entity_relation" for e in node.relations)
+    assert all(e.edge_name == "entity_relation" for e in node.relations)
     fields = {(e.properties["field_name"], e.properties["relation_type"]) for e in node.relations}
     assert ("parent", "association") in fields
     assert ("children", "aggregation") in fields

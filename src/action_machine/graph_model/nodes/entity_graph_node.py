@@ -10,7 +10,7 @@ Materializes a frozen :class:`~graph.base_graph_node.BaseGraphNode` from an
 entity **class** object: stable ``id`` (dotted path), ``node_type="Entity"``,
 ``label`` from the class name, ``properties`` from :meth:`~action_machine.intents.entity.entity_intent_resolver.EntityIntentResolver.resolve_description`,
 a ``domain`` edge built by :class:`~action_machine.graph_model.edges.domain_graph_edge.DomainGraphEdge`,
-and ``@entity_relation`` edges from :class:`~action_machine.graph_model.edges.entity_graph_edge.EntityGraphEdge`.
+and ``entity_relation`` edges from :class:`~action_machine.graph_model.edges.entity_graph_edge.EntityGraphEdge`.
 
 (``@entity`` ``domain``: :meth:`~action_machine.intents.entity.entity_intent_resolver.EntityIntentResolver.resolve_domain_type`).
 
