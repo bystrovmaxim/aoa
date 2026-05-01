@@ -21,7 +21,8 @@ or list interchange nodes without touching rustworkx via :meth:`get_all_nodes`.
 This coordinator is **domain-agnostic**: it does not interpret ``node_type`` or
 ``edge_name`` beyond validation and DAG checks. It expands inspector rows with each
 node's :meth:`~graph.base_graph_node.BaseGraphNode.get_companion_nodes` result before
-validating and materializing the graph.
+validating and materializing the graph. Optional :meth:`~graph.base_graph_node.BaseGraphNode.allows_companion_sourced_outgoing_edges`
+lets a host list edges whose logical source is a registered companion (``source_node_id`` prefixed with ``<host.node_id>:``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -233,10 +234,17 @@ class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
                         f"for source_node_id {edge.source_node_id!r}.",
                     )
                 if edge.source_node_id != source_id:
-                    raise InvalidGraphError(
-                        f"Edge {edge.edge_name!r} from {source_id!r} declares "
-                        f"source_node_id {edge.source_node_id!r}.",
-                    )
+                    if not node.allows_companion_sourced_outgoing_edges():
+                        raise InvalidGraphError(
+                            f"Edge {edge.edge_name!r} from {source_id!r} declares "
+                            f"source_node_id {edge.source_node_id!r}.",
+                        )
+                    prefix = f"{source_id}:"
+                    if not edge.source_node_id.startswith(prefix):
+                        raise InvalidGraphError(
+                            f"Edge {edge.edge_name!r} from {source_id!r} declares "
+                            f"source_node_id {edge.source_node_id!r} outside namespace {prefix!r}.",
+                        )
                 target_node = nodes.get(edge.target_node_id)
                 if target_node is None:
                     raise InvalidGraphError(
