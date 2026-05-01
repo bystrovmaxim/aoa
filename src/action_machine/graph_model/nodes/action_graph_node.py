@@ -43,6 +43,7 @@ from ..edges.error_handler_graph_edge import ErrorHandlerGraphEdge
 from ..edges.params_graph_edge import ParamsGraphEdge
 from ..edges.regular_aspect_graph_edge import RegularAspectGraphEdge
 from ..edges.result_graph_edge import ResultGraphEdge
+from ..edges.role_graph_edge import RoleGraphEdge
 from ..edges.summary_aspect_graph_edge import SummaryAspectGraphEdge
 from .compensator_graph_node import CompensatorGraphNode
 from .error_handler_graph_node import ErrorHandlerGraphNode
@@ -68,6 +69,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     result: ResultGraphEdge = field(init=False, repr=False, compare=False)
     depends: list[DependsGraphEdge]
     connection: list[ConnectionGraphEdge]
+    roles: list[RoleGraphEdge]
     regular_aspect: list[RegularAspectGraphEdge]
     summary_aspect: list[SummaryAspectGraphEdge]
     compensators: list[CompensatorGraphEdge]
@@ -87,12 +89,11 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         object.__setattr__(self, "result", ResultGraphEdge(action_cls, self))
         object.__setattr__(self, "depends", DependsGraphEdge.get_dependency_edges(self, action_cls))
         object.__setattr__(self, "connection", ConnectionGraphEdge.get_connection_edges(self, action_cls))
+        object.__setattr__(self, "roles", RoleGraphEdge.get_role_edges(self, action_cls))
         object.__setattr__(self, "regular_aspect", RegularAspectGraphEdge.get_regular_aspect_edges(self, action_cls))
         object.__setattr__(self, "summary_aspect", SummaryAspectGraphEdge.get_summary_aspect_edges(self, action_cls))
         object.__setattr__(self, "compensators", CompensatorGraphEdge.get_compensator_edges(self, action_cls))
-        object.__setattr__(
-            self, "on_error_handlers", ErrorHandlerGraphEdge.get_on_error_handlers_edges(self, action_cls)
-        )
+        object.__setattr__(self, "on_error_handlers", ErrorHandlerGraphEdge.get_on_error_handlers_edges(self, action_cls))
 
     def connection_keys(self) -> frozenset[str]:
         """Declared ``@connection`` slot keys (non-empty stripped ``properties[\"key\"]`` on connection edges)."""
@@ -154,6 +155,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             self.result,
             *self.depends,
             *self.connection,
+            *self.roles,
             *self.regular_aspect,
             *self.summary_aspect,
             *self.compensators,

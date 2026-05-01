@@ -28,6 +28,7 @@ __all__ = [
     "RegularAspectGraphEdge",
     "RequiredContextGraphEdge",
     "ResultGraphEdge",
+    "RoleGraphEdge",
     "SummaryAspectGraphEdge",
 ]
 
@@ -43,6 +44,7 @@ _LAZY: dict[str, str] = {
     "PropertyGraphEdge": "action_machine.graph_model.edges.property_graph_edge",
     "RegularAspectGraphEdge": "action_machine.graph_model.edges.regular_aspect_graph_edge",
     "RequiredContextGraphEdge": "action_machine.graph_model.edges.required_context_graph_edge",
+    "RoleGraphEdge": "action_machine.graph_model.edges.role_graph_edge",
     "ResultGraphEdge": "action_machine.graph_model.edges.result_graph_edge",
     "SummaryAspectGraphEdge": "action_machine.graph_model.edges.summary_aspect_graph_edge",
 }
