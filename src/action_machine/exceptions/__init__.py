@@ -17,6 +17,7 @@ from action_machine.exceptions.domain_graph_edge_resolution_error import DomainG
 from action_machine.exceptions.graph_edge_resolution_error import GraphEdgeResolutionError
 from action_machine.exceptions.handle_error import HandleError
 from action_machine.exceptions.log_template_error import LogTemplateError
+from action_machine.exceptions.missing_check_roles_error import MissingCheckRolesError
 from action_machine.exceptions.missing_entity_info_error import MissingEntityInfoError
 from action_machine.exceptions.missing_meta_error import MissingMetaError
 from action_machine.exceptions.missing_summary_aspect_error import MissingSummaryAspectError
@@ -43,6 +44,7 @@ __all__ = [
     "GraphEdgeResolutionError",
     "HandleError",
     "LogTemplateError",
+    "MissingCheckRolesError",
     "MissingEntityInfoError",
     "MissingMetaError",
     "MissingSummaryAspectError",

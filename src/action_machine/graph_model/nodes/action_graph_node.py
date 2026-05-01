@@ -59,7 +59,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
     CONTRACT: Materializes action metadata and every outgoing edge into explicit fields; ``get_all_edges`` returns the composed edge list.
-    FAILURES: :exc:`~action_machine.exceptions.MissingMetaError` propagates from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` or :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type` (via ``DomainGraphEdge``) when ``@meta`` data is unusable. :meth:`get_summary_aspect_graph_node` raises :exc:`ValueError` when ``summary_aspect`` is empty.
+    FAILURES: :exc:`~action_machine.exceptions.MissingMetaError` propagates from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` or :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type` (via ``DomainGraphEdge``) when ``@meta`` data is unusable. :exc:`~action_machine.exceptions.MissingCheckRolesError` when ``@check_roles`` did not set ``_role_info['spec']``. :meth:`get_summary_aspect_graph_node` raises :exc:`ValueError` when ``summary_aspect`` is empty.
     AI-CORE-END
     """
 

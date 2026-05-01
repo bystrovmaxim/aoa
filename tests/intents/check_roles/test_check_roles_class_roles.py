@@ -12,10 +12,13 @@ import pytest
 
 from action_machine.auth.base_role import BaseRole
 from action_machine.context.user_info import UserInfo
-from action_machine.exceptions import NamingSuffixError
+from action_machine.exceptions import MissingCheckRolesError, NamingSuffixError
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
 from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
+from action_machine.intents.check_roles.check_roles_intent_resolver import (
+    CheckRolesIntentResolver,
+)
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 from action_machine.model.base_action import BaseAction
@@ -143,3 +146,16 @@ class TestCheckRolesNormalization:
 
         with pytest.raises(TypeError, match="BaseRole"):
             check_roles(NotRole)  # type: ignore[arg-type]
+
+
+class TestCheckRolesIntentResolver:
+    def test_resolve_check_roles_raises_when_no_scratch(self) -> None:
+        class _NoDecorator(CheckRolesIntent):
+            """Marker-only; never got ``@check_roles``."""
+
+            pass
+
+        with pytest.raises(MissingCheckRolesError) as excinfo:
+            CheckRolesIntentResolver.resolve_check_roles(_NoDecorator)
+        assert excinfo.value.host_cls is _NoDecorator
+

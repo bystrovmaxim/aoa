@@ -61,9 +61,7 @@ class RoleGraphEdge(CompositionGraphEdge):
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[RoleGraphEdge]:
         """Return one composition stub per declared ``@check_roles`` concrete role."""
-        spec = CheckRolesIntentResolver.resolve_required_role_types(action_cls)
-        if spec is None:
-            return []
+        spec = CheckRolesIntentResolver.resolve_check_roles(action_cls)
         declared = spec if isinstance(spec, tuple) else (spec,)
         seen: set[str] = set()
         out: list[RoleGraphEdge] = []
