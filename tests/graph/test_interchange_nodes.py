@@ -11,6 +11,7 @@ from pydantic import Field
 from action_machine.context.context_view import ContextView
 from action_machine.context.ctx_constants import Ctx
 from action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
+from action_machine.graph_model.edges.entity_graph_edge import EntityGraphEdge
 from action_machine.graph_model.edges.params_graph_edge import ParamsGraphEdge
 from action_machine.graph_model.edges.regular_aspect_graph_edge import (
     RegularAspectGraphEdge,
@@ -62,7 +63,7 @@ from tests.scenarios.domain_model.compensate_actions import (
     CompensateAndOnErrorAction,
     CompensatedOrderAction,
 )
-from tests.scenarios.domain_model.entities import SampleEntity, TestDomain
+from tests.scenarios.domain_model.entities import RelatedEntity, SampleEntity, TestDomain
 from tests.scenarios.domain_model.full_action import FullAction
 from tests.scenarios.domain_model.ping_action import PingAction
 from tests.scenarios.domain_model.roles import ManagerRole
@@ -369,6 +370,20 @@ def test_entity_node_links_properties_and_domain_helpers() -> None:
     assert node.node_id == host
     assert node.properties == {"description": "Simple test entity"}
     assert node.domain == DomainGraphEdge.from_entity_declared_host(SampleEntity, node)
+    assert node.relations == []
     assert node.get_all_edges() == [
         node.domain,
     ]
+
+
+def test_entity_node_exposes_entity_relation_edges() -> None:
+    node = EntityGraphNode(RelatedEntity)
+    assert len(node.relations) == 2
+    assert all(isinstance(e, EntityGraphEdge) for e in node.relations)
+    assert all(e.edge_name == "@entity_relation" for e in node.relations)
+    fields = {(e.properties["field_name"], e.properties["relation_type"]) for e in node.relations}
+    assert ("parent", "association") in fields
+    assert ("children", "aggregation") in fields
+    assert TypeIntrospection.full_qualname(RelatedEntity) in {e.target_node_id for e in node.relations}
+    assert len(node.get_all_edges()) == 3
+    assert node.get_all_edges()[0] is node.domain
