@@ -63,6 +63,7 @@ from tests.scenarios.domain_model.compensate_actions import (
 from tests.scenarios.domain_model.entities import SampleEntity, TestDomain
 from tests.scenarios.domain_model.full_action import FullAction
 from tests.scenarios.domain_model.ping_action import PingAction
+from tests.scenarios.domain_model.roles import ManagerRole
 
 
 def test_regular_aspect_graph_node_interchange_shape() -> None:
@@ -265,6 +266,7 @@ def test_action_graph_node_links_and_helpers() -> None:
     assert p_type is PingAction.Params and r_type is PingAction.Result
     assert TypeIntrospection.full_qualname(p_type) == params_id
     assert TypeIntrospection.full_qualname(r_type) == result_id
+    assert not node.roles
     assert not node.regular_aspect
     assert node.summary_aspect == [
         SummaryAspectGraphEdge(
@@ -314,8 +316,15 @@ def test_action_graph_node_stores_depends_and_connection() -> None:
 
     assert len(node.depends) == 3
     assert len(node.connection) == 1
+    assert len(node.roles) == 1
+    rr = node.roles[0]
+    assert rr.edge_name == "@requires_role"
+    assert rr.target_node_id == TypeIntrospection.full_qualname(ManagerRole)
+    assert rr.source_node is node
+    assert rr.target_node is None
     assert all(edge in node.get_all_edges() for edge in node.depends)
     assert all(edge in node.get_all_edges() for edge in node.connection)
+    assert all(edge in node.get_all_edges() for edge in node.roles)
 
 
 def test_compensator_graph_node_for_aspect_matches_target_aspect_properties() -> None:
