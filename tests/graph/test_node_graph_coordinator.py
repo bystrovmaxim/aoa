@@ -14,6 +14,7 @@ from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
+from graph.exclude_graph_model import exclude_graph_model, excluded_from_graph_model
 from graph.node_graph_coordinator import NodeGraphCoordinator
 
 
@@ -214,7 +215,7 @@ def test_all_descendant_types_transitive_and_excludes_root() -> None:
     assert names == sorted(names)
 
 
-def test_should_skip_external_service_scaffold_but_not_parameterized_subclasses() -> None:
+def test_external_service_scaffold_has_exclude_graph_model_subclasses_do_not_inherit_marker() -> None:
     from action_machine.resources.external_service.external_service_resource import (
         ExternalServiceResource,
     )
@@ -222,8 +223,8 @@ def test_should_skip_external_service_scaffold_but_not_parameterized_subclasses(
     class _Subbed(ExternalServiceResource[object]):
         pass
 
-    assert BaseGraphNodeInspector._should_skip_axis_host(ExternalServiceResource)
-    assert not BaseGraphNodeInspector._should_skip_axis_host(_Subbed)
+    assert excluded_from_graph_model(ExternalServiceResource)
+    assert not excluded_from_graph_model(_Subbed)
 
 
     not_a_type: object = ()
@@ -258,12 +259,13 @@ def test_get_graph_nodes_collects_root_then_sorted_descendants() -> None:
     assert _ComposingInspector().get_graph_nodes() == [n_root, n_a, n_b]
 
 
-def test_get_graph_nodes_skips_abstract_hosts() -> None:
-    """Abstract classes in the axis tree never reach concrete :meth:`~BaseGraphNodeInspector._get_node`."""
+def test_get_graph_nodes_skips_only_exclude_graph_model_hosts() -> None:
+    """Abstract axis stubs omit interchange rows only when marked ``exclude_graph_model``."""
 
     class _Axis:
         pass
 
+    @exclude_graph_model
     class _AbstractMid(_Axis, ABC):
         @abstractmethod
         def _marker(self) -> None:

@@ -50,8 +50,10 @@ from pydantic import ConfigDict
 
 from action_machine.legacy.described_fields.marker import DescribedFieldsIntent
 from action_machine.model.base_schema import BaseSchema
+from graph.exclude_graph_model import exclude_graph_model
 
 
+@exclude_graph_model
 class BaseResult(BaseSchema, DescribedFieldsIntent):
     """
     Frozen base class for final action result payloads.

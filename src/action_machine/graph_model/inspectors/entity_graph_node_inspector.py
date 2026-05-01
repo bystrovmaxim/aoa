@@ -7,13 +7,14 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Walks the loaded strict ``BaseEntity`` subclass tree and emits one :class:`EntityGraphNode` per
-visited **non-abstract** subtype; abstract ABC markers are omitted by :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` before :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._get_node`.
+subtype that participates in interchange; classes opt out with
+:class:`~graph.exclude_graph_model.exclude_graph_model` (see :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseEntity  (axis root — omitted when ABC / abstract)
+    BaseEntity  (axis root — skipped when decorated with ``exclude_graph_model``)
               │
               v
     each loaded strict subclass ``cls``  ->  ``[EntityGraphNode(cls)]`` when ``issubclass(cls, BaseEntity)``

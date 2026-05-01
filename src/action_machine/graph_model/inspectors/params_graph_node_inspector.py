@@ -7,13 +7,13 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Walks the loaded ``BaseParams`` strict subclass tree and emits one :class:`ParamsGraphNode` per
-visited **non-abstract** subtype plus that node's :class:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (``FieldGraphNode`` rows); abstract markers are omitted by :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes`.
+subtype that participates in interchange plus that node's :class:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (``FieldGraphNode`` rows); opt out with :class:`~graph.exclude_graph_model.exclude_graph_model`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseParams  (axis root — omitted when ABC / abstract)
+    BaseParams  (axis root — skipped when decorated with ``exclude_graph_model``)
               │
               v
     each loaded strict subclass ``cls``  ->  ``ParamsGraphNode(cls)`` plus :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (field rows) in the flat list when ``issubclass(cls, BaseParams)``

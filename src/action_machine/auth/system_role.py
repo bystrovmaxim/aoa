@@ -33,8 +33,10 @@ from abc import ABC
 
 from action_machine.auth.base_role import BaseRole
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
+from graph.exclude_graph_model import exclude_graph_model
 
 
+@exclude_graph_model
 @role_mode(RoleMode.ALIVE)
 class SystemRole(BaseRole, ABC):
     """

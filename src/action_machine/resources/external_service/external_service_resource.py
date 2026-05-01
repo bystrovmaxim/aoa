@@ -42,8 +42,10 @@ from action_machine.resources.external_service.protocol_external_service_resourc
 from action_machine.resources.external_service.wrapper_external_service_resource import (
     WrapperExternalServiceResource,
 )
+from graph.exclude_graph_model import exclude_graph_model
 
 
+@exclude_graph_model
 class ExternalServiceResource[TService](BaseResource, ProtocolExternalServiceResource, ABC):
     """
 AI-CORE-BEGIN

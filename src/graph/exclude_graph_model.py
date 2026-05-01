@@ -5,7 +5,7 @@ Opt-out markers for interchange graph row emission (:class:`~graph.base_graph_no
 
 from __future__ import annotations
 
-# Class-level sentinel read by ``BaseGraphNodeInspector._should_skip_axis_host``.
+# Class-level sentinel read by ``BaseGraphNodeInspector.get_graph_nodes``.
 _EXCLUDE_GRAPH_MODEL_KEY = "__graph_exclude_graph_model__"
 
 
