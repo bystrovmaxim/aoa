@@ -12,9 +12,8 @@ then **source** and **target** interchange ids, optional wired :class:`~graph.ba
 object references once the graph is assembled, and **properties**
 (always a ``dict``, never ``None``; defaults to empty).
 
-``source_node_type`` / ``target_node_type`` are read-only properties derived from wired
-:class:`~graph.base_graph_node.BaseGraphNode` instances when possible; subclasses may
-override properties when stubs intentionally omit references (see interchange docs).
+``source_node_type`` / ``target_node_type`` read interchange ``node_type`` from wired
+``source_node`` / ``target_node``. They must not be overridden (:func:`~typing.final`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -45,13 +44,13 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, cast, final
 
 from graph.edge_relationship import EdgeRelationship
 from graph.validation import require_non_empty_str
 
 
-@dataclass(init=False, frozen=True)
+@dataclass(init=False, frozen=True, eq=False)
 class BaseGraphEdge(ABC):
     """
     AI-CORE-BEGIN
@@ -101,28 +100,57 @@ class BaseGraphEdge(ABC):
             raise TypeError(msg)
         object.__setattr__(self, "properties", props)
 
+    def __eq__(self, other: object) -> bool:
+        """Structural equality (ids, names, properties); wired node objects are ignored."""
+
+        if type(self) is not type(other):
+            return NotImplemented
+        if not isinstance(other, BaseGraphEdge):
+            return NotImplemented
+        return (
+            self.edge_name == other.edge_name
+            and self.is_dag == other.is_dag
+            and self.source_node_id == other.source_node_id
+            and self.target_node_id == other.target_node_id
+            and self.properties == other.properties
+        )
+
+    def __hash__(self) -> int:
+        return hash(
+            (
+                type(self),
+                self.edge_name,
+                self.is_dag,
+                self.source_node_id,
+                self.target_node_id,
+                tuple(sorted(self.properties.items())),
+            ),
+        )
+
     @property
+    @final
     def source_node_type(self) -> str:
-        """Derived from wired ``source_node`` when present; subclasses may override."""
+        """Interchange vertex type string for ``source_node`` (must be wired)."""
 
         src = self.source_node
         if src is None:
             msg = (
-                f"{type(self).__qualname__}({self.edge_name!r}): source_node unset — "
-                "override source_node_type or wire the interchange graph."
+                f"{type(self).__qualname__}({self.edge_name!r}): "
+                "`source_node` must be wired to read ``source_node_type``."
             )
             raise RuntimeError(msg)
         return cast(str, src.node_type)
 
     @property
+    @final
     def target_node_type(self) -> str:
-        """Derived from wired ``target_node`` when present; subclasses may override."""
+        """Interchange vertex type string for ``target_node`` (must be wired)."""
 
         tgt = self.target_node
         if tgt is None:
             msg = (
-                f"{type(self).__qualname__}({self.edge_name!r}): target_node unset — "
-                "override target_node_type or finish graph resolution."
+                f"{type(self).__qualname__}({self.edge_name!r}): "
+                "`target_node` must be wired to read ``target_node_type``."
             )
             raise RuntimeError(msg)
         return cast(str, tgt.node_type)

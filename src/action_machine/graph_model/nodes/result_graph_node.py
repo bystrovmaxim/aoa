@@ -52,7 +52,7 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
     ROLE: Interchange node for a ``BaseResult`` result host class.
     CONTRACT: Built from ``type[TResult]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label;
     empty ``properties`` (interchange dict); composition lists :attr:`fields` and :attr:`props`
-    from ``FieldGraphEdge.get_field_edges`` / ``PropertyGraphEdge.get_property_edges``; :attr:`companion_nodes` from both.
+    from ``FieldGraphEdge.get_field_edges`` / ``PropertyGraphEdge.get_property_edges`` wired to ``self`` host; :attr:`companion_nodes` from both.
     AI-CORE-END
     """
 
@@ -70,10 +70,10 @@ class ResultGraphNode(BaseGraphNode[type[TResult]]):
             node_obj=result_cls,
         )
         object.__setattr__(
-            self, "fields", FieldGraphEdge.get_field_edges(result_cls, result_node_id, ResultGraphNode.NODE_TYPE)
+            self, "fields", FieldGraphEdge.get_field_edges(result_cls, self)
         )
         object.__setattr__(
-            self, "props", PropertyGraphEdge.get_property_edges(result_cls, result_node_id, ResultGraphNode.NODE_TYPE)
+            self, "props", PropertyGraphEdge.get_property_edges(result_cls, self)
         )
 
     def get_all_edges(self) -> list[BaseGraphEdge]:

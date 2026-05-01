@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 
 from action_machine.graph_model.nodes.field_graph_node import FieldGraphNode
 from graph.base_graph_node import BaseGraphNode
@@ -30,55 +30,31 @@ class FieldGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed composition edge schema host (params or result) → declared field vertex.
-    CONTRACT: ``edge_name`` literal ``field``; ``is_dag`` False; ``target_node`` is the ``FieldGraphNode``.
+    CONTRACT: ``edge_name`` literal ``field``; ``is_dag`` False; ``source_node`` / ``target_node`` wired when emitted.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END
     """
 
-    _schema_host_vertex_type: str
-
     def __init__(
         self,
         *,
-        node_id: str,
-        node_type: str,
         field_node: FieldGraphNode,
-        source_node: BaseGraphNode[Any] | None = None,
+        source_node: BaseGraphNode[Any],
     ) -> None:
         super().__init__(
             edge_name="field",
             is_dag=False,
-            source_node_id=node_id,
+            source_node_id=source_node.node_id,
             source_node=source_node,
             target_node_id=field_node.node_id,
             target_node=field_node,
         )
-        object.__setattr__(self, "_schema_host_vertex_type", node_type)
-
-    @property
-    def source_node_type(self) -> str:
-        src = self.source_node
-        if src is not None:
-            return cast(str, src.node_type)
-        return self._schema_host_vertex_type
 
     @classmethod
-    def get_field_edges(
-        cls,
-        schema_cls: type,
-        node_id: str,
-        node_type: str,
-    ) -> list[FieldGraphEdge]:
+    def get_field_edges(cls, schema_cls: type, source_host: BaseGraphNode[Any]) -> list[FieldGraphEdge]:
         """Build composition edges from params or result host to declared Pydantic field nodes."""
         fields = cls._field_graph_nodes_for_host(schema_cls)
-        return [
-            cls(
-                node_id=node_id,
-                node_type=node_type,
-                field_node=fd,
-            )
-            for fd in fields
-        ]
+        return [cls(field_node=fd, source_node=source_host) for fd in fields]
 
     @classmethod
     def _field_graph_nodes_for_host(cls, host_cls: type) -> list[FieldGraphNode]:

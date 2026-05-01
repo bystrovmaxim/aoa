@@ -20,7 +20,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 
 from action_machine.graph_model.nodes.property_field_graph_node import PropertyFieldGraphNode
 from action_machine.system_core import TypeIntrospection
@@ -32,55 +32,31 @@ class PropertyGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed composition edge schema host (params or result) → property-field vertex.
-    CONTRACT: ``edge_name`` literal ``property``; ``is_dag`` False; ``target_node`` is the ``PropertyFieldGraphNode``.
+    CONTRACT: ``edge_name`` literal ``property``; ``is_dag`` False; ``source_node`` / ``target_node`` wired when emitted.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END
     """
 
-    _schema_host_vertex_type: str
-
     def __init__(
         self,
         *,
-        node_id: str,
-        node_type: str,
         property_node: PropertyFieldGraphNode,
-        source_node: BaseGraphNode[Any] | None = None,
+        source_node: BaseGraphNode[Any],
     ) -> None:
         super().__init__(
             edge_name="property",
             is_dag=False,
-            source_node_id=node_id,
+            source_node_id=source_node.node_id,
             source_node=source_node,
             target_node_id=property_node.node_id,
             target_node=property_node,
         )
-        object.__setattr__(self, "_schema_host_vertex_type", node_type)
-
-    @property
-    def source_node_type(self) -> str:
-        src = self.source_node
-        if src is not None:
-            return cast(str, src.node_type)
-        return self._schema_host_vertex_type
 
     @classmethod
-    def get_property_edges(
-        cls,
-        schema_cls: type,
-        node_id: str,
-        node_type: str,
-    ) -> list[PropertyGraphEdge]:
+    def get_property_edges(cls, schema_cls: type, source_host: BaseGraphNode[Any]) -> list[PropertyGraphEdge]:
         """Build composition edges from params or result host to computed/plain property nodes."""
         vertices = cls._property_graph_nodes_for_host(schema_cls)
-        return [
-            cls(
-                node_id=node_id,
-                node_type=node_type,
-                property_node=p,
-            )
-            for p in vertices
-        ]
+        return [cls(property_node=p, source_node=source_host) for p in vertices]
 
     @classmethod
     def _property_graph_nodes_for_host(cls, host_cls: type) -> list[PropertyFieldGraphNode]:
