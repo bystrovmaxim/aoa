@@ -7,13 +7,11 @@ Constructor takes all interchange fields explicitly: ``node_id``, ``node_type``,
 ``edges``, and ``companion_nodes`` (each defaults to an empty ``dict`` / ``list`` when omitted or
 ``None``).
 
-``companion_nodes`` lists **extra** interchange vertices shipped with this host row: nodes that have
-no own graph-inspector axis (no ``type`` to walk), e.g. runtime-only rows such as
+``companion_nodes`` lists **direct** extra interchange vertices shipped with this host row: nodes
+that have no own graph-inspector axis (no ``type`` to walk), e.g. runtime-only rows such as
 :class:`~action_machine.graph_model.nodes.checker_graph_node.CheckerGraphNode`. The host still wires
-``edges`` to them by ``target_node_id``; contributors must **also** flatten the same instances into
-:meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` output so
-:class:`~graph.node_graph_coordinator.NodeGraphCoordinator` receives one vertex per id (the
-coordinator does not walk ``companion_nodes`` itself).
+``edges`` to them by ``target_node_id``; :class:`~graph.node_graph_coordinator.NodeGraphCoordinator`
+recursively expands each node's direct companions while preserving duplicate-id validation.
 
 ``node_id``, ``node_type``, ``label``, ``properties``, ``edges``, ``node_obj``, and ``companion_nodes``
 are frozen fields on the node (read-only after construction).
