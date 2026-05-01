@@ -75,8 +75,11 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             node_obj=entity_cls,
         )
         object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self))
-        object.__setattr__(self, "relations", EntityGraphEdge.get_entity_relation_edges(self, entity_cls)) # type: ignore
-
+        object.__setattr__(
+            self,
+            "relations",
+            EntityGraphEdge.get_entity_relation_edges(self, entity_cls),
+        )
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return ``domain`` plus every non-omitted entity relation edge."""
