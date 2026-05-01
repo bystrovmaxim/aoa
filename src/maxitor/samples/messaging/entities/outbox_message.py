@@ -3,7 +3,8 @@
 
 from pydantic import Field
 
-from action_machine.domain import BaseEntity, entity
+from action_machine.domain import BaseEntity
+from action_machine.intents.entity import entity
 from maxitor.samples.messaging.domain import MessagingDomain
 from maxitor.samples.messaging.entities.outbox_lifecycle import OutboxMessageLifecycle
 

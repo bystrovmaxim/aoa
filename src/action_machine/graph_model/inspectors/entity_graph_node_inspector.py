@@ -6,17 +6,17 @@ EntityGraphNodeInspector — graph-node contributor for ``BaseEntity`` subclasse
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseEntity`` subclass tree and emits one :class:`EntityGraphNode` per
-visited class (including the ``BaseEntity`` axis when :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` calls the root).
+Walks the loaded strict ``BaseEntity`` subclass tree and emits one :class:`EntityGraphNode` per
+visited **non-abstract** subtype; abstract ABC markers are omitted by :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` before :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._get_node`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseEntity  (root)  ->  ``[EntityGraphNode(BaseEntity)]`` when included in the walk
+    BaseEntity  (axis root — omitted when ABC / abstract)
               │
               v
-    each loaded subclass ``cls``  ->  ``[EntityGraphNode(cls)]`` when ``issubclass(cls, BaseEntity)``
+    each loaded strict subclass ``cls``  ->  ``[EntityGraphNode(cls)]`` when ``issubclass(cls, BaseEntity)``
 """
 
 from __future__ import annotations

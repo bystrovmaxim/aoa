@@ -8,13 +8,13 @@ PURPOSE
 
 Walks the loaded ``BaseResource`` strict subclass tree and emits one
 :class:`~action_machine.graph_model.nodes.resource_graph_node.ResourceGraphNode` per
-visited concrete or abstract resource class.
+visited **non-abstract** subtype; abstract ABC markers are omitted by :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` before :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._get_node`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseResource  (root axis)
+    BaseResource  (axis root — omitted when ABC / abstract)
               │
               v
     each strict subclass ``cls``  ->  ``[ResourceGraphNode(cls)]`` when ``issubclass(cls, BaseResource)``

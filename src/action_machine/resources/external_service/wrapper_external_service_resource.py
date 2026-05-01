@@ -30,8 +30,10 @@ from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.external_service.protocol_external_service_resource import (
     ProtocolExternalServiceResource,
 )
+from graph.exclude_graph_model import exclude_graph_model
 
 
+@exclude_graph_model
 class WrapperExternalServiceResource(BaseResource, ProtocolExternalServiceResource):
     """
     Thin proxy for nested actions using the same external client handle.

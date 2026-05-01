@@ -65,9 +65,9 @@ from action_machine.domain import (
     Lifecycle,
     NoInverse,
     Rel,
-    entity,
 )
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.intents.entity import entity
 from action_machine.intents.meta.meta_decorator import meta
 
 # ═══════════════════════════════════════════════════════════════════════════════

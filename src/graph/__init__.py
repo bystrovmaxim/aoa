@@ -66,6 +66,7 @@ from graph.edge_relationship import (
     EndpointAttachment,
     LineStyle,
 )
+from graph.exclude_graph_model import exclude_graph_model, excluded_from_graph_model
 from graph.graph_builder import GraphBuilder, build_interchange_from_facet_vertices
 from graph.graph_edge import GraphEdge
 from graph.graph_vertex import GraphVertex, GraphVertexParseError, ParsedGraphVertex
@@ -106,6 +107,8 @@ __all__ = [
     "dag_edge_pairs_from_rx",
     "dag_subgraph_is_acyclic",
     "dag_subgraph_is_acyclic_from_rx",
+    "exclude_graph_model",
+    "excluded_from_graph_model",
     "require_non_empty_str",
     "require_non_null",
 ]

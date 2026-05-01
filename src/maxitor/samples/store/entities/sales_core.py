@@ -16,8 +16,8 @@ from action_machine.domain import (
     CompositeMany,
     Inverse,
     Rel,
-    entity,
 )
+from action_machine.intents.entity import entity
 from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.entities.lifecycle import (
     CustomerAccountLifecycle,

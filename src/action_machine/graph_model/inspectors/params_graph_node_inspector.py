@@ -6,14 +6,14 @@ ParamsGraphNodeInspector — graph-node contributor for ``BaseParams`` subclasse
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseParams`` subclass tree and emits one :class:`ParamsGraphNode` per
-visited subtype plus that node's :class:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (``FieldGraphNode`` rows).
+Walks the loaded ``BaseParams`` strict subclass tree and emits one :class:`ParamsGraphNode` per
+visited **non-abstract** subtype plus that node's :class:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (``FieldGraphNode`` rows); abstract markers are omitted by :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseParams  (root axis)
+    BaseParams  (axis root — omitted when ABC / abstract)
               │
               v
     each loaded strict subclass ``cls``  ->  ``ParamsGraphNode(cls)`` plus :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (field rows) in the flat list when ``issubclass(cls, BaseParams)``

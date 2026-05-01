@@ -3,7 +3,8 @@
 
 from pydantic import Field
 
-from action_machine.domain import BaseEntity, entity
+from action_machine.domain import BaseEntity
+from action_machine.intents.entity import entity
 from maxitor.samples.billing.domain import BillingDomain
 from maxitor.samples.billing.entities.payment_lifecycle import PaymentEventLifecycle
 
