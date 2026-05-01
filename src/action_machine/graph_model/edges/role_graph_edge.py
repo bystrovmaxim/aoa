@@ -7,14 +7,14 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Analogue to :class:`~action_machine.graph_model.edges.regular_aspect_graph_edge.RegularAspectGraphEdge`:
-``is_dag=False`` composition keyed by ``@requires_role``, materializing ``RoleGraphNode``
+``is_dag=False`` composition keyed by ``@check_roles``, materializing ``RoleGraphNode``
 only after interchange resolution (targets start as stubs by ``target_node_id``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ActionGraphNode  ──@requires_role──►  RoleGraphNode  (wired by coordinator)
+    ActionGraphNode  ──@check_roles──►  RoleGraphNode  (wired by coordinator)
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ class RoleGraphEdge(CompositionGraphEdge):
         role_cls: type[BaseRole],
     ) -> None:
         super().__init__(
-            edge_name="@requires_role",
+            edge_name="@check_roles",
             is_dag=False,
             source_node_id=source_node.node_id,
             source_node=source_node,
