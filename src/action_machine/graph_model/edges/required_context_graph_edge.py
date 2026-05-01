@@ -53,8 +53,7 @@ class RequiredContextGraphEdge(CompositionGraphEdge):
         super().__init__(
             edge_name="@required_context",
             is_dag=False,
-            source_node_id=source_node.node_id,
-            source_node=source_node,
+            source=source_node,
             target_node_id=required_context_node.node_id,
             target_node=required_context_node,
             properties={"key": required_context_node.node_obj.context_key},

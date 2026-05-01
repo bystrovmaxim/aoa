@@ -40,7 +40,6 @@ class LifeCycleGraphEdge(AssociationGraphEdge):
     def __init__(
         self,
         *,
-        source_node_id: str,
         source_node: BaseGraphNode[Any],
         lifecycle_cls: type,
         field_name: str,
@@ -58,8 +57,7 @@ class LifeCycleGraphEdge(AssociationGraphEdge):
         super().__init__(
             edge_name="lifecycle",
             is_dag=False,
-            source_node_id=source_node_id,
-            source_node=source_node,
+            source=source_node,
             target_node_id=target_id,
             target_node=target_node,
             properties={"field_name": needle},
@@ -96,7 +94,6 @@ class LifeCycleGraphEdge(AssociationGraphEdge):
             target_vertex = LifeCycleGraphNode(entity_cls, row.field_name, row.lifecycle_class)
             out.append(
                 LifeCycleGraphEdge(
-                    source_node_id=source_node.node_id,
                     source_node=source_node,
                     lifecycle_cls=row.lifecycle_class,
                     field_name=row.field_name,

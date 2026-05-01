@@ -56,8 +56,7 @@ class ResultGraphEdge(AggregationGraphEdge):
         super().__init__(
             edge_name="generic:result",
             is_dag=False,
-            source_node_id=TypeIntrospection.full_qualname(action_cls),
-            source_node=source_node,
+            source=source_node,
             target_node_id=TypeIntrospection.full_qualname(result_type),
             target_node=target_node,
         )

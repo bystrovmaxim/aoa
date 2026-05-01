@@ -62,7 +62,6 @@ class EntityGraphEdge(AssociationGraphEdge):
     def __init__(
         self,
         *,
-        source_node_id: str,
         source_node: BaseGraphNode[Any],
         target_node_id: str,
         relation: EntityRelationIntentResolver,
@@ -71,8 +70,7 @@ class EntityGraphEdge(AssociationGraphEdge):
         super().__init__(
             edge_name="entity_relation",
             is_dag=False,
-            source_node_id=source_node_id,
-            source_node=source_node,
+            source=source_node,
             target_node_id=target_node_id,
             target_node=target_node,
             properties=_entity_relation_properties(relation),
@@ -86,7 +84,6 @@ class EntityGraphEdge(AssociationGraphEdge):
         """Return one typed edge per non-omitted entity relation declaration on ``entity_cls``."""
         return [
             EntityGraphEdge(
-                source_node_id=source_node.node_id,
                 source_node=source_node,
                 relation=rel,
                 target_node_id=TypeIntrospection.full_qualname(rel.target_entity),

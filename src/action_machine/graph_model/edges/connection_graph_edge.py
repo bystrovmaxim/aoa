@@ -41,7 +41,6 @@ class ConnectionGraphEdge(AssociationGraphEdge):
     def __init__(
         self,
         *,
-        source_node_id: str,
         source_node: BaseGraphNode[Any],
         target_node_id: str,
         connection_key: str,
@@ -50,8 +49,7 @@ class ConnectionGraphEdge(AssociationGraphEdge):
         super().__init__(
             edge_name="@connection",
             is_dag=True,
-            source_node_id=source_node_id,
-            source_node=source_node,
+            source=source_node,
             target_node_id=target_node_id,
             target_node=target_node,
             properties={"key": connection_key},
@@ -65,7 +63,6 @@ class ConnectionGraphEdge(AssociationGraphEdge):
         """Return one typed edge per ``@connection`` declaration on ``action_cls``."""
         return [
             ConnectionGraphEdge(
-                source_node_id=source_node.node_id,
                 source_node=source_node,
                 target_node_id=TypeIntrospection.full_qualname(connection_type),
                 target_node=None,
