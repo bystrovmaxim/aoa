@@ -172,8 +172,4 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             *((cast(BaseGraphNode[Any], summary),) if summary is not None else ()),
             *(cast(BaseGraphNode[Any], n) for n in compensators),
             *(cast(BaseGraphNode[Any], n) for n in error_handlers),
-            *(node for n in regular for node in n.get_companion_nodes()),
-            *(summary.get_companion_nodes() if summary is not None else []),
-            *(node for n in compensators for node in n.get_companion_nodes()),
-            *(node for n in error_handlers for node in n.get_companion_nodes()),
         ]

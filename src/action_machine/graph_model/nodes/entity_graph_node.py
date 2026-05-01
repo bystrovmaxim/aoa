@@ -33,7 +33,7 @@ ARCHITECTURE / DATA FLOW
               │
               v
     :meth:`get_all_edges` → ``[domain, *relations, *lifecycles]``
-    :meth:`get_companion_nodes` → each wired lifecycle ``target_node`` + that lifecycle node's companions.
+    :meth:`get_companion_nodes` → each wired lifecycle ``target_node`` only; coordinator expands nested companions.
 """
 
 from __future__ import annotations
@@ -58,7 +58,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`lifecycles` from :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_association_edges`. :meth:`get_all_edges` lists domain, relations, lifecycle associations only; :meth:`get_companion_nodes` returns lifecycle target rows plus each lifecycle row's own companions.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`lifecycles` from :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_association_edges`. :meth:`get_all_edges` lists domain, relations, lifecycle associations only; :meth:`get_companion_nodes` returns direct lifecycle target rows only. Nested state companions are expanded by the coordinator.
     AI-CORE-END
     """
 
@@ -80,14 +80,8 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         object.__setattr__(self, "lifecycles", list(LifeCycleGraphEdge.get_lifecycle_association_edges(entity_cls)))
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
-        """Contributed lifecycle rows plus each lifecycle row's companions."""
-        out: list[BaseGraphNode[Any]] = []
-        for edge in self.lifecycles:
-            lifecycle_row = edge.target_node
-            if lifecycle_row is None:
-                continue
-            out += [lifecycle_row, *lifecycle_row.get_companion_nodes()]
-        return out
+        """Direct lifecycle companion rows."""
+        return [target for edge in self.lifecycles if (target := edge.target_node) is not None]
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return ``domain``, entity relations, and lifecycle associations."""
