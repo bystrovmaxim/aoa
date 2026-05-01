@@ -7,9 +7,10 @@ import pytest
 from pydantic import BaseModel, Field
 
 from action_machine.auth.none_role import NoneRole
-from action_machine.domain import BaseEntity, entity
+from action_machine.domain import BaseEntity
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.intents.check_roles import check_roles
+from action_machine.intents.entity import entity
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.legacy.action_typed_schemas_inspector import (
     ActionTypedSchemasInspector,

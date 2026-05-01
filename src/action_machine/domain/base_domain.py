@@ -74,11 +74,12 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from action_machine.exceptions import NamingSuffixError
+from graph.exclude_graph_model import exclude_graph_model
 
 # Suffix required for every class that inherits BaseDomain (directly or indirectly).
 _REQUIRED_SUFFIX = "Domain"
 
-
+@exclude_graph_model
 class BaseDomain(ABC):
     """
     AI-CORE-BEGIN

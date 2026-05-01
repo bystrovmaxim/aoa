@@ -129,21 +129,26 @@ from action_machine.domain.relation_containers import (
 )
 from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
 from action_machine.domain.testing import make
-from action_machine.intents.entity.entity_decorator import entity
 from action_machine.intents.entity.entity_intent import EntityIntent
 
 
 def __getattr__(name: str) -> object:
     """
-    Lazily expose graph interchange types.
+    Lazily expose graph interchange types and the ``@entity`` decorator.
 
-    Eager imports of these symbols here recurse when modules such as
-    :mod:`action_machine.graph_model.nodes.domain_graph_node` load
-    :mod:`action_machine.domain.base_domain` while the ``action_machine.domain``
-    initializer is still running.
+    ``entity`` is not imported at package init because ``entity_decorator`` pulls
+    :mod:`action_machine.domain` while :mod:`~action_machine.intents.entity` may still be
+    bootstrapping. Graph interchange symbols below likewise avoid eager imports that recurse
+    when :mod:`~action_machine.graph_model.nodes.domain_graph_node` loads via
+    :mod:`action_machine.domain.base_domain` mid-package-init.
     """
     # pylint: disable=import-outside-toplevel
 
+    if name == "entity":
+        from action_machine.intents.entity.entity_decorator import entity
+
+        globals()["entity"] = entity
+        return entity
     if name == "DomainGraphNode":
         from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 

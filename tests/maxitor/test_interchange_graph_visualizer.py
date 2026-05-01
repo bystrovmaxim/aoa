@@ -178,9 +178,13 @@ class _SingleHtmlAxis:
     """Axis root for minimal HTML smoke tests."""
 
 
+class _SingleHtmlConcrete(_SingleHtmlAxis):
+    """Strict subclass exercised by :class:`_SingleActionHtmlInspector`."""
+
+
 class _SingleActionHtmlInspector(BaseGraphNodeInspector[_SingleHtmlAxis]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        if cls is not _SingleHtmlAxis:
+        if cls is not _SingleHtmlConcrete:
             return None
         return _TestGraphNode(
             node_id="tests.html_only",
@@ -232,11 +236,15 @@ class _BadRefAxis:
     """Axis root for :func:`test_coordinator_build_fails_on_dangling_edge_target`."""
 
 
+class _BadRefLeaf(_BadRefAxis):
+    """Strict subclass so :meth:`BaseGraphNodeInspector.get_graph_nodes` visits a row."""
+
+
 class _BadRefInspector(BaseGraphNodeInspector[_BadRefAxis]):
     """Emits one domain-like node whose ``belongs_to`` points at a missing target id."""
 
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        if cls is not _BadRefAxis:
+        if cls is not _BadRefLeaf:
             return None
         dom = _TestGraphNode(
             node_id="tests.viz2.bad_domain",

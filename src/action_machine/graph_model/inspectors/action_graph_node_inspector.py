@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Walks the loaded ``BaseAction`` strict subclass tree and emits one :class:`ActionGraphNode` per
-visited concrete/abstract subtype, plus one :class:`~graph.regular_aspect_graph_node.RegularAspectGraphNode`
+visited **non-abstract** subtype (abstract ``BaseAction`` entries are omitted by :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes`), plus one :class:`~graph.regular_aspect_graph_node.RegularAspectGraphNode`
 per ``@regular_aspect``, one :class:`~graph.summary_aspect_graph_node.SummaryAspectGraphNode` per
 ``@summary_aspect``, one :class:`~action_machine.graph_model.nodes.checker_graph_node.CheckerGraphNode`
 per checker on each regular aspect (via ``_checker_meta``), one :class:`~action_machine.graph_model.nodes.required_context_graph_node.RequiredContextGraphNode`
@@ -19,7 +19,7 @@ per ``@context_requires`` key on that aspect, with ``COMPOSITION`` edges from ea
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseAction  (root axis)
+    BaseAction  (axis root — omitted when ABC / abstract)
               │
               v
     each loaded strict subclass ``cls`` emits ``ActionGraphNode``, ``RegularAspectGraphNode`` rows (each with ``COMPOSITION`` edges to their ``Checker`` nodes), ``SummaryAspectGraphNode``, flat ``CheckerGraphNode`` list (from each aspect's :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes`), compensators, and error handlers.

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from typing import Any
 
 import pytest
@@ -213,7 +214,18 @@ def test_all_descendant_types_transitive_and_excludes_root() -> None:
     assert names == sorted(names)
 
 
-def test_all_descendant_types_rejects_non_type() -> None:
+def test_should_skip_external_service_scaffold_but_not_parameterized_subclasses() -> None:
+    from action_machine.resources.external_service.external_service_resource import (
+        ExternalServiceResource,
+    )
+
+    class _Subbed(ExternalServiceResource[object]):
+        pass
+
+    assert BaseGraphNodeInspector._should_skip_axis_host(ExternalServiceResource)
+    assert not BaseGraphNodeInspector._should_skip_axis_host(_Subbed)
+
+
     not_a_type: object = ()
     with pytest.raises(TypeError, match="root must be a type"):
         BaseGraphNodeInspector._all_descendant_types(not_a_type)  # type: ignore[arg-type]
@@ -246,3 +258,30 @@ def test_get_graph_nodes_collects_root_then_sorted_descendants() -> None:
     assert _ComposingInspector().get_graph_nodes() == [n_root, n_a, n_b]
 
 
+def test_get_graph_nodes_skips_abstract_hosts() -> None:
+    """Abstract classes in the axis tree never reach concrete :meth:`~BaseGraphNodeInspector._get_node`."""
+
+    class _Axis:
+        pass
+
+    class _AbstractMid(_Axis, ABC):
+        @abstractmethod
+        def _marker(self) -> None:
+            """Subclass contract."""
+
+    class _Concrete(_AbstractMid):
+        def _marker(self) -> None:
+            return None
+
+    n_axis = _make_node("axis", [])
+    n_concrete = _make_node("concrete", [])
+
+    class _Inspector(BaseGraphNodeInspector[_Axis]):
+        def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
+            if cls is _Axis:
+                return n_axis
+            if cls is _Concrete:
+                return n_concrete
+            raise AssertionError(f"unexpected cls {cls!r}")
+
+    assert _Inspector().get_graph_nodes() == [n_axis, n_concrete]

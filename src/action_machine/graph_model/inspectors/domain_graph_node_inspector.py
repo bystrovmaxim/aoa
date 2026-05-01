@@ -6,14 +6,14 @@ DomainGraphNodeInspector — graph-node contributor for ``BaseDomain`` subclasse
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseDomain`` subclass tree and emits one :class:`DomainGraphNode` per
-visited domain class.
+Walks the loaded ``BaseDomain`` strict subclass tree and emits one :class:`DomainGraphNode` per
+visited **non-abstract** subtype; abstract markers are omitted by :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` before :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._get_node`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseDomain  (root axis)
+    BaseDomain  (axis root — omitted when ABC / abstract)
               │
               v
     each strict subclass ``cls``  ->  ``[DomainGraphNode(cls)]`` when ``issubclass(cls, BaseDomain)``

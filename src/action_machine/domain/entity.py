@@ -105,11 +105,12 @@ from action_machine.exceptions import NamingSuffixError
 from action_machine.intents.entity.entity_intent import EntityIntent
 from action_machine.legacy.described_fields.marker import DescribedFieldsIntent
 from action_machine.model.base_schema import BaseSchema
+from graph.exclude_graph_model import exclude_graph_model
 
 # Suffix required for every class that inherits BaseEntity (directly or indirectly).
 _REQUIRED_SUFFIX = "Entity"
 
-
+@exclude_graph_model
 class BaseEntity(BaseSchema, ABC, EntityIntent, DescribedFieldsIntent):
     """
 AI-CORE-BEGIN

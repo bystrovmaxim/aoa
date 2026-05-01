@@ -33,6 +33,8 @@ ARCHITECTURE / DATA FLOW
 
 """
 
+from abc import ABC
+
 from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.external_service.protocol_external_service_resource import (
     ProtocolExternalServiceResource,
@@ -42,7 +44,7 @@ from action_machine.resources.external_service.wrapper_external_service_resource
 )
 
 
-class ExternalServiceResource[TService](BaseResource, ProtocolExternalServiceResource):
+class ExternalServiceResource[TService](BaseResource, ProtocolExternalServiceResource, ABC):
     """
 AI-CORE-BEGIN
     ROLE: Resource manager exposing a single typed external service reference.

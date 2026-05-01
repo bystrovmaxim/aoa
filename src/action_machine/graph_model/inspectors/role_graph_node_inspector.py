@@ -6,14 +6,14 @@ RoleGraphNodeInspector — graph-node contributor for ``BaseRole`` subclasses.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseRole`` subclass tree and emits one :class:`RoleGraphNode` per
-visited class.
+Walks the loaded strict ``BaseRole`` subclass tree and emits one :class:`RoleGraphNode` per
+visited **non-abstract** subtype; abstract markers are omitted by :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes` before :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector._get_node`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseRole
+    BaseRole  (axis root — omitted when ABC / abstract)
               │
               v
     each visited ``cls``  ->  ``[RoleGraphNode(cls)]`` when ``issubclass(cls, BaseRole)``

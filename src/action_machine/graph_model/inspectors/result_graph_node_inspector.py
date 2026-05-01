@@ -6,14 +6,14 @@ ResultGraphNodeInspector — graph-node contributor for ``BaseResult`` subclasse
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Walks the loaded ``BaseResult`` subclass tree and emits one :class:`ResultGraphNode` per
-visited subtype plus that node's :class:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (``FieldGraphNode`` rows).
+Walks the loaded ``BaseResult`` strict subclass tree and emits one :class:`ResultGraphNode` per
+visited **non-abstract** subtype plus that node's :class:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (``FieldGraphNode`` rows); abstract markers are omitted by :meth:`~graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    BaseResult  (root axis)
+    BaseResult  (axis root — omitted when ABC / abstract)
               │
               v
     each loaded strict subclass ``cls``  ->  ``ResultGraphNode(cls)`` plus :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` (field rows) in the flat list when ``issubclass(cls, BaseResult)``
