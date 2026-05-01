@@ -38,8 +38,8 @@ class RequiredContextGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed composition edge regular aspect → one ``@context_requires`` slot vertex.
-    CONTRACT: ``edge_name`` literal ``required_context``; ``properties['key']`` from ``required_context_node.node_obj.context_key``; ``is_dag`` False; ``source_node`` is the emitting aspect interchange row.
-    FACTORY: ``required_context_nodes_for_aspect`` builds companions from ``ContextRequiresResolver``; ``get_required_context_edges`` attaches one edge per node wired to ``aspect_node``.
+    CONTRACT: ``edge_name`` literal ``required_context``; ``properties['key']`` from ``required_context_node.node_obj.context_key``; ``is_dag`` False.
+    FACTORY: ``required_context_nodes_for_aspect`` builds companions from ``ContextRequiresResolver``; ``get_required_context_edges`` attaches one edge per node.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END
     """
@@ -47,13 +47,11 @@ class RequiredContextGraphEdge(CompositionGraphEdge):
     def __init__(
         self,
         *,
-        source_node: BaseGraphNode[Any],
         required_context_node: RequiredContextGraphNode,
     ) -> None:
         super().__init__(
             edge_name="@required_context",
             is_dag=False,
-            source=source_node,
             target_node_id=required_context_node.node_id,
             target_node=required_context_node,
             properties={"key": required_context_node.node_obj.context_key},
@@ -72,12 +70,11 @@ class RequiredContextGraphEdge(CompositionGraphEdge):
     def get_required_context_edges(
         aspect_callable: Callable[..., Any],
         _action_cls: type[Any],
-        aspect_node: BaseGraphNode[Any],
+        _aspect_node: BaseGraphNode[Any],
     ) -> list[RequiredContextGraphEdge]:
         """Typed ``required_context`` edges for every companion row on ``aspect_callable``."""
         return [
             RequiredContextGraphEdge(
-                source_node=aspect_node,
                 required_context_node=rn,
             )
             for rn in RequiredContextGraphEdge.required_context_nodes_for_aspect(

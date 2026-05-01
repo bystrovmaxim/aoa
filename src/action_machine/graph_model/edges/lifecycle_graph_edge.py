@@ -30,7 +30,7 @@ from .state_graph_edge import StateGraphEdge
 class LifeCycleGraphEdge(AssociationGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed association edge ``source → lifecycle`` field interchange row.
+    ROLE: Typed association edge from an entity host interchange row to a lifecycle field vertex.
     CONTRACT: ``edge_name`` ``lifecycle``; ``is_dag`` False; mandatory ``properties['field_name']``; optional wired ``LifeCycleGraphNode`` as ``target_node`` (else target id is lifecycle class dotted name). Static :meth:`get_lifecycle_edges` attaches associations then each wired vertex's :class:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge` transition rows for consumers that need one list.
     INVARIANTS: Frozen via ``AssociationGraphEdge``.
     FAILURES: :exc:`ValueError` when ``field_name`` is blank after strip.
@@ -40,7 +40,6 @@ class LifeCycleGraphEdge(AssociationGraphEdge):
     def __init__(
         self,
         *,
-        source_node: BaseGraphNode[Any],
         lifecycle_cls: type,
         field_name: str,
         target_node: BaseGraphNode[Any] | None = None,
@@ -57,7 +56,6 @@ class LifeCycleGraphEdge(AssociationGraphEdge):
         super().__init__(
             edge_name="lifecycle",
             is_dag=False,
-            source=source_node,
             target_node_id=target_id,
             target_node=target_node,
             properties={"field_name": needle},
@@ -85,7 +83,6 @@ class LifeCycleGraphEdge(AssociationGraphEdge):
 
     @staticmethod
     def get_lifecycle_edges(
-        source_node: BaseGraphNode[Any],
         entity_cls: type[BaseEntity],
     ) -> list[BaseGraphEdge]:
         """``lifecycle`` associations with wired vertices, then every ``lifecycle_transition`` for each field."""
@@ -94,7 +91,6 @@ class LifeCycleGraphEdge(AssociationGraphEdge):
             target_vertex = LifeCycleGraphNode(entity_cls, row.field_name, row.lifecycle_class)
             out.append(
                 LifeCycleGraphEdge(
-                    source_node=source_node,
                     lifecycle_cls=row.lifecycle_class,
                     field_name=row.field_name,
                     target_node=target_vertex,

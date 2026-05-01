@@ -8,7 +8,6 @@ def test_composition_graph_edge_uses_composition_relationship() -> None:
     edge = CompositionGraphEdge(
         edge_name="aspect",
         is_dag=False,
-        source="pkg.Action",
         target_node_id="pkg.Action:aspect",
     )
 
@@ -19,7 +18,6 @@ def test_aggregation_graph_edge_uses_aggregation_relationship() -> None:
     edge = AggregationGraphEdge(
         edge_name="params",
         is_dag=False,
-        source="pkg.Action",
         target_node_id="pkg.Action.Params",
     )
 
@@ -30,7 +28,6 @@ def test_association_graph_edge_uses_association_relationship() -> None:
     edge = AssociationGraphEdge(
         edge_name="domain",
         is_dag=True,
-        source="pkg.Action",
         target_node_id="pkg.Domain",
     )
 

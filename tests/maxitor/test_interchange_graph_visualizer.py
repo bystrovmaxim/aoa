@@ -70,7 +70,6 @@ def test_interchange_node_and_edge_to_visual_dicts() -> None:
     e = AssociationGraphEdge(
         edge_name="belongs_to",
         is_dag=False,
-        source="a",
         target_node_id=n.node_id,
     )
     ed = interchange_edge_to_visual_dict(e)
@@ -90,16 +89,9 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_regular_aspec
         label="Asp",
         node_obj=object(),
     )
-    src = _TestGraphNode(
-        node_id="pkg.Action",
-        node_type="Action",
-        label="Act",
-        node_obj=object(),
-    )
     e = CompositionGraphEdge(
         edge_name="my_aspect",
         is_dag=False,
-        source=src,
         target_node_id=tgt.node_id,
         target_node=tgt,
     )
@@ -115,16 +107,9 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_summary_aspec
         label="Sum",
         node_obj=object(),
     )
-    src = _TestGraphNode(
-        node_id="pkg.Action",
-        node_type="Action",
-        label="Act",
-        node_obj=object(),
-    )
     e = CompositionGraphEdge(
         edge_name="pong_summary",
         is_dag=False,
-        source=src,
         target_node_id=tgt.node_id,
         target_node=tgt,
     )
@@ -140,16 +125,9 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_compensator_t
         label="Comp",
         node_obj=object(),
     )
-    src = _TestGraphNode(
-        node_id="pkg.Action",
-        node_type="Action",
-        label="Act",
-        node_obj=object(),
-    )
     e = CompositionGraphEdge(
         edge_name="rollback_charge_compensate",
         is_dag=False,
-        source=src,
         target_node_id=tgt.node_id,
         target_node=tgt,
     )
@@ -165,16 +143,9 @@ def test_interchange_edge_visual_dict_swaps_composition_diamond_to_error_handler
         label="Eh",
         node_obj=object(),
     )
-    src = _TestGraphNode(
-        node_id="pkg.Action",
-        node_type="Action",
-        label="Act",
-        node_obj=object(),
-    )
     e = CompositionGraphEdge(
         edge_name="handle_finalize_on_error",
         is_dag=False,
-        source=src,
         target_node_id=tgt.node_id,
         target_node=tgt,
     )
@@ -201,7 +172,6 @@ class _PygraphRoundTripInspector(BaseGraphNodeInspector[_PygraphRoundTripAxis]):
         edge = AssociationGraphEdge(
             edge_name="params",
             is_dag=False,
-            source="tests.a",
             target_node_id="tests.b",
         )
         a = _TestGraphNode(
@@ -294,7 +264,6 @@ class _BadRefInspector(BaseGraphNodeInspector[_BadRefAxis]):
                 AssociationGraphEdge(
                     edge_name="belongs_to",
                     is_dag=False,
-                    source="tests.viz2.bad_domain",
                     target_node_id="tests.viz2.MISSING_APPLICATION_TARGET",
                 ),
             ],

@@ -25,7 +25,6 @@ from action_machine.intents.aspects.regular_aspect_intent_resolver import (
     RegularAspectIntentResolver,
 )
 from action_machine.model.base_action import BaseAction
-from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
 
 
@@ -41,26 +40,22 @@ class RegularAspectGraphEdge(CompositionGraphEdge):
     def __init__(
         self,
         *,
-        source_node: BaseGraphNode[Any],
         aspect_node: RegularAspectGraphNode,
     ) -> None:
         super().__init__(
             edge_name="@regular_aspect",
             is_dag=False,
-            source=source_node,
             target_node_id=aspect_node.node_id,
             target_node=aspect_node,
         )
 
     @staticmethod
     def get_regular_aspect_edges(
-        source_node: BaseGraphNode[Any],
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[RegularAspectGraphEdge]:
         """Return regular aspect composition edges for ``action_cls``."""
         return [
             RegularAspectGraphEdge(
-                source_node=source_node,
                 aspect_node=RegularAspectGraphNode(aspect_callable, action_cls),
             )
             for aspect_callable in RegularAspectIntentResolver.resolve_regular_aspects(action_cls)

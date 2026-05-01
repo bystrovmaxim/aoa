@@ -32,7 +32,7 @@ class PropertyGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed composition edge schema host (params or result) → property-field vertex.
-    CONTRACT: ``edge_name`` literal ``property``; ``is_dag`` False; ``source_node`` / ``target_node`` wired when emitted.
+    CONTRACT: ``edge_name`` literal ``property``; ``is_dag`` False; ``target_node`` wired when emitted.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END
     """
@@ -41,21 +41,19 @@ class PropertyGraphEdge(CompositionGraphEdge):
         self,
         *,
         property_node: PropertyFieldGraphNode,
-        source_node: BaseGraphNode[Any],
     ) -> None:
         super().__init__(
             edge_name="property",
             is_dag=False,
-            source=source_node,
             target_node_id=property_node.node_id,
             target_node=property_node,
         )
 
     @classmethod
-    def get_property_edges(cls, schema_cls: type, source_host: BaseGraphNode[Any]) -> list[PropertyGraphEdge]:
+    def get_property_edges(cls, schema_cls: type, _source_host: BaseGraphNode[Any]) -> list[PropertyGraphEdge]:
         """Build composition edges from params or result host to computed/plain property nodes."""
         vertices = cls._property_graph_nodes_for_host(schema_cls)
-        return [cls(property_node=p, source_node=source_host) for p in vertices]
+        return [cls(property_node=p) for p in vertices]
 
     @classmethod
     def _property_graph_nodes_for_host(cls, host_cls: type) -> list[PropertyFieldGraphNode]:

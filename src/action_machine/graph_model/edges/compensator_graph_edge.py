@@ -25,7 +25,6 @@ from action_machine.intents.compensate.compensate_intent_resolver import (
     CompensateIntentResolver,
 )
 from action_machine.model.base_action import BaseAction
-from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
 
 
@@ -41,26 +40,22 @@ class CompensatorGraphEdge(CompositionGraphEdge):
     def __init__(
         self,
         *,
-        source_node: BaseGraphNode[Any],
         compensator_node: CompensatorGraphNode,
     ) -> None:
         super().__init__(
             edge_name="@compensate",
             is_dag=False,
-            source=source_node,
             target_node_id=compensator_node.node_id,
             target_node=compensator_node,
         )
 
     @staticmethod
     def get_compensator_edges(
-        source_node: BaseGraphNode[Any],
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[CompensatorGraphEdge]:
         """Return compensator composition edges for ``action_cls``."""
         return [
             CompensatorGraphEdge(
-                source_node=source_node,
                 compensator_node=CompensatorGraphNode(compensator_callable, action_cls),
             )
             for compensator_callable in CompensateIntentResolver.resolve_compensators(action_cls)

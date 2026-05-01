@@ -87,12 +87,12 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             properties=dict({"description": EntityIntentResolver.resolve_description(entity_cls)}),
             node_obj=entity_cls,
         )
-        lifes_full = LifeCycleGraphEdge.get_lifecycle_edges(self, entity_cls)
+        lifes_full = LifeCycleGraphEdge.get_lifecycle_edges(entity_cls)
         lifes_associations_only = [
             e for e in lifes_full if isinstance(e, LifeCycleGraphEdge)
         ]
         object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self))
-        object.__setattr__(self, "relations", EntityGraphEdge.get_entity_relation_edges(self, entity_cls))
+        object.__setattr__(self, "relations", EntityGraphEdge.get_entity_relation_edges(entity_cls))
         object.__setattr__(self, "lifecycles", lifes_associations_only)
         object.__setattr__(self, "lifecycle_bundle", tuple(lifes_full))
 

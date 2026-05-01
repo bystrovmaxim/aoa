@@ -21,10 +21,10 @@ are frozen fields on the node (read-only after construction).
 String fields must be non-empty (after strip); ``node_obj`` must not be ``None``. Because the node
 is frozen, the constructor uses :func:`object.__setattr__`.
 
-Each :class:`~graph.base_graph_edge.BaseGraphEdge` records ``edge_name``, ``is_dag``, **source** and **target**
-``*_node_id``, optional wired ``source_node`` / ``target_node``, and ``properties``.
-Interchange vertex types are read from wired nodes via :class:`~graph.base_graph_edge.BaseGraphEdge`; edge
-equality is structural (ids/properties) so cyclic host ↔ edge graphs compare safely.
+Each :class:`~graph.base_graph_edge.BaseGraphEdge` records ``edge_name``, ``is_dag``,
+``target_node_id``, optional wired ``target_node``, and ``properties``.
+Interchange vertex types are read from wired nodes via :class:`~graph.base_graph_edge.BaseGraphEdge`;
+edge equality is structural (ids/properties) so cyclic host ↔ edge graphs compare safely.
 """
 
 from __future__ import annotations
@@ -81,7 +81,3 @@ class BaseGraphNode[T: object](ABC):
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Return additional graph nodes that must be included with this node."""
         return []
-
-    def allows_companion_sourced_outgoing_edges(self) -> bool:
-        """When true, edges returned from :meth:`get_all_edges` may declare a different ``source_node_id`` that is still under this node's namespace (``<self.node_id>:…``)."""
-        return False

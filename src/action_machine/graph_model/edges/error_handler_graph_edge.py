@@ -25,7 +25,6 @@ from action_machine.intents.on_error.on_error_intent_resolver import (
     OnErrorIntentResolver,
 )
 from action_machine.model.base_action import BaseAction
-from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
 
 
@@ -41,26 +40,22 @@ class ErrorHandlerGraphEdge(CompositionGraphEdge):
     def __init__(
         self,
         *,
-        source_node: BaseGraphNode[Any],
         handler_node: ErrorHandlerGraphNode,
     ) -> None:
         super().__init__(
             edge_name="@on_error",
             is_dag=False,
-            source=source_node,
             target_node_id=handler_node.node_id,
             target_node=handler_node,
         )
 
     @staticmethod
     def get_on_error_handlers_edges(
-        source_node: BaseGraphNode[Any],
         action_cls: type[BaseAction[Any, Any]],
     ) -> list[ErrorHandlerGraphEdge]:
         """Return error handler composition edges for ``action_cls``."""
         return [
             ErrorHandlerGraphEdge(
-                source_node=source_node,
                 handler_node=ErrorHandlerGraphNode(error_handler_callable, action_cls),
             )
             for error_handler_callable in OnErrorIntentResolver.resolve_error_handlers(action_cls)
