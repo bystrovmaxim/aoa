@@ -7,8 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Assert constructor validation (machine type, mandatory ``auth_coordinator``),
-property surfaces (including optional ``gate_coordinator`` override and
-``connections_factory``), fluent ``_add_route``, and that the abstract class
+property surfaces (mandatory ``gate_coordinator``, ``connections_factory``), fluent ``_add_route``, and that the abstract class
 cannot be instantiated without a concrete ``build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -22,7 +21,7 @@ ARCHITECTURE / DATA FLOW
       |
       v
     BaseAdapter[R]  --stores-->  machine, auth_coordinator,
-                                 gate_coordinator (default / override),
+                                 gate_coordinator (required),
                                  connections_factory, _routes
       |
       v
@@ -34,6 +33,7 @@ INVARIANTS
 
 - ``machine`` must be a real ``ActionProductMachine`` instance (mocks are rejected).
 - ``auth_coordinator`` must not be ``None``.
+- ``gate_coordinator`` is a required keyword argument (typically ``machine.gate_coordinator``).
 - ``routes`` mirrors registration order; initial list is empty.
 
 """
@@ -78,6 +78,11 @@ def _make_auth() -> AsyncMock:
     return auth
 
 
+def _stub_gate() -> MagicMock:
+    """Coordinate instance for tests where ``machine`` fails validation first."""
+    return MagicMock(spec=GraphCoordinator)
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # Abstract class guard
 # ═════════════════════════════════════════════════════════════════════════════
@@ -88,10 +93,12 @@ class TestAbstractBaseAdapter:
 
     def test_cannot_instantiate_without_concrete_build(self) -> None:
         """Direct ``BaseAdapter`` construction raises (abstract ``build()``)."""
+        machine = _make_machine()
         with pytest.raises(TypeError, match="abstract"):
             BaseAdapter(
-                machine=_make_machine(),
+                machine=machine,
                 auth_coordinator=_make_auth(),
+                gate_coordinator=machine.gate_coordinator,
             )
 
 
@@ -101,31 +108,52 @@ class TestAbstractBaseAdapter:
 
 
 class TestConstructorValidation:
-    """Constructor rejects invalid ``machine`` and missing ``auth_coordinator``."""
+    """Constructor rejects invalid ``machine``, missing ``auth_coordinator``, etc."""
 
     def test_rejects_none_auth_coordinator(self) -> None:
         """``auth_coordinator=None`` raises ``TypeError`` mentioning auth."""
         machine = _make_machine()
 
         with pytest.raises(TypeError, match="auth_coordinator"):
-            _TestAdapter(machine=machine, auth_coordinator=None)
+            _TestAdapter(
+                machine=machine,
+                auth_coordinator=None,
+                gate_coordinator=machine.gate_coordinator,
+            )
+
+    def test_rejects_missing_gate_coordinator_keyword(self) -> None:
+        """Constructor requires keyword ``gate_coordinator``."""
+        with pytest.raises(TypeError, match="gate_coordinator"):
+            _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
 
     def test_rejects_non_machine(self) -> None:
         """A non-``ActionProductMachine`` ``machine`` raises ``TypeError``."""
         with pytest.raises(TypeError, match="ActionProductMachine"):
-            _TestAdapter(machine="not_a_machine", auth_coordinator=_make_auth())
+            _TestAdapter(
+                machine="not_a_machine",
+                auth_coordinator=_make_auth(),
+                gate_coordinator=_stub_gate(),
+            )
 
     def test_rejects_mock_as_machine(self) -> None:
         """``MagicMock`` is not accepted as ``machine`` — type must be concrete."""
         with pytest.raises(TypeError, match="ActionProductMachine"):
-            _TestAdapter(machine=MagicMock(), auth_coordinator=_make_auth())
+            _TestAdapter(
+                machine=MagicMock(),
+                auth_coordinator=_make_auth(),
+                gate_coordinator=_stub_gate(),
+            )
 
     def test_accepts_valid_arguments(self) -> None:
         """Valid ``machine`` + ``auth_coordinator`` constructs without error."""
         machine = _make_machine()
         auth = _make_auth()
 
-        adapter = _TestAdapter(machine=machine, auth_coordinator=auth)
+        adapter = _TestAdapter(
+            machine=machine,
+            auth_coordinator=auth,
+            gate_coordinator=machine.gate_coordinator,
+        )
 
         assert adapter.machine is machine
         assert adapter.auth_coordinator is auth
@@ -142,38 +170,58 @@ class TestProperties:
     def test_machine_property(self) -> None:
         """``machine`` returns the instance passed into the constructor."""
         machine = _make_machine()
-        adapter = _TestAdapter(machine=machine, auth_coordinator=_make_auth())
+        adapter = _TestAdapter(
+            machine=machine,
+            auth_coordinator=_make_auth(),
+            gate_coordinator=machine.gate_coordinator,
+        )
         assert adapter.machine is machine
 
     def test_auth_coordinator_property(self) -> None:
         """``auth_coordinator`` returns the object passed into the constructor."""
         auth = _make_auth()
-        adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=auth)
+        machine = _make_machine()
+        adapter = _TestAdapter(
+            machine=machine,
+            auth_coordinator=auth,
+            gate_coordinator=machine.gate_coordinator,
+        )
         assert adapter.auth_coordinator is auth
 
     def test_connections_factory_defaults_to_none(self) -> None:
         """Omitted ``connections_factory`` is ``None``."""
-        adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
+        machine = _make_machine()
+        adapter = _TestAdapter(
+            machine=machine,
+            auth_coordinator=_make_auth(),
+            gate_coordinator=machine.gate_coordinator,
+        )
         assert adapter.connections_factory is None
 
     def test_connections_factory_stored(self) -> None:
         """Explicit ``connections_factory`` is stored and exposed."""
         factory = MagicMock()
+        machine = _make_machine()
         adapter = _TestAdapter(
-            machine=_make_machine(),
+            machine=machine,
             auth_coordinator=_make_auth(),
             connections_factory=factory,
+            gate_coordinator=machine.gate_coordinator,
         )
         assert adapter.connections_factory is factory
 
-    def test_gate_coordinator_defaults_to_machine(self) -> None:
-        """Omitted ``gate_coordinator`` falls back to ``machine.gate_coordinator``."""
+    def test_gate_coordinator_stored_when_matches_machine_facade(self) -> None:
+        """``gate_coordinator`` property mirrors the object passed explicitly."""
         machine = _make_machine()
-        adapter = _TestAdapter(machine=machine, auth_coordinator=_make_auth())
+        adapter = _TestAdapter(
+            machine=machine,
+            auth_coordinator=_make_auth(),
+            gate_coordinator=machine.gate_coordinator,
+        )
         assert adapter.gate_coordinator is machine.gate_coordinator
 
     def test_gate_coordinator_explicit_override(self) -> None:
-        """Explicit ``gate_coordinator`` overrides the machine’s coordinator."""
+        """A distinct ``gate_coordinator`` instance is preserved when passed."""
         machine = _make_machine()
         alt = MagicMock(spec=GraphCoordinator)
         adapter = _TestAdapter(
@@ -185,7 +233,12 @@ class TestProperties:
 
     def test_routes_starts_empty(self) -> None:
         """``routes`` is empty immediately after construction."""
-        adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
+        machine = _make_machine()
+        adapter = _TestAdapter(
+            machine=machine,
+            auth_coordinator=_make_auth(),
+            gate_coordinator=machine.gate_coordinator,
+        )
         assert adapter.routes == []
 
 
@@ -199,7 +252,12 @@ class TestAddRoute:
 
     def test_returns_self(self) -> None:
         """``_add_route`` returns the same adapter instance."""
-        adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
+        machine = _make_machine()
+        adapter = _TestAdapter(
+            machine=machine,
+            auth_coordinator=_make_auth(),
+            gate_coordinator=machine.gate_coordinator,
+        )
         sentinel = MagicMock()
 
         result = adapter._add_route(sentinel)
@@ -208,7 +266,12 @@ class TestAddRoute:
 
     def test_appends_record(self) -> None:
         """Each ``_add_route`` call appends to ``routes`` in order."""
-        adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
+        machine = _make_machine()
+        adapter = _TestAdapter(
+            machine=machine,
+            auth_coordinator=_make_auth(),
+            gate_coordinator=machine.gate_coordinator,
+        )
         r1 = MagicMock()
         r2 = MagicMock()
 
@@ -221,7 +284,12 @@ class TestAddRoute:
 
     def test_fluent_chain(self) -> None:
         """Multiple ``_add_route`` calls chain fluently."""
-        adapter = _TestAdapter(machine=_make_machine(), auth_coordinator=_make_auth())
+        machine = _make_machine()
+        adapter = _TestAdapter(
+            machine=machine,
+            auth_coordinator=_make_auth(),
+            gate_coordinator=machine.gate_coordinator,
+        )
         r1 = MagicMock()
         r2 = MagicMock()
 

@@ -34,6 +34,7 @@ use ``NoAuthCoordinator`` explicitly:
     adapter = FastApiAdapter(
         machine=machine,
         auth_coordinator=NoAuthCoordinator(),
+        gate_coordinator=machine.gate_coordinator,
     )
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -544,7 +545,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         auth_coordinator: Any,
         connections_factory: Callable[..., dict[str, BaseResource]] | None = None,
         *,
-        gate_coordinator: GraphCoordinator | None = None,
+        gate_coordinator: GraphCoordinator,
         title: str = "ActionMachine API",
         version: str = "0.1.0",
         description: str = "",
@@ -558,8 +559,8 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 For open APIs use ``NoAuthCoordinator()``. ``None`` is invalid.
             connections_factory: connections factory; if ``None``, connections
                 are not passed.
-            gate_coordinator: facet ``GraphCoordinator``; defaults to
-                ``machine.gate_coordinator``.
+            gate_coordinator: facet ``GraphCoordinator`` (usually
+                ``machine.gate_coordinator``).
             title: API title for OpenAPI/Swagger UI.
             version: API version for OpenAPI.
             description: API description for OpenAPI (Markdown supported).

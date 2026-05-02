@@ -57,6 +57,7 @@ def _make_adapter(**kwargs) -> FastApiAdapter:
     return FastApiAdapter(
         machine=machine,
         auth_coordinator=auth,
+        gate_coordinator=machine.gate_coordinator,
         title=kwargs.get("title", "Test API"),
         version=kwargs.get("version", "0.0.1"),
         description=kwargs.get("description", ""),
