@@ -19,7 +19,8 @@ implement protocol-specific registration methods (``post``, ``get``, ``tool``),
 and implement ``build()`` to produce a protocol application object.
 
 The adapter stores a machine reference, an authentication coordinator, an
-optional explicit ``GraphCoordinator`` (defaults to ``machine.gate_coordinator``),
+optional facet ``GraphCoordinator`` (keyword-only ``gate_coordinator``; if omitted,
+defaults to ``machine.gate_coordinator``),
 and an optional connections factory. Registered routes are accumulated in
 ``_routes`` as concrete ``BaseRouteRecord`` subclasses.
 
@@ -30,8 +31,7 @@ and an optional connections factory. Registered routes are accumulated in
     │                                      │
     │  machine: ActionProductMachine       │
     │  auth_coordinator: Any (required)    │
-    │  gate_coordinator: GraphCoordinator   │
-    │    (optional; defaults to machine)   │
+    │  gate_coordinator (optional)         │
     │  connections_factory: Fn | None      │
     │  _routes: list[R]                    │
     │                                      │

@@ -54,13 +54,15 @@ EXAMPLES
     ``aoa-run[fastapi]``.
 """
 
+import argparse
+import sys
+from pathlib import Path
+
+
 def _ensure_examples_package_src_on_path() -> None:
     """When this file runs as ``python …/app_fastapi_service.py``, add ``src`` to ``sys.path``."""
     if __package__:
         return
-    import sys
-    from pathlib import Path
-
     src_root = Path(__file__).resolve().parent.parent.parent
     s = str(src_root)
     if s not in sys.path:
@@ -69,14 +71,18 @@ def _ensure_examples_package_src_on_path() -> None:
 
 _ensure_examples_package_src_on_path()
 
+# pylint: disable=wrong-import-position
 from action_machine.integrations.fastapi import FastApiAdapter
 from examples.fastapi_mcp_services.actions import CreateOrderAction, GetOrderAction, PingAction
 from examples.fastapi_mcp_services.infrastructure import auth, machine
+
+# pylint: enable=wrong-import-position
 
 app = (
     FastApiAdapter(
         machine=machine,
         auth_coordinator=auth,
+        gate_coordinator=machine.gate_coordinator,
         title="Orders API",
         version="0.1.0",
         description=(
@@ -96,15 +102,14 @@ app = (
 def main() -> None:
     """Run the ASGI app with uvicorn when this file is executed directly."""
     try:
-        import uvicorn  # extras: ``aoa-run[fastapi]``
+        # Optional ``aoa-run[fastapi]`` dependency.
+        import uvicorn  # pylint: disable=import-outside-toplevel
     except ImportError as exc:
         msg = (
             "uvicorn is required to run this example. Install with: "
             "pip install 'aoa-run[fastapi]'"
         )
         raise SystemExit(msg) from exc
-
-    import argparse
 
     parser = argparse.ArgumentParser(description="Orders API example (FastAPI)")
     parser.add_argument("--host", default="127.0.0.1", help="Bind host")

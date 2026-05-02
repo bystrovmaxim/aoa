@@ -61,13 +61,13 @@ Edge case: invalid or missing value after ``--transport`` leaves transport as
 """
 
 import sys
+from pathlib import Path
 
 
 def _ensure_examples_package_src_on_path() -> None:
     """When this file runs as ``python …/app_mcp_service.py``, add ``src`` to ``sys.path``."""
     if __package__:
         return
-    from pathlib import Path
 
     src_root = Path(__file__).resolve().parent.parent.parent
     s = str(src_root)
@@ -77,14 +77,18 @@ def _ensure_examples_package_src_on_path() -> None:
 
 _ensure_examples_package_src_on_path()
 
+# pylint: disable=wrong-import-position
 from action_machine.integrations.mcp import McpAdapter
 from examples.fastapi_mcp_services.actions import CreateOrderAction, GetOrderAction, PingAction
 from examples.fastapi_mcp_services.infrastructure import auth, machine
+
+# pylint: enable=wrong-import-position
 
 server = (
     McpAdapter(
         machine=machine,
         auth_coordinator=auth,
+        gate_coordinator=machine.gate_coordinator,
         server_name="Orders MCP",
         server_version="0.1.0",
     )

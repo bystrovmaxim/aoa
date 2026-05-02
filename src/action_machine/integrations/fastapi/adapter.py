@@ -558,7 +558,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 For open APIs use ``NoAuthCoordinator()``. ``None`` is invalid.
             connections_factory: connections factory; if ``None``, connections
                 are not passed.
-            gate_coordinator: explicit ``GraphCoordinator``; defaults to
+            gate_coordinator: facet ``GraphCoordinator``; defaults to
                 ``machine.gate_coordinator``.
             title: API title for OpenAPI/Swagger UI.
             version: API version for OpenAPI.
