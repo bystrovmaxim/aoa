@@ -78,7 +78,6 @@ instead of private ``_coordinator``.
 
 from __future__ import annotations
 
-import enum
 import time
 from functools import partial
 from typing import Any, TypeVar, cast
@@ -119,16 +118,6 @@ P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
 
 
-class MachineInjection(enum.Enum):
-    """
-    Sentinel keyword defaults for :class:`ActionProductMachine` extras
-    (factory, executors, saga) that depend on ``mode`` or other fields.
-    """
-
-    DEFAULT = enum.auto()
-
-
-
 class _AspectPipelineError(Exception):
     """
     Internal: attaches the ``BaseState`` relevant at the failing pipeline step.
@@ -164,17 +153,17 @@ class ActionProductMachine(BaseActionMachine):
         self,
         mode: str,
         *,
-        plugins: list[Plugin] = [],  # noqa: B006
+        plugins: list[Plugin] | None = None,
         log_coordinator: LogCoordinator = LogCoordinator(loggers=[ConsoleLogger(use_colors=True)]),
         coordinator: GraphCoordinator = Core.create_coordinator(),
         role_checker: RoleChecker = RoleChecker(),
         connection_validator: ConnectionValidator = ConnectionValidator(),
-        tools_box_factory: ToolsBoxFactory | MachineInjection = MachineInjection.DEFAULT,
-        aspect_executor: AspectExecutor | MachineInjection = MachineInjection.DEFAULT,
-        error_handler_executor: ErrorHandlerExecutor | MachineInjection = MachineInjection.DEFAULT,
-        saga_coordinator: SagaCoordinator | MachineInjection = MachineInjection.DEFAULT,
+        tools_box_factory: ToolsBoxFactory | None = None,
+        aspect_executor: AspectExecutor | None = None,
+        error_handler_executor: ErrorHandlerExecutor | None = None,
+        saga_coordinator: SagaCoordinator | None = None,
     ) -> None:
-        """Keyword-only deps after ``mode``. ``MachineInjection.DEFAULT`` wires tools, aspects, errors, saga.
+        """Keyword-only injectable overrides (``None`` supplies defaults below).
 
         Raises:
             ValueError: ``mode`` is empty.
@@ -183,7 +172,9 @@ class ActionProductMachine(BaseActionMachine):
             raise ValueError("mode must be non-empty")
 
         self._mode: str = mode
-        self._plugin_coordinator: PluginCoordinator = PluginCoordinator(list(plugins))
+        self._plugin_coordinator: PluginCoordinator = PluginCoordinator(
+            list(plugins if plugins is not None else [])
+        )
         self._log_coordinator: LogCoordinator = log_coordinator
         self._coordinator: GraphCoordinator = coordinator
 
@@ -197,7 +188,7 @@ class ActionProductMachine(BaseActionMachine):
         self._connection_validator: ConnectionValidator = connection_validator
         self._tools_box_factory: ToolsBoxFactory = (
             ToolsBoxFactory(self._log_coordinator)
-            if tools_box_factory is MachineInjection.DEFAULT
+            if tools_box_factory is None
             else tools_box_factory
         )
         self._aspect_executor: AspectExecutor = (
@@ -206,12 +197,12 @@ class ActionProductMachine(BaseActionMachine):
                 machine_class_name=self.__class__.__name__,
                 mode=self._mode,
             )
-            if aspect_executor is MachineInjection.DEFAULT
+            if aspect_executor is None
             else aspect_executor
         )
         self._error_handler_executor: ErrorHandlerExecutor = (
             ErrorHandlerExecutor(self._plugin_emit)
-            if error_handler_executor is MachineInjection.DEFAULT
+            if error_handler_executor is None
             else error_handler_executor
         )
         self._saga_coordinator: SagaCoordinator = (
@@ -221,7 +212,7 @@ class ActionProductMachine(BaseActionMachine):
                 self._plugin_coordinator,
                 self._plugin_emit,
             )
-            if saga_coordinator is MachineInjection.DEFAULT
+            if saga_coordinator is None
             else saga_coordinator
         )
 
