@@ -10,6 +10,7 @@ from collections.abc import Callable, Mapping
 from types import MethodType
 from typing import Any, cast
 
+# ``builtins.property`` declares class-body members hiding the callable behind ``fget``.
 # ``pydantic.BaseModel`` exposes these as public ``@property`` on the MRO; they are not host-declared members.
 _SKIP_PYDANTIC_PLAIN_PROPERTY_NAMES: frozenset[str] = frozenset({"model_extra", "model_fields_set"})
 
@@ -23,6 +24,13 @@ class TypeIntrospection:
         if isinstance(func, MethodType):
             func = func.__func__
         return cast(Callable[..., Any], inspect.unwrap(func))
+
+    @staticmethod
+    def unwrap_declaring_class_member(attr: Any) -> Any:
+        """Prefer ``property.fget`` for class-body descriptors so decorators on methods stay visible."""
+        if isinstance(attr, property) and attr.fget is not None:
+            return attr.fget
+        return attr
 
     @staticmethod
     def unwrapped_callable_name(func: Callable[..., Any]) -> str:
@@ -89,11 +97,7 @@ class TypeIntrospection:
         result: list[Callable[..., Any]] = []
 
         for _name, namespace_entry in vars(owner_class).items():
-            candidate = (
-                namespace_entry.fget
-                if isinstance(namespace_entry, property) and namespace_entry.fget is not None
-                else namespace_entry
-            )
+            candidate = TypeIntrospection.unwrap_declaring_class_member(namespace_entry)
 
             if not callable(candidate):
                 continue

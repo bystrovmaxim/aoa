@@ -35,9 +35,9 @@ ARCHITECTURE / DATA FLOW
         ▼  writes cls._meta_info
     {"description": "...", "domain": OrdersDomain}
         │
-        ▼  MetaIntentInspector snapshot + ``meta`` graph node
+        ▼  ``MetaIntentResolver`` + ``ActionGraphNode`` wiring
         │
-        ▼  GraphCoordinator.build()
+        ▼  ``NodeGraphCoordinator.build()``
     Action node enriched; domain node with ``belongs_to`` edge.
 
 """
@@ -102,8 +102,8 @@ def meta(
     """
     Class decorator: attach ``_meta_info`` with description and domain.
 
-    ``MetaIntentInspector`` and ``GraphCoordinator.get_snapshot(cls, \"meta\")``
-    consume the same scratch written here.
+    :class:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver` and
+    action graph export consume the same scratch written here.
 
     AI-CORE-BEGIN
     ROLE: Write class-level metadata consumed by graph/runtime inspectors.

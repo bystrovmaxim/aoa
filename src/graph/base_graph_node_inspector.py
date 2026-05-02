@@ -14,10 +14,7 @@ implement only :meth:`_get_node`; :meth:`_get_inspector_type` returns that ``TRo
 Hosts are omitted before :meth:`_get_node` only when the class declares :func:`~graph.exclude_graph_model.exclude_graph_model`
 on its own namespace (via :func:`~graph.exclude_graph_model.excluded_from_graph_model` — the decorator is never inherited).
 
-Inspectors that also participate in the main facet graph typically inherit both
-:class:`~graph.base_intent_inspector.BaseIntentInspector` and ``BaseGraphNodeInspector``.
-:class:`~graph.base_inspector.BaseInspector` remains the minimal hook type for other
-call sites; this class is the **typed** contract for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` only.
+This ABC is the **typed** contract for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` interchange-node inspectors.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

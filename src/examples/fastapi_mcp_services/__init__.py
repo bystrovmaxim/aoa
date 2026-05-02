@@ -20,7 +20,7 @@ Validation, checkers, logging, and plugins stay shared; adapters stay a thin
 transport layer.
 
 Actions use **Intent** mixins on ``BaseAction`` and decorators (``@meta``,
-``@check_roles``, aspects). Metadata is assembled via ``GraphCoordinator.build()``;
+``@check_roles``, aspects). Metadata is assembled when ``NodeGraphCoordinator.build()`` runs;
 see the root ``README.md`` (Intent section).
 
 ═══════════════════════════════════════════════════════════════════════════════

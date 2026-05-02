@@ -53,7 +53,7 @@ plugins. Filters are checked from cheapest to most expensive with early exit.
              │  NO -> skip
              │
              ▼
-    Step 6: domain filter via metadata coordinator snapshot
+    Step 6: domain filter via optional ``coordinator.get_snapshot(...)`` facet data
              │  NO -> skip
              │
              ▼
@@ -79,8 +79,8 @@ the same method.
 DOMAIN FILTERING
 ═══════════════════════════════════════════════════════════════════════════════
 
-Domain filter uses GraphCoordinator snapshot lookup for event action class and
-is evaluated late (step 6) after cheap checks.
+Domain filter reads ``domain`` via ``get_snapshot(action_class, "meta")`` on the optional
+coordinator handed to ``emit_event()`` and runs after cheap predicates (step 6).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PREDICATE AND EVENT TYPING

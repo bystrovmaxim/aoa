@@ -1,13 +1,29 @@
 # src/action_machine/intents/on_error/on_error_intent_resolver.py
-"""OnErrorIntentResolver — resolves on-error handler callables from action classes."""
+"""
+OnErrorIntentResolver — resolves on-error handler callables from action classes.
+
+``hydrate_error_handler_row`` rebuilds typed handler rows from immutable
+``tuple[tuple[str, Any], ...]`` facet encodings emitted alongside decorators.
+"""
 
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, cast
 
-from action_machine.system_core.type_introspection import TypeIntrospection
-from graph.base_intent_inspector import BaseIntentInspector
+from action_machine.system_core import TypeIntrospection
+
+
+@dataclass(frozen=True)
+class OnErrorHandlerFacetHydration:
+    """One handler decoded from facet ``node_meta`` (paired with ``@on_error`` on the owning class)."""
+
+    method_name: str
+    exception_types: tuple[type[Exception], ...]
+    description: str
+    method_ref: object
+    context_keys: frozenset[str]
 
 
 class OnErrorIntentResolver:
@@ -29,13 +45,13 @@ class OnErrorIntentResolver:
     @staticmethod
     def resolve_description(call_like: Any) -> str | None:
         """Return ``@on_error`` description from callable scratch when present."""
-        func = BaseIntentInspector._unwrap_declaring_class_member(call_like)
+        func = TypeIntrospection.unwrap_declaring_class_member(call_like)
         return TypeIntrospection.description_from_meta(getattr(func, "_on_error_meta", None))
 
     @staticmethod
     def resolve_exception_types(call_like: Any) -> tuple[type[Exception], ...]:
         """Return ``@on_error`` exception types from callable scratch when present."""
-        func = BaseIntentInspector._unwrap_declaring_class_member(call_like)
+        func = TypeIntrospection.unwrap_declaring_class_member(call_like)
         meta = getattr(func, "_on_error_meta", None)
         if not isinstance(meta, dict):
             return ()
@@ -43,3 +59,21 @@ class OnErrorIntentResolver:
         if isinstance(raw, tuple) and all(isinstance(item, type) for item in raw):
             return raw
         return ()
+
+
+def hydrate_error_handler_row(row: tuple[tuple[str, Any], ...]) -> OnErrorHandlerFacetHydration:
+    """Rebuild :class:`OnErrorHandlerFacetHydration` from one facet ``node_meta`` row tuple."""
+
+    d = dict(row)
+    ck = d["context_keys"]
+    if not isinstance(ck, frozenset):
+        ck = frozenset(ck or ())
+    et = d["exception_types"]
+    exc_typed = cast("tuple[type[Exception], ...]", tuple(et))
+    return OnErrorHandlerFacetHydration(
+        method_name=d["method_name"],
+        exception_types=exc_typed,
+        description=d["description"],
+        method_ref=d["method_ref"],
+        context_keys=ck,
+    )

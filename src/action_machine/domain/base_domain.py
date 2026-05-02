@@ -27,9 +27,10 @@ SCOPE (IN / OUT)
     Domain logic, workflows, or persistence.
     Uniqueness of ``name`` across the whole program (multiple classes may
     legally share the same string until a higher layer forbids it).
-    Registering domains in ``GraphCoordinator``—that happens at **build** time
-    via inspectors, not in this module.
+    Domain registration enters the interchange graph **at build time** when inspectors
+    emit vertices; that wiring is not declared in this module.
 
+═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 

@@ -135,7 +135,7 @@ from action_machine.context.context import Context
 from action_machine.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from action_machine.integrations.mcp.route_record import McpRouteRecord
-from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
+from action_machine.interchange.vertex_labels import DOMAIN_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine

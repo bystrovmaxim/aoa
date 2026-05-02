@@ -11,7 +11,7 @@ Graph inspectors skip the abstract root ``BaseResult`` axis node, so
 ``BaseAction[..., BaseResult]`` yields dangling result edges. Use ``ResultStub`` when a
 minimal output contract is enough. ``ResultStub`` is also one of the two ``R`` types for
 which ``synthetic_summary_result_when_missing_aspect`` (in
-``action_machine.legacy.binding.action_result_binding``) may synthesize a placeholder when
+``action_machine.runtime.binding.action_result_binding``) may synthesize a placeholder when
 there is no ``@summary_aspect`` (the other is exact ``BaseResult``). Pair with
 :class:`~action_machine.model.params_stub.ParamsStub` for ``P`` when only the params axis
 needs a stub.

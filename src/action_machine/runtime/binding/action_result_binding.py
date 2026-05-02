@@ -1,4 +1,4 @@
-# src/action_machine/legacy/binding/action_result_binding.py
+# src/action_machine/runtime/binding/action_result_binding.py
 """
 Runtime binding of pipeline outputs to declared ``BaseAction[P, R]`` result type.
 
@@ -6,27 +6,9 @@ Runtime binding of pipeline outputs to declared ``BaseAction[P, R]`` result type
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-This module enforces result-type contracts at runtime. It resolves declared
-``R`` from ``BaseAction[P, R]``, synthesizes fallback result when allowed, and
-validates actual pipeline output objects before returning them to callers.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-    Action class BaseAction[P, R]
-              |
-              v
-    resolve declared R (generic extraction)
-              |
-              +--> no summary path: maybe synthesize ``BaseResult()`` or ``ResultStub()``
-              |
-              v
-    validate runtime result object type
-              |
-              v
-    return BaseResult-compatible value or raise typed binding error
-
+Enforces result-type contracts at runtime. Resolves declared ``R`` from
+``BaseAction[P, R]``, synthesizes fallback result when allowed, and validates
+pipeline output instances before returning them to callers.
 """
 
 from __future__ import annotations
@@ -38,11 +20,11 @@ from action_machine.exceptions import (
     ActionResultTypeError,
     MissingSummaryAspectError,
 )
-from action_machine.legacy.binding.extract_action_params_result_types import (
-    extract_action_params_result_types,
-)
 from action_machine.model.base_result import BaseResult
 from action_machine.model.result_stub import ResultStub
+from action_machine.runtime.binding.extract_action_params_result_types import (
+    extract_action_params_result_types,
+)
 
 
 def require_resolved_action_result_type(action_cls: type) -> type:

@@ -37,8 +37,8 @@ ARCHITECTURE / DATA FLOW
          ▼  writes scratch
     cls._depends_info = [DependencyInfo(PaymentService, ...)]
          │
-         ▼  DependencyIntentInspector reads _depends_info
-    coordinator snapshot → tuple[DependencyInfo, ...]
+         ▼  interchange ``DependsGraphEdge`` rows reflect ``_depends_info``
+    ``ActionGraphNode`` carries dependency topology
          │
          ▼  DependencyFactory(deps); runtime reads ``_depends_info`` the same shape
 

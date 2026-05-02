@@ -30,7 +30,7 @@ SCOPE (IN / OUT)
 **Out of scope**
     Lazy loading or automatic fetches — see `RelationNotLoadedError` in
     `exceptions.py`.
-    Enforcing the inverse-side **compatibility matrix** — ``GraphCoordinator``
+    Enforcing the inverse-side **compatibility matrix** — ``NodeGraphCoordinator``
     validates `Inverse` / `Rel` pairings at **build** time, not inside these
     containers.
     Choosing id types (``str``, ``int``, ``UUID``, …) — whatever the target

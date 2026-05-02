@@ -56,9 +56,9 @@ check() steps:
 SHARED DECORATOR CONTRACT
 ═══════════════════════════════════════════════════════════════════════════════
 
-Each decorator (result_string, result_int, ...) records metadata in the aspect
-method's _checker_meta. MetadataBuilder aggregates into the checker snapshot
-(GraphCoordinator.get_checkers). The decorator returns the original function unchanged;
+Each decorator (result_string, result_int, ...) records metadata on the aspect method in
+``_checker_meta``. Inspectors turn those rows into ``CheckerGraphNode`` interchange vertices
+during ``NodeGraphCoordinator.build()``. Decorators return the wrapped function unchanged;
 multiple decorators on one method accumulate a list of _checker_meta.
 
 ═══════════════════════════════════════════════════════════════════════════════

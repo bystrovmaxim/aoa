@@ -12,11 +12,6 @@ from action_machine.exceptions import (
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles import NoneRole, check_roles
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.legacy.binding.action_result_binding import (
-    bind_pipeline_result_to_action,
-    require_resolved_action_result_type,
-    synthetic_summary_result_when_missing_aspect,
-)
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
@@ -24,6 +19,11 @@ from action_machine.model.base_state import BaseState
 from action_machine.model.params_stub import ParamsStub
 from action_machine.model.result_stub import ResultStub
 from action_machine.resources.base_resource import BaseResource
+from action_machine.runtime.binding.action_result_binding import (
+    bind_pipeline_result_to_action,
+    require_resolved_action_result_type,
+    synthetic_summary_result_when_missing_aspect,
+)
 from action_machine.runtime.tools_box import ToolsBox
 from tests.scenarios.domain_model.domains import TestDomain
 

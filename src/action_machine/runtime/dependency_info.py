@@ -7,10 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Holds the dependency class, optional factory override, and description written
-by the ``@depends`` decorator. Inspectors read ``cls._depends_info`` lists of
-these objects;
-:class:`~action_machine.runtime.dependency_factory.DependencyFactory`
-consumes tuples of ``DependencyInfo`` from ``cls._depends_info``.
+by the ``@depends`` decorator. The list is stored as ``cls._depends_info``; runtime
+:class:`~action_machine.runtime.dependency_factory.DependencyFactory` consumes it.
 """
 
 from __future__ import annotations
@@ -26,7 +24,7 @@ class DependencyInfo:
     Immutable information about a single action dependency.
 
     Created by the ``@depends`` decorator and stored on ``cls._depends_info``.
-    The ``DependencyIntentInspector`` derives facet rows from this data; the runtime    ``DependencyFactory`` consumes this tuple directly in the machine.
+    :class:`~action_machine.runtime.dependency_factory.DependencyFactory` reads this tuple during ``ToolsBox`` construction.
 
     Attributes:
         cls: The dependency class (type requested via ``box.resolve``).

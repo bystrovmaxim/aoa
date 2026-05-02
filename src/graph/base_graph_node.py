@@ -2,27 +2,18 @@
 """
 BaseGraphNode — generic frozen interchange node.
 
-Constructor takes all interchange fields explicitly: ``node_id``, ``node_type``, ``label``,
-``node_obj`` (the host object the node describes, typically a class), and optional ``properties``,
-``edges``, and ``companion_nodes`` (each defaults to an empty ``dict`` / ``list`` when omitted or
-``None``).
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-``companion_nodes`` lists **direct** extra interchange vertices shipped with this host row: nodes
-that have no own graph-inspector axis (no ``type`` to walk), e.g. runtime-only rows such as
-:class:`~action_machine.graph_model.nodes.checker_graph_node.CheckerGraphNode`. The host still wires
-``edges`` to them by ``target_node_id``; :class:`~graph.node_graph_coordinator.NodeGraphCoordinator`
-recursively expands each node's direct companions while preserving duplicate-id validation.
+Frozen interchange row built from explicit ``node_id``, ``node_type``, ``label``,
+non-null ``node_obj``, and normalized ``properties`` (subclasses add ``edges`` /
+``companion_nodes``). Optional **companion** vertices bundle child interchange rows that
+have no inspector axis—e.g. checker nodes—into the owning host row; coordinators expand
+companions recursively with the same duplicate-id discipline as outbound edges.
 
-``node_id``, ``node_type``, ``label``, ``properties``, ``edges``, ``node_obj``, and ``companion_nodes``
-are frozen fields on the node (read-only after construction).
-
-String fields must be non-empty (after strip); ``node_obj`` must not be ``None``. Because the node
-is frozen, the constructor uses :func:`object.__setattr__`.
-
-Each :class:`~graph.base_graph_edge.BaseGraphEdge` records ``edge_name``, ``is_dag``,
-``target_node_id``, optional wired ``target_node``, and ``properties``.
-Interchange vertex types are read from wired nodes via :class:`~graph.base_graph_edge.BaseGraphEdge`;
-edge equality is structural (ids/properties) so cyclic host ↔ edge graphs compare safely.
+Nonempty stripped strings everywhere required; assigns use :func:`object.__setattr__`
+because instances are immutable.
 """
 
 from __future__ import annotations

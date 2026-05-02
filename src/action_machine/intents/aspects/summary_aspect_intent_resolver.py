@@ -6,8 +6,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.system_core.type_introspection import TypeIntrospection
-from graph.base_intent_inspector import BaseIntentInspector
+from action_machine.system_core import TypeIntrospection
 
 
 def _missing_summary_aspect_description_message(func: Callable[..., Any]) -> str:
@@ -41,7 +40,7 @@ class SummaryAspectIntentResolver:
     @staticmethod
     def resolve_description(call_like: Any) -> str:
         """Return stripped ``@summary_aspect`` description or raise :exc:`ValueError`."""
-        func = BaseIntentInspector._unwrap_declaring_class_member(call_like)
+        func = TypeIntrospection.unwrap_declaring_class_member(call_like)
         if not callable(func):
             raise ValueError(
                 "Expected an aspect callable or property exposing one; "

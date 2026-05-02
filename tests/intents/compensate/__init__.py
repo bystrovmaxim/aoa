@@ -17,7 +17,7 @@ test_compensate_decorator.py
     suffix, signature.
 
 tests/scenarios/intents_with_runtime/test_compensate_graph.py
-    GraphCoordinator graph: compensator nodes, has_compensator / requires_context edges;
+    ``NodeGraphCoordinator`` interchange graph: compensator nodes, has_compensator / requires_context edges;
     traversal via get_nodes_for_class / graph primitives.
 
 test_saga_rollback.py

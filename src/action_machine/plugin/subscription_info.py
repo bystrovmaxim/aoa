@@ -7,9 +7,10 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 SubscriptionInfo stores full configuration of one plugin method subscription.
-It is created by ``@on`` at class definition time and stored in
-``method._on_subscriptions``. Subscription snapshots are exposed via
-``GraphCoordinator.get_subscriptions()`` and consumed by ``PluginRunContext``.
+It is created by ``@on`` at class definition time and stored on the handler as
+``_on_subscriptions``. :class:`~action_machine.plugin.plugin.Plugin` gathers
+those records while resolving handlers for a run; :class:`~action_machine.plugin.plugin_run_context.PluginRunContext`
+consumes ``SubscriptionInfo`` when matching emitted events.
 
 One plugin method may have multiple subscriptions (multiple ``@on``). OR logic
 applies across subscriptions for one method; AND logic applies inside a single

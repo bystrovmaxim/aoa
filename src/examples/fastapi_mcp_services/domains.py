@@ -23,7 +23,7 @@ ARCHITECTURE / DATA FLOW
     @meta(..., domain=OrdersDomain | SystemDomain)
               |
               v
-         GraphCoordinator graph
+         ``NodeGraphCoordinator`` interchange graph
               |
               +-- domain nodes (class_ref -> OrdersDomain / SystemDomain)
               |

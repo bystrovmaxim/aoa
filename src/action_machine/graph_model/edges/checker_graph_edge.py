@@ -29,8 +29,8 @@ from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
+from action_machine.system_core import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
-from graph.base_intent_inspector import BaseIntentInspector
 from graph.composition_graph_edge import CompositionGraphEdge
 
 
@@ -59,7 +59,7 @@ class CheckerGraphEdge(CompositionGraphEdge):
     @staticmethod
     def checkers_for_method(method: Any) -> list[dict[str, Any]]:
         """Return normalized ``_checker_meta`` rows from method metadata."""
-        func = BaseIntentInspector._unwrap_declaring_class_member(method)
+        func = TypeIntrospection.unwrap_declaring_class_member(method)
         raw = getattr(func, "_checker_meta", None) if callable(func) else None
         return CheckerGraphEdge._normalized_checker_meta_rows(raw)
 

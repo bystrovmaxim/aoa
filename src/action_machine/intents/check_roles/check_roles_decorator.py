@@ -8,7 +8,7 @@ PURPOSE
 
 Declare which **role types** are required to execute an action. The decorator
 writes a normalized specification to ``cls._role_info["spec"]``, consumed by
-``RoleIntentInspector`` and ``ActionProductMachine`` / ``RoleChecker``. The
+``ActionProductMachine`` / :class:`~action_machine.runtime.role_checker.RoleChecker`. The
 spec must be ``NoneRole``, ``AnyRole``, a ``BaseRole`` subclass, or a
 non-empty list of ``BaseRole`` subclasses (OR semantics). ``Context.user.roles``
 holds the same ``BaseRole`` subclasses assigned to the user.
@@ -28,10 +28,7 @@ ARCHITECTURE / DATA FLOW
             +--> mode validation (UNUSED error, DEPRECATED warning)
             |
             v
-    RoleIntentInspector -> role facet snapshot
-            |
-            v
-    RoleChecker at runtime
+    Interchange ``ActionGraphNode.roles`` + ``RoleChecker`` at runtime
 
 ═══════════════════════════════════════════════════════════════════════════════
 COMPONENTS

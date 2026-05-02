@@ -17,7 +17,7 @@ ARCHITECTURE / DATA FLOW
     TestBench(**kwargs)
               |
               v
-    GraphCoordinator (default) + _prepare_all_mocks(mocks)
+    built ``NodeGraphCoordinator`` (default) + _prepare_all_mocks(mocks)
               |
               v
     _prepared_mocks  ready for ``box.resolve()`` during runs

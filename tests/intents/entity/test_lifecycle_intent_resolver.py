@@ -10,15 +10,14 @@ from tests.scenarios.domain_model.entities import DraftLifecycle, LifecycleEntit
 
 from action_machine.domain.lifecycle import StateType
 from action_machine.intents.entity.lifecycle_intent_resolver import LifeCycleIntentResolver
-from action_machine.legacy.entity_intent_inspector import collect_entity_lifecycles
 
 
-def test_resolve_lifecycle_fields_aligns_with_legacy_collector() -> None:
+def test_resolve_lifecycle_fields_includes_expected_template() -> None:
     resolver_rows = LifeCycleIntentResolver.resolve_lifecycle_fields(LifecycleEntity)
-    legacy_rows = collect_entity_lifecycles(LifecycleEntity)
-    assert [(r.field_name, r.lifecycle_class) for r in resolver_rows] == [
-        (item.field_name, item.lifecycle_class) for item in legacy_rows
-    ]
+    assert len(resolver_rows) == 1
+    row = resolver_rows[0]
+    assert row.field_name == "lifecycle"
+    assert row.lifecycle_class is DraftLifecycle
 
 
 def test_resolve_finite_state_machine_returns_readonly_states() -> None:

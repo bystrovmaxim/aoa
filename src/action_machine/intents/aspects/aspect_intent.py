@@ -17,7 +17,7 @@ ARCHITECTURE / DATA FLOW
     @regular_aspect / @summary_aspect
                  |
                  v
-     AspectIntentInspector collects own-class aspects (``vars(cls)``)
+     Interchange aspect nodes (graph model collectors) derive from own-class declarations
                  |
                  v
     require_aspect_intent_marker(...)
