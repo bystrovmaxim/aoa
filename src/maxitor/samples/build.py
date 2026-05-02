@@ -1,17 +1,13 @@
 # src/maxitor/samples/build.py
-"""Импорт всех модулей samples и сборка ``GraphCoordinator`` (как в проде — только сайд-эффекты)."""
+"""Sample module list for import-time registration side effects."""
 
 from __future__ import annotations
 
-import importlib
 from typing import Final
-
-from action_machine.legacy.core import Core
-from graph.graph_coordinator import GraphCoordinator
 
 _MODULES: Final[tuple[str, ...]] = (
     "maxitor.samples.roles",
-    # billing — полный контур как у store
+    # billing: full contour, matching store depth
     "maxitor.samples.billing.domain",
     "maxitor.samples.billing.entities",
     "maxitor.samples.billing.dependencies",
@@ -32,7 +28,7 @@ _MODULES: Final[tuple[str, ...]] = (
     "maxitor.samples.catalog.dependencies",
     "maxitor.samples.catalog.resources",
     "maxitor.samples.catalog.plugins",
-    # store (зависит от billing/messaging сервисов)
+    # store (depends on billing/messaging services)
     "maxitor.samples.store.domain",
     "maxitor.samples.store.dependencies",
     "maxitor.samples.store.entities",
@@ -40,13 +36,7 @@ _MODULES: Final[tuple[str, ...]] = (
     "maxitor.samples.store.plugins",
     "maxitor.samples.catalog.actions",
     "maxitor.samples.store.actions",
-    # support — @depends на BaseAction в том же домене и в store
+    # support: @depends on BaseAction in the same domain and in store
     "maxitor.samples.support.domain",
     "maxitor.samples.support.actions",
 )
-
-
-def build_sample_coordinator() -> GraphCoordinator:
-    for name in _MODULES:
-        importlib.import_module(name)
-    return Core.create_coordinator()
