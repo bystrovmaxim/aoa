@@ -71,7 +71,10 @@ Aspects, compensators, and ``@on_error`` handlers cannot read ``Context`` from
 
 **Coordinator access**
 
-Protocol adapters and tools should use the public ``gate_coordinator`` property
+Protocol adapters and tools should use ``gate_coordinator`` (facet
+``GraphCoordinator``) or ``graph_coordinator`` (``NodeGraphCoordinator`` from
+``create_node_graph_coordinator``, built lazily on first read so ordinary runs and
+tests that never touch node graph skip the expensive global interchange build)
 instead of private ``_coordinator``.
 
 """
@@ -112,7 +115,9 @@ from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.runtime.tools_box_factory import ToolsBoxFactory
 from action_machine.system_core import TypeIntrospection
+from graph.create_node_graph_coordinator import create_node_graph_coordinator
 from graph.graph_coordinator import GraphCoordinator
+from graph.node_graph_coordinator import NodeGraphCoordinator
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
@@ -145,7 +150,7 @@ class ActionProductMachine(BaseActionMachine):
     AI-CORE-BEGIN
     ROLE: Public production machine entry point.
     CONTRACT: ``run`` → orchestrated pipeline; keyword-only component overrides.
-    INVARIANTS: built ``GraphCoordinator``; interchange ``ActionGraphNode`` resolves role composition and downstream gates for each action class.
+    INVARIANTS: built ``GraphCoordinator``; ``NodeGraphCoordinator`` from ``create_node_graph_coordinator()`` on first ``graph_coordinator`` read (stored on ``self``); interchange ``ActionGraphNode`` resolves role composition and downstream gates for each action class.
     AI-CORE-END
     """
 
@@ -177,6 +182,7 @@ class ActionProductMachine(BaseActionMachine):
         )
         self._log_coordinator: LogCoordinator = log_coordinator
         self._coordinator: GraphCoordinator = coordinator
+        self._node_graph_coordinator: NodeGraphCoordinator | None = None
 
         self._plugin_emit = PluginEmitSupport(
             self._log_coordinator,
@@ -223,6 +229,15 @@ class ActionProductMachine(BaseActionMachine):
         Adapters and tools should use this property instead of ``_coordinator``.
         """
         return self._coordinator
+
+    @property
+    def graph_coordinator(self) -> NodeGraphCoordinator:
+        """Lazy default ``NodeGraphCoordinator`` — created on first read, reused after."""
+        value = self._node_graph_coordinator
+        if value is None:
+            value = cast(NodeGraphCoordinator, create_node_graph_coordinator())
+            self._node_graph_coordinator = value
+        return value
 
     @property
     def plugin_emit_support(self) -> PluginEmitSupport:
