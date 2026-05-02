@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.exceptions import MissingMetaError
 from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
 from action_machine.resources.base_resource import BaseResource
 from graph.base_graph_node import BaseGraphNode
@@ -40,4 +41,7 @@ class ResourceGraphNodeInspector(BaseGraphNodeInspector[BaseResource]):
     """
 
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        return ResourceGraphNode(cls)
+        try:
+            return ResourceGraphNode(cls)
+        except MissingMetaError:
+            return None

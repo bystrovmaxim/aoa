@@ -353,7 +353,7 @@ class TestHandlerSuccess:
         machine.run = AsyncMock(return_value=mock_result)
 
         handler = _make_tool_handler(
-            record, machine, auth, None, machine.gate_coordinator,
+            record, machine, auth, None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -373,7 +373,7 @@ class TestHandlerSuccess:
         machine.run = AsyncMock(return_value=PingAction.Result(message="pong"))
 
         handler = _make_tool_handler(
-            record, machine, auth, None, machine.gate_coordinator,
+            record, machine, auth, None, machine.graph_coordinator,
         )
         result = await handler()
         env = _tool_result_envelope(result)
@@ -387,7 +387,7 @@ class TestHandlerSuccess:
         record = _make_record(tool_name="orders.create")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
 
         assert handler.__name__ == "orders_create"
@@ -399,7 +399,7 @@ class TestHandlerSuccess:
         record = _make_record(tool_name="my-tool-name")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
 
         assert handler.__name__ == "my_tool_name"
@@ -421,7 +421,7 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -443,7 +443,7 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -461,7 +461,7 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -479,7 +479,7 @@ class TestHandlerErrors:
         record = _make_record(action_class=SimpleAction, tool_name="simple.run")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -504,7 +504,7 @@ class TestHandlerErrors:
         record = _make_record(action_class=SimpleAction, tool_name="simple.run")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler(name=[])
 
@@ -524,7 +524,7 @@ class TestHandlerErrors:
         record = _make_record(action_class=SimpleAction, tool_name="simple.run")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler(name="")
 
@@ -548,7 +548,7 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -587,7 +587,7 @@ class TestHandlerWithMappers:
         )
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         await handler()
 
@@ -607,7 +607,7 @@ class TestHandlerWithMappers:
         )
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -627,7 +627,7 @@ class TestHandlerWithMappers:
             params_mapper=lambda _p: PingAction.Params(),  # not SimpleAction.Params
         )
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler(name="Alice")
 
@@ -653,7 +653,7 @@ class TestHandlerWithMappers:
             response_mapper=lambda _r: "not-alt-response",  # type: ignore[return-value]
         )
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler(name="Bob")
 
@@ -685,7 +685,7 @@ class TestHandlerWithConnections:
 
         record = _make_record()
         handler = _make_tool_handler(
-            record, machine, _make_auth(), factory, machine.gate_coordinator,
+            record, machine, _make_auth(), factory, machine.graph_coordinator,
         )
         await handler()
 
@@ -708,7 +708,7 @@ class TestBuildGraphJson:
         coordinator = Core.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
-        json_str = _build_graph_json(machine.gate_coordinator)
+        json_str = _build_graph_json(machine.graph_coordinator)
         parsed = json.loads(json_str)
 
         assert "nodes" in parsed
@@ -721,7 +721,7 @@ class TestBuildGraphJson:
         coordinator = Core.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
-        json_str = _build_graph_json(machine.gate_coordinator)
+        json_str = _build_graph_json(machine.graph_coordinator)
         parsed = json.loads(json_str)
 
         node_ids = [n.get("id", "") for n in parsed["nodes"]]
@@ -733,7 +733,7 @@ class TestBuildGraphJson:
         coordinator = Core.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
-        json_str = _build_graph_json(machine.gate_coordinator)
+        json_str = _build_graph_json(machine.graph_coordinator)
         parsed = json.loads(json_str)
 
         action_nodes = [n for n in parsed["nodes"] if n.get("type") == "Action"]
@@ -750,7 +750,7 @@ class TestBuildGraphJson:
         coordinator = Core.create_coordinator()
         machine = ActionProductMachine(mode="test", coordinator=coordinator)
 
-        json_str = _build_graph_json(machine.gate_coordinator)
+        json_str = _build_graph_json(machine.graph_coordinator)
         parsed = json.loads(json_str)
 
         assert parsed["edges"]

@@ -52,8 +52,7 @@ fall back to ``get_snapshot(cls, node_type)`` unless the payload set
 ``skip_node_type_snapshot_fallback`` (see :class:`~graph.facet_vertex.FacetVertex`).
 
 Dependency ``DependencyFactory`` instances may be cached on this object under
-``dependency_factory.DEPENDENCY_FACTORY_CACHE_KEY``; clearing that cache does
-not rebuild or invalidate the facet graph.
+``dependency_factory.DEPENDENCY_FACTORY_CACHE_KEY``.
 
 The canonical implementation is **this** module. Typical apps use
 ``Core.create_coordinator()`` for a pre-built coordinator.

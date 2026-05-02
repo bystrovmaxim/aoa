@@ -9,34 +9,8 @@ PURPOSE
 Provide a stateless factory that creates dependency instances declared via
 ``@depends``. The factory is built from ``DependencyInfo`` snapshots obtained
 from ``GraphCoordinator``. Each call to ``resolve()`` creates a new instance
-(no internal instance cache). The module also provides coordinator-level cache
-helpers for factory reuse.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    GraphCoordinator.get_snapshot(cls, "depends")
-            │
-            ▼
-    tuple[DependencyInfo, ...]
-            │
-            ▼
-    cached_dependency_factory(coordinator, cls)
-            │
-            ▼
-    DependencyFactory(dependencies)   ← cached on coordinator.__dict__
-            │
-            ▼
-    ToolsBox.resolve(PaymentService) -> factory.resolve(PaymentService, *args, **kwargs)
-            │
-            ├─ factory(*args, **kwargs) or klass(*args, **kwargs)
-            │
-            └─ if rollup=True and instance is BaseResource:
-                   instance.check_rollup_support()
-
+(no internal instance cache). The module also provides a coordinator-level cache
+helper for factory reuse.
 """
 
 from __future__ import annotations
@@ -179,13 +153,3 @@ def cached_dependency_factory(
             deps = ()
         cache[cls] = DependencyFactory(deps)
     return cache[cls]
-
-
-def clear_dependency_factory_cache(coordinator: GraphCoordinator) -> int:
-    """Clear the factory cache on the coordinator; return the number of removed entries."""
-    raw = coordinator.__dict__.get(DEPENDENCY_FACTORY_CACHE_KEY)
-    if not isinstance(raw, dict) or not raw:
-        return 0
-    n = len(raw)
-    raw.clear()
-    return n

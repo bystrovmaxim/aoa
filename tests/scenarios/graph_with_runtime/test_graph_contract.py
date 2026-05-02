@@ -18,6 +18,7 @@ from typing import Any, Final
 from action_machine.integrations.mcp.adapter import _build_graph_json
 from action_machine.legacy.core import Core
 from graph.base_intent_inspector import BaseIntentInspector
+from graph.create_node_graph_coordinator import create_node_graph_coordinator
 from graph.graph_coordinator import GraphCoordinator
 
 # Register a minimal action in the BaseAction subclass tree before build().
@@ -130,7 +131,7 @@ def test_contract_node_keys_follow_type_name_pattern() -> None:
 
 def test_contract_mcp_graph_json_schema() -> None:
     """JSON ``system://graph``: root, nodes, edges use fixed keys."""
-    coord = _default_coordinator()
+    coord = create_node_graph_coordinator()
     data = json.loads(_build_graph_json(coord))
     assert set(data.keys()) == MCP_GRAPH_TOP_KEYS
 
@@ -165,7 +166,7 @@ def test_contract_mcp_graph_json_schema() -> None:
 
 def test_contract_mcp_edge_keys_match_node_coordinates() -> None:
     """``source_key`` / ``target_key`` match ``type:id`` of MCP JSON nodes."""
-    coord = _default_coordinator()
+    coord = create_node_graph_coordinator()
     data: dict[str, Any] = json.loads(_build_graph_json(coord))
     id_by_coord = {f"{n['type']}:{n['id']}": n for n in data["nodes"]}
     for e in data["edges"]:

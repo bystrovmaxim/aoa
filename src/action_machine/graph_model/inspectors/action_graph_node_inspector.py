@@ -30,6 +30,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_machine.exceptions import MissingCheckRolesError, MissingMetaError
 from action_machine.model.base_action import BaseAction
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
@@ -47,4 +48,7 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
     """
 
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        return ActionGraphNode(cls)
+        try:
+            return ActionGraphNode(cls)
+        except (MissingCheckRolesError, MissingMetaError):
+            return None

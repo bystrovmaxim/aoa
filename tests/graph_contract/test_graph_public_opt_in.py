@@ -11,6 +11,7 @@ import pytest
 
 from action_machine.integrations.mcp.adapter import _build_graph_json
 from action_machine.legacy.core import Core
+from graph.create_node_graph_coordinator import create_node_graph_coordinator
 from maxitor.samples.build import _MODULES
 
 
@@ -34,9 +35,9 @@ def test_default_graph_counts_match_get_graph() -> None:
     assert coord.graph_edge_count == len(coord.get_graph().weighted_edge_list())
 
 
-def test_mcp_build_graph_json_stays_facet_shaped() -> None:
+def test_mcp_build_graph_json_uses_node_graph_shape() -> None:
     _import_test_domain_modules()
-    coord = Core.create_coordinator()
+    coord = create_node_graph_coordinator()
     raw = _build_graph_json(coord)
     data = json.loads(raw)
     assert data["nodes"]
