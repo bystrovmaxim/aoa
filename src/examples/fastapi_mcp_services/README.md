@@ -5,7 +5,7 @@ run through any protocol adapter without modification**.
 
 Actions inherit the standard set of **Intent** mixins from `BaseAction` and
 declare behavior with decorators (`@meta`, `@check_roles`, aspects, dependencies).
-The metadata graph is built when `GraphCoordinator.build()` runs from those declarations —
+The metadata graph is built when ``NodeGraphCoordinator.build()`` runs from those declarations —
 see the “Key concepts: Intent” section in the root `README.md`.
 
 Three actions (PingAction, CreateOrderAction, GetOrderAction) are defined once
@@ -235,7 +235,7 @@ serves HTTP clients and AI agents at the same time, without duplication.
 ```
 fastapi_mcp_services/
 ├── __init__.py              ← example overview
-├── infrastructure.py        ← GraphCoordinator + ActionProductMachine (shared)
+├── infrastructure.py        ← built ``NodeGraphCoordinator`` + ``ActionProductMachine`` (shared)
 ├── domains.py               ← business domains (OrdersDomain, SystemDomain)
 ├── actions/
 │   ├── __init__.py

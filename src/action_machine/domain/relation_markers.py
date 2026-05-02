@@ -28,7 +28,7 @@ SCOPE (IN / OUT)
 
 **Out of scope**
     Proving the inverse field exists, types match, or ownership is compatible —
-    **inspectors** and ``GraphCoordinator.build()`` do that.
+    **inspectors** and ``NodeGraphCoordinator.build()`` do that.
     Loading related rows from storage.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -43,7 +43,7 @@ ARCHITECTURE / DATA FLOW
         v
     = Rel(description="…")
         │
-        │  GraphCoordinator.build() + EntityIntentInspector
+        │  ``NodeGraphCoordinator.build()`` / ``EntityIntentResolver``
         v
     validated entity–entity edges (composition / aggregation / association)
 

@@ -8,9 +8,9 @@ PURPOSE
 
 ``BaseAction`` is parameterized by ``P`` (a ``BaseParams`` subclass) and ``R``
 (a ``BaseResult`` subclass). Subclasses declare behavior with class- and method-level decorators;
-markers in the MRO enable those decorators. Runtime execution and metadata reads
-go through ``GraphCoordinator`` facet snapshots (built by intent inspectors),
-not through helper APIs on this class.
+markers in the MRO enable those decorators. Runtime execution and metadata reads use
+interchange facet payloads assembled when ``NodeGraphCoordinator.build()`` runs the
+graph-model inspectors—not through helper APIs on this class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -24,7 +24,7 @@ ARCHITECTURE / DATA FLOW
     Class-level / method-level scratch attrs on the action class
          │
          ▼
-    GraphCoordinator.build()  →  inspectors  →  facet snapshots + graph
+    NodeGraphCoordinator.build()  →  inspectors  →  facet snapshots + graph
          │
          ▼
     ActionProductMachine.run()  →  get_snapshot(action_cls, facet_key)
@@ -49,9 +49,8 @@ ARCHITECTURE — MARKER MIXINS
 Class-level decorators validate the marker immediately; method-level decorators
 are validated when the coordinator runs inspectors on the class.
 
-The legacy graph inspector for ``BaseAction[P, R]`` schema bindings is
-:class:`~action_machine.legacy.action_typed_schemas_inspector.ActionTypedSchemasInspector`
-(so :mod:`action_machine.model.base_action` avoids extractor imports at module tail).
+Params / result bindings appear on interchange ``Action`` rows via
+``ParamsGraphEdge`` / ``ResultGraphEdge`` (:class:`~action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES

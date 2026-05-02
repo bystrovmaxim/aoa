@@ -34,7 +34,7 @@ from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNo
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.legacy.interchange_vertex_labels import (
+from action_machine.interchange.vertex_labels import (
     APPLICATION_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
 )

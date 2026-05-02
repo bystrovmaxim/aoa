@@ -67,8 +67,8 @@ ARCHITECTURE / DATA FLOW
         ▼  Decorator writes method._on_error_meta
     {"exception_types": (ValueError,), "description": "..."}
         │
-        ▼  OnErrorIntentInspector._collect_error_handlers(cls)
-    ErrorHandler(..., context_keys=frozenset(...))
+        ▼  OnErrorIntentResolver + :func:`hydrate_error_handler_row`
+    Handler metadata for tests / facet codecs
         │
         ▼  ActionProductMachine._handle_aspect_error(...)
     If context_keys non-empty -> creates ContextView and passes as ctx.
@@ -239,7 +239,7 @@ def on_error(
     """
     Method-level decorator declaring aspect error handler contract.
 
-    Writes metadata to ``method._on_error_meta`` for inspector/runtime use.
+    Writes metadata to ``method._on_error_meta`` for runtime resolvers / facet codecs.
     """
     # Validate decorator arguments before method application.
     normalized_types = _exception_types_invariant(exception_types)

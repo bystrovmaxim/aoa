@@ -86,7 +86,7 @@ class InvalidGraphError(Exception):
 class PayloadValidationError(TypeError):
     """
     AI-CORE-BEGIN
-    ROLE: Phase-2 ``FacetVertex`` payload shape check: ``node_type``, ``node_name``, ``node_class`` must be valid non-empty / ``type`` as applicable.
+    ROLE: Phase-2 inspector vertex payload shape check: ``node_type``, ``node_name``, ``node_class`` must be valid non-empty / ``type`` as applicable.
     CONTRACT: ``TypeError`` subclass; ``node_class``, ``field_name``, ``detail`` on the instance; ``str()`` includes class repr and field.
     INVARIANTS: Developer/inspector bug class (empty ids, wrong ``node_class`` kind), not runtime user validation.
     FAILURES: Omitted fields in ``_build_payload``, bad class ref in name helpers, non-type where a class is required.
@@ -110,6 +110,6 @@ class PayloadValidationError(TypeError):
             else repr(node_class)
         )
         super().__init__(
-            f"Invalid FacetVertex for {class_name}: "
+            f"Invalid inspector vertex payload for {class_name}: "
             f"field '{field_name}' — {detail}"
         )

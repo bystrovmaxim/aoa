@@ -14,7 +14,6 @@ from action_machine.graph_model.nodes.compensator_graph_node import CompensatorG
 from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.legacy.application_context import ApplicationContext
 from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
@@ -56,17 +55,21 @@ class _TestGraphNode(BaseGraphNode[object]):
         return self._edges
 
 
+class _ApplicationNodePayload:
+    """Test-only payload type for ``node_type=\"Application\"`` viz round-trips."""
+
+
 def test_interchange_node_and_edge_to_visual_dicts() -> None:
     n = _TestGraphNode(
-        node_id=TypeIntrospection.full_qualname(ApplicationContext),
+        node_id=TypeIntrospection.full_qualname(_ApplicationNodePayload),
         node_type="Application",
-        label=ApplicationContext.__name__,
-        node_obj=ApplicationContext,
+        label=_ApplicationNodePayload.__name__,
+        node_obj=_ApplicationNodePayload,
     )
     d = interchange_node_to_visual_dict(n)
     assert d["id"] == n.node_id
     assert d["node_type"] == "Application"
-    assert "ApplicationContext" in d["node_obj"]
+    assert "_ApplicationNodePayload" in d["node_obj"]
     e = AssociationGraphEdge(
         edge_name="belongs_to",
         is_dag=False,

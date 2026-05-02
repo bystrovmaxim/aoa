@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Attach dependency declarations to a class. At runtime, the dependency list is
-read from the ``depends`` snapshot, converted into ``DependencyFactory``, and
+read from ``cls._depends_info``, converted into ``DependencyFactory``, and
 exposed through ``ToolsBox``. Aspects then resolve dependencies via
 ``box.resolve(PaymentService)``.
 
@@ -22,8 +22,8 @@ ARCHITECTURE / DATA FLOW
          ▼  writes scratch on cls
     DependencyInfo(cls=PaymentService, description="Payment service")
          │
-         ▼  DependencyIntentInspector reads _depends_info
-    coordinator snapshot → tuple[DependencyInfo, ...]
+         ▼  ``DependsGraphEdge`` / interchange metadata read ``_depends_info``
+    graph ``Action`` vertex lists dependency targets
          │
          ▼  DependencyFactory(deps); runtime uses ``cls._depends_info`` equivalently
          │

@@ -43,8 +43,8 @@ EntityDecoratorError
 
 LifecycleValidationError
     A `Lifecycle` template attached to an entity fails one of the eight
-    structural integrity rules when validated during `GraphCoordinator.build()`
-    (via `EntityIntentInspector` / entity lifecycle validation).
+    structural integrity rules when validated during graph assembly
+    (lifecycle intent resolvers / ``EntityIntentResolver``).
 """
 
 from __future__ import annotations

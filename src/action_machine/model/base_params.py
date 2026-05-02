@@ -46,8 +46,8 @@ FIELD DESCRIPTIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
 Each field should use ``Field(description="...")``. Description completeness is
-validated by ``validate_described_schema`` /
-``validate_described_schemas_for_action`` (see described-fields intent).
+validated by :mod:`action_machine.model.described_schema_validation`
+(``validate_described_schema`` / ``validate_described_schemas_for_action``).
 Descriptions are used for OpenAPI (FastAPI), JSON Schema (MCP), and introspection.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -92,18 +92,17 @@ ARCHITECTURE / DATA FLOW
 
 from pydantic import ConfigDict
 
-from action_machine.legacy.described_fields.marker import DescribedFieldsIntent
 from action_machine.model.base_schema import BaseSchema
 from graph.exclude_graph_model import exclude_graph_model
 
 
 @exclude_graph_model
-class BaseParams(BaseSchema, DescribedFieldsIntent):
+class BaseParams(BaseSchema):
     """
     Immutable action parameters (frozen + forbid).
 
-    Inherits dict-like and dot-path access from ``BaseSchema`` plus described
-    field validation contract from ``DescribedFieldsIntent``.
+    Subclasses participate in described-field validation
+    (:mod:`~action_machine.model.described_schema_validation`).
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

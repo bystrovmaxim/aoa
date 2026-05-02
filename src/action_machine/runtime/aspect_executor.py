@@ -10,8 +10,7 @@ Provide a dedicated component for aspect execution in machine orchestration.
 This component owns regular/summary execution paths, including
 ``context_requires`` handling, checker validation, and immutable state merge.
 ``execute_regular`` and ``execute_summary`` share ``call_aspect`` as the sole
-aspect-method dispatcher (facet ``AspectIntentInspector`` only; not compensators
-or saga rollback).
+aspect-method dispatcher for regular pipeline aspects (not compensators or saga rollback).
 
 Logging metadata (``LogCoordinator``, ``mode``, ``machine_class_name``) is
 injected at construction so aspect calls stay decoupled from machine internals.
@@ -48,10 +47,6 @@ from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
 from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
 from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.legacy.binding.action_result_binding import (
-    bind_pipeline_result_to_action,
-    synthetic_summary_result_when_missing_aspect,
-)
 from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
@@ -60,6 +55,10 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource import BaseResource
+from action_machine.runtime.binding.action_result_binding import (
+    bind_pipeline_result_to_action,
+    synthetic_summary_result_when_missing_aspect,
+)
 from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox
 

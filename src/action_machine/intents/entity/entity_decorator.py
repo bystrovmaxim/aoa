@@ -13,11 +13,10 @@ It performs three responsibilities:
 
 2. **Scratch metadata** — writes ``_entity_info`` on the class with keys
    ``"description"`` and ``"domain"``. This is the **grammar trace** decorators
-   leave for tools and for ``EntityIntentInspector``.
+   leave for tooling.
 
-3. **Discovery** — ``EntityIntentInspector`` finds decorated classes during
-   ``GraphCoordinator.build()`` and emits facet payloads / snapshots. The
-   decorator itself never touches the coordinator.
+3. **Discovery** — ``EntityIntentResolver`` and entity relation/lifecycle resolvers read the
+   scratch when graph metadata is assembled. The decorator itself never touches the coordinator.
 
 ═══════════════════════════════════════════════════════════════════════════════
 WHY NOT ``@meta``
@@ -58,11 +57,11 @@ ARCHITECTURE / DATA FLOW
         ▼  writes scratch on cls
     _entity_info = {"description": ..., "domain": ShopDomain}
         │
-        ▼  EntityIntentInspector at GraphCoordinator.build()
-    Reads _entity_info + pydantic model_fields → FacetVertex / snapshot
+        ▼  ``EntityIntentResolver`` + lifecycle/relation resolvers during graph export / build
+    Read ``_entity_info`` + Pydantic ``model_fields`` → ``EntityGraphNode`` / metadata
         │
         ▼
-    Facet graph: ``entity`` node, optional ``belongs_to`` domain edge, …
+    Interchange graph: entity node, optional domain edge, …
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLE
@@ -174,8 +173,8 @@ def entity(
     """
     Class decorator: declare a domain entity.
 
-    Writes ``_entity_info`` on the target class. ``EntityIntentInspector``
-    reads it when the coordinator graph is built.
+    Writes ``_entity_info`` on the target class. Collectors and resolvers read it
+    when graph metadata is assembled.
 
     Args:
         description:
@@ -198,7 +197,7 @@ def entity(
     AI-CORE-BEGIN
     PURPOSE: Import-time declaration point for entity metadata.
     INPUT/OUTPUT: Accepts validated ``description``/``domain`` and returns a class decorator.
-    SIDE EFFECTS: Writes ``cls._entity_info`` used later by ``EntityIntentInspector``.
+    SIDE EFFECTS: Writes ``cls._entity_info`` consumed by entity graph export and resolvers.
     FAILURES: Raises ``EntityDecoratorError`` via target/argument validators.
     ORDER: Runs at class definition time before coordinator graph build.
     AI-CORE-END

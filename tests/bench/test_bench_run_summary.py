@@ -20,7 +20,7 @@ ARCHITECTURE / DATA FLOW
     run_summary(action, params, state=..., rollup=..., connections=...)
               |
               v
-    State validator  ->  GraphCoordinator checker metadata
+    State validator  ->  checker rows read from ``NodeGraphCoordinator``
               |
               v
     Summary ``build_result`` reads ``txn_id``, ``total`` from state (FullAction)

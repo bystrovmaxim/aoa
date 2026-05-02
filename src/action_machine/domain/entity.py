@@ -22,15 +22,14 @@ SCOPE (IN / OUT)
     Class-level naming invariant (`*Entity` suffix).
     Pydantic model config: `frozen=True`, `extra="forbid"`.
     Partial construction via `partial()` and fail-fast access via `__getattr__`.
-    Mixins `EntityIntent` and `DescribedFieldsIntent` so `@entity` and
-    non-empty `Field(description=...)` are part of the entity contract.
+    Mixins ``EntityIntent`` so ``@entity`` and non-empty ``Field(description=...)`` policies apply.
 
 **Out of scope (by design)**
     Persistence queries, caching, and lazy loading — partial instances never
     fetch missing fields.
     API schemas, OpenAPI, or RPC payloads — use separate DTOs when needed.
-    Coordinator graph construction — lives in metadata inspectors and
-    `GraphCoordinator.build()`, not in this file.
+    Interchange graph construction — lives in graph-model inspectors when
+    ``NodeGraphCoordinator.build()`` runs, not in this file.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -42,17 +41,16 @@ Inheritance (simplified):
         └── BaseSchema          — dict-like access, dot-path `resolve()`
                 └── BaseEntity (ABC)
                         + EntityIntent           — declares `@entity` grammar
-                        + DescribedFieldsIntent  — non-empty field descriptions
 
 Coordinator-facing flow (conceptual):
 
     @entity  ──writes──>  _entity_info  (scratch)
          │
          ▼
-    EntityIntentInspector  ──reads model + scratch──>  facet payloads / graph
+    Entity collectors + ``EntityIntentResolver``  ──reads model + scratch──> interchange metadata
          │
          ▼
-    GraphCoordinator  (after `build()`)
+    ``NodeGraphCoordinator`` interchange graph after ``build()``
 
 Partial load vs full construction:
 
@@ -76,7 +74,7 @@ schema drift in long action pipelines. Splitting **entity** types from **API**
 types avoids leaking persistence shapes and partial-load internals to clients.
 `partial()` skips validation intentionally: the loader is trusted to supply
 consistent subsets; raising on first read of a missing field surfaces bugs
-immediately without hidden queries. Mixing intent markers into the base class keeps
+immediately without hidden queries. The ``EntityIntent`` mixin on the base class keeps
 the rule “only entities use `@entity`” enforceable via `issubclass` at decorator
 time rather than ad hoc checks.
 
@@ -103,7 +101,6 @@ from pydantic import ConfigDict
 from action_machine.domain.exceptions import FieldNotLoadedError
 from action_machine.exceptions import NamingSuffixError
 from action_machine.intents.entity.entity_intent import EntityIntent
-from action_machine.legacy.described_fields.marker import DescribedFieldsIntent
 from action_machine.model.base_schema import BaseSchema
 from graph.exclude_graph_model import exclude_graph_model
 
@@ -111,7 +108,7 @@ from graph.exclude_graph_model import exclude_graph_model
 _REQUIRED_SUFFIX = "Entity"
 
 @exclude_graph_model
-class BaseEntity(BaseSchema, ABC, EntityIntent, DescribedFieldsIntent):
+class BaseEntity(BaseSchema, ABC, EntityIntent):
     """
 AI-CORE-BEGIN
     ROLE: Shared entity base with strict runtime access semantics.

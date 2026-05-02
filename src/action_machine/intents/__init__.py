@@ -23,7 +23,7 @@ ARCHITECTURE / DATA FLOW
     Intent inspectors (validation + snapshot)
             |
             v
-    GraphCoordinator facet storage
+    ``NodeGraphCoordinator`` interchange vertices (after ``build()``)
             |
             v
     Runtime coordinators (auth, logging, plugins, etc.)

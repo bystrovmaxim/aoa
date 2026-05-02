@@ -85,8 +85,7 @@ ARCHITECTURE / DATA FLOW
         ...
     )
         │
-        ▼  MetadataBuilder.collect_subscriptions (optional tooling)
-        ▼  GraphCoordinator.get_subscriptions() snapshot
+        ▼  :class:`~action_machine.plugin.plugin.Plugin` collects ``SubscriptionInfo`` from handlers
         │
         ▼  PluginRunContext.emit_event(event)
     Per subscription: filter chain -> handler call

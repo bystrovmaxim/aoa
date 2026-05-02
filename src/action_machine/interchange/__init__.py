@@ -1,39 +1,23 @@
-# src/action_machine/legacy/described_fields/__init__.py
+# src/action_machine/interchange/__init__.py
 """
-Described-fields package exports marker and validators.
+Interchange — shared ``node_type`` string aliases for facet graphs.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-This package exposes the described-fields intent marker and helper validators
-used by graph inspectors to enforce declared schema metadata contracts.
+Keeps interchange vertex literals in a shallow package so MCP, viz, and tests
+can share strings without importing the full :mod:`graph` coordinator surface.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    Action class
-        |
-        v
-    DescribedFieldsIntent marker
-        |
-        +--> validate_described_schema(...)
-        +--> validate_described_schemas_for_action(...)
-        |
-        v
-    described_fields_intent_inspector (graph build / validation phase)
+::
+
+    inspectors emit ``node_type`` strings
+              │
+              ▼
+              vertex_labels (shared aliases)
 
 """
-
-from action_machine.legacy.described_fields.marker import (
-    DescribedFieldsIntent,
-    validate_described_schema,
-    validate_described_schemas_for_action,
-)
-
-__all__ = [
-    "DescribedFieldsIntent",
-    "validate_described_schema",
-    "validate_described_schemas_for_action",
-]

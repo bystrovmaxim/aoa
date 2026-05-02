@@ -23,12 +23,12 @@ facets: ``intent -> decorator -> scratch -> inspector -> coordinator``.
          v
     EntityIntent  (marker: “this class declares the @entity grammar”)
          │
-         │ at coordinator.build()
+         │ at coordinator.build() / graph export
          v
-    EntityIntentInspector  ──reads scratch + model_fields──>  FacetVertex / snapshots
+    ``EntityIntentResolver`` + relation / lifecycle intent resolvers  ──read scratch + ``model_fields``──> metadata
          │
          v
-    GraphCoordinator graph  (entity nodes, belongs_to domain, relation edges, …)
+    interchange graph from ``NodeGraphCoordinator`` / ``EntityGraphNode`` rows  (entities, domains, relation edges, …)
 
 ═══════════════════════════════════════════════════════════════════════════════
 PACKAGE CONTENTS
@@ -41,7 +41,7 @@ Domains:
 Entities:
     BaseEntity — abstract base for all entities (frozen, `extra="forbid"`).
     EntityIntent — marker mixin: the type declares participation in the
-    ``@entity`` grammar (facet / inspector at ``GraphCoordinator.build()``).
+    ``@entity`` grammar (facet / inspector at ``NodeGraphCoordinator.build()``).
     entity — class decorator declaring an entity (`_entity_info`).
 
 State machines:

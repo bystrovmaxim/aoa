@@ -58,18 +58,13 @@ ARCHITECTURE / DATA FLOW
               │
         ContextAssembler maps external credentials → UserInfo(roles=(…BaseRole types))
 
-        Action classes (CheckRolesIntent) + @check_roles(AdminRole | [RoleA, RoleB] | …)
-              │
-              ├── RoleClassInspector → ``role_class`` vertex **only** for ``ApplicationRole``
-              │                         (validates every ``BaseRole`` subclass but does not materialize them)
-              │
-              ├── RoleIntentInspector → ``role`` snapshot on the action + ``requires_role`` edges
-              │                         (action → anchor ``role_class``; no extra vertex for the decorator)
-              │
-              └── RoleModeIntentInspector → ``role_mode`` snapshot + ``mode`` merged onto that anchor row
+        Action classes (:class:`~action_machine.intents.check_roles.check_roles_intent.CheckRolesIntent`) with ``@check_roles``
               │
               ▼
-        GraphCoordinator.build() → RoleChecker at run time
+        Interchange ``ActionGraphNode`` + ``RoleGraphEdge`` topology
+              │
+              ▼
+        :class:`~action_machine.runtime.role_checker.RoleChecker` at runtime
 
 ═══════════════════════════════════════════════════════════════════════════════
 COMPONENTS

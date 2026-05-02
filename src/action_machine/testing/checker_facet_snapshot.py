@@ -16,14 +16,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from action_machine.legacy.interchange_vertex_labels import CHECKER_VERTEX_TYPE
-from graph.base_facet_snapshot import BaseFacetSnapshot
-from graph.base_intent_inspector import BaseIntentInspector
-from graph.facet_vertex import FacetVertex
-
 
 @dataclass(frozen=True)
-class CheckerFacetSnapshot(BaseFacetSnapshot):
+class CheckerFacetSnapshot:
     """
 AI-CORE-BEGIN
     ROLE: Typed checker facet snapshot for one action class metadata.
@@ -44,15 +39,3 @@ AI-CORE-END
 
     class_ref: type
     checkers: tuple[Checker, ...]
-
-    def to_facet_vertex(self) -> FacetVertex:
-        """Minimal projection compatible with coordinator snapshot slot shape."""
-        return FacetVertex(
-            node_type=CHECKER_VERTEX_TYPE,
-            node_name=BaseIntentInspector._make_host_dependent_node_name(
-                self.class_ref, "__checker_snapshot__",
-            ),
-            node_class=self.class_ref,
-            node_meta=(),
-            edges=(),
-        )

@@ -1,28 +1,33 @@
-# src/action_machine/legacy/binding/__init__.py
+# src/action_machine/interchange/vertex_labels.py
 """
-Runtime binding helpers for action generic contracts.
+Interchange ``node_type`` string constants for facet / graph labeling.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-This package groups helpers that resolve and validate runtime bindings for
-``BaseAction[P, R]`` generics. It supports extraction of declared result type
-and consistency checks for values produced by summary/on_error handlers.
+String aliases shared by MCP, viz, and tests; individual graph node classes expose
+their own ``NODE_TYPE`` literals.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    Action class BaseAction[P, R]
-               |
-               v
-    Binding helpers resolve declared generic types
-               |
-               v
-    Runtime validates produced result instance type
-               |
-               v
-    Adapter/caller receives contract-safe result value
+::
+
+    graph_model nodes & inspectors ──► these constants ──► HTML / MCP / snapshots
 
 """
+
+from __future__ import annotations
+
+from typing import Final
+
+# Logical application root interchange ``node_type`` (“Application” row in viz/layout).
+APPLICATION_VERTEX_TYPE: Final[str] = "Application"
+
+# Bounded-context ``Domain`` vertices (facet / interchange).
+DOMAIN_VERTEX_TYPE: Final[str] = "Domain"
+
+# ``Service`` stubs for arbitrary class `@depends` targets (not merged into canonical Action rows).
+SERVICE_VERTEX_TYPE: Final[str] = "Service"

@@ -55,8 +55,6 @@ def _is_relation_container(annotation: Any) -> bool:
     """
     True if ``annotation`` denotes ``BaseRelationOne`` / ``BaseRelationMany``
     (including inside ``Optional`` / ``Annotated``).
-
-    Duplicated from :mod:`action_machine.legacy.entity_intent_inspector`; keep aligned manually.
     """
     if get_origin(annotation) is Annotated:
         return _is_relation_container(get_args(annotation)[0])
@@ -143,9 +141,8 @@ def _relation_from_field(
     field_info: FieldInfo,
 ) -> EntityRelationIntentResolver | None:
     """
-    Parse ``Annotated[..., Inverse | NoInverse, NoGraphEdge?, ...]`` plus container type.
-
-    Duplicate of legacy ``_extract_relation_info``.
+    Parse ``Annotated[..., Inverse | NoInverse, NoGraphEdge?, ...]`` plus container type into
+    one :class:`EntityRelationIntentResolver` row or ``None``.
     """
     base_type, annotated_metadata = _strip_annotated_metadata(annotation)
     container_pair = _relation_container_pair(_first_non_optional_member(base_type))
@@ -175,9 +172,8 @@ def _relation_from_field(
 
 
 def gather_entity_relation_intent_resolvers(host_cls: type) -> list[EntityRelationIntentResolver]:
-    """
-    All relation-container fields on ``host_cls`` (same contract as legacy ``collect_entity_relations``).
-    """
+    """Return every relation-container field on ``host_cls`` as resolver rows."""
+
     model_fields = getattr(host_cls, "model_fields", None)
     if not model_fields:
         return []

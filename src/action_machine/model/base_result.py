@@ -48,19 +48,18 @@ Result is built by the summary aspect and returned to calling code.
 
 from pydantic import ConfigDict
 
-from action_machine.legacy.described_fields.marker import DescribedFieldsIntent
 from action_machine.model.base_schema import BaseSchema
 from graph.exclude_graph_model import exclude_graph_model
 
 
 @exclude_graph_model
-class BaseResult(BaseSchema, DescribedFieldsIntent):
+class BaseResult(BaseSchema):
     """
     Frozen base class for final action result payloads.
 
-    Subclasses define concrete output fields with ``Field(..., description=...)``.
-    Inherits dict-like and dot-path access from ``BaseSchema`` and described
-    field validation contract from ``DescribedFieldsIntent``.
+    Subclasses define concrete output fields with ``Field(..., description=...)``
+    and are covered by described-field validation
+    (:mod:`~action_machine.model.described_schema_validation`).
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

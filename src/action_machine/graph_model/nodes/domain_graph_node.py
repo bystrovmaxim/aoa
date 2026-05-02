@@ -53,7 +53,7 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a bounded-context domain marker.
-    CONTRACT: Built from ``type[TDomain]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; ``properties`` carry ``name`` / ``description`` (facet ``node_meta`` parity). ``edges`` is empty on the interchange row until an ``Application`` node exists in the same coordinator graph (facet layer still models ``belongs_to`` via ``ApplicationContextInspector``).
+    CONTRACT: Built from ``type[TDomain]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; ``properties`` carry ``name`` / ``description`` (facet ``node_meta`` parity). ``edges`` is empty ``AssociationGraphEdge`` stubs until coordinators wire targets.
     AI-CORE-END
     """
 

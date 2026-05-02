@@ -76,8 +76,8 @@ ARCHITECTURE / DATA FLOW
         ▼  @regular_aspect validates signature
     sees _required_context_keys -> expects 6 parameters
         │
-        ▼  AspectIntentInspector._collect_aspects(cls)  [own ``vars(cls)`` only]
-    aspect_snapshot.context_keys = frozenset({"user.user_id", "request.trace_id"})
+        ▼  Interchange wiring records ``context_keys`` on relevant graph edges / companion nodes
+    aspect metadata carries frozenset({"user.user_id", "request.trace_id"})
         │
         ▼  ActionProductMachine._call_aspect(...)
     non-empty context_keys -> create ContextView -> pass as ctx

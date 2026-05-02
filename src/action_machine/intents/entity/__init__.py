@@ -1,7 +1,7 @@
 # src/action_machine/intents/entity/__init__.py
 # pylint: disable=undefined-all-variable,import-outside-toplevel
 """
-Entity intent package — ``@entity`` marker, decorator, graph inspector.
+Entity intent package — ``@entity`` marker, decorator, and graph resolvers.
 
 ``EntityGraphNode`` lives in :mod:`action_machine.graph_model.nodes.entity_graph_node` and is
 re-exported from :mod:`action_machine.domain` to avoid a cycle with
@@ -30,7 +30,6 @@ from action_machine.intents.entity.lifecycle_intent_resolver import (
 __all__ = [
     "DomainGraphNode",
     "EntityIntent",
-    "EntityIntentInspector",
     "EntityIntentResolver",
     "EntityRelationIntentResolver",
     "LifeCycleFieldResolution",
@@ -48,10 +47,6 @@ def __getattr__(name: str) -> Any:
         from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 
         return DomainGraphNode
-    if name == "EntityIntentInspector":
-        from action_machine.legacy.entity_intent_inspector import EntityIntentInspector
-
-        return EntityIntentInspector
     msg = f"module {__name__!r} has no attribute {name!r}"
     raise AttributeError(msg)
 

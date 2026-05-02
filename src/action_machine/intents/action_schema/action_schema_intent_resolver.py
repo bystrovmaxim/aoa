@@ -5,10 +5,10 @@ from __future__ import annotations
 
 from typing import Literal, get_args, get_origin
 
-from action_machine.legacy.binding.action_generic_params import _resolve_generic_arg
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
+from action_machine.runtime.binding.action_generic_params import _resolve_generic_arg
 
 
 class ActionSchemaIntentResolver:

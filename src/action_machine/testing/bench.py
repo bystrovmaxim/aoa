@@ -163,7 +163,6 @@ from action_machine.testing.comparison import compare_results
 from action_machine.testing.mock_action import MockAction
 from action_machine.testing.state_validator import validate_state_for_aspect, validate_state_for_summary
 from action_machine.testing.stubs import RequestInfoStub, RuntimeInfoStub, UserInfoStub
-from graph.base_intent_inspector import BaseIntentInspector
 from graph.create_node_graph_coordinator import create_node_graph_coordinator
 from graph.node_graph_coordinator import NodeGraphCoordinator
 
@@ -276,7 +275,7 @@ def _checker_rows_from_action_class(
     """Build checker facet rows from ``_checker_meta`` on aspect methods."""
     out: list[CheckerFacetSnapshot.Checker] = []
     for attr_name, attr_value in vars(action_cls).items():
-        func = BaseIntentInspector._unwrap_declaring_class_member(attr_value)
+        func = TypeIntrospection.unwrap_declaring_class_member(attr_value)
         if not callable(func):
             continue
         checker_list = getattr(func, "_checker_meta", None)

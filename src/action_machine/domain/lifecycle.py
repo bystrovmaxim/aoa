@@ -4,7 +4,7 @@ Declarative finite-state **lifecycle** templates and typed **runtime** state for
 
 `Lifecycle` serves two roles: a **template** built with a fluent import-time API
 (state graph), and a **specialized subclass** whose instances hold the current
-state key on each entity. ``GraphCoordinator`` validates graph rules at
+state key on each entity. ``NodeGraphCoordinator`` validates graph rules at
 **build** time; instances enforce valid keys and transitions at **runtime**.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -28,7 +28,7 @@ SCOPE (IN / OUT)
 
 **Out of scope**
     The eight global integrity rules (exactly one initial set semantics, reachability,
-    etc.) — enforced by **inspectors** when ``GraphCoordinator`` **builds**, not in
+    etc.) — enforced by **inspectors** when ``NodeGraphCoordinator`` **builds**, not in
     this module’s fluent builder alone.
     Persistence, timers, and side effects on transition — application code.
     Automatic persistence when transitioning — callers use `model_copy` on the entity.

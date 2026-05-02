@@ -60,10 +60,9 @@ def test_graph_model_edges_lazy_exports_resolve() -> None:
         assert getattr(edges, name) is not None
 
 
-def test_intents_entity_lazy_inspector_symbols_resolve() -> None:
+def test_intents_entity_lazy_domain_symbols_resolve() -> None:
     ent = importlib.import_module("action_machine.intents.entity")
     assert ent.DomainGraphNode is not None
-    assert ent.EntityIntentInspector is not None
     assert ent.LifeCycleIntentResolver is not None
 
 
@@ -107,18 +106,9 @@ def test_intents_connection_lazy_symbols_resolve() -> None:
         assert getattr(conn, name) is not None
 
 
-def test_legacy_lazy_getattr_success_and_failure() -> None:
-    leg = importlib.import_module("action_machine.legacy")
-    assert leg.DependencyIntentInspector is not None
-    with pytest.raises(AttributeError, match="has no attribute"):
-        _ = leg.DefinitelyNotInLegacyAll
-    names = leg.__dir__()
-    assert "DependencyIntentInspector" in names
+def test_interchange_vertex_labels_import_resolves() -> None:
+    vl = importlib.import_module("action_machine.interchange.vertex_labels")
+    assert vl.APPLICATION_VERTEX_TYPE == "Application"
+    assert vl.DOMAIN_VERTEX_TYPE == "Domain"
+    assert vl.SERVICE_VERTEX_TYPE == "Service"
 
-
-def test_legacy_every_public_lazy_name_materializes_once() -> None:
-    """PEP 562 registry on ``legacy`` stays complete and importable (CI gate for cycles)."""
-
-    leg = importlib.import_module("action_machine.legacy")
-    for export in sorted(leg.__all__):
-        assert getattr(leg, export) is not None

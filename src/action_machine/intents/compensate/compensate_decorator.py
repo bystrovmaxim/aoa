@@ -24,7 +24,7 @@ ARCHITECTURE / DATA FLOW
     method._compensate_meta declaration
           |
           v
-    CompensateIntentInspector / builder collection
+    ``CompensatorGraphEdge`` emission on ``ActionGraphNode``
           |
           v
     compensator facet snapshot
@@ -48,9 +48,8 @@ Decorator writes attribute on function:
         "description": description,
     }
 
-This attribute is read by compensator collectors
-(``CompensateIntentInspector._collect_compensators`` / builder helper) scanning
-``vars(cls)`` to create compensator snapshot entries.
+This attribute is read by compensator collectors (``CompensatorGraphEdge``
+resolution on the action class) scanning ``vars(cls)`` to create compensator entries.
 
 ═══════════════════════════════════════════════════════════════════════════════
 INTERACTION WITH @context_requires

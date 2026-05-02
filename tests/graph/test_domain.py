@@ -11,8 +11,8 @@ definition time: required, `str`, non-empty after strip. Covers inheritance,
 overrides, and isolation between domain classes.
 
 Domains are referenced from decorators (e.g. `@meta(..., domain=SomeDomain)`)
-and entity metadata; the **GraphCoordinator** consumes those types during
-`build()`.
+and entity metadata; **`NodeGraphCoordinator`** consumes those types during
+**`build()`**.
 
 ═══════════════════════════════════════════════════════════════════════════════
 TERMINOLOGY

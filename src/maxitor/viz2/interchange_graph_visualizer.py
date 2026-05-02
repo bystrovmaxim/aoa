@@ -45,13 +45,12 @@ from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNo
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.legacy.interchange_vertex_labels import (
+from action_machine.interchange.vertex_labels import (
     APPLICATION_VERTEX_TYPE,
     SERVICE_VERTEX_TYPE,
 )
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.constants import INTERNAL_EDGE_TYPES, OWNERSHIP_EDGE_TYPES
 from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
 from graph.edge_relationship import Composition
 from graph.node_graph_coordinator import NodeGraphCoordinator
@@ -63,6 +62,23 @@ def _default_archive_logs_dir() -> Path:
     """Repository ``archive/logs`` output directory for generated graph artifacts."""
     return Path(__file__).resolve().parents[3] / "archive" / "logs"
 
+
+# graph.md §5.1–5.2 — interchange ``edge_type`` labels used for viz domain propagation only.
+_OWNERSHIP_INTERCHANGE_EDGES: frozenset[str] = frozenset(
+    {
+        "HAS_ASPECT",
+        "HAS_COMPENSATOR",
+        "HAS_ERROR_HANDLER",
+        "HAS_CHECKER",
+        "HAS_SENSITIVE_FIELD",
+        "HAS_PARAMS",
+        "HAS_RESULT",
+        "HAS_SUBSCRIPTION",
+        "HAS_LIFECYCLE",
+        "HAS_LIFECYCLE_STATE",
+    },
+)
+_INTERNAL_INTERCHANGE_EDGES: frozenset[str] = frozenset({"CHECKS_ASPECT", "COMPENSATES_ASPECT"})
 
 # Default write target for :func:`export_interchange_axes_graph_html`.
 INTERCHANGE_AXES_GRAPH_HTML_PATH: Path = _default_archive_logs_dir() / "graph_node_2.html"
@@ -242,9 +258,9 @@ def _propagate_node_domains(  # pylint: disable=too-many-branches
 ) -> tuple[dict[str, str], list[str], defaultdict[str, set[str]]]:
     """
     Same domain membership as domain bubble-sets: ``BELONGS_TO`` + propagation
-    along every interchange :data:`~graph.constants.OWNERSHIP_EDGE_TYPES` edge
-    (host → child) and merge along :data:`~graph.constants.INTERNAL_EDGE_TYPES`
-    (``CHECKS_ASPECT``, ``COMPENSATES_ASPECT``).
+    along interchange ownership edges (`HAS_*` composition/host wiring, host→child)
+    and merge along internal checker/compensator–aspect edges
+    (`CHECKS_ASPECT`, `COMPENSATES_ASPECT`).
     """
     id_to_type: dict[str, str] = {}
     for n in g6_nodes:
@@ -273,14 +289,14 @@ def _propagate_node_domains(  # pylint: disable=too-many-branches
             ed = e.get("data") or {}
             label = str(ed.get("label", "") or "")
             src, tgt = str(e["source"]), str(e["target"])
-            if label in OWNERSHIP_EDGE_TYPES:
+            if label in _OWNERSHIP_INTERCHANGE_EDGES:
                 if not node_domains[src]:
                     continue
                 before = len(node_domains[tgt])
                 node_domains[tgt] |= node_domains[src]
                 if len(node_domains[tgt]) > before:
                     changed = True
-            elif label in INTERNAL_EDGE_TYPES:
+            elif label in _INTERNAL_INTERCHANGE_EDGES:
                 merged = node_domains[src] | node_domains[tgt]
                 if not merged:
                     continue
@@ -372,8 +388,8 @@ def _bubble_sets_plugins_for_domains(
 
     Members: the domain vertex, every node with ``BELONGS_TO`` into that domain, and
     nodes reachable by propagating domain along interchange ownership edges
-    (see :data:`~graph.constants.OWNERSHIP_EDGE_TYPES`) and internal
-    checker/compensator–aspect links (see :data:`~graph.constants.INTERNAL_EDGE_TYPES`).
+    and internal checker/compensator–aspect links (same rules as
+    :func:`_propagate_node_domains`).
 
     The ``application`` vertex is never added to a domain bubble.
     """

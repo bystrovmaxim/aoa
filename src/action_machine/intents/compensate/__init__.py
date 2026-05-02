@@ -24,7 +24,7 @@ ARCHITECTURE / DATA FLOW
     method._compensate_meta declaration
                 |
                 v
-    CompensateIntentInspector at build()
+    CompensatorGraphNode interchange materialization
                 |
                 v
     compensator facet snapshot

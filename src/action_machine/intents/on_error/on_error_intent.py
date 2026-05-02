@@ -64,12 +64,8 @@ ARCHITECTURE
     #       "description": "Handle validation error",
     #   }
     #
-    # OnErrorIntentInspector collects error_handler snapshot:
-    #   coordinator.get_snapshot(CreateOrderAction, "error_handler") ->
-    #   (ErrorHandler(method_name="handle_validation_on_error",
-    #                exception_types=(ValueError,), description="...",
-    #                method_ref=<func>),)
-    #
+    # ``OnErrorIntentResolver`` + :func:`hydrate_error_handler_row` rebuild typed rows
+    # from facet ``node_meta`` where needed.
     # ActionProductMachine on aspect failure:
     #   1. Finds first matching handler by isinstance(error, exc_types).
     #   2. Calls handler(action, params, state, box, connections, error).
@@ -87,7 +83,7 @@ class OnErrorIntent:
     AI-CORE-BEGIN
     ROLE: Marker contract for on-error handler declarations.
     CONTRACT: Carry methods with ``_on_error_meta`` written by decorator.
-    INVARIANTS: Logic-free mixin used only by inspectors/validators.
+    INVARIANTS: Logic-free mixin used only by runtime validators and resolvers.
     AI-CORE-END
     """
 
