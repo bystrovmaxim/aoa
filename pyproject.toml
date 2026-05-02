@@ -286,9 +286,11 @@ ignore = [
 "src/action_machine/runtime/__init__.py" = ["I001"]
 # Отложенные импорты после ``BaseAction`` — отдельный блок (см. комментарий в файле).
 "src/action_machine/model/base_action.py" = ["I001"]
+"src/examples/fastapi_mcp_services/app_fastapi_service.py" = ["E402"]
+"src/examples/fastapi_mcp_services/app_mcp_service.py" = ["E402"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["action_machine"]
+known-first-party = ["action_machine", "examples"]
 
 # ============================================================================
 # BLACK

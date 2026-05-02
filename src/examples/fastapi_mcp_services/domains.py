@@ -41,9 +41,11 @@ class OrdersDomain(BaseDomain):
     """Order lifecycle actions (create, fetch, etc.)."""
 
     name = "orders"
+    description = "Order lifecycle and lookup."
 
 
 class SystemDomain(BaseDomain):
     """System-level utilities (e.g. liveness ping)."""
 
     name = "system"
+    description = "Cross-cutting system utilities."
