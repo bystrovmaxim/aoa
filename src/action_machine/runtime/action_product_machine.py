@@ -26,8 +26,9 @@ ARCHITECTURE / DATA FLOW
         └── _run_internal(nested_level=0, rollup=False)
                 │
                 ├── runtime = _get_execution_cache(action_cls)
-                ├── _role_checker.check(action, context, runtime)
-                ├── conns = _connection_validator.validate(action, connections, runtime.action_node)
+                ├── action_node = runtime.action_node
+                ├── _role_checker.check(action, context, runtime, action_node)
+                ├── conns = _connection_validator.validate(action, connections, action_node)
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
                 ├── box = _tools_box_factory.create(factory_resolver=self, ...,
                 │         mode, machine_class_name, nest_level, context, ...)
@@ -622,7 +623,7 @@ AI-CORE-BEGIN
         action_cls = action.__class__
         runtime = self._get_execution_cache(action_cls)
         action_node = runtime.action_node
-        self._role_checker.check(action, context, runtime)
+        self._role_checker.check(action, context, runtime, action_node)
         conns = self._connection_validator.validate(action, connections, action_node)
         plugin_ctx = await self._plugin_coordinator.create_run_context()
         run_child = partial(

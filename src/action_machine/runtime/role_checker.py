@@ -42,6 +42,7 @@ from action_machine.auth.base_role import BaseRole
 from action_machine.auth.none_role import NoneRole
 from action_machine.context.context import Context
 from action_machine.exceptions import AuthorizationError
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
@@ -60,13 +61,14 @@ class RoleChecker:
         action: BaseAction[BaseParams, BaseResult],
         context: Context,
         runtime: _RoleRuntime,
+        action_node: ActionGraphNode,
     ) -> None:
         """Validate role access; raise ``AuthorizationError`` or ``TypeError`` on failure."""
         _ = self._coordinator
         role_spec = runtime.role_spec
-        if role_spec is None:
+        if not action_node.roles:
             raise TypeError(
-                f"Action {action.__class__.__name__} does not have a @check_roles "
+                f"Action {action_node.node_id} does not have a @check_roles "
                 f"decorator. Specify @check_roles(NoneRole) explicitly if "
                 f"the action is accessible without authentication."
             )
@@ -134,3 +136,6 @@ def _user_role_grants_requirement(
 class _RoleRuntime(Protocol):
     @property
     def role_spec(self) -> Any: ...
+
+    @property
+    def action_node(self) -> Any: ...
