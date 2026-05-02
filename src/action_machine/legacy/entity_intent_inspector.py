@@ -13,7 +13,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Turn declared entity models into **structured node metadata** for the shared
-``GraphCoordinator`` graph without a separate “entity coordinator” or ad hoc
+interchange facet graph without a separate “entity coordinator” or ad hoc
 collector layer. The inspector plugs into the same pipeline as other facet
 inspectors (actions, checkers, …).
 
@@ -46,8 +46,8 @@ TERMINOLOGY (USE CONSISTENTLY)
 **Decorator** — ``@entity`` writes **scratch** (``_entity_info``).
 **Inspector** — this module’s class, paired with that intent marker.
 **Gate coordinator** — after ``register(...).build()``, holds the facet graph;
-``Core`` registers ``EntityIntentInspector`` on the default
-coordinator setup.
+the default inspector set includes ``EntityIntentInspector`` when assembling a
+legacy facet graphs in tests.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

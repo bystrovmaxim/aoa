@@ -11,11 +11,8 @@ declared via the @depends decorator. Each resolve() call creates a new instance
 via a factory function or the default constructor.
 There is no instance cache — the factory behaves as a pure function.
 
-Integration tests build the factory from a built ``GraphCoordinator`` via
-``get_snapshot(cls, "depends")`` → ``DependencyFactory(deps)`` (same dependency
-tuple the runtime derives from ``_depends_info`` on the machine). Aspects obtain
-instances via ``box.resolve(PaymentServiceResource)`` (the
-``@depends`` resource class; use ``.service`` for the client when applicable).
+Integration tests build ``DependencyFactory`` from ``cls._depends_info`` — the same
+scratch tuple runtime uses alongside ``NodeGraphCoordinator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 SCENARIOS COVERED
@@ -49,19 +46,16 @@ Inspection:
     - get_all_classes() — list of all registered classes.
 
 Integration with the domain model:
-    - Factory from the coordinator for FullAction includes PaymentService
-      and NotificationService.
+    - Factory built from FullAction scratch includes PaymentService and NotificationService.
 """
 
 import pytest
 
 from action_machine.exceptions import RollupNotSupportedError
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.legacy.core import Core
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.dependency_factory import DependencyFactory
 from action_machine.runtime.dependency_info import DependencyInfo
-from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model import (
     FullAction,
     NotificationServiceResource,
@@ -76,20 +70,9 @@ from tests.scenarios.domain_model.domains import TestDomain
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-def _dependency_factory_from_depends_snapshot(
-    coordinator: GraphCoordinator,
-    cls: type,
-) -> DependencyFactory:
-    """Build ``DependencyFactory`` from a built coordinator's ``depends`` facet snapshot."""
-    if not coordinator.is_built:
-        raise RuntimeError(
-            "GraphCoordinator is not built. Register inspectors and call build() first.",
-        )
-    snap = coordinator.get_snapshot(cls, "depends")
-    if snap is not None and hasattr(snap, "dependencies"):
-        deps = snap.dependencies
-    else:
-        deps = ()
+def _dependency_factory_from_class(cls: type) -> DependencyFactory:
+    """Build ``DependencyFactory`` from ``cls._depends_info`` (production-equivalent)."""
+    deps = tuple(getattr(cls, "_depends_info", ()) or ())
     return DependencyFactory(deps)
 
 
@@ -459,25 +442,21 @@ class TestInspection:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Integration with domain model via GraphCoordinator
+# Integration with domain model (`_depends_info`)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDomainIntegration:
-    """Factory from coordinator for domain actions."""
+    """Factory from domain action scratch attributes."""
 
     def test_full_action_factory_has_dependencies(self) -> None:
         """
-        Factory from coordinator ``depends`` snapshot includes PaymentService
-        and NotificationService.
+        Factory for FullAction includes PaymentService and NotificationService.
 
         FullAction declares ``@depends`` on ``PaymentServiceResource``,
-        ``NotificationServiceResource``, and ``OrdersDbManager``. The coordinator
-        collects metadata and builds a DependencyFactory with those classes.
+        ``NotificationServiceResource``, and ``OrdersDbManager``.
         """
-        # Arrange — coordinator registering FullAction
-        coordinator = Core.create_coordinator()
-        factory = _dependency_factory_from_depends_snapshot(coordinator, FullAction)
+        factory = _dependency_factory_from_class(FullAction)
 
         # Act & Assert — services and resource manager type registered
         assert factory.has(PaymentServiceResource)
@@ -486,14 +465,9 @@ class TestDomainIntegration:
 
     def test_ping_action_factory_is_empty(self) -> None:
         """
-        Snapshot-based factory for PingAction is empty.
-
-        PingAction does not declare @depends, so the factory
-        has no dependencies.
+        PingAction has no declared dependencies via ``_depends_info``.
         """
-        # Arrange — coordinator for PingAction without dependencies
-        coordinator = Core.create_coordinator()
-        factory = _dependency_factory_from_depends_snapshot(coordinator, PingAction)
+        factory = _dependency_factory_from_class(PingAction)
 
         # Act & Assert — factory is empty
         assert factory.get_all_classes() == []
@@ -504,31 +478,10 @@ class TestDomainIntegration:
 
         Real resolve via default factory from ``@depends``, no mocks.
         """
-        # Arrange — factory from coordinator
-        coordinator = Core.create_coordinator()
-        factory = _dependency_factory_from_depends_snapshot(coordinator, FullAction)
+        factory = _dependency_factory_from_class(FullAction)
 
         # Act — resolve real service
         service = factory.resolve(PaymentServiceResource)
 
         # Assert — instance created
         assert isinstance(service, PaymentServiceResource)
-
-
-def test_dependency_factory_from_snapshot_raises_when_graph_not_built() -> None:
-    coordinator = GraphCoordinator()
-    assert coordinator.is_built is False
-
-    with pytest.raises(RuntimeError, match="not built"):
-        _dependency_factory_from_depends_snapshot(coordinator, PingAction)
-
-
-def test_dependency_factory_from_snapshot_empty_when_snapshot_not_depends_shape(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    coordinator = Core.create_coordinator()
-
-    monkeypatch.setattr(coordinator, "get_snapshot", lambda cls, facet: object())
-
-    factory = _dependency_factory_from_depends_snapshot(coordinator, PingAction)
-    assert factory.get_all_classes() == []

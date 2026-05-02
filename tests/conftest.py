@@ -6,8 +6,8 @@ Shared fixtures for the whole ``tests/`` package.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Provides ready-made fixtures for common needs: metadata coordinator, service
-mocks, and ``TestBench`` variants. Everything is built on the shared domain under
+Provides ready-made fixtures for common needs: service mocks and ``TestBench``
+variants. Everything is built on the shared domain under
 ``tests/scenarios/domain_model/``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -44,8 +44,6 @@ mock_inventory.unreserve() -> True
 FIXTURES
 ═══════════════════════════════════════════════════════════════════════════════
 
-coordinator        — fresh ``GraphCoordinator`` per test.
-
 mock_payment       — ``AsyncMock(spec=PaymentService)``, charge -> "TXN-TEST-001",
                      refund -> True.
 mock_notification  — ``AsyncMock(spec=NotificationService)``, send -> True.
@@ -65,7 +63,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from action_machine.testing import TestBench
-from graph.graph_coordinator import GraphCoordinator
 
 from .scenarios.domain_model import OrdersDbManager
 from .scenarios.domain_model.roles import AdminRole, ManagerRole
@@ -77,14 +74,6 @@ from .scenarios.domain_model.services import (
     PaymentService,
     PaymentServiceResource,
 )
-
-
-@pytest.fixture
-def coordinator() -> GraphCoordinator:
-    """Built coordinator with default inspectors (same graph as production helpers)."""
-    from action_machine.legacy.core import Core
-
-    return Core.create_coordinator()
 
 
 @pytest.fixture

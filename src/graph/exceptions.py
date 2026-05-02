@@ -6,8 +6,8 @@ Exceptions for ActionMachine metadata and graph construction.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-All errors raised while ``GraphCoordinator.build()`` walks inspectors or while
-inspectors validate facet payloads.
+All errors raised during metadata graph assembly (facet collection, validation,
+projection) or while inspectors validate payloads.
 
 Keeping them in a dedicated module allows:
 1. Hosts and coordinator to import without circular imports.

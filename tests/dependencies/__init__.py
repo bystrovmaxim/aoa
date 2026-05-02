@@ -31,10 +31,9 @@ TEST MODULES
 
 - ``test_depends_decorator_validation.py`` — ``@depends`` argument and target validation.
 
-- Scenarios under ``tests/scenarios/dependencies/`` — ``DependencyFactory`` unit
-  tests (``test_dependency_factory.py``) and ``Core`` integration
-  (``test_dependency_factory_core_machine.py``). The former lives in scenarios so
-  imports may use ``action_machine.runtime`` without violating the
+- Scenarios under ``tests/scenarios/dependencies/`` — ``DependencyFactory`` unit tests
+  (``test_dependency_factory.py``, ``test_dependency_factory_core_machine.py``). Scenarios live
+  separately so imports may use ``action_machine.runtime`` without violating the
   ``tests/dependencies`` layer rule.
 
 ═══════════════════════════════════════════════════════════════════════════════
