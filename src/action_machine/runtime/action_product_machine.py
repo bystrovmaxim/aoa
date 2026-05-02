@@ -235,7 +235,7 @@ class ActionProductMachine(BaseActionMachine):
         """Lazy default ``NodeGraphCoordinator`` — created on first read, reused after."""
         value = self._node_graph_coordinator
         if value is None:
-            value = cast(NodeGraphCoordinator, create_node_graph_coordinator())
+            value = create_node_graph_coordinator()
             self._node_graph_coordinator = value
         return value
 

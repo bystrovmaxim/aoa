@@ -164,9 +164,7 @@ import rustworkx as rx
 from action_machine.exceptions import CyclicDependencyError
 from action_machine.runtime.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
 from graph.base_facet_snapshot import BaseFacetSnapshot
-from graph.base_graph_node import BaseGraphNode
 from graph.base_intent_inspector import BaseIntentInspector
-from graph.create_node_graph_coordinator import create_node_graph_coordinator
 from graph.dag import assert_dag_edges_acyclic
 from graph.exceptions import (
     DuplicateNodeError,
@@ -177,10 +175,9 @@ from graph.facet_vertex import FacetVertex
 from graph.graph_builder import build_interchange_from_facet_vertices
 from graph.graph_edge import GraphEdge
 from graph.graph_vertex import GraphVertex
-from graph.protocol_node_graph_coordinator import ProtocolNodeGraphCoordinator
 
 
-class GraphCoordinator(ProtocolNodeGraphCoordinator):
+class GraphCoordinator:
     """
 AI-CORE-BEGIN
     ROLE: Runtime-safe metadata graph coordinator.
@@ -200,7 +197,6 @@ AI-CORE-BEGIN
         self._built: bool = False
         self._facet_snapshots: dict[tuple[type, str], BaseFacetSnapshot] = {}
         self._hydration_snapshot_key_by_graph_key: dict[str, str | tuple[str, ...]] = {}
-        self.__node_graph_coordinator: ProtocolNodeGraphCoordinator | None = None
 
     def _require_built(self) -> None:
         """Fail-fast guard: coordinator must be explicitly built before reads."""
@@ -216,21 +212,6 @@ AI-CORE-BEGIN
                 f"Cannot {operation} after build(). "
                 "The facet graph and snapshots are immutable once committed.",
             )
-
-    @property
-    def _node_graph_coordinator(self) -> ProtocolNodeGraphCoordinator:
-        """Lazily create the default node coordinator for migration work."""
-        if self.__node_graph_coordinator is None:
-            self.__node_graph_coordinator = create_node_graph_coordinator()
-        return self.__node_graph_coordinator
-
-    def get_node_by_id(
-        self,
-        node_id: str,
-        node_type: str | None = None,
-    ) -> BaseGraphNode[object]:
-        """Delegate node lookup to the lazy node coordinator."""
-        return self._node_graph_coordinator.get_node_by_id(node_id, node_type)
 
     # ═══════════════════════════════════════════════════════════════════
     # Fluent inspector registration
