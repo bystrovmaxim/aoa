@@ -6,11 +6,11 @@ Runtime enforcement of ``@check_roles`` against ``Context.user.roles``.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``RoleChecker.check`` is the machine gate that compares the coordinator snapshot
-``role_spec`` (``NoneRole``, ``AnyRole``, one ``BaseRole`` type, or a tuple of
-types with OR semantics) to the authenticated user's role types. Matching uses
-``issubclass(user_role, required)``. ``RoleMode.SILENCED`` user roles are ignored
-entirely.
+``RoleChecker.check`` is the machine gate that compares declared role requirements
+(materialized as ``@check_roles`` composition edges on
+:class:`~action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`) to
+the authenticated user's role types. Matching uses ``issubclass(user_role, required)``.
+``RoleMode.SILENCED`` user roles are ignored entirely.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    runtime.role_spec  +  Context.user.roles (BaseRole subclasses)
+    action_node.roles (``RoleGraphEdge`` → wired :class:`~action_machine.graph_model.nodes.role_graph_node.RoleGraphNode`)
               │
               ├── NoneRole → allow
               ├── AnyRole  → require ≥1 non‑SILENCED role type
@@ -35,7 +35,7 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Any
 
 from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
@@ -43,35 +43,60 @@ from action_machine.auth.none_role import NoneRole
 from action_machine.context.context import Context
 from action_machine.exceptions import AuthorizationError
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode
 from action_machine.model.base_action import BaseAction
-from action_machine.model.base_params import BaseParams
-from action_machine.model.base_result import BaseResult
-from graph.graph_coordinator import GraphCoordinator
 
 
 class RoleChecker:
-    """Enforces ``@check_roles`` using coordinator ``role_spec`` and user role types."""
+    """Enforces ``@check_roles`` using ``ActionGraphNode`` role edges and user role types."""
 
-    def __init__(self, coordinator: GraphCoordinator) -> None:
-        self._coordinator = coordinator
+    @classmethod
+    def _check_roles_spec_from_action_edges(
+        cls,
+        action_node: ActionGraphNode[BaseAction[Any, Any]],
+    ) -> Any:
+        """
+        Reconstruct the ``@check_roles`` spec shape from wired role composition edges.
+
+        Returns ``NoneRole``, ``AnyRole``, a single concrete ``BaseRole`` subtype, or
+        a tuple of subtypes (OR semantics), matching :class:`RoleGraphEdge` emission order.
+        """
+
+        parts: list[type[BaseRole]] = []
+        for edge in action_node.roles:
+            target = edge.target_node
+            if not isinstance(target, RoleGraphNode):
+                raise TypeError(
+                    f"Role composition edge on action {action_node.node_id!r} must resolve to a "
+                    f"Role interchange row; got {type(target).__name__!r}. "
+                    "Ensure the graph coordinator wired ``RoleGraphEdge.target_node``.",
+                )
+            rc = target.node_obj
+            if not isinstance(rc, type) or not issubclass(rc, BaseRole):
+                raise TypeError(
+                    f"Role vertex on {action_node.node_id!r} has invalid node_obj {rc!r}; "
+                    "expected a BaseRole subclass.",
+                )
+            parts.append(rc)
+
+        if len(parts) == 1:
+            return parts[0]
+        return tuple(parts)
 
     def check(
         self,
-        action: BaseAction[BaseParams, BaseResult],
         context: Context,
-        runtime: _RoleRuntime,
-        action_node: ActionGraphNode,
+        action_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> None:
         """Validate role access; raise ``AuthorizationError`` or ``TypeError`` on failure."""
-        _ = self._coordinator
-        role_spec = runtime.role_spec
         if not action_node.roles:
             raise TypeError(
                 f"Action {action_node.node_id} does not have a @check_roles "
                 f"decorator. Specify @check_roles(NoneRole) explicitly if "
                 f"the action is accessible without authentication."
             )
+        role_spec = self._check_roles_spec_from_action_edges(action_node)
         raw_roles = context.user.roles
 
         if role_spec is NoneRole:
@@ -108,7 +133,7 @@ class RoleChecker:
                 f"user roles: {user_names}"
             )
         raise TypeError(
-            f"Invalid role_spec in runtime snapshot: {role_spec!r} "
+            f"Invalid reconstructed @check_roles spec: {role_spec!r} "
             f"({type(role_spec).__name__})."
         )
 
@@ -131,11 +156,3 @@ def _user_role_grants_requirement(
     if RoleMode.declared_for(user_role) is RoleMode.SILENCED:
         return False
     return issubclass(user_role, required)
-
-
-class _RoleRuntime(Protocol):
-    @property
-    def role_spec(self) -> Any: ...
-
-    @property
-    def action_node(self) -> Any: ...
