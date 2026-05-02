@@ -35,18 +35,18 @@ INVARIANTS
 from unittest.mock import AsyncMock
 
 from action_machine.testing import TestBench
-from graph.graph_coordinator import GraphCoordinator
+from graph.node_graph_coordinator import NodeGraphCoordinator
 from tests.scenarios.domain_model.services import PaymentService, PaymentServiceResource
 
 
 class TestWithoutArguments:
     """``TestBench()`` yields usable defaults."""
 
-    def test_coordinator_is_graph_coordinator(self) -> None:
-        """Default ``coordinator`` is a built ``GraphCoordinator``."""
+    def test_coordinator_is_node_graph_coordinator(self) -> None:
+        """Default ``coordinator`` is a built ``NodeGraphCoordinator``."""
         b = TestBench()
 
-        assert isinstance(b.coordinator, GraphCoordinator)
+        assert isinstance(b.coordinator, NodeGraphCoordinator)
 
     def test_mocks_empty_by_default(self) -> None:
         """``mocks`` starts empty so dependency-free actions need no setup."""
