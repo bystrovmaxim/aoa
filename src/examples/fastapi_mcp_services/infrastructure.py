@@ -12,7 +12,7 @@ auth policy.
 
 ``ActionProductMachine`` defaults ``coordinator`` to ``Core.create_coordinator()`` unless you pass
 ``coordinator=`` explicitly. Adapters receive ``machine`` and ``auth``; they use
-``machine.gate_coordinator`` when they need the graph.
+``machine.graph_coordinator`` when they need the graph.
 
 ``NoAuthCoordinator`` states that this sample performs no real authentication.
 For production, supply an ``AuthCoordinator`` with ``CredentialExtractor``,
@@ -25,7 +25,7 @@ ARCHITECTURE / DATA FLOW
 
     infrastructure (this module)
     +-- machine = ActionProductMachine(mode="production")
-    |       +-- built GraphCoordinator (default factory inside machine)
+    |       +-- built NodeGraphCoordinator (lazy factory inside machine)
     +-- auth    = NoAuthCoordinator()
               |
               +------------------+------------------+

@@ -130,12 +130,15 @@ from action_machine.adapters.base_route_record import (
 )
 from action_machine.context.context import Context
 from action_machine.exceptions import AuthorizationError, ValidationFieldError
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from action_machine.integrations.fastapi.route_record import FastApiRouteRecord
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
+from action_machine.system_core import TypeIntrospection
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from graph.node_graph_coordinator import NodeGraphCoordinator
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Module-level helper functions
@@ -148,7 +151,11 @@ def _fastapi_route_label(record: FastApiRouteRecord) -> str:
     return f"{record.method} {record.path}"
 
 
-def _get_action_class_description(action_class: type) -> str:
+def _get_action_class_description(
+    action_class: type,
+    *,
+    coordinator: NodeGraphCoordinator | None = None,
+) -> str:
     """
     Extract description from action ``@meta`` declaration.
 
@@ -159,8 +166,19 @@ def _get_action_class_description(action_class: type) -> str:
         action_class: action class.
 
     Returns:
-        Description string from ``@meta`` or empty string.
+        Description string from the node graph, ``@meta`` scratch, or empty string.
     """
+    if coordinator is not None:
+        try:
+            node = coordinator.get_node_by_id(
+                TypeIntrospection.full_qualname(action_class),
+                ActionGraphNode.NODE_TYPE,
+            )
+        except (LookupError, RuntimeError):
+            node = None
+        if node is not None:
+            return str(node.properties.get("description", "") or "")
+
     meta_info = getattr(action_class, "_meta_info", None)
     if meta_info and isinstance(meta_info, dict):
         return str(meta_info.get("description", ""))
@@ -611,7 +629,10 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
         If ``summary`` is empty, fill it from action ``@meta`` description.
         """
-        effective_summary = summary or _get_action_class_description(action_class)
+        effective_summary = summary or _get_action_class_description(
+            action_class,
+            coordinator=self.graph_coordinator,
+        )
 
         record = FastApiRouteRecord(
             action_class=action_class,

@@ -63,8 +63,8 @@ raising, so MCP clients can distinguish tool-call errors at protocol level.
 TESTING NOTE (MCP tools)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Handler tests should use a real ``ActionProductMachine`` (and real coordinator
-metadata) so schemas, ``gate_coordinator``, and handler code match production.
+Handler tests should use a real ``ActionProductMachine`` so schemas, node graph
+metadata, and handler code match production.
 
 To control results or speed, stub ``machine.run`` only — not the whole stack.
 
@@ -92,8 +92,8 @@ REGISTER_ALL METHOD
 Automatically registers all coordinator actions as MCP tools.
 Tool names are derived from class names in snake_case without ``Action`` suffix
 (for example, ``CreateOrderAction -> create_order``). Action classes are
-discovered via ``get_nodes_by_type("RegularAspect")`` / ``get_nodes_by_type("SummaryAspect")``; descriptions are read from
-``get_snapshot(cls, "meta")`` with fallback to scratch ``_meta_info``.
+discovered from ``ActionGraphNode`` rows with regular or summary aspects;
+descriptions are read from node properties with fallback to scratch ``_meta_info``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERROR HANDLING
@@ -133,16 +133,14 @@ from action_machine.adapters.base_route_record import (
 )
 from action_machine.context.context import Context
 from action_machine.exceptions import AuthorizationError, ValidationFieldError
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from action_machine.integrations.mcp.route_record import McpRouteRecord
-from action_machine.legacy.interchange_vertex_labels import (
-    DOMAIN_VERTEX_TYPE,
-    REGULAR_ASPECT_VERTEX_TYPE,
-    SUMMARY_ASPECT_VERTEX_TYPE,
-)
+from action_machine.legacy.interchange_vertex_labels import DOMAIN_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
-from graph.graph_coordinator import GraphCoordinator
+from action_machine.system_core import TypeIntrospection
+from graph.node_graph_coordinator import NodeGraphCoordinator
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.tools.base import Tool
 from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase, FuncMetadata
@@ -191,13 +189,19 @@ def _validate_tool_request_kwargs(kwargs: dict[str, Any], req_model: type) -> An
 def _get_action_class_description(
     action_class: type,
     *,
-    coordinator: GraphCoordinator | None = None,
+    coordinator: NodeGraphCoordinator | None = None,
 ) -> str:
-    """``@meta`` description: coordinator ``meta`` snapshot, else ``_meta_info``."""
-    if coordinator is not None and coordinator.is_built:
-        snap = coordinator.get_snapshot(action_class, "meta")
-        if snap is not None:
-            return str(getattr(snap, "description", "") or "")
+    """``@meta`` description: action graph node property, else ``_meta_info``."""
+    if coordinator is not None:
+        try:
+            node = coordinator.get_node_by_id(
+                TypeIntrospection.full_qualname(action_class),
+                ActionGraphNode.NODE_TYPE,
+            )
+        except (LookupError, RuntimeError):
+            node = None
+        if node is not None:
+            return str(node.properties.get("description", "") or "")
     meta_info = getattr(action_class, "_meta_info", None)
     if meta_info and isinstance(meta_info, dict):
         return str(meta_info.get("description", ""))
@@ -214,93 +218,73 @@ def _class_name_to_snake_case(name: str) -> str:
     return result.lower()
 
 
-def _facet_pygraph_for_mcp_json(coordinator: GraphCoordinator) -> Any:
-    """Return facet ``PyDiGraph`` for MCP JSON (facet skeleton, not interchange ``get_graph``)."""
-    facet_copy = getattr(coordinator, "facet_topology_copy", None)
-    if callable(facet_copy):
-        return facet_copy()
-    return coordinator.get_graph()
-
-
 def _mcp_edge_type_from_payload(edge_data: Any) -> str:
     """Normalize rustworkx edge payload to a string edge type for JSON."""
     if isinstance(edge_data, dict):
         return str(edge_data.get("edge_type", ""))
+    edge_name = getattr(edge_data, "edge_name", None)
+    if edge_name is not None:
+        return str(edge_name)
     if isinstance(edge_data, str):
         return edge_data
     return str(edge_data)
 
 
-def _mcp_apply_facet_rows_to_node(
-    node: dict[str, Any],
-    facet_rows: dict[str, Any],
-    node_type: str,
-) -> None:
-    """Mutate ``node`` with optional description, domain, and domain display name from ``facet_rows``."""
-    description = facet_rows.get("description", "")
+def _mcp_optional_string_property(properties: dict[str, Any], key: str) -> str:
+    """Return a non-empty string property, ignoring non-string metadata."""
+    value = properties.get(key, "")
+    if isinstance(value, str) and value:
+        return value
+    return ""
+
+
+def _mcp_apply_node_properties_to_node(node: dict[str, Any], graph_node: Any) -> None:
+    """Mutate ``node`` with selected public node graph properties."""
+    description = _mcp_optional_string_property(graph_node.properties, "description")
     if description:
         node["description"] = description
 
-    domain = facet_rows.get("domain")
-    if domain:
-        if isinstance(domain, type):
-            node["domain"] = f"{domain.__module__}.{domain.__qualname__}"
-        else:
-            node["domain"] = str(domain)
-
-    if node_type == DOMAIN_VERTEX_TYPE:
-        domain_name = facet_rows.get("name", "")
+    if graph_node.node_type == DOMAIN_VERTEX_TYPE:
+        domain_name = _mcp_optional_string_property(graph_node.properties, "name")
         if domain_name:
             node["domain_label"] = domain_name
 
 
-def _build_graph_json(coordinator: GraphCoordinator) -> str:
-    """Pretty-printed JSON with ``nodes`` / ``edges`` from the facet graph."""
-    # Facet skeleton payloads are required: ``hydrate_graph_node`` resolves
-    # ``node_type`` / ``id`` keys from the facet layer (see ``_facet_pygraph_for_mcp_json``).
-    graph = _facet_pygraph_for_mcp_json(coordinator)
-
+def _build_graph_json(coordinator: NodeGraphCoordinator) -> str:
+    """Pretty-printed JSON with ``nodes`` / ``edges`` from the node graph."""
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
 
-    for idx in graph.node_indices():
-        payload = graph[idx]
-        hydrated = coordinator.hydrate_graph_node(dict(payload))
-        node_type = hydrated.get("node_type", "unknown")
-        node_id = str(hydrated.get("id") or hydrated.get("name") or "")
-        facet_rows = hydrated.get("facet_rows", {})
-
+    for graph_node in coordinator.get_all_nodes():
         node: dict[str, Any] = {
-            "id": node_id,
-            "type": node_type,
+            "id": graph_node.node_id,
+            "type": graph_node.node_type,
         }
+        _mcp_apply_node_properties_to_node(node, graph_node)
 
-        # In ``facet_rows``, ``domain`` is usually a BaseDomain class.
-        # ``json.dumps`` cannot serialize ``type`` values directly.
-        # For MCP resource we emit stable ``module.QualName``; for non-standard
-        # values we fallback to ``str(domain)`` so agents still receive text.
-        _mcp_apply_facet_rows_to_node(node, facet_rows, node_type)
+        for edge_data in graph_node.get_all_edges():
+            target_node = edge_data.target_node
+            if edge_data.edge_name == "domain" and target_node is not None:
+                domain_obj = getattr(target_node, "node_obj", None)
+                node["domain"] = (
+                    f"{domain_obj.__module__}.{domain_obj.__qualname__}"
+                    if isinstance(domain_obj, type)
+                    else edge_data.target_node_id
+                )
 
         nodes.append(node)
 
-    for source, target, edge_data in graph.weighted_edge_list():
-        source_payload = graph[source]
-        target_payload = graph[target]
-
-        edge_type = _mcp_edge_type_from_payload(edge_data)
-
-        nt_s = source_payload.get("node_type", "")
-        nm_s = str(source_payload.get("id") or source_payload.get("name") or "")
-        nt_t = target_payload.get("node_type", "")
-        nm_t = str(target_payload.get("id") or target_payload.get("name") or "")
-
-        edges.append({
-            "from": nm_s,
-            "to": nm_t,
-            "source_key": f"{nt_s}:{nm_s}",
-            "target_key": f"{nt_t}:{nm_t}",
-            "type": edge_type,
-        })
+        for edge_data in graph_node.get_all_edges():
+            target_node = edge_data.target_node
+            target_node_type = getattr(target_node, "node_type", "unknown")
+            edge_type = _mcp_edge_type_from_payload(edge_data)
+            edges.append({
+                "from": graph_node.node_id,
+                "to": edge_data.target_node_id,
+                "source_key": f"{graph_node.node_type}:{graph_node.node_id}",
+                "target_key": f"{target_node_type}:{edge_data.target_node_id}",
+                "type": edge_type,
+            })
 
     result = {
         "nodes": nodes,
@@ -320,7 +304,7 @@ def _make_tool_handler(
     machine: ActionProductMachine,
     auth_coordinator: Any,
     connections_factory: Callable[..., dict[str, BaseResource]] | None,
-    gate_coordinator: GraphCoordinator,
+    graph_coordinator: NodeGraphCoordinator,
 ) -> Callable[..., Any]:
     """Async MCP handler: validate input, ``machine.run``, JSON envelope in ``CallToolResult``."""
     req_model = record.effective_request_model
@@ -375,7 +359,7 @@ def _make_tool_handler(
     handler.__name__ = record.tool_name.replace(".", "_").replace("-", "_")
     handler.__doc__ = record.description or _get_action_class_description(
         record.action_class,
-        coordinator=gate_coordinator,
+        coordinator=graph_coordinator,
     )
 
     return handler
@@ -496,7 +480,7 @@ AI-CORE-BEGIN
         """Add one tool (``inputSchema`` from request model; ``@meta`` description if description empty)."""
         effective_description = description or _get_action_class_description(
             action_class,
-            coordinator=self.gate_coordinator,
+            coordinator=self.graph_coordinator,
         )
 
         record = McpRouteRecord(
@@ -515,30 +499,26 @@ AI-CORE-BEGIN
     # ─────────────────────────────────────────────────────────────────────
 
     def register_all(self) -> Self:
-        """Register tools for coordinator aspect nodes with a non-empty ``aspect`` snapshot."""
-        coordinator = self.gate_coordinator
+        """Register tools for action graph nodes that declare at least one aspect."""
+        coordinator = self.graph_coordinator
 
         seen: set[type] = set()
         action_nodes = [
-            *coordinator.get_nodes_by_type(REGULAR_ASPECT_VERTEX_TYPE),
-            *coordinator.get_nodes_by_type(SUMMARY_ASPECT_VERTEX_TYPE),
+            node
+            for node in coordinator.get_all_nodes()
+            if isinstance(node, ActionGraphNode)
+            and (node.regular_aspect or node.summary_aspect)
         ]
         for node in action_nodes:
-            cls = node.get("class_ref")
+            cls = node.node_obj
             if not isinstance(cls, type):
                 continue
             if cls in seen or not issubclass(cls, BaseAction):
                 continue
             seen.add(cls)
 
-            aspect_snap = coordinator.get_snapshot(cls, "aspect")
-            aspects = getattr(aspect_snap, "aspects", ()) if aspect_snap is not None else ()
-            if not aspects:
-                continue
-
             tool_name = _class_name_to_snake_case(cls.__name__)
-            m = coordinator.get_snapshot(cls, "meta")
-            description = m.description if m is not None and hasattr(m, "description") else ""
+            description = str(node.properties.get("description", "") or "")
 
             self.tool(
                 name=tool_name,
@@ -597,14 +577,14 @@ AI-CORE-BEGIN
             machine=self._machine,
             auth_coordinator=self._auth_coordinator,
             connections_factory=self._connections_factory,
-            gate_coordinator=self.gate_coordinator,
+            graph_coordinator=self.graph_coordinator,
         )
         arg_model = self._mcp_argument_model(record)
         fn_meta = FuncMetadata(arg_model=arg_model)
         parameters = arg_model.model_json_schema(by_alias=True)
         description = record.description or _get_action_class_description(
             record.action_class,
-            coordinator=self.gate_coordinator,
+            coordinator=self.graph_coordinator,
         )
         return Tool(
             fn=handler,

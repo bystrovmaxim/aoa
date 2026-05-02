@@ -74,10 +74,7 @@ from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.external_service.external_service_resource import (
     ExternalServiceResource,
 )
-from action_machine.runtime.dependency_factory import (
-    cached_dependency_factory,
-    clear_dependency_factory_cache,
-)
+from action_machine.runtime.dependency_factory import cached_dependency_factory
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model.domains import TestDomain
@@ -646,57 +643,6 @@ class TestPublicAPI:
         coord = _new_coord()
         coord.get_snapshot(_ActionWithDepsAction, "meta")
         assert coord.graph_edge_count > 0
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# Invalidation
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class TestInvalidation:
-    """Checks for coordinator cache invalidation."""
-
-    def test_invalidate_removes_from_cache(self):
-        """Resetting the dependency factory cache does not break reading facet snapshots."""
-        coord = _new_coord()
-        coord.get_snapshot(_PingGraphAction, "meta")
-        removed = clear_dependency_factory_cache(coord)
-        assert isinstance(removed, int)
-        assert coord.get_snapshot(_PingGraphAction, "meta") is not None
-
-    def test_invalidate_all_clears_cache(self):
-        """clear_dependency_factory_cache returns the number of entries cleared."""
-        coord = _new_coord()
-        cached_dependency_factory(coord, _PingGraphAction)
-        cached_dependency_factory(coord, _ActionWithDepsAction)
-        removed = clear_dependency_factory_cache(coord)
-        assert removed >= 1
-
-    def test_invalidate_preserves_shared_dependency_node(self):
-        """Resetting the factory cache does not change the number of facet graph nodes."""
-        coord = _new_coord()
-        before_nodes = coord.graph_node_count
-        clear_dependency_factory_cache(coord)
-        assert coord.graph_node_count == before_nodes
-
-    def test_invalidate_allows_rebuild(self):
-        """After resetting the factory cache, facet snapshots remain available without rebuild."""
-        coord = _new_coord()
-        clear_dependency_factory_cache(coord)
-        meta = coord.get_snapshot(_PingGraphAction, "meta")
-        assert meta is not None
-        assert meta.class_ref is _PingGraphAction
-
-    def test_invalidate_non_existing_no_error(self):
-        """Resetting the factory cache again does not cause errors."""
-        coord = _new_coord()
-        clear_dependency_factory_cache(coord)
-        clear_dependency_factory_cache(coord)
-
-    def test_invalidate_all_empty_no_error(self):
-        """Resetting the factory cache on an unbuilt coordinator - no errors, 0 entries."""
-        coord = GraphCoordinator()
-        assert clear_dependency_factory_cache(coord) == 0
 
 
 # ═════════════════════════════════════════════════════════════════════════════

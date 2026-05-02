@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Assert constructor validation (machine type, mandatory ``auth_coordinator``),
-property surfaces (machine ``gate_coordinator``, ``connections_factory``), fluent ``_add_route``, and that the abstract class
+property surfaces (machine ``graph_coordinator``, ``connections_factory``), fluent ``_add_route``, and that the abstract class
 cannot be instantiated without a concrete ``build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -21,7 +21,7 @@ ARCHITECTURE / DATA FLOW
       |
       v
     BaseAdapter[R]  --stores-->  machine, auth_coordinator,
-                                 gate_coordinator (from machine),
+                                 graph_coordinator (from machine),
                                  connections_factory, _routes
       |
       v
@@ -189,14 +189,14 @@ class TestProperties:
         )
         assert adapter.connections_factory is factory
 
-    def test_gate_coordinator_comes_from_machine(self) -> None:
-        """``gate_coordinator`` property mirrors the machine facade."""
+    def test_graph_coordinator_comes_from_machine(self) -> None:
+        """``graph_coordinator`` property mirrors the machine facade."""
         machine = _make_machine()
         adapter = _TestAdapter(
             machine=machine,
             auth_coordinator=_make_auth(),
         )
-        assert adapter.gate_coordinator is machine.gate_coordinator
+        assert adapter.graph_coordinator is machine.graph_coordinator
 
     def test_routes_starts_empty(self) -> None:
         """``routes`` is empty immediately after construction."""

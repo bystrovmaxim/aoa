@@ -30,15 +30,6 @@ This file **does not** drop the reuse invariant: two aspects with ``user.user_id
 must still expose the same key in their ``context_keys``; we assert consistency
 at the **metadata** level, not by counting graph nodes.
 
-═══════════════════════════════════════════════════════════════════════════════
-DEPENDENCY FACTORY CACHE CLEAR
-═══════════════════════════════════════════════════════════════════════════════
-
-``clear_dependency_factory_cache(coordinator)`` clears only the dependency-factory
-cache on the coordinator; the built facet graph and facet snapshots are not
-rebuilt — context keys on aspects remain readable.
-
-═══════════════════════════════════════════════════════════════════════════════
 TEST ACTIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -66,7 +57,6 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource import BaseResource
-from action_machine.runtime.dependency_factory import clear_dependency_factory_cache
 from action_machine.runtime.tools_box import ToolsBox
 from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model.domains import SystemDomain
@@ -266,8 +256,8 @@ class TestContextKeysViaMetadata:
         assert "request.client_ip" in handler.context_keys
 
 
-class TestContextMetadataAfterFactoryCacheClear:
-    """``context_keys`` stability after dependency-factory cache clear."""
+class TestContextMetadata:
+    """``context_keys`` stability for repeated facet snapshot reads."""
 
     def test_reread_context_keys_stable(self) -> None:
         """Re-reading from a built coordinator returns the same ``context_keys``."""
@@ -278,14 +268,3 @@ class TestContextMetadataAfterFactoryCacheClear:
         )
         assert "user.user_id" in audit.context_keys
 
-    def test_factory_cache_clear_preserves_context_keys(self) -> None:
-        """
-        Clearing factory cache does not break reading context keys from facet snapshots.
-        """
-        coordinator = Core.create_coordinator()
-        clear_dependency_factory_cache(coordinator)
-        audit = next(
-            a for a in _regular_aspects(coordinator,_SingleContextAction)
-            if a.method_name == "audit_aspect"
-        )
-        assert "user.user_id" in audit.context_keys

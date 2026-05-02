@@ -13,10 +13,10 @@ dependency substitution.
 MockAction is a full action with concrete schema types ``MockActionParams`` /
 ``MockActionResult`` so interchange graphs can resolve ``params`` / ``result``
 edges without emitting rows for the abstract ``BaseParams`` / ``BaseResult`` axes.
-It includes a summary aspect (``_mock_result_summary``), so it can run through
-the full machine pipeline. However, TestBench calls ``run()`` directly for
-MockAction to bypass aspect orchestration; this is faster and does not require
-``@meta`` or ``@check_roles``.
+It includes metadata, an open ``@check_roles`` policy, and a summary aspect
+(``_mock_result_summary``), so it can run through the full machine pipeline.
+However, TestBench calls ``run()`` directly for MockAction to bypass aspect
+orchestration.
 
 ═══════════════════════════════════════════════════════════════════════════════
 MODES
@@ -76,13 +76,24 @@ EXAMPLES
 
 from collections.abc import Callable
 
+from action_machine.auth.none_role import NoneRole
+from action_machine.domain.base_domain import BaseDomain
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from action_machine.intents.check_roles.check_roles_decorator import check_roles
+from action_machine.intents.meta.meta_decorator import meta
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
+
+
+class TestingDomain(BaseDomain):
+    """Domain marker for built-in testing helpers."""
+
+    name = "testing"
+    description = "Built-in testing helpers."
 
 
 class MockActionParams(BaseParams):
@@ -93,6 +104,8 @@ class MockActionResult(BaseResult):
     """Concrete result type for :class:`MockAction` (interchange / schema binding)."""
 
 
+@meta(description="Mock action for tests.", domain=TestingDomain)
+@check_roles(NoneRole)
 class MockAction(BaseAction[MockActionParams, MockActionResult]):  # pylint: disable=too-many-ancestors
     """
     Mock action for tests.
