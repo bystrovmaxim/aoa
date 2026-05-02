@@ -37,7 +37,6 @@ from action_machine.graph_model.inspectors.role_graph_node_inspector import (
 )
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.node_graph_coordinator import NodeGraphCoordinator
-from graph.protocol_node_graph_coordinator import ProtocolNodeGraphCoordinator
 
 
 def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
@@ -53,7 +52,7 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
     ]
 
 
-def create_node_graph_coordinator() -> ProtocolNodeGraphCoordinator:
+def create_node_graph_coordinator() -> NodeGraphCoordinator:
     """Create and build the default ``NodeGraphCoordinator`` used by viz2."""
     coordinator = NodeGraphCoordinator()
     coordinator.build(all_axis_graph_node_inspectors())

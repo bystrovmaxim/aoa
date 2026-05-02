@@ -65,10 +65,9 @@ import rustworkx as rx
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.exceptions import DuplicateNodeError, InvalidGraphError
-from graph.protocol_node_graph_coordinator import ProtocolNodeGraphCoordinator
 
 
-class NodeGraphCoordinator(ProtocolNodeGraphCoordinator):
+class NodeGraphCoordinator:
     """
     AI-CORE-BEGIN
     ROLE: Build rustworkx graph from ``BaseGraphNode`` contributions.
