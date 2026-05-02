@@ -42,7 +42,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`lifecycles` from :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_association_edges`. :meth:`get_all_edges` lists domain, relations, lifecycle associations only; :meth:`get_companion_nodes` returns direct lifecycle target rows only. Nested state companions are expanded by the coordinator.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`lifecycles` from :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_edges`. :meth:`get_all_edges` lists domain, relations, lifecycle associations only; :meth:`get_companion_nodes` returns direct lifecycle target rows only. Nested state companions are expanded by the coordinator.
     AI-CORE-END
     """
 
@@ -61,7 +61,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         )
         object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self))
         object.__setattr__(self, "relations", EntityGraphEdge.get_entity_relation_edges(entity_cls))
-        object.__setattr__(self, "lifecycles", list(LifeCycleGraphEdge.get_lifecycle_association_edges(entity_cls)))
+        object.__setattr__(self, "lifecycles", LifeCycleGraphEdge.get_lifecycle_edges(entity_cls))
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Direct lifecycle companion rows."""
