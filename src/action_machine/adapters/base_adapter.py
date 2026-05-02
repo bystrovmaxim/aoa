@@ -18,9 +18,9 @@ Concrete adapters (FastApiAdapter, McpAdapter, etc.) inherit ``BaseAdapter``,
 implement protocol-specific registration methods (``post``, ``get``, ``tool``),
 and implement ``build()`` to produce a protocol application object.
 
-The adapter stores a machine reference, an authentication coordinator, an
-optional facet ``GraphCoordinator`` (keyword-only ``gate_coordinator``; if omitted,
-defaults to ``machine.gate_coordinator``),
+The adapter stores a machine reference, an authentication coordinator, a facet
+``GraphCoordinator`` supplied as keyword-only ``gate_coordinator`` (explicit;
+typically ``machine.gate_coordinator``),
 and an optional connections factory. Registered routes are accumulated in
 ``_routes`` as concrete ``BaseRouteRecord`` subclasses.
 
@@ -31,7 +31,7 @@ and an optional connections factory. Registered routes are accumulated in
     │                                      │
     │  machine: ActionProductMachine       │
     │  auth_coordinator: Any (required)    │
-    │  gate_coordinator (optional)         │
+    │  gate_coordinator: GraphCoordinator  │
     │  connections_factory: Fn | None      │
     │  _routes: list[R]                    │
     │                                      │
@@ -106,7 +106,7 @@ AI-CORE-BEGIN
         auth_coordinator: Any,
         connections_factory: Callable[..., dict[str, BaseResource]] | None = None,
         *,
-        gate_coordinator: GraphCoordinator | None = None,
+        gate_coordinator: GraphCoordinator,
     ) -> None:
         """
         Initialize the adapter.
@@ -129,11 +129,7 @@ AI-CORE-BEGIN
 
         self._machine: ActionProductMachine = machine
         self._auth_coordinator: Any = auth_coordinator
-        self._gate_coordinator: GraphCoordinator = (
-            gate_coordinator
-            if gate_coordinator is not None
-            else machine.gate_coordinator
-        )
+        self._gate_coordinator: GraphCoordinator = gate_coordinator
         self._connections_factory: Callable[..., dict[str, BaseResource]] | None = connections_factory
         self._routes: list[R] = []
 
@@ -149,7 +145,7 @@ AI-CORE-BEGIN
 
     @property
     def gate_coordinator(self) -> GraphCoordinator:
-        """Returns the gate graph coordinator (explicit or from ``machine``)."""
+        """Returns the gate graph coordinator passed at construction."""
         return self._gate_coordinator
 
     @property

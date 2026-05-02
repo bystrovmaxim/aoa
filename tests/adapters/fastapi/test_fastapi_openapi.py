@@ -52,6 +52,7 @@ def _build_app_with_routes(**adapter_kwargs) -> TestClient:
     adapter = FastApiAdapter(
         machine=machine,
         auth_coordinator=auth,
+        gate_coordinator=machine.gate_coordinator,
         title=adapter_kwargs.get("title", "Test API"),
         version=adapter_kwargs.get("version", "1.0.0"),
     )
@@ -225,7 +226,11 @@ class TestDeprecatedFlag:
         auth = AsyncMock()
         auth.process.return_value = None
 
-        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+        adapter = FastApiAdapter(
+            machine=machine,
+            auth_coordinator=auth,
+            gate_coordinator=machine.gate_coordinator,
+        )
         adapter.post("/old-ping", PingAction, deprecated=True)
         app = adapter.build()
 

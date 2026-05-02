@@ -11,8 +11,8 @@ imported by both transports so HTTP and MCP share the same runtime instance and
 auth policy.
 
 ``ActionProductMachine`` defaults ``coordinator`` to ``Core.create_coordinator()`` unless you pass
-``coordinator=`` explicitly. Adapters receive only ``machine``
-and ``auth``; they read ``machine.gate_coordinator`` when they need the graph.
+``coordinator=`` explicitly. Adapters receive ``machine``, ``auth``, and an
+explicit ``gate_coordinator`` (typically ``machine.gate_coordinator``).
 
 ``NoAuthCoordinator`` states that this sample performs no real authentication.
 For production, supply an ``AuthCoordinator`` with ``CredentialExtractor``,
@@ -31,7 +31,7 @@ ARCHITECTURE / DATA FLOW
               +------------------+------------------+
               |                                     |
       app_fastapi_service                   app_mcp_service
-      FastApiAdapter(machine, auth)         McpAdapter(machine, auth)
+      FastApiAdapter(..., gate_coordinator) McpAdapter(..., gate_coordinator)
               |                                     |
               v                                     v
         HTTP routes                          MCP tools

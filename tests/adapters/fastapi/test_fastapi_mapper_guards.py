@@ -59,7 +59,11 @@ def test_params_mapper_wrong_type_does_not_call_machine_run(
     machine = ActionProductMachine(mode="test")
     machine.run = AsyncMock()
 
-    adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+    adapter = FastApiAdapter(
+        machine=machine,
+        auth_coordinator=auth,
+        gate_coordinator=machine.gate_coordinator,
+    )
     adapter.post(
         "/mapped",
         SimpleAction,
@@ -88,7 +92,11 @@ def test_response_mapper_wrong_type_after_run_returns_500(
     class _WireOut(BaseModel):
         greeting: str = Field(default="", description="greeting")
 
-    adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+    adapter = FastApiAdapter(
+        machine=machine,
+        auth_coordinator=auth,
+        gate_coordinator=machine.gate_coordinator,
+    )
     adapter.post(
         "/out",
         SimpleAction,

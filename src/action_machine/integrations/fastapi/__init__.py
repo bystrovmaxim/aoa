@@ -47,15 +47,16 @@ COMPONENTS
 QUICK START
 ═══════════════════════════════════════════════════════════════════════════════
 
+    from action_machine.intents.check_roles import NoAuthCoordinator
     from action_machine.runtime.action_product_machine import ActionProductMachine
-    from graph.graph_coordinator import GraphCoordinator
     from action_machine.integrations.fastapi import FastApiAdapter
 
-    coordinator = GraphCoordinator()
     machine = ActionProductMachine(mode="production")
 
     adapter = FastApiAdapter(
         machine=machine,
+        auth_coordinator=NoAuthCoordinator(),
+        gate_coordinator=machine.gate_coordinator,
         title="Orders API",
         version="0.1.0",
     )
