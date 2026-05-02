@@ -40,8 +40,7 @@ ARCHITECTURE / DATA FLOW
          ▼  DependencyIntentInspector reads _depends_info
     coordinator snapshot → tuple[DependencyInfo, ...]
          │
-         ▼  cached_dependency_factory(coordinator, cls)
-    DependencyFactory built from snapshot
+         ▼  DependencyFactory(deps); runtime reads ``_depends_info`` the same shape
 
 """
 

@@ -74,7 +74,7 @@ from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.external_service.external_service_resource import (
     ExternalServiceResource,
 )
-from action_machine.runtime.dependency_factory import cached_dependency_factory
+from action_machine.runtime.dependency_factory import DependencyFactory
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.graph_coordinator import GraphCoordinator
 from tests.scenarios.domain_model.domains import TestDomain
@@ -709,9 +709,11 @@ class TestCoordinatorBasic:
             coord.register(_EmptyClass)  # type: ignore[arg-type]
 
     def test_get_factory(self):
-        """cached_dependency_factory gives a DependencyFactory for dealing with dependencies."""
+        """DependencyFactory from coordinator ``depends`` snapshot lists declared services."""
         coord = Core.create_coordinator()
-        factory = cached_dependency_factory(coord, _ActionWithDepsAction)
+        snap = coord.get_snapshot(_ActionWithDepsAction, "depends")
+        deps = snap.dependencies if snap is not None and hasattr(snap, "dependencies") else ()
+        factory = DependencyFactory(deps)
         assert factory is not None
         assert factory.has(_ServiceAResource)
         assert factory.has(_ServiceBResource)

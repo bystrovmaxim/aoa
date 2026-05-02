@@ -51,9 +51,6 @@ union of their ``to_facet_vertex().node_meta`` maps. Nodes without a registratio
 fall back to ``get_snapshot(cls, node_type)`` unless the payload set
 ``skip_node_type_snapshot_fallback`` (see :class:`~graph.facet_vertex.FacetVertex`).
 
-Dependency ``DependencyFactory`` instances may be cached on this object under
-``dependency_factory.DEPENDENCY_FACTORY_CACHE_KEY``.
-
 The canonical implementation is **this** module. Typical apps use
 ``Core.create_coordinator()`` for a pre-built coordinator.
 
@@ -161,7 +158,6 @@ from typing import Any, Literal
 import rustworkx as rx
 
 from action_machine.exceptions import CyclicDependencyError
-from action_machine.runtime.dependency_factory import DEPENDENCY_FACTORY_CACHE_KEY
 from graph.base_facet_snapshot import BaseFacetSnapshot
 from graph.base_intent_inspector import BaseIntentInspector
 from graph.dag import assert_dag_edges_acyclic
@@ -1002,11 +998,9 @@ AI-CORE-BEGIN
         else:
             nodes = 0
             edges = 0
-        fc = self.__dict__.get(DEPENDENCY_FACTORY_CACHE_KEY)
-        n_factories = len(fc) if isinstance(fc, dict) else 0
         return (
             f"GraphCoordinator("
-            f"state={state}, factories={n_factories}, "
+            f"state={state}, "
             f"inspectors=[{inspector_names}], nodes={nodes}, edges={edges}"
             f")"
         )

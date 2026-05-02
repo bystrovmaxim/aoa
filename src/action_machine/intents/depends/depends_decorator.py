@@ -25,8 +25,7 @@ ARCHITECTURE / DATA FLOW
          ▼  DependencyIntentInspector reads _depends_info
     coordinator snapshot → tuple[DependencyInfo, ...]
          │
-         ▼  cached_dependency_factory(coordinator, cls)
-    DependencyFactory built from snapshot
+         ▼  DependencyFactory(deps); runtime uses ``cls._depends_info`` equivalently
          │
          ▼  ToolsBox.resolve(PaymentService)
     factory.resolve(PaymentService) -> PaymentService()

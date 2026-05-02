@@ -1,27 +1,23 @@
 # src/action_machine/runtime/dependency_factory.py
 """
-DependencyFactory — stateless dependency resolution and cache helpers.
+DependencyFactory — stateless dependency resolution.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Provide a stateless factory that creates dependency instances declared via
-``@depends``. The factory is built from ``DependencyInfo`` snapshots obtained
-from ``GraphCoordinator``. Each call to ``resolve()`` creates a new instance
-(no internal instance cache). The module also provides a coordinator-level cache
-helper for factory reuse.
+``@depends``. The factory accepts ``tuple[DependencyInfo, ...]`` (for example from
+a graph ``depends`` snapshot or from ``cls._depends_info`` at runtime). Each call to
+``resolve()`` creates a new instance (no internal instance cache).
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.dependency_info import DependencyInfo
-
-if TYPE_CHECKING:
-    from graph.graph_coordinator import GraphCoordinator
 
 
 class DependencyFactory:
@@ -124,32 +120,3 @@ AI-CORE-BEGIN
     def has(self, klass: type) -> bool:
         """Return ``True`` if a dependency is declared for the given class."""
         return klass in self._deps
-
-
-DEPENDENCY_FACTORY_CACHE_KEY = "_action_machine_dependency_factory_cache"
-
-
-def cached_dependency_factory(
-    coordinator: GraphCoordinator,
-    cls: type,
-) -> DependencyFactory:
-    """
-    Return (and cache on the coordinator) the ``DependencyFactory`` for an action
-    class, using its ``depends`` snapshot.
-    """
-    if not coordinator.is_built:
-        raise RuntimeError(
-            "GraphCoordinator is not built. Register inspectors and call build() first.",
-        )
-    cache: dict[type, DependencyFactory] = coordinator.__dict__.setdefault(
-        DEPENDENCY_FACTORY_CACHE_KEY,
-        {},
-    )
-    if cls not in cache:
-        snap = coordinator.get_snapshot(cls, "depends")
-        if snap is not None and hasattr(snap, "dependencies"):
-            deps = snap.dependencies
-        else:
-            deps = ()
-        cache[cls] = DependencyFactory(deps)
-    return cache[cls]
