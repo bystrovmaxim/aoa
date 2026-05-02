@@ -56,7 +56,6 @@ QUICK START
     adapter = FastApiAdapter(
         machine=machine,
         auth_coordinator=NoAuthCoordinator(),
-        gate_coordinator=machine.gate_coordinator,
         title="Orders API",
         version="0.1.0",
     )

@@ -81,7 +81,6 @@ def _make_app(
     adapter = FastApiAdapter(
         machine=machine,
         auth_coordinator=auth,
-        gate_coordinator=machine.gate_coordinator,
         connections_factory=connections_factory,
     )
     return adapter, machine

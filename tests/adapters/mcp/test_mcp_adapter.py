@@ -59,7 +59,6 @@ def _make_adapter(**kwargs) -> McpAdapter:
     return McpAdapter(
         machine=machine,
         auth_coordinator=auth,
-        gate_coordinator=machine.gate_coordinator,
         server_name=kwargs.get("server_name", "Test MCP"),
         server_version=kwargs.get("server_version", "0.0.1"),
     )

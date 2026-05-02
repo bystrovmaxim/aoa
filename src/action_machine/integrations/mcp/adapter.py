@@ -453,16 +453,14 @@ AI-CORE-BEGIN
         auth_coordinator: Any,
         connections_factory: Callable[..., dict[str, BaseResource]] | None = None,
         *,
-        gate_coordinator: GraphCoordinator,
         server_name: str = "ActionMachine MCP",
         server_version: str = "0.1.0",
     ) -> None:
-        """Wire machine, auth, facet graph, optional connections, server meta."""
+        """Wire machine, auth, optional connections, and server metadata."""
         super().__init__(
             machine=machine,
             auth_coordinator=auth_coordinator,
             connections_factory=connections_factory,
-            gate_coordinator=gate_coordinator,
         )
         self._server_name: str = server_name
         self._server_version: str = server_version
