@@ -34,7 +34,6 @@ use ``NoAuthCoordinator`` explicitly:
     adapter = FastApiAdapter(
         machine=machine,
         auth_coordinator=NoAuthCoordinator(),
-        gate_coordinator=machine.gate_coordinator,
     )
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -79,9 +78,8 @@ try/except and returning HTTP 500 for any error not handled above.
 TESTING NOTE (HTTP routes)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Route and handler tests should use a real ``ActionProductMachine`` (and real
-coordinator metadata) so OpenAPI-related wiring and ``gate_coordinator`` match
-production.
+Route and handler tests should use a real ``ActionProductMachine`` so
+OpenAPI-related wiring and graph metadata match production.
 
 To control results or speed, stub ``machine.run`` only — not the whole stack.
 
@@ -138,7 +136,6 @@ from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from graph.graph_coordinator import GraphCoordinator
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Module-level helper functions
@@ -545,7 +542,6 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         auth_coordinator: Any,
         connections_factory: Callable[..., dict[str, BaseResource]] | None = None,
         *,
-        gate_coordinator: GraphCoordinator,
         title: str = "ActionMachine API",
         version: str = "0.1.0",
         description: str = "",
@@ -559,8 +555,6 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 For open APIs use ``NoAuthCoordinator()``. ``None`` is invalid.
             connections_factory: connections factory; if ``None``, connections
                 are not passed.
-            gate_coordinator: facet ``GraphCoordinator`` (usually
-                ``machine.gate_coordinator``).
             title: API title for OpenAPI/Swagger UI.
             version: API version for OpenAPI.
             description: API description for OpenAPI (Markdown supported).
@@ -569,7 +563,6 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             machine=machine,
             auth_coordinator=auth_coordinator,
             connections_factory=connections_factory,
-            gate_coordinator=gate_coordinator,
         )
         self._title: str = title
         self._version: str = version

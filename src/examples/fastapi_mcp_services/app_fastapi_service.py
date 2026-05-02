@@ -82,7 +82,6 @@ app = (
     FastApiAdapter(
         machine=machine,
         auth_coordinator=auth,
-        gate_coordinator=machine.gate_coordinator,
         title="Orders API",
         version="0.1.0",
         description=(

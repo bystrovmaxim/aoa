@@ -62,7 +62,6 @@ def test_params_mapper_wrong_type_does_not_call_machine_run(
     adapter = FastApiAdapter(
         machine=machine,
         auth_coordinator=auth,
-        gate_coordinator=machine.gate_coordinator,
     )
     adapter.post(
         "/mapped",
@@ -95,7 +94,6 @@ def test_response_mapper_wrong_type_after_run_returns_500(
     adapter = FastApiAdapter(
         machine=machine,
         auth_coordinator=auth,
-        gate_coordinator=machine.gate_coordinator,
     )
     adapter.post(
         "/out",

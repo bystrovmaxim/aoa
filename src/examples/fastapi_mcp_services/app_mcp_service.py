@@ -88,7 +88,6 @@ server = (
     McpAdapter(
         machine=machine,
         auth_coordinator=auth,
-        gate_coordinator=machine.gate_coordinator,
         server_name="Orders MCP",
         server_version="0.1.0",
     )
