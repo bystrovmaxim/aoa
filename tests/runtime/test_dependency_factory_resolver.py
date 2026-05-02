@@ -10,9 +10,9 @@ from action_machine.runtime.tools_box_factory import ToolsBoxFactory
 from tests.scenarios.domain_model import PingAction
 
 
-def test_machine_dependency_factory_for_returns_factory(coordinator) -> None:
+def test_machine_dependency_factory_for_returns_factory() -> None:
     """ActionProductMachine.dependency_factory_for matches _dependency_factory_for."""
-    machine = ActionProductMachine(mode="test", coordinator=coordinator)
+    machine = ActionProductMachine(mode="test")
     pub = machine.dependency_factory_for(PingAction)
     internal = machine._dependency_factory_for(PingAction)
     assert isinstance(pub, DependencyFactory)
