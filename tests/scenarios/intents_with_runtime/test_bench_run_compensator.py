@@ -34,7 +34,6 @@ from action_machine.intents.compensate import compensate
 from action_machine.intents.context_requires import Ctx, context_requires
 from action_machine.intents.depends import depends
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.legacy.core import Core
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
@@ -137,7 +136,6 @@ class TestRunCompensatorBasic:
         mock_payment.refund.reset_mock()
 
         bench = TestBench(
-            coordinator=Core.create_coordinator(),
             mocks={
                 PaymentServiceResource: PaymentServiceResource(mock_payment),
                 InventoryServiceResource: InventoryServiceResource(mock_inventory),
@@ -179,7 +177,6 @@ class TestRunCompensatorBasic:
         mock_payment.refund.side_effect = RuntimeError("Gateway unavailable")
 
         bench = TestBench(
-            coordinator=Core.create_coordinator(),
             mocks={
                 PaymentServiceResource: PaymentServiceResource(mock_payment),
                 InventoryServiceResource: InventoryServiceResource(mock_inventory),
@@ -220,7 +217,6 @@ class TestRunCompensatorBasic:
         mock_payment.refund.reset_mock()
 
         bench = TestBench(
-            coordinator=Core.create_coordinator(),
             mocks={
                 PaymentServiceResource: PaymentServiceResource(mock_payment),
                 InventoryServiceResource: InventoryServiceResource(mock_inventory),
@@ -263,7 +259,6 @@ class TestRunCompensatorValidation:
         """Non-existent method → ​​ValueError with a clear message."""
         # ── Arrange ──
         bench = TestBench(
-            coordinator=Core.create_coordinator(),
             log_coordinator=AsyncMock(),
         )
 
@@ -288,7 +283,6 @@ class TestRunCompensatorValidation:
         charge_aspect is a regular aspect, not a compensator."""
         # ── Arrange ──
         bench = TestBench(
-            coordinator=Core.create_coordinator(),
             log_coordinator=AsyncMock(),
         )
 
@@ -318,7 +312,6 @@ class TestRunCompensatorValidation:
         # ── Arrange ──
         mock_payment = AsyncMock(spec=PaymentService)
         bench = TestBench(
-            coordinator=Core.create_coordinator(),
             mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
             log_coordinator=AsyncMock(),
         )
@@ -358,7 +351,6 @@ class TestRunCompensatorContext:
         mock_payment.refund.reset_mock()
 
         bench = TestBench(
-            coordinator=Core.create_coordinator(),
             mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
             log_coordinator=AsyncMock(),
         ).with_user(user_id="ctx_user_99", roles=(StubTesterRole,))
@@ -398,7 +390,6 @@ class TestRunCompensatorContext:
         #run_compensator() uses this context to create
         #ContextView, not the context= argument.
         bench = TestBench(
-            coordinator=Core.create_coordinator(),
             mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
             log_coordinator=AsyncMock(),
         ).with_user(user_id="verified_user_42", roles=(StubTesterRole,))

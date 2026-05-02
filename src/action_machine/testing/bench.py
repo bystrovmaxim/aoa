@@ -31,9 +31,9 @@ By default TestBench creates two machines:
 - ``ActionProductMachine`` (async) with mocks via ``resources``.
 - ``SyncActionProductMachine`` (sync) with mocks via ``resources``.
 
-Both machines receive same coordinator, plugins, and log_coordinator.
-Terminal methods (``run``, ``run_aspect``, ``run_summary``) execute action on
-EACH machine and compare results through ``compare_results()``.
+Both machines receive the same plugins and log coordinator. Bench metadata reads
+use the stored ``NodeGraphCoordinator``. Terminal ``run`` executes action on EACH
+machine and compares results through ``compare_results()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 MOCK RESET BETWEEN RUNS
@@ -134,12 +134,16 @@ Each fluent method returns a NEW ``TestBench`` instance:
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any, TypeVar, cast
 from unittest.mock import Mock
 
 from action_machine.auth.base_role import BaseRole
 from action_machine.context.context import Context
 from action_machine.context.context_view import ContextView
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
@@ -150,16 +154,18 @@ from action_machine.model.base_state import BaseState
 from action_machine.plugin.plugin import Plugin
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
-from action_machine.runtime.dependency_factory import cached_dependency_factory
+from action_machine.runtime.dependency_factory import DependencyFactory
 from action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
+from action_machine.system_core import TypeIntrospection
 from action_machine.testing.checker_facet_snapshot import CheckerFacetSnapshot
 from action_machine.testing.comparison import compare_results
 from action_machine.testing.mock_action import MockAction
 from action_machine.testing.state_validator import validate_state_for_aspect, validate_state_for_summary
 from action_machine.testing.stubs import RequestInfoStub, RuntimeInfoStub, UserInfoStub
 from graph.base_intent_inspector import BaseIntentInspector
-from graph.graph_coordinator import GraphCoordinator
+from graph.create_node_graph_coordinator import create_node_graph_coordinator
+from graph.node_graph_coordinator import NodeGraphCoordinator
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
@@ -182,19 +188,86 @@ Used by ``run_compensator()`` to decide whether ``ContextView`` is required.
 """
 
 
+@dataclass(frozen=True)
+class _BenchAspect:
+    """Aspect metadata row assembled from the node graph."""
+
+    method_name: str
+    aspect_type: str
+    description: str
+    method_ref: Callable[..., Any]
+    context_keys: frozenset[str]
+
+
+@dataclass(frozen=True)
+class _BenchChecker:
+    """Checker metadata row consumed by ``testing.state_validator``."""
+
+    method_name: str
+    checker_class: type
+    field_name: str
+    required: bool
+    extra_params: dict[str, Any]
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # Module-level helper functions
 # ═════════════════════════════════════════════════════════════════════════════
 
 
+def _action_node_from_coordinator(
+    coordinator: NodeGraphCoordinator,
+    action_cls: type,
+) -> ActionGraphNode[Any] | None:
+    node_id = TypeIntrospection.full_qualname(action_cls)
+    try:
+        return cast(
+            ActionGraphNode[Any],
+            coordinator.get_node_by_id(node_id, ActionGraphNode.NODE_TYPE),
+        )
+    except (LookupError, RuntimeError):
+        return None
+
+
 def _aspect_tuple_from_coordinator(
-    coordinator: GraphCoordinator,
+    coordinator: NodeGraphCoordinator,
     action_cls: type,
 ) -> tuple[Any, ...]:
-    snap = coordinator.get_snapshot(action_cls, "aspect")
-    if snap is None or not hasattr(snap, "aspects"):
+    action_node = _action_node_from_coordinator(coordinator, action_cls)
+    if action_node is None:
         return ()
-    return tuple(snap.aspects)
+    aspects: list[_BenchAspect] = []
+    for regular_node in action_node.get_regular_aspect_graph_nodes():
+        aspects.append(
+            _BenchAspect(
+                method_name=regular_node.label,
+                aspect_type="regular",
+                description=str(regular_node.properties.get("description", "")),
+                method_ref=regular_node.node_obj,
+                context_keys=regular_node.get_required_context_keys(),
+            ),
+        )
+    for edge in action_node.summary_aspect:
+        summary_node = cast(SummaryAspectGraphNode, edge.target_node)
+        aspects.append(
+            _BenchAspect(
+                method_name=summary_node.label,
+                aspect_type="summary",
+                description=str(summary_node.properties.get("description", "")),
+                method_ref=summary_node.node_obj,
+                context_keys=summary_node.get_required_context_keys(),
+            ),
+        )
+    return tuple(aspects)
+
+
+def _dependency_factory_from_coordinator(
+    coordinator: NodeGraphCoordinator,
+    action_cls: type,
+) -> DependencyFactory:
+    if _action_node_from_coordinator(coordinator, action_cls) is None:
+        return DependencyFactory(())
+    return DependencyFactory(tuple(getattr(action_cls, "_depends_info", ()) or ()))
 
 
 def _checker_rows_from_action_class(
@@ -227,17 +300,34 @@ def _checker_rows_from_action_class(
 
 
 def _checkers_for_aspect_name(
-    coordinator: GraphCoordinator,
+    coordinator: NodeGraphCoordinator,
     action_cls: type,
     method_name: str,
 ) -> tuple[Any, ...]:
-    snap = coordinator.get_snapshot(action_cls, "checker")
-    if snap is None or not hasattr(snap, "checkers"):
-        chk = _checker_rows_from_action_class(action_cls)
-        snap = CheckerFacetSnapshot(class_ref=action_cls, checkers=chk) if chk else None
-    if snap is None or not hasattr(snap, "checkers"):
+    action_node = _action_node_from_coordinator(coordinator, action_cls)
+    if action_node is None:
         return ()
-    return tuple(c for c in snap.checkers if c.method_name == method_name)
+    out: list[_BenchChecker] = []
+    for aspect_node in action_node.get_regular_aspect_graph_nodes():
+        if aspect_node.label != method_name:
+            continue
+        for checker_node in aspect_node.get_checker_graph_nodes():
+            payload = checker_node.node_obj
+            extra_params = dict(payload.properties)
+            extra_params.pop("TypeChecker", None)
+            extra_params.pop("required", None)
+            out.append(
+                _BenchChecker(
+                    method_name=payload.aspect_method_name,
+                    checker_class=payload.checker_class,
+                    field_name=payload.field_name,
+                    required=payload.required,
+                    extra_params=extra_params,
+                ),
+            )
+    if not out:
+        return _checker_rows_from_action_class(action_cls)
+    return tuple(out)
 
 
 def _prepare_mock(value: Any) -> Any:
@@ -313,7 +403,7 @@ class TestBench:
 
     def __init__(
         self,
-        coordinator: GraphCoordinator | None = None,
+        coordinator: NodeGraphCoordinator | None = None,
         mocks: dict[type, Any] | None = None,
         plugins: list[Plugin] | None = None,
         log_coordinator: LogCoordinator | None = None,
@@ -324,7 +414,7 @@ class TestBench:
         """
         Initialize TestBench.
         """
-        self._coordinator = coordinator or GraphCoordinator()
+        self._coordinator = coordinator or create_node_graph_coordinator()
         self._mocks = dict(mocks) if mocks else {}
         self._prepared_mocks = _prepare_all_mocks(self._mocks)
         self._plugins = list(plugins) if plugins else []
@@ -338,8 +428,8 @@ class TestBench:
     # ─────────────────────────────────────────────────────────────────────
 
     @property
-    def coordinator(self) -> GraphCoordinator:
-        """Metadata/factory coordinator."""
+    def coordinator(self) -> NodeGraphCoordinator:
+        """Node graph coordinator."""
         return self._coordinator
 
     @property
@@ -543,7 +633,7 @@ class TestBench:
             )
 
         async_machine = self._build_async_machine()
-        factory = cached_dependency_factory(self._coordinator, action.__class__)
+        factory = _dependency_factory_from_coordinator(self._coordinator, action.__class__)
 
         log = ScopedLogger(
             coordinator=async_machine._log_coordinator,
@@ -605,7 +695,7 @@ class TestBench:
             )
 
         async_machine = self._build_async_machine()
-        factory = cached_dependency_factory(self._coordinator, action.__class__)
+        factory = _dependency_factory_from_coordinator(self._coordinator, action.__class__)
 
         log = ScopedLogger(
             coordinator=async_machine._log_coordinator,
@@ -678,7 +768,7 @@ class TestBench:
         ctx = self._build_context()
 
         async_machine = self._build_async_machine()
-        factory = cached_dependency_factory(self._coordinator, action_class)
+        factory = _dependency_factory_from_coordinator(self._coordinator, action_class)
 
         log = ScopedLogger(
             coordinator=async_machine._log_coordinator,

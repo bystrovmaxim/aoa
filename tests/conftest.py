@@ -143,18 +143,17 @@ def mock_db() -> AsyncMock:
 
 
 @pytest.fixture
-def clean_bench(coordinator: GraphCoordinator) -> TestBench:
+def clean_bench() -> TestBench:
     """
     ``TestBench`` without mocks — for actions without injected dependencies.
 
     Logging is silenced via ``AsyncMock`` so ``ConsoleLogger`` does not flood output.
     """
-    return TestBench(coordinator=coordinator, log_coordinator=AsyncMock())
+    return TestBench(log_coordinator=AsyncMock())
 
 
 @pytest.fixture
 def bench(
-    coordinator: GraphCoordinator,
     mock_payment: AsyncMock,
     mock_notification: AsyncMock,
 ) -> TestBench:
@@ -165,7 +164,6 @@ def bench(
     For role-specific actions use ``manager_bench`` or ``admin_bench``.
     """
     return TestBench(
-        coordinator=coordinator,
         mocks={
             PaymentServiceResource: PaymentServiceResource(mock_payment),
             NotificationServiceResource: NotificationServiceResource(mock_notification),
@@ -176,7 +174,6 @@ def bench(
 
 @pytest.fixture
 def compensate_bench(
-    coordinator: GraphCoordinator,
     mock_payment: AsyncMock,
     mock_inventory: AsyncMock,
 ) -> TestBench:
@@ -191,7 +188,6 @@ def compensate_bench(
     Compensating actions use ``NoneRole``, so the default user is sufficient.
     """
     return TestBench(
-        coordinator=coordinator,
         mocks={
             PaymentServiceResource: PaymentServiceResource(mock_payment),
             InventoryServiceResource: InventoryServiceResource(mock_inventory),
