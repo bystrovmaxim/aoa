@@ -42,6 +42,9 @@ Install and run::
     # streamable-http (e.g. MCP Inspector):
     python -m examples.fastapi_mcp_services.app_mcp_service --transport streamable-http
 
+Running the script by path works too::
+
+    python /path/to/aoa/src/examples/fastapi_mcp_services/app_mcp_service.py
 Claude Desktop ``claude_desktop_config.json``::
 
     {
@@ -59,10 +62,24 @@ Edge case: invalid or missing value after ``--transport`` leaves transport as
 
 import sys
 
-from action_machine.integrations.mcp import McpAdapter
 
-from .actions import CreateOrderAction, GetOrderAction, PingAction
-from .infrastructure import auth, machine
+def _ensure_examples_package_src_on_path() -> None:
+    """When this file runs as ``python …/app_mcp_service.py``, add ``src`` to ``sys.path``."""
+    if __package__:
+        return
+    from pathlib import Path
+
+    src_root = Path(__file__).resolve().parent.parent.parent
+    s = str(src_root)
+    if s not in sys.path:
+        sys.path.insert(0, s)
+
+
+_ensure_examples_package_src_on_path()
+
+from action_machine.integrations.mcp import McpAdapter
+from examples.fastapi_mcp_services.actions import CreateOrderAction, GetOrderAction, PingAction
+from examples.fastapi_mcp_services.infrastructure import auth, machine
 
 server = (
     McpAdapter(

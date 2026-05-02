@@ -39,6 +39,13 @@ EXAMPLES
 
     uvicorn examples.fastapi_mcp_services.app_fastapi_service:app --reload
 
+    Same module starts uvicorn when run as a file::
+
+        python …/src/examples/fastapi_mcp_services/app_fastapi_service.py
+        python …/app_fastapi_service.py --host 0.0.0.0 --port 8080
+
+    …/ ``src`` is prepended to ``sys.path`` so absolute ``examples.*`` imports resolve.
+
     Swagger UI: http://localhost:8000/docs
     ReDoc:      http://localhost:8000/redoc
     Health:     http://localhost:8000/health  (registered by FastApiAdapter.build)
@@ -47,10 +54,24 @@ EXAMPLES
     ``aoa-run[fastapi]``.
 """
 
-from action_machine.integrations.fastapi import FastApiAdapter
+def _ensure_examples_package_src_on_path() -> None:
+    """When this file runs as ``python …/app_fastapi_service.py``, add ``src`` to ``sys.path``."""
+    if __package__:
+        return
+    import sys
+    from pathlib import Path
 
-from .actions import CreateOrderAction, GetOrderAction, PingAction
-from .infrastructure import auth, machine
+    src_root = Path(__file__).resolve().parent.parent.parent
+    s = str(src_root)
+    if s not in sys.path:
+        sys.path.insert(0, s)
+
+
+_ensure_examples_package_src_on_path()
+
+from action_machine.integrations.fastapi import FastApiAdapter
+from examples.fastapi_mcp_services.actions import CreateOrderAction, GetOrderAction, PingAction
+from examples.fastapi_mcp_services.infrastructure import auth, machine
 
 app = (
     FastApiAdapter(
@@ -70,3 +91,27 @@ app = (
     .get("/api/v1/orders/{order_id}", GetOrderAction, tags=["orders"])
     .build()
 )
+
+
+def main() -> None:
+    """Run the ASGI app with uvicorn when this file is executed directly."""
+    try:
+        import uvicorn  # extras: ``aoa-run[fastapi]``
+    except ImportError as exc:
+        msg = (
+            "uvicorn is required to run this example. Install with: "
+            "pip install 'aoa-run[fastapi]'"
+        )
+        raise SystemExit(msg) from exc
+
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Orders API example (FastAPI)")
+    parser.add_argument("--host", default="127.0.0.1", help="Bind host")
+    parser.add_argument("--port", type=int, default=8000, help="Bind port")
+    args = parser.parse_args()
+    uvicorn.run(app, host=args.host, port=args.port)
+
+
+if __name__ == "__main__":
+    main()
