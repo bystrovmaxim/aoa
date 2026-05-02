@@ -6,8 +6,10 @@ from typing import Any
 from pydantic import Field
 
 from action_machine.auth.none_role import NoneRole
+from action_machine.context.ctx_constants import Ctx
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
+from action_machine.intents.context_requires.context_requires_decorator import context_requires
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
@@ -25,11 +27,13 @@ class OpsPingAction(BaseAction["OpsPingAction.Params", "OpsPingAction.Result"]):
         message: str = Field(description="Pong message")
 
     @summary_aspect("Pong")
+    @context_requires(Ctx.Request.trace_id)
     async def pong_summary(
         self,
         params: OpsPingAction.Params,
         state: Any,
         box: Any,
         connections: Any,
+        _ctx: object,
     ) -> OpsPingAction.Result:
         return OpsPingAction.Result(message="pong")
