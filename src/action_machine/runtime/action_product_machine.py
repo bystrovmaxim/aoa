@@ -12,8 +12,8 @@ typed plugin lifecycle events, saga rollback on failure, and ``@on_error``
 handling. Heavy logic lives in injectable components (``RoleChecker``,
 ``ConnectionValidator``, ``ToolsBoxFactory``, ``AspectExecutor``,
 ``ErrorHandlerExecutor``, ``SagaCoordinator``); this class wires order and
-shared helpers (execution cache, ``PluginEmitSupport`` for all machine-owned
-plugin lifecycle emissions: global start/finish and regular/summary aspect events).
+``PluginEmitSupport`` for all machine-owned plugin lifecycle emissions
+(global start/finish and regular/summary aspect events).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -25,9 +25,8 @@ ARCHITECTURE / DATA FLOW
         │
         └── _run_internal(nested_level=0, rollup=False)
                 │
-                ├── runtime = _get_execution_cache(action_cls)
-                ├── action_node = runtime.action_node
-                ├── _role_checker.check(action, context, runtime, action_node)
+                ├── action_node = get_node_by_id(action_cls)
+                ├── _role_checker.check(context, action_node)
                 ├── conns = _connection_validator.validate(action, connections, action_node)
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
                 ├── box = _tools_box_factory.create(factory_resolver=self, ...,
@@ -80,7 +79,6 @@ instead of private ``_coordinator``.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
 from functools import partial
 from typing import Any, TypeVar, cast
 
@@ -142,47 +140,13 @@ def _aspect_pipeline_chained_exception(apf: _AspectPipelineError) -> Exception:
     return apf
 
 
-def _role_spec_from_coordinator(action_cls: type, coordinator: GraphCoordinator) -> Any:
-    """Return ``@check_roles`` spec from coordinator facet ``role`` (graph-aligned)."""
-    snap = coordinator.get_snapshot(action_cls, "role")
-    return getattr(snap, "spec", None) if snap is not None else None
-
-
-@dataclass(frozen=True)
-class _ActionExecutionCache:
-    """
-    Frozen bundle of pipeline metadata for one ``run`` / ``_run_internal``.
-
-    ``role_spec`` comes from the coordinator ``role`` facet; ``action_node``
-    is the materialized :class:`~action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`
-    (graph is source of truth for aspects, compensators, error handlers).
-    """
-
-    role_spec: Any
-    action_node: ActionGraphNode[BaseAction[Any, Any]]
-
-    @classmethod
-    def from_coordinator_facets(
-        cls,
-        *,
-        gate_coordinator: GraphCoordinator,
-        action_node: ActionGraphNode[BaseAction[Any, Any]],
-    ) -> _ActionExecutionCache:
-        """Build cache: ``role`` snapshot + ``ActionGraphNode`` (class from ``action_node.node_obj``)."""
-        action_cls = action_node.node_obj
-        return cls(
-            role_spec=_role_spec_from_coordinator(action_cls, gate_coordinator),
-            action_node=action_node,
-        )
-
 
 class ActionProductMachine(BaseActionMachine):
     """
 AI-CORE-BEGIN
     ROLE: Public production machine entry point.
     CONTRACT: ``run`` → orchestrated pipeline; keyword-only component overrides.
-    INVARIANTS: built ``GraphCoordinator``; per-run cache with ``role_spec`` facet
-      and ``ActionGraphNode`` for the action class.
+    INVARIANTS: built ``GraphCoordinator``; interchange ``ActionGraphNode`` resolves role composition and downstream gates for each action class.
     AI-CORE-END
 """
 
@@ -242,7 +206,7 @@ AI-CORE-BEGIN
 
         # Step 1 wiring: extension points and deterministic component order.
         self._role_checker = (
-            role_checker if role_checker is not None else RoleChecker(self._coordinator)
+            role_checker if role_checker is not None else RoleChecker()
         )
         self._connection_validator = (
             connection_validator
@@ -298,13 +262,6 @@ AI-CORE-BEGIN
         return cast(
             ActionGraphNode[BaseAction[Any, Any]],
             self._coordinator.get_node_by_id(node_id, ActionGraphNode.NODE_TYPE),
-        )
-
-    def _get_execution_cache(self, action_cls: type) -> _ActionExecutionCache:
-        """``role_spec`` facet + ``ActionGraphNode`` for one ``_run_internal`` of ``action_cls``."""
-        return _ActionExecutionCache.from_coordinator_facets(
-            gate_coordinator=self._coordinator,
-            action_node=self.get_node_by_id(action_cls),
         )
 
     def _dependency_factory_for(self, action_cls: type) -> DependencyFactory:
@@ -621,9 +578,8 @@ AI-CORE-BEGIN
         start_time = time.time()
 
         action_cls = action.__class__
-        runtime = self._get_execution_cache(action_cls)
-        action_node = runtime.action_node
-        self._role_checker.check(action, context, runtime, action_node)
+        action_node = self.get_node_by_id(action_cls)
+        self._role_checker.check(context, action_node)
         conns = self._connection_validator.validate(action, connections, action_node)
         plugin_ctx = await self._plugin_coordinator.create_run_context()
         run_child = partial(
