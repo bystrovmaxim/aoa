@@ -71,6 +71,7 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
             node_id=f"{TypeIntrospection.full_qualname(host_cls)}:lifecycle:{needle}",
             node_type=LifeCycleGraphNode.NODE_TYPE,
             label=needle,
+            properties={"field_name": needle},
             node_obj=LifeCycleGraphPayload(
                 host_cls=host_cls,
                 field_name=needle,

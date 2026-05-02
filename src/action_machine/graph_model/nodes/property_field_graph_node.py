@@ -11,15 +11,6 @@ caller-supplied host ``parent_type`` (typically a params or result schema class)
 dotted id plus ``:`` plus the property name (``parent_type`` is only an argument to ``__init__``, not stored on the payload); ``node_obj`` is a frozen :class:`PropertyFieldGraphPayload`.
 
 Constructor shape matches :class:`FieldGraphNode` (``parent_type``, name, ``required``); this node names that string ``property_name`` on the payload. The class does **not** read Pydantic metadata; callers supply interchange metadata explicitly.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-    ``parent_type`` (params or result host) + property name (+ optional ``required``)  ->  ``PropertyFieldGraphNode(...)``
-
-Graph emitters combine Pydantic ``model_computed_fields`` with :meth:`action_machine.system_core.TypeIntrospection.property_members`
-to list every public ``property`` on the host class (MRO ``__dict__``).
 """
 
 from __future__ import annotations
