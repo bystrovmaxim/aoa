@@ -10,8 +10,8 @@ rows live in :attr:`lifecycle_transitions` and are returned from :meth:`~graph.b
 
 The parent :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode` keeps companion rows in :attr:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.states`; :meth:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.get_all_edges` flattens the **same instances** carried here in :attr:`lifecycle_transitions`.
 
-Constructed only via :meth:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.get_companion_nodes`
-on the parent lifecycle interchange row (**not** by listing companions on this vertex).
+Constructed only via :meth:`~action_machine.graph_model.edges.lifecycle_state_graph_edge.LifeCycleStateGraphEdge.get_state_edges`
+or equivalent wiring onto the parent lifecycle interchange row (**not** by listing companions on this vertex).
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
     AI-CORE-BEGIN
     ROLE: Interchange vertex for one state key scoped under the parent interchange row :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`.
     CONTRACT: ``node_id`` is ``lifecycle_graph_node_id.strip() + ':' + state_key.strip()``; ``label`` trimmed state key; ``properties`` carry ``lifecycle_class_id`` / ``state_key``; ``node_obj`` is :class:`StateGraphPayload` (``lifecycle_graph_node_id`` matches parent's ``node_id``).
-    INVARIANTS: Frozen; :attr:`lifecycle_transitions` is the canonical outgoing edge list surfaced by ``get_all_edges``; :meth:`get_companion_nodes` is always empty (registration only through :class:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge`).
+    INVARIANTS: Frozen; :attr:`lifecycle_transitions` lists transitions from :meth:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge.get_lifecycle_transition_edges` and is surfaced by ``get_all_edges``; :meth:`get_companion_nodes` is always empty (lifecycle rows register via ``LifeCycleGraphEdge``).
     FAILURES: :exc:`ValueError` when ``lifecycle_graph_node_id`` or ``state_key`` is blank after strip.
     AI-CORE-END
     """
@@ -81,28 +81,7 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
             },
             node_obj=payload,
         )
-        object.__setattr__(self, "lifecycle_transitions", StateGraphNode._build_lifecycle_transition_edges(self))
-
-    @staticmethod
-    def _build_lifecycle_transition_edges(vertex: StateGraphNode) -> list[StateGraphEdge]:
-        tpl = vertex.node_obj.lifecycle_class._get_template()
-        if tpl is None:
-            return []
-
-        nid_root = vertex.node_obj.lifecycle_graph_node_id
-        state_info = tpl.get_states().get(vertex.node_obj.state_key)
-        if state_info is None:
-            return []
-
-        return [
-            StateGraphEdge(
-                target_node_id=f"{nid_root}:{to_key}",
-                from_state=vertex.node_obj.state_key,
-                to_state=to_key,
-                target_node=None,
-            )
-            for to_key in state_info.transitions
-        ]
+        object.__setattr__(self, "lifecycle_transitions", StateGraphEdge.get_lifecycle_transition_edges(self))
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Status vertices are never self-registering companions; use :class:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge` + :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`."""
