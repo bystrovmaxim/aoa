@@ -1,6 +1,7 @@
 # tests/graph/test_callable_graph_node_locator.py
 """Action graph node callable edge behavior."""
 
+from action_machine.context.ctx_constants import Ctx
 from action_machine.graph_model.edges.compensator_graph_edge import (
     CompensatorGraphEdge,
 )
@@ -9,6 +10,9 @@ from action_machine.graph_model.edges.error_handler_graph_edge import (
 )
 from action_machine.graph_model.edges.regular_aspect_graph_edge import (
     RegularAspectGraphEdge,
+)
+from action_machine.graph_model.edges.required_context_graph_edge import (
+    RequiredContextGraphEdge,
 )
 from action_machine.graph_model.edges.summary_aspect_graph_edge import (
     SummaryAspectGraphEdge,
@@ -22,6 +26,16 @@ def test_get_summary_aspect_builds_edges() -> None:
     node = ActionGraphNode(PingAction)
 
     assert SummaryAspectGraphEdge.get_summary_aspect_edges(PingAction) == node.summary_aspect
+
+
+def test_summary_aspect_graph_node_emits_required_context_edges() -> None:
+    node = ActionGraphNode(ChildAction)
+    summary_row = node.summary_aspect[0].target_node
+    assert summary_row is not None
+    assert len(summary_row.required_context) == 1
+    edge = summary_row.required_context[0]
+    assert isinstance(edge, RequiredContextGraphEdge)
+    assert edge.properties["key"] == Ctx.Request.trace_id
 
 
 def test_get_regular_aspect_builds_edges_with_target_nodes() -> None:
