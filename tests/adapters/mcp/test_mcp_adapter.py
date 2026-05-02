@@ -15,7 +15,7 @@ by the coordinator graph, ``_class_name_to_snake_case``, and mapper fields on
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    Core.create_coordinator() + ActionProductMachine
+    ActionProductMachine
               |
               v
     McpAdapter(BaseAdapter[McpRouteRecord])
@@ -41,7 +41,6 @@ from mcp.server.fastmcp import FastMCP
 
 from action_machine.integrations.mcp.adapter import McpAdapter, _class_name_to_snake_case
 from action_machine.integrations.mcp.route_record import McpRouteRecord
-from action_machine.legacy.core import Core
 from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
@@ -52,8 +51,7 @@ from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 def _make_adapter(**kwargs) -> McpAdapter:
     """Create an McpAdapter with sensible test defaults."""
-    coordinator = Core.create_coordinator()
-    machine = ActionProductMachine(mode="test", coordinator=coordinator)
+    machine = ActionProductMachine(mode="test")
     auth = AsyncMock()
     auth.process.return_value = None
     return McpAdapter(

@@ -69,13 +69,11 @@ Aspects, compensators, and ``@on_error`` handlers cannot read ``Context`` from
 ``ContextView`` inside ``AspectExecutor``, ``SagaCoordinator``, and
 ``ErrorHandlerExecutor``.
 
-**Coordinator access**
+**Graph access**
 
-Protocol adapters and tools should use ``gate_coordinator`` (facet
-``GraphCoordinator``) or ``graph_coordinator`` (``NodeGraphCoordinator`` from
-``create_node_graph_coordinator``, built lazily on first read so ordinary runs and
-tests that never touch node graph skip the expensive global interchange build)
-instead of private ``_coordinator``.
+Protocol adapters and tools should use ``graph_coordinator`` (``NodeGraphCoordinator``
+from ``create_node_graph_coordinator``, built lazily on first read so ordinary runs
+and tests that never touch node graph skip the expensive global interchange build).
 
 """
 
@@ -92,7 +90,6 @@ from action_machine.exceptions import (
     MissingSummaryAspectError,
 )
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
-from action_machine.legacy.core import Core
 from action_machine.logging.console_logger import ConsoleLogger
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.model.base_action import BaseAction
@@ -116,7 +113,6 @@ from action_machine.runtime.tools_box import ToolsBox
 from action_machine.runtime.tools_box_factory import ToolsBoxFactory
 from action_machine.system_core import TypeIntrospection
 from graph.create_node_graph_coordinator import create_node_graph_coordinator
-from graph.graph_coordinator import GraphCoordinator
 from graph.node_graph_coordinator import NodeGraphCoordinator
 
 P = TypeVar("P", bound=BaseParams)
@@ -150,7 +146,7 @@ class ActionProductMachine(BaseActionMachine):
     AI-CORE-BEGIN
     ROLE: Public production machine entry point.
     CONTRACT: ``run`` → orchestrated pipeline; keyword-only component overrides.
-    INVARIANTS: built ``GraphCoordinator``; ``NodeGraphCoordinator`` from ``create_node_graph_coordinator()`` on first ``graph_coordinator`` read (stored on ``self``); interchange ``ActionGraphNode`` resolves role composition and downstream gates for each action class.
+    INVARIANTS: ``NodeGraphCoordinator`` from ``create_node_graph_coordinator()`` on first ``graph_coordinator`` read unless injected; interchange ``ActionGraphNode`` resolves role composition and downstream gates for each action class.
     AI-CORE-END
     """
 
@@ -160,7 +156,7 @@ class ActionProductMachine(BaseActionMachine):
         *,
         plugins: list[Plugin] | None = None,
         log_coordinator: LogCoordinator = LogCoordinator(loggers=[ConsoleLogger(use_colors=True)]),
-        coordinator: GraphCoordinator = Core.create_coordinator(),
+        graph_coordinator: NodeGraphCoordinator | None = None,
         role_checker: RoleChecker = RoleChecker(),
         connection_validator: ConnectionValidator = ConnectionValidator(),
         tools_box_factory: ToolsBoxFactory | None = None,
@@ -181,8 +177,7 @@ class ActionProductMachine(BaseActionMachine):
             list(plugins if plugins is not None else [])
         )
         self._log_coordinator: LogCoordinator = log_coordinator
-        self._coordinator: GraphCoordinator = coordinator
-        self._node_graph_coordinator: NodeGraphCoordinator | None = None
+        self._node_graph_coordinator: NodeGraphCoordinator | None = graph_coordinator
 
         self._plugin_emit = PluginEmitSupport(
             self._log_coordinator,
@@ -223,14 +218,6 @@ class ActionProductMachine(BaseActionMachine):
         )
 
     @property
-    def gate_coordinator(self) -> GraphCoordinator:
-        """Public read-only access to the built ``GraphCoordinator`` (graph, facets).
-
-        Adapters and tools should use this property instead of ``_coordinator``.
-        """
-        return self._coordinator
-
-    @property
     def graph_coordinator(self) -> NodeGraphCoordinator:
         """Lazy default ``NodeGraphCoordinator`` — created on first read, reused after."""
         value = self._node_graph_coordinator
@@ -255,10 +242,11 @@ class ActionProductMachine(BaseActionMachine):
         )
 
     def _dependency_factory_for(self, action_cls: type) -> DependencyFactory:
-        snap = self._coordinator.get_snapshot(action_cls, "depends")
-        if snap is None or not hasattr(snap, "dependencies"):
+        try:
+            self.get_node_by_id(action_cls)
+        except (LookupError, RuntimeError):
             return DependencyFactory(())
-        return DependencyFactory(tuple(snap.dependencies))
+        return DependencyFactory(tuple(getattr(action_cls, "_depends_info", ()) or ()))
 
     def dependency_factory_for(self, action_cls: type) -> DependencyFactory:
         """Public resolver for ``ToolsBoxFactory`` (``DependencyFactoryResolver``)."""
