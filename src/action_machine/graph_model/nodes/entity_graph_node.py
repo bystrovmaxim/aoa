@@ -18,22 +18,6 @@ State rows belong to each wired :class:`~action_machine.graph_model.nodes.lifecy
 the entity row contributes lifecycle vertices only.
 
 (``@entity`` ``domain``: :meth:`~action_machine.intents.entity.entity_intent_resolver.EntityIntentResolver.resolve_domain_type`).
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-    type[TEntity]  (``TEntity`` bound to ``BaseEntity``)
-              │
-              v
-    EntityGraphNode (``__init__``)
-              ├─ :attr:`domain`     ← :class:`~action_machine.graph_model.edges.domain_graph_edge.DomainGraphEdge`
-              ├─ :attr:`relations`  ← list[:class:`~action_machine.graph_model.edges.entity_graph_edge.EntityGraphEdge`]
-              └─ :attr:`lifecycles` ← :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_association_edges`
-              │
-              v
-    :meth:`get_all_edges` → ``[domain, *relations, *lifecycles]``
-    :meth:`get_companion_nodes` → each wired lifecycle ``target_node`` only; coordinator expands nested companions.
 """
 
 from __future__ import annotations
