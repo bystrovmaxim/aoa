@@ -10,9 +10,8 @@ PURPOSE
 imported by both transports so HTTP and MCP share the same runtime instance and
 auth policy.
 
-``ActionProductMachine`` creates a **built** ``GraphCoordinator`` internally
-(see ``ActionProductMachine.create_default_coordinator()``) unless you pass a
-custom ``coordinator=`` at construction time. Adapters receive only ``machine``
+``ActionProductMachine`` defaults ``coordinator`` to ``Core.create_coordinator()`` unless you pass
+``coordinator=`` explicitly. Adapters receive only ``machine``
 and ``auth``; they read ``machine.gate_coordinator`` when they need the graph.
 
 ``NoAuthCoordinator`` states that this sample performs no real authentication.

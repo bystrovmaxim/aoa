@@ -78,6 +78,7 @@ instead of private ``_coordinator``.
 
 from __future__ import annotations
 
+import enum
 import time
 from functools import partial
 from typing import Any, TypeVar, cast
@@ -118,6 +119,16 @@ P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
 
 
+class MachineInjection(enum.Enum):
+    """
+    Sentinel keyword defaults for :class:`ActionProductMachine` extras
+    (factory, executors, saga) that depend on ``mode`` or other fields.
+    """
+
+    DEFAULT = enum.auto()
+
+
+
 class _AspectPipelineError(Exception):
     """
     Internal: attaches the ``BaseState`` relevant at the failing pipeline step.
@@ -140,63 +151,41 @@ def _aspect_pipeline_chained_exception(apf: _AspectPipelineError) -> Exception:
     return apf
 
 
-
 class ActionProductMachine(BaseActionMachine):
     """
-AI-CORE-BEGIN
+    AI-CORE-BEGIN
     ROLE: Public production machine entry point.
     CONTRACT: ``run`` → orchestrated pipeline; keyword-only component overrides.
     INVARIANTS: built ``GraphCoordinator``; interchange ``ActionGraphNode`` resolves role composition and downstream gates for each action class.
     AI-CORE-END
-"""
-
-    @staticmethod
-    def create_default_coordinator() -> GraphCoordinator:
-        """Create and build coordinator with full default inspector set."""
-        return Core.create_coordinator()
+    """
 
     def __init__(
         self,
         mode: str,
         *,
-        plugins: list[Plugin] | None = None,
-        log_coordinator: LogCoordinator | None = None,
-        coordinator: GraphCoordinator | None = None,
-        role_checker: RoleChecker | None = None,
-        connection_validator: ConnectionValidator | None = None,
-        tools_box_factory: ToolsBoxFactory | None = None,
-        aspect_executor: AspectExecutor | None = None,
-        error_handler_executor: ErrorHandlerExecutor | None = None,
-        saga_coordinator: SagaCoordinator | None = None,
+        plugins: list[Plugin] = [],  # noqa: B006
+        log_coordinator: LogCoordinator = LogCoordinator(loggers=[ConsoleLogger(use_colors=True)]),
+        coordinator: GraphCoordinator = Core.create_coordinator(),
+        role_checker: RoleChecker = RoleChecker(),
+        connection_validator: ConnectionValidator = ConnectionValidator(),
+        tools_box_factory: ToolsBoxFactory | MachineInjection = MachineInjection.DEFAULT,
+        aspect_executor: AspectExecutor | MachineInjection = MachineInjection.DEFAULT,
+        error_handler_executor: ErrorHandlerExecutor | MachineInjection = MachineInjection.DEFAULT,
+        saga_coordinator: SagaCoordinator | MachineInjection = MachineInjection.DEFAULT,
     ) -> None:
-        """Build the machine (arguments after ``*`` are keyword-only overrides).
-
-        Default wiring chain: ``RoleChecker`` → ``ConnectionValidator`` →
-        ``ToolsBoxFactory`` → ``AspectExecutor`` → ``ErrorHandlerExecutor`` → ``SagaCoordinator``.
+        """Keyword-only deps after ``mode``. ``MachineInjection.DEFAULT`` wires tools, aspects, errors, saga.
 
         Raises:
             ValueError: ``mode`` is empty.
-            RuntimeError: ``coordinator`` is set but not built.
         """
         if not mode:
             raise ValueError("mode must be non-empty")
 
         self._mode: str = mode
-        self._plugin_coordinator: PluginCoordinator = PluginCoordinator(
-            plugins=plugins or [],
-        )
-
-        if log_coordinator is None:
-            log_coordinator = LogCoordinator(loggers=[ConsoleLogger(use_colors=True)])
+        self._plugin_coordinator: PluginCoordinator = PluginCoordinator(list(plugins))
         self._log_coordinator: LogCoordinator = log_coordinator
-        self._coordinator = (
-            coordinator if coordinator is not None else self.create_default_coordinator()
-        )
-        if not self._coordinator.is_built:
-            raise RuntimeError(
-                "ActionProductMachine requires a built GraphCoordinator. "
-                "Call register(...).build() before passing custom coordinator.",
-            )
+        self._coordinator: GraphCoordinator = coordinator
 
         self._plugin_emit = PluginEmitSupport(
             self._log_coordinator,
@@ -204,43 +193,36 @@ AI-CORE-BEGIN
             mode=self._mode,
         )
 
-        # Step 1 wiring: extension points and deterministic component order.
-        self._role_checker = (
-            role_checker if role_checker is not None else RoleChecker()
+        self._role_checker: RoleChecker = role_checker
+        self._connection_validator: ConnectionValidator = connection_validator
+        self._tools_box_factory: ToolsBoxFactory = (
+            ToolsBoxFactory(self._log_coordinator)
+            if tools_box_factory is MachineInjection.DEFAULT
+            else tools_box_factory
         )
-        self._connection_validator = (
-            connection_validator
-            if connection_validator is not None
-            else ConnectionValidator()
-        )
-        self._tools_box_factory = (
-            tools_box_factory
-            if tools_box_factory is not None
-            else ToolsBoxFactory(self._log_coordinator)
-        )
-        self._aspect_executor = (
-            aspect_executor
-            if aspect_executor is not None
-            else AspectExecutor(
+        self._aspect_executor: AspectExecutor = (
+            AspectExecutor(
                 self._log_coordinator,
                 machine_class_name=self.__class__.__name__,
                 mode=self._mode,
             )
+            if aspect_executor is MachineInjection.DEFAULT
+            else aspect_executor
         )
-        self._error_handler_executor = (
-            error_handler_executor
-            if error_handler_executor is not None
-            else ErrorHandlerExecutor(self._plugin_emit)
+        self._error_handler_executor: ErrorHandlerExecutor = (
+            ErrorHandlerExecutor(self._plugin_emit)
+            if error_handler_executor is MachineInjection.DEFAULT
+            else error_handler_executor
         )
-        self._saga_coordinator = (
-            saga_coordinator
-            if saga_coordinator is not None
-            else SagaCoordinator(
+        self._saga_coordinator: SagaCoordinator = (
+            SagaCoordinator(
                 self._aspect_executor,
                 self._error_handler_executor,
                 self._plugin_coordinator,
                 self._plugin_emit,
             )
+            if saga_coordinator is MachineInjection.DEFAULT
+            else saga_coordinator
         )
 
     @property
