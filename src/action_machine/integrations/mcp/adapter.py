@@ -457,7 +457,7 @@ AI-CORE-BEGIN
         server_name: str = "ActionMachine MCP",
         server_version: str = "0.1.0",
     ) -> None:
-        """Wire machine, auth, optional connections / ``gate_coordinator``, server name/version."""
+        """Wire machine, auth, optional connections / facet graph, server meta."""
         super().__init__(
             machine=machine,
             auth_coordinator=auth_coordinator,
