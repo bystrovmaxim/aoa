@@ -246,10 +246,12 @@ class ActionProductMachine(BaseActionMachine):
 
     def get_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
         """Return the materialized ``Action`` graph node for ``action_cls`` (same id as :class:`ActionGraphNode`)."""
-        node_id = TypeIntrospection.full_qualname(action_cls)
         return cast(
             ActionGraphNode[BaseAction[Any, Any]],
-            self._coordinator.get_node_by_id(node_id, ActionGraphNode.NODE_TYPE),
+            self.graph_coordinator.get_node_by_id(
+                TypeIntrospection.full_qualname(action_cls),
+                ActionGraphNode.NODE_TYPE,
+            ),
         )
 
     def _dependency_factory_for(self, action_cls: type) -> DependencyFactory:
