@@ -11,17 +11,12 @@ follow.
 
 An inspector:
 1. Knows which marker mixin subtree to walk (``_target_intent``).
-2. Can inspect each candidate class and emit graph data.
-3. Registers with ``GraphCoordinator``.
+2. Can inspect each candidate class and emit graph data (:class:`FacetVertex` or interchange vertex/edge lists).
+3. Optionally exposes typed :class:`BaseFacetSnapshot` via ``facet_snapshot_for_class()``;
+   metadata callers may persist it next to interchange assembly.
 
-During ``build()`` the coordinator walks registered inspectors, calls
-``inspect()`` on each candidate, and commits graph topology. Inspectors emit
-either legacy :class:`FacetVertex` rows or, **once migrated**, pure interchange
-data (see **Interchange return shape** below).
-
-Optionally, ``facet_snapshot_for_class()`` returns a :class:`BaseFacetSnapshot`
-(usually a nested ``Snapshot`` on the inspector); the coordinator caches it
-next to the graph so ``to_facet_vertex()`` stays the single projection path.
+Inspectors primarily emit legacy :class:`FacetVertex` rows or, once migrated,
+pure interchange data (see **Interchange return shape** below).
 
 ═══════════════════════════════════════════════════════════════════════════════
 MARKER VS INSPECTOR
@@ -37,8 +32,7 @@ Each intent is represented twice:
 
     Inspector (``RoleIntentInspector``, ``AspectIntentInspector``, …)
         Inherits ``BaseIntentInspector``. Implements ``inspect()`` and
-        ``_build_payload()``. Walks marker subclasses via ``_target_intent``.
-        Registers with the coordinator.
+        ``_build_payload()`` and walks marker subclasses via ``_target_intent``.
 
 The link is the inspector's ``_target_intent`` (single marker) or, rarely, the
 ``_target_intents`` tuple / custom ``_subclasses_recursive()`` used by
@@ -99,12 +93,12 @@ Validation is layered:
         Validate arguments at import time: types, emptiness, ``issubclass``,
         duplicates. Fail fast when the class body executes.
 
-    Coordinator (``GraphCoordinator.build()``)
+    Coordinator (historical facet graph assembly during ``build()``)
         Global checks after every payload is collected: key uniqueness, edge
         integrity, structural acyclicity.
 
 Inspectors do **not** implement ``_validate()`` — responsibility stays in
-decorators plus coordinator.
+decorators plus graph assembly validators.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RESPONSIBILITY SPLIT
@@ -305,8 +299,8 @@ AI-CORE-BEGIN
         """
         Optional typed snapshot for ``target_cls`` when this inspector owns it.
 
-        When non-``None``, ``GraphCoordinator`` stores it during graph ``build()``
-        (phase 1) under ``(target_cls, facet_snapshot_storage_key(...))``.
+        Metadata layers may persist the snapshot keyed by ``(target_cls,
+        facet_snapshot_storage_key(...))``.
         Default: no snapshot.
 
         Override in inspectors that define a nested ``Snapshot`` with
@@ -333,13 +327,8 @@ AI-CORE-BEGIN
         payload: FacetVertex,
     ) -> bool:
         """
-        If ``False``, :class:`~graph.graph_coordinator.GraphCoordinator`
-        skips :meth:`~graph.graph_coordinator.GraphCoordinator._register_hydration_snapshot_key`
-        for this payload.
-
-        Use when an inspector emits an extra merged node (e.g. ``node_type=\"action\"``)
-        only to attach informational edges; the typed facet snapshot must hydrate
-        the primary facet nodes, not that shell.
+        If ``False``, skip registering hydration snapshot bookkeeping for this
+        payload shell (see node-graph inspectors for hydrated reads).
         """
         return True
 
@@ -461,8 +450,8 @@ AI-CORE-BEGIN
         Build ``FacetEdge`` when the target is a string identifier.
 
         Useful for context-field nodes (``"user.user_id"``) or synthetic domains.
-        When ``target_class_ref`` is set, :meth:`GraphCoordinator._materialize_edge_targets`
-        can synthesize a stub facet node for that class.
+        When ``target_class_ref`` is set, facet tooling may synthesize a stub
+        facet vertex for that class.
 
         Args:
             target_node_type: Target facet type.
@@ -570,7 +559,7 @@ AI-CORE-BEGIN
             def _subclasses_recursive(cls) -> list[type]:
                 return cls._collect_subclasses(cls._target_intent)
 
-        ``GraphCoordinator.build()`` invokes this for every registered inspector.
+        Graph assembly invokes this for every inspector participating in traversal.
 
         Returns:
             Sequence of classes that should be passed to ``inspect()``.

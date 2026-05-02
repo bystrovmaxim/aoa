@@ -8,12 +8,9 @@ PURPOSE
 
 Each inspector may declare a **nested Snapshot** dataclass (or similar) next to
 the facet: rich fields + callables stay here; ``to_facet_vertex()`` produces the
-serialisable :class:`FacetVertex` used for validation; the coordinator keeps
-typed snapshots separately and commits only ``node_type`` / ``name`` /
-``class_ref`` on graph nodes.
-
-``GraphCoordinator`` caches snapshots during ``build()`` (phase 1) when
-``BaseIntentInspector.facet_snapshot_for_class()`` returns non-``None``.
+serialisable :class:`FacetVertex` used for validation. Facet-graph assembly may cache
+typed snapshots when ``BaseIntentInspector.facet_snapshot_for_class()`` returns
+non-``None``.
 
 Inspectors that do not participate yet leave the default hook returning ``None``.
 

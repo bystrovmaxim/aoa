@@ -109,11 +109,11 @@ def test_intents_connection_lazy_symbols_resolve() -> None:
 
 def test_legacy_lazy_getattr_success_and_failure() -> None:
     leg = importlib.import_module("action_machine.legacy")
-    assert leg.Core is not None
+    assert leg.DependencyIntentInspector is not None
     with pytest.raises(AttributeError, match="has no attribute"):
         _ = leg.DefinitelyNotInLegacyAll
     names = leg.__dir__()
-    assert "Core" in names
+    assert "DependencyIntentInspector" in names
 
 
 def test_legacy_every_public_lazy_name_materializes_once() -> None:

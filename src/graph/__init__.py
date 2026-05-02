@@ -6,8 +6,8 @@ ActionMachine **graph** subpackage (facet snapshots, coordinator, inspectors).
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Provide the shared graph-modeling surface for ActionMachine metadata:
-typed facet snapshots and transactional graph assembly via ``GraphCoordinator``.
+Provide the shared graph-modeling surface for ActionMachine metadata: facet payloads,
+interchange types, DAG helpers, and node-graph coordinators.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -18,14 +18,13 @@ ARCHITECTURE / DATA FLOW
     decorators write class/method scratch
               │
               ▼
-    inspectors read declarations -> FacetVertex + optional Snapshot
+    intent inspectors emit FacetVertex / interchange pairs
               │
               ▼
-    GraphCoordinator.build()
-      (collect -> validate -> commit)
+    projection + NodeGraphCoordinator.build([…])
               │
               ▼
-    graph topology + typed snapshot cache
+    rustworkx interchange graph + tooling reads
 """
 
 from __future__ import annotations

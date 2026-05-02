@@ -16,7 +16,6 @@ from graph.base_intent_inspector import BaseIntentInspector
 from graph.facet_edge import FacetEdge
 from graph.facet_vertex import FacetVertex
 from graph.graph_builder import build_interchange_from_facet_vertices
-from graph.graph_coordinator import GraphCoordinator
 
 
 def _interchange_canonical(payloads: tuple[FacetVertex, ...]) -> tuple[list[dict], list[dict]]:
@@ -25,19 +24,67 @@ def _interchange_canonical(payloads: tuple[FacetVertex, ...]) -> tuple[list[dict
     return _canonical_vertices(v), _canonical_edges(e)
 
 
+def _facet_collect_key(payload: FacetVertex) -> str:
+    if payload.merge_group_key:
+        return payload.merge_group_key
+    return f"{payload.node_type}:{payload.node_name}"
+
+
+def _normalize_payload_for_collect_key(
+    payload: FacetVertex,
+    collect_key: str,
+) -> FacetVertex:
+    mgk = payload.merge_group_key
+    if (
+        mgk is not None
+        and collect_key == mgk
+        and payload.merge_node_type
+        and payload.merge_node_name is not None
+    ):
+        return FacetVertex(
+            node_type=payload.merge_node_type,
+            node_name=payload.merge_node_name,
+            node_class=payload.node_class,
+            node_meta=payload.node_meta,
+            edges=payload.edges,
+            skip_node_type_snapshot_fallback=payload.skip_node_type_snapshot_fallback,
+        )
+    return payload
+
+
+def _merge_facets_under_collect_key(
+    first: FacetVertex,
+    second: FacetVertex,
+) -> FacetVertex | None:
+    if first.node_class is not second.node_class or first.node_name != second.node_name:
+        return None
+    if first.node_type != second.node_type:
+        return None
+    return FacetVertex(
+        node_type=first.node_type,
+        node_name=first.node_name,
+        node_class=first.node_class,
+        node_meta=first.node_meta + second.node_meta,
+        edges=first.edges + second.edges,
+        skip_node_type_snapshot_fallback=(
+            first.skip_node_type_snapshot_fallback
+            or second.skip_node_type_snapshot_fallback
+        ),
+    )
+
+
 def _simulate_phase1_merge(
-    gc: GraphCoordinator,
     payloads: tuple[FacetVertex, ...],
 ) -> list[FacetVertex]:
-    """Same key fold/merge as :meth:`GraphCoordinator._phase1_collect` (without inspectors)."""
+    """Key fold identical to legacy coordinator phase-1 collect (inspector-free)."""
     by_key: dict[str, FacetVertex] = {}
     for p in payloads:
-        ck = gc._facet_collect_key(p)
-        inc = gc._normalize_payload_for_collect_key(p, ck)
+        ck = _facet_collect_key(p)
+        inc = _normalize_payload_for_collect_key(p, ck)
         if ck not in by_key:
             by_key[ck] = inc
             continue
-        merged = gc._merge_facets_under_collect_key(by_key[ck], inc)
+        merged = _merge_facets_under_collect_key(by_key[ck], inc)
         if merged is None:
             msg = f"unexpected duplicate merge failure for {ck!r}"
             raise AssertionError(msg)
@@ -175,8 +222,7 @@ def test_graph_builder_facet_vertices_match_fixture() -> None:
 
 
 def test_facet_vertices_after_phase1_merge_match_fixture() -> None:
-    gc = GraphCoordinator()
-    merged = _simulate_phase1_merge(gc, _g0_facet_vertices())
+    merged = _simulate_phase1_merge(_g0_facet_vertices())
     exp_v, exp_e = _interchange_canonical(tuple(merged))
     vertices, edges = build_interchange_from_facet_vertices(merged)
     assert _canonical_vertices(vertices) == exp_v

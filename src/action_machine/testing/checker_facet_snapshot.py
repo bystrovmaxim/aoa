@@ -1,15 +1,14 @@
 # src/action_machine/testing/checker_facet_snapshot.py
 """
-CheckerFacetSnapshot — typed checker facet snapshot for GraphCoordinator tooling.
+CheckerFacetSnapshot — typed checker facet rows for tooling and tests.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Frozen snapshot keyed as ``(.., \"checker\")`` on :class:`~graph.graph_coordinator.GraphCoordinator`
-when tests or tooling seed checker metadata manually. Checker row harvesting for
-:class:`~action_machine.testing.bench.TestBench` lives alongside in
-:mod:`action_machine.testing.bench`.
+Frozen snapshot carrying checker rows when tests seed checker metadata manually.
+Checker row harvesting for :class:`~action_machine.testing.bench.TestBench` lives
+alongside in :mod:`action_machine.testing.bench`.
 
 """
 

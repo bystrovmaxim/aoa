@@ -54,7 +54,7 @@ class BaseGraphNodeInspector[TRoot](ABC):
     AI-CORE-BEGIN
     ROLE: Abstract contract for interchange-node emission into ``NodeGraphCoordinator``.
     CONTRACT: Subclasses specialize ``TRoot`` in the base list and implement :meth:`_get_node` only; :meth:`get_graph_nodes` is final orchestration.
-    INVARIANTS: Cannot be instantiated directly; not registered with ``GraphCoordinator`` by itself.
+    INVARIANTS: Cannot be instantiated directly; must be subclassed for node emission.
     AI-CORE-END
     """
 
