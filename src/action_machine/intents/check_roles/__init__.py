@@ -6,9 +6,8 @@ ActionMachine authentication package.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Provides authentication coordinators, role **marker types** (``BaseRole``),
-decorators (``@check_roles``, ``@role_mode``), and abstract interfaces for
-credential extraction, verification, and context assembly.
+Provides role **marker types** (``BaseRole``), access-control decorators
+(``@check_roles``, ``@role_mode``), and the role graph contract.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ROLE TYPE HIERARCHY (ONE CLASS ≈ ONE MODULE)
@@ -37,17 +36,6 @@ Who satisfies ``@check_roles(X)`` is determined **only** by **subclassing**
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ┌─────────────────────┐    ┌───────────────┐    ┌──────────────────┐
-    │ CredentialExtractor │ -> │ Authenticator │ -> │ ContextAssembler │
-    └──────────┬──────────┘    └───────┬───────┘    └────────┬─────────┘
-               └────────────────────────┴─────────────────────┘
-                                    |
-                                    v
-                           AuthCoordinator.process()
-                                    |
-                                    v
-                          Context(UserInfo.roles)
-
     Role model (types, not strings at runtime in snapshots):
 
         RoleModeIntent  ◀──  BaseRole  ◀──  your concrete *Role classes
@@ -65,16 +53,6 @@ ARCHITECTURE / DATA FLOW
               │
               ▼
         :class:`~action_machine.runtime.role_checker.RoleChecker` at runtime
-
-═══════════════════════════════════════════════════════════════════════════════
-COMPONENTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``AuthCoordinator`` / ``NoAuthCoordinator``: context production policy.
-- ``CredentialExtractor`` / ``Authenticator`` / ``ContextAssembler``:
-  extension interfaces for auth pipeline steps.
-- ``BaseRole`` + ``RoleModeIntent``: typed role model and lifecycle marker.
-- ``check_roles`` / ``role_mode``: declarative access-control decorators.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -101,64 +79,23 @@ EXAMPLES
     @check_roles(NoneRole)
     class PingAction(BaseAction[...]):
         ...
-
-    auth = AuthCoordinator(extractor, authenticator, assembler)
-    context = await auth.process(request)
 """
 
 from __future__ import annotations
 
-# pylint: disable=undefined-all-variable
-# ``__all__`` lists lazy names resolved in :func:`__getattr__` (PEP 562).
-import importlib
-from typing import Any
-
+from action_machine.auth.any_role import AnyRole
+from action_machine.auth.base_role import BaseRole
+from action_machine.auth.none_role import NoneRole
+from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
+from action_machine.intents.check_roles.check_roles_decorator import check_roles
 from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
+from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 from action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
-
-_LAZY_EXPORTS: dict[str, tuple[str, str]] = {
-    "AnyRole": ("action_machine.auth.any_role", "AnyRole"),
-    "AuthCoordinator": ("action_machine.auth.auth_coordinator", "AuthCoordinator"),
-    "Authenticator": ("action_machine.auth.authenticator", "Authenticator"),
-    "BaseRole": ("action_machine.auth.base_role", "BaseRole"),
-    "ContextAssembler": ("action_machine.auth.auth_coordinator", "ContextAssembler"),
-    "CredentialExtractor": ("action_machine.auth.auth_coordinator", "CredentialExtractor"),
-    "NoAuthCoordinator": ("action_machine.auth.auth_coordinator", "NoAuthCoordinator"),
-    "NoneRole": ("action_machine.auth.none_role", "NoneRole"),
-    "check_roles": ("action_machine.intents.check_roles.check_roles_decorator", "check_roles"),
-    "RoleMode": ("action_machine.intents.role_mode.role_mode_decorator", "RoleMode"),
-    "role_mode": ("action_machine.intents.role_mode.role_mode_decorator", "role_mode"),
-    "RoleGraphNode": (
-        "action_machine.graph_model.nodes.role_graph_node",
-        "RoleGraphNode",
-    ),
-}
-
-
-def __getattr__(name: str) -> Any:
-    """Lazy imports avoid circular init when ``base_role`` loads ``RoleModeIntent``."""
-    if name in _LAZY_EXPORTS:
-        mod_path, attr = _LAZY_EXPORTS[name]
-        module = importlib.import_module(mod_path)
-        value = getattr(module, attr)
-        globals()[name] = value
-        return value
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
-def __dir__() -> list[str]:
-    return sorted(__all__)
-
 
 __all__ = [
     "AnyRole",
-    "AuthCoordinator",
-    "Authenticator",
     "BaseRole",
     "CheckRolesIntent",
-    "ContextAssembler",
-    "CredentialExtractor",
-    "NoAuthCoordinator",
     "NoneRole",
     "RoleGraphNode",
     "RoleMode",

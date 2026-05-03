@@ -22,7 +22,6 @@ from typing import Any
 
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.intents.aspects.summary_aspect_intent_resolver import SummaryAspectIntentResolver
-from action_machine.model.base_action import BaseAction
 from graph.composition_graph_edge import CompositionGraphEdge
 
 
@@ -49,7 +48,7 @@ class SummaryAspectGraphEdge(CompositionGraphEdge):
 
     @staticmethod
     def get_summary_aspect_edges(
-        action_cls: type[BaseAction[Any, Any]],
+        action_cls: type[Any],
     ) -> list[SummaryAspectGraphEdge]:
         """Return summary aspect composition edges for ``action_cls``."""
         return [

@@ -1,5 +1,4 @@
 # src/action_machine/intents/meta/__init__.py
-# pylint: disable=undefined-all-variable,import-outside-toplevel
 """
 Public entrypoint for meta intent contracts and decorator.
 
@@ -32,22 +31,7 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Any
-
+from action_machine.intents.meta.meta_decorator import meta
 from action_machine.intents.meta.meta_intent import MetaIntent
 
 __all__ = ["MetaIntent", "meta"]
-
-
-def __getattr__(name: str) -> Any:
-    """Lazy ``meta`` import avoids cycles (``BaseAction`` → this package → ``meta_decorator`` → ``BaseDomain``)."""
-    if name == "meta":
-        from action_machine.intents.meta.meta_decorator import meta as meta_fn
-
-        return meta_fn
-    msg = f"module {__name__!r} has no attribute {name!r}"
-    raise AttributeError(msg)
-
-
-def __dir__() -> list[str]:
-    return sorted(__all__)
