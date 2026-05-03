@@ -1,60 +1,43 @@
 # tests/model/test_lazy_model_graph_exports.py
-"""
-Lazy public exports on ``action_machine.model``, ``action_machine.graph_model``, and ``inspectors``.
-"""
+"""Public model exports and direct graph-model leaf imports."""
 
 from __future__ import annotations
 
-import pytest
-
 import action_machine.graph_model as graph_model_pkg
+import action_machine.graph_model.inspectors as inspectors_pkg
 import action_machine.model as model_pkg
 from action_machine.graph_model.inspectors.action_graph_node_inspector import (
     ActionGraphNodeInspector,
 )
+from action_machine.graph_model.inspectors.params_graph_node_inspector import (
+    ParamsGraphNodeInspector,
+)
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from tests.scenarios.domain_model.child_action import ChildAction
 
 
-def test_model_lazy_action_graph_node_exports() -> None:
-    assert model_pkg.ActionGraphNode.__name__ == "ActionGraphNode"
-    assert model_pkg.ActionGraphNodeInspector.__name__ == "ActionGraphNodeInspector"
+def test_model_package_exports_core_contracts_only() -> None:
+    assert model_pkg.BaseAction.__name__ == "BaseAction"
+    assert model_pkg.BaseParams.__name__ == "BaseParams"
+    assert model_pkg.BaseResult.__name__ == "BaseResult"
+    assert not hasattr(model_pkg, "ActionGraphNode")
 
 
-def test_model_getattr_unknown_raises() -> None:
-    name = "NotARealModelExport987"
-    with pytest.raises(AttributeError, match="has no attribute"):
-        getattr(model_pkg, name)
+def test_graph_model_package_does_not_reexport_leaf_symbols() -> None:
+    assert graph_model_pkg.__all__ == []
+    assert not hasattr(graph_model_pkg, "ResultGraphNode")
 
 
-def test_graph_model_lazy_getattr_exports_every_all_name() -> None:
-    for name in graph_model_pkg.__all__:
-        getattr(graph_model_pkg, name)
+def test_graph_model_leaf_imports_resolve() -> None:
+    assert ActionGraphNode.__name__ == "ActionGraphNode"
+    assert ResultGraphNode.__name__ == "ResultGraphNode"
 
 
-def test_graph_model_getattr_unknown_raises() -> None:
-    name = "NotARealGraphModelExport987"
-    with pytest.raises(AttributeError, match="has no attribute"):
-        getattr(graph_model_pkg, name)
-
-
-def test_graph_model_dir_lists_public_names() -> None:
-    assert "ResultGraphNode" in graph_model_pkg.__dir__()
-
-
-def test_graph_model_inspectors_lazy_exports() -> None:
-    import action_machine.graph_model.inspectors as inspectors_pkg
-
-    for name in inspectors_pkg.__all__:
-        getattr(inspectors_pkg, name)
-    assert "ParamsGraphNodeInspector" in inspectors_pkg.__dir__()
-
-
-def test_graph_model_inspectors_getattr_unknown_raises() -> None:
-    import action_machine.graph_model.inspectors as inspectors_pkg
-
-    bad = "NotARealGraphModelInspector884"
-    with pytest.raises(AttributeError, match="has no attribute"):
-        getattr(inspectors_pkg, bad)
+def test_graph_model_inspector_leaf_imports_resolve() -> None:
+    assert inspectors_pkg.__all__ == []
+    assert ActionGraphNodeInspector.__name__ == "ActionGraphNodeInspector"
+    assert ParamsGraphNodeInspector.__name__ == "ParamsGraphNodeInspector"
 
 
 def test_action_graph_node_inspector_builds_vertex_for_concrete_action() -> None:

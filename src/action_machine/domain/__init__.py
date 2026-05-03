@@ -36,13 +36,11 @@ PACKAGE CONTENTS
 
 Domains:
     BaseDomain — abstract base for all domain marker classes.
-    DomainGraphNode — interchange node for a concrete ``BaseDomain`` class (see :mod:`action_machine.graph_model.nodes`).
 
 Entities:
     BaseEntity — abstract base for all entities (frozen, `extra="forbid"`).
     EntityIntent — marker mixin: the type declares participation in the
     ``@entity`` grammar (facet / inspector at ``NodeGraphCoordinator.build()``).
-    entity — class decorator declaring an entity (`_entity_info`).
 
 State machines:
     Lifecycle — declarative finite-state machine template (import-time fluent API).
@@ -77,7 +75,6 @@ EXAMPLES
         Inverse,
         Rel,
         build,
-        entity,
     )
 
     class ShopDomain(BaseDomain):
@@ -98,9 +95,6 @@ EXAMPLES
 
     order = build({"id": "123", "amount": 100.0}, OrderEntity)
 """
-
-# Deferred graph interchange symbols are bound in ``__getattr__``.
-# pylint: disable=undefined-all-variable
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
@@ -127,51 +121,6 @@ from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInver
 from action_machine.domain.testing import make
 from action_machine.intents.entity.entity_intent import EntityIntent
 
-
-def __getattr__(name: str) -> object:
-    """
-    Lazily expose graph interchange types and the ``@entity`` decorator.
-
-    ``entity`` is not imported at package init because ``entity_decorator`` pulls
-    :mod:`action_machine.domain` while :mod:`~action_machine.intents.entity` may still be
-    bootstrapping. Graph interchange symbols below likewise avoid eager imports that recurse
-    when :mod:`~action_machine.graph_model.nodes.domain_graph_node` loads via
-    :mod:`action_machine.domain.base_domain` mid-package-init.
-    """
-    # pylint: disable=import-outside-toplevel
-
-    if name == "entity":
-        from action_machine.intents.entity.entity_decorator import entity
-
-        globals()["entity"] = entity
-        return entity
-    if name == "DomainGraphNode":
-        from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
-
-        globals()["DomainGraphNode"] = DomainGraphNode
-        return DomainGraphNode
-    if name == "DomainGraphNodeInspector":
-        from action_machine.graph_model.inspectors.domain_graph_node_inspector import (
-            DomainGraphNodeInspector,
-        )
-
-        globals()["DomainGraphNodeInspector"] = DomainGraphNodeInspector
-        return DomainGraphNodeInspector
-    if name == "EntityGraphNode":
-        from action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
-
-        globals()["EntityGraphNode"] = EntityGraphNode
-        return EntityGraphNode
-    if name == "EntityGraphNodeInspector":
-        from action_machine.graph_model.inspectors.entity_graph_node_inspector import (
-            EntityGraphNodeInspector,
-        )
-
-        globals()["EntityGraphNodeInspector"] = EntityGraphNodeInspector
-        return EntityGraphNodeInspector
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
 __all__ = [
     "AggregateMany",
     "AggregateOne",
@@ -186,12 +135,8 @@ __all__ = [
     "BaseRelationOne",
     "CompositeMany",
     "CompositeOne",
-    "DomainGraphNode",
-    "DomainGraphNodeInspector",
     # Exceptions
     "EntityDecoratorError",
-    "EntityGraphNode",
-    "EntityGraphNodeInspector",
     "EntityIntent",
     "FieldNotLoadedError",
     # Relation markers
@@ -208,6 +153,5 @@ __all__ = [
     "StateType",
     # Utilities
     "build",
-    "entity",
     "make",
 ]

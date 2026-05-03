@@ -22,7 +22,6 @@ from typing import Any
 
 from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
 from action_machine.intents.compensate.compensate_intent_resolver import CompensateIntentResolver
-from action_machine.model.base_action import BaseAction
 from graph.composition_graph_edge import CompositionGraphEdge
 
 
@@ -49,7 +48,7 @@ class CompensatorGraphEdge(CompositionGraphEdge):
 
     @staticmethod
     def get_compensator_edges(
-        action_cls: type[BaseAction[Any, Any]],
+        action_cls: type[Any],
     ) -> list[CompensatorGraphEdge]:
         """Return compensator composition edges for ``action_cls``."""
         return [

@@ -21,7 +21,6 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.intents.connection.connection_intent_resolver import ConnectionIntentResolver
-from action_machine.model.base_action import BaseAction
 from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -53,7 +52,7 @@ class ConnectionGraphEdge(AssociationGraphEdge):
 
     @staticmethod
     def get_connection_edges(
-        action_cls: type[BaseAction[Any, Any]],
+        action_cls: type[Any],
     ) -> list[ConnectionGraphEdge]:
         """Return one typed edge per ``@connection`` declaration on ``action_cls``."""
         return [

@@ -21,7 +21,6 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.intents.depends.depends_intent_resolver import DependsIntentResolver
-from action_machine.model.base_action import BaseAction
 from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -51,7 +50,7 @@ class DependsGraphEdge(AssociationGraphEdge):
 
     @staticmethod
     def get_dependency_edges(
-        action_cls: type[BaseAction[Any, Any]],
+        action_cls: type[Any],
     ) -> list[DependsGraphEdge]:
         """Return one typed edge per ``@depends`` declaration on ``action_cls``."""
         return [

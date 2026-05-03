@@ -1,26 +1,16 @@
 # src/action_machine/intents/context_requires/__init__.py
 """
-ActionMachine execution context package.
+ActionMachine execution-context intent package.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Contains the full action-execution context system:
+Contains the ``@context_requires`` decorator, resolver, marker intent, ``Ctx``
+dot-path constants, and ``ContextView``. Concrete context data models live in
+``action_machine.context``.
 
-- **Context** — action execution context. Holds user info (``UserInfo``),
-  request info (``RequestInfo``), and runtime info (``RuntimeInfo``).
-  Passed to runtime ``run()`` and used for role checks and logging.
-
-- **UserInfo** — authenticated user metadata (``user_id``, ``roles``).
-
-- **RequestInfo** — inbound request metadata (trace_id, client_ip,
-  request_path, protocol, etc.).
-
-- **RuntimeInfo** — runtime environment metadata (hostname, service_name,
-  service_version, etc.).
-
-- **Ctx** — nested dot-path constants used by ``@context_requires``.
+``Ctx`` contains nested dot-path constants used by ``@context_requires``.
   Every constant maps to a real field:
   ``Ctx.User.user_id == "user.user_id"``,
   ``Ctx.Request.trace_id == "request.trace_id"``, etc.
@@ -108,9 +98,6 @@ For custom fields, use raw strings:
 
 """
 
-import importlib
-from typing import Any
-
 from action_machine.context.context_view import ContextView
 from action_machine.context.ctx_constants import Ctx
 from action_machine.intents.context_requires.context_requires_decorator import context_requires
@@ -119,38 +106,10 @@ from action_machine.intents.context_requires.context_requires_resolver import (
     ContextRequiresResolver,
 )
 
-# Eager imports of Context / *Info from context.* would run while
-# request_info / model are still initializing; lazy re-export breaks the cycle.
-_LAZY_CONTEXT_EXPORTS: dict[str, tuple[str, str]] = {
-    "Context": ("action_machine.context.context", "Context"),
-    "RequestInfo": ("action_machine.context.request_info", "RequestInfo"),
-    "RuntimeInfo": ("action_machine.context.runtime_info", "RuntimeInfo"),
-    "UserInfo": ("action_machine.context.user_info", "UserInfo"),
-}
-
-
-def __getattr__(name: str) -> Any:
-    """Lazy re-export of context types (avoids circular import during package init)."""
-    mapped = _LAZY_CONTEXT_EXPORTS.get(name)
-    if mapped is not None:
-        mod_name, attr = mapped
-        obj = getattr(importlib.import_module(mod_name), attr)
-        globals()[name] = obj
-        return obj
-    msg = f"module {__name__!r} has no attribute {name!r}"
-    raise AttributeError(msg)
-
-
-# PEP 562 lazy re-exports — names are bound in __getattr__, not at import.
-# pylint: disable=undefined-all-variable
 __all__ = [
-    "Context",
     "ContextRequiresIntent",
     "ContextRequiresResolver",
     "ContextView",
     "Ctx",
-    "RequestInfo",
-    "RuntimeInfo",
-    "UserInfo",
     "context_requires",
 ]

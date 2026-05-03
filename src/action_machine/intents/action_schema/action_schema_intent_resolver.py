@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from typing import Literal, get_args, get_origin
 
-from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.runtime.binding.action_generic_params import _resolve_generic_arg
@@ -42,7 +41,11 @@ class ActionSchemaIntentResolver:
     ) -> type | None:
         for klass in action_cls.__mro__:
             for base in getattr(klass, "__orig_bases__", ()):
-                if get_origin(base) is BaseAction:
+                origin = get_origin(base)
+                if (
+                    getattr(origin, "__module__", None) == "action_machine.model.base_action"
+                    and getattr(origin, "__name__", None) == "BaseAction"
+                ):
                     args = get_args(base)
                     if len(args) <= type_arg_index:
                         return None

@@ -53,7 +53,7 @@ from collections.abc import Callable
 from enum import Enum
 from typing import Any, TypeVar, cast
 
-from action_machine.auth.base_role import BaseRole
+from action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
 
 _RT = TypeVar("_RT", bound=type)
 
@@ -67,17 +67,17 @@ class RoleMode(Enum):
     UNUSED = "unused"
 
     @classmethod
-    def declared_for(cls, role: type[BaseRole]) -> RoleMode:
+    def declared_for(cls, role: type[RoleModeIntent]) -> RoleMode:
         """
-        Return the ``RoleMode`` stored by ``@role_mode`` on a ``BaseRole`` subclass.
+        Return the ``RoleMode`` stored by ``@role_mode`` on a role marker subclass.
 
         Raises:
-            TypeError: ``role`` is not a ``BaseRole`` subtype or lacks
+            TypeError: ``role`` is not a ``RoleModeIntent`` subtype or lacks
                 ``_role_mode_info`` / a valid ``mode`` entry.
         """
-        if not issubclass(role, BaseRole):
+        if not issubclass(role, RoleModeIntent):
             raise TypeError(
-                f"{cls.__name__}.declared_for expects a BaseRole subclass, got {role!r}."
+                f"{cls.__name__}.declared_for expects a RoleModeIntent subclass, got {role!r}."
             )
         info = getattr(role, "_role_mode_info", None)
         if not isinstance(info, dict):

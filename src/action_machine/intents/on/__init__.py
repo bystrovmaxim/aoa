@@ -1,5 +1,4 @@
 # src/action_machine/intents/on/__init__.py
-# pylint: disable=undefined-all-variable,import-outside-toplevel
 """
 ActionMachine plugin package.
 
@@ -107,9 +106,6 @@ COMPONENTS
 - ``SubscriptionInfo``: frozen subscription config with precompiled regexes.
 - ``on``: decorator attaching subscriptions to plugin methods.
 - ``OnIntent``: marker mixin declaring support for ``@on``.
-- ``Plugin``: abstract base class for plugin implementations.
-- ``PluginCoordinator``: stateless coordinator creating run contexts.
-- ``PluginRunContext``: per-run isolation with state storage and event dispatch.
 
 ═══════════════════════════════════════════════════════════════════════════════
 HANDLER SIGNATURE
@@ -125,8 +121,6 @@ the annotated ``event`` parameter type.
 """
 
 from __future__ import annotations
-
-from typing import Any
 
 from action_machine.intents.on.on_decorator import on
 from action_machine.intents.on.on_intent import OnIntent
@@ -176,44 +170,12 @@ __all__ = [
     # Event classes - concrete leaf nodes
     "GlobalStartEvent",
     "OnErrorAspectEvent",
-    # Infrastructure
     "OnIntent",
-    "Plugin",
-    "PluginCoordinator",
-    "PluginRunContext",
     "RegularAspectEvent",
     "SagaEvent",
     "SagaRollbackCompletedEvent",
     "SagaRollbackStartedEvent",
-    # Subscription and configuration
-    "SubscriptionInfo",
     "SummaryAspectEvent",
     "UnhandledErrorEvent",
     "on",
 ]
-
-
-def __getattr__(name: str) -> Any:
-    """Lazy plugin imports: ``Plugin`` imports ``OnIntent`` from this package."""
-    if name == "Plugin":
-        from action_machine.plugin.plugin import Plugin
-
-        return Plugin
-    if name == "PluginCoordinator":
-        from action_machine.plugin.plugin_coordinator import PluginCoordinator
-
-        return PluginCoordinator
-    if name == "PluginRunContext":
-        from action_machine.plugin.plugin_run_context import PluginRunContext
-
-        return PluginRunContext
-    if name == "SubscriptionInfo":
-        from action_machine.plugin.subscription_info import SubscriptionInfo
-
-        return SubscriptionInfo
-    msg = f"module {__name__!r} has no attribute {name!r}"
-    raise AttributeError(msg)
-
-
-def __dir__() -> list[str]:
-    return sorted(__all__)

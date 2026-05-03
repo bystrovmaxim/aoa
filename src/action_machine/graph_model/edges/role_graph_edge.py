@@ -23,7 +23,6 @@ from typing import Any
 
 from action_machine.auth.base_role import BaseRole
 from action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
-from action_machine.model.base_action import BaseAction
 from action_machine.system_core import TypeIntrospection
 from graph.composition_graph_edge import CompositionGraphEdge
 
@@ -51,7 +50,7 @@ class RoleGraphEdge(CompositionGraphEdge):
 
     @staticmethod
     def get_role_edges(
-        action_cls: type[BaseAction[Any, Any]],
+        action_cls: type[Any],
     ) -> list[RoleGraphEdge]:
         """Return one composition stub per declared ``@check_roles`` concrete role."""
         spec = CheckRolesIntentResolver.resolve_check_roles(action_cls)

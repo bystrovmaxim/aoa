@@ -22,7 +22,6 @@ from typing import Any
 
 from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.intents.aspects.regular_aspect_intent_resolver import RegularAspectIntentResolver
-from action_machine.model.base_action import BaseAction
 from graph.composition_graph_edge import CompositionGraphEdge
 
 
@@ -49,7 +48,7 @@ class RegularAspectGraphEdge(CompositionGraphEdge):
 
     @staticmethod
     def get_regular_aspect_edges(
-        action_cls: type[BaseAction[Any, Any]],
+        action_cls: type[Any],
     ) -> list[RegularAspectGraphEdge]:
         """Return regular aspect composition edges for ``action_cls``."""
         return [
