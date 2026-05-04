@@ -35,10 +35,7 @@ class _RecordingPluginCtx:
 def test_base_fields_shape() -> None:
     """base_fields returns action_class, action_name, nest_level, context, params."""
     log = LogCoordinator(loggers=[])
-    emit = PluginEmitSupport(
-        log,
-        machine_class_name="ActionProductMachine",
-    )
+    emit = PluginEmitSupport(log)
     action = PingAction()
     ctx = Context(user=UserInfo(user_id="u1", roles=()))
     params = PingAction.Params()
@@ -53,38 +50,27 @@ def test_base_fields_shape() -> None:
 
 
 def test_emit_extra_kwargs_shape() -> None:
-    """emit_extra_kwargs returns log_coordinator and machine_name."""
+    """emit_extra_kwargs returns log_coordinator."""
     log = LogCoordinator(loggers=[])
-    emit = PluginEmitSupport(
-        log,
-        machine_class_name="SyncActionProductMachine",
-    )
+    emit = PluginEmitSupport(log)
 
     extra = emit.emit_extra_kwargs(99)
 
     assert extra["log_coordinator"] is log
-    assert extra["machine_name"] == "SyncActionProductMachine"
 
 
 def test_properties_expose_config() -> None:
-    """machine_class_name and log_coordinator match constructor."""
+    """log_coordinator matches constructor."""
     log = LogCoordinator(loggers=[])
-    emit = PluginEmitSupport(
-        log,
-        machine_class_name="X",
-    )
+    emit = PluginEmitSupport(log)
     assert emit.log_coordinator is log
-    assert emit.machine_class_name == "X"
 
 
 @pytest.mark.asyncio
 async def test_emit_regular_aspect_helpers() -> None:
     """Before/after regular aspect events use base_fields and emit_extra_kwargs."""
     log = LogCoordinator(loggers=[])
-    emit = PluginEmitSupport(
-        log,
-        machine_class_name="ActionProductMachine",
-    )
+    emit = PluginEmitSupport(log)
     action = PingAction()
     ctx = Context(user=UserInfo(user_id="u1", roles=()))
     params = PingAction.Params()
@@ -124,17 +110,13 @@ async def test_emit_regular_aspect_helpers() -> None:
     assert ev1.duration_ms == 42.0
     for kw in (kw0, kw1):
         assert kw["log_coordinator"] is log
-        assert kw["machine_name"] == "ActionProductMachine"
 
 
 @pytest.mark.asyncio
 async def test_emit_summary_aspect_helpers() -> None:
     """Before/after summary aspect events carry state snapshot and result."""
     log = LogCoordinator(loggers=[])
-    emit = PluginEmitSupport(
-        log,
-        machine_class_name="M",
-    )
+    emit = PluginEmitSupport(log)
     action = PingAction()
     ctx = Context(user=UserInfo(user_id="u2", roles=()))
     params = PingAction.Params()
@@ -175,10 +157,7 @@ async def test_emit_summary_aspect_helpers() -> None:
 async def test_emit_global_lifecycle_helpers() -> None:
     """Global start/finish events use base_fields and emit_extra_kwargs."""
     log = LogCoordinator(loggers=[])
-    emit = PluginEmitSupport(
-        log,
-        machine_class_name="ActionProductMachine",
-    )
+    emit = PluginEmitSupport(log)
     action = PingAction()
     ctx = Context(user=UserInfo(user_id="g1", roles=()))
     params = PingAction.Params()
@@ -213,4 +192,3 @@ async def test_emit_global_lifecycle_helpers() -> None:
     assert ev1.duration_ms == 100.0
     for kw in (kw0, kw1):
         assert kw["log_coordinator"] is log
-        assert kw["machine_name"] == "ActionProductMachine"

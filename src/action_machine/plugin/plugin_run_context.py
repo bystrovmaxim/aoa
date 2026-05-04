@@ -123,56 +123,8 @@ Scope fields are available in templates via ``{%scope.*}``:
         "[{%scope.plugin}] Action {%scope.action} completed",
     )
 
-Creating scoped logger requires ``log_coordinator`` and ``machine_name`` passed
-from machine into ``emit_event()``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE
-═══════════════════════════════════════════════════════════════════════════════
-
-    ActionProductMachine._run_internal(...)
-        │
-        │  event = GlobalStartEvent(action_class=..., ...)
-        │  await plugin_ctx.emit_event(event, coordinator=..., ...)
-        ▼
-    PluginRunContext.emit_event(event, ...)
-        │
-        │  For each plugin:
-        │    handlers = plugin.get_handlers(event)  <- Step 1: event_class
-        │    For each (handler, sub):
-        │      _matches_all_filters(event, sub)     <- Steps 2-7
-        │      -> collect matched
-        │
-        │  Choose execution strategy:
-        │    all ignore=True -> parallel
-        │    otherwise -> sequential
-        │
-        │  For each matched handler:
-        │    create ScopedLogger
-        │    state = await handler(plugin, state, event, log)
-        │    update _plugin_states[id(plugin)]
-        ▼
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLE USAGE
-═══════════════════════════════════════════════════════════════════════════════
-
-    # In ActionProductMachine:
-    event = GlobalFinishEvent(
-        action_class=type(action),
-        action_name=action.get_full_class_name(),
-        nest_level=current_nest,
-        context=context,
-        params=params,
-        result=result,
-        duration_ms=total_duration * 1000,
-    )
-    await plugin_ctx.emit_event(
-        event,
-        log_coordinator=self._log_coordinator,
-        machine_name=self.__class__.__name__,
-        coordinator=self._coordinator,
-    )
+Creating scoped logger requires ``log_coordinator`` passed from machine into
+``emit_event()``.
 """
 
 from __future__ import annotations
@@ -285,7 +237,6 @@ AI-CORE-BEGIN
     @staticmethod
     def _create_plugin_logger(
         log_coordinator: LogCoordinator | None,
-        machine_name: str,
         plugin: Plugin,
         event: BasePluginEvent,
     ) -> ScopedLogger | None:
@@ -296,7 +247,6 @@ AI-CORE-BEGIN
         return ScopedLogger(
             coordinator=log_coordinator,
             nest_level=event.nest_level,
-            machine_name=machine_name,
             action_name=event.action_name,
             aspect_name="",
             context=event.context,
@@ -352,13 +302,12 @@ AI-CORE-BEGIN
         matched: list[tuple[Plugin, Callable[..., Any], SubscriptionInfo]],
         event: BasePluginEvent,
         log_coordinator: LogCoordinator | None,
-        machine_name: str,
     ) -> None:
         """Run handlers in parallel when all ignore exceptions."""
         tasks = []
         for plugin, handler, _sub in matched:
             log = self._create_plugin_logger(
-                log_coordinator, machine_name, plugin, event,
+                log_coordinator, plugin, event,
             )
             tasks.append(
                 self._run_single_handler(plugin, handler, event, log)
@@ -369,7 +318,7 @@ AI-CORE-BEGIN
             for (plugin, _handler, sub), result in zip(matched, results, strict=True):
                 if isinstance(result, Exception):
                     log = self._create_plugin_logger(
-                        log_coordinator, machine_name, plugin, event,
+                        log_coordinator, plugin, event,
                     )
                     await self._log_suppressed_handler_exception(
                         result, log, sub.method_name,
@@ -380,12 +329,11 @@ AI-CORE-BEGIN
         matched: list[tuple[Plugin, Callable[..., Any], SubscriptionInfo]],
         event: BasePluginEvent,
         log_coordinator: LogCoordinator | None,
-        machine_name: str,
     ) -> None:
         """Run handlers sequentially when any subscription is critical."""
         for plugin, handler, sub in matched:
             log = self._create_plugin_logger(
-                log_coordinator, machine_name, plugin, event,
+                log_coordinator, plugin, event,
             )
             try:
                 await self._run_single_handler(plugin, handler, event, log)
@@ -405,7 +353,6 @@ AI-CORE-BEGIN
         event: BasePluginEvent,
         *,
         log_coordinator: LogCoordinator | None = None,
-        machine_name: str = "",
         coordinator: Any | None = None,
     ) -> None:
         """Deliver typed event to all handlers that pass filter chain."""
@@ -420,11 +367,11 @@ AI-CORE-BEGIN
 
         if all_ignore:
             await self._run_parallel(
-                matched, event, log_coordinator, machine_name,
+                matched, event, log_coordinator,
             )
         else:
             await self._run_sequential(
-                matched, event, log_coordinator, machine_name,
+                matched, event, log_coordinator,
             )
 
     # ─────────────────────────────────────────────────────────────────────

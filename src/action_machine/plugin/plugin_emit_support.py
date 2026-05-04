@@ -11,55 +11,6 @@ shared ``BasePluginEvent`` keyword arguments, extra kwargs for ``emit_event``, a
 async helpers that build and emit **global** lifecycle events plus **regular** and
 **summary** aspect events. Keeps ``ActionProductMachine`` and coordinators such as
 ``SagaCoordinator`` free of duplicated event construction for those pipeline stages.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    ActionProductMachine.__init__
-        │
-        └── PluginEmitSupport(log_coordinator, machine_class_name)
-                │
-                ├── base_fields(...)  ──► **kwargs for BasePluginEvent subclasses
-                │
-                ├── emit_extra_kwargs(nest_level) ──► **kwargs for emit_event
-                │
-                ├── emit_global_start / emit_global_finish(plugin_ctx, ...)
-                │
-                └── emit_*_aspect(plugin_ctx, ...)  ──► await emit_event(...)
-
-    SagaCoordinator.execute
-        │
-        ├── plugin_emit.base_fields(action, context, params, nest_level)
-        ├── plugin_emit.emit_extra_kwargs(box.nested_level)
-        └── ScopedLogger(..., machine_name=plugin_emit.machine_class_name,
-                           domain=resolve_domain(type(action)), ...)
-
-    ActionProductMachine._run_internal
-        │
-        ├── await plugin_emit.emit_global_start(plugin_ctx, ...)
-        ├── await _execute_aspects_with_error_handling(...)
-        └── await plugin_emit.emit_global_finish(plugin_ctx, ...)
-
-    ActionProductMachine._execute_regular_aspects / _execute_aspects_with_error_handling
-        │
-        └── await plugin_emit.emit_before_regular_aspect(plugin_ctx, ...)
-            await plugin_emit.emit_after_regular_aspect(plugin_ctx, ...)
-            await plugin_emit.emit_before_summary_aspect(plugin_ctx, ...)
-            await plugin_emit.emit_after_summary_aspect(plugin_ctx, ...)
-
-═══════════════════════════════════════════════════════════════════════════════
-COMPONENTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``PluginEmitSupport``: immutable envelope builder and emit facade.
-- ``base_fields(...)``: shared kwargs for ``BasePluginEvent`` subclasses.
-- ``emit_extra_kwargs(...)``: stable extra kwargs for ``emit_event``.
-- ``emit_global_start`` / ``emit_global_finish``: global lifecycle events.
-- ``emit_before_*`` / ``emit_after_*``: regular and summary aspect events.
-
 """
 
 from __future__ import annotations
@@ -88,31 +39,22 @@ AI-CORE-BEGIN
     ROLE: Public alternative to inlined event construction on the machine.
     CONTRACT: ``base_fields`` + ``emit_extra_kwargs`` provide machine-owned event metadata;
       global and aspect emit helpers delegate to ``plugin_ctx.emit_event``.
-    INVARIANTS: ``machine_class_name`` frozen at construction; no ``PluginRunContext``
-      stored on ``self``.
+    INVARIANTS: No ``PluginRunContext`` stored on ``self``.
     AI-CORE-END
 """
 
-    __slots__ = ("_log_coordinator", "_machine_class_name")
+    __slots__ = ("_log_coordinator",)
 
     def __init__(
         self,
         log_coordinator: LogCoordinator,
-        *,
-        machine_class_name: str,
     ) -> None:
         self._log_coordinator = log_coordinator
-        self._machine_class_name = machine_class_name
 
     @property
     def log_coordinator(self) -> LogCoordinator:
         """Log coordinator wired into ``emit_event`` extras."""
         return self._log_coordinator
-
-    @property
-    def machine_class_name(self) -> str:
-        """Machine class name used in logs and plugin kwargs (subclass-aware)."""
-        return self._machine_class_name
 
     def base_fields(
         self,
@@ -135,7 +77,6 @@ AI-CORE-BEGIN
         _ = _nest_level
         return {
             "log_coordinator": self._log_coordinator,
-            "machine_name": self._machine_class_name,
         }
 
     async def emit_global_start(

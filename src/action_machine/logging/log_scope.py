@@ -18,14 +18,13 @@ ARCHITECTURE / DATA FLOW
 Aspect logging (``ToolsBox`` / ``info`` / ``warning`` / ``critical``):
 ``ScopedLogger`` builds ``LogScope`` with:
 
-- ``machine`` — machine class name (e.g. ``ActionProductMachine``).
 - ``action`` — fully qualified action class name.
 - ``aspect`` — aspect method name.
 - ``nest_level`` — 0 root, 1 child ``box.run``, etc.
 
 Plugin handlers (``log`` argument):
 
-- ``machine``, ``plugin``, ``action``, ``event``, ``nest_level``.
+- ``plugin``, ``action``, ``event``, ``nest_level``.
 
 Templates: ``{%scope.action}``, ``{%scope.nest_level}``, etc.
 

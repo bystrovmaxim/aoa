@@ -94,7 +94,7 @@ def sub() -> VariableSubstitutor:
 @pytest.fixture()
 def scope() -> LogScope:
     """Minimum LogScope."""
-    return LogScope(machine="M", action="A", aspect="a", nest_level=0)
+    return LogScope(action="A", aspect="a", nest_level=0)
 
 
 @pytest.fixture()
@@ -355,7 +355,6 @@ class TestLogScopeConsistency:
         """The scope field is accessible via {%scope.action}."""
         # Arrange
         sc = LogScope(
-            machine="TestMachine",
             action="MyAction", aspect="my_aspect", nest_level=0,
         )
 

@@ -36,8 +36,8 @@ ARCHITECTURE / DATA FLOW
          ▼
     LogCoordinator.emit(...)  — validates var, substitutes, fans out
 
-Aspect scope: ``machine``, ``action``, ``aspect``, ``nest_level``.
-Plugin scope: ``machine``, ``plugin``, ``action``, ``event``, ``nest_level``.
+Aspect scope: ``action``, ``aspect``, ``nest_level``.
+Plugin scope: ``plugin``, ``action``, ``event``, ``nest_level``.
 
 Templates: ``{%var.*}``, ``{%state.*}``, ``{%params.*}``, ``{%context.*}``,
 ``{%scope.*}``, ``{iif(...)}``. Use ``{%var.level.name}`` / ``{%var.channels.names}``
@@ -78,7 +78,6 @@ AI-CORE-BEGIN
         self,
         coordinator: LogCoordinator,
         nest_level: int,
-        machine_name: str,
         action_name: str,
         aspect_name: str,
         context: Context,
@@ -99,7 +98,6 @@ AI-CORE-BEGIN
 
         if plugin_name is not None:
             self._scope = LogScope(
-                machine=machine_name,
                 plugin=plugin_name,
                 action=action_name,
                 event=event_name or "",
@@ -107,7 +105,6 @@ AI-CORE-BEGIN
             )
         else:
             self._scope = LogScope(
-                machine=machine_name,
                 action=action_name,
                 aspect=aspect_name,
                 nest_level=nest_level,

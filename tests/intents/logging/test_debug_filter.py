@@ -317,7 +317,7 @@ class TestDebugNamespaces:
     ) -> None:
         """{%scope|debug} - LogScope introspection."""
         #Arrange - scope with multiple fields
-        scope = LogScope(machine="TestMachine", action="TestAction", aspect="test")
+        scope = LogScope(action="TestAction", aspect="test")
 
         # Act
         result = substitutor.substitute(
@@ -326,7 +326,6 @@ class TestDebugNamespaces:
         )
 
         #Assert - scope fields are visible
-        assert "machine: str = 'TestMachine'" in result
         assert "action: str = 'TestAction'" in result
         assert "aspect: str = 'test'" in result
 

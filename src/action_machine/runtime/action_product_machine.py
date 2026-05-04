@@ -30,7 +30,7 @@ ARCHITECTURE / DATA FLOW
                 ├── conns = _connection_validator.validate(action, connections, action_node)
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
                 ├── box = _tools_box_factory.create(factory_resolver=self, ...,
-                │         machine_class_name, nest_level, context, ...)
+                │         nest_level, context, ...)
                 ├── plugin_emit.emit_global_start(...)
                 ├── _execute_aspects_with_error_handling(...)
                 │       ├── _execute_regular_aspects (per aspect):
@@ -154,12 +154,7 @@ class ActionProductMachine(BaseActionMachine):
         self._plugin_coordinator: PluginCoordinator = PluginCoordinator(plugins)
         self._log_coordinator: LogCoordinator = log_coordinator or LogCoordinator()
         self.graph_coordinator = graph_coordinator or create_node_graph_coordinator()
-
-
-        self._plugin_emit = PluginEmitSupport(
-            self._log_coordinator,
-            machine_class_name=self.__class__.__name__,
-        )
+        self._plugin_emit = PluginEmitSupport(self._log_coordinator)
 
         self._role_checker: RoleChecker = role_checker
         self._connection_validator: ConnectionValidator = connection_validator
@@ -169,10 +164,7 @@ class ActionProductMachine(BaseActionMachine):
             else tools_box_factory
         )
         self._aspect_executor: AspectExecutor = (
-            AspectExecutor(
-                self._log_coordinator,
-                machine_class_name=self.__class__.__name__,
-            )
+            AspectExecutor(self._log_coordinator)
             if aspect_executor is None
             else aspect_executor
         )
@@ -543,7 +535,6 @@ class ActionProductMachine(BaseActionMachine):
             resources=resources,
             rollup=rollup,
             run_child=run_child,
-            machine_class_name=self.__class__.__name__,
         )
 
         await self._plugin_emit.emit_global_start(
