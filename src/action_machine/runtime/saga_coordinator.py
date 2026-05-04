@@ -149,7 +149,6 @@ class SagaCoordinator:
                     coordinator=self._plugin_emit.log_coordinator,
                     nest_level=box.nested_level,
                     machine_name=self._plugin_emit.machine_class_name,
-                    mode=self._plugin_emit.mode,
                     action_name=action.get_full_class_name(),
                     aspect_name=compensator_name,
                     context=context,

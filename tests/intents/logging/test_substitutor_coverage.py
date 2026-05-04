@@ -57,7 +57,7 @@ def sub() -> VariableSubstitutor:
 @pytest.fixture()
 def scope() -> LogScope:
     """Minimum LogScope for substitution tests."""
-    return LogScope(machine="M", mode="test", action="A", aspect="a", nest_level=0)
+    return LogScope(machine="M", action="A", aspect="a", nest_level=0)
 
 
 @pytest.fixture()
@@ -308,7 +308,7 @@ class TestNamespaceResolution:
     def test_scope_nested_variable(self, sub, ctx, state, params) -> None:
         """Namespace scope allows LogScope fields [3]."""
         #Arrange — LogScope contains action
-        sc = LogScope(machine="M", mode="test", action="MyAction", aspect="a", nest_level=0)
+        sc = LogScope(machine="M", action="MyAction", aspect="a", nest_level=0)
 
         # Act
         result = sub.substitute("{%scope.action}", {}, sc, ctx, state, params)

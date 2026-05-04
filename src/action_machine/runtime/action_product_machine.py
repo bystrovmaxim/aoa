@@ -118,8 +118,6 @@ from graph.node_graph_coordinator import NodeGraphCoordinator
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
 
-_LOG_MODE = "runtime"
-
 
 class _AspectPipelineError(Exception):
     """
@@ -175,7 +173,6 @@ class ActionProductMachine(BaseActionMachine):
         self._plugin_emit = PluginEmitSupport(
             self._log_coordinator,
             machine_class_name=self.__class__.__name__,
-            mode=_LOG_MODE,
         )
 
         self._role_checker: RoleChecker = role_checker
@@ -189,7 +186,6 @@ class ActionProductMachine(BaseActionMachine):
             AspectExecutor(
                 self._log_coordinator,
                 machine_class_name=self.__class__.__name__,
-                mode=_LOG_MODE,
             )
             if aspect_executor is None
             else aspect_executor
@@ -570,7 +566,6 @@ class ActionProductMachine(BaseActionMachine):
             resources=resources,
             rollup=rollup,
             run_child=run_child,
-            mode=_LOG_MODE,
             machine_class_name=self.__class__.__name__,
         )
 

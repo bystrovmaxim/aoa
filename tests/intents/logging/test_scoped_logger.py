@@ -44,7 +44,6 @@ class TestAspectLogger:
             coordinator=mock_coordinator,
             nest_level=2,
             machine_name="TestMachine",
-            mode="test_mode",
             action_name="myapp.actions.TestAction",
             aspect_name="test_aspect",
             context=context,
@@ -126,12 +125,11 @@ class TestAspectLogger:
         scope = mock_coordinator.emit.call_args.kwargs["scope"]
         assert isinstance(scope, LogScope)
         assert scope["machine"] == "TestMachine"
-        assert scope["mode"] == "test_mode"
         assert scope["action"] == "myapp.actions.TestAction"
         assert scope["aspect"] == "test_aspect"
         assert scope["nest_level"] == 2
         assert list(scope.keys()) == [
-            "machine", "mode", "action", "aspect", "nest_level",
+            "machine", "action", "aspect", "nest_level",
         ]
 
     @pytest.mark.anyio
@@ -187,7 +185,6 @@ class TestPluginLogger:
             coordinator=mock_coordinator,
             nest_level=1,
             machine_name="TestMachine",
-            mode="production",
             action_name="myapp.actions.CreateOrder",
             aspect_name="",
             context=context,
@@ -205,13 +202,12 @@ class TestPluginLogger:
         scope = mock_coordinator.emit.call_args.kwargs["scope"]
         assert isinstance(scope, LogScope)
         assert scope["machine"] == "TestMachine"
-        assert scope["mode"] == "production"
         assert scope["plugin"] == "MetricsPlugin"
         assert scope["action"] == "myapp.actions.CreateOrder"
         assert scope["event"] == "global_finish"
         assert scope["nest_level"] == 1
         assert list(scope.keys()) == [
-            "machine", "mode", "plugin", "action", "event", "nest_level",
+            "machine", "plugin", "action", "event", "nest_level",
         ]
         assert "aspect" not in scope
 
@@ -224,8 +220,7 @@ class TestPluginLogger:
         scope = mock_coordinator.emit.call_args.kwargs["scope"]
         dotpath = scope.as_dotpath()
         expected = (
-            "TestMachine.production.MetricsPlugin."
-            "myapp.actions.CreateOrder.global_finish.1"
+            "TestMachine.MetricsPlugin.myapp.actions.CreateOrder.global_finish.1"
         )
         assert dotpath == expected
 
@@ -277,7 +272,6 @@ class TestWithStateAndParams:
             coordinator=mock_coordinator,
             nest_level=0,
             machine_name="Machine",
-            mode="test",
             action_name="Action",
             aspect_name="aspect",
             context=context,
@@ -303,7 +297,6 @@ class TestWithStateAndParams:
             coordinator=mock_coordinator,
             nest_level=0,
             machine_name="Machine",
-            mode="prod",
             action_name="RootAction",
             aspect_name="summary",
             context=context,

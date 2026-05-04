@@ -38,7 +38,6 @@ def test_base_fields_shape() -> None:
     emit = PluginEmitSupport(
         log,
         machine_class_name="ActionProductMachine",
-        mode="test",
     )
     action = PingAction()
     ctx = Context(user=UserInfo(user_id="u1", roles=()))
@@ -54,32 +53,28 @@ def test_base_fields_shape() -> None:
 
 
 def test_emit_extra_kwargs_shape() -> None:
-    """emit_extra_kwargs returns log_coordinator, machine_name, mode."""
+    """emit_extra_kwargs returns log_coordinator and machine_name."""
     log = LogCoordinator(loggers=[])
     emit = PluginEmitSupport(
         log,
         machine_class_name="SyncActionProductMachine",
-        mode="prod",
     )
 
     extra = emit.emit_extra_kwargs(99)
 
     assert extra["log_coordinator"] is log
     assert extra["machine_name"] == "SyncActionProductMachine"
-    assert extra["mode"] == "prod"
 
 
 def test_properties_expose_config() -> None:
-    """machine_class_name, mode, log_coordinator match constructor."""
+    """machine_class_name and log_coordinator match constructor."""
     log = LogCoordinator(loggers=[])
     emit = PluginEmitSupport(
         log,
         machine_class_name="X",
-        mode="m",
     )
     assert emit.log_coordinator is log
     assert emit.machine_class_name == "X"
-    assert emit.mode == "m"
 
 
 @pytest.mark.asyncio
@@ -89,7 +84,6 @@ async def test_emit_regular_aspect_helpers() -> None:
     emit = PluginEmitSupport(
         log,
         machine_class_name="ActionProductMachine",
-        mode="test",
     )
     action = PingAction()
     ctx = Context(user=UserInfo(user_id="u1", roles=()))
@@ -131,7 +125,6 @@ async def test_emit_regular_aspect_helpers() -> None:
     for kw in (kw0, kw1):
         assert kw["log_coordinator"] is log
         assert kw["machine_name"] == "ActionProductMachine"
-        assert kw["mode"] == "test"
 
 
 @pytest.mark.asyncio
@@ -141,7 +134,6 @@ async def test_emit_summary_aspect_helpers() -> None:
     emit = PluginEmitSupport(
         log,
         machine_class_name="M",
-        mode="prod",
     )
     action = PingAction()
     ctx = Context(user=UserInfo(user_id="u2", roles=()))
@@ -186,7 +178,6 @@ async def test_emit_global_lifecycle_helpers() -> None:
     emit = PluginEmitSupport(
         log,
         machine_class_name="ActionProductMachine",
-        mode="test",
     )
     action = PingAction()
     ctx = Context(user=UserInfo(user_id="g1", roles=()))
@@ -223,4 +214,3 @@ async def test_emit_global_lifecycle_helpers() -> None:
     for kw in (kw0, kw1):
         assert kw["log_coordinator"] is log
         assert kw["machine_name"] == "ActionProductMachine"
-        assert kw["mode"] == "test"
