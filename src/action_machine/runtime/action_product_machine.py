@@ -91,7 +91,6 @@ from action_machine.exceptions import (
     MissingSummaryAspectError,
 )
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
-from action_machine.logging.console_logger import ConsoleLogger
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
@@ -141,7 +140,7 @@ class ActionProductMachine(BaseActionMachine):
         self,
         *,
         plugins: list[Plugin] | None = None,
-        log_coordinator: LogCoordinator = LogCoordinator(loggers=[ConsoleLogger(use_colors=True)]),
+        log_coordinator: LogCoordinator | None = None,
         graph_coordinator: NodeGraphCoordinator | None = None,
         role_checker: RoleChecker = RoleChecker(),
         connection_validator: ConnectionValidator = ConnectionValidator(),
@@ -153,12 +152,9 @@ class ActionProductMachine(BaseActionMachine):
         """Keyword-only injectable overrides; build the default graph coordinator eagerly."""
         plugins = plugins or []
         self._plugin_coordinator: PluginCoordinator = PluginCoordinator(plugins)
-        self._log_coordinator: LogCoordinator = log_coordinator
-        self.graph_coordinator = (
-            create_node_graph_coordinator()
-            if graph_coordinator is None
-            else graph_coordinator
-        )
+        self._log_coordinator: LogCoordinator = log_coordinator or LogCoordinator()
+        self.graph_coordinator = graph_coordinator or create_node_graph_coordinator()
+
 
         self._plugin_emit = PluginEmitSupport(
             self._log_coordinator,
