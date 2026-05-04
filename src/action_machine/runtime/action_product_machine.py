@@ -72,8 +72,8 @@ Aspects, compensators, and ``@on_error`` handlers cannot read ``Context`` from
 **Graph access**
 
 Protocol adapters and tools should use ``graph_coordinator`` (``NodeGraphCoordinator``
-from ``create_node_graph_coordinator``, built lazily on first read so ordinary runs
-and tests that never touch node graph skip the expensive global interchange build).
+from ``create_node_graph_coordinator``, built during machine initialization unless
+injected).
 
 """
 
@@ -150,12 +150,15 @@ class ActionProductMachine(BaseActionMachine):
         error_handler_executor: ErrorHandlerExecutor | None = None,
         saga_coordinator: SagaCoordinator | None = None,
     ) -> None:
-        """Keyword-only injectable overrides (``None`` supplies defaults below)."""
-        self._plugin_coordinator: PluginCoordinator = PluginCoordinator(
-            list(plugins if plugins is not None else [])
-        )
+        """Keyword-only injectable overrides; build the default graph coordinator eagerly."""
+        plugins = plugins or []
+        self._plugin_coordinator: PluginCoordinator = PluginCoordinator(plugins)
         self._log_coordinator: LogCoordinator = log_coordinator
-        self._node_graph_coordinator: NodeGraphCoordinator | None = graph_coordinator
+        self.graph_coordinator = (
+            create_node_graph_coordinator()
+            if graph_coordinator is None
+            else graph_coordinator
+        )
 
         self._plugin_emit = PluginEmitSupport(
             self._log_coordinator,
@@ -192,15 +195,6 @@ class ActionProductMachine(BaseActionMachine):
             if saga_coordinator is None
             else saga_coordinator
         )
-
-    @property
-    def graph_coordinator(self) -> NodeGraphCoordinator:
-        """Lazy default ``NodeGraphCoordinator`` — created on first read, reused after."""
-        value = self._node_graph_coordinator
-        if value is None:
-            value = create_node_graph_coordinator()
-            self._node_graph_coordinator = value
-        return value
 
     @property
     def plugin_emit_support(self) -> PluginEmitSupport:
