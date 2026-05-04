@@ -65,8 +65,8 @@ class _TestAdapter(BaseAdapter[BaseRouteRecord]):
 
 
 def _make_machine() -> ActionProductMachine:
-    """Return a minimal ``ActionProductMachine`` in ``test`` mode."""
-    return ActionProductMachine(mode="test")
+    """Return a minimal ``ActionProductMachine``."""
+    return ActionProductMachine()
 
 
 def _make_auth() -> AsyncMock:

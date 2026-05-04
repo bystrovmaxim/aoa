@@ -30,7 +30,7 @@ ARCHITECTURE / DATA FLOW
                 ├── conns = _connection_validator.validate(action, connections, action_node)
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
                 ├── box = _tools_box_factory.create(factory_resolver=self, ...,
-                │         mode, machine_class_name, nest_level, context, ...)
+                │         machine_class_name, nest_level, context, ...)
                 ├── plugin_emit.emit_global_start(...)
                 ├── _execute_aspects_with_error_handling(...)
                 │       ├── _execute_regular_aspects (per aspect):
@@ -118,6 +118,8 @@ from graph.node_graph_coordinator import NodeGraphCoordinator
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
 
+_LOG_MODE = "runtime"
+
 
 class _AspectPipelineError(Exception):
     """
@@ -152,7 +154,6 @@ class ActionProductMachine(BaseActionMachine):
 
     def __init__(
         self,
-        mode: str,
         *,
         plugins: list[Plugin] | None = None,
         log_coordinator: LogCoordinator = LogCoordinator(loggers=[ConsoleLogger(use_colors=True)]),
@@ -164,15 +165,7 @@ class ActionProductMachine(BaseActionMachine):
         error_handler_executor: ErrorHandlerExecutor | None = None,
         saga_coordinator: SagaCoordinator | None = None,
     ) -> None:
-        """Keyword-only injectable overrides (``None`` supplies defaults below).
-
-        Raises:
-            ValueError: ``mode`` is empty.
-        """
-        if not mode:
-            raise ValueError("mode must be non-empty")
-
-        self._mode: str = mode
+        """Keyword-only injectable overrides (``None`` supplies defaults below)."""
         self._plugin_coordinator: PluginCoordinator = PluginCoordinator(
             list(plugins if plugins is not None else [])
         )
@@ -182,7 +175,7 @@ class ActionProductMachine(BaseActionMachine):
         self._plugin_emit = PluginEmitSupport(
             self._log_coordinator,
             machine_class_name=self.__class__.__name__,
-            mode=self._mode,
+            mode=_LOG_MODE,
         )
 
         self._role_checker: RoleChecker = role_checker
@@ -196,7 +189,7 @@ class ActionProductMachine(BaseActionMachine):
             AspectExecutor(
                 self._log_coordinator,
                 machine_class_name=self.__class__.__name__,
-                mode=self._mode,
+                mode=_LOG_MODE,
             )
             if aspect_executor is None
             else aspect_executor
@@ -577,7 +570,7 @@ class ActionProductMachine(BaseActionMachine):
             resources=resources,
             rollup=rollup,
             run_child=run_child,
-            mode=self._mode,
+            mode=_LOG_MODE,
             machine_class_name=self.__class__.__name__,
         )
 

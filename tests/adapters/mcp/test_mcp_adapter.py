@@ -51,7 +51,7 @@ from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 def _make_adapter(**kwargs) -> McpAdapter:
     """Create an McpAdapter with sensible test defaults."""
-    machine = ActionProductMachine(mode="test")
+    machine = ActionProductMachine()
     auth = AsyncMock()
     auth.process.return_value = None
     return McpAdapter(

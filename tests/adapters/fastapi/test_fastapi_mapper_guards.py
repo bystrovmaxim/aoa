@@ -56,7 +56,7 @@ def test_params_mapper_wrong_type_does_not_call_machine_run(
     auth: AsyncMock,
 ) -> None:
     """params_mapper must return action Params; wrong type → TypeError, run skipped."""
-    machine = ActionProductMachine(mode="test")
+    machine = ActionProductMachine()
     machine.run = AsyncMock()
 
     adapter = FastApiAdapter(
@@ -83,7 +83,7 @@ def test_response_mapper_wrong_type_after_run_returns_500(
     auth: AsyncMock,
 ) -> None:
     """response_mapper must return effective_response_model type."""
-    machine = ActionProductMachine(mode="test")
+    machine = ActionProductMachine()
     machine.run = AsyncMock(
         return_value=SimpleAction.Result(greeting="Hello"),
     )

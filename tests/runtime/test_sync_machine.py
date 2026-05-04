@@ -34,7 +34,6 @@ from tests.scenarios.domain_model.child_action import ChildAction
 def sync_machine() -> SyncActionProductMachine:
     """SyncActionProductMachine with a silent logger for unit tests."""
     return SyncActionProductMachine(
-        mode="test",
         log_coordinator=LogCoordinator(loggers=[]),
     )
 
@@ -49,10 +48,6 @@ class TestInheritance:
     def test_has_run_internal(self, sync_machine) -> None:
         assert hasattr(sync_machine, "_run_internal")
         assert callable(sync_machine._run_internal)
-
-    def test_mode_attribute(self, sync_machine) -> None:
-        assert sync_machine._mode == "test"
-
 
 def test_public_run_wraps_asyncio_run(
     monkeypatch: pytest.MonkeyPatch,

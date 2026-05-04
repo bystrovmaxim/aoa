@@ -179,7 +179,7 @@ def _make_record(
 
 def _make_machine() -> ActionProductMachine:
     """Create a minimal machine for handler tests."""
-    return ActionProductMachine(mode="test")
+    return ActionProductMachine()
 
 
 def _make_auth(context=None) -> AsyncMock:
@@ -704,7 +704,7 @@ class TestBuildGraphJson:
 
     def test_returns_valid_json(self) -> None:
         """_build_graph_json returns a parseable JSON string."""
-        machine = ActionProductMachine(mode="test")
+        machine = ActionProductMachine()
 
         json_str = _build_graph_json(machine.graph_coordinator)
         parsed = json.loads(json_str)
@@ -716,7 +716,7 @@ class TestBuildGraphJson:
 
     def test_contains_action_node(self) -> None:
         """Graph contains a node for the registered action."""
-        machine = ActionProductMachine(mode="test")
+        machine = ActionProductMachine()
 
         json_str = _build_graph_json(machine.graph_coordinator)
         parsed = json.loads(json_str)
@@ -727,7 +727,7 @@ class TestBuildGraphJson:
 
     def test_ping_action_node_has_description_and_domain_from_meta_snapshot(self) -> None:
         """Primary-host ``@meta`` folds into the ``action`` node; hydration exposes it in JSON."""
-        machine = ActionProductMachine(mode="test")
+        machine = ActionProductMachine()
 
         json_str = _build_graph_json(machine.graph_coordinator)
         parsed = json.loads(json_str)
@@ -743,7 +743,7 @@ class TestBuildGraphJson:
 
     def test_edges_include_source_and_target_keys_and_string_type(self) -> None:
         """Edges expose ``source_key`` / ``target_key`` and a string ``type`` (not a dict repr)."""
-        machine = ActionProductMachine(mode="test")
+        machine = ActionProductMachine()
 
         json_str = _build_graph_json(machine.graph_coordinator)
         parsed = json.loads(json_str)
