@@ -25,7 +25,7 @@ ARCHITECTURE / DATA FLOW
         │
         └── _run_internal(nested_level=0, rollup=False)
                 │
-                ├── action_node = get_node_by_id(action_cls)
+                ├── action_node = get_action_node_by_id(action_cls)
                 ├── _role_checker.check(context, action_node)
                 ├── conns = _connection_validator.validate(action, connections, action_node)
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
@@ -183,7 +183,7 @@ class ActionProductMachine(BaseActionMachine):
         """Public read-only access to plugin event field helpers (base fields + emit extras)."""
         return self._plugin_emit
 
-    def get_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
+    def get_action_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
         """Return the materialized ``Action`` graph node for ``action_cls`` (same id as :class:`ActionGraphNode`)."""
         return cast(
             ActionGraphNode[BaseAction[Any, Any]],
@@ -193,16 +193,13 @@ class ActionProductMachine(BaseActionMachine):
             ),
         )
 
-    def _dependency_factory_for(self, action_cls: type) -> DependencyFactory:
+    def dependency_factory_for(self, action_cls: type) -> DependencyFactory:
+        """Public resolver for ``ToolsBoxFactory`` (``DependencyFactoryResolver``)."""
         try:
-            self.get_node_by_id(action_cls)
+            self.get_action_node_by_id(action_cls)
         except (LookupError, RuntimeError):
             return DependencyFactory(())
         return DependencyFactory(tuple(getattr(action_cls, "_depends_info", ()) or ()))
-
-    def dependency_factory_for(self, action_cls: type) -> DependencyFactory:
-        """Public resolver for ``ToolsBoxFactory`` (``DependencyFactoryResolver``)."""
-        return self._dependency_factory_for(action_cls)
 
     # ─────────────────────────────────────────────────────────────────────
     # Regular aspects
@@ -508,7 +505,7 @@ class ActionProductMachine(BaseActionMachine):
         start_time = time.time()
 
         action_cls = action.__class__
-        action_node = self.get_node_by_id(action_cls)
+        action_node = self.get_action_node_by_id(action_cls)
         self._role_checker.check(context, action_node)
         conns = self._connection_validator.validate(action, connections, action_node)
         plugin_ctx = await self._plugin_coordinator.create_run_context()
