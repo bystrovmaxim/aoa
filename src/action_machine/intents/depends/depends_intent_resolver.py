@@ -14,9 +14,14 @@ class DependsIntentResolver:
     """
 
     @staticmethod
+    def resolve_dependency_infos(host_cls: type) -> tuple[object, ...]:
+        """Return raw dependency records declared by ``@depends``."""
+        return tuple(getattr(host_cls, "_depends_info", ()) or ())
+
+    @staticmethod
     def resolve_dependency_types(host_cls: type) -> list[type]:
         """Return dependency types declared by ``@depends``."""
-        depends_info = getattr(host_cls, "_depends_info", None)
+        depends_info = DependsIntentResolver.resolve_dependency_infos(host_cls)
         if not depends_info:
             return []
         dependency_types: list[type] = []
