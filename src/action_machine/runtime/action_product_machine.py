@@ -91,6 +91,7 @@ from action_machine.exceptions import (
     MissingSummaryAspectError,
 )
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.intents.depends.depends_intent_resolver import DependsIntentResolver
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
@@ -195,11 +196,7 @@ class ActionProductMachine(BaseActionMachine):
 
     def dependency_factory_for(self, action_cls: type) -> DependencyFactory:
         """Public resolver for ``ToolsBoxFactory`` (``DependencyFactoryResolver``)."""
-        try:
-            self.get_action_node_by_id(action_cls)
-        except (LookupError, RuntimeError):
-            return DependencyFactory(())
-        return DependencyFactory(tuple(getattr(action_cls, "_depends_info", ()) or ()))
+        return DependencyFactory(DependsIntentResolver.resolve_dependency_infos(action_cls))
 
     # ─────────────────────────────────────────────────────────────────────
     # Regular aspects
