@@ -142,27 +142,21 @@ class ActionProductMachine(BaseActionMachine):
         plugins: list[Plugin] | None = None,
         log_coordinator: LogCoordinator | None = None,
         graph_coordinator: NodeGraphCoordinator | None = None,
-        role_checker: RoleChecker = RoleChecker(),
-        connection_validator: ConnectionValidator = ConnectionValidator(),
-        tools_box_factory: ToolsBoxFactory | None = None,
+        role_checker: RoleChecker | None = None,
+        connection_validator: ConnectionValidator | None = None,
         aspect_executor: AspectExecutor | None = None,
         error_handler_executor: ErrorHandlerExecutor | None = None,
         saga_coordinator: SagaCoordinator | None = None,
     ) -> None:
         """Keyword-only injectable overrides; build the default graph coordinator eagerly."""
         plugins = plugins or []
-        self._plugin_coordinator: PluginCoordinator = PluginCoordinator(plugins)
-        self._log_coordinator: LogCoordinator = log_coordinator or LogCoordinator()
+        self._plugin_coordinator = PluginCoordinator(plugins)
+        self._log_coordinator = log_coordinator or LogCoordinator()
         self.graph_coordinator = graph_coordinator or create_node_graph_coordinator()
         self._plugin_emit = PluginEmitSupport(self._log_coordinator)
-
-        self._role_checker: RoleChecker = role_checker
-        self._connection_validator: ConnectionValidator = connection_validator
-        self._tools_box_factory: ToolsBoxFactory = (
-            ToolsBoxFactory(self._log_coordinator)
-            if tools_box_factory is None
-            else tools_box_factory
-        )
+        self._role_checker = role_checker or RoleChecker()
+        self._connection_validator = connection_validator or ConnectionValidator()
+        self._tools_box_factory = ToolsBoxFactory(self._log_coordinator)
         self._aspect_executor: AspectExecutor = (
             AspectExecutor(self._log_coordinator)
             if aspect_executor is None
