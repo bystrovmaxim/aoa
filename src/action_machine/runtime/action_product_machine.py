@@ -186,6 +186,10 @@ class ActionProductMachine(BaseActionMachine):
 
     def get_action_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
         """Return the materialized ``Action`` graph node for ``action_cls`` (same id as :class:`ActionGraphNode`)."""
+        if not isinstance(action_cls, type) or not issubclass(action_cls, BaseAction):
+            raise TypeError(
+                f"action_cls must be a subclass of BaseAction, got {action_cls!r}."
+            )
         return cast(
             ActionGraphNode[BaseAction[Any, Any]],
             self.graph_coordinator.get_node_by_id(
