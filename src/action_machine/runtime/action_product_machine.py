@@ -554,7 +554,7 @@ class ActionProductMachine(BaseActionMachine):
         conns = self._connection_validator.validate(action, connections, action_node)
         plugin_ctx = await self._plugin_coordinator.create_run_context()
         run_child = partial(
-            self._run_child,
+            self._run_internal,
             context=context,
             resources=resources,
             nested_level=current_nest,
@@ -599,25 +599,3 @@ class ActionProductMachine(BaseActionMachine):
         )
 
         return result
-
-    async def _run_child(
-        self,
-        action: BaseAction[Any, Any],
-        params: BaseParams,
-        connections: dict[str, BaseResource] | None = None,
-        *,
-        context: Context,
-        resources: dict[type, Any] | None,
-        nested_level: int,
-        rollup: bool,
-    ) -> BaseResult:
-        """Run a child action within the current execution scope."""
-        return await self._run_internal(
-            context=context,
-            action=action,
-            params=params,
-            resources=resources,
-            connections=connections,
-            nested_level=nested_level,
-            rollup=rollup,
-        )
