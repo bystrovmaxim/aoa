@@ -31,7 +31,6 @@ def evaluator() -> ExpressionEvaluator:
 @pytest.fixture()
 def scope() -> LogScope:
     return LogScope(
-        machine="TestMachine",
         action="TestAction",
         aspect="test_aspect",
         nest_level=0,
@@ -90,8 +89,8 @@ class TestSubstitutorSuccess:
         assert "42" in result
 
     def test_scope_variable(self, substitutor, scope, ctx, state, params) -> None:
-        result = substitutor.substitute("{%scope.machine}", {}, scope, ctx, state, params)
-        assert "TestMachine" in result
+        result = substitutor.substitute("{%scope.action}", {}, scope, ctx, state, params)
+        assert "TestAction" in result
 
     def test_debug_filter_on_none(self, substitutor, scope, ctx, state, params) -> None:
         result = substitutor.substitute("{%var.val|debug}", {"val": None}, scope, ctx, state, params)

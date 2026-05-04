@@ -74,7 +74,7 @@ async def test_plugin_run_context_filter_and_run_branches() -> None:
     assert PluginRunContext._matches_all_filters(ev2, sub, _CoordOk())
 
     # parallel branch with empty tasks
-    await ctx._run_parallel([], ev2, None, "M")  # pylint: disable=protected-access
+    await ctx._run_parallel([], ev2, None)  # pylint: disable=protected-access
 
 
 @pytest.mark.anyio
@@ -93,8 +93,8 @@ async def test_plugin_run_context_sequential_error_paths() -> None:
         raise ValueError("x")
 
     sub_ignore = SubscriptionInfo(event_class=GlobalStartEvent, method_name="on_x", ignore_exceptions=True)
-    await ctx._run_sequential([(p, _bad, sub_ignore)], ev, None, "M")  # pylint: disable=protected-access
+    await ctx._run_sequential([(p, _bad, sub_ignore)], ev, None)  # pylint: disable=protected-access
 
     sub_critical = SubscriptionInfo(event_class=GlobalStartEvent, method_name="on_x", ignore_exceptions=False)
     with pytest.raises(ValueError):
-        await ctx._run_sequential([(p, _bad, sub_critical)], ev, None, "M")  # pylint: disable=protected-access
+        await ctx._run_sequential([(p, _bad, sub_critical)], ev, None)  # pylint: disable=protected-access

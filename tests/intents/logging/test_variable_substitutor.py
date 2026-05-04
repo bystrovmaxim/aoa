@@ -99,7 +99,7 @@ def sub() -> VariableSubstitutor:
 @pytest.fixture()
 def scope() -> LogScope:
     """Minimum LogScope for substitution tests."""
-    return LogScope(machine="TestMachine", action="TestAction", aspect="test_aspect", nest_level=0)
+    return LogScope(action="TestAction", aspect="test_aspect", nest_level=0)
 
 
 @pytest.fixture()
@@ -224,7 +224,7 @@ class TestNamespaceResolution:
 
     def test_scope_variable(self, sub, ctx, state, params) -> None:
         """Namespace scope - field from LogScope [3]."""
-        sc = LogScope(machine="M", action="MyAction", aspect="a", nest_level=0)
+        sc = LogScope(action="MyAction", aspect="a", nest_level=0)
         result = sub.substitute("{%scope.action}", {}, sc, ctx, state, params)
         assert "MyAction" in result
 
@@ -505,7 +505,7 @@ class TestSubstitutePublicAPI:
     def test_multiple_variables(self, sub, scope, ctx, state, params) -> None:
         """Several variables from different namespaces."""
         st = BaseState(txn="TXN-1")
-        sc = LogScope(machine="M", action="Act", aspect="a", nest_level=0)
+        sc = LogScope(action="Act", aspect="a", nest_level=0)
         result = sub.substitute(
             "var={%var.x} state={%state.txn} scope={%scope.action}",
             {"x": 42}, sc, ctx, st, params,

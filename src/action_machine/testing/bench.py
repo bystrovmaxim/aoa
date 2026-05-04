@@ -635,7 +635,6 @@ class TestBench:
         log = ScopedLogger(
             coordinator=async_machine._log_coordinator,
             nest_level=1,
-            machine_name="TestBench",
             action_name=action.get_full_class_name(),
             aspect_name=aspect_name,
             context=context,
@@ -696,7 +695,6 @@ class TestBench:
         log = ScopedLogger(
             coordinator=async_machine._log_coordinator,
             nest_level=1,
-            machine_name="TestBench",
             action_name=action.get_full_class_name(),
             aspect_name=summary_meta.method_name,
             context=context,
@@ -768,7 +766,6 @@ class TestBench:
         log = ScopedLogger(
             coordinator=async_machine._log_coordinator,
             nest_level=1,
-            machine_name="TestBench",
             action_name=action.get_full_class_name(),
             aspect_name=compensator_name,
             context=ctx,

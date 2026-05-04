@@ -126,7 +126,6 @@ class TestIgnoreExceptionsTrue:
         await plugin_ctx.emit_event(
             event,
             log_coordinator=log_coord,
-            machine_name="TestMachine",
         )
 
         assert len(recording.records) == 1
@@ -159,7 +158,6 @@ class TestIgnoreExceptionsTrue:
         await plugin_ctx.emit_event(
             event,
             log_coordinator=log_coord,
-            machine_name="TestMachine",
         )
 
         assert len(recording.records) == 1

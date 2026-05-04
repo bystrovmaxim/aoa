@@ -92,10 +92,7 @@ class _CtxOnErrorProbeAction(BaseAction[ErrorTestParams, ErrorTestResult]):
 
 @pytest.fixture
 def plugin_emit() -> PluginEmitSupport:
-    return PluginEmitSupport(
-        LogCoordinator(loggers=[]),
-        machine_class_name="TestMachine",
-    )
+    return PluginEmitSupport(LogCoordinator(loggers=[]))
 
 
 def _minimal_box() -> MagicMock:

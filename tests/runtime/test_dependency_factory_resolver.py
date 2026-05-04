@@ -37,7 +37,6 @@ def test_tools_box_factory_create_uses_resolver() -> None:
         resources=None,
         rollup=False,
         run_child=run_child,
-        machine_class_name="ActionProductMachine",
     )
 
     resolver.dependency_factory_for.assert_called_once_with(PingAction)

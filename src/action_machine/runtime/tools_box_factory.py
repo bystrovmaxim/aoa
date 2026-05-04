@@ -23,7 +23,6 @@ ARCHITECTURE / DATA FLOW
                 factory_resolver=self,
                 nest_level, context, action_cls, params,
                 resources, rollup, run_child,
-                machine_class_name=self.__class__.__name__,
             )
                 │
                 ├── ScopedLogger(..., domain=resolve_domain(action_cls))
@@ -66,14 +65,12 @@ class ToolsBoxFactory:
         resources: Any,
         rollup: bool,
         run_child: Any,
-        machine_class_name: str,
     ) -> ToolsBox:
         """Create a configured ToolsBox for one execution scope."""
         action_name = f"{action_cls.__module__}.{action_cls.__name__}"
         log = ScopedLogger(
             coordinator=self._log_coordinator,
             nest_level=nest_level,
-            machine_name=machine_class_name,
             action_name=action_name,
             aspect_name="",
             context=context,

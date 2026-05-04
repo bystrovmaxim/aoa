@@ -272,22 +272,19 @@ class TestDifferentScopes:
         """Scope for the action aspect."""
         # Arrange & Act
         scope = LogScope(
-            machine="ActionProductMachine",
             action="module.CreateOrderAction",
             aspect="process_payment",
             nest_level=0,
         )
 
         # Assert
-        assert scope.as_dotpath() == "ActionProductMachine.module.CreateOrderAction.process_payment.0"
-        assert scope["machine"] == "ActionProductMachine"
+        assert scope.as_dotpath() == "module.CreateOrderAction.process_payment.0"
         assert scope["aspect"] == "process_payment"
 
     def test_plugin_scope(self) -> None:
         """Scope for the plugin handler."""
         # Arrange & Act
         scope = LogScope(
-            machine="ActionProductMachine",
             plugin="MetricsPlugin",
             action="module.CreateOrderAction",
             event="global_finish",
@@ -295,7 +292,7 @@ class TestDifferentScopes:
         )
 
         # Assert
-        assert scope.as_dotpath() == "ActionProductMachine.MetricsPlugin.module.CreateOrderAction.global_finish.1"
+        assert scope.as_dotpath() == "MetricsPlugin.module.CreateOrderAction.global_finish.1"
         assert "plugin" in scope
         assert "event" in scope
         assert "aspect" not in scope
