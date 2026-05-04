@@ -95,7 +95,6 @@ def plugin_emit() -> PluginEmitSupport:
     return PluginEmitSupport(
         LogCoordinator(loggers=[]),
         machine_class_name="TestMachine",
-        mode="test",
     )
 
 

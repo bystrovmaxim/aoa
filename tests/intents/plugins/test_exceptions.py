@@ -127,7 +127,6 @@ class TestIgnoreExceptionsTrue:
             event,
             log_coordinator=log_coord,
             machine_name="TestMachine",
-            mode="test",
         )
 
         assert len(recording.records) == 1
@@ -161,7 +160,6 @@ class TestIgnoreExceptionsTrue:
             event,
             log_coordinator=log_coord,
             machine_name="TestMachine",
-            mode="test",
         )
 
         assert len(recording.records) == 1

@@ -20,7 +20,7 @@ ARCHITECTURE / DATA FLOW
 
     ActionProductMachine.__init__
         │
-        └── PluginEmitSupport(log_coordinator, machine_class_name, mode)
+        └── PluginEmitSupport(log_coordinator, machine_class_name)
                 │
                 ├── base_fields(...)  ──► **kwargs for BasePluginEvent subclasses
                 │
@@ -35,7 +35,7 @@ ARCHITECTURE / DATA FLOW
         ├── plugin_emit.base_fields(action, context, params, nest_level)
         ├── plugin_emit.emit_extra_kwargs(box.nested_level)
         └── ScopedLogger(..., machine_name=plugin_emit.machine_class_name,
-                           mode=plugin_emit.mode, domain=resolve_domain(type(action)), ...)
+                           domain=resolve_domain(type(action)), ...)
 
     ActionProductMachine._run_internal
         │
@@ -86,25 +86,23 @@ class PluginEmitSupport:
     """
 AI-CORE-BEGIN
     ROLE: Public alternative to inlined event construction on the machine.
-    CONTRACT: ``base_fields`` + ``emit_extra_kwargs`` match historical machine output;
+    CONTRACT: ``base_fields`` + ``emit_extra_kwargs`` provide machine-owned event metadata;
       global and aspect emit helpers delegate to ``plugin_ctx.emit_event``.
     INVARIANTS: ``machine_class_name`` frozen at construction; no ``PluginRunContext``
       stored on ``self``.
     AI-CORE-END
 """
 
-    __slots__ = ("_log_coordinator", "_machine_class_name", "_mode")
+    __slots__ = ("_log_coordinator", "_machine_class_name")
 
     def __init__(
         self,
         log_coordinator: LogCoordinator,
         *,
         machine_class_name: str,
-        mode: str,
     ) -> None:
         self._log_coordinator = log_coordinator
         self._machine_class_name = machine_class_name
-        self._mode = mode
 
     @property
     def log_coordinator(self) -> LogCoordinator:
@@ -115,11 +113,6 @@ AI-CORE-BEGIN
     def machine_class_name(self) -> str:
         """Machine class name used in logs and plugin kwargs (subclass-aware)."""
         return self._machine_class_name
-
-    @property
-    def mode(self) -> str:
-        """Execution mode string (e.g. production vs test)."""
-        return self._mode
 
     def base_fields(
         self,
@@ -143,7 +136,6 @@ AI-CORE-BEGIN
         return {
             "log_coordinator": self._log_coordinator,
             "machine_name": self._machine_class_name,
-            "mode": self._mode,
         }
 
     async def emit_global_start(

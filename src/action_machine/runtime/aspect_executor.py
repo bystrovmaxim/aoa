@@ -12,8 +12,8 @@ This component owns regular/summary execution paths, including
 ``execute_regular`` and ``execute_summary`` share ``call_aspect`` as the sole
 aspect-method dispatcher for regular pipeline aspects (not compensators or saga rollback).
 
-Logging metadata (``LogCoordinator``, ``mode``, ``machine_class_name``) is
-injected at construction so aspect calls stay decoupled from machine internals.
+Logging metadata (``LogCoordinator``, ``machine_class_name``) is injected at
+construction so aspect calls stay decoupled from machine internals.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -23,7 +23,7 @@ ARCHITECTURE / DATA FLOW
 
     ActionProductMachine
         │
-        ├── AspectExecutor(log_coordinator, machine_class_name, mode)
+        ├── AspectExecutor(log_coordinator, machine_class_name)
         │
         ├── execute_regular(...)
         │       ├── optional saga frame append before call (state_after=None)
@@ -71,11 +71,9 @@ class AspectExecutor:
         log_coordinator: LogCoordinator,
         *,
         machine_class_name: str,
-        mode: str,
     ) -> None:
         self._log_coordinator = log_coordinator
         self._machine_class_name = machine_class_name
-        self._mode = mode
 
     @staticmethod
     def _apply_checker_graph_nodes(
@@ -118,7 +116,6 @@ class AspectExecutor:
             coordinator=self._log_coordinator,
             nest_level=box.nested_level,
             machine_name=self._machine_class_name,
-            mode=self._mode,
             action_name=action.get_full_class_name(),
             aspect_name=aspect_node.label,
             context=context,

@@ -60,7 +60,6 @@ def test_10k_scoped_logger_constructions_under_budget(capsys: pytest.CaptureFixt
             coordinator=coord,
             nest_level=0,
             machine_name="ActionProductMachine",
-            mode="bench",
             action_name="bench.Action",
             aspect_name=f"aspect_{i % 5}",
             context=ctx,
@@ -94,7 +93,6 @@ def test_50k_log_scope_only_under_budget(capsys: pytest.CaptureFixture[str]) -> 
     for _ in range(_LOG_SCOPE_ITERATIONS):
         LogScope(
             machine="M",
-            mode="bench",
             action="A",
             aspect="x",
             nest_level=0,

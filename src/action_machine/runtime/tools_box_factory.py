@@ -9,8 +9,7 @@ PURPOSE
 Provide a dedicated entry point for toolbox construction in machine execution.
 This Step 4 implementation creates ``ToolsBox`` instances with preserved
 nested-level and rollup semantics. It uses an explicit ``DependencyFactoryResolver``
-and logging metadata (``mode``, ``machine_class_name``) instead of reading
-private fields from the machine.
+and logging metadata instead of reading private fields from the machine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -24,7 +23,6 @@ ARCHITECTURE / DATA FLOW
                 factory_resolver=self,
                 nest_level, context, action_cls, params,
                 resources, rollup, run_child,
-                mode=self._mode,
                 machine_class_name=self.__class__.__name__,
             )
                 │
@@ -68,7 +66,6 @@ class ToolsBoxFactory:
         resources: Any,
         rollup: bool,
         run_child: Any,
-        mode: str,
         machine_class_name: str,
     ) -> ToolsBox:
         """Create a configured ToolsBox for one execution scope."""
@@ -77,7 +74,6 @@ class ToolsBoxFactory:
             coordinator=self._log_coordinator,
             nest_level=nest_level,
             machine_name=machine_class_name,
-            mode=mode,
             action_name=action_name,
             aspect_name="",
             context=context,

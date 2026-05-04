@@ -63,7 +63,7 @@ class TestNavigationPerformance:
     def test_substitute_1k_calls_under_500ms(self, capsys: pytest.CaptureFixture[str]) -> None:
         """1,000 substitute() calls complete within 500 ms."""
         sub = VariableSubstitutor()
-        scope = LogScope(machine="M", mode="t", action="A", aspect="a", nest_level=0)
+        scope = LogScope(machine="M", action="A", aspect="a", nest_level=0)
         ctx = Context()
         st = BaseState(count=42)
         params = BaseParams()

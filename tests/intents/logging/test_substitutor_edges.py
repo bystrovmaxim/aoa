@@ -32,7 +32,6 @@ def evaluator() -> ExpressionEvaluator:
 def scope() -> LogScope:
     return LogScope(
         machine="TestMachine",
-        mode="test",
         action="TestAction",
         aspect="test_aspect",
         nest_level=0,

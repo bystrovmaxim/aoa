@@ -19,10 +19,10 @@ SCOPE FIELDS
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
 For action aspects:
-    machine, mode, action, aspect, nest_level
+    machine, action, aspect, nest_level
 
 For plugins:
-    machine, mode, plugin, action, event, nest_level
+    machine, plugin, action, event, nest_level
 
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
 SCENARIOS COVERED
@@ -273,14 +273,13 @@ class TestDifferentScopes:
         # Arrange & Act
         scope = LogScope(
             machine="ActionProductMachine",
-            mode="production",
             action="module.CreateOrderAction",
             aspect="process_payment",
             nest_level=0,
         )
 
         # Assert
-        assert scope.as_dotpath() == "ActionProductMachine.production.module.CreateOrderAction.process_payment.0"
+        assert scope.as_dotpath() == "ActionProductMachine.module.CreateOrderAction.process_payment.0"
         assert scope["machine"] == "ActionProductMachine"
         assert scope["aspect"] == "process_payment"
 
@@ -289,7 +288,6 @@ class TestDifferentScopes:
         # Arrange & Act
         scope = LogScope(
             machine="ActionProductMachine",
-            mode="production",
             plugin="MetricsPlugin",
             action="module.CreateOrderAction",
             event="global_finish",
@@ -297,7 +295,7 @@ class TestDifferentScopes:
         )
 
         # Assert
-        assert scope.as_dotpath() == "ActionProductMachine.production.MetricsPlugin.module.CreateOrderAction.global_finish.1"
+        assert scope.as_dotpath() == "ActionProductMachine.MetricsPlugin.module.CreateOrderAction.global_finish.1"
         assert "plugin" in scope
         assert "event" in scope
         assert "aspect" not in scope
