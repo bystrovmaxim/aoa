@@ -12,7 +12,7 @@ from tests.scenarios.domain_model import PingAction
 
 def test_machine_dependency_factory_for_returns_factory() -> None:
     """ActionProductMachine.dependency_factory_for matches _dependency_factory_for."""
-    machine = ActionProductMachine(mode="test")
+    machine = ActionProductMachine()
     pub = machine.dependency_factory_for(PingAction)
     internal = machine._dependency_factory_for(PingAction)
     assert isinstance(pub, DependencyFactory)

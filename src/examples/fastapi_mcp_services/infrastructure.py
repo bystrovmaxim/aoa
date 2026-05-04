@@ -24,7 +24,7 @@ ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     infrastructure (this module)
-    +-- machine = ActionProductMachine(mode="production")
+    +-- machine = ActionProductMachine()
     |       +-- built NodeGraphCoordinator (lazy factory inside machine)
     +-- auth    = NoAuthCoordinator()
               |
@@ -43,5 +43,5 @@ ARCHITECTURE / DATA FLOW
 from action_machine.auth.auth_coordinator import NoAuthCoordinator
 from action_machine.runtime.action_product_machine import ActionProductMachine
 
-machine = ActionProductMachine(mode="production")
+machine = ActionProductMachine()
 auth = NoAuthCoordinator()

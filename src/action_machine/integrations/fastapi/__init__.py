@@ -51,7 +51,7 @@ QUICK START
     from action_machine.runtime.action_product_machine import ActionProductMachine
     from action_machine.integrations.fastapi import FastApiAdapter
 
-    machine = ActionProductMachine(mode="production")
+    machine = ActionProductMachine()
 
     adapter = FastApiAdapter(
         machine=machine,

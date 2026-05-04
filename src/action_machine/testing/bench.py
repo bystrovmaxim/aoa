@@ -456,7 +456,6 @@ class TestBench:
     def _build_async_machine(self) -> ActionProductMachine:
         """Build async production machine with current settings."""
         kwargs: dict[str, Any] = {
-            "mode": "test",
             "plugins": self._plugins,
         }
         if self._log_coordinator is not None:
@@ -466,7 +465,6 @@ class TestBench:
     def _build_sync_machine(self) -> SyncActionProductMachine:
         """Build sync production machine with current settings."""
         kwargs: dict[str, Any] = {
-            "mode": "test",
             "plugins": self._plugins,
         }
         if self._log_coordinator is not None:

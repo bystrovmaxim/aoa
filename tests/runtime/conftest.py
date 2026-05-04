@@ -20,7 +20,6 @@ from tests.scenarios.domain_model.roles import AdminRole, ManagerRole
 def machine(log_coordinator: LogCoordinator) -> ActionProductMachine:
     """ActionProductMachine with quiet logging (nested run and similar tests)."""
     return ActionProductMachine(
-        mode="test",
         log_coordinator=log_coordinator,
     )
 
@@ -44,7 +43,6 @@ def machine_with_mock_plugins(log_coordinator: LogCoordinator, mock_plugin_ctx: 
     mock_coordinator.create_run_context = AsyncMock(return_value=mock_plugin_ctx)
 
     machine = ActionProductMachine(
-        mode="test",
         log_coordinator=log_coordinator,
     )
     machine._plugin_coordinator = mock_coordinator
