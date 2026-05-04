@@ -7,6 +7,7 @@ Import public types from here, for example ``from action_machine.exceptions impo
 
 from action_machine.exceptions.action_result_declaration_error import ActionResultDeclarationError
 from action_machine.exceptions.action_result_type_error import ActionResultTypeError
+from action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
 from action_machine.exceptions.authorization_error import AuthorizationError
 from action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from action_machine.exceptions.connection_not_open_error import ConnectionNotOpenError
@@ -34,6 +35,7 @@ from action_machine.exceptions.validation_field_error import ValidationFieldErro
 __all__ = [
     "ActionResultDeclarationError",
     "ActionResultTypeError",
+    "AspectPipelineError",
     "AuthorizationError",
     "ConnectionAlreadyOpenError",
     "ConnectionNotOpenError",

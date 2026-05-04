@@ -87,6 +87,7 @@ from action_machine.context.context import Context
 from action_machine.exceptions import (
     ActionResultDeclarationError,
     ActionResultTypeError,
+    AspectPipelineError,
     MissingSummaryAspectError,
 )
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
@@ -119,21 +120,7 @@ P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
 
 
-class _AspectPipelineError(Exception):
-    """
-    Internal: attaches the ``BaseState`` relevant at the failing pipeline step.
-
-    The original error is ``__cause__``. ``pipeline_state`` is the state passed
-    into the aspect call for ``emit_before`` / ``execute_regular`` failures, or the
-    merged state after a successful ``execute_regular`` when ``emit_after`` fails.
-    """
-
-    def __init__(self, pipeline_state: BaseState) -> None:
-        super().__init__()
-        self.pipeline_state = pipeline_state
-
-
-def _aspect_pipeline_chained_exception(apf: _AspectPipelineError) -> Exception:
+def _aspect_pipeline_chained_exception(apf: AspectPipelineError) -> Exception:
     """``Exception`` for saga / ``@on_error`` (``__cause__`` is typed as ``BaseException``)."""
     cause = apf.__cause__
     if isinstance(cause, Exception):
@@ -273,7 +260,7 @@ class ActionProductMachine(BaseActionMachine):
                     state_snapshot=state_passed_into_aspect.to_dict(),
                 )
             except Exception as exc:
-                raise _AspectPipelineError(state_passed_into_aspect) from exc
+                raise AspectPipelineError(state_passed_into_aspect) from exc
 
             try:
                 state, new_state_dict, aspect_duration = (
@@ -290,7 +277,7 @@ class ActionProductMachine(BaseActionMachine):
                     )
                 )
             except Exception as exc:
-                raise _AspectPipelineError(state_passed_into_aspect) from exc
+                raise AspectPipelineError(state_passed_into_aspect) from exc
 
             try:
                 await self._plugin_emit.emit_after_regular_aspect(
@@ -305,7 +292,7 @@ class ActionProductMachine(BaseActionMachine):
                     duration_ms=aspect_duration * 1000,
                 )
             except Exception as exc:
-                raise _AspectPipelineError(state) from exc
+                raise AspectPipelineError(state) from exc
 
         return state
 
@@ -421,7 +408,7 @@ class ActionProductMachine(BaseActionMachine):
                     state_snapshot=state_passed_into_summary.to_dict(),
                 )
             except Exception as exc:
-                raise _AspectPipelineError(state_passed_into_summary) from exc
+                raise AspectPipelineError(state_passed_into_summary) from exc
 
             try:
                 result, summary_duration = await self._aspect_executor.execute_summary(
@@ -440,7 +427,7 @@ class ActionProductMachine(BaseActionMachine):
             ):
                 raise
             except Exception as exc:
-                raise _AspectPipelineError(state_passed_into_summary) from exc
+                raise AspectPipelineError(state_passed_into_summary) from exc
 
             try:
                 await self._plugin_emit.emit_after_summary_aspect(
@@ -455,11 +442,11 @@ class ActionProductMachine(BaseActionMachine):
                     duration_ms=summary_duration * 1000,
                 )
             except Exception as exc:
-                raise _AspectPipelineError(state_passed_into_summary) from exc
+                raise AspectPipelineError(state_passed_into_summary) from exc
 
             return cast("R", result)
 
-        except _AspectPipelineError as apf:
+        except AspectPipelineError as apf:
             return await self._finish_aspect_pipeline_error(
                 aspect_error=_aspect_pipeline_chained_exception(apf),
                 error_state=apf.pipeline_state,
