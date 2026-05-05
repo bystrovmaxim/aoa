@@ -9,7 +9,7 @@ PURPOSE
 Provide a dedicated component for saga compensation orchestration during error
 paths. This Step 7 implementation owns reverse rollback order, compensator
 invocation, and saga lifecycle events. Plugin event payloads are built through
-``PluginEmitSupport`` so this class does not call private methods on the machine.
+``PluginCoordinator`` so this class does not call private methods on the machine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -21,7 +21,7 @@ ARCHITECTURE / DATA FLOW
         │
         └── SagaCoordinator.execute(saga_stack, ...)
                 │
-                ├── plugin_emit.base_fields / emit_extra_kwargs
+                ├── plugin_coordinator.base_fields / emit_extra_kwargs
                 ├── emit SagaRollbackStartedEvent
                 ├── iterate frames in reverse order
                 │   ├── emit BeforeCompensateAspectEvent
@@ -52,7 +52,6 @@ from action_machine.plugin.events import (
     SagaRollbackStartedEvent,
 )
 from action_machine.plugin.plugin_coordinator import PluginCoordinator
-from action_machine.plugin.plugin_emit_support import PluginEmitSupport
 from action_machine.runtime.aspect_executor import AspectExecutor
 from action_machine.runtime.error_handler_executor import ErrorHandlerExecutor
 from action_machine.runtime.saga_frame import SagaFrame
@@ -67,12 +66,10 @@ class SagaCoordinator:
         aspect_executor: AspectExecutor,
         error_handler_executor: ErrorHandlerExecutor,
         plugin_coordinator: PluginCoordinator,
-        plugin_emit: PluginEmitSupport,
     ) -> None:
         self._aspect_executor = aspect_executor
         self._error_handler_executor = error_handler_executor
         self._plugin_coordinator = plugin_coordinator
-        self._plugin_emit = plugin_emit
 
     async def execute(
         self,
@@ -92,13 +89,13 @@ class SagaCoordinator:
             self._error_handler_executor,
             self._plugin_coordinator,
         )
-        base_fields = self._plugin_emit.base_fields(
+        base_fields = self._plugin_coordinator.base_fields(
             action,
             context,
             params,
             box.nested_level,
         )
-        plugin_kwargs = self._plugin_emit.emit_extra_kwargs(box.nested_level)
+        plugin_kwargs = self._plugin_coordinator.emit_extra_kwargs(box.nested_level)
 
         compensator_count = sum(1 for frame in saga_stack if frame.compensator is not None)
         aspect_names_reversed = tuple(frame.aspect_name for frame in reversed(saga_stack))
@@ -146,7 +143,7 @@ class SagaCoordinator:
             comp_started_at = time.time()
             try:
                 comp_log = ScopedLogger(
-                    coordinator=self._plugin_emit.log_coordinator,
+                    coordinator=self._plugin_coordinator.log_coordinator,
                     nest_level=box.nested_level,
                     action_name=action.get_full_class_name(),
                     aspect_name=compensator_name,

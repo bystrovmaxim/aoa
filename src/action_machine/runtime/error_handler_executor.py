@@ -8,7 +8,7 @@ PURPOSE
 
 Provide a dedicated component for the `@on_error` stage in machine execution.
 This Step 6 implementation owns handler resolution, invocation, and fallback
-event contracts. Plugin event payloads come from ``PluginEmitSupport``, not from
+event contracts. Plugin event payloads come from ``PluginCoordinator``, not from
 private methods on the machine.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -24,7 +24,7 @@ ARCHITECTURE / DATA FLOW
                                         error_handler_nodes, plugin_ctx,
                                         failed_aspect_name)
                 │
-                ├── plugin_emit.base_fields / emit_extra_kwargs
+                ├── plugin_coordinator.base_fields / emit_extra_kwargs
                 ├── resolve first matching handler by isinstance
                 ├── emit BeforeOnErrorAspectEvent
                 ├── invoke handler (with ContextView when required)
@@ -54,15 +54,15 @@ from action_machine.plugin.events import (
     BeforeOnErrorAspectEvent,
     UnhandledErrorEvent,
 )
-from action_machine.plugin.plugin_emit_support import PluginEmitSupport
+from action_machine.plugin.plugin_coordinator import PluginCoordinator
 from action_machine.runtime.binding.action_result_binding import bind_pipeline_result_to_action
 
 
 class ErrorHandlerExecutor:
     """Component owning `@on_error` resolution and invocation."""
 
-    def __init__(self, plugin_emit: PluginEmitSupport) -> None:
-        self._plugin_emit = plugin_emit
+    def __init__(self, plugin_coordinator: PluginCoordinator) -> None:
+        self._plugin_coordinator = plugin_coordinator
 
     async def handle(
         self,
@@ -79,13 +79,13 @@ class ErrorHandlerExecutor:
         failed_aspect_name: str | None,
     ) -> BaseResult:
         """Resolve and invoke matching `@on_error` handler."""
-        base_fields = self._plugin_emit.base_fields(
+        base_fields = self._plugin_coordinator.base_fields(
             action,
             context,
             params,
             box.nested_level,
         )
-        plugin_kwargs = self._plugin_emit.emit_extra_kwargs(box.nested_level)
+        plugin_kwargs = self._plugin_coordinator.emit_extra_kwargs(box.nested_level)
 
         handler_node = None
         for candidate in error_handler_nodes:

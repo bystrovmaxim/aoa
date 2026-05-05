@@ -28,7 +28,7 @@ from action_machine.plugin.events import (
     BeforeOnErrorAspectEvent,
     UnhandledErrorEvent,
 )
-from action_machine.plugin.plugin_emit_support import PluginEmitSupport
+from action_machine.plugin.plugin_coordinator import PluginCoordinator
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.error_handler_executor import ErrorHandlerExecutor
 from action_machine.runtime.tools_box import ToolsBox
@@ -91,8 +91,8 @@ class _CtxOnErrorProbeAction(BaseAction[ErrorTestParams, ErrorTestResult]):
 
 
 @pytest.fixture
-def plugin_emit() -> PluginEmitSupport:
-    return PluginEmitSupport(LogCoordinator(loggers=[]))
+def plugin_coordinator() -> PluginCoordinator:
+    return PluginCoordinator([], LogCoordinator(loggers=[]))
 
 
 def _minimal_box() -> MagicMock:
@@ -102,9 +102,9 @@ def _minimal_box() -> MagicMock:
 
 
 @pytest.mark.asyncio
-async def test_handle_unhandled_emits_and_reraises(plugin_emit: PluginEmitSupport) -> None:
+async def test_handle_unhandled_emits_and_reraises(plugin_coordinator: PluginCoordinator) -> None:
     importlib.import_module("tests.scenarios.domain_model.error_actions")
-    exe = ErrorHandlerExecutor(plugin_emit)
+    exe = ErrorHandlerExecutor(plugin_coordinator)
     plugin_ctx = AsyncMock()
     err = KeyError("missing")
 
@@ -127,10 +127,10 @@ async def test_handle_unhandled_emits_and_reraises(plugin_emit: PluginEmitSuppor
 
 
 @pytest.mark.asyncio
-async def test_handle_invokes_matching_handler(plugin_emit: PluginEmitSupport) -> None:
+async def test_handle_invokes_matching_handler(plugin_coordinator: PluginCoordinator) -> None:
     importlib.import_module("tests.scenarios.domain_model.error_actions")
     action_node = _wired_action(ErrorHandledAction)
-    exe = ErrorHandlerExecutor(plugin_emit)
+    exe = ErrorHandlerExecutor(plugin_coordinator)
     plugin_ctx = AsyncMock()
 
     bound = await exe.handle(
@@ -153,10 +153,10 @@ async def test_handle_invokes_matching_handler(plugin_emit: PluginEmitSupport) -
 
 
 @pytest.mark.asyncio
-async def test_handle_wraps_handler_exception(plugin_emit: PluginEmitSupport) -> None:
+async def test_handle_wraps_handler_exception(plugin_coordinator: PluginCoordinator) -> None:
     importlib.import_module("tests.scenarios.domain_model.error_actions")
     action_node = _wired_action(HandlerRaisesAction)
-    exe = ErrorHandlerExecutor(plugin_emit)
+    exe = ErrorHandlerExecutor(plugin_coordinator)
     plugin_ctx = AsyncMock()
 
     orig = ValueError("aspect failed")
@@ -178,10 +178,10 @@ async def test_handle_wraps_handler_exception(plugin_emit: PluginEmitSupport) ->
 
 
 @pytest.mark.asyncio
-async def test_handle_passes_context_view_when_required(plugin_emit: PluginEmitSupport) -> None:
+async def test_handle_passes_context_view_when_required(plugin_coordinator: PluginCoordinator) -> None:
     action_node = _wired_action(_CtxOnErrorProbeAction)
     handler = next(h for h in action_node.get_error_handler_graph_nodes() if h.label == "runtime_probe_on_error")
-    exe = ErrorHandlerExecutor(plugin_emit)
+    exe = ErrorHandlerExecutor(plugin_coordinator)
     plugin_ctx = AsyncMock()
     ctx = Context(user=UserInfo(user_id="uid-42", roles=()))
 
