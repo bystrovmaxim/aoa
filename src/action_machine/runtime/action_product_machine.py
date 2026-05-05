@@ -33,7 +33,7 @@ ARCHITECTURE / DATA FLOW
                 │         nest_level, context, ...)
                 ├── _plugin_coordinator.emit_global_start(...)
                 ├── _execute_pipeline_aspects(...)
-                │       ├── _execute_regular_aspects (per aspect):
+                │       ├── _execute_regular_aspect (per aspect):
                 │       │       _plugin_coordinator.emit_before_regular_aspect(...)
                 │       │       _aspect_executor.execute_regular(...)
                 │       │       _plugin_coordinator.emit_after_regular_aspect(...)
@@ -90,6 +90,7 @@ from action_machine.exceptions import (
     MissingSummaryAspectError,
 )
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.intents.depends.depends_intent_resolver import DependsIntentResolver
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.model.base_action import BaseAction
@@ -203,7 +204,7 @@ class ActionProductMachine(BaseActionMachine):
     # Regular aspects
     # ─────────────────────────────────────────────────────────────────────
 
-    async def _execute_regular_aspects(
+    async def _execute_regular_aspect(
         self,
         action: BaseAction[P, R],
         params: P,
@@ -212,58 +213,57 @@ class ActionProductMachine(BaseActionMachine):
         context: Context,
         plugin_ctx: PluginRunContext,
         saga_stack: list[SagaFrame],
+        state: BaseState,
+        aspect_node: RegularAspectGraphNode,
         action_graph_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> BaseState:
-        """Plugins and ``AspectExecutor.execute_regular`` per regular aspect."""
-        state = BaseState()
+        """Run one regular aspect with before/after plugin emissions."""
+        state_passed_into_aspect = state
+        compensator_node = action_graph_node.compensator_graph_node_for_aspect(aspect_node.label)
+        try:
+            await self._plugin_coordinator.emit_before_regular_aspect(
+                plugin_ctx,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=box.nested_level,
+                aspect_name=aspect_node.label,
+                state_snapshot=state_passed_into_aspect.to_dict(),
+            )
+        except Exception as exc:
+            raise AspectPipelineError(state_passed_into_aspect) from exc
 
-        for aspect_node in action_graph_node.get_regular_aspect_graph_nodes():
-            state_passed_into_aspect = state
-            compensator_node = action_graph_node.compensator_graph_node_for_aspect(aspect_node.label)
-            try:
-                await self._plugin_coordinator.emit_before_regular_aspect(
-                    plugin_ctx,
+        try:
+            state, new_state_dict, aspect_duration = (
+                await self._aspect_executor.execute_regular(
                     action=action,
-                    context=context,
+                    aspect_node=aspect_node,
+                    compensator_node=compensator_node,
                     params=params,
-                    nest_level=box.nested_level,
-                    aspect_name=aspect_node.label,
-                    state_snapshot=state_passed_into_aspect.to_dict(),
-                )
-            except Exception as exc:
-                raise AspectPipelineError(state_passed_into_aspect) from exc
-
-            try:
-                state, new_state_dict, aspect_duration = (
-                    await self._aspect_executor.execute_regular(
-                        action=action,
-                        aspect_node=aspect_node,
-                        compensator_node=compensator_node,
-                        params=params,
-                        state=state_passed_into_aspect,
-                        box=box,
-                        connections=connections,
-                        context=context,
-                        saga_stack=saga_stack,
-                    )
-                )
-            except Exception as exc:
-                raise AspectPipelineError(state_passed_into_aspect) from exc
-
-            try:
-                await self._plugin_coordinator.emit_after_regular_aspect(
-                    plugin_ctx,
-                    action=action,
+                    state=state_passed_into_aspect,
+                    box=box,
+                    connections=connections,
                     context=context,
-                    params=params,
-                    nest_level=box.nested_level,
-                    aspect_name=aspect_node.label,
-                    state_snapshot=state.to_dict(),
-                    aspect_result=new_state_dict,
-                    duration_ms=aspect_duration * 1000,
+                    saga_stack=saga_stack,
                 )
-            except Exception as exc:
-                raise AspectPipelineError(state) from exc
+            )
+        except Exception as exc:
+            raise AspectPipelineError(state_passed_into_aspect) from exc
+
+        try:
+            await self._plugin_coordinator.emit_after_regular_aspect(
+                plugin_ctx,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=box.nested_level,
+                aspect_name=aspect_node.label,
+                state_snapshot=state.to_dict(),
+                aspect_result=new_state_dict,
+                duration_ms=aspect_duration * 1000,
+            )
+        except Exception as exc:
+            raise AspectPipelineError(state) from exc
 
         return state
 
@@ -355,9 +355,21 @@ class ActionProductMachine(BaseActionMachine):
         state: BaseState | None = None
 
         try:
-            state = await self._execute_regular_aspects(
-                action, params, box, connections, context, plugin_ctx, saga_stack, action_graph_node,
-            )
+            state = BaseState()
+            for aspect_node in action_graph_node.get_regular_aspect_graph_nodes():
+                failed_aspect_name = aspect_node.label
+                state = await self._execute_regular_aspect(
+                    action,
+                    params,
+                    box,
+                    connections,
+                    context,
+                    plugin_ctx,
+                    saga_stack,
+                    state,
+                    aspect_node,
+                    action_graph_node,
+                )
 
             if action_graph_node.summary_aspect:
                 summary_node = action_graph_node.get_summary_aspect_graph_node()
