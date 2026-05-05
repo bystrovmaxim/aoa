@@ -33,7 +33,7 @@ ARCHITECTURE / DATA FLOW
                 │         nest_level, context, ...)
                 ├── _plugin_coordinator.emit_global_start(...)
                 ├── _execute_pipeline_aspects(...)
-                │       ├── _execute_regular_aspect (per aspect):
+                │       ├── per regular aspect:
                 │       │       _plugin_coordinator.emit_before_regular_aspect(...)
                 │       │       _aspect_executor.execute_regular(...)
                 │       │       _plugin_coordinator.emit_after_regular_aspect(...)
@@ -84,8 +84,6 @@ from typing import Any, TypeVar, cast
 
 from action_machine.context.context import Context
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
-from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
-from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.intents.depends.depends_intent_resolver import DependsIntentResolver
 from action_machine.logging.channel import Channel
 from action_machine.logging.domain_resolver import resolve_domain
@@ -199,105 +197,6 @@ class ActionProductMachine(BaseActionMachine):
         )
 
     # ─────────────────────────────────────────────────────────────────────
-    # Regular aspects
-    # ─────────────────────────────────────────────────────────────────────
-
-    async def _execute_regular_aspect(
-        self,
-        action: BaseAction[P, R],
-        params: P,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-        context: Context,
-        plugin_ctx: PluginRunContext,
-        state_passed_into_aspect: BaseState,
-        aspect_node: RegularAspectGraphNode,
-    ) -> BaseState:
-        """Run one regular aspect with plugin emissions around the primitive call."""
-        await self._plugin_coordinator.emit_before_regular_aspect(
-            plugin_ctx,
-            action=action,
-            context=context,
-            params=params,
-            nest_level=box.nested_level,
-            aspect_name=aspect_node.label,
-            state_snapshot=state_passed_into_aspect.to_dict(),
-        )
-
-        state, new_state_dict, aspect_duration = (
-            await self._aspect_executor.execute_regular(
-                action=action,
-                aspect_node=aspect_node,
-                params=params,
-                state=state_passed_into_aspect,
-                box=box,
-                connections=connections,
-                context=context,
-            )
-        )
-
-        await self._plugin_coordinator.emit_after_regular_aspect(
-            plugin_ctx,
-            action=action,
-            context=context,
-            params=params,
-            nest_level=box.nested_level,
-            aspect_name=aspect_node.label,
-            state_snapshot=state.to_dict(),
-            aspect_result=new_state_dict,
-            duration_ms=aspect_duration * 1000,
-        )
-
-        return state
-
-    async def _execute_summary_aspect(
-        self,
-        action: BaseAction[P, R],
-        params: P,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-        context: Context,
-        plugin_ctx: PluginRunContext,
-        state_passed_into_summary: BaseState,
-        summary_node: SummaryAspectGraphNode,
-        summary_name: str,
-    ) -> R:
-        """Run the summary aspect with plugin emissions around the primitive call."""
-        await self._plugin_coordinator.emit_before_summary_aspect(
-            plugin_ctx,
-            action=action,
-            context=context,
-            params=params,
-            nest_level=box.nested_level,
-            aspect_name=summary_name,
-            state_snapshot=state_passed_into_summary.to_dict(),
-        )
-
-        result, summary_duration = await self._aspect_executor.execute_summary(
-            summary_node=summary_node,
-            action=action,
-            params=params,
-            state=state_passed_into_summary,
-            box=box,
-            connections=connections,
-            context=context,
-        )
-
-        await self._plugin_coordinator.emit_after_summary_aspect(
-            plugin_ctx,
-            action=action,
-            context=context,
-            params=params,
-            nest_level=box.nested_level,
-            aspect_name=summary_name,
-            state_snapshot=state_passed_into_summary.to_dict(),
-            result=result,
-            duration_ms=summary_duration * 1000,
-        )
-
-        return cast("R", result)
-
-    # ─────────────────────────────────────────────────────────────────────
     # Aspect pipeline + error path
     # ─────────────────────────────────────────────────────────────────────
 
@@ -362,16 +261,28 @@ class ActionProductMachine(BaseActionMachine):
                         )
                     )
 
-                state = await self._execute_regular_aspect(
-                    action,
-                    params,
-                    box,
-                    connections,
-                    context,
+                await self._plugin_coordinator.emit_before_regular_aspect(
                     plugin_ctx,
-                    state_passed_into_aspect,
-                    aspect_node,
+                    action=action,
+                    context=context,
+                    params=params,
+                    nest_level=box.nested_level,
+                    aspect_name=aspect_node.label,
+                    state_snapshot=state_passed_into_aspect.to_dict(),
                 )
+
+                state, new_state_dict, aspect_duration = (
+                    await self._aspect_executor.execute_regular(
+                        action=action,
+                        aspect_node=aspect_node,
+                        params=params,
+                        state=state_passed_into_aspect,
+                        box=box,
+                        connections=connections,
+                        context=context,
+                    )
+                )
+
                 if compensator_node is not None and saga_stack:
                     saga_stack[-1] = SagaFrame(
                         compensator=compensator_node,
@@ -380,20 +291,54 @@ class ActionProductMachine(BaseActionMachine):
                         state_after=state,
                     )
 
+                await self._plugin_coordinator.emit_after_regular_aspect(
+                    plugin_ctx,
+                    action=action,
+                    context=context,
+                    params=params,
+                    nest_level=box.nested_level,
+                    aspect_name=aspect_node.label,
+                    state_snapshot=state.to_dict(),
+                    aspect_result=new_state_dict,
+                    duration_ms=aspect_duration * 1000,
+                )
+
             summary_node = action_graph_node.get_summary_aspect_graph_node()
             failed_aspect_name = summary_node.label
+            state_passed_into_summary = state
 
-            return await self._execute_summary_aspect(
-                action,
-                params,
-                box,
-                connections,
-                context,
+            await self._plugin_coordinator.emit_before_summary_aspect(
                 plugin_ctx,
-                state,
-                summary_node,
-                summary_node.label,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=box.nested_level,
+                aspect_name=summary_node.label,
+                state_snapshot=state_passed_into_summary.to_dict(),
             )
+
+            result, summary_duration = await self._aspect_executor.execute_summary(
+                summary_node=summary_node,
+                action=action,
+                params=params,
+                state=state_passed_into_summary,
+                box=box,
+                connections=connections,
+                context=context,
+            )
+
+            await self._plugin_coordinator.emit_after_summary_aspect(
+                plugin_ctx,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=box.nested_level,
+                aspect_name=summary_node.label,
+                state_snapshot=state_passed_into_summary.to_dict(),
+                result=result,
+                duration_ms=summary_duration * 1000,
+            )
+            return cast("R", result)
 
         except Exception as aspect_error:
             try:
