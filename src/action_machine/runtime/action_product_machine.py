@@ -32,7 +32,7 @@ ARCHITECTURE / DATA FLOW
                 ├── box = _tools_box_factory.create(factory_resolver=self, ...,
                 │         nest_level, context, ...)
                 ├── _plugin_coordinator.emit_global_start(...)
-                ├── _execute_aspects_with_error_handling(...)
+                ├── _execute_pipeline_aspects(...)
                 │       ├── _execute_regular_aspects (per aspect):
                 │       │       _plugin_coordinator.emit_before_regular_aspect(...)
                 │       │       _aspect_executor.execute_regular(...)
@@ -339,7 +339,7 @@ class ActionProductMachine(BaseActionMachine):
             plugin_ctx=plugin_ctx,
         )
 
-    async def _execute_aspects_with_error_handling(
+    async def _execute_pipeline_aspects(
         self,
         action: BaseAction[P, R],
         params: P,
@@ -526,7 +526,7 @@ class ActionProductMachine(BaseActionMachine):
             nest_level=current_nest,
         )
 
-        result = await self._execute_aspects_with_error_handling(
+        result = await self._execute_pipeline_aspects(
             action, params, box, conns, context, plugin_ctx, action_node
         )
 

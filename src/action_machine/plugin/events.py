@@ -265,7 +265,7 @@ class GlobalStartEvent(GlobalLifecycleEvent):
     Fired when a run is about to enter the aspect pipeline.
 
     Emitted via ``PluginCoordinator.emit_global_start`` after role and connection
-    gates and ``ToolsBox`` creation, before ``_execute_aspects_with_error_handling``.
+    gates and ``ToolsBox`` creation, before ``_execute_pipeline_aspects``.
     No ``result`` or ``duration_ms`` yet.
     """
 
@@ -276,7 +276,7 @@ class GlobalFinishEvent(GlobalLifecycleEvent):
     Fired when a run completes with a final result (summary or ``@on_error``).
 
     Emitted via ``PluginCoordinator.emit_global_finish`` after
-    ``_execute_aspects_with_error_handling`` returns.
+    ``_execute_pipeline_aspects`` returns.
 
     Attributes:
         result: Final frozen ``BaseResult`` (from summary or a matching error handler).
