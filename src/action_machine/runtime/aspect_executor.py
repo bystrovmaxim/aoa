@@ -26,9 +26,8 @@ ARCHITECTURE / DATA FLOW
         ├── AspectExecutor(log_coordinator)
         │
         ├── execute_regular(...)
-        │       ├── optional saga frame append before call (state_after=None)
         │       ├── call_aspect(...)
-        │       ├── state merge + frame replacement (state_after=merged)
+        │       ├── state merge
         │       └── checker application
         │
         └── execute_summary(...)
@@ -44,7 +43,6 @@ from typing import Any
 from action_machine.context.context_view import ContextView
 from action_machine.exceptions import ValidationFieldError
 from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
-from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
 from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from action_machine.logging.domain_resolver import resolve_domain
@@ -59,7 +57,6 @@ from action_machine.runtime.binding.action_result_binding import (
     bind_pipeline_result_to_action,
     synthetic_summary_result_when_missing_aspect,
 )
-from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox
 
 
@@ -142,28 +139,14 @@ class AspectExecutor:
         *,
         action: BaseAction[Any, Any],
         aspect_node: RegularAspectGraphNode,
-        compensator_node: CompensatorGraphNode | None,
         params: BaseParams,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
         context: Any,
-        saga_stack: list[SagaFrame],
     ) -> tuple[BaseState, dict[str, Any], float]:
         """Execute one regular aspect with checker validation and state merge."""
-        state_before = state
         aspect_start = time.time()
-        saga_frame_index: int | None = None
-        if compensator_node is not None:
-            saga_frame_index = len(saga_stack)
-            saga_stack.append(
-                SagaFrame(
-                    compensator=compensator_node,
-                    aspect_name=aspect_node.label,
-                    state_before=state_before,
-                    state_after=None,
-                )
-            )
 
         new_state_dict = await self.call_aspect(
             action=action,
@@ -182,13 +165,6 @@ class AspectExecutor:
 
         checker_nodes = aspect_node.get_checker_graph_nodes()
         merged_state = BaseState(**{**state.to_dict(), **new_state_dict})
-        if saga_frame_index is not None:
-            saga_stack[saga_frame_index] = SagaFrame(
-                compensator=compensator_node,
-                aspect_name=aspect_node.label,
-                state_before=state_before,
-                state_after=merged_state,
-            )
 
         if not checker_nodes and new_state_dict:
             raise ValidationFieldError(
