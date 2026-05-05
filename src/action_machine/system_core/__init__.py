@@ -5,8 +5,10 @@ Lightweight runtime introspection helpers (types/callables and intent-scratch sc
 
 from __future__ import annotations
 
+from .dot_path_navigator import DotPathNavigator
 from .type_introspection import TypeIntrospection
 
 __all__ = [
+    "DotPathNavigator",
     "TypeIntrospection",
 ]

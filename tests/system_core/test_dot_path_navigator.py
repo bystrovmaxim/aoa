@@ -1,9 +1,9 @@
-# tests/runtime/test_navigation_with_source.py
+# tests/system_core/test_dot_path_navigator.py
 """DotPathNavigator.navigate_with_source edge cases."""
 
 from __future__ import annotations
 
-from action_machine.runtime.navigation import _SENTINEL, DotPathNavigator
+from action_machine.system_core.dot_path_navigator import _SENTINEL, DotPathNavigator
 
 
 def test_navigate_with_source_empty_dotpath_returns_root_tuple() -> None:
