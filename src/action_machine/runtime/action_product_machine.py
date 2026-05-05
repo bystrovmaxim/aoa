@@ -168,11 +168,6 @@ class ActionProductMachine(BaseActionMachine):
             else saga_coordinator
         )
 
-    @property
-    def plugin_coordinator(self) -> PluginCoordinator:
-        """Public read-only access to plugin coordination and event helpers."""
-        return self._plugin_coordinator
-
     def get_action_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
         """Return the materialized ``Action`` graph node for ``action_cls`` (same id as :class:`ActionGraphNode`)."""
         if not isinstance(action_cls, type) or not issubclass(action_cls, BaseAction):
