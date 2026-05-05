@@ -12,7 +12,7 @@ typed plugin lifecycle events, saga rollback on failure, and ``@on_error``
 handling. Heavy logic lives in injectable components (``RoleChecker``,
 ``ConnectionValidator``, ``ToolsBoxFactory``, ``AspectExecutor``,
 ``ErrorHandlerExecutor``, ``SagaCoordinator``); this class wires order and
-``PluginEmitSupport`` for all machine-owned plugin lifecycle emissions
+``PluginCoordinator`` for all machine-owned plugin lifecycle emissions
 (global start/finish and regular/summary aspect events).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -31,19 +31,19 @@ ARCHITECTURE / DATA FLOW
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
                 ├── box = _tools_box_factory.create(factory_resolver=self, ...,
                 │         nest_level, context, ...)
-                ├── plugin_emit.emit_global_start(...)
+                ├── _plugin_coordinator.emit_global_start(...)
                 ├── _execute_aspects_with_error_handling(...)
                 │       ├── _execute_regular_aspects (per aspect):
-                │       │       plugin_emit.emit_before_regular_aspect(...)
+                │       │       _plugin_coordinator.emit_before_regular_aspect(...)
                 │       │       _aspect_executor.execute_regular(...)
-                │       │       plugin_emit.emit_after_regular_aspect(...)
-                │       ├── plugin_emit.emit_before_summary_aspect(...)
+                │       │       _plugin_coordinator.emit_after_regular_aspect(...)
+                │       ├── _plugin_coordinator.emit_before_summary_aspect(...)
                 │       ├── _aspect_executor.execute_summary(...)
-                │       ├── plugin_emit.emit_after_summary_aspect(...)
+                │       ├── _plugin_coordinator.emit_after_summary_aspect(...)
                 │       └── on exception (saga_stack prefilled):
                 │               _saga_coordinator.execute(saga_stack=..., ...)   [if stack]
                 │               _error_handler_executor.handle(...)
-                ├── plugin_emit.emit_global_finish(...)
+                ├── _plugin_coordinator.emit_global_finish(...)
                 └── return Result
 
 ``DependencyFactory`` for ``ToolsBox`` is resolved via the public
@@ -53,7 +53,7 @@ ARCHITECTURE / DATA FLOW
 **Where plugin events are emitted**
 
 - This module does **not** call ``plugin_ctx.emit_event`` or construct the six
-  machine-owned event types directly. It delegates to ``PluginEmitSupport``:
+  machine-owned event types directly. It delegates to ``PluginCoordinator``:
   ``emit_global_start``, ``emit_global_finish``, ``emit_before_regular_aspect``,
   ``emit_after_regular_aspect``, ``emit_before_summary_aspect``,
   ``emit_after_summary_aspect``.
@@ -99,7 +99,6 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.plugin.plugin import Plugin
 from action_machine.plugin.plugin_coordinator import PluginCoordinator
-from action_machine.plugin.plugin_emit_support import PluginEmitSupport
 from action_machine.plugin.plugin_run_context import PluginRunContext
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.aspect_executor import AspectExecutor
@@ -118,14 +117,6 @@ from graph.node_graph_coordinator import NodeGraphCoordinator
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
-
-
-def _aspect_pipeline_chained_exception(apf: AspectPipelineError) -> Exception:
-    """``Exception`` for saga / ``@on_error`` (``__cause__`` is typed as ``BaseException``)."""
-    cause = apf.__cause__
-    if isinstance(cause, Exception):
-        return cause
-    return apf
 
 
 class ActionProductMachine(BaseActionMachine):
@@ -151,10 +142,9 @@ class ActionProductMachine(BaseActionMachine):
     ) -> None:
         """Keyword-only injectable overrides; build the default graph coordinator eagerly."""
         plugins = plugins or []
-        self._plugin_coordinator = PluginCoordinator(plugins)
         self._log_coordinator = log_coordinator or LogCoordinator()
+        self._plugin_coordinator = PluginCoordinator(plugins, self._log_coordinator)
         self.graph_coordinator = graph_coordinator or create_node_graph_coordinator()
-        self._plugin_emit = PluginEmitSupport(self._log_coordinator)
         self._role_checker = role_checker or RoleChecker()
         self._connection_validator = connection_validator or ConnectionValidator()
         self._tools_box_factory = ToolsBoxFactory(self._log_coordinator)
@@ -164,7 +154,7 @@ class ActionProductMachine(BaseActionMachine):
             else aspect_executor
         )
         self._error_handler_executor: ErrorHandlerExecutor = (
-            ErrorHandlerExecutor(self._plugin_emit)
+            ErrorHandlerExecutor(self._plugin_coordinator)
             if error_handler_executor is None
             else error_handler_executor
         )
@@ -173,16 +163,15 @@ class ActionProductMachine(BaseActionMachine):
                 self._aspect_executor,
                 self._error_handler_executor,
                 self._plugin_coordinator,
-                self._plugin_emit,
             )
             if saga_coordinator is None
             else saga_coordinator
         )
 
     @property
-    def plugin_emit_support(self) -> PluginEmitSupport:
-        """Public read-only access to plugin event field helpers (base fields + emit extras)."""
-        return self._plugin_emit
+    def plugin_coordinator(self) -> PluginCoordinator:
+        """Public read-only access to plugin coordination and event helpers."""
+        return self._plugin_coordinator
 
     def get_action_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
         """Return the materialized ``Action`` graph node for ``action_cls`` (same id as :class:`ActionGraphNode`)."""
@@ -224,7 +213,7 @@ class ActionProductMachine(BaseActionMachine):
             state_passed_into_aspect = state
             compensator_node = action_graph_node.compensator_graph_node_for_aspect(aspect_node.label)
             try:
-                await self._plugin_emit.emit_before_regular_aspect(
+                await self._plugin_coordinator.emit_before_regular_aspect(
                     plugin_ctx,
                     action=action,
                     context=context,
@@ -254,7 +243,7 @@ class ActionProductMachine(BaseActionMachine):
                 raise AspectPipelineError(state_passed_into_aspect) from exc
 
             try:
-                await self._plugin_emit.emit_after_regular_aspect(
+                await self._plugin_coordinator.emit_after_regular_aspect(
                     plugin_ctx,
                     action=action,
                     context=context,
@@ -372,7 +361,7 @@ class ActionProductMachine(BaseActionMachine):
             state_passed_into_summary = state
 
             try:
-                await self._plugin_emit.emit_before_summary_aspect(
+                await self._plugin_coordinator.emit_before_summary_aspect(
                     plugin_ctx,
                     action=action,
                     context=context,
@@ -404,7 +393,7 @@ class ActionProductMachine(BaseActionMachine):
                 raise AspectPipelineError(state_passed_into_summary) from exc
 
             try:
-                await self._plugin_emit.emit_after_summary_aspect(
+                await self._plugin_coordinator.emit_after_summary_aspect(
                     plugin_ctx,
                     action=action,
                     context=context,
@@ -421,8 +410,10 @@ class ActionProductMachine(BaseActionMachine):
             return cast("R", result)
 
         except AspectPipelineError as apf:
+            cause = apf.__cause__
+            aspect_error = cause if isinstance(cause, Exception) else apf
             return await self._finish_aspect_pipeline_error(
-                aspect_error=_aspect_pipeline_chained_exception(apf),
+                aspect_error=aspect_error,
                 error_state=apf.pipeline_state,
                 failed_aspect_name=failed_aspect_name,
                 saga_stack=saga_stack,
@@ -529,7 +520,7 @@ class ActionProductMachine(BaseActionMachine):
             run_child=run_child,
         )
 
-        await self._plugin_emit.emit_global_start(
+        await self._plugin_coordinator.emit_global_start(
             plugin_ctx,
             action=action,
             context=context,
@@ -543,7 +534,7 @@ class ActionProductMachine(BaseActionMachine):
 
         total_duration = time.time() - start_time
 
-        await self._plugin_emit.emit_global_finish(
+        await self._plugin_coordinator.emit_global_finish(
             plugin_ctx,
             action=action,
             context=context,

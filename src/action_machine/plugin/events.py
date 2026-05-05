@@ -114,7 +114,7 @@ Aspect events carry ``state_snapshot: dict[str, object] | None`` captured from
 EXAMPLES OF EVENT CREATION BY RUNTIME
 ═══════════════════════════════════════════════════════════════════════════════
 
-    # Global lifecycle: PluginEmitSupport.emit_global_start / emit_global_finish
+    # Global lifecycle: PluginCoordinator.emit_global_start / emit_global_finish
     # build the same events and call plugin_ctx.emit_event. Shape example:
     event = GlobalStartEvent(
         action_class=type(action),
@@ -125,7 +125,7 @@ EXAMPLES OF EVENT CREATION BY RUNTIME
     )
     await plugin_ctx.emit_event(event)
 
-    # Regular/summary pipeline: ActionProductMachine calls PluginEmitSupport
+    # Regular/summary pipeline: ActionProductMachine calls PluginCoordinator
     # (emit_before_regular_aspect / emit_after_regular_aspect / …), which builds
     # the same event objects and passes them to plugin_ctx.emit_event. Shape example:
     event = AfterRegularAspectEvent(
@@ -254,7 +254,7 @@ class GlobalLifecycleEvent(BasePluginEvent):
     Subscribing to ``@on(GlobalLifecycleEvent)`` delivers both.
 
     Never instantiated directly; the production path emits concrete
-    ``GlobalStartEvent`` / ``GlobalFinishEvent`` through ``PluginEmitSupport``.
+    ``GlobalStartEvent`` / ``GlobalFinishEvent`` through ``PluginCoordinator``.
     This class exists only for ``isinstance``-based subscriptions.
     """
 
@@ -264,7 +264,7 @@ class GlobalStartEvent(GlobalLifecycleEvent):
     """
     Fired when a run is about to enter the aspect pipeline.
 
-    Emitted via ``PluginEmitSupport.emit_global_start`` after role and connection
+    Emitted via ``PluginCoordinator.emit_global_start`` after role and connection
     gates and ``ToolsBox`` creation, before ``_execute_aspects_with_error_handling``.
     No ``result`` or ``duration_ms`` yet.
     """
@@ -275,7 +275,7 @@ class GlobalFinishEvent(GlobalLifecycleEvent):
     """
     Fired when a run completes with a final result (summary or ``@on_error``).
 
-    Emitted via ``PluginEmitSupport.emit_global_finish`` after
+    Emitted via ``PluginCoordinator.emit_global_finish`` after
     ``_execute_aspects_with_error_handling`` returns.
 
     Attributes:
@@ -322,7 +322,7 @@ class BeforeRegularAspectEvent(RegularAspectEvent):
     """
     Fired immediately before a regular aspect method runs.
 
-    Emitted via ``PluginEmitSupport.emit_before_regular_aspect`` (which delegates to
+    Emitted via ``PluginCoordinator.emit_before_regular_aspect`` (which delegates to
     ``PluginRunContext.emit_event``). No ``aspect_result`` or ``duration_ms`` yet.
     """
 
@@ -332,7 +332,7 @@ class AfterRegularAspectEvent(RegularAspectEvent):
     """
     Fired after a regular aspect completes and checkers have validated its output.
 
-    Emitted via ``PluginEmitSupport.emit_after_regular_aspect``.
+    Emitted via ``PluginCoordinator.emit_after_regular_aspect``.
 
     Attributes:
         aspect_result: Dict merged into state after checker validation (e.g.
@@ -361,7 +361,7 @@ class BeforeSummaryAspectEvent(SummaryAspectEvent):
     """
     Fired immediately before the summary aspect runs.
 
-    Emitted via ``PluginEmitSupport.emit_before_summary_aspect``. No ``result`` or
+    Emitted via ``PluginCoordinator.emit_before_summary_aspect``. No ``result`` or
     ``duration_ms`` yet.
     """
 
@@ -371,7 +371,7 @@ class AfterSummaryAspectEvent(SummaryAspectEvent):
     """
     Fired after the summary aspect returns the action's final result.
 
-    Emitted via ``PluginEmitSupport.emit_after_summary_aspect``.
+    Emitted via ``PluginCoordinator.emit_after_summary_aspect``.
 
     Attributes:
         result: Frozen ``BaseResult`` subclass produced by the summary aspect.

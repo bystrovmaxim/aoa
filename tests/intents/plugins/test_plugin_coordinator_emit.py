@@ -1,5 +1,5 @@
-# tests/intents/plugins/test_plugin_emit_support.py
-"""Unit tests for ``PluginEmitSupport`` — plugin event payload helpers."""
+# tests/intents/plugins/test_plugin_coordinator_emit.py
+"""Unit tests for ``PluginCoordinator`` event payload helpers."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from action_machine.plugin.events import (
     GlobalFinishEvent,
     GlobalStartEvent,
 )
-from action_machine.plugin.plugin_emit_support import PluginEmitSupport
+from action_machine.plugin.plugin_coordinator import PluginCoordinator
 from tests.scenarios.domain_model import PingAction
 
 
@@ -35,7 +35,7 @@ class _RecordingPluginCtx:
 def test_base_fields_shape() -> None:
     """base_fields returns action_class, action_name, nest_level, context, params."""
     log = LogCoordinator(loggers=[])
-    emit = PluginEmitSupport(log)
+    emit = PluginCoordinator([], log)
     action = PingAction()
     ctx = Context(user=UserInfo(user_id="u1", roles=()))
     params = PingAction.Params()
@@ -52,7 +52,7 @@ def test_base_fields_shape() -> None:
 def test_emit_extra_kwargs_shape() -> None:
     """emit_extra_kwargs returns log_coordinator."""
     log = LogCoordinator(loggers=[])
-    emit = PluginEmitSupport(log)
+    emit = PluginCoordinator([], log)
 
     extra = emit.emit_extra_kwargs(99)
 
@@ -62,7 +62,7 @@ def test_emit_extra_kwargs_shape() -> None:
 def test_properties_expose_config() -> None:
     """log_coordinator matches constructor."""
     log = LogCoordinator(loggers=[])
-    emit = PluginEmitSupport(log)
+    emit = PluginCoordinator([], log)
     assert emit.log_coordinator is log
 
 
@@ -70,7 +70,7 @@ def test_properties_expose_config() -> None:
 async def test_emit_regular_aspect_helpers() -> None:
     """Before/after regular aspect events use base_fields and emit_extra_kwargs."""
     log = LogCoordinator(loggers=[])
-    emit = PluginEmitSupport(log)
+    emit = PluginCoordinator([], log)
     action = PingAction()
     ctx = Context(user=UserInfo(user_id="u1", roles=()))
     params = PingAction.Params()
@@ -116,7 +116,7 @@ async def test_emit_regular_aspect_helpers() -> None:
 async def test_emit_summary_aspect_helpers() -> None:
     """Before/after summary aspect events carry state snapshot and result."""
     log = LogCoordinator(loggers=[])
-    emit = PluginEmitSupport(log)
+    emit = PluginCoordinator([], log)
     action = PingAction()
     ctx = Context(user=UserInfo(user_id="u2", roles=()))
     params = PingAction.Params()
@@ -157,7 +157,7 @@ async def test_emit_summary_aspect_helpers() -> None:
 async def test_emit_global_lifecycle_helpers() -> None:
     """Global start/finish events use base_fields and emit_extra_kwargs."""
     log = LogCoordinator(loggers=[])
-    emit = PluginEmitSupport(log)
+    emit = PluginCoordinator([], log)
     action = PingAction()
     ctx = Context(user=UserInfo(user_id="g1", roles=()))
     params = PingAction.Params()
