@@ -8,8 +8,9 @@ PURPOSE
 
 Provide a dedicated entry point for toolbox construction in machine execution.
 This Step 4 implementation creates ``ToolsBox`` instances with preserved
-nested-level and rollup semantics. It uses an explicit ``DependencyFactoryResolver``
-and logging metadata instead of reading private fields from the machine.
+nested-level and rollup semantics. It asks the supplied factory resolver for a
+``DependencyFactory`` and builds logging metadata without reading private fields
+from the machine.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -39,9 +40,6 @@ from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.model.base_state import BaseState
-from action_machine.runtime.dependency_factory_resolver import (
-    DependencyFactoryResolver,
-)
 from action_machine.runtime.tools_box import ToolsBox
 
 
@@ -57,7 +55,7 @@ class ToolsBoxFactory:
     def create(
         self,
         *,
-        factory_resolver: DependencyFactoryResolver,
+        factory_resolver: Any,
         nest_level: int,
         context: Any,
         action_cls: type,
