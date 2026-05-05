@@ -1,4 +1,4 @@
-# src/action_machine/runtime/navigation.py
+# src/action_machine/system_core/dot_path_navigator.py
 """
 Unified dot-path navigation for nested objects across ActionMachine.
 
@@ -15,7 +15,7 @@ the same rules for missing keys, ``None`` leaves, and attribute vs mapping acces
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-::
+:::
 
     resolve_step(current, segment)
          │
@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from typing import Any
 
-# Unique “missing” marker (never use None — it may be a valid value).
+# Unique missing marker; never use None because it may be a valid value.
 _SENTINEL: object = object()
 
 
@@ -50,7 +50,7 @@ class DotPathNavigator:
     """
 AI-CORE-BEGIN
     ROLE: Single entry point for nested key/attribute walks.
-    CONTRACT: Priority — model-like, ``dict``, ``__getitem__``, ``getattr``.
+    CONTRACT: Priority - model-like, ``dict``, ``__getitem__``, ``getattr``.
     INVARIANTS: Strategies are pure; ``_SENTINEL`` encodes absence.
     AI-CORE-END
 """

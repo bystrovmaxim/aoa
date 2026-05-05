@@ -50,7 +50,7 @@ from action_machine.logging.log_scope import LogScope
 from action_machine.logging.masking import mask_value
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
-from action_machine.runtime.navigation import _SENTINEL, DotPathNavigator
+from action_machine.system_core.dot_path_navigator import _SENTINEL, DotPathNavigator
 
 # ---------------------------------------------------------------------------
 # Regular expressions
