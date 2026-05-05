@@ -131,7 +131,7 @@ class ActionProductMachine(BaseActionMachine):
         self,
         *,
         plugins: list[Plugin] | None = None,
-        _plugin_coordinator: PluginCoordinator | None = None,
+        plugin_coordinator: PluginCoordinator | None = None,
         log_coordinator: LogCoordinator | None = None,
         graph_coordinator: NodeGraphCoordinator | None = None,
         role_checker: RoleChecker | None = None,
@@ -143,7 +143,7 @@ class ActionProductMachine(BaseActionMachine):
         """Keyword-only injectable overrides; build the default graph coordinator eagerly."""
         plugins = plugins or []
         self._log_coordinator = log_coordinator or LogCoordinator()
-        self._plugin_coordinator = _plugin_coordinator or PluginCoordinator(plugins, self._log_coordinator)
+        self._plugin_coordinator = plugin_coordinator or PluginCoordinator(plugins, self._log_coordinator)
         self.graph_coordinator = graph_coordinator or create_node_graph_coordinator()
         self._role_checker = role_checker or RoleChecker()
         self._connection_validator = connection_validator or ConnectionValidator()
@@ -169,6 +169,35 @@ class ActionProductMachine(BaseActionMachine):
     def dependency_factory_for(self, action_cls: type) -> DependencyFactory:
         """Return the dependency factory used by ``ToolsBoxFactory``."""
         return DependencyFactory(DependsIntentResolver.resolve_dependency_infos(action_cls))
+
+    def get_tools_box(
+        self,
+        *,
+        context: Context,
+        action_cls: type,
+        params: BaseParams,
+        resources: dict[type, Any] | None,
+        nested_level: int,
+        rollup: bool,
+    ) -> ToolsBox:
+        """Create a ``ToolsBox`` for one run level."""
+        run_child = partial(
+            self._run_internal,
+            context=context,
+            resources=resources,
+            nested_level=nested_level,
+            rollup=rollup,
+        )
+        return self._tools_box_factory.create(
+            factory_resolver=self,
+            nest_level=nested_level,
+            context=context,
+            action_cls=action_cls,
+            params=params,
+            resources=resources,
+            rollup=rollup,
+            run_child=run_child,
+        )
 
     # ─────────────────────────────────────────────────────────────────────
     # Regular aspects
@@ -480,23 +509,13 @@ class ActionProductMachine(BaseActionMachine):
         self._role_checker.check(context, action_node)
         conns = self._connection_validator.validate(action, connections, action_node)
         plugin_ctx = await self._plugin_coordinator.create_run_context()
-        run_child = partial(
-            self._run_internal,
+        box = self.get_tools_box(
             context=context,
+            action_cls=action_cls,
+            params=params,
             resources=resources,
             nested_level=current_nest,
             rollup=rollup,
-        )
-
-        box = self._tools_box_factory.create(
-            factory_resolver=self,
-            nest_level=current_nest,
-            context=context,
-            action_cls=action.__class__,
-            params=params,
-            resources=resources,
-            rollup=rollup,
-            run_child=run_child,
         )
 
         await self._plugin_coordinator.emit_global_start(
