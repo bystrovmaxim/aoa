@@ -301,62 +301,6 @@ class ActionProductMachine(BaseActionMachine):
     # Aspect pipeline + error path
     # ─────────────────────────────────────────────────────────────────────
 
-    async def _finish_aspect_pipeline_error(
-        self,
-        *,
-        aspect_error: Exception,
-        error_state: BaseState,
-        failed_aspect_name: str | None,
-        action: BaseAction[P, R],
-        params: P,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-        context: Context,
-        action_graph_node: ActionGraphNode[BaseAction[Any, Any]],
-        plugin_ctx: PluginRunContext,
-    ) -> R:
-        """Run ``@on_error`` / unhandled handling with the failed pipeline state."""
-        error_handler_nodes = action_graph_node.get_error_handler_graph_nodes()
-        handled_result = await self._error_handler_executor.handle(
-            error=aspect_error,
-            action=action,
-            params=params,
-            state=error_state,
-            box=box,
-            connections=connections,
-            error_handler_nodes=error_handler_nodes,
-            context=context,
-            plugin_ctx=plugin_ctx,
-            failed_aspect_name=failed_aspect_name,
-        )
-        return cast("R", handled_result)
-
-    async def _rollback_saga_if_any(
-        self,
-        saga_stack: list[SagaFrame],
-        error: Exception,
-        *,
-        action: BaseAction[P, R],
-        params: P,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-        context: Context,
-        plugin_ctx: PluginRunContext,
-    ) -> None:
-        """Unwind saga frames when aborting after successful regular aspects (e.g. summary contract)."""
-        if not saga_stack:
-            return
-        await self._saga_coordinator.execute(
-            saga_stack=saga_stack,
-            error=error,
-            action=action,
-            params=params,
-            box=box,
-            connections=connections,
-            context=context,
-            plugin_ctx=plugin_ctx,
-        )
-
     async def _log_rollback_failure(
         self,
         *,
@@ -453,9 +397,9 @@ class ActionProductMachine(BaseActionMachine):
 
         except Exception as aspect_error:
             try:
-                await self._rollback_saga_if_any(
-                    saga_stack,
-                    aspect_error,
+                await self._saga_coordinator.execute(
+                    saga_stack=saga_stack,
+                    error=aspect_error,
                     action=action,
                     params=params,
                     box=box,
@@ -471,18 +415,20 @@ class ActionProductMachine(BaseActionMachine):
                     context=context,
                 )
 
-            return await self._finish_aspect_pipeline_error(
-                aspect_error=aspect_error,
-                error_state=state if state is not None else BaseState(),
-                failed_aspect_name=failed_aspect_name,
+            error_handler_nodes = action_graph_node.get_error_handler_graph_nodes()
+            handled_result = await self._error_handler_executor.handle(
+                error=aspect_error,
                 action=action,
                 params=params,
+                state=state if state is not None else BaseState(),
                 box=box,
                 connections=connections,
+                error_handler_nodes=error_handler_nodes,
                 context=context,
-                action_graph_node=action_graph_node,
                 plugin_ctx=plugin_ctx,
+                failed_aspect_name=failed_aspect_name,
             )
+            return cast("R", handled_result)
 
     # ─────────────────────────────────────────────────────────────────────
     # Public entry: run
