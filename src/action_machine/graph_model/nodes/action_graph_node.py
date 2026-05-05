@@ -29,6 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar, cast
 
+from action_machine.exceptions import MissingSummaryAspectError
 from action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
 from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from action_machine.model.base_action import BaseAction
@@ -59,7 +60,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
     CONTRACT: Materializes action metadata and every outgoing edge into explicit fields; ``get_all_edges`` returns the composed edge list.
-    FAILURES: :exc:`~action_machine.exceptions.MissingMetaError` propagates from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` or :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type` (via ``DomainGraphEdge``) when ``@meta`` data is unusable. :exc:`~action_machine.exceptions.MissingCheckRolesError` when ``@check_roles`` did not set ``_role_info['spec']``. :meth:`get_summary_aspect_graph_node` raises :exc:`ValueError` when ``summary_aspect`` is empty.
+    FAILURES: :exc:`~action_machine.exceptions.MissingMetaError` propagates from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` or :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type` (via ``DomainGraphEdge``) when ``@meta`` data is unusable. :exc:`~action_machine.exceptions.MissingCheckRolesError` when ``@check_roles`` did not set ``_role_info['spec']``. :meth:`get_summary_aspect_graph_node` raises :exc:`~action_machine.exceptions.MissingSummaryAspectError` when ``summary_aspect`` is empty.
     AI-CORE-END
     """
 
@@ -119,7 +120,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 f"Action interchange {action_name!r} has no summary_aspect edges; "
                 "this helper requires a declared @summary_aspect."
             )
-            raise ValueError(msg)
+            raise MissingSummaryAspectError(msg)
         return cast(SummaryAspectGraphNode, self.summary_aspect[0].target_node)
 
     def get_compensator_graph_nodes(self) -> list[CompensatorGraphNode]:
