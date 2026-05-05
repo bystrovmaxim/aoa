@@ -47,8 +47,7 @@ ARCHITECTURE / DATA FLOW
                 └── return Result
 
 ``DependencyFactory`` for ``ToolsBox`` is resolved via the public
-``dependency_factory_for`` hook passed as ``DependencyFactoryResolver`` into
-``ToolsBoxFactory.create``.
+``dependency_factory_for`` hook passed into ``ToolsBoxFactory.create``.
 
 **Where plugin events are emitted**
 
@@ -132,6 +131,7 @@ class ActionProductMachine(BaseActionMachine):
         self,
         *,
         plugins: list[Plugin] | None = None,
+        _plugin_coordinator: PluginCoordinator | None = None,
         log_coordinator: LogCoordinator | None = None,
         graph_coordinator: NodeGraphCoordinator | None = None,
         role_checker: RoleChecker | None = None,
@@ -143,30 +143,14 @@ class ActionProductMachine(BaseActionMachine):
         """Keyword-only injectable overrides; build the default graph coordinator eagerly."""
         plugins = plugins or []
         self._log_coordinator = log_coordinator or LogCoordinator()
-        self._plugin_coordinator = PluginCoordinator(plugins, self._log_coordinator)
+        self._plugin_coordinator = _plugin_coordinator or PluginCoordinator(plugins, self._log_coordinator)
         self.graph_coordinator = graph_coordinator or create_node_graph_coordinator()
         self._role_checker = role_checker or RoleChecker()
         self._connection_validator = connection_validator or ConnectionValidator()
         self._tools_box_factory = ToolsBoxFactory(self._log_coordinator)
-        self._aspect_executor: AspectExecutor = (
-            AspectExecutor(self._log_coordinator)
-            if aspect_executor is None
-            else aspect_executor
-        )
-        self._error_handler_executor: ErrorHandlerExecutor = (
-            ErrorHandlerExecutor(self._plugin_coordinator)
-            if error_handler_executor is None
-            else error_handler_executor
-        )
-        self._saga_coordinator: SagaCoordinator = (
-            SagaCoordinator(
-                self._aspect_executor,
-                self._error_handler_executor,
-                self._plugin_coordinator,
-            )
-            if saga_coordinator is None
-            else saga_coordinator
-        )
+        self._aspect_executor=aspect_executor or AspectExecutor(self._log_coordinator)
+        self._error_handler_executor = error_handler_executor or ErrorHandlerExecutor(self._plugin_coordinator)
+        self._saga_coordinator=saga_coordinator or SagaCoordinator(self._aspect_executor, self._error_handler_executor, self._plugin_coordinator)
 
     def get_action_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
         """Return the materialized ``Action`` graph node for ``action_cls`` (same id as :class:`ActionGraphNode`)."""
@@ -183,7 +167,7 @@ class ActionProductMachine(BaseActionMachine):
         )
 
     def dependency_factory_for(self, action_cls: type) -> DependencyFactory:
-        """Public resolver for ``ToolsBoxFactory`` (``DependencyFactoryResolver``)."""
+        """Return the dependency factory used by ``ToolsBoxFactory``."""
         return DependencyFactory(DependsIntentResolver.resolve_dependency_infos(action_cls))
 
     # ─────────────────────────────────────────────────────────────────────

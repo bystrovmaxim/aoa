@@ -1,5 +1,5 @@
-# tests/runtime/test_dependency_factory_resolver.py
-"""Tests for ``DependencyFactoryResolver`` wiring and ``ToolsBoxFactory.create``."""
+# tests/runtime/test_dependency_factory_wiring.py
+"""Tests for dependency factory wiring and ``ToolsBoxFactory.create``."""
 
 from unittest.mock import AsyncMock, MagicMock
 
@@ -17,8 +17,8 @@ def test_machine_dependency_factory_for_returns_factory() -> None:
     assert isinstance(factory, DependencyFactory)
 
 
-def test_tools_box_factory_create_uses_resolver() -> None:
-    """ToolsBoxFactory.create pulls DependencyFactory via resolver only."""
+def test_tools_box_factory_create_uses_factory_resolver() -> None:
+    """ToolsBoxFactory.create asks the supplied resolver for a DependencyFactory."""
     log = LogCoordinator(loggers=[])
     factory = ToolsBoxFactory(log)
     mock_dep = DependencyFactory(())
