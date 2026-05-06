@@ -45,6 +45,7 @@ ARCHITECTURE — MARKER MIXINS
     ConnectionIntent       → ``@connection``
     OnErrorIntent          → ``@on_error``
     ContextRequiresIntent  → ``@context_requires``
+    SensitiveIntent        → ``@sensitive`` (property masking; graph via resolver)
 
 Class-level decorators validate the marker immediately; method-level decorators
 are validated when the coordinator runs inspectors on the class.
@@ -84,6 +85,7 @@ from action_machine.intents.depends.depends_eligible import DependsEligible
 from action_machine.intents.depends.depends_intent import DependsIntent
 from action_machine.intents.meta.meta_intent import MetaIntent
 from action_machine.intents.on_error.on_error_intent import OnErrorIntent
+from action_machine.intents.sensitive.sensitive_intent import SensitiveIntent
 from action_machine.system_core.type_introspection import TypeIntrospection
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
@@ -105,6 +107,7 @@ class BaseAction[P: BaseParams, R: BaseResult](
     ConnectionIntent,
     OnErrorIntent,
     ContextRequiresIntent,
+    SensitiveIntent,
 ):
     """
 AI-CORE-BEGIN

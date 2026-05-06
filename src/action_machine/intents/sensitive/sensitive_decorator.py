@@ -32,6 +32,9 @@ ARCHITECTURE / DATA FLOW
 ``get_sensitive_fields`` → ``VariableSubstitutor._get_property_config`` →
 ``mask_value`` → masked string in template output.
 
+``SensitiveIntentResolver.resolve_sensitive_all_fields`` reads the same ``_sensitive_config``
+dicts for interchange graph nodes (e.g. :class:`~action_machine.graph_model.nodes.sensitive_graph_node.SensitiveGraphNode`).
+
 """
 
 from __future__ import annotations

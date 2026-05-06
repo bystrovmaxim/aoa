@@ -13,7 +13,8 @@ Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.graph_mo
 :class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode`,
 :class:`~action_machine.graph_model.nodes.resource_graph_node.ResourceGraphNode`,
 :class:`~action_machine.graph_model.nodes.required_context_graph_node.RequiredContextGraphNode`,
-and :class:`~action_machine.graph_model.nodes.role_graph_node.RoleGraphNode`. Other keys are interchange-only strings without a matching graph-node ``NODE_TYPE`` (for example lifecycle state labels).
+:class:`~action_machine.graph_model.nodes.role_graph_node.RoleGraphNode`,
+and :class:`~action_machine.graph_model.nodes.sensitive_graph_node.SensitiveGraphNode`. Other keys are interchange-only strings without a matching graph-node ``NODE_TYPE`` (for example lifecycle state labels).
 """
 
 from __future__ import annotations
@@ -40,6 +41,7 @@ from action_machine.graph_model.nodes.required_context_graph_node import (
 from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
+from action_machine.graph_model.nodes.sensitive_graph_node import SensitiveGraphNode
 from action_machine.graph_model.nodes.state_graph_node import StateGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 
@@ -138,7 +140,7 @@ GRAPH_NODE_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
     RoleGraphNode.NODE_TYPE: (
         '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />'
     ),
-    "sensitive_field": (
+    SensitiveGraphNode.NODE_TYPE: (
         '<rect width="18" height="11" x="3" y="11" rx="2" ry="2" /> '
         '<path d="M7 11V7a5 5 0 0 1 10 0v4" />'
     ),
