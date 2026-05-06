@@ -19,7 +19,7 @@ from typing import Any
 from action_machine.domain.entity import BaseEntity
 from action_machine.graph_model.nodes.lifecycle_graph_node import LifeCycleGraphNode
 from action_machine.intents.entity.lifecycle_intent_resolver import LifeCycleIntentResolver
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_node import BaseGraphNode
 

@@ -72,7 +72,7 @@ from typing import Any
 from pydantic import BaseModel
 from simpleeval import EvalWithCompoundTypes, NameNotDefined
 
-from action_machine.exceptions import LogTemplateError
+from action_machine.exceptions.log_template_error import LogTemplateError
 from action_machine.logging.masking import mask_value
 
 # Regex for finding {iif(...)} in templates.

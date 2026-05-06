@@ -1,7 +1,7 @@
 # src/maxitor/samples/support/domain.py
 """Маркер bounded context «support» — демо ``@depends`` на другие actions."""
 
-from action_machine.domain.base_domain import BaseDomain
+from action_machine.domain import BaseDomain
 
 
 class SupportDomain(BaseDomain):

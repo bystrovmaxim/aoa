@@ -29,15 +29,12 @@ description comes from ``@meta(description=...)``; aspect description from
 
 from pydantic import Field
 
-from action_machine.auth.none_role import NoneRole
-from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.check_roles.check_roles_decorator import check_roles
-from action_machine.intents.meta.meta_decorator import meta
-from action_machine.model.base_action import BaseAction
-from action_machine.model.base_params import BaseParams
-from action_machine.model.base_result import BaseResult
-from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource import BaseResource
+from action_machine.auth import NoneRole
+from action_machine.intents.aspects import summary_aspect
+from action_machine.intents.check_roles import check_roles
+from action_machine.intents.meta import meta
+from action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from action_machine.resources import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 
 from ..domains import SystemDomain

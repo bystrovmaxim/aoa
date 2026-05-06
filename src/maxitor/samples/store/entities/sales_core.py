@@ -9,14 +9,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from action_machine.domain import (
-    AssociationMany,
-    AssociationOne,
-    BaseEntity,
-    CompositeMany,
-    Inverse,
-    Rel,
-)
+from action_machine.domain import AssociationMany, AssociationOne, BaseEntity, CompositeMany, Inverse, Rel
 from action_machine.intents.entity import entity
 from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.entities.lifecycle import (

@@ -1,5 +1,5 @@
 # src/maxitor/samples/roles/editor.py
-from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
+from action_machine.intents.check_roles import RoleMode, role_mode
 from maxitor.samples.roles.viewer import ViewerRole
 
 

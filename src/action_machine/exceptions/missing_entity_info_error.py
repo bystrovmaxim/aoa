@@ -13,7 +13,7 @@ when graph resolution needs a concrete ``@entity`` scratch value (typically
 
 from __future__ import annotations
 
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 
 
 class MissingEntityInfoError(ValueError):

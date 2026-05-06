@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from typing import Any, ClassVar, cast
 
 from action_machine.intents.aspects.regular_aspect_intent_resolver import RegularAspectIntentResolver
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 

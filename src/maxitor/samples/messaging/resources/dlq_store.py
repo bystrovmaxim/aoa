@@ -1,7 +1,7 @@
 # src/maxitor/samples/messaging/resources/dlq_store.py
 from typing import Any
 
-from action_machine.intents.meta.meta_decorator import meta
+from action_machine.intents.meta import meta
 from action_machine.resources.sql import SqlResource
 from maxitor.samples.messaging.domain import MessagingDomain
 

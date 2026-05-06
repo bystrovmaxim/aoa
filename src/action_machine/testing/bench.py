@@ -157,7 +157,7 @@ from action_machine.runtime.action_product_machine import ActionProductMachine
 from action_machine.runtime.dependency_factory import DependencyFactory
 from action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from action_machine.testing.checker_facet_snapshot import CheckerFacetSnapshot
 from action_machine.testing.comparison import compare_results
 from action_machine.testing.mock_action import MockAction

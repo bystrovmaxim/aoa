@@ -44,7 +44,7 @@ from typing import Any
 
 import asyncpg
 
-from action_machine.exceptions import HandleError
+from action_machine.exceptions.handle_error import HandleError
 from action_machine.resources.sql import SqlResource
 
 

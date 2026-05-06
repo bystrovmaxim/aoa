@@ -99,7 +99,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.exceptions import NamingPrefixError
+from action_machine.exceptions.naming_prefix_error import NamingPrefixError
 from action_machine.plugin.events import BasePluginEvent
 from action_machine.plugin.subscription_info import SubscriptionInfo
 

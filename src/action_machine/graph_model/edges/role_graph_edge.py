@@ -23,7 +23,7 @@ from typing import Any
 
 from action_machine.auth.base_role import BaseRole
 from action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.composition_graph_edge import CompositionGraphEdge
 
 

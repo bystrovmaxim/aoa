@@ -74,7 +74,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from action_machine.exceptions import NamingSuffixError
+from action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from graph.exclude_graph_model import exclude_graph_model
 
 # Suffix required for every class that inherits BaseDomain (directly or indirectly).

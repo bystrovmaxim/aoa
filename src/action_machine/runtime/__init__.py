@@ -10,6 +10,11 @@ This package exposes runtime machine APIs, binding helpers, and execution
 components used to run ActionMachine actions in production using
 ``NodeGraphCoordinator`` metadata inside ``ActionProductMachine`` and adapters.
 
+Import concrete types from their modules (for example
+``from action_machine.runtime.action_product_machine import ActionProductMachine``)
+rather than from this ``__init__`` so the package root stays free of eager imports
+that would create cycles with context / model / intents.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════

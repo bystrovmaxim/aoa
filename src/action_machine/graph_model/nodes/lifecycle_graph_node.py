@@ -27,7 +27,7 @@ from typing import Any, ClassVar, TypeVar, cast
 from action_machine.domain.lifecycle import Lifecycle
 from action_machine.graph_model.edges.lifecycle_state_graph_edge import LifeCycleStateGraphEdge
 from action_machine.graph_model.nodes.state_graph_node import StateGraphNode
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 

@@ -23,9 +23,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from action_machine.exceptions import ResultGraphEdgeResolutionError
+from action_machine.exceptions.result_graph_edge_resolution_error import ResultGraphEdgeResolutionError
 from action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.base_graph_node import BaseGraphNode
 

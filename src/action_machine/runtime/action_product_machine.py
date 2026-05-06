@@ -107,7 +107,7 @@ from action_machine.runtime.saga_coordinator import SagaCoordinator
 from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.runtime.tools_box_factory import ToolsBoxFactory
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.create_node_graph_coordinator import create_node_graph_coordinator
 from graph.node_graph_coordinator import NodeGraphCoordinator
 

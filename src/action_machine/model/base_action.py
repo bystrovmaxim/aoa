@@ -87,7 +87,7 @@ from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 from action_machine.system_core.type_introspection import TypeIntrospection
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.exceptions import NamingSuffixError
+from action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from graph.exclude_graph_model import exclude_graph_model
 
 _REQUIRED_SUFFIX = "Action"
