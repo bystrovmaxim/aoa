@@ -23,10 +23,12 @@ from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.composition_graph_edge import CompositionGraphEdge
 from graph.exceptions import InvalidGraphError
 from graph.node_graph_coordinator import NodeGraphCoordinator
+from maxitor.viz2.interchange_graph_domain_propagation import (
+    g6_edge_propagates_domain_from_host_to_child,
+    propagate_node_domains,
+)
 from maxitor.viz2.interchange_graph_visualizer import (
     G6_CDN_URL,
-    _g6_edge_propagates_domain_from_host_to_child,
-    _propagate_node_domains,
     all_axis_graph_node_inspectors,
     generate_interchange_g6_html,
     interchange_edge_to_visual_dict,
@@ -292,21 +294,21 @@ def test_g6_edge_propagates_domain_containment_only() -> None:
     def g6_edge(edge_data: dict[str, Any]) -> dict[str, Any]:
         return {"source": "a", "target": "b", "data": edge_data}
 
-    assert _g6_edge_propagates_domain_from_host_to_child(
+    assert g6_edge_propagates_domain_from_host_to_child(
         g6_edge({"relationshipName": "Composition", "label": "x"})
     )
-    assert _g6_edge_propagates_domain_from_host_to_child(
+    assert g6_edge_propagates_domain_from_host_to_child(
         g6_edge({"relationshipName": "Aggregation", "label": "domain"})
     )
-    assert not _g6_edge_propagates_domain_from_host_to_child(
+    assert not g6_edge_propagates_domain_from_host_to_child(
         g6_edge({"relationshipName": "Association", "label": "@check_roles"})
     )
-    assert not _g6_edge_propagates_domain_from_host_to_child(
+    assert not g6_edge_propagates_domain_from_host_to_child(
         g6_edge({"relationshipName": "Association", "label": "lifecycle"})
     )
-    assert _g6_edge_propagates_domain_from_host_to_child(g6_edge({"label": "lifecycle"}))
-    assert _g6_edge_propagates_domain_from_host_to_child(g6_edge({"label": "@regular_aspect"}))
-    assert not _g6_edge_propagates_domain_from_host_to_child(g6_edge({"label": "@check_roles"}))
+    assert g6_edge_propagates_domain_from_host_to_child(g6_edge({"label": "lifecycle"}))
+    assert g6_edge_propagates_domain_from_host_to_child(g6_edge({"label": "@regular_aspect"}))
+    assert not g6_edge_propagates_domain_from_host_to_child(g6_edge({"label": "@check_roles"}))
 
 
 def test_propagate_node_domains_transitive_containment_only() -> None:
@@ -330,7 +332,7 @@ def test_propagate_node_domains_transitive_containment_only() -> None:
             "data": {"relationshipName": "Composition", "label": "asp"},
         },
     ]
-    _idmap, _dom_ids, node_domains = _propagate_node_domains(nodes, edges)
+    _idmap, _dom_ids, node_domains = propagate_node_domains(nodes, edges)
     assert "domain.D" in node_domains["action.A"]
     assert "domain.D" in node_domains["aspect.X"]
     assert not node_domains.get("role.R")
