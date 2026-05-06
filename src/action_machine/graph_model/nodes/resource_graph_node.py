@@ -22,7 +22,7 @@ ARCHITECTURE / DATA FLOW
     ``@meta`` → ``_meta_info`` ``description`` / ``domain``
               │
               v
-    ``ResourceGraphNode``  →  frozen ``BaseGraphNode`` + domain ``ASSOCIATION`` edge
+    ``ResourceGraphNode``  →  frozen ``BaseGraphNode`` + domain ``AGGREGATION`` edge
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseResource`` host class.
-    CONTRACT: ``properties["description"]`` from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description`; :attr:`domain` is the ``ASSOCIATION`` edge to :class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode` from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type`.
+    CONTRACT: ``properties["description"]`` from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description`; :attr:`domain` is the ``AGGREGATION`` edge to :class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode` from :meth:`~action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type`.
     FAILURES: :exc:`~action_machine.exceptions.MissingMetaError` from ``resolve_description`` / ``resolve_domain_type`` when ``@meta`` scratch is absent or invalid.
     AI-CORE-END
     """

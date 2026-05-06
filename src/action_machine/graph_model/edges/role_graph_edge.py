@@ -1,14 +1,14 @@
 # src/action_machine/graph_model/edges/role_graph_edge.py
 """
-RoleGraphEdge — COMPOSITION from Action → Role interchange vertex (@check_roles).
+RoleGraphEdge — ASSOCIATION from Action → Role interchange vertex (@check_roles).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Analogue to :class:`~action_machine.graph_model.edges.regular_aspect_graph_edge.RegularAspectGraphEdge`:
-``is_dag=False`` composition keyed by ``@check_roles``, materializing ``RoleGraphNode``
-only after interchange resolution (targets start as stubs by ``target_node_id``).
+Structural sibling to callable attachments (aspects): ``is_dag=False``, keyed by ``@check_roles``,
+:class:`~graph.association_graph_edge.AssociationGraphEdge` semantics (association to declared role classes),
+materializing ``RoleGraphNode`` only after interchange resolution (targets start as stubs by ``target_node_id``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -24,15 +24,15 @@ from typing import Any
 from action_machine.auth.base_role import BaseRole
 from action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
 from action_machine.system_core.type_introspection import TypeIntrospection
-from graph.composition_graph_edge import CompositionGraphEdge
+from graph.association_graph_edge import AssociationGraphEdge
 
 
-class RoleGraphEdge(CompositionGraphEdge):
+class RoleGraphEdge(AssociationGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed composition edge Action host → ``@check_roles`` role class vertex.
+    ROLE: Typed association edge Action host → ``@check_roles`` role class vertex.
     CONTRACT: ``edge_name`` ``@check_roles``; ``target_node_id`` dotted role class path; coordinator wires ``target_node``.
-    INVARIANTS: Frozen via ``CompositionGraphEdge``; ``is_dag`` False.
+    INVARIANTS: Frozen via ``AssociationGraphEdge``; ``is_dag`` False.
     AI-CORE-END
     """
 
@@ -52,7 +52,7 @@ class RoleGraphEdge(CompositionGraphEdge):
     def get_role_edges(
         action_cls: type[Any],
     ) -> list[RoleGraphEdge]:
-        """Return one composition stub per declared ``@check_roles`` concrete role."""
+        """Return one association stub per declared ``@check_roles`` concrete role."""
         spec = CheckRolesIntentResolver.resolve_check_roles(action_cls)
         declared = spec if isinstance(spec, tuple) else (spec,)
         seen: set[str] = set()

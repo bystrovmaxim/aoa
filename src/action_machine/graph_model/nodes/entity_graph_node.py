@@ -12,7 +12,7 @@ entity **class** object: stable ``id`` (dotted path), ``node_type="Entity"``,
 a ``domain`` edge built by :class:`~action_machine.graph_model.edges.domain_graph_edge.DomainGraphEdge`,
 ``entity_relation`` edges from :class:`~action_machine.graph_model.edges.entity_graph_edge.EntityGraphEdge`,
 :class:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge`
-lifecycle associations (:attr:`lifecycles`).
+lifecycle compositions (:attr:`lifecycles`).
 
 State rows belong to each wired :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`;
 the entity row contributes lifecycle vertices only.
@@ -42,7 +42,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`lifecycles` from :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_edges`. :meth:`get_all_edges` lists domain, relations, lifecycle associations only; :meth:`get_companion_nodes` returns direct lifecycle target rows only. Nested state companions are expanded by the coordinator.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`lifecycles` from :meth:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_edges`. :meth:`get_all_edges` lists domain, relations, lifecycle composition edges only; :meth:`get_companion_nodes` returns direct lifecycle target rows only. Nested state companions are expanded by the coordinator.
     AI-CORE-END
     """
 
@@ -68,5 +68,5 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         return [target for edge in self.lifecycles if (target := edge.target_node) is not None]
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return ``domain``, entity relations, and lifecycle associations."""
+        """Return ``domain``, entity relations, and lifecycle compositions."""
         return [self.domain, *self.relations, *self.lifecycles]
