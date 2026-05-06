@@ -27,7 +27,7 @@ class DomainGraphEdge(AggregationGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed aggregation edge ``host → domain``.
-    CONTRACT: ``edge_name`` ``domain``; ``target_node`` is wired by the coordinator when the domain vertex is present in the graph.
+    CONTRACT: ``edge_name`` ``domain``; ``target_node`` is wired by the coordinator when the domain graph node is present in the graph.
     INVARIANTS: Frozen via ``AggregationGraphEdge`` base; ``target_node`` resolves lazily elsewhere (``None`` stub).
     FAILURES:
         :exc:`~action_machine.exceptions.MissingMetaError` from :meth:`from_meta_declared_host` when meta resolution fails;

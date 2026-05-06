@@ -9,7 +9,7 @@ PURPOSE
 ``BaseAction`` is parameterized by ``P`` (a ``BaseParams`` subclass) and ``R``
 (a ``BaseResult`` subclass). Subclasses declare behavior with class- and method-level decorators;
 markers in the MRO enable those decorators. Runtime execution and metadata reads use
-interchange facet payloads assembled when ``NodeGraphCoordinator.build()`` runs the
+interchange graph-node payloads assembled when ``NodeGraphCoordinator.build()`` runs the
 graph-model inspectors—not through helper APIs on this class.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -24,10 +24,10 @@ ARCHITECTURE / DATA FLOW
     Class-level / method-level scratch attrs on the action class
          │
          ▼
-    NodeGraphCoordinator.build()  →  inspectors  →  facet snapshots + graph
+    NodeGraphCoordinator.build()  →  inspectors  →  interchange snapshots + graph edges
          │
          ▼
-    ActionProductMachine.run()  →  get_snapshot(action_cls, facet_key)
+    ActionProductMachine.run()  →  get_snapshot(action_cls, snapshot_key)
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE — MARKER MIXINS

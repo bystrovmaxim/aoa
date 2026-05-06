@@ -45,7 +45,7 @@ USAGE IN TESTS
 These entities are used in unit tests to verify:
 
 - Correct construction via @entity
-- Metadata assembly via ``NodeGraphCoordinator.build()`` and facet snapshots / ``get_snapshot``
+- Metadata assembly via ``NodeGraphCoordinator.build()`` and interchange snapshots / ``get_snapshot``
 - Lifecycle validation (eight integrity rules)
 - Relations (Annotated + Inverse/NoInverse + Rel)
 - build() and make() behavior

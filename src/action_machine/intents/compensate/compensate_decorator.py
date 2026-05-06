@@ -27,7 +27,7 @@ ARCHITECTURE / DATA FLOW
     ``CompensatorGraphEdge`` emission on ``ActionGraphNode``
           |
           v
-    compensator facet snapshot
+    compensator interchange snapshot
           |
           v
     runtime rollback invocation in reverse order

@@ -1,13 +1,13 @@
 # src/action_machine/graph_model/edges/field_graph_edge.py
 """
-FieldGraphEdge — COMPOSITION from Params / Result → Field interchange vertex.
+FieldGraphEdge — COMPOSITION from Params / Result → Field interchange graph node.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Mirror params / result schema field companions: composition with ``edge_name`` ``field``
-from an interchange vertex to a :class:`~action_machine.graph_model.nodes.field_graph_node.FieldGraphNode`.
+from an interchange graph node to a :class:`~action_machine.graph_model.nodes.field_graph_node.FieldGraphNode`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -29,7 +29,7 @@ from graph.composition_graph_edge import CompositionGraphEdge
 class FieldGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed composition edge schema host (params or result) → declared field vertex.
+    ROLE: Typed composition edge schema host (params or result) → declared field graph node.
     CONTRACT: ``edge_name`` literal ``field``; ``is_dag`` False; ``target_node`` wired when emitted.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END

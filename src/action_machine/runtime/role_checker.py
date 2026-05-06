@@ -75,7 +75,7 @@ class RoleChecker:
             rc = target.node_obj
             if not isinstance(rc, type) or not issubclass(rc, BaseRole):
                 raise TypeError(
-                    f"Role vertex on {action_node.node_id!r} has invalid node_obj {rc!r}; "
+                    f"Role graph node on {action_node.node_id!r} has invalid node_obj {rc!r}; "
                     "expected a BaseRole subclass.",
                 )
             parts.append(rc)

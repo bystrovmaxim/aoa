@@ -1,13 +1,14 @@
 # src/action_machine/interchange/__init__.py
 """
-Interchange — documentation anchor for facet graph vertex typing.
+Interchange — documentation anchor for typed graph nodes and edges.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Facet graphs use interchange ``node_type`` strings emitted by coordinators.
-Canonical literals live on frozen graph-node classes (for example
+Interchange graphs use ``node_type`` strings on frozen ``BaseGraphNode`` subclasses
+and typed ``BaseGraphEdge`` rows emitted by coordinators and inspectors.
+Canonical literals live on graph-node classes (for example
 :class:`~action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`
 and :class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode`).
 
@@ -17,6 +18,6 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    inspectors + graph_node classes ──► ``NODE_TYPE`` / facet strings ──► viz / MCP
+    inspectors + graph node / edge classes ──► ``NODE_TYPE`` literals + edges ──► viz / MCP
 
 """

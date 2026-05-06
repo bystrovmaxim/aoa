@@ -1,13 +1,13 @@
 # src/action_machine/graph_model/edges/property_graph_edge.py
 """
-PropertyGraphEdge — COMPOSITION from Params / Result → PropertyField interchange vertex.
+PropertyGraphEdge — COMPOSITION from Params / Result → PropertyField interchange graph node.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Mirror computed / plain-property companions on params or result schemas: composition with
-``edge_name`` ``property`` from an interchange vertex to a
+``edge_name`` ``property`` from an interchange graph node to a
 :class:`~action_machine.graph_model.nodes.property_field_graph_node.PropertyFieldGraphNode`.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -31,7 +31,7 @@ from graph.composition_graph_edge import CompositionGraphEdge
 class PropertyGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed composition edge schema host (params or result) → property-field vertex.
+    ROLE: Typed composition edge schema host (params or result) → property-field graph node.
     CONTRACT: ``edge_name`` literal ``property``; ``is_dag`` False; ``target_node`` wired when emitted.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END

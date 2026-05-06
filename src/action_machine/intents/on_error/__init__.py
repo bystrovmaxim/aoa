@@ -21,7 +21,7 @@ COMPONENTS
   of types and required ``description``. Writes metadata to
   ``method._on_error_meta``. :class:`~action_machine.intents.on_error.on_error_intent_resolver.OnErrorIntentResolver`
   and :func:`~action_machine.intents.on_error.on_error_intent_resolver.hydrate_error_handler_row`
-  read the same shape where tests or facet tooling need typed rows.
+  read the same shape where tests or tooling need typed rows.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

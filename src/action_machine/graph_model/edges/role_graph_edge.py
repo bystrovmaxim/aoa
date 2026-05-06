@@ -1,6 +1,6 @@
 # src/action_machine/graph_model/edges/role_graph_edge.py
 """
-RoleGraphEdge — ASSOCIATION from Action → Role interchange vertex (@check_roles).
+RoleGraphEdge — ASSOCIATION from Action → Role interchange graph node (@check_roles).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -30,7 +30,7 @@ from graph.association_graph_edge import AssociationGraphEdge
 class RoleGraphEdge(AssociationGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed association edge Action host → ``@check_roles`` role class vertex.
+    ROLE: Typed association edge Action host → ``@check_roles`` role class graph node.
     CONTRACT: ``edge_name`` ``@check_roles``; ``target_node_id`` dotted role class path; coordinator wires ``target_node``.
     INVARIANTS: Frozen via ``AssociationGraphEdge``; ``is_dag`` False.
     AI-CORE-END

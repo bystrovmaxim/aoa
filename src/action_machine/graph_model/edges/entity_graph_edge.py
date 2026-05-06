@@ -11,7 +11,7 @@ Centralizes relation edge construction: ``edge_name`` ``entity_relation`` (slot 
 rich ``properties`` from :class:`~action_machine.intents.entity.entity_relation_intent_resolver.EntityRelationIntentResolver`,
 ``target_node`` stub until hydrated.
 
-Skips rows where ``omit_graph_edge`` is set (parity with legacy facet emission).
+Skips rows where ``omit_graph_edge`` is set (parity with legacy interchange emission).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

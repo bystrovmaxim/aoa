@@ -27,7 +27,7 @@ from maxitor.samples.billing.resources.tax_quote import TaxQuoteService, TaxQuot
 from maxitor.samples.roles import EditorRole
 
 
-@meta(description="Settle invoice with full graph facets (billing demo)", domain=BillingDomain)
+@meta(description="Settle invoice with full interchange graph (billing demo)", domain=BillingDomain)
 @check_roles(EditorRole)
 @depends(
     PaymentGatewayResource,

@@ -10,15 +10,15 @@ from action_machine.intents.on_error.on_error_decorator import on_error
 from action_machine.intents.on_error.on_error_intent import OnErrorIntent
 from action_machine.intents.on_error.on_error_intent_resolver import hydrate_error_handler_row
 from action_machine.system_core import TypeIntrospection
-from action_machine.testing.checker_facet_snapshot import CheckerFacetSnapshot
+from action_machine.testing.checker_interchange_snapshot import CheckerInterchangeSnapshot
 
 
-def _checker_from_meta(row: tuple[tuple[str, Any], ...]) -> CheckerFacetSnapshot.Checker:
-    """Test-local rebuild of checker row meta (parity with coordinator facet rows)."""
+def _checker_from_meta(row: tuple[tuple[str, Any], ...]) -> CheckerInterchangeSnapshot.Checker:
+    """Test-local rebuild of checker row meta (parity with coordinator interchange rows)."""
     d = dict(row)
     extra = d["extra_params"]
     ep = extra if isinstance(extra, dict) else dict(extra)
-    return CheckerFacetSnapshot.Checker(
+    return CheckerInterchangeSnapshot.Checker(
         method_name=d["method_name"],
         checker_class=d["checker_class"],
         field_name=d["field_name"],
@@ -33,7 +33,7 @@ class _RoundtripOnErrorAction(OnErrorIntent):
         return {}
 
 
-def test_on_error_facet_row_hydrates_from_decorator_scratch() -> None:
+def test_on_error_interchange_row_hydrates_from_decorator_scratch() -> None:
     meth = _RoundtripOnErrorAction.value_on_error
     func = TypeIntrospection.unwrap_declaring_class_member(meth)
     meta = getattr(func, "_on_error_meta", {})

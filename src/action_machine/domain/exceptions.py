@@ -145,7 +145,7 @@ class LifecycleValidationError(Exception):
     """
     A `Lifecycle` template failed structural validation.
 
-    Raised while the coordinator graph is built (entity facet inspection), when
+    Raised while the coordinator graph is built (entity graph-node inspection), when
     a lifecycle field’s `_template` violates the eight integrity rules:
 
     1. Every state is tagged with `.initial()`, `.intermediate()`, or `.final()`.

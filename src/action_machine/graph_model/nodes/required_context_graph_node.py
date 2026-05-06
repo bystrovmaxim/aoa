@@ -44,7 +44,7 @@ class RequiredContextGraphPayload:
 class RequiredContextGraphNode(BaseGraphNode[RequiredContextGraphPayload]):
     """
     AI-CORE-BEGIN
-    ROLE: Interchange vertex for one ``@context_requires`` key on an aspect callable.
+    ROLE: Interchange graph node for one ``@context_requires`` key on an aspect callable.
     CONTRACT: ``node_id`` ends with ``:reqctx:{context_key}``; NODE_TYPE ``RequiredContext``; ``properties`` expose ``key``.
     INVARIANTS: One node per declared key after resolver normalization (sorted list from :class:`~action_machine.intents.context_requires.context_requires_resolver.ContextRequiresResolver`).
     AI-CORE-END

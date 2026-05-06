@@ -3,7 +3,7 @@
 OnErrorIntentResolver — resolves on-error handler callables from action classes.
 
 ``hydrate_error_handler_row`` rebuilds typed handler rows from immutable
-``tuple[tuple[str, Any], ...]`` facet encodings emitted alongside decorators.
+``tuple[tuple[str, Any], ...]`` interchange tuple encodings emitted alongside decorators.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from action_machine.system_core.type_introspection import TypeIntrospection
 
 @dataclass(frozen=True)
 class OnErrorHandlerFacetHydration:
-    """One handler decoded from facet ``node_meta`` (paired with ``@on_error`` on the owning class)."""
+    """One handler decoded from ``node_meta`` rows (paired with ``@on_error`` on the owning class)."""
 
     method_name: str
     exception_types: tuple[type[Exception], ...]
@@ -69,7 +69,7 @@ class OnErrorIntentResolver:
 
 
 def hydrate_error_handler_row(row: tuple[tuple[str, Any], ...]) -> OnErrorHandlerFacetHydration:
-    """Rebuild :class:`OnErrorHandlerFacetHydration` from one facet ``node_meta`` row tuple."""
+    """Rebuild :class:`OnErrorHandlerFacetHydration` from one interchange ``node_meta`` row tuple."""
 
     d = dict(row)
     ck = d["context_keys"]

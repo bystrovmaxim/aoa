@@ -34,7 +34,7 @@ TApplication = TypeVar("TApplication", bound=Application)
 class ApplicationGraphEdge(AggregationGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed aggregation edge ``host → application`` marker vertex.
+    ROLE: Typed aggregation edge ``host → application`` marker graph node.
     CONTRACT: ``edge_name`` ``application``; ``target_node`` is for future coordinator wiring (``None`` stub).
     INVARIANTS: Frozen via ``AggregationGraphEdge`` base.
     AI-CORE-END

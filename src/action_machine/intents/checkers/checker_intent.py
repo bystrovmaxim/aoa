@@ -40,14 +40,14 @@ ARCHITECTURE / DATA FLOW
     method._checker_meta entries
             |
             v
-    graph / facet rows from ``_checker_meta``
+    graph / interchange rows from ``_checker_meta``
             |
             v
     require_checker_intent_marker(...)
     validate_checkers_belong_to_aspects(...)
             |
             v
-    checker facet snapshot -> runtime checker execution
+    checker interchange snapshot -> runtime checker execution
 """
 
 from __future__ import annotations

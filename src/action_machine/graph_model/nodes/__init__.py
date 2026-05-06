@@ -1,6 +1,6 @@
 # src/action_machine/graph_model/nodes/__init__.py
 """
-Interchange graph vertex types — frozen ``BaseGraphNode`` rows along model, domain,
+Interchange graph node kinds — frozen ``BaseGraphNode`` rows along model, domain,
 and resources axes.
 
 Import concrete symbols from submodules, for example:

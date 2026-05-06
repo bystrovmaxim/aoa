@@ -1,6 +1,6 @@
 # src/action_machine/graph_model/edges/summary_aspect_graph_edge.py
 """
-SummaryAspectGraphEdge — COMPOSITION from Action → SummaryAspect interchange vertex.
+SummaryAspectGraphEdge — COMPOSITION from Action → SummaryAspect interchange graph node.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -28,7 +28,7 @@ from graph.composition_graph_edge import CompositionGraphEdge
 class SummaryAspectGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed composition edge host Action → summary aspect vertex.
+    ROLE: Typed composition edge host Action → summary aspect graph node.
     CONTRACT: ``edge_name`` equals ``summary_node.label``; ``target_node`` is the ``SummaryAspectGraphNode`` instance.
     INVARIANTS: Frozen via ``CompositionGraphEdge``; ``is_dag`` False.
     AI-CORE-END

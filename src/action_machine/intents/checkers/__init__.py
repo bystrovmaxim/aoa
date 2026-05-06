@@ -27,7 +27,7 @@ ARCHITECTURE / DATA FLOW
 
           │ decorator writes _checker_meta on method
           ▼
-    ``_checker_meta`` on methods → graph ``Checker`` rows / typed facet helpers
+    ``_checker_meta`` on methods → graph ``Checker`` rows / typed helpers
           │
           ▼
     ActionProductMachine._apply_checkers()

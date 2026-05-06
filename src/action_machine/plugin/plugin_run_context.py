@@ -53,7 +53,7 @@ plugins. Filters are checked from cheapest to most expensive with early exit.
              │  NO -> skip
              │
              ▼
-    Step 6: domain filter via optional ``coordinator.get_snapshot(...)`` facet data
+    Step 6: domain filter via optional ``coordinator.get_snapshot(...)`` action metadata
              │  NO -> skip
              │
              ▼

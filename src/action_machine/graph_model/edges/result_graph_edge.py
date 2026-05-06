@@ -1,13 +1,13 @@
 # src/action_machine/graph_model/edges/result_graph_edge.py
 """
-ResultGraphEdge — AGGREGATION from Action host → Result interchange vertex.
+ResultGraphEdge — AGGREGATION from Action host → Result interchange graph node.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Centralize ``edge_name=\"result\"`` and aggregation semantics for edges whose target
-is the declared result schema vertex. Resolves ``result`` type via
+is the declared result schema graph node. Resolves ``result`` type via
 :meth:`~action_machine.intents.action_schema.action_schema_intent_resolver.ActionSchemaIntentResolver.resolve_result_type`
 on ``action_cls``. Raises :exc:`~action_machine.exceptions.ResultGraphEdgeResolutionError`
 when the result type cannot be resolved.
@@ -33,7 +33,7 @@ from graph.base_graph_node import BaseGraphNode
 class ResultGraphEdge(AggregationGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed aggregation edge host Action → result schema vertex.
+    ROLE: Typed aggregation edge host Action → result schema graph node.
     CONTRACT: ``edge_name`` ``result``, ``is_dag`` False; ``target_node`` may be wired by the interchange coordinator.
     INVARIANTS: Frozen via ``AggregationGraphEdge``; ``target_node`` optional stub until hydrated.
     FAILURES: :exc:`~action_machine.exceptions.ResultGraphEdgeResolutionError` when ``resolve_result_type`` raises :exc:`ValueError` (missing or invalid ``BaseResult`` binding).

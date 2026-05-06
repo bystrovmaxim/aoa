@@ -6,7 +6,7 @@ RegularAspectGraphNode — interchange node for a ``@regular_aspect`` method on 
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-One frozen vertex per ``@regular_aspect`` method on a ``BaseAction`` subclass:
+One frozen graph node per ``@regular_aspect`` method on a ``BaseAction`` subclass:
 ``node_id`` is ``<action dotted qualname>:<method name>``; ``label`` is the method name;
 ``properties['description']`` comes from
 :meth:`~action_machine.intents.aspects.regular_aspect_intent_resolver.RegularAspectIntentResolver.resolve_description`
@@ -36,7 +36,7 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a regular aspect callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``RegularAspect``; ``properties`` include ``description`` from :meth:`~action_machine.intents.aspects.regular_aspect_intent_resolver.RegularAspectIntentResolver.resolve_description`; :attr:`checkers` (:class:`~action_machine.graph_model.edges.checker_graph_edge.CheckerGraphEdge` list) built via :meth:`~action_machine.graph_model.edges.checker_graph_edge.CheckerGraphEdge.get_checker_edges`; :attr:`required_context` via :meth:`~action_machine.graph_model.edges.required_context_graph_edge.RequiredContextGraphEdge.get_required_context_edges`; companion ``CheckerGraphNode`` / ``RequiredContextGraphNode`` rows from ``_checker_meta`` and ``@context_requires``. :meth:`get_required_context_keys` aggregates ``properties['key']``.
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` is ``RegularAspect``; ``properties`` include ``description`` from :meth:`~action_machine.intents.aspects.regular_aspect_intent_resolver.RegularAspectIntentResolver.resolve_description`; :attr:`checkers` (:class:`~action_machine.graph_model.edges.checker_graph_edge.CheckerGraphEdge` list) built via :meth:`~action_machine.graph_model.edges.checker_graph_edge.CheckerGraphEdge.get_checker_edges`; :attr:`required_context` via :meth:`~action_machine.graph_model.edges.required_context_graph_edge.RequiredContextGraphEdge.get_required_context_edges`; companion ``CheckerGraphNode`` / ``RequiredContextGraphNode`` rows from ``_checker_meta`` and ``@context_requires``. :meth:`get_required_context_keys` aggregates ``properties['key']``.
     AI-CORE-END
     """
 

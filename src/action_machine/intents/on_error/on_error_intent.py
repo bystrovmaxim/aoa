@@ -65,7 +65,7 @@ ARCHITECTURE
     #   }
     #
     # ``OnErrorIntentResolver`` + :func:`hydrate_error_handler_row` rebuild typed rows
-    # from facet ``node_meta`` where needed.
+    # from interchange ``node_meta`` where needed.
     # ActionProductMachine on aspect failure:
     #   1. Finds first matching handler by isinstance(error, exc_types).
     #   2. Calls handler(action, params, state, box, connections, error).

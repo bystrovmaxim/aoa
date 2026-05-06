@@ -30,7 +30,7 @@ class CompensatorGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``@compensate`` callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``Compensator``; ``properties`` include ``description`` and ``target_aspect_name`` when resolver methods return them; ``edges`` empty.
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` is ``Compensator``; ``properties`` include ``description`` and ``target_aspect_name`` when resolver methods return them; ``edges`` empty.
     AI-CORE-END
     """
 

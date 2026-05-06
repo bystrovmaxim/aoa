@@ -27,7 +27,7 @@ from maxitor.samples.messaging.resources.webhook_fanout import WebhookFanoutStub
 from maxitor.samples.roles import EditorRole
 
 
-@meta(description="Publish through outbox with full graph facets (messaging demo)", domain=MessagingDomain)
+@meta(description="Publish through outbox with full interchange graph (messaging demo)", domain=MessagingDomain)
 @check_roles(EditorRole)
 @depends(
     NotificationGatewayResource,

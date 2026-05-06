@@ -22,8 +22,8 @@ class _CoordOk:
     def get(self, cls):
         return object()
 
-    def get_snapshot(self, cls, facet_key: str):
-        if facet_key != "meta":
+    def get_snapshot(self, cls, snapshot_key: str):
+        if snapshot_key != "meta":
             return None
 
         class _Snap:
@@ -36,7 +36,7 @@ class _CoordFail:
     def get(self, cls):
         raise RuntimeError("boom")
 
-    def get_snapshot(self, cls, facet_key: str):
+    def get_snapshot(self, cls, snapshot_key: str):
         raise RuntimeError("boom")
 
 

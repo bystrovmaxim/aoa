@@ -1,6 +1,6 @@
-# src/action_machine/testing/checker_facet_snapshot.py
+# src/action_machine/testing/checker_interchange_snapshot.py
 """
-CheckerFacetSnapshot — typed checker facet rows for tooling and tests.
+CheckerInterchangeSnapshot — typed checker interchange rows for tooling and tests.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -18,14 +18,14 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class CheckerFacetSnapshot:
+class CheckerInterchangeSnapshot:
     """
-AI-CORE-BEGIN
-    ROLE: Typed checker facet snapshot for one action class metadata.
-    CONTRACT: Frozen ``checkers`` rows mirror coordinator facet storage shape.
+    AI-CORE-BEGIN
+    ROLE: Typed checker snapshot for one action class metadata.
+    CONTRACT: Frozen ``checkers`` rows mirror coordinator storage shape.
     INVARIANTS: ``checkers`` are supplied by the builder; not validated here.
-AI-CORE-END
-"""
+    AI-CORE-END
+    """
 
     @dataclass(frozen=True)
     class Checker:

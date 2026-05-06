@@ -48,7 +48,7 @@ TApplication = TypeVar("TApplication", bound=Application)
 class ApplicationGraphNode(BaseGraphNode[type[TApplication]]):
     """
     AI-CORE-BEGIN
-    ROLE: Interchange vertex for the application marker type.
+    ROLE: Interchange graph node for the application marker type.
     CONTRACT: Built from ``type[TApplication]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; ``properties`` carry ``name`` / ``description`` class attributes.
     AI-CORE-END
     """

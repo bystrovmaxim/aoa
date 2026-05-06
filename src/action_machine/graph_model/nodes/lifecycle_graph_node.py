@@ -1,6 +1,6 @@
 # src/action_machine/graph_model/nodes/lifecycle_graph_node.py
 """
-LifeCycleGraphNode — interchange vertex for one ``Lifecycle``-typed field on a host class.
+LifeCycleGraphNode — interchange graph node for one ``Lifecycle``-typed field on a host class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -47,7 +47,7 @@ class LifeCycleGraphPayload:
 class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
     """
     AI-CORE-BEGIN
-    ROLE: Interchange vertex for one lifecycle-declared slot on ``host_cls``; **child interchange graph** is carried by companions of type :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode`.
+    ROLE: Interchange graph node for one lifecycle-declared slot on ``host_cls``; **child interchange graph** is carried by companions of type :class:`~action_machine.graph_model.nodes.state_graph_node.StateGraphNode`.
     CONTRACT: ``node_id`` is ``full_qualname(host_cls) + ':lifecycle:' + field_name.strip()``; ``label`` trimmed field key; ``properties['field_name']`` mirrors the trimmed field key; ``lifecycle_class`` supplied by caller; ``node_obj`` is :class:`LifeCycleGraphPayload`. Canonical state rows live in :attr:`states`; :meth:`get_companion_nodes` returns :attr:`states` typed as base interchange companions. Each state ``node_id`` is ``<this.node_id>:<state_key>`` (same root as :attr:`~action_machine.graph_model.nodes.state_graph_node.StateGraphPayload.lifecycle_graph_node_id` on each companion's ``node_obj``).
     EDGES: :meth:`get_all_edges` returns one ``lifecycle_contains_state`` edge for every row in :attr:`states` plus every ``lifecycle_transition`` edge exposed by those state rows.
     INVARIANTS: Frozen interchange row; :attr:`states` list is filled once via :meth:`~action_machine.graph_model.edges.lifecycle_state_graph_edge.LifeCycleStateGraphEdge.get_state_edges` (**do not mutate** ``states`` nor its elements externally).

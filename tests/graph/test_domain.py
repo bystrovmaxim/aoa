@@ -21,7 +21,7 @@ TERMINOLOGY
 - **BaseDomain** — abstract marker class; subclasses supply `name` and
   `description` as class attributes.
 - **Coordinator** — metadata `build()` walks Actions and entities; domain types
-  appear as graph nodes / facet metadata, not as runtime instances in these
+  appear as graph nodes / interchange metadata, not as runtime instances in these
   tests.
 
 ═══════════════════════════════════════════════════════════════════════════════

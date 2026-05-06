@@ -30,7 +30,7 @@ class ErrorHandlerGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for an ``@on_error`` callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``error_handler``; ``properties`` include ``description`` and ``exception_types`` when resolver methods return them; ``edges`` empty.
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` is ``error_handler``; ``properties`` include ``description`` and ``exception_types`` when resolver methods return them; ``edges`` empty.
     AI-CORE-END
     """
 

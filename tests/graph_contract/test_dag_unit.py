@@ -43,7 +43,7 @@ def _dag_subgraph_is_acyclic(
     ids = {str(v["id"]) for v in vertices}
     for s, t in pairs:
         if s not in ids or t not in ids:
-            msg = f"DAG edge references unknown vertex: {(s, t)!r}"
+            msg = f"DAG edge references unknown graph node: {(s, t)!r}"
             raise ValueError(msg)
     g = rx.PyDiGraph()
     idx = {vid: g.add_node(vid) for vid in sorted(ids)}

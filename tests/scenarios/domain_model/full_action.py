@@ -107,7 +107,7 @@ from .test_db_manager import OrdersDbManager
     factory=default_notification_service_resource,
     description="Notification service",
 )
-@depends(OrdersDbManager, description="DB resource (class — same vertex as @connection)")
+@depends(OrdersDbManager, description="DB resource (class — same graph node as @connection)")
 @connection(OrdersDbManager, key="db", description="Primary database")
 class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
     """

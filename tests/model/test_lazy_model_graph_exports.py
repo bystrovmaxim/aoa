@@ -40,8 +40,8 @@ def test_graph_model_inspector_leaf_imports_resolve() -> None:
     assert ParamsGraphNodeInspector.__name__ == "ParamsGraphNodeInspector"
 
 
-def test_action_graph_node_inspector_builds_vertex_for_concrete_action() -> None:
+def test_action_graph_node_inspector_builds_graph_node_for_concrete_action() -> None:
     inspector = ActionGraphNodeInspector()
-    vertex = inspector._get_node(ChildAction)  # pylint: disable=protected-access
-    assert vertex is not None
-    assert vertex.node_obj is ChildAction
+    graph_node = inspector._get_node(ChildAction)  # pylint: disable=protected-access
+    assert graph_node is not None
+    assert graph_node.node_obj is ChildAction

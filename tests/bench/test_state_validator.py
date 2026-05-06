@@ -42,7 +42,7 @@ from action_machine.testing.bench import (
     _aspect_tuple_from_coordinator,
     _checker_rows_from_action_class,
 )
-from action_machine.testing.checker_facet_snapshot import CheckerFacetSnapshot
+from action_machine.testing.checker_interchange_snapshot import CheckerInterchangeSnapshot
 from action_machine.testing.state_validator import (
     StateValidationError,
     validate_state_for_aspect,
@@ -69,7 +69,7 @@ def _coord_aspects(c: NodeGraphCoordinator, cls: type):
 
 def _coord_checkers_for_aspect(_c: NodeGraphCoordinator, cls: type):
     chk = _checker_rows_from_action_class(cls)
-    snap = CheckerFacetSnapshot(class_ref=cls, checkers=chk) if chk else None
+    snap = CheckerInterchangeSnapshot(class_ref=cls, checkers=chk) if chk else None
     rows = getattr(snap, "checkers", ()) if snap is not None else ()
     return lambda n: tuple(x for x in rows if x.method_name == n)
 
