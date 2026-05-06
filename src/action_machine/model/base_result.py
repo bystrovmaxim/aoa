@@ -54,12 +54,6 @@ from graph.exclude_graph_model import exclude_graph_model
 
 @exclude_graph_model
 class BaseResult(BaseSchema):
-    """
-    Frozen base class for final action result payloads.
-
-    Subclasses define concrete output fields with ``Field(..., description=...)``
-    and are covered by described-field validation
-    (:mod:`~action_machine.model.described_schema_validation`).
-    """
+    """Frozen base class for final action result payloads."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
