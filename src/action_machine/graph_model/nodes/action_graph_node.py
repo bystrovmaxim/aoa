@@ -29,11 +29,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar, cast
 
-from action_machine.exceptions import MissingSummaryAspectError
+from action_machine.exceptions.missing_summary_aspect_error import MissingSummaryAspectError
 from action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
 from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from action_machine.model.base_action import BaseAction
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 

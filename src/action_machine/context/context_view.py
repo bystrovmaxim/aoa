@@ -15,7 +15,7 @@ delegates to ``context.resolve(key)`` when allowed; any other key raises
 
 from typing import Any
 
-from action_machine.exceptions import ContextAccessError
+from action_machine.exceptions.context_access_error import ContextAccessError
 
 
 class ContextView:

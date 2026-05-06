@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from action_machine.intents.on_error.on_error_intent_resolver import OnErrorIntentResolver
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 
 

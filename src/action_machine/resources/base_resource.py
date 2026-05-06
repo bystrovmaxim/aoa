@@ -62,7 +62,7 @@ ARCHITECTURE / DATA FLOW
 
 from abc import ABC, abstractmethod
 
-from action_machine.exceptions import RollupNotSupportedError
+from action_machine.exceptions.rollup_not_supported_error import RollupNotSupportedError
 from action_machine.intents.depends.depends_eligible import DependsEligible
 from action_machine.intents.meta.meta_intent import MetaIntent
 from graph.exclude_graph_model import exclude_graph_model

@@ -1,10 +1,8 @@
 # src/maxitor/samples/messaging/resources/smtp_transport.py
 """Транспорт SMTP (stub) для ``@depends`` и ресурсный менеджер для ``connections``."""
 
-from action_machine.intents.meta.meta_decorator import meta
-from action_machine.resources.external_service.external_service_resource import (
-    ExternalServiceResource,
-)
+from action_machine.intents.meta import meta
+from action_machine.resources.external_service import ExternalServiceResource
 from maxitor.samples.messaging.domain import MessagingDomain
 
 

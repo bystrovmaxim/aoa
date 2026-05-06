@@ -29,7 +29,7 @@ from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_graph_node import BaseGraphNode
 from graph.composition_graph_edge import CompositionGraphEdge
 

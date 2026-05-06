@@ -36,7 +36,8 @@ ARCHITECTURE / DATA FLOW
 
 from typing import Any
 
-from action_machine.exceptions import HandleError, TransactionProhibitedError
+from action_machine.exceptions.handle_error import HandleError
+from action_machine.exceptions.transaction_prohibited_error import TransactionProhibitedError
 from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.sql.protocol_sql_resource import ProtocolSqlResource
 from graph.exclude_graph_model import exclude_graph_model

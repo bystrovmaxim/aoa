@@ -7,29 +7,22 @@ from typing import Any
 
 from pydantic import Field
 
-from action_machine.context.ctx_constants import Ctx
-from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
-from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.check_roles.check_roles_decorator import check_roles
-from action_machine.intents.checkers.result_float_decorator import result_float
-from action_machine.intents.checkers.result_string_decorator import result_string
-from action_machine.intents.compensate.compensate_decorator import compensate
+from action_machine.context import Ctx
+from action_machine.intents.aspects import regular_aspect, summary_aspect
+from action_machine.intents.check_roles import check_roles
+from action_machine.intents.checkers import result_float, result_string
+from action_machine.intents.compensate import compensate
 from action_machine.intents.connection import connection  # pylint: disable=no-name-in-module
-from action_machine.intents.context_requires.context_requires_decorator import context_requires
+from action_machine.intents.context_requires import context_requires
 from action_machine.intents.depends import depends
-from action_machine.intents.meta.meta_decorator import meta
-from action_machine.intents.on_error.on_error_decorator import on_error
-from action_machine.intents.sensitive import sensitive
-from action_machine.model.base_action import BaseAction
-from action_machine.model.base_params import BaseParams
-from action_machine.model.base_result import BaseResult
+from action_machine.intents.meta import meta
+from action_machine.intents.on_error import on_error
+from action_machine.logging import sensitive
+from action_machine.model import BaseAction, BaseParams, BaseResult
 from maxitor.samples.catalog.domain import CatalogDomain
 from maxitor.samples.catalog.resources import CatalogObjectStore, CatalogSearchSidecar
 from maxitor.samples.catalog.resources.index_sync import IndexSyncClient, IndexSyncClientResource
-from maxitor.samples.catalog.resources.pricing_feed import (
-    PricingFeedClient,
-    PricingFeedClientResource,
-)
+from maxitor.samples.catalog.resources.pricing_feed import PricingFeedClient, PricingFeedClientResource
 from maxitor.samples.roles import EditorRole
 
 

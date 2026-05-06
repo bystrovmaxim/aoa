@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import Any
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.exceptions import MissingMetaError
+from action_machine.exceptions.missing_meta_error import MissingMetaError
 
 
 class MetaIntentResolver:

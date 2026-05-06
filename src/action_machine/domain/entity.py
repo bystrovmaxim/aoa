@@ -99,7 +99,7 @@ from typing import Any, ClassVar, Self
 from pydantic import ConfigDict
 
 from action_machine.domain.exceptions import FieldNotLoadedError
-from action_machine.exceptions import NamingSuffixError
+from action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from action_machine.intents.entity.entity_intent import EntityIntent
 from action_machine.model.base_schema import BaseSchema
 from graph.exclude_graph_model import exclude_graph_model

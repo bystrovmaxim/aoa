@@ -129,13 +129,14 @@ from action_machine.adapters.base_route_record import (
     ensure_protocol_response,
 )
 from action_machine.context.context import Context
-from action_machine.exceptions import AuthorizationError, ValidationFieldError
+from action_machine.exceptions.authorization_error import AuthorizationError
+from action_machine.exceptions.validation_field_error import ValidationFieldError
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from action_machine.integrations.fastapi.route_record import FastApiRouteRecord
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from graph.node_graph_coordinator import NodeGraphCoordinator

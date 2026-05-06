@@ -41,7 +41,8 @@ import time
 from typing import Any, cast
 
 from action_machine.context.context_view import ContextView
-from action_machine.exceptions import MissingSummaryAspectError, ValidationFieldError
+from action_machine.exceptions.missing_summary_aspect_error import MissingSummaryAspectError
+from action_machine.exceptions.validation_field_error import ValidationFieldError
 from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
 from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode

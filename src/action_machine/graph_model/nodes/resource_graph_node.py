@@ -33,7 +33,7 @@ from typing import ClassVar, TypeVar
 from action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
 from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from action_machine.resources.base_resource import BaseResource
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 

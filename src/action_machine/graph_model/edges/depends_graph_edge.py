@@ -25,7 +25,7 @@ from typing import Any
 
 from action_machine.intents.depends.depends_intent_resolver import DependsIntentResolver
 from action_machine.runtime.dependency_info import DependencyInfo
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_node import BaseGraphNode
 

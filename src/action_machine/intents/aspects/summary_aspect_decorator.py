@@ -44,7 +44,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.exceptions import NamingSuffixError
+from action_machine.exceptions.naming_suffix_error import NamingSuffixError
 
 # Parameter count without @context_requires.
 _BASE_PARAM_COUNT = 5

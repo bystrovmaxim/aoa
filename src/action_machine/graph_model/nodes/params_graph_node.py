@@ -29,7 +29,7 @@ from typing import Any, ClassVar, TypeVar
 from action_machine.graph_model.edges.field_graph_edge import FieldGraphEdge
 from action_machine.graph_model.edges.property_graph_edge import PropertyGraphEdge
 from action_machine.model.base_params import BaseParams
-from action_machine.system_core import TypeIntrospection
+from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 

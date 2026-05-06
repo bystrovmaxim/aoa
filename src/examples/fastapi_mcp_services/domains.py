@@ -34,7 +34,7 @@ ARCHITECTURE / DATA FLOW
 
 """
 
-from action_machine.domain.base_domain import BaseDomain
+from action_machine.domain import BaseDomain
 
 
 class OrdersDomain(BaseDomain):

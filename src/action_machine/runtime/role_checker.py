@@ -41,7 +41,7 @@ from action_machine.auth.any_role import AnyRole
 from action_machine.auth.base_role import BaseRole
 from action_machine.auth.none_role import NoneRole
 from action_machine.context.context import Context
-from action_machine.exceptions import AuthorizationError
+from action_machine.exceptions.authorization_error import AuthorizationError
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
 from action_machine.intents.role_mode.role_mode_decorator import RoleMode
