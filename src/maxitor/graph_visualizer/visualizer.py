@@ -57,6 +57,7 @@ from action_machine.graph_model.nodes.required_context_graph_node import (
 from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
+from action_machine.graph_model.nodes.state_graph_node import StateGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -107,9 +108,9 @@ NODE_TYPE_FILL_COLORS: dict[str, str] = {
     ErrorHandlerGraphNode.NODE_TYPE: "#FCD34D",
     EntityGraphNode.NODE_TYPE: "#1B9E77",
     LifeCycleGraphNode.NODE_TYPE: "#00798C",
-    "lifecycle_state_initial": "#9575CD",
-    "lifecycle_state_intermediate": "#6A51A3",
-    "lifecycle_state_final": "#452E7A",
+    StateGraphNode.NODE_TYPE_STATE_INITIAL: "#9575CD",
+    StateGraphNode.NODE_TYPE_STATE_INTERMEDIATE: "#6A51A3",
+    StateGraphNode.NODE_TYPE_STATE_FINAL: "#452E7A",
     RoleGraphNode.NODE_TYPE: "#66A61E",
     "sensitive_field": "#FB9A99",
     ParamsGraphNode.NODE_TYPE: "#CAB2D6",
@@ -117,6 +118,17 @@ NODE_TYPE_FILL_COLORS: dict[str, str] = {
     FieldGraphNode.NODE_TYPE: "#6B5B95",
     PropertyFieldGraphNode.NODE_TYPE: "#43A047",
 }
+
+# Deprecated ``node_type`` strings (older payloads / exports); canonical keys are ``StateGraphNode.NODE_TYPE_STATE_*``.
+NODE_TYPE_FILL_COLORS["lifecycle_state_initial"] = NODE_TYPE_FILL_COLORS[
+    StateGraphNode.NODE_TYPE_STATE_INITIAL
+]
+NODE_TYPE_FILL_COLORS["lifecycle_state_intermediate"] = NODE_TYPE_FILL_COLORS[
+    StateGraphNode.NODE_TYPE_STATE_INTERMEDIATE
+]
+NODE_TYPE_FILL_COLORS["lifecycle_state_final"] = NODE_TYPE_FILL_COLORS[
+    StateGraphNode.NODE_TYPE_STATE_FINAL
+]
 
 DEFAULT_COLOR = "#95a5a6"
 

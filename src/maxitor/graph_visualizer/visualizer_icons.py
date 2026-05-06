@@ -40,6 +40,7 @@ from action_machine.graph_model.nodes.required_context_graph_node import (
 from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
+from action_machine.graph_model.nodes.state_graph_node import StateGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 
 # ``ErrorHandler``: amber disk + darker amber glyph (single hue family; avoids neon yellow / fire-engine red).
@@ -115,23 +116,18 @@ GRAPH_NODE_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<circle cx="6" cy="18" r="3" /> '
         '<path d="M18 9v1a4 4 0 0 1-4 4H9a4 4 0 0 0-4 4v1" />'
     ),
-    # Lifecycle states: shared ring motif, varied inner mark (entry / in-flight / done).
-    "lifecycle_state_initial": (
+    # Template state rows: shared ring motif, varied inner mark (entry / in-flight / done).
+    StateGraphNode.NODE_TYPE_STATE_INITIAL: (
         '<circle cx="12" cy="12" r="9" /> '
         '<circle cx="12" cy="12" r="3" fill="#ffffff" stroke="none" />'
     ),
-    "lifecycle_state_intermediate": (
+    StateGraphNode.NODE_TYPE_STATE_INTERMEDIATE: (
         '<circle cx="12" cy="12" r="9" /> '
         '<circle cx="12" cy="12" r="4" />'
     ),
-    "lifecycle_state_final": (
+    StateGraphNode.NODE_TYPE_STATE_FINAL: (
         '<circle cx="12" cy="12" r="9" /> '
         '<path d="m8 12 2 2 4-4" />'
-    ),
-    # Legacy interchange rows (alias to intermediate glyph).
-    "lifecycle_state": (
-        '<circle cx="12" cy="12" r="9" /> '
-        '<circle cx="12" cy="12" r="4" />'
     ),
     ResourceGraphNode.NODE_TYPE: (
         '<line x1="22" x2="2" y1="12" y2="12" /> '
@@ -161,6 +157,19 @@ GRAPH_NODE_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
     "unknown": _LUCIDE_CONTEXT_FORK_INNER,
 }
 # fmt: on
+
+GRAPH_NODE_TYPE_LUCIDE_INNER_SVG["lifecycle_state_initial"] = GRAPH_NODE_TYPE_LUCIDE_INNER_SVG[
+    StateGraphNode.NODE_TYPE_STATE_INITIAL
+]
+GRAPH_NODE_TYPE_LUCIDE_INNER_SVG["lifecycle_state_intermediate"] = GRAPH_NODE_TYPE_LUCIDE_INNER_SVG[
+    StateGraphNode.NODE_TYPE_STATE_INTERMEDIATE
+]
+GRAPH_NODE_TYPE_LUCIDE_INNER_SVG["lifecycle_state_final"] = GRAPH_NODE_TYPE_LUCIDE_INNER_SVG[
+    StateGraphNode.NODE_TYPE_STATE_FINAL
+]
+GRAPH_NODE_TYPE_LUCIDE_INNER_SVG["lifecycle_state"] = GRAPH_NODE_TYPE_LUCIDE_INNER_SVG[
+    StateGraphNode.NODE_TYPE_STATE_INTERMEDIATE
+]
 
 # Scale Lucide paths (native 24×24) about the center so strokes sit inside the disk with margin.
 _ICON_INNER_SCALE: float = 0.58

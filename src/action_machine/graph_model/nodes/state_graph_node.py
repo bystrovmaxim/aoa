@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar
 
-from action_machine.domain.lifecycle import Lifecycle
+from action_machine.domain.lifecycle import Lifecycle, StateType
 from action_machine.graph_model.edges.state_graph_edge import StateGraphEdge
 from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
@@ -42,14 +42,38 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange vertex for one state key scoped under the parent interchange row :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`.
-    CONTRACT: ``node_id`` is ``lifecycle_graph_node_id.strip() + ':' + state_key.strip()``; ``label`` trimmed state key; ``properties`` carry ``lifecycle_class_id`` / ``state_key``; ``node_obj`` is :class:`StateGraphPayload` (``lifecycle_graph_node_id`` matches parent's ``node_id``).
+    CONTRACT: ``node_id`` is ``lifecycle_graph_node_id.strip() + ':' + state_key.strip()``; ``node_type`` mirrors ``StateInfo.state_type`` on the lifecycle template (fallback ``NODE_TYPE``); ``label`` trimmed state key; ``properties`` carry ``lifecycle_class_id`` / ``state_key``; ``node_obj`` is :class:`StateGraphPayload` (``lifecycle_graph_node_id`` matches parent's ``node_id``).
     INVARIANTS: Frozen; :attr:`lifecycle_transitions` lists transitions from :meth:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge.get_lifecycle_transition_edges` and is surfaced by ``get_all_edges``; :meth:`get_companion_nodes` is always empty (lifecycle rows register via ``LifeCycleGraphEdge``).
     FAILURES: :exc:`ValueError` when ``lifecycle_graph_node_id`` or ``state_key`` is blank after strip.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "State"
+    NODE_TYPE_STATE_FINAL: ClassVar[str] = "StateFinal"
+    NODE_TYPE_STATE_INTERMEDIATE: ClassVar[str] = "StateIntermediate"
+    NODE_TYPE_STATE_INITIAL: ClassVar[str] = "StateInitial"
     lifecycle_transitions: list[StateGraphEdge] = field(init=False)
+
+    @classmethod
+    def _node_type_for_lifecycle_state_key(
+        cls,
+        lifecycle_cls: type[Lifecycle],
+        state_key: str,
+    ) -> str:
+        """Resolve graph ``node_type`` from the lifecycle class template and ``state_key``."""
+        tpl = lifecycle_cls._get_template()
+        if tpl is None:
+            return cls.NODE_TYPE
+        info = tpl.get_states().get(state_key)
+        if info is None:
+            return cls.NODE_TYPE
+        match info.state_type:
+            case StateType.INITIAL:
+                return cls.NODE_TYPE_STATE_INITIAL
+            case StateType.INTERMEDIATE:
+                return cls.NODE_TYPE_STATE_INTERMEDIATE
+            case StateType.FINAL:
+                return cls.NODE_TYPE_STATE_FINAL
 
     def __init__(
         self,
@@ -57,6 +81,7 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
         state_key: str,
         lifecycle_graph_node_id: str,
     ) -> None:
+        """Wire ``node_id``, template-derived ``node_type``, payload, and outbound transition edges."""
         parent_id = lifecycle_graph_node_id.strip()
         if not parent_id:
             raise ValueError("lifecycle_graph_node_id must be non-empty")
@@ -71,9 +96,11 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
             lifecycle_graph_node_id=parent_id,
         )
 
+        node_type_str = type(self)._node_type_for_lifecycle_state_key(lifecycle_cls, key_stripped)
+
         super().__init__(
             node_id=f"{parent_id}:{key_stripped}",
-            node_type=StateGraphNode.NODE_TYPE,
+            node_type=node_type_str,
             label=key_stripped,
             properties={
                 "lifecycle_class_id": TypeIntrospection.full_qualname(lifecycle_cls),
@@ -84,8 +111,9 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
         object.__setattr__(self, "lifecycle_transitions", StateGraphEdge.get_lifecycle_transition_edges(self))
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
-        """Status vertices are never self-registering companions; use :class:`~action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge` + :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`."""
+        """State rows attach via ``LifeCycleGraphEdge``, not standalone companion registrations."""
         return []
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
+        """Return template-defined ``lifecycle_transition`` edges originating at this state row."""
         return [*self.lifecycle_transitions]
