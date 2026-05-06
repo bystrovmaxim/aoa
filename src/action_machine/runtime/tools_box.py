@@ -10,8 +10,9 @@ PURPOSE
 - Run child actions: ``run(action_class, params, connections)``.
 - Log: ``info`` / ``warning`` / ``critical`` with mandatory ``Channel`` first.
 
-The embedded ``ScopedLogger`` is created by ``ToolsBoxFactory`` (or test bench)
-with ``domain=resolve_domain(action_cls)`` so ``var`` carries domain metadata.
+The embedded ``ScopedLogger`` is configured in ``ActionProductMachine.get_tools_box``
+(or the test bench) with ``domain=resolve_domain(action_cls)`` so ``var`` carries
+domain metadata.
 
 ═══════════════════════════════════════════════════════════════════════════════
 CONTEXT PRIVACY — KEY INVARIANT
