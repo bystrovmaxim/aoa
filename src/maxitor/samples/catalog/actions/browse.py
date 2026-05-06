@@ -1,5 +1,5 @@
 # src/maxitor/samples/catalog/actions/browse.py
-"""Минимальное чтение каталога — отдельный домен, связанный с магазином смыслом данных."""
+"""Minimal catalog read — separate domain, data-wise tied to the store."""
 
 from __future__ import annotations
 

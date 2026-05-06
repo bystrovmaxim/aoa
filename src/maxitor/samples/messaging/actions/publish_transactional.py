@@ -1,5 +1,5 @@
 # src/maxitor/samples/messaging/actions/publish_transactional.py
-"""Полная поверхность декораторов в домене messaging."""
+"""Full decorator surface in the messaging domain."""
 
 from __future__ import annotations
 

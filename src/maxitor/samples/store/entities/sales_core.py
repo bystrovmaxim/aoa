@@ -1,6 +1,6 @@
 # src/maxitor/samples/store/entities/sales_core.py
 """
-Клиент, заказ и строка заказа в одном модуле (двусторонний ``Inverse`` между клиентом и заказом).
+Customer, order, and order line in one module (bidirectional ``Inverse`` between customer and order).
 """
 
 from __future__ import annotations

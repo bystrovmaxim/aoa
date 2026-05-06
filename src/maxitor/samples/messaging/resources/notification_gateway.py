@@ -1,5 +1,5 @@
 # src/maxitor/samples/messaging/resources/notification_gateway.py
-"""Клиент уведомлений (заглушка для ``@depends``) и ресурсный менеджер для ``connections``."""
+"""Notification client stub for ``@depends`` and ``connections`` resource manager."""
 
 from action_machine.intents.meta import meta
 from action_machine.resources.external_service import ExternalServiceResource

@@ -1,9 +1,9 @@
 # src/maxitor/samples/messaging/__init__.py
 """
-Контекст уведомлений: шлюз, outbox-сущность, полный контур как у ``store``.
+Notifications context: gateway, outbox entity, same end-to-end shape as ``store``.
 
-Подмодули: ``dependencies``, ``resources``, ``plugins``, ``actions``; пакетный
-``_shared_notifier`` для фабрики ``@depends`` (как в checkout store).
+Subpackages: ``dependencies``, ``resources``, ``plugins``, ``actions``; package-level
+``_shared_notifier`` for the ``@depends`` factory (same pattern as checkout store).
 """
 
 from maxitor.samples.messaging.domain import MessagingDomain

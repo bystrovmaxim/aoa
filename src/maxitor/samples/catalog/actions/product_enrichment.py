@@ -1,5 +1,5 @@
 # src/maxitor/samples/catalog/actions/product_enrichment.py
-"""Полная поверхность декораторов в домене catalog."""
+"""Full decorator surface in the catalog domain."""
 
 from __future__ import annotations
 

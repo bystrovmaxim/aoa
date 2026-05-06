@@ -1,5 +1,5 @@
 # src/maxitor/samples/billing/resources/tax_quote.py
-"""Заглушка налогового/прайсинга для ``@depends`` и ресурсный менеджер для ``connections``."""
+"""Tax/pricing stub for ``@depends`` and ``connections`` resource manager."""
 
 from action_machine.intents.meta import meta
 from action_machine.resources.external_service import ExternalServiceResource

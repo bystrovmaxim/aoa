@@ -1,6 +1,6 @@
 # src/maxitor/samples/catalog/__init__.py
 """
-Каталог: SKU, обогащение, полный контур как у ``store``.
+Catalog: SKU, enrichment, same end-to-end shape as ``store``.
 
 ``dependencies``, ``resources``, ``plugins``, ``actions`` (browse + enrichment).
 """

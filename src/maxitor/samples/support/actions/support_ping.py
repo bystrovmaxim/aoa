@@ -1,5 +1,5 @@
 # src/maxitor/samples/support/actions/support_ping.py
-"""Базовое действие в домене support — цель для ``@depends`` внутри того же домена."""
+"""Baseline support action — target for same-domain ``@depends``."""
 
 from __future__ import annotations
 

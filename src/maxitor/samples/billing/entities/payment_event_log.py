@@ -1,5 +1,5 @@
 # src/maxitor/samples/billing/entities/payment_event_log.py
-"""Минимальная сущность, чтобы bounded context ``billing`` появился в графе сущностей."""
+"""Minimal entity so the ``billing`` bounded context appears on the entity graph."""
 
 from pydantic import Field
 

@@ -8,7 +8,7 @@ from action_machine.plugin import Plugin
 
 
 class UnhandledErrorSwallowPlugin(Plugin):
-    """Поглощает ``UnhandledErrorEvent`` в демо (отдельно от графа подписок)."""
+    """Swallows ``UnhandledErrorEvent`` in the demo (separate from the subscription graph)."""
 
     async def get_initial_state(self) -> dict[str, Any]:
         return {}

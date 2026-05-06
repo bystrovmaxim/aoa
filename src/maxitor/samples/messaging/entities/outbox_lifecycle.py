@@ -1,11 +1,11 @@
 # src/maxitor/samples/messaging/entities/outbox_lifecycle.py
-"""Класс жизненного цикла для строки outbox (sample)."""
+"""Lifecycle graph for one outbox row (sample)."""
 
 from action_machine.domain import Lifecycle
 
 
 class OutboxMessageLifecycle(Lifecycle):
-    """Три состояния: ожидание → опубликовано → обработано."""
+    """Three states: pending → published → consumed."""
 
     _template = (
         Lifecycle()

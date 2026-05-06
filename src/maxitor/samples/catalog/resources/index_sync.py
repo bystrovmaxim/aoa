@@ -1,5 +1,5 @@
 # src/maxitor/samples/catalog/resources/index_sync.py
-"""Клиент поискового индекса (stub) для ``@depends`` и ресурсный менеджер для ``connections``."""
+"""Search-index client stub for ``@depends`` and ``connections`` resource manager."""
 
 from action_machine.intents.meta import meta
 from action_machine.resources.external_service import ExternalServiceResource

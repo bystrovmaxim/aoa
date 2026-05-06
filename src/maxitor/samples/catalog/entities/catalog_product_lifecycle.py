@@ -1,11 +1,11 @@
 # src/maxitor/samples/catalog/entities/catalog_product_lifecycle.py
-"""Класс жизненного цикла для товарной строки каталога (sample)."""
+"""Lifecycle graph for a catalog SKU row (sample)."""
 
 from action_machine.domain import Lifecycle
 
 
 class CatalogProductLifecycle(Lifecycle):
-    """Три состояния: черновик → в продаже → снят."""
+    """Three states: draft → active → retired."""
 
     _template = (
         Lifecycle()

@@ -1,5 +1,5 @@
 # src/maxitor/samples/store/domain.py
-"""Маркер bounded context «магазин / оформление заказа»."""
+"""Bounded-context marker for the store / checkout slice."""
 
 from action_machine.domain import BaseDomain
 

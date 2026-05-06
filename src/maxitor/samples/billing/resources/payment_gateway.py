@@ -1,5 +1,5 @@
 # src/maxitor/samples/billing/resources/payment_gateway.py
-"""Заглушка платёжного шлюза для ``@depends`` и ресурсный менеджер для ``connections``."""
+"""Payment-gateway stub for ``@depends`` and ``connections`` resource manager."""
 
 from action_machine.intents.meta import meta
 from action_machine.resources.external_service import ExternalServiceResource

@@ -1,5 +1,5 @@
 # src/maxitor/samples/catalog/domain.py
-"""Маркер bounded context «каталог и цены»."""
+"""Bounded-context marker for catalog and pricing."""
 
 from action_machine.domain import BaseDomain
 

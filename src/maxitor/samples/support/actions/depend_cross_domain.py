@@ -1,5 +1,5 @@
 # src/maxitor/samples/support/actions/depend_cross_domain.py
-"""Сценарий: ``@depends`` на ``BaseAction`` в другом домене."""
+"""Scenario: ``@depends`` on a ``BaseAction`` in another domain."""
 
 from __future__ import annotations
 
