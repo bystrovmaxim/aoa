@@ -19,9 +19,9 @@ LOGGING (SCOPEDLOGGER)
 ═══════════════════════════════════════════════════════════════════════════════
 
 When TestBench creates ``ScopedLogger`` for ``run_aspect`` / ``run_summary`` /
-compensators, it passes ``domain=resolve_domain(action_cls)`` exactly like
-production ``ActionProductMachine.get_tools_box``, so ``var`` payloads and subscriptions behave
-the same way.
+compensators, it passes ``domain=resolve_domain(action_cls)`` (aligned with
+``@meta``). Production builds ``ScopedLogger`` in ``ActionProductMachine._run_internal``
+and passes ``log`` into ``ToolsBox(...)`` alongside ``factory`` (``domain`` from the interchange ``domain`` edge target ``node_obj``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 MACHINE COLLECTION
