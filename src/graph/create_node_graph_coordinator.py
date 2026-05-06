@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Create and build a ``NodeGraphCoordinator`` using the current node-graph
-inspector set that is already used by viz2.
+inspector set that is already used by :mod:`maxitor.graph_visualizer`.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
 
 
 def create_node_graph_coordinator() -> NodeGraphCoordinator:
-    """Create and build the default ``NodeGraphCoordinator`` used by viz2."""
+    """Create and build the default ``NodeGraphCoordinator`` used by the graph visualizer."""
     coordinator = NodeGraphCoordinator()
     coordinator.build(all_axis_graph_node_inspectors())
     return coordinator

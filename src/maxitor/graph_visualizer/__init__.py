@@ -1,15 +1,15 @@
-# src/maxitor/viz2/__init__.py
+# src/maxitor/graph_visualizer/__init__.py
 """
-Viz2 — :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` **BaseGraphNode** G6 HTML.
+Graph visualizer — :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` **BaseGraphNode** G6 HTML.
 
-Self-contained under :mod:`maxitor.viz2` (no imports from :mod:`maxitor.viz1`).
-Use :mod:`maxitor.viz2.interchange_graph_visualizer`.
+Self-contained under :mod:`maxitor.graph_visualizer`.
+Use :mod:`maxitor.graph_visualizer.visualizer`.
 """
 
 from __future__ import annotations
 
 from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
-from maxitor.viz2.interchange_graph_visualizer import (
+from maxitor.graph_visualizer.visualizer import (
     G6_CDN_URL,
     INTERCHANGE_AXES_GRAPH_HTML_PATH,
     export_interchange_axes_graph_html,

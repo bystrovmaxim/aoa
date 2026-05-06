@@ -1,4 +1,4 @@
-# src/maxitor/viz2/interchange_graph_domain_propagation.py
+# src/maxitor/graph_visualizer/domain_propagation.py
 """
 InterchangeGraphDomainPropagation — domain bubble membership for G6 payloads.
 
@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Compute ``node_domains`` and ``bubble-sets`` plugin payloads used by
-:mod:`~maxitor.viz2.interchange_graph_visualizer` so the large HTML exporter stays within
+:mod:`~maxitor.graph_visualizer.visualizer` so the large HTML exporter stays within
 maintainability limits (line count). Logic is deterministic dict graph only.
 """
 

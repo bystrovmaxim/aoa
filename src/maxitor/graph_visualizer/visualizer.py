@@ -1,4 +1,4 @@
-# src/maxitor/viz2/interchange_graph_visualizer.py
+# src/maxitor/graph_visualizer/visualizer.py
 """
 HTML export for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` graphs.
 
@@ -17,7 +17,7 @@ Layout, legend, domain bubbles, and the inspector panel keep the existing G6
 behaviour while staying on the interchange-node pipeline only.
 
 Domain hull membership propagation is implemented in
-:mod:`~maxitor.viz2.interchange_graph_domain_propagation` so this module stays maintainable.
+:mod:`~maxitor.graph_visualizer.domain_propagation` so this module stays maintainable.
 
 Edges use G6 ``line`` with default style; ``stroke`` / arrow colour follow ``isDag`` only
 (DAG accent ``#FF6163`` vs slate ``#95a5a6``) and never change on hover. On node hover, incident edges get state
@@ -59,16 +59,16 @@ from graph.base_graph_node import BaseGraphNode
 from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
 from graph.edge_relationship import Composition
 from graph.node_graph_coordinator import NodeGraphCoordinator
-from maxitor.viz2.interchange_graph_domain_propagation import (
+from maxitor.graph_visualizer.domain_propagation import (
     bubble_sets_plugins_for_domains as _bubble_sets_plugins_for_domains,
 )
-from maxitor.viz2.interchange_graph_domain_propagation import (
+from maxitor.graph_visualizer.domain_propagation import (
     domain_sort_key_for_id as _domain_sort_key_for_id,
 )
-from maxitor.viz2.interchange_graph_domain_propagation import (
+from maxitor.graph_visualizer.domain_propagation import (
     propagate_node_domains as _propagate_node_domains,
 )
-from maxitor.viz2.visualizer_icons import svg_data_uri_for_vertex_icon
+from maxitor.graph_visualizer.visualizer_icons import svg_data_uri_for_vertex_icon
 
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 
