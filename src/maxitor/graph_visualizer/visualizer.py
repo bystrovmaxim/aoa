@@ -116,8 +116,9 @@ NODE_TYPE_FILL_COLORS: dict[str, str] = {
     SensitiveGraphNode.NODE_TYPE: "#FB9A99",
     ParamsGraphNode.NODE_TYPE: "#CAB2D6",
     ResultGraphNode.NODE_TYPE: "#B2DF8A",
+    # Field and PropertyField share one hue; glyphs in `visualizer_icons` distinguish them.
     FieldGraphNode.NODE_TYPE: "#6B5B95",
-    PropertyFieldGraphNode.NODE_TYPE: "#43A047",
+    PropertyFieldGraphNode.NODE_TYPE: "#6B5B95",
 }
 
 DEFAULT_COLOR = "#95a5a6"
