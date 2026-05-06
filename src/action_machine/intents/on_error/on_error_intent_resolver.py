@@ -15,14 +15,6 @@ from typing import Any, cast
 from action_machine.system_core import TypeIntrospection
 
 
-def _missing_on_error_description_message(func: Callable[..., Any]) -> str:
-    qual = TypeIntrospection.qualname_of(func)
-    return (
-        f"{qual} has no usable @on_error description "
-        "required for graph metadata resolution."
-    )
-
-
 @dataclass(frozen=True)
 class OnErrorHandlerFacetHydration:
     """One handler decoded from facet ``node_meta`` (paired with ``@on_error`` on the owning class)."""
@@ -57,7 +49,10 @@ class OnErrorIntentResolver:
         func = TypeIntrospection.unwrap_declaring_class_member(call_like)
         meta = getattr(func, "_on_error_meta", None)
         if not isinstance(meta, dict):
-            raise ValueError(_missing_on_error_description_message(func))
+            raise ValueError(
+                f"{TypeIntrospection.qualname_of(func)} has no usable @on_error description "
+                "required for graph metadata resolution.",
+            )
         return meta.get("description")
 
     @staticmethod
