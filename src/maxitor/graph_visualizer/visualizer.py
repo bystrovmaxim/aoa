@@ -5,7 +5,7 @@ HTML export for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` grap
 Vertices carry :class:`~graph.base_graph_node.BaseGraphNode` and edges carry
 :class:`~graph.base_graph_edge.BaseGraphEdge`. :func:`export_interchange_axes_graph_html`
 writes a standalone AntV G6 HTML file for an **already built** coordinator to
-:data:`INTERCHANGE_AXES_GRAPH_HTML_PATH`
+:data:`HTML_PATH`
 (``archive/logs/graph_node_2.html``; UTF-8, parent directories created as needed).
 It does **not** call :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.build` or change inspectors.
 
@@ -79,12 +79,12 @@ def _default_archive_logs_dir() -> Path:
 
 
 # Default write target for :func:`export_interchange_axes_graph_html`.
-INTERCHANGE_AXES_GRAPH_HTML_PATH: Path = _default_archive_logs_dir() / "graph_node_2.html"
+HTML_PATH: Path = _default_archive_logs_dir() / "graph_node_2.html"
 
 # Fixed fill per interchange vertex type (stable across graphs — not alphabetical).
 # Palette: Okabe–Ito / Tol-inspired, maximally distinct hues; ``Application`` is black (root).
 # Keys use interchange ``node_type`` ids (``NODE_TYPE`` on graph-node classes where applicable).
-VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
+NODE_TYPE_FILL_COLORS: dict[str, str] = {
     ApplicationGraphNode.NODE_TYPE: "#000000",
     ActionGraphNode.NODE_TYPE: "#E41A1C",
     DomainGraphNode.NODE_TYPE: "#377EB8",
@@ -108,16 +108,16 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
 }
 
 # Keep ``resource_manager`` aligned with the resource node hue.
-VERTEX_TYPE_FILL_COLORS["resource_manager"] = VERTEX_TYPE_FILL_COLORS[ResourceGraphNode.NODE_TYPE]
+NODE_TYPE_FILL_COLORS["resource_manager"] = NODE_TYPE_FILL_COLORS[ResourceGraphNode.NODE_TYPE]
 
 # Context-key facet: same green family as the historical ``dependency`` disk (glyph is the fork).
-VERTEX_TYPE_FILL_COLORS[RequiredContextGraphNode.NODE_TYPE] = "#4DAF4A"
+NODE_TYPE_FILL_COLORS[RequiredContextGraphNode.NODE_TYPE] = "#4DAF4A"
 
 DEFAULT_COLOR = "#95a5a6"
 
 # Interchange vertex types with fixed fill + icon in this module; anything else
 # uses one neutral fill and the generic fork glyph (see :mod:`~maxitor.graph_visualizer.visualizer_icons`).
-_KNOWN_VISUAL_VERTEX_TYPES: frozenset[str] = frozenset(VERTEX_TYPE_FILL_COLORS.keys())
+_KNOWN_VISUAL_VERTEX_TYPES: frozenset[str] = frozenset(NODE_TYPE_FILL_COLORS.keys())
 
 GRAPH_NODE_VISUAL_PX = 24
 GRAPH_NODE_LAYOUT_MARGIN_FRAC = 0.10
@@ -185,15 +185,15 @@ def _fill_color_for_vertex_type(node_type: str) -> str:
     """
     Stable fill for one ``node_type`` string.
 
-    Known types use :data:`VERTEX_TYPE_FILL_COLORS`. Any other label uses
+    Known types use :data:`NODE_TYPE_FILL_COLORS`. Any other label uses
     :data:`DEFAULT_COLOR` so such nodes share one neutral disk behind the
     generic fork icon.
     """
     t = str(node_type).strip()
     if not t or t == "unknown":
         return DEFAULT_COLOR
-    if t in VERTEX_TYPE_FILL_COLORS:
-        return VERTEX_TYPE_FILL_COLORS[t]
+    if t in NODE_TYPE_FILL_COLORS:
+        return NODE_TYPE_FILL_COLORS[t]
     return DEFAULT_COLOR
 
 
@@ -1294,10 +1294,10 @@ def export_interchange_axes_graph_html(
     """Write G6 HTML for ``coordinator`` exactly as :func:`generate_interchange_g6_html` would.
 
     ``coordinator`` must already have a successful :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.build`.
-    Output path is always :data:`INTERCHANGE_AXES_GRAPH_HTML_PATH`
+    Output path is always :data:`HTML_PATH`
     (``<repo>/archive/logs/graph_node_2.html``).
     """
-    return generate_interchange_g6_html(coordinator, INTERCHANGE_AXES_GRAPH_HTML_PATH, title=title)
+    return generate_interchange_g6_html(coordinator, HTML_PATH, title=title)
 
 if __name__ == "__main__":
     import importlib
