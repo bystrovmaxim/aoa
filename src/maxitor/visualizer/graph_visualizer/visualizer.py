@@ -1,4 +1,4 @@
-# src/maxitor/graph_visualizer/visualizer.py
+# src/maxitor/visualizer/graph_visualizer/visualizer.py
 """
 HTML export for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` graphs.
 
@@ -19,7 +19,7 @@ Layout, legend, domain bubbles, and the inspector panel keep the existing G6
 behaviour while staying on the interchange-node pipeline only.
 
 Domain hull membership propagation is implemented in
-:mod:`~maxitor.graph_visualizer.domain_propagation` so this module stays maintainable.
+:mod:`~maxitor.visualizer.graph_visualizer.domain_propagation` so this module stays maintainable.
 
 Edges use G6 ``line`` with default style; all edges are slate by default. Debug-collected
 forbidden DAG-cycle edges use the reserved violation red (**not** reused by any stable node-type
@@ -68,16 +68,16 @@ from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
 from graph.debug_node_graph_coordinator import DebugNodeGraphCoordinator
 from graph.edge_relationship import Composition
 from graph.node_graph_coordinator import NodeGraphCoordinator
-from maxitor.graph_visualizer.domain_propagation import (
+from .domain_propagation import (
     bubble_sets_plugins_for_domains as _bubble_sets_plugins_for_domains,
 )
-from maxitor.graph_visualizer.domain_propagation import (
+from .domain_propagation import (
     domain_sort_key_for_id as _domain_sort_key_for_id,
 )
-from maxitor.graph_visualizer.domain_propagation import (
+from .domain_propagation import (
     propagate_node_domains as _propagate_node_domains,
 )
-from maxitor.graph_visualizer.visualizer_icons import svg_data_uri_for_graph_node_icon
+from .visualizer_icons import svg_data_uri_for_graph_node_icon
 
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 
@@ -90,7 +90,7 @@ def _interchange_g6_shell_html_raw() -> str:
 
 def _default_archive_logs_dir() -> Path:
     """Repository ``archive/logs`` output directory for generated graph artifacts."""
-    return Path(__file__).resolve().parents[3] / "archive" / "logs"
+    return Path(__file__).resolve().parents[4] / "archive" / "logs"
 
 
 # Default write target for :func:`export_interchange_axes_graph_html`.

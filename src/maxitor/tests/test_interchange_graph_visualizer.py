@@ -1,5 +1,5 @@
-# tests/maxitor/test_interchange_graph_visualizer.py
-"""Second-path G6 export for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`maxitor.graph_visualizer.visualizer`."""
+# src/maxitor/tests/test_interchange_graph_visualizer.py
+"""Second-path G6 export for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`maxitor.visualizer.graph_visualizer.visualizer`."""
 
 from __future__ import annotations
 
@@ -26,11 +26,11 @@ from graph.composition_graph_edge import CompositionGraphEdge
 from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
 from graph.exceptions import InvalidGraphError
 from graph.node_graph_coordinator import NodeGraphCoordinator
-from maxitor.graph_visualizer.domain_propagation import (
+from maxitor.visualizer.graph_visualizer.domain_propagation import (
     g6_edge_propagates_domain_from_host_to_child,
     propagate_node_domains,
 )
-from maxitor.graph_visualizer.visualizer import (
+from maxitor.visualizer.graph_visualizer.visualizer import (
     G6_CDN_URL,
     generate_interchange_g6_html,
     interchange_edge_to_visual_dict,

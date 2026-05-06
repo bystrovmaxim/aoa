@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Create and build a ``NodeGraphCoordinator`` using the current node-graph
-inspector set that is already used by :mod:`maxitor.graph_visualizer`.
+inspector set that is already used by :mod:`maxitor.visualizer.graph_visualizer`.
 """
 
 from __future__ import annotations
