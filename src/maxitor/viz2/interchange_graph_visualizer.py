@@ -45,10 +45,7 @@ from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNo
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.interchange.vertex_labels import (
-    APPLICATION_VERTEX_TYPE,
-    SERVICE_VERTEX_TYPE,
-)
+from action_machine.interchange.vertex_labels import APPLICATION_VERTEX_TYPE
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
@@ -115,8 +112,6 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     PropertyFieldGraphNode.NODE_TYPE: "#43A047",
     "plugin": "#33A02C",
     "subscription": "#FDBF6F",
-    "service": "#1F78B4",
-    SERVICE_VERTEX_TYPE: "#4DAF4A",
 }
 
 # Keep ``resource_manager`` aligned with the resource node hue.
@@ -224,9 +219,9 @@ def _serialize_graph_value(value: Any) -> str:
     return s[:8000] if len(s) > 8000 else s
 
 
-# Role facets and ``Service`` stubs (see :data:`VERTEX_TYPE_FILL_COLORS`).
+# Role-related interchange facet vertex types bundled with Application for hull/layout grouping.
 _ROLE_VERTEX_TYPES_FOR_APP_BUNDLE: frozenset[str] = frozenset(
-    {"role", "role_class", RoleGraphNode.NODE_TYPE, "role_mode", SERVICE_VERTEX_TYPE},
+    {"role", "role_class", RoleGraphNode.NODE_TYPE, "role_mode"},
 )
 
 # Hull colors for domain bubbles (one per domain vertex); distinct from typical node fills.

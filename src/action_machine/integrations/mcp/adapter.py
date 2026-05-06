@@ -135,8 +135,8 @@ from action_machine.context.context import Context
 from action_machine.exceptions.authorization_error import AuthorizationError
 from action_machine.exceptions.validation_field_error import ValidationFieldError
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 from action_machine.integrations.mcp.route_record import McpRouteRecord
-from action_machine.interchange.vertex_labels import DOMAIN_VERTEX_TYPE
 from action_machine.model.base_action import BaseAction
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.action_product_machine import ActionProductMachine
@@ -245,7 +245,7 @@ def _mcp_apply_node_properties_to_node(node: dict[str, Any], graph_node: Any) ->
     if description:
         node["description"] = description
 
-    if graph_node.node_type == DOMAIN_VERTEX_TYPE:
+    if graph_node.node_type == DomainGraphNode.NODE_TYPE:
         domain_name = _mcp_optional_string_property(graph_node.properties, "name")
         if domain_name:
             node["domain_label"] = domain_name
