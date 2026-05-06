@@ -21,6 +21,7 @@ ARCHITECTURE / DATA FLOW
             │                           │                             │                          │
             ▼                           ▼                             ▼                          ▼
     FieldNotLoadedError         RelationNotLoadedError        EntityDecoratorError      LifecycleValidationError
+                                                                                       LifecycleGraphError
             │                           │                             │                          │
             └────────────── domain-layer fail-fast semantics (no hidden lazy I/O) ─────────────┘
 
@@ -45,6 +46,10 @@ LifecycleValidationError
     A `Lifecycle` template attached to an entity fails one of the eight
     structural integrity rules when validated during graph assembly
     (lifecycle intent resolvers / ``EntityIntentResolver``).
+
+LifecycleGraphError
+    Lifecycle graph-node construction cannot classify a state from template
+    metadata. Subclasses `ValueError`.
 """
 
 from __future__ import annotations
@@ -174,3 +179,15 @@ class LifecycleValidationError(Exception):
         super().__init__(
             f"Lifecycle '{field_name}' on entity '{entity_name}' is invalid: {details}"
         )
+
+
+class LifecycleGraphError(ValueError):
+    """
+    AI-CORE-BEGIN
+    ROLE: Lifecycle graph construction failed while deriving graph-node metadata from a lifecycle template.
+    CONTRACT: ``ValueError`` subclass for lifecycle-template state metadata inconsistencies that are not tied to one entity field validation report.
+    INVARIANTS: Raised for developer/template wiring mistakes discovered while materializing graph nodes.
+    AI-CORE-END
+    """
+
+    pass

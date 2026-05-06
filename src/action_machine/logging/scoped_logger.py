@@ -67,7 +67,7 @@ _RESERVED_KEYS = frozenset({"level", "channels", "domain", "domain_name"})
 
 class ScopedLogger:
     """
-AI-CORE-BEGIN
+    AI-CORE-BEGIN
     ROLE: Scope-bound facade that prepares var payloads for coordinator emit.
     CONTRACT: Map info/warning/critical calls to one validated emit each.
     INVARIANTS: Reserved system keys are owned by logger, not user kwargs.

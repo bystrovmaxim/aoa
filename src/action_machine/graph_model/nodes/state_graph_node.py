@@ -19,6 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar
 
+from action_machine.domain.exceptions import LifecycleGraphError
 from action_machine.domain.lifecycle import Lifecycle, StateType
 from action_machine.graph_model.edges.state_graph_edge import StateGraphEdge
 from action_machine.system_core.type_introspection import TypeIntrospection
@@ -44,7 +45,7 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
     ROLE: Interchange vertex for one state key scoped under the parent interchange row :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`.
     CONTRACT: ``node_id`` is ``lifecycle_graph_node_id.strip() + ':' + state_key.strip()``; ``node_type`` mirrors ``StateInfo.state_type`` on the lifecycle template; ``label`` trimmed state key; ``properties`` carry ``lifecycle_class_id`` / ``state_key``; ``node_obj`` is :class:`StateGraphPayload` (``lifecycle_graph_node_id`` matches parent's ``node_id``).
     INVARIANTS: Frozen; :attr:`lifecycle_transitions` lists transitions from :meth:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge.get_lifecycle_transition_edges` and is surfaced by ``get_all_edges``; :meth:`get_companion_nodes` is always empty (lifecycle rows register via ``LifeCycleGraphEdge``).
-    FAILURES: :exc:`ValueError` when ``lifecycle_graph_node_id`` or ``state_key`` is blank after strip, when the lifecycle class has no template, or when ``state_key`` is missing from that template.
+    FAILURES: :exc:`ValueError` when ``lifecycle_graph_node_id`` or ``state_key`` is blank after strip; :exc:`LifecycleGraphError` when the lifecycle class has no template or ``state_key`` is missing from that template.
     AI-CORE-END
     """
 
@@ -66,14 +67,14 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
                 f"{lifecycle_cls.__qualname__} has no lifecycle template; "
                 f"cannot classify state {state_key!r} for graph node_type"
             )
-            raise ValueError(msg)
+            raise LifecycleGraphError(msg)
         info = tpl.get_states().get(state_key)
         if info is None:
             msg = (
                 f"Lifecycle template for {lifecycle_cls.__qualname__!r} "
                 f"has no StateInfo for state key {state_key!r}"
             )
-            raise ValueError(msg)
+            raise LifecycleGraphError(msg)
         match info.state_type:
             case StateType.INITIAL:
                 return cls.NODE_TYPE_STATE_INITIAL

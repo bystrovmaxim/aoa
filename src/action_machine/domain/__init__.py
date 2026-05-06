@@ -101,6 +101,7 @@ from action_machine.domain.entity import BaseEntity
 from action_machine.domain.exceptions import (
     EntityDecoratorError,
     FieldNotLoadedError,
+    LifecycleGraphError,
     LifecycleValidationError,
     RelationNotLoadedError,
 )
@@ -143,6 +144,7 @@ __all__ = [
     "Inverse",
     # State machines
     "Lifecycle",
+    "LifecycleGraphError",
     "LifecycleValidationError",
     "NoGraphEdge",
     "NoInverse",
