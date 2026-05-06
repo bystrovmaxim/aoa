@@ -25,8 +25,15 @@ this file asserts; edge cases may live in integration tests.
 import pytest
 from pydantic import ValidationError
 
-from action_machine.domain import build
+from action_machine.domain import BaseEntity, build
+from action_machine.domain.base_domain import BaseDomain
+from action_machine.intents.entity import entity
 from tests.scenarios.domain_model.entities import RelatedEntity, SampleEntity
+
+
+class _HydrationTestDomain(BaseDomain):
+    name = "hydration_test"
+    description = "Domain for hydration tests."
 
 
 class TestBuildFunction:
@@ -116,9 +123,9 @@ class TestEntityProxy:
 
     def test_proxy_creation(self):
         """Placeholder attribute names match model field names."""
-        from action_machine.domain import BaseEntity
         from action_machine.domain.hydration import EntityProxy
 
+        @entity(description="Proxy creation dummy", domain=_HydrationTestDomain)
         class DummyEntity(BaseEntity):
             field1: str
             field2: int
@@ -130,9 +137,9 @@ class TestEntityProxy:
 
     def test_proxy_missing_field(self):
         """Unknown attribute name → `AttributeError`."""
-        from action_machine.domain import BaseEntity
         from action_machine.domain.hydration import EntityProxy
 
+        @entity(description="Proxy missing field dummy", domain=_HydrationTestDomain)
         class DummyEntity(BaseEntity):
             existing: str
 
@@ -143,9 +150,9 @@ class TestEntityProxy:
 
     def test_proxy_getattr(self):
         """`__getattr__` resolves declared field placeholders."""
-        from action_machine.domain import BaseEntity
         from action_machine.domain.hydration import EntityProxy
 
+        @entity(description="Proxy getattr dummy", domain=_HydrationTestDomain)
         class DummyEntity(BaseEntity):
             test: str
 
