@@ -17,7 +17,7 @@ ARCHITECTURE / DATA FLOW
     type[TRole]   (``TRole`` bound to ``BaseRole``)
               │
               v
-    RoleGraphNode(...)  ──>  frozen ``BaseGraphNode`` (node_id, node_type, label, properties, edges)
+    RoleGraphNode(...)  ──>  frozen ``BaseGraphNode`` + aggregation to ``Application``
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -35,12 +35,15 @@ Edge case: same interchange shape for any concrete ``BaseRole`` subclass type pa
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import ClassVar, TypeVar
 
+from action_machine.application.application import Application
 from action_machine.auth.base_role import BaseRole
+from action_machine.graph_model.edges.application_graph_edge import ApplicationGraphEdge
 from action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
 from action_machine.system_core.type_introspection import TypeIntrospection
+from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 
 TRole = TypeVar("TRole", bound=BaseRole)
@@ -51,11 +54,12 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseRole`` host class.
-    CONTRACT: Built from ``type[TRole]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; ``properties`` include ``role_mode`` (``RoleMode.value``); ``edges`` empty until wired.
+    CONTRACT: Built from ``type[TRole]``; :attr:`NODE_TYPE`; dotted ``id``, ``__name__`` label; ``properties`` include ``role_mode``. :attr:`application` aggregates to :class:`~action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`; :meth:`get_all_edges` returns ``[application]``.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Role"
+    application: ApplicationGraphEdge = field(init=False, repr=False, compare=False)
 
     def __init__(self, role_cls: type[TRole]) -> None:
         super().__init__(
@@ -67,3 +71,8 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
             },
             node_obj=role_cls,
         )
+        object.__setattr__(self, "application", ApplicationGraphEdge(Application))
+
+    def get_all_edges(self) -> list[BaseGraphEdge]:
+        """Return the outgoing application aggregation edge."""
+        return [self.application]
