@@ -56,10 +56,16 @@ _LUCIDE_CONTEXT_FORK_INNER: str = (
     '<path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" />'
 )
 
-# Shared Lucide ``braces`` inner SVG for ``Field`` and ``PropertyField`` rows (disk fill differs per ``node_type``).
-_LUCIDE_FIELD_OR_PROPERTY_INNER: str = (
+# Lucide ``braces`` outline; inner mark differs Field (``F``) vs PropertyField (``p``).
+_LUCIDE_BRACES_OUTLINE: str = (
     '<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1" /> '
     '<path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1" />'
+)
+# Stroke letter ``F`` / stylized ``p`` (same scale as braces group; no extra inner transform).
+_LUCIDE_FIELD_BRACES_INNER: str = _LUCIDE_BRACES_OUTLINE + '<path d="M9 7.5v9M9 7.5h5.5M9 11.5h4" />'
+_LUCIDE_PROPERTY_FIELD_BRACES_INNER: str = (
+    _LUCIDE_BRACES_OUTLINE
+    + '<path d="M9.5 8.5V17M9.5 8.5h3.8a2.1 2.1 0 0 1 0 4.2H9.5" />'
 )
 
 # fmt: off
@@ -154,8 +160,8 @@ GRAPH_NODE_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="m13 6-6 6 6 6" /> '
         '<path d="M7 12h14" />'
     ),
-    FieldGraphNode.NODE_TYPE: _LUCIDE_FIELD_OR_PROPERTY_INNER,
-    PropertyFieldGraphNode.NODE_TYPE: _LUCIDE_FIELD_OR_PROPERTY_INNER,
+    FieldGraphNode.NODE_TYPE: _LUCIDE_FIELD_BRACES_INNER,
+    PropertyFieldGraphNode.NODE_TYPE: _LUCIDE_PROPERTY_FIELD_BRACES_INNER,
     "unknown": _LUCIDE_CONTEXT_FORK_INNER,
 }
 # fmt: on
