@@ -162,10 +162,6 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
 }
 # fmt: on
 
-VERTEX_TYPE_LUCIDE_INNER_SVG["resource_manager"] = VERTEX_TYPE_LUCIDE_INNER_SVG[
-    ResourceGraphNode.NODE_TYPE
-]
-
 # Scale Lucide paths (native 24×24) about the center so strokes sit inside the disk with margin.
 _ICON_INNER_SCALE: float = 0.58
 # Keep apparent stroke width ~2 after scaling (stroke scales with transform).

@@ -89,6 +89,7 @@ NODE_TYPE_FILL_COLORS: dict[str, str] = {
     ActionGraphNode.NODE_TYPE: "#E41A1C",
     DomainGraphNode.NODE_TYPE: "#377EB8",
     ResourceGraphNode.NODE_TYPE: "#7570B3",
+    RequiredContextGraphNode.NODE_TYPE: "#4DAF4A",
     RegularAspectGraphNode.NODE_TYPE: "#FF7F00",
     SummaryAspectGraphNode.NODE_TYPE: "#FF7F00",
     CheckerGraphNode.NODE_TYPE: "#A65628",
@@ -106,12 +107,6 @@ NODE_TYPE_FILL_COLORS: dict[str, str] = {
     FieldGraphNode.NODE_TYPE: "#6B5B95",
     PropertyFieldGraphNode.NODE_TYPE: "#43A047",
 }
-
-# Keep ``resource_manager`` aligned with the resource node hue.
-NODE_TYPE_FILL_COLORS["resource_manager"] = NODE_TYPE_FILL_COLORS[ResourceGraphNode.NODE_TYPE]
-
-# Context-key facet: same green family as the historical ``dependency`` disk (glyph is the fork).
-NODE_TYPE_FILL_COLORS[RequiredContextGraphNode.NODE_TYPE] = "#4DAF4A"
 
 DEFAULT_COLOR = "#95a5a6"
 
