@@ -36,13 +36,12 @@ class ApplicationGraphEdge(AggregationGraphEdge):
     AI-CORE-BEGIN
     ROLE: Typed aggregation edge ``host → application`` marker vertex.
     CONTRACT: ``edge_name`` ``application``; ``target_node`` is for future coordinator wiring (``None`` stub).
-    INVARIANTS: Frozen via ``AggregationGraphEdge`` base; ``source_cls`` is API-only (not stored on the edge payload).
+    INVARIANTS: Frozen via ``AggregationGraphEdge`` base.
     AI-CORE-END
     """
 
     def __init__(
         self,
-        source_cls: type,
         application_cls: type[TApplication],
     ) -> None:
         super().__init__(
