@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from action_machine.system_core import TypeIntrospection
@@ -35,4 +35,10 @@ class CompensateIntentResolver:
     def resolve_target_aspect_name(call_like: Any) -> str | None:
         """Return ``@compensate`` target_aspect_name from callable scratch when present."""
         func = TypeIntrospection.unwrap_declaring_class_member(call_like)
-        return TypeIntrospection.target_aspect_name_from_meta(getattr(func, "_compensate_meta", None))
+        meta = getattr(func, "_compensate_meta", None)
+        if not isinstance(meta, Mapping):
+            return None
+        raw = meta.get("target_aspect_name")
+        if isinstance(raw, str) and raw.strip():
+            return raw.strip()
+        return None
