@@ -76,10 +76,11 @@ def validate_described_schema(model_cls: type | None) -> None:
 def validate_described_schemas_for_action(action_cls: type) -> None:
     """Resolve ``BaseAction[P, R]`` and validate ``P`` and ``R`` descriptions."""
     # pylint: disable=import-outside-toplevel
-    from action_machine.runtime.binding.extract_action_params_result_types import (
-        extract_action_params_result_types,
+    from action_machine.intents.action_schema.action_schema_intent_resolver import (
+        ActionSchemaIntentResolver,
     )
 
-    p_type, r_type = extract_action_params_result_types(action_cls)
+    p_type = ActionSchemaIntentResolver.resolve_params_type(action_cls)
+    r_type = ActionSchemaIntentResolver.resolve_result_type(action_cls)
     validate_described_schema(p_type)
     validate_described_schema(r_type)

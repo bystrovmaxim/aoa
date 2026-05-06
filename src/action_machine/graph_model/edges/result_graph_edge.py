@@ -36,7 +36,7 @@ class ResultGraphEdge(AggregationGraphEdge):
     ROLE: Typed aggregation edge host Action → result schema vertex.
     CONTRACT: ``edge_name`` ``result``, ``is_dag`` False; ``target_node`` may be wired by the interchange coordinator.
     INVARIANTS: Frozen via ``AggregationGraphEdge``; ``target_node`` optional stub until hydrated.
-    FAILURES: :exc:`~action_machine.exceptions.ResultGraphEdgeResolutionError` when ``resolve_result_type`` returns ``None``.
+    FAILURES: :exc:`~action_machine.exceptions.ResultGraphEdgeResolutionError` when ``resolve_result_type`` raises :exc:`ValueError` (missing or invalid ``BaseResult`` binding).
     AI-CORE-END
     """
 
@@ -46,10 +46,11 @@ class ResultGraphEdge(AggregationGraphEdge):
         *,
         target_node: BaseGraphNode[Any] | None = None,
     ) -> None:
-        result_type = ActionSchemaIntentResolver.resolve_result_type(action_cls)
-        if result_type is None:
-            qn = TypeIntrospection.full_qualname(action_cls)
-            raise ResultGraphEdgeResolutionError(qn)
+        try:
+            result_type = ActionSchemaIntentResolver.resolve_result_type(action_cls)
+        except ValueError as exc:
+            raise ResultGraphEdgeResolutionError(TypeIntrospection.full_qualname(action_cls)) from exc
+
         super().__init__(
             edge_name="generic:result",
             is_dag=False,

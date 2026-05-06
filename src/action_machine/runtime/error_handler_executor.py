@@ -36,7 +36,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Any, cast
 
 from action_machine.context.context_view import ContextView
 from action_machine.exceptions import (
@@ -45,6 +45,9 @@ from action_machine.exceptions import (
     OnErrorHandlerError,
 )
 from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandlerGraphNode
+from action_machine.intents.action_schema.action_schema_intent_resolver import (
+    ActionSchemaIntentResolver,
+)
 from action_machine.intents.context_requires.context_requires_resolver import (
     ContextRequiresResolver,
 )
@@ -55,7 +58,6 @@ from action_machine.plugin.events import (
     UnhandledErrorEvent,
 )
 from action_machine.plugin.plugin_coordinator import PluginCoordinator
-from action_machine.runtime.binding.action_result_binding import bind_pipeline_result_to_action
 
 
 class ErrorHandlerExecutor:
@@ -143,11 +145,8 @@ class ErrorHandlerExecutor:
                     connections,
                     error,
                 )
-            bound = bind_pipeline_result_to_action(
-                type(action),
-                result,
-                source=f"@on_error handler `{handler_name}`",
-            )
+            ActionSchemaIntentResolver.resolve_result_type(type(action))
+            bound = cast(BaseResult, result)
             duration = time.time() - started_at
             await plugin_ctx.emit_event(
                 AfterOnErrorAspectEvent(
