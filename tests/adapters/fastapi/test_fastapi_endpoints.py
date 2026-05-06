@@ -251,3 +251,21 @@ class TestExceptionHandlers:
 
         # Assert
         assert response.status_code == 422
+        assert response.json()["detail"] == "field is invalid"
+
+    def test_unhandled_error_returns_500_from_catch_all_middleware(self) -> None:
+        """Unhandled exceptions are converted to a generic HTTP 500 payload."""
+        # Arrange
+        adapter, _ = _make_app(
+            run_side_effect=RuntimeError("unexpected boom"),
+        )
+        adapter.post("/ping", PingAction)
+        app = adapter.build()
+        client = TestClient(app, raise_server_exceptions=False)
+
+        # Act
+        response = client.post("/ping", json={})
+
+        # Assert
+        assert response.status_code == 500
+        assert response.json() == {"detail": "Internal server error"}
