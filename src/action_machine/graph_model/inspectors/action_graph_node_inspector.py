@@ -15,6 +15,9 @@ per ``@context_requires`` key on that aspect, with ``COMPOSITION`` edges from ea
 ``@compensate``, and one :class:`~graph.error_handler_graph_node.ErrorHandlerGraphNode` per
 ``@on_error`` method declared on that class.
 
+The walk is keyed off **actually loaded** subclasses: any ``BaseAction`` subtype present in memory
+(for example pulled in by tests or demos) participates unless explicitly excluded—see :class:`~graph.base_graph_node_inspector.BaseGraphNodeInspector`.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
@@ -41,7 +44,7 @@ class ActionGraphNodeInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Emit ``ActionGraphNode`` rows for visited ``BaseAction`` classes.
-    CONTRACT: Root axis ``BaseAction`` from ``BaseGraphNodeInspector[BaseAction[Any, Any]]``; one ``ActionGraphNode`` per visited ``BaseAction`` type that does not declare ``exclude_graph_model``, plus ``RegularAspectGraphNode`` (with ``COMPOSITION`` edges to checkers and required-context rows) / ``SummaryAspectGraphNode`` / ``CheckerGraphNode`` / ``RequiredContextGraphNode`` / ``CompensatorGraphNode`` / ``ErrorHandlerGraphNode`` for each own-class ``@regular_aspect`` / ``@summary_aspect`` / checker row / context key / ``@compensate`` / ``@on_error`` method.
+    CONTRACT: Root axis ``BaseAction`` from ``BaseGraphNodeInspector[BaseAction[Any, Any]]``; one ``ActionGraphNode`` per visited **loaded** ``BaseAction`` type that does not declare ``exclude_graph_model``, plus ``RegularAspectGraphNode`` (with ``COMPOSITION`` edges to checkers and required-context rows) / ``SummaryAspectGraphNode`` / ``CheckerGraphNode`` / ``RequiredContextGraphNode`` / ``CompensatorGraphNode`` / ``ErrorHandlerGraphNode`` for each own-class ``@regular_aspect`` / ``@summary_aspect`` / checker row / context key / ``@compensate`` / ``@on_error`` method.
     INVARIANTS: Other intents use dedicated inspectors only; this inspector emits aspect, checker, compensator, and error-handler interchange rows for actions. Checker graph nodes are flattened from :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` on each ``RegularAspectGraphNode`` (see :class:`~graph.base_graph_node.BaseGraphNode`).
     AI-CORE-END
     """

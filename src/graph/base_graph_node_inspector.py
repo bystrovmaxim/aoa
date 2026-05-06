@@ -14,6 +14,8 @@ implement only :meth:`_get_node`; :meth:`_get_inspector_type` returns that ``TRo
 Hosts are omitted before :meth:`_get_node` only when the class declares :func:`~graph.exclude_graph_model.exclude_graph_model`
 on its own namespace (via :func:`~graph.exclude_graph_model.excluded_from_graph_model` — the decorator is never inherited).
 
+Inspectors deliberately **mirror what is already loaded** in the interpreter for the axis (for example every strict subclass under ``root`` that is visited). They are not filters for “junk” vertices: stray test/sample classes that were imported alongside production code belong in the interchange graph until you fix imports, packaging boundaries, or opt hosts out explicitly with ``exclude_graph_model``. A production build surfacing duplicates, cycles, or odd nodes usually means scope pollution to correct upstream.
+
 This ABC is the **typed** contract for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` interchange-node inspectors.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -50,7 +52,7 @@ class BaseGraphNodeInspector[TRoot](ABC):
     """
     AI-CORE-BEGIN
     ROLE: Abstract contract for interchange-node emission into ``NodeGraphCoordinator``.
-    CONTRACT: Subclasses specialize ``TRoot`` in the base list and implement :meth:`_get_node` only; :meth:`get_graph_nodes` is final orchestration.
+    CONTRACT: Subclasses specialize ``TRoot`` in the base list and implement :meth:`_get_node` only; :meth:`get_graph_nodes` is final orchestration; visited hosts reflect the **loaded runtime scope** under ``TRoot`` (subclasses reachable after imports), without hiding stray test/sample types—use packaging, imports, or ``exclude_graph_model`` to sanitize; coordinators surface structural problems as early diagnostics.
     INVARIANTS: Cannot be instantiated directly; must be subclassed for node emission.
     AI-CORE-END
     """
