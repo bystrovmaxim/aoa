@@ -21,9 +21,11 @@ behaviour while staying on the interchange-node pipeline only.
 Domain hull membership propagation is implemented in
 :mod:`~maxitor.graph_visualizer.domain_propagation` so this module stays maintainable.
 
-Edges use G6 ``line`` with default style; all edges are slate by default, while debug-collected
-forbidden DAG-cycle edges are red. On node hover, incident edges get state
-``active``. Edge ``data`` still carries relationship fields for tests.
+Edges use G6 ``line`` with default style; all edges are slate by default. Debug-collected
+forbidden DAG-cycle edges use the reserved violation red (**not** reused by any stable node-type
+fill). Nodes incident on those edges use the same red disk so endpoints read as hotspots. Action
+nodes use indigo (:data:`NODE_TYPE_FILL_COLORS`), not violation red. On node hover, incident edges
+get state ``active``. Edge ``data`` still carries relationship fields for tests.
 """
 
 from __future__ import annotations
@@ -94,12 +96,16 @@ def _default_archive_logs_dir() -> Path:
 # Default write target for :func:`export_interchange_axes_graph_html`.
 HTML_PATH: Path = _default_archive_logs_dir() / "graph_node_2.html"
 
+# Okabe–Ito ``#E41A1C`` is reserved for debug DAG-cycle violations (edges + incident nodes only).
+DAG_CYCLE_VIOLATION_COLOR = "#E41A1C"
+
 # Fixed fill per interchange graph-node ``node_type`` (stable across graphs — not alphabetical).
 # Palette: Okabe–Ito / Tol-inspired, maximally distinct hues; ``Application`` is black (root).
+# ``Action`` is indigo so saturated red stays exclusive to DAG violation styling.
 # Keys use interchange ``node_type`` ids (``NODE_TYPE`` on graph-node classes where applicable).
 NODE_TYPE_FILL_COLORS: dict[str, str] = {
     ApplicationGraphNode.NODE_TYPE: "#000000",
-    ActionGraphNode.NODE_TYPE: "#E41A1C",
+    ActionGraphNode.NODE_TYPE: "#4F46E5",
     DomainGraphNode.NODE_TYPE: "#377EB8",
     ResourceGraphNode.NODE_TYPE: "#7570B3",
     RequiredContextGraphNode.NODE_TYPE: "#4DAF4A",
@@ -114,7 +120,7 @@ NODE_TYPE_FILL_COLORS: dict[str, str] = {
     StateGraphNode.NODE_TYPE_STATE_INTERMEDIATE: "#6A51A3",
     StateGraphNode.NODE_TYPE_STATE_FINAL: "#452E7A",
     RoleGraphNode.NODE_TYPE: "#66A61E",
-    SensitiveGraphNode.NODE_TYPE: "#FB9A99",
+    SensitiveGraphNode.NODE_TYPE: "#A855F7",
     ParamsGraphNode.NODE_TYPE: "#CAB2D6",
     ResultGraphNode.NODE_TYPE: "#B2DF8A",
     # Field and PropertyField share one hue; glyphs in `visualizer_icons` distinguish them.
@@ -404,10 +410,14 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
     if node_colors:
         colors = {**colors, **node_colors}
 
+    violations = getattr(coordinator, "dag_cycle_violations", ())
     cycle_violation_keys = {
-        (str(v.source_node_id), str(v.target_node_id), str(v.edge_name))
-        for v in getattr(coordinator, "dag_cycle_violations", ())
+        (str(v.source_node_id), str(v.target_node_id), str(v.edge_name)) for v in violations
     }
+    dag_cycle_violation_incident_ids: set[str] = set()
+    for v in violations:
+        dag_cycle_violation_incident_ids.add(str(v.source_node_id))
+        dag_cycle_violation_incident_ids.add(str(v.target_node_id))
 
     g6_nodes: list[dict[str, Any]] = []
     g6_edges: list[dict[str, Any]] = []
@@ -434,7 +444,10 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         payload_panel: dict[str, str] = {}
         for k, v in node.items():
             payload_panel[str(k)] = _serialize_graph_value(v)
-        fill = colors.get(node_type, DEFAULT_COLOR)
+        base_fill = colors.get(node_type, DEFAULT_COLOR)
+        interchange_nid = str(node.get("id", ""))
+        is_dag_violation_incident = interchange_nid in dag_cycle_violation_incident_ids
+        fill = DAG_CYCLE_VIOLATION_COLOR if is_dag_violation_incident else base_fill
         g6_nodes.append({
             "id": str(idx),
             "data": {
@@ -444,7 +457,9 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
                 "graph_key": graph_key,
                 "qualified": qualified,
                 "node_type": node_type,
+                "typeFill": base_fill,
                 "fill": fill,
+                "isDagCycleViolationIncident": is_dag_violation_incident,
                 "iconSrc": svg_data_uri_for_graph_node_icon(fill, node_type),
                 "payload_panel": payload_panel,
             },
@@ -528,6 +543,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         const nodeTypeMap = {node_type_map_json};
         const bubblePlugins = {bubble_plugins_json};
         const NODE_VISUAL_PX = {GRAPH_NODE_VISUAL_PX};
+        const DAG_CYCLE_VIOLATION_COLOR = "{DAG_CYCLE_VIOLATION_COLOR}";
 
         const esc = (s) =>
           String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -571,7 +587,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         for (const node of graphData.nodes) initAdj(node.id);
 
         function edgeBaseStroke(d) {{
-          return d.data?.isForbiddenDagCycle ? '#FF6163' : '#95a5a6';
+          return d.data?.isForbiddenDagCycle ? DAG_CYCLE_VIOLATION_COLOR : '#95a5a6';
         }}
         const container = document.getElementById('container');
         const graph = new G6.Graph({{
@@ -613,7 +629,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
             type: 'line',
             style: {{
               stroke: (d) => edgeBaseStroke(d),
-              lineWidth: 1.2,
+              lineWidth: (d) => (d.data?.isForbiddenDagCycle ? 2.4 : 1.2),
               opacity: 1,
               endArrow: true,
               endArrowStroke: (d) => edgeBaseStroke(d),
@@ -846,6 +862,12 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
             '</h2>';
 
           const fill = d.fill != null ? String(d.fill) : '';
+          const typeSwatchFill =
+            d.isDagCycleViolationIncident === true &&
+            d.typeFill != null &&
+            String(d.typeFill).trim() !== ''
+              ? String(d.typeFill)
+              : fill;
           const iconSrc =
             d.iconSrc != null && String(d.iconSrc).trim() !== ''
               ? String(d.iconSrc)
@@ -864,7 +886,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
             }} else {{
               html +=
                 '<span class="type-dot" style="background:' +
-                esc(fill || '#95a5a6') +
+                esc(typeSwatchFill || '#95a5a6') +
                 '"></span>';
             }}
             html += '<span class="prop-type-value">' + esc(typePretty) + '</span>';
