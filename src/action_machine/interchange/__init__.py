@@ -1,13 +1,15 @@
 # src/action_machine/interchange/__init__.py
 """
-Interchange — shared ``node_type`` string aliases for facet graphs.
+Interchange — documentation anchor for facet graph vertex typing.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Keeps interchange vertex literals in a shallow package so MCP, viz, and tests
-can share strings without importing the full :mod:`graph` coordinator surface.
+Facet graphs use interchange ``node_type`` strings emitted by coordinators.
+Canonical literals live on frozen graph-node classes (for example
+:class:`~action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`
+and :class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -15,9 +17,6 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    inspectors emit ``node_type`` strings
-              │
-              ▼
-              vertex_labels (shared aliases)
+    inspectors + graph_node classes ──► ``NODE_TYPE`` / facet strings ──► viz / MCP
 
 """

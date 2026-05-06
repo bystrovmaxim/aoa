@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Groups axis-specific graph-node inspectors for actions, params/result schemas,
-domains, entities, roles, and related model surfaces.
+domains, application roots, entities, roles, and related model surfaces.
 
 Import concrete inspector classes from their leaf modules.
 """
