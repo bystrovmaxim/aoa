@@ -3,10 +3,4 @@
 
 
 class MissingSummaryAspectError(TypeError):
-    """
-    Action declares a custom ``Result`` subtype but has no ``@summary_aspect``.
-
-    Empty ``BaseResult()`` is only synthesized when ``R`` is exactly ``BaseResult``.
-    """
-
-    pass
+    """Raised when a summary pipeline runs without a declared ``@summary_aspect`` interchange."""

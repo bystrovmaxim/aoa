@@ -24,3 +24,13 @@ def test_role_graph_node_inspector_axes() -> None:
     assert rn is not None
     assert rn.node_obj is _InspectFixtureRole
     assert rn.properties["role_mode"] == RoleMode.ALIVE.value
+
+
+def test_role_graph_node_inspector_skips_role_without_role_mode() -> None:
+    """Undecorated ``BaseRole`` subclasses are omitted (interchange needs ``RoleMode``)."""
+
+    class _NoDecoratedModeRole(BaseRole):
+        name = "no_decorated_mode_fixture"
+        description = "Fixture: valid body but no ``@role_mode``."
+
+    assert RoleGraphNodeInspector()._get_node(_NoDecoratedModeRole) is None  # pylint: disable=protected-access
