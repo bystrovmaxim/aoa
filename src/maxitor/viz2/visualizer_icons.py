@@ -34,10 +34,7 @@ from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNo
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.interchange.vertex_labels import (
-    APPLICATION_VERTEX_TYPE,
-    SERVICE_VERTEX_TYPE,
-)
+from action_machine.interchange.vertex_labels import APPLICATION_VERTEX_TYPE
 
 # ``ErrorHandler``: amber disk + darker amber glyph (single hue family; avoids neon yellow / fire-engine red).
 _ERROR_HANDLER_INNER_STROKE: str = "#B45309"
@@ -189,22 +186,6 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="M4 2C2.8 3.7 2 5.7 2 8" /> '
         '<path d="M22 8c0-2.3-.8-4.3-2-6" />'
     ),
-    "service": (
-        '<path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" /> '
-        '<path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" /> '
-        '<path d="M12 2v2" /> '
-        '<path d="M12 22v-2" /> '
-        '<path d="m17 20.66-1-1.73" /> '
-        '<path d="M11 10.27 7 3.34" /> '
-        '<path d="m20.66 17-1.73-1" /> '
-        '<path d="m3.34 7 1.73 1" /> '
-        '<path d="M14 12h8" /> '
-        '<path d="M2 12h2" /> '
-        '<path d="m20.66 7-1.73 1" /> '
-        '<path d="m3.34 17 1.73-1" /> '
-        '<path d="m17 3.34-1 1.73" /> '
-        '<path d="m11 13.73-4 6.93" />'
-    ),
     "unknown": (
         '<path d="M12 22v-5" /> '
         '<path d="M9 8V2" /> '
@@ -214,9 +195,6 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
 }
 # fmt: on
 
-VERTEX_TYPE_LUCIDE_INNER_SVG[SERVICE_VERTEX_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG[
-    "dependency"
-]
 VERTEX_TYPE_LUCIDE_INNER_SVG[RoleGraphNode.NODE_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG["role_class"]
 VERTEX_TYPE_LUCIDE_INNER_SVG["resource_manager"] = VERTEX_TYPE_LUCIDE_INNER_SVG[
     ResourceGraphNode.NODE_TYPE

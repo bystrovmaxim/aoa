@@ -25,9 +25,3 @@ from typing import Final
 
 # Logical application root interchange ``node_type`` (“Application” row in viz/layout).
 APPLICATION_VERTEX_TYPE: Final[str] = "Application"
-
-# Bounded-context ``Domain`` vertices (facet / interchange).
-DOMAIN_VERTEX_TYPE: Final[str] = "Domain"
-
-# ``Service`` stubs for arbitrary class `@depends` targets (not merged into canonical Action rows).
-SERVICE_VERTEX_TYPE: Final[str] = "Service"

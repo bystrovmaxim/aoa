@@ -102,6 +102,4 @@ def test_intents_connection_lazy_symbols_resolve() -> None:
 def test_interchange_vertex_labels_import_resolves() -> None:
     vl = importlib.import_module("action_machine.interchange.vertex_labels")
     assert vl.APPLICATION_VERTEX_TYPE == "Application"
-    assert vl.DOMAIN_VERTEX_TYPE == "Domain"
-    assert vl.SERVICE_VERTEX_TYPE == "Service"
 
