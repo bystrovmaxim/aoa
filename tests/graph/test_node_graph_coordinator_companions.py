@@ -18,7 +18,13 @@ class _Root:
 
 
 class _Node(BaseGraphNode[object]):
-    def __init__(self, node_id: str, companions: list[BaseGraphNode[Any]] | None = None) -> None:
+    _companions: list[BaseGraphNode[Any]]
+
+    def __init__(
+        self,
+        node_id: str,
+        companions: list[BaseGraphNode[Any]] | None = None,
+    ) -> None:
         super().__init__(
             node_id=node_id,
             node_type="Test",

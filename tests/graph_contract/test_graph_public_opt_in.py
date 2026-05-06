@@ -4,17 +4,14 @@
 
 from __future__ import annotations
 
-import importlib
 import json
 
 from action_machine.integrations.mcp.adapter import _build_graph_json
 from graph.create_node_graph_coordinator import create_node_graph_coordinator
-from maxitor.samples.build import _MODULES
 
 
 def _import_test_domain_modules() -> None:
-    for name in _MODULES:
-        importlib.import_module(name)
+    import tests.scenarios.domain_model  # noqa: F401
 
 
 def test_mcp_build_graph_json_uses_node_graph_shape() -> None:

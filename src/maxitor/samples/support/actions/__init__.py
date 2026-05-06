@@ -1,9 +1,16 @@
 # src/maxitor/samples/support/actions/__init__.py
+from action_machine.intents.depends import depends
 from maxitor.samples.support.actions.depend_cross_domain import DependCrossDomainAction
 from maxitor.samples.support.actions.depend_same_domain import DependSameDomainAction
 from maxitor.samples.support.actions.sla_breach_stub import SlaBreachStubAction
 from maxitor.samples.support.actions.support_ping import SupportPingAction
 from maxitor.samples.support.actions.ticket_stub import TicketStubAction
+
+# Maxitor debug sample: creates an Action -> Action @depends cycle so the graph visualizer can show forbidden DAG edges.
+depends(
+    DependSameDomainAction,
+    description="Maxitor debug sample: reverse action dependency that creates a visible DAG cycle",
+)(SupportPingAction)
 
 DependCrossDomainParams = DependCrossDomainAction.Params
 DependCrossDomainResult = DependCrossDomainAction.Result

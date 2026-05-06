@@ -385,6 +385,10 @@ class ActionProductMachine(BaseActionMachine):
         current_nest = nested_level + 1
         start_time = time.time()
 
+        guard = getattr(self.graph_coordinator, "assert_no_dag_cycle_violations", None)
+        if guard is not None:
+            guard()
+
         action_cls = action.__class__
         action_node = self.get_action_node_by_id(action_cls)
         self._role_checker.check(context, action_node)
