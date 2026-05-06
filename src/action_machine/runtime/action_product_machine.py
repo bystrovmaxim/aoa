@@ -45,8 +45,9 @@ ARCHITECTURE / DATA FLOW
                 ├── _plugin_coordinator.emit_global_finish(...)
                 └── return Result
 
-``DependencyFactory`` for ``ToolsBox`` is built in ``get_tools_box`` with
-``DependsIntentResolver.resolve_dependency_infos(action_cls)``.
+``DependencyFactory`` for ``ToolsBox`` is built via
+``ActionGraphNode.resolved_dependency_infos``: wired ``@depends`` interchange edges
+and their targets (typically after coordinator resolution).
 
 **Where plugin events are emitted**
 
@@ -83,7 +84,6 @@ from typing import Any, TypeVar, cast
 
 from action_machine.context.context import Context
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
-from action_machine.intents.depends.depends_intent_resolver import DependsIntentResolver
 from action_machine.logging.channel import Channel
 from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
@@ -199,7 +199,7 @@ class ActionProductMachine(BaseActionMachine):
             params=params,
             domain=resolve_domain(action_cls),
         )
-        factory = DependencyFactory(DependsIntentResolver.resolve_dependency_infos(action_cls))
+        factory = DependencyFactory(action_node.resolved_dependency_infos())
         return ToolsBox(
             run_child=run_child,
             factory=factory,
