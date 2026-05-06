@@ -15,6 +15,7 @@ from action_machine.graph_model.nodes.application_graph_node import ApplicationG
 from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
 from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
@@ -316,7 +317,7 @@ def test_propagate_node_domains_transitive_containment_only() -> None:
     nodes = [
         {"id": "domain.D", "data": {"node_type": "Domain"}},
         {"id": "action.A", "data": {"node_type": "Action"}},
-        {"id": "role.R", "data": {"node_type": "role_class"}},
+        {"id": "role.R", "data": {"node_type": RoleGraphNode.NODE_TYPE}},
         {"id": "aspect.X", "data": {"node_type": "RegularAspect"}},
     ]
     edges = [
