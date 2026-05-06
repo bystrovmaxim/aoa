@@ -21,6 +21,8 @@ ARCHITECTURE / DATA FLOW
 
     ``_depends_info`` (``@depends``)  →  ``depends``
 
+    ``DependsGraphEdge`` targets (after coordinator wiring)  →  ``resolved_dependency_infos`` for ``DependencyFactory``
+
     ActionGraphNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
 """
 
@@ -33,6 +35,7 @@ from action_machine.exceptions.missing_summary_aspect_error import MissingSummar
 from action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
 from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from action_machine.model.base_action import BaseAction
+from action_machine.runtime.dependency_info import DependencyInfo
 from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -104,6 +107,29 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             if isinstance(raw, str) and raw.strip():
                 keys.add(raw.strip())
         return frozenset(keys)
+
+    def resolved_dependency_infos(self) -> tuple[DependencyInfo, ...]:
+        """Return dependency records from wired ``@depends`` edges (same order); empty tuple if none declared."""
+        out: list[DependencyInfo] = []
+        for edge in self.depends:
+            target = edge.target_node
+            if target is None:
+                msg = (
+                    f"@depends interchange edge to {edge.target_node_id!r} "
+                    "is missing target_node — use coordinator-built interchange "
+                    "(e.g. ActionProductMachine.get_action_node_by_id) before assembling ToolsBox."
+                )
+                raise RuntimeError(msg)
+            host = target.node_obj
+            if not isinstance(host, type):
+                msg = f"@depends target {edge.target_node_id!r} must resolve to a host type, got {type(host).__name__!r}"
+                raise TypeError(msg)
+            raw_fac = edge.properties.get("factory")
+            factory = raw_fac if raw_fac is None or callable(raw_fac) else None
+            desc_raw = edge.properties.get("description", "")
+            description = desc_raw if isinstance(desc_raw, str) else ""
+            out.append(DependencyInfo(cls=host, factory=factory, description=description))
+        return tuple(out)
 
     def get_regular_aspect_graph_nodes(self) -> list[RegularAspectGraphNode]:
         """Interchange vertices for ``@regular_aspect`` methods, in composition edge order."""
