@@ -57,6 +57,7 @@ from action_machine.graph_model.nodes.required_context_graph_node import (
 from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
+from action_machine.graph_model.nodes.sensitive_graph_node import SensitiveGraphNode
 from action_machine.graph_model.nodes.state_graph_node import StateGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from graph.base_graph_edge import BaseGraphEdge
@@ -112,7 +113,7 @@ NODE_TYPE_FILL_COLORS: dict[str, str] = {
     StateGraphNode.NODE_TYPE_STATE_INTERMEDIATE: "#6A51A3",
     StateGraphNode.NODE_TYPE_STATE_FINAL: "#452E7A",
     RoleGraphNode.NODE_TYPE: "#66A61E",
-    "sensitive_field": "#FB9A99",
+    SensitiveGraphNode.NODE_TYPE: "#FB9A99",
     ParamsGraphNode.NODE_TYPE: "#CAB2D6",
     ResultGraphNode.NODE_TYPE: "#B2DF8A",
     FieldGraphNode.NODE_TYPE: "#6B5B95",
