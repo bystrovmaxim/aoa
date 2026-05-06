@@ -13,7 +13,7 @@ Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.graph_mo
 :class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode`,
 :class:`~action_machine.graph_model.nodes.resource_graph_node.ResourceGraphNode`,
 :class:`~action_machine.graph_model.nodes.required_context_graph_node.RequiredContextGraphNode`,
-and :class:`~action_machine.graph_model.nodes.role_graph_node.RoleGraphNode`. Other keys are facet-only strings (no graph-node class).
+and :class:`~action_machine.graph_model.nodes.role_graph_node.RoleGraphNode`. Other keys are interchange-only strings without a matching graph-node ``NODE_TYPE`` (for example lifecycle state labels).
 """
 
 from __future__ import annotations
@@ -44,6 +44,14 @@ from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAs
 # ``ErrorHandler``: amber disk + darker amber glyph (single hue family; avoids neon yellow / fire-engine red).
 _ERROR_HANDLER_INNER_STROKE: str = "#B45309"
 
+# Shared Lucide ``git-fork`` inner paths for ``RequiredContext``, ``unknown``, and missing types.
+_LUCIDE_CONTEXT_FORK_INNER: str = (
+    '<path d="M12 22v-5" /> '
+    '<path d="M9 8V2" /> '
+    '<path d="M15 8V2" /> '
+    '<path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" />'
+)
+
 # Shared Lucide ``braces`` inner SVG for ``Field`` and ``PropertyField`` rows (disk fill differs per ``node_type``).
 _LUCIDE_FIELD_OR_PROPERTY_INNER: str = (
     '<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1" /> '
@@ -67,17 +75,7 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="m3.3 7 8.7 5 8.7-5" /> '
         '<path d="M12 22V12" />'
     ),
-    "dependency": (
-        '<path d="M12 22v-5" /> '
-        '<path d="M9 8V2" /> '
-        '<path d="M15 8V2" /> '
-        '<path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" />'
-    ),
-    "connection": (
-        '<path d="M9 17H7A5 5 0 0 1 7 7h2" /> '
-        '<path d="M15 7h2a5 5 0 1 1 0 10h-2" /> '
-        '<line x1="8" x2="16" y1="12" y2="12" />'
-    ),
+    RequiredContextGraphNode.NODE_TYPE: _LUCIDE_CONTEXT_FORK_INNER,
     # Lucide ``arrow-down-wide-narrow`` / ``arrow-up-narrow-wide`` (same stroke grammar; orange fill in UI).
     RegularAspectGraphNode.NODE_TYPE: (
         '<path d="m3 16 4 4 4-4" /> '
@@ -140,35 +138,16 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<line x1="6" x2="6.01" y1="16" y2="16" /> '
         '<line x1="10" x2="10.01" y1="16" y2="16" />'
     ),
-    "role_class": (
+    RoleGraphNode.NODE_TYPE: (
         '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />'
     ),
     "role": (
         '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> '
         '<circle cx="12" cy="7" r="4" />'
     ),
-    "role_mode": (
-        '<line x1="21" x2="14" y1="4" y2="4" /> '
-        '<line x1="10" x2="3" y1="4" y2="4" /> '
-        '<line x1="21" x2="12" y1="12" y2="12" /> '
-        '<line x1="8" x2="3" y1="12" y2="12" /> '
-        '<line x1="21" x2="16" y1="20" y2="20" /> '
-        '<line x1="12" x2="3" y1="20" y2="20" /> '
-        '<line x1="14" x2="14" y1="2" y2="6" /> '
-        '<line x1="8" x2="8" y1="10" y2="14" /> '
-        '<line x1="16" x2="16" y1="18" y2="22" />'
-    ),
     "sensitive_field": (
         '<rect width="18" height="11" x="3" y="11" rx="2" ry="2" /> '
         '<path d="M7 11V7a5 5 0 0 1 10 0v4" />'
-    ),
-    "described_fields": (
-        '<path d="M3 12h.01" /> '
-        '<path d="M3 18h.01" /> '
-        '<path d="M3 6h.01" /> '
-        '<path d="M8 12h13" /> '
-        '<path d="M8 18h13" /> '
-        '<path d="M8 6h13" />'
     ),
     ParamsGraphNode.NODE_TYPE: (
         '<path d="M17 12H3" /> '
@@ -182,28 +161,10 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
     ),
     FieldGraphNode.NODE_TYPE: _LUCIDE_FIELD_OR_PROPERTY_INNER,
     PropertyFieldGraphNode.NODE_TYPE: _LUCIDE_FIELD_OR_PROPERTY_INNER,
-    "plugin": (
-        '<path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z" />'
-    ),
-    "subscription": (
-        '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /> '
-        '<path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /> '
-        '<path d="M4 2C2.8 3.7 2 5.7 2 8" /> '
-        '<path d="M22 8c0-2.3-.8-4.3-2-6" />'
-    ),
-    "unknown": (
-        '<path d="M12 22v-5" /> '
-        '<path d="M9 8V2" /> '
-        '<path d="M15 8V2" /> '
-        '<path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" />'
-    ),
+    "unknown": _LUCIDE_CONTEXT_FORK_INNER,
 }
 # fmt: on
 
-VERTEX_TYPE_LUCIDE_INNER_SVG[RoleGraphNode.NODE_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG["role_class"]
-VERTEX_TYPE_LUCIDE_INNER_SVG[RequiredContextGraphNode.NODE_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG[
-    "dependency"
-]
 VERTEX_TYPE_LUCIDE_INNER_SVG["resource_manager"] = VERTEX_TYPE_LUCIDE_INNER_SVG[
     ResourceGraphNode.NODE_TYPE
 ]
@@ -216,9 +177,9 @@ _ICON_STROKE_WIDTH: float = 2.0 / _ICON_INNER_SCALE
 
 def svg_data_uri_for_vertex_icon(fill_hex: str, node_type: str) -> str:
     """Return a data: URL for a 24×24 disk with ``fill_hex``; Lucide strokes are white except ``ErrorHandler`` (amber-on-amber glyph)."""
-    # Types not in the map use the same plug / "fork" glyph as ``dependency``.
+    # Types not in the map use the ``unknown`` fork glyph.
     inner = VERTEX_TYPE_LUCIDE_INNER_SVG.get(str(node_type).strip()) or VERTEX_TYPE_LUCIDE_INNER_SVG[
-        "dependency"
+        "unknown"
     ]
     s = _ICON_INNER_SCALE
     sw = _ICON_STROKE_WIDTH

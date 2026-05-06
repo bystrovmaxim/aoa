@@ -88,8 +88,6 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     ActionGraphNode.NODE_TYPE: "#E41A1C",
     DomainGraphNode.NODE_TYPE: "#377EB8",
     ResourceGraphNode.NODE_TYPE: "#7570B3",
-    "dependency": "#4DAF4A",
-    "connection": "#984EA3",
     RegularAspectGraphNode.NODE_TYPE: "#FF7F00",
     SummaryAspectGraphNode.NODE_TYPE: "#FF7F00",
     CheckerGraphNode.NODE_TYPE: "#A65628",
@@ -100,32 +98,25 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "lifecycle_state_initial": "#9575CD",
     "lifecycle_state_intermediate": "#6A51A3",
     "lifecycle_state_final": "#452E7A",
-    "role_class": "#66A61E",
     RoleGraphNode.NODE_TYPE: "#66A61E",
     "role": "#E6AB02",
-    "role_mode": "#B15928",
     "sensitive_field": "#FB9A99",
-    "described_fields": "#A6CEE3",
     ParamsGraphNode.NODE_TYPE: "#CAB2D6",
     ResultGraphNode.NODE_TYPE: "#B2DF8A",
     FieldGraphNode.NODE_TYPE: "#6B5B95",
     PropertyFieldGraphNode.NODE_TYPE: "#43A047",
-    "plugin": "#33A02C",
-    "subscription": "#FDBF6F",
 }
 
 # Keep ``resource_manager`` aligned with the resource node hue.
 VERTEX_TYPE_FILL_COLORS["resource_manager"] = VERTEX_TYPE_FILL_COLORS[ResourceGraphNode.NODE_TYPE]
 
-# Align ``RequiredContext`` with the dependency fork glyph and hue (aspect context key attachment).
-VERTEX_TYPE_FILL_COLORS[RequiredContextGraphNode.NODE_TYPE] = VERTEX_TYPE_FILL_COLORS[
-    "dependency"
-]
+# Context-key facet: same green family as the historical ``dependency`` disk (glyph is the fork).
+VERTEX_TYPE_FILL_COLORS[RequiredContextGraphNode.NODE_TYPE] = "#4DAF4A"
 
 DEFAULT_COLOR = "#95a5a6"
 
 # Interchange vertex types with fixed fill + icon in this module; anything else
-# uses one neutral fill and the dependency-style icon.
+# uses one neutral fill and the generic fork glyph (see :mod:`~maxitor.graph_visualizer.visualizer_icons`).
 _KNOWN_VISUAL_VERTEX_TYPES: frozenset[str] = frozenset(VERTEX_TYPE_FILL_COLORS.keys())
 
 GRAPH_NODE_VISUAL_PX = 24
@@ -196,7 +187,7 @@ def _fill_color_for_vertex_type(node_type: str) -> str:
 
     Known types use :data:`VERTEX_TYPE_FILL_COLORS`. Any other label uses
     :data:`DEFAULT_COLOR` so such nodes share one neutral disk behind the
-    dependency-style icon.
+    generic fork icon.
     """
     t = str(node_type).strip()
     if not t or t == "unknown":
@@ -225,11 +216,6 @@ def _serialize_graph_value(value: Any) -> str:
     s = str(value)
     return s[:8000] if len(s) > 8000 else s
 
-
-# Role-related interchange facet vertex types bundled with Application for hull/layout grouping.
-_ROLE_VERTEX_TYPES_FOR_APP_BUNDLE: frozenset[str] = frozenset(
-    {"role", "role_class", RoleGraphNode.NODE_TYPE, "role_mode"},
-)
 
 
 
