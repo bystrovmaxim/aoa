@@ -22,7 +22,7 @@ ARCHITECTURE / DATA FLOW
     method._checker_meta append
          |
          v
-    ``CheckerGraphNode`` facet metadata
+    ``CheckerGraphNode`` graph node metadata
          |
          v
     runtime creates FieldIntChecker

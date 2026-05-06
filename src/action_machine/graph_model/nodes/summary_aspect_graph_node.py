@@ -34,7 +34,7 @@ class SummaryAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a summary aspect callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` matches facet ``SummaryAspect``; ``properties`` include ``description`` from :meth:`~action_machine.intents.aspects.summary_aspect_intent_resolver.SummaryAspectIntentResolver.resolve_description`; :attr:`required_context` via :meth:`~action_machine.graph_model.edges.required_context_graph_edge.RequiredContextGraphEdge.get_required_context_edges`; companions are wired ``RequiredContextGraphNode`` targets on those edges.
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` is ``SummaryAspect``; ``properties`` include ``description`` from :meth:`~action_machine.intents.aspects.summary_aspect_intent_resolver.SummaryAspectIntentResolver.resolve_description`; :attr:`required_context` via :meth:`~action_machine.graph_model.edges.required_context_graph_edge.RequiredContextGraphEdge.get_required_context_edges`; companions are wired ``RequiredContextGraphNode`` targets on those edges.
     AI-CORE-END
     """
 

@@ -1,6 +1,6 @@
 # src/action_machine/graph_model/edges/regular_aspect_graph_edge.py
 """
-RegularAspectGraphEdge — COMPOSITION from Action → RegularAspect interchange vertex.
+RegularAspectGraphEdge — COMPOSITION from Action → RegularAspect interchange graph node.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -28,7 +28,7 @@ from graph.composition_graph_edge import CompositionGraphEdge
 class RegularAspectGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed composition edge host Action → regular aspect callable vertex.
+    ROLE: Typed composition edge host Action → regular aspect callable graph node.
     CONTRACT: ``edge_name`` equals ``aspect_node.label``; ``target_node`` is the ``RegularAspectGraphNode`` instance.
     INVARIANTS: Frozen via ``CompositionGraphEdge``; ``is_dag`` False.
     AI-CORE-END

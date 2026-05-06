@@ -23,7 +23,7 @@ ARCHITECTURE / DATA FLOW
     DependencyInfo(cls=PaymentService, description="Payment service")
          │
          ▼  ``DependsGraphEdge`` / interchange metadata read ``_depends_info``
-    graph ``Action`` vertex lists dependency targets
+    graph ``Action`` graph node lists dependency targets
          │
          ▼  DependencyFactory(deps); runtime uses ``cls._depends_info`` equivalently
          │

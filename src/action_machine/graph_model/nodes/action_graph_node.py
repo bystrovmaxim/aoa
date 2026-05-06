@@ -139,7 +139,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         return out
 
     def get_summary_aspect_graph_node(self) -> SummaryAspectGraphNode:
-        """Interchange vertex for ``@summary_aspect``; raises if the graph has no summary edges."""
+        """Interchange graph node for ``@summary_aspect``; raises if the graph has no summary edges."""
         if not self.summary_aspect:
             action_name = getattr(self.node_obj, "__name__", "?")
             msg = (

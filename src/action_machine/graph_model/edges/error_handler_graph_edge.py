@@ -1,6 +1,6 @@
 # src/action_machine/graph_model/edges/error_handler_graph_edge.py
 """
-ErrorHandlerGraphEdge — COMPOSITION from Action → ErrorHandler interchange vertex.
+ErrorHandlerGraphEdge — COMPOSITION from Action → ErrorHandler interchange graph node.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -28,7 +28,7 @@ from graph.composition_graph_edge import CompositionGraphEdge
 class ErrorHandlerGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed composition edge host Action → ``@on_error`` handler vertex.
+    ROLE: Typed composition edge host Action → ``@on_error`` handler graph node.
     CONTRACT: ``edge_name`` equals ``handler_node.label``; ``target_node`` is the ``ErrorHandlerGraphNode`` instance.
     INVARIANTS: Frozen via ``CompositionGraphEdge``; ``is_dag`` False.
     AI-CORE-END

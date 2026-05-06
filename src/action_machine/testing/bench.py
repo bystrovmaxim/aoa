@@ -158,7 +158,7 @@ from action_machine.runtime.dependency_factory import DependencyFactory
 from action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
 from action_machine.system_core.type_introspection import TypeIntrospection
-from action_machine.testing.checker_facet_snapshot import CheckerFacetSnapshot
+from action_machine.testing.checker_interchange_snapshot import CheckerInterchangeSnapshot
 from action_machine.testing.comparison import compare_results
 from action_machine.testing.mock_action import MockAction
 from action_machine.testing.state_validator import validate_state_for_aspect, validate_state_for_summary
@@ -271,9 +271,9 @@ def _dependency_factory_from_coordinator(
 
 def _checker_rows_from_action_class(
     action_cls: type,
-) -> tuple[CheckerFacetSnapshot.Checker, ...]:
-    """Build checker facet rows from ``_checker_meta`` on aspect methods."""
-    out: list[CheckerFacetSnapshot.Checker] = []
+) -> tuple[CheckerInterchangeSnapshot.Checker, ...]:
+    """Build checker interchange rows from ``_checker_meta`` on aspect methods."""
+    out: list[CheckerInterchangeSnapshot.Checker] = []
     for attr_name, attr_value in vars(action_cls).items():
         func = TypeIntrospection.unwrap_declaring_class_member(attr_value)
         if not callable(func):
@@ -283,7 +283,7 @@ def _checker_rows_from_action_class(
             continue
         for checker_dict in checker_list:
             out.append(
-                CheckerFacetSnapshot.Checker(
+                CheckerInterchangeSnapshot.Checker(
                     method_name=attr_name,
                     checker_class=checker_dict.get("checker_class", type(None)),
                     field_name=checker_dict.get("field_name", ""),

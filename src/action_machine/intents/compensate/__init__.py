@@ -27,7 +27,7 @@ ARCHITECTURE / DATA FLOW
     CompensatorGraphNode interchange materialization
                 |
                 v
-    compensator facet snapshot
+    compensator interchange snapshot
                 |
                 v
     runtime SagaFrame stack

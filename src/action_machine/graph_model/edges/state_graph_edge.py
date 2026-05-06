@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class StateGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed composition edge for one allowed lifecycle transition arc; :meth:`get_lifecycle_transition_edges` materializes template arcs from a state vertex.
+    ROLE: Typed composition edge for one allowed lifecycle transition arc; :meth:`get_lifecycle_transition_edges` materializes template arcs from a state graph node.
     CONTRACT: ``edge_name`` ``lifecycle_transition``; ``is_dag`` False; ``properties`` hold ``from_state`` / ``to_state`` (arc semantics; scope is implied by wired ``StateGraphNode`` ids).
     INVARIANTS: Frozen via ``CompositionGraphEdge``; :attr:`edge_relationship` is ``COMPOSITION``.
     AI-CORE-END
@@ -47,22 +47,22 @@ class StateGraphEdge(CompositionGraphEdge):
         )
 
     @staticmethod
-    def get_lifecycle_transition_edges(vertex: StateGraphNode) -> list[StateGraphEdge]:
-        """One edge per outbound template arc from ``vertex`` when a frozen template defines that state."""
+    def get_lifecycle_transition_edges(state_node: StateGraphNode) -> list[StateGraphEdge]:
+        """One edge per outbound template arc from ``state_node`` when a frozen template defines that state."""
 
-        tpl = vertex.node_obj.lifecycle_class._get_template()
+        tpl = state_node.node_obj.lifecycle_class._get_template()
         if tpl is None:
             return []
 
-        nid_root = vertex.node_obj.lifecycle_graph_node_id
-        state_info = tpl.get_states().get(vertex.node_obj.state_key)
+        nid_root = state_node.node_obj.lifecycle_graph_node_id
+        state_info = tpl.get_states().get(state_node.node_obj.state_key)
         if state_info is None:
             return []
 
         return [
             StateGraphEdge(
                 target_node_id=f"{nid_root}:{to_key}",
-                from_state=vertex.node_obj.state_key,
+                from_state=state_node.node_obj.state_key,
                 to_state=to_key,
                 target_node=None,
             )

@@ -57,7 +57,7 @@ ARCHITECTURE / DATA FLOW
             user_id = ctx.get(Ctx.User.user_id)
             ...
 
-    # Inspectors collect ``_required_context_keys`` into facet snapshots.
+    # Inspectors collect ``_required_context_keys`` into interchange snapshots.
     # Runtime:
     #   1. Reads aspect_meta.context_keys -> frozenset({"user.user_id", "user.roles"}).
     #   2. Creates ContextView(context, aspect_meta.context_keys).

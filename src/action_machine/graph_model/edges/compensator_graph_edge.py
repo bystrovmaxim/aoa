@@ -1,6 +1,6 @@
 # src/action_machine/graph_model/edges/compensator_graph_edge.py
 """
-CompensatorGraphEdge — COMPOSITION from Action → Compensator interchange vertex.
+CompensatorGraphEdge — COMPOSITION from Action → Compensator interchange graph node.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -28,7 +28,7 @@ from graph.composition_graph_edge import CompositionGraphEdge
 class CompensatorGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed composition edge host Action → compensator vertex.
+    ROLE: Typed composition edge host Action → compensator graph node.
     CONTRACT: ``edge_name`` equals ``compensator_node.label``; ``target_node`` is the ``CompensatorGraphNode`` instance.
     INVARIANTS: Frozen via ``CompositionGraphEdge``; ``is_dag`` False.
     AI-CORE-END

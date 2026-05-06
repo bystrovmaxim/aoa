@@ -3,7 +3,7 @@
 Abstract base for all domain marker types in ActionMachine.
 
 A domain is a typed class-level tag that groups actions, entities, and other
-facets under one business area. It carries no runtime behavior and no instance
+interchange graph participants under one business area. It carries no runtime behavior and no instance
 state, only validated ``ClassVar`` metadata consumed by inspectors and tooling.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -28,7 +28,7 @@ SCOPE (IN / OUT)
     Uniqueness of ``name`` across the whole program (multiple classes may
     legally share the same string until a higher layer forbids it).
     Domain registration enters the interchange graph **at build time** when inspectors
-    emit vertices; that wiring is not declared in this module.
+    emit graph nodes; that wiring is not declared in this module.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

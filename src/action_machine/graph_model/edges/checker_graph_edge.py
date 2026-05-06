@@ -1,6 +1,6 @@
 # src/action_machine/graph_model/edges/checker_graph_edge.py
 """
-CheckerGraphEdge — COMPOSITION from RegularAspect → Checker interchange vertex.
+CheckerGraphEdge — COMPOSITION from RegularAspect → Checker interchange graph node.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -37,8 +37,8 @@ from graph.composition_graph_edge import CompositionGraphEdge
 class CheckerGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed composition edge regular aspect vertex → checker row.
-    CONTRACT: ``edge_name`` literal ``@result_checker``; ``is_dag`` False; ``target_node`` is the checker vertex.
+    ROLE: Typed composition edge regular aspect graph node → checker row.
+    CONTRACT: ``edge_name`` literal ``@result_checker``; ``is_dag`` False; ``target_node`` is the checker graph node.
     FACTORY: ``checkers_for_method`` parses ``_checker_meta``; ``get_checker_edges`` materializes checker rows wired to ``aspect_node``.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.
     AI-CORE-END

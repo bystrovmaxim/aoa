@@ -1,6 +1,6 @@
 # src/action_machine/graph_model/nodes/state_graph_node.py
 """
-StateGraphNode — interchange vertex for one state slot under a lifecycle vertex.
+StateGraphNode — interchange graph node for one state slot under a lifecycle graph node.
 
 ``node_id`` is the parent :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`
 interchange id plus ``:`` and the caller-supplied state key (trimmed).
@@ -11,7 +11,7 @@ rows live in :attr:`lifecycle_transitions` and are returned from :meth:`~graph.b
 The parent :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode` keeps companion rows in :attr:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.states`; :meth:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode.get_all_edges` flattens the **same instances** carried here in :attr:`lifecycle_transitions`.
 
 Constructed only via :meth:`~action_machine.graph_model.edges.lifecycle_state_graph_edge.LifeCycleStateGraphEdge.get_state_edges`
-or equivalent wiring onto the parent lifecycle interchange row (**not** by listing companions on this vertex).
+or equivalent wiring onto the parent lifecycle interchange row (**not** by listing companions on this graph node).
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ class StateGraphPayload:
 class StateGraphNode(BaseGraphNode[StateGraphPayload]):
     """
     AI-CORE-BEGIN
-    ROLE: Interchange vertex for one state key scoped under the parent interchange row :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`.
+    ROLE: Interchange graph node for one state key scoped under the parent interchange row :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`.
     CONTRACT: ``node_id`` is ``lifecycle_graph_node_id.strip() + ':' + state_key.strip()``; ``node_type`` mirrors ``StateInfo.state_type`` on the lifecycle template; ``label`` trimmed state key; ``properties`` carry ``lifecycle_class_id`` / ``state_key``; ``node_obj`` is :class:`StateGraphPayload` (``lifecycle_graph_node_id`` matches parent's ``node_id``).
     INVARIANTS: Frozen; :attr:`lifecycle_transitions` lists transitions from :meth:`~action_machine.graph_model.edges.state_graph_edge.StateGraphEdge.get_lifecycle_transition_edges` and is surfaced by ``get_all_edges``; :meth:`get_companion_nodes` is always empty (lifecycle rows register via ``LifeCycleGraphEdge``).
     FAILURES: :exc:`ValueError` when ``lifecycle_graph_node_id`` or ``state_key`` is blank after strip; :exc:`LifecycleGraphError` when the lifecycle class has no template or ``state_key`` is missing from that template.

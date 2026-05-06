@@ -1,13 +1,13 @@
 # src/action_machine/graph_model/edges/params_graph_edge.py
 """
-ParamsGraphEdge — AGGREGATION from Action host → Params interchange vertex.
+ParamsGraphEdge — AGGREGATION from Action host → Params interchange graph node.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Centralize ``edge_name=\"params\"`` and aggregation semantics for edges whose target
-is the declared params schema vertex. Resolves ``params`` type via
+is the declared params schema graph node. Resolves ``params`` type via
 :meth:`~action_machine.intents.action_schema.action_schema_intent_resolver.ActionSchemaIntentResolver.resolve_params_type`
 on ``action_cls``. Raises :exc:`~action_machine.exceptions.ParamsGraphEdgeResolutionError`
 when that resolver returns ``None``.
@@ -33,7 +33,7 @@ from graph.base_graph_node import BaseGraphNode
 class ParamsGraphEdge(AggregationGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed aggregation edge host Action → params schema vertex.
+    ROLE: Typed aggregation edge host Action → params schema graph node.
     CONTRACT: ``edge_name`` ``params``, ``is_dag`` False; params type from ``resolve_params_type(action_cls)``. ``target_node`` may be wired by the interchange coordinator.
     INVARIANTS: Frozen via ``AggregationGraphEdge``; ``target_node`` optional stub until hydrated.
     FAILURES: :exc:`~action_machine.exceptions.ParamsGraphEdgeResolutionError` when ``resolve_params_type`` returns ``None``.

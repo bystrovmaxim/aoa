@@ -34,7 +34,7 @@ class DependsGraphEdge(AssociationGraphEdge):
     """
     AI-CORE-BEGIN
     ROLE: Typed association edge for ``@depends`` slots on an Action host.
-    CONTRACT: ``edge_name`` ``@depends``, ``is_dag`` True; coordinator wires ``target_node`` for typed vertex reads.
+    CONTRACT: ``edge_name`` ``@depends``, ``is_dag`` True; coordinator wires ``target_node`` for typed graph-node reads.
     PROPERTIES: ``description`` (human text); optional ``factory`` callable (runtime-only); ``DependencyFactory.resolve`` forwards ``*args``, ``**kwargs`` when calling ``factory``.
     INVARIANTS: Frozen via ``AssociationGraphEdge``.
     AI-CORE-END

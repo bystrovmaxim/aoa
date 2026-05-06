@@ -1,6 +1,6 @@
 # src/action_machine/graph_model/edges/required_context_graph_edge.py
 """
-RequiredContextGraphEdge — COMPOSITION from RegularAspect → RequiredContext interchange vertex.
+RequiredContextGraphEdge — COMPOSITION from RegularAspect → RequiredContext interchange graph node.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
 
 Factory helpers (:meth:`RequiredContextGraphEdge.required_context_nodes_for_aspect`,
 :meth:`RequiredContextGraphEdge.get_required_context_edges`) resolve ``@context_requires`` keys on the aspect
-callable and emit one typed edge per companion vertex.
+callable and emit one typed edge per companion graph node.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ from graph.composition_graph_edge import CompositionGraphEdge
 class RequiredContextGraphEdge(CompositionGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed composition edge regular aspect → one ``@context_requires`` slot vertex.
+    ROLE: Typed composition edge regular aspect → one ``@context_requires`` slot graph node.
     CONTRACT: ``edge_name`` literal ``required_context``; ``properties['key']`` from ``required_context_node.node_obj.context_key``; ``is_dag`` False.
     FACTORY: ``required_context_nodes_for_aspect`` builds companions from ``ContextRequiresResolver``; ``get_required_context_edges`` attaches one edge per node.
     INVARIANTS: Frozen via ``CompositionGraphEdge``.

@@ -12,13 +12,13 @@ a concrete result **class** object. Interchange data lives in ``id``, ``node_typ
 
 For each declared Pydantic field on the result class, emits a :class:`FieldGraphNode` as
 :attr:`~graph.base_graph_node.BaseGraphNode.companion_nodes` and a ``COMPOSITION`` edge from this
-result vertex to that field (same pattern as :class:`RegularAspectGraphNode` and checkers).
+result graph node for that field (same pattern as :class:`RegularAspectGraphNode` and checkers).
 For each entry in ``model_computed_fields`` (``@computed_field``) and each public plain ``property`` on the class
 (``__dict__`` over MRO, excluding names that clash with ``model_fields`` or already emitted from computed fields), emits a
 :class:`PropertyFieldGraphNode` companion and a
 ``COMPOSITION`` edge (``edge_name`` ``property`` on the typed edge class).
 
-Interchange ``node_type`` is ``"Result"``; ``id`` is the dotted class path. (Legacy facet rows may still use the string ``result_schema``.)
+Interchange ``node_type`` is ``"Result"``; ``id`` is the dotted class path. (Older interchange payloads may still use the string ``result_schema``.)
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

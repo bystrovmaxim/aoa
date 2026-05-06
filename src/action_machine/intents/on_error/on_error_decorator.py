@@ -68,7 +68,7 @@ ARCHITECTURE / DATA FLOW
     {"exception_types": (ValueError,), "description": "..."}
         │
         ▼  OnErrorIntentResolver + :func:`hydrate_error_handler_row`
-    Handler metadata for tests / facet codecs
+    Handler metadata for tests / interchange codecs
         │
         ▼  ActionProductMachine._handle_aspect_error(...)
     If context_keys non-empty -> creates ContextView and passes as ctx.
@@ -239,7 +239,7 @@ def on_error(
     """
     Method-level decorator declaring aspect error handler contract.
 
-    Writes metadata to ``method._on_error_meta`` for runtime resolvers / facet codecs.
+    Writes metadata to ``method._on_error_meta`` for runtime resolvers / interchange codecs.
     """
     # Validate decorator arguments before method application.
     normalized_types = _exception_types_invariant(exception_types)

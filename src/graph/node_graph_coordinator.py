@@ -125,9 +125,9 @@ class NodeGraphCoordinator:
 
     def get_all_nodes(self) -> tuple[BaseGraphNode[Any], ...]:
         """
-        Return every :class:`~graph.base_graph_node.BaseGraphNode` in graph vertex order.
+        Return every :class:`~graph.base_graph_node.BaseGraphNode` in graph node order.
 
-        Vertex weights are the same instances contributed during :meth:`build` (no copies).
+        ``rustworkx`` node weights are the same instances contributed during :meth:`build` (no copies).
         Order follows ``rustworkx`` node index order, which matches ascending ``node_id`` from
         :meth:`_materialize_rustworkx_graph` (sorted keys at construction).
 

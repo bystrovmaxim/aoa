@@ -26,7 +26,7 @@ from maxitor.samples.catalog.resources.pricing_feed import PricingFeedClient, Pr
 from maxitor.samples.roles import EditorRole
 
 
-@meta(description="Enrich catalog SKU with full graph facets (catalog demo)", domain=CatalogDomain)
+@meta(description="Enrich catalog SKU with full interchange graph (catalog demo)", domain=CatalogDomain)
 @check_roles(EditorRole)
 @depends(
     IndexSyncClientResource,

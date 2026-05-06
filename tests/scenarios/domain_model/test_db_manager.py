@@ -12,7 +12,7 @@ Concrete ``BaseResource`` used as the **type** in decorators, e.g.::
     @connection(OrdersDbManager, key="db", description="…")
 
 That mirrors ``@depends(SomeAction)``: the graph resolves to the canonical
-``resource_manager`` vertex for this class (one node shared by depends + connection).
+``resource_manager`` graph node for this class (one node shared by depends + connection).
 
 Tests inject instances via ``connections={\"db\": mock}`` and mock ``box.resolve(OrdersDbManager)``.
 """

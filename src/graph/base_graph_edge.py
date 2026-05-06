@@ -118,7 +118,7 @@ class BaseGraphEdge(ABC):
     @property
     @final
     def target_node_type(self) -> str:
-        """Interchange vertex type string for ``target_node`` (must be wired)."""
+        """Interchange graph-node type string for ``target_node`` (must be wired)."""
 
         tgt = self.target_node
         if tgt is None:

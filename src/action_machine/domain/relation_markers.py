@@ -24,7 +24,7 @@ SCOPE (IN / OUT)
     Constructing immutable marker objects and validating their constructor inputs.
     Pairing with ``Annotated[..., Inverse(...)]`` or ``NoInverse()`` plus
     ``= Rel(description=...)`` on entity model fields. Optional ``NoGraphEdge()``
-    suppresses interchange edges for that field while keeping it in facet metadata.
+    suppresses interchange edges for that field while keeping it in graph node metadata.
 
 **Out of scope**
     Proving the inverse field exists, types match, or ownership is compatible —

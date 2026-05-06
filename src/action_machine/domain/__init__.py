@@ -15,7 +15,7 @@ ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 Domain declarations follow the same grammar pipeline as other ActionMachine
-facets: ``intent -> decorator -> scratch -> inspector -> coordinator``.
+intents: ``intent -> decorator -> scratch -> inspector -> coordinator``.
 
     @entity  ──writes──>  _entity_info  (scratch)
          │
@@ -40,7 +40,7 @@ Domains:
 Entities:
     BaseEntity — abstract base for all entities (frozen, `extra="forbid"`).
     EntityIntent — marker mixin: the type declares participation in the
-    ``@entity`` grammar (facet / inspector at ``NodeGraphCoordinator.build()``).
+    ``@entity`` grammar (graph-node inspectors at ``NodeGraphCoordinator.build()``).
 
 State machines:
     Lifecycle — declarative finite-state machine template (import-time fluent API).

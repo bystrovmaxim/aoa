@@ -56,7 +56,7 @@ def _action_node(coord, cls: type) -> ActionGraphNode:
 
 
 class _BadRoleGraphNode(RoleGraphNode):
-    """Vertex with invalid ``node_obj`` for ``RoleChecker`` edge-shape tests."""
+    """Graph node stub with invalid ``node_obj`` for ``RoleChecker`` edge-shape tests."""
 
     def __init__(self) -> None:
         BaseGraphNode.__init__(
@@ -224,7 +224,7 @@ def test_spec_from_edges_rejects_non_role_targets() -> None:
         RoleChecker._check_roles_spec_from_action_edges(action_node)
 
 
-def test_spec_from_edges_rejects_invalid_role_vertex_payload() -> None:
+def test_spec_from_edges_rejects_invalid_role_graph_node_payload() -> None:
     edge = SimpleNamespace(target_node=_BadRoleGraphNode())
     action_node = SimpleNamespace(node_id="a.Y", roles=[edge])
     with pytest.raises(TypeError, match="invalid node_obj"):

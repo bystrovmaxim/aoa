@@ -61,7 +61,7 @@ from action_machine.runtime.tools_box import ToolsBox
 
 
 class AspectExecutor:
-    """Regular and summary pipelines; shared primitive ``call_aspect`` invokes only facet aspect methods."""
+    """Regular and summary pipelines; shared primitive ``call_aspect`` invokes only interchange aspect methods."""
 
     def __init__(
         self,
@@ -104,7 +104,7 @@ class AspectExecutor:
         Shared primitive: invoke one regular or summary aspect callable only.
 
         Not for compensators, saga rollback, ``@on_error``, or non-aspect hooks.
-        ``aspect_node`` is a regular or summary interchange vertex; wraps ``node_obj`` with scoped log / ``ContextView``.
+        ``aspect_node`` is a regular or summary interchange graph node; wraps ``node_obj`` with scoped log / ``ContextView``.
         """
         aspect_log = ScopedLogger(
             coordinator=self._log_coordinator,
@@ -201,7 +201,7 @@ class AspectExecutor:
         if summary_node is None:
             raise MissingSummaryAspectError(
                 f"{action_cls.__name__} has no summary aspect; declare @summary_aspect or use "
-                "an action graph that exposes a summary interchange vertex.",
+                "an action graph that exposes a summary interchange graph node.",
             )
         summary_start = time.time()
         raw = await self.call_aspect(
