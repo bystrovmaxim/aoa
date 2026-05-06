@@ -9,7 +9,8 @@ Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.graph_mo
 :class:`~action_machine.graph_model.nodes.checker_graph_node.CheckerGraphNode`,
 :class:`~action_machine.graph_model.nodes.params_graph_node.ParamsGraphNode`, :class:`~action_machine.graph_model.nodes.result_graph_node.ResultGraphNode`,
 :class:`~action_machine.graph_model.nodes.field_graph_node.FieldGraphNode`, :class:`~action_machine.graph_model.nodes.property_field_graph_node.PropertyFieldGraphNode`,
-:class:`~action_machine.graph_model.nodes.entity_graph_node.EntityGraphNode`, :class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode`,
+:class:`~action_machine.graph_model.nodes.entity_graph_node.EntityGraphNode`, :class:`~action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`,
+:class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode`,
 :class:`~action_machine.graph_model.nodes.resource_graph_node.ResourceGraphNode`,
 and :class:`~action_machine.graph_model.nodes.role_graph_node.RoleGraphNode`. Other keys are facet-only strings (no graph-node class).
 """
@@ -19,6 +20,7 @@ from __future__ import annotations
 from urllib.parse import quote
 
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.application_graph_node import ApplicationGraphNode
 from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
 from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
 from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
@@ -34,7 +36,6 @@ from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNo
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.interchange.vertex_labels import APPLICATION_VERTEX_TYPE
 
 # ``ErrorHandler``: amber disk + darker amber glyph (single hue family; avoids neon yellow / fire-engine red).
 _ERROR_HANDLER_INNER_STROKE: str = "#B45309"
@@ -48,7 +49,7 @@ _LUCIDE_FIELD_OR_PROPERTY_INNER: str = (
 # fmt: off
 # Inner elements only (no <svg> wrapper), spaces preserved for valid XML.
 VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
-    APPLICATION_VERTEX_TYPE: (
+    ApplicationGraphNode.NODE_TYPE: (
         '<rect width="7" height="9" x="3" y="3" rx="1" /> '
         '<rect width="7" height="5" x="14" y="3" rx="1" /> '
         '<rect width="7" height="9" x="14" y="12" rx="1" /> '

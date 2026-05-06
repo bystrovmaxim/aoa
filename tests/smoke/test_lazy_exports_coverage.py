@@ -99,7 +99,7 @@ def test_intents_connection_lazy_symbols_resolve() -> None:
         assert getattr(conn, name) is not None
 
 
-def test_interchange_vertex_labels_import_resolves() -> None:
-    vl = importlib.import_module("action_machine.interchange.vertex_labels")
-    assert vl.APPLICATION_VERTEX_TYPE == "Application"
+def test_application_package_exports_resolve() -> None:
+    app = importlib.import_module("action_machine.application")
+    assert app.Application is not None
 

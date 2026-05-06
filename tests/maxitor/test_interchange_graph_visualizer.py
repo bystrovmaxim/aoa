@@ -10,11 +10,12 @@ from unittest.mock import patch
 import pytest
 import rustworkx as rx
 
+from action_machine.application import Application
+from action_machine.graph_model.nodes.application_graph_node import ApplicationGraphNode
 from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
 from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.system_core import TypeIntrospection
 from graph.association_graph_edge import AssociationGraphEdge
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
@@ -55,21 +56,12 @@ class _TestGraphNode(BaseGraphNode[object]):
         return self._edges
 
 
-class _ApplicationNodePayload:
-    """Test-only payload type for ``node_type=\"Application\"`` viz round-trips."""
-
-
 def test_interchange_node_and_edge_to_visual_dicts() -> None:
-    n = _TestGraphNode(
-        node_id=TypeIntrospection.full_qualname(_ApplicationNodePayload),
-        node_type="Application",
-        label=_ApplicationNodePayload.__name__,
-        node_obj=_ApplicationNodePayload,
-    )
+    n = ApplicationGraphNode(Application)
     d = interchange_node_to_visual_dict(n)
     assert d["id"] == n.node_id
-    assert d["node_type"] == "Application"
-    assert "_ApplicationNodePayload" in d["node_obj"]
+    assert d["node_type"] == ApplicationGraphNode.NODE_TYPE
+    assert "Application" in d["node_obj"]
     e = AssociationGraphEdge(
         edge_name="belongs_to",
         is_dag=False,
@@ -242,7 +234,7 @@ def test_generate_interchange_g6_html_accepts_native_base_graph_nodes(tmp_path: 
 
 
 def test_all_axis_inspectors_count() -> None:
-    assert len(all_axis_graph_node_inspectors()) == 7
+    assert len(all_axis_graph_node_inspectors()) == 8
 
 
 class _BadRefAxis:

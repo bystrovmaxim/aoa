@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Any
 
 from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.application_graph_node import ApplicationGraphNode
 from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
 from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
 from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
@@ -45,7 +46,6 @@ from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNo
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
-from action_machine.interchange.vertex_labels import APPLICATION_VERTEX_TYPE
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
@@ -84,7 +84,7 @@ INTERCHANGE_AXES_GRAPH_HTML_PATH: Path = _default_archive_logs_dir() / "graph_no
 # Palette: Okabe–Ito / Tol-inspired, maximally distinct hues; ``Application`` is black (root).
 # Keys use interchange ``node_type`` ids (``NODE_TYPE`` on graph-node classes where applicable).
 VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
-    APPLICATION_VERTEX_TYPE: "#000000",
+    ApplicationGraphNode.NODE_TYPE: "#000000",
     ActionGraphNode.NODE_TYPE: "#E41A1C",
     DomainGraphNode.NODE_TYPE: "#377EB8",
     ResourceGraphNode.NODE_TYPE: "#7570B3",
@@ -273,7 +273,7 @@ def _propagate_node_domains(  # pylint: disable=too-many-branches
         src, tgt = str(e["source"]), str(e["target"])
         if id_to_type.get(tgt) != DomainGraphNode.NODE_TYPE:
             continue
-        if id_to_type.get(src) == APPLICATION_VERTEX_TYPE:
+        if id_to_type.get(src) == ApplicationGraphNode.NODE_TYPE:
             continue
         node_domains[src].add(tgt)
 
@@ -324,7 +324,7 @@ def _d3_seed_xy_for_nodes(  # pylint: disable=too-many-branches
     center_ids: list[str] = []
     for n in g6_nodes:
         nid = str(n["id"])
-        if id_to_type.get(nid) == APPLICATION_VERTEX_TYPE:
+        if id_to_type.get(nid) == ApplicationGraphNode.NODE_TYPE:
             center_ids.append(nid)
             continue
         if id_to_type.get(nid) == DomainGraphNode.NODE_TYPE:
@@ -345,7 +345,7 @@ def _d3_seed_xy_for_nodes(  # pylint: disable=too-many-branches
         members: list[str] = []
         for n in g6_nodes:
             nid = str(n["id"])
-            if id_to_type.get(nid) == APPLICATION_VERTEX_TYPE:
+            if id_to_type.get(nid) == ApplicationGraphNode.NODE_TYPE:
                 continue
             if nid == dom_id:
                 members.append(nid)
@@ -396,7 +396,7 @@ def _bubble_sets_plugins_for_domains(
     for d in domain_ids:
         mem = {d}
         for nid, doms in node_domains.items():
-            if d in doms and id_to_type.get(nid) != APPLICATION_VERTEX_TYPE:
+            if d in doms and id_to_type.get(nid) != ApplicationGraphNode.NODE_TYPE:
                 mem.add(nid)
         members_by_domain[d] = mem
 
@@ -407,7 +407,7 @@ def _bubble_sets_plugins_for_domains(
         for i, dom_id in enumerate(sorted(domain_ids, key=lambda did: _domain_sort_key_for_id(g6_nodes, did))):
             raw_members = members_by_domain.get(dom_id, {dom_id})
             members = sorted(
-                [m for m in raw_members if id_to_type.get(m) != APPLICATION_VERTEX_TYPE],
+                [m for m in raw_members if id_to_type.get(m) != ApplicationGraphNode.NODE_TYPE],
             )
             dom_node = next(n for n in g6_nodes if str(n["id"]) == dom_id)
             ddata = dom_node.get("data") or {}

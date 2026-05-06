@@ -1,13 +1,13 @@
-# src/action_machine/interchange/vertex_labels.py
+# src/action_machine/application/__init__.py
 """
-Interchange ``node_type`` string constants for facet / graph labeling.
+Application root marker for interchange ``Application`` vertices.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-String aliases shared by MCP, viz, and tests; individual graph node classes expose
-their own ``NODE_TYPE`` literals.
+Exports :class:`Application` — the class whose graph row is
+:class:`~action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -15,13 +15,12 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    graph_model nodes & inspectors ──► these constants ──► HTML / MCP / snapshots
+    Application  ──>  ApplicationGraphNode  ──>  coordinator / viz
 
 """
 
 from __future__ import annotations
 
-from typing import Final
+from action_machine.application.application import Application
 
-# Logical application root interchange ``node_type`` (“Application” row in viz/layout).
-APPLICATION_VERTEX_TYPE: Final[str] = "Application"
+__all__ = ["Application"]
