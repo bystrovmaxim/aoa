@@ -42,15 +42,6 @@ If additional fields are needed, define them explicitly in a subclass:
         priority: int = Field(description="Order priority")
 
 ═══════════════════════════════════════════════════════════════════════════════
-FIELD DESCRIPTIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Each field should use ``Field(description="...")``. Description completeness is
-validated by :mod:`action_machine.model.described_schema_validation`
-(``validate_described_schema`` / ``validate_described_schemas_for_action``).
-Descriptions are used for OpenAPI (FastAPI), JSON Schema (MCP), and introspection.
-
-═══════════════════════════════════════════════════════════════════════════════
 PYDANTIC CAPABILITIES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -98,11 +89,6 @@ from graph.exclude_graph_model import exclude_graph_model
 
 @exclude_graph_model
 class BaseParams(BaseSchema):
-    """
-    Immutable action parameters (frozen + forbid).
-
-    Subclasses participate in described-field validation
-    (:mod:`~action_machine.model.described_schema_validation`).
-    """
+    """Immutable action parameters (frozen + forbid)."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
