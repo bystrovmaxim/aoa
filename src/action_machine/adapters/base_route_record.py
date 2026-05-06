@@ -49,11 +49,6 @@ from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
 from action_machine.model.base_action import BaseAction
-from action_machine.runtime.binding import action_generic_params as _action_generic_params
-
-# Re-exported for adapter edge tests (forward-ref resolution helpers).
-_resolve_forward_ref = _action_generic_params._resolve_forward_ref
-_resolve_generic_arg = _action_generic_params._resolve_generic_arg
 
 
 def extract_action_types(action_class: type) -> tuple[type | None, type | None]:

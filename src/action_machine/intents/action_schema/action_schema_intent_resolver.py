@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
-from typing import Literal, get_args, get_origin
+import sys
+import typing
+from typing import Any, ForwardRef, Literal, get_args, get_origin
 
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.runtime.binding.action_generic_params import _resolve_generic_arg
 
 
 class ActionSchemaIntentResolver:
@@ -63,6 +64,47 @@ class ActionSchemaIntentResolver:
                     args = get_args(base)
                     if len(args) <= type_arg_index:
                         return None
-                    resolved_type = _resolve_generic_arg(args[type_arg_index], action_cls)
+                    resolved_type = ActionSchemaIntentResolver._resolve_type_arg(
+                        args[type_arg_index],
+                        action_cls,
+                    )
                     return resolved_type if isinstance(resolved_type, type) else None
         return None
+
+    @staticmethod
+    def _resolve_type_arg(arg: Any, action_cls: type) -> type | None:
+        """Resolve one ``BaseAction[P, R]`` argument in the action class namespace."""
+        if isinstance(arg, type):
+            return arg
+        if isinstance(arg, ForwardRef):
+            return ActionSchemaIntentResolver._resolve_forward_type(arg, action_cls)
+        if isinstance(arg, str):
+            return ActionSchemaIntentResolver._resolve_forward_type(ForwardRef(arg), action_cls)
+        return None
+
+    @staticmethod
+    def _resolve_forward_type(ref: ForwardRef, action_cls: type) -> type | None:
+        """Resolve a forward reference using the action module plus the action class name."""
+        module = sys.modules.get(action_cls.__module__)
+        globalns: dict[str, Any] = vars(module) if module else {}
+        localns: dict[str, Any] = {action_cls.__name__: action_cls}
+
+        try:
+            evaluate_forward_ref = getattr(typing, "evaluate_forward_ref", None)
+            if evaluate_forward_ref is not None:
+                resolved = evaluate_forward_ref(
+                    ref,
+                    globals=globalns,
+                    locals=localns,
+                    type_params=(),
+                )
+            else:
+                resolved = ref._evaluate(
+                    globalns,
+                    localns,
+                    None,
+                    recursive_guard=frozenset(),
+                )
+        except Exception:
+            return None
+        return resolved if isinstance(resolved, type) else None
