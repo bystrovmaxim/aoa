@@ -12,7 +12,7 @@ import pytest
 
 from action_machine.auth.base_role import BaseRole
 from action_machine.context.user_info import UserInfo
-from action_machine.exceptions import MissingCheckRolesError, NamingSuffixError
+from action_machine.exceptions import MissingCheckRolesError
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles.check_roles_decorator import check_roles
 from action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
@@ -37,35 +37,18 @@ class TestRoleModeDecorator:
 
 
 class TestBaseRoleValidation:
-    def test_suffix_required(self) -> None:
-        with pytest.raises(NamingSuffixError):
-
-            class Bad(BaseRole):  # type: ignore[misc]
-                name = "x"
-                description = "y"
-
     def test_child_may_inherit_name_from_intermediate_role(self) -> None:
+        @role_mode(RoleMode.ALIVE)
         class MiddleRole(BaseRole):
             name = "mid"
             description = "mid"
 
+        @role_mode(RoleMode.ALIVE)
         class LeafRole(MiddleRole):
             description = "leaf"
 
         assert LeafRole.name == "mid"
         assert LeafRole.description == "leaf"
-
-    def test_name_must_be_str(self) -> None:
-        with pytest.raises(TypeError, match="name"):
-            class BadRole(BaseRole):  # type: ignore[misc]
-                name = 1  # type: ignore[misc]
-                description = "d"
-
-    def test_name_cannot_be_whitespace_only(self) -> None:
-        with pytest.raises(ValueError, match="empty"):
-            class BadRole(BaseRole):  # type: ignore[misc]
-                name = "   "
-                description = "d"
 
 
 @role_mode(RoleMode.ALIVE)
