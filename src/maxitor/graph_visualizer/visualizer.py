@@ -42,6 +42,7 @@ from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 from action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
 from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.graph_model.nodes.field_graph_node import FieldGraphNode
+from action_machine.graph_model.nodes.lifecycle_graph_node import LifeCycleGraphNode
 from action_machine.graph_model.nodes.params_graph_node import ParamsGraphNode
 from action_machine.graph_model.nodes.property_field_graph_node import PropertyFieldGraphNode
 from action_machine.graph_model.nodes.regular_aspect_graph_node import (
@@ -94,7 +95,7 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     CompensatorGraphNode.NODE_TYPE: "#F781BF",
     ErrorHandlerGraphNode.NODE_TYPE: "#FCD34D",
     EntityGraphNode.NODE_TYPE: "#1B9E77",
-    "lifecycle": "#00798C",
+    LifeCycleGraphNode.NODE_TYPE: "#00798C",
     "lifecycle_state_initial": "#9575CD",
     "lifecycle_state_intermediate": "#6A51A3",
     "lifecycle_state_final": "#452E7A",

@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+from action_machine.graph_model.edges.lifecycle_graph_edge import LifeCycleGraphEdge
 from action_machine.graph_model.nodes.application_graph_node import ApplicationGraphNode
 from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 
@@ -36,7 +37,7 @@ SLOT_ONLY_CONTAINMENT_CHILDREN: frozenset[str] = frozenset(
         "@compensate",
         "@on_error",
         "@required_context",
-        "lifecycle",
+        LifeCycleGraphEdge.EDGE_NAME,
         "lifecycle_contains_state",
         "lifecycle_transition",
         "generic:params",
