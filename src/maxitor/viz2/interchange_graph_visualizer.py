@@ -41,7 +41,12 @@ from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandl
 from action_machine.graph_model.nodes.field_graph_node import FieldGraphNode
 from action_machine.graph_model.nodes.params_graph_node import ParamsGraphNode
 from action_machine.graph_model.nodes.property_field_graph_node import PropertyFieldGraphNode
-from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
+from action_machine.graph_model.nodes.regular_aspect_graph_node import (
+    RegularAspectGraphNode,
+)
+from action_machine.graph_model.nodes.required_context_graph_node import (
+    RequiredContextGraphNode,
+)
 from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
 from action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
@@ -117,6 +122,11 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
 # Keep ``resource_manager`` aligned with the resource node hue.
 VERTEX_TYPE_FILL_COLORS["resource_manager"] = VERTEX_TYPE_FILL_COLORS[ResourceGraphNode.NODE_TYPE]
 
+# Align ``RequiredContext`` with the dependency fork glyph and hue (aspect context key attachment).
+VERTEX_TYPE_FILL_COLORS[RequiredContextGraphNode.NODE_TYPE] = VERTEX_TYPE_FILL_COLORS[
+    "dependency"
+]
+
 DEFAULT_COLOR = "#95a5a6"
 
 # Interchange vertex types with fixed fill + icon in this module; anything else
@@ -142,6 +152,7 @@ def _vertex_facet_label(node: dict[str, Any]) -> str:
         CheckerGraphNode.NODE_TYPE,
         CompensatorGraphNode.NODE_TYPE,
         ErrorHandlerGraphNode.NODE_TYPE,
+        RequiredContextGraphNode.NODE_TYPE,
     ):
         lab = str(node.get("label", "") or "").strip()
         if lab:
@@ -158,6 +169,7 @@ def _element_short_name(node: dict[str, Any]) -> str:
         CheckerGraphNode.NODE_TYPE,
         CompensatorGraphNode.NODE_TYPE,
         ErrorHandlerGraphNode.NODE_TYPE,
+        RequiredContextGraphNode.NODE_TYPE,
     ):
         lab = str(node.get("label", "") or "").strip()
         if lab:
