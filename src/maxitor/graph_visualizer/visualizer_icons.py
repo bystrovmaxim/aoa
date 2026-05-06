@@ -61,7 +61,7 @@ _LUCIDE_FIELD_OR_PROPERTY_INNER: str = (
 
 # fmt: off
 # Inner elements only (no <svg> wrapper), spaces preserved for valid XML.
-VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
+GRAPH_NODE_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
     ApplicationGraphNode.NODE_TYPE: (
         '<rect width="7" height="9" x="3" y="3" rx="1" /> '
         '<rect width="7" height="5" x="14" y="3" rx="1" /> '
@@ -168,10 +168,10 @@ _ICON_INNER_SCALE: float = 0.58
 _ICON_STROKE_WIDTH: float = 2.0 / _ICON_INNER_SCALE
 
 
-def svg_data_uri_for_vertex_icon(fill_hex: str, node_type: str) -> str:
+def svg_data_uri_for_graph_node_icon(fill_hex: str, node_type: str) -> str:
     """Return a data: URL for a 24×24 disk with ``fill_hex``; Lucide strokes are white except ``ErrorHandler`` (amber-on-amber glyph)."""
     # Types not in the map use the ``unknown`` fork glyph.
-    inner = VERTEX_TYPE_LUCIDE_INNER_SVG.get(str(node_type).strip()) or VERTEX_TYPE_LUCIDE_INNER_SVG[
+    inner = GRAPH_NODE_TYPE_LUCIDE_INNER_SVG.get(str(node_type).strip()) or GRAPH_NODE_TYPE_LUCIDE_INNER_SVG[
         "unknown"
     ]
     s = _ICON_INNER_SCALE

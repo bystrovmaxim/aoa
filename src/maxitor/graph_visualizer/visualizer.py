@@ -2,16 +2,18 @@
 """
 HTML export for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` graphs.
 
-Vertices carry :class:`~graph.base_graph_node.BaseGraphNode` and edges carry
+Graph nodes carry :class:`~graph.base_graph_node.BaseGraphNode` and edges carry
 :class:`~graph.base_graph_edge.BaseGraphEdge`. :func:`export_interchange_axes_graph_html`
 writes a standalone AntV G6 HTML file for an **already built** coordinator to
 :data:`HTML_PATH`
 (``archive/logs/graph_node_2.html``; UTF-8, parent directories created as needed).
+Markup and layout shell live in ``template.html`` beside this module;
+Python injects graph JSON, seeds, and runtime script.
 It does **not** call :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.build` or change inspectors.
 
 :func:`generate_interchange_g6_html` takes the same built coordinator and serializes **only**
 :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.get_all_nodes` plus each node's ``edges``
-(no extra vertices, no ``rustworkx`` in this module's public API).
+(no extra nodes, no ``rustworkx`` in this module's public API).
 
 Layout, legend, domain bubbles, and the inspector panel keep the existing G6
 behaviour while staying on the interchange-node pipeline only.
@@ -30,6 +32,7 @@ import json
 import math
 from collections import defaultdict
 from collections.abc import Iterable
+from functools import cache
 from html import escape as html_escape
 from pathlib import Path
 from typing import Any
@@ -69,9 +72,16 @@ from maxitor.graph_visualizer.domain_propagation import (
 from maxitor.graph_visualizer.domain_propagation import (
     propagate_node_domains as _propagate_node_domains,
 )
-from maxitor.graph_visualizer.visualizer_icons import svg_data_uri_for_vertex_icon
+from maxitor.graph_visualizer.visualizer_icons import svg_data_uri_for_graph_node_icon
 
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
+
+_INTERCHANGE_G6_SHELL_HTML = Path(__file__).resolve().parent / "template.html"
+
+
+@cache
+def _interchange_g6_shell_html_raw() -> str:
+    return _INTERCHANGE_G6_SHELL_HTML.read_text(encoding="utf-8")
 
 def _default_archive_logs_dir() -> Path:
     """Repository ``archive/logs`` output directory for generated graph artifacts."""
@@ -81,7 +91,7 @@ def _default_archive_logs_dir() -> Path:
 # Default write target for :func:`export_interchange_axes_graph_html`.
 HTML_PATH: Path = _default_archive_logs_dir() / "graph_node_2.html"
 
-# Fixed fill per interchange vertex type (stable across graphs — not alphabetical).
+# Fixed fill per interchange graph-node ``node_type`` (stable across graphs — not alphabetical).
 # Palette: Okabe–Ito / Tol-inspired, maximally distinct hues; ``Application`` is black (root).
 # Keys use interchange ``node_type`` ids (``NODE_TYPE`` on graph-node classes where applicable).
 NODE_TYPE_FILL_COLORS: dict[str, str] = {
@@ -110,14 +120,18 @@ NODE_TYPE_FILL_COLORS: dict[str, str] = {
 
 DEFAULT_COLOR = "#95a5a6"
 
-# Interchange vertex types with fixed fill + icon in this module; anything else
-# uses one neutral fill and the generic fork glyph (see :mod:`~maxitor.graph_visualizer.visualizer_icons`).
-_KNOWN_VISUAL_VERTEX_TYPES: frozenset[str] = frozenset(NODE_TYPE_FILL_COLORS.keys())
-
 GRAPH_NODE_VISUAL_PX = 24
-GRAPH_NODE_LAYOUT_MARGIN_FRAC = 0.10
 
-def _graph_vertex_key(node: dict[str, Any]) -> str:
+_SUBTITLE_GRAPH_NODE_TYPES: frozenset[str] = frozenset({
+    RegularAspectGraphNode.NODE_TYPE,
+    SummaryAspectGraphNode.NODE_TYPE,
+    CheckerGraphNode.NODE_TYPE,
+    CompensatorGraphNode.NODE_TYPE,
+    ErrorHandlerGraphNode.NODE_TYPE,
+    RequiredContextGraphNode.NODE_TYPE,
+})
+
+def _graph_node_key(node: dict[str, Any]) -> str:
     nm = str(node.get("id") or node.get("name", "") or "").strip()
     if nm:
         return nm
@@ -125,16 +139,9 @@ def _graph_vertex_key(node: dict[str, Any]) -> str:
     return nt or "unknown"
 
 
-def _vertex_facet_label(node: dict[str, Any]) -> str:
+def _graph_node_subtitle(node: dict[str, Any]) -> str:
     nt = str(node.get("node_type", "unknown"))
-    if nt in (
-        RegularAspectGraphNode.NODE_TYPE,
-        SummaryAspectGraphNode.NODE_TYPE,
-        CheckerGraphNode.NODE_TYPE,
-        CompensatorGraphNode.NODE_TYPE,
-        ErrorHandlerGraphNode.NODE_TYPE,
-        RequiredContextGraphNode.NODE_TYPE,
-    ):
+    if nt in _SUBTITLE_GRAPH_NODE_TYPES:
         lab = str(node.get("label", "") or "").strip()
         if lab:
             return lab
@@ -144,14 +151,7 @@ def _vertex_facet_label(node: dict[str, Any]) -> str:
 
 def _element_short_name(node: dict[str, Any]) -> str:
     nt = str(node.get("node_type", "") or "").strip()
-    if nt in (
-        RegularAspectGraphNode.NODE_TYPE,
-        SummaryAspectGraphNode.NODE_TYPE,
-        CheckerGraphNode.NODE_TYPE,
-        CompensatorGraphNode.NODE_TYPE,
-        ErrorHandlerGraphNode.NODE_TYPE,
-        RequiredContextGraphNode.NODE_TYPE,
-    ):
+    if nt in _SUBTITLE_GRAPH_NODE_TYPES:
         lab = str(node.get("label", "") or "").strip()
         if lab:
             return lab
@@ -176,7 +176,7 @@ def _element_qualified_name(node: dict[str, Any]) -> str:
     return str(node.get("id") or node.get("name", "") or node.get("label", "") or "?")
 
 
-def _fill_color_for_vertex_type(node_type: str) -> str:
+def _fill_color_for_graph_node_type(node_type: str) -> str:
     """
     Stable fill for one ``node_type`` string.
 
@@ -192,10 +192,10 @@ def _fill_color_for_vertex_type(node_type: str) -> str:
     return DEFAULT_COLOR
 
 
-def _color_map_for_vertex_types(node_types: Iterable[str]) -> dict[str, str]:
-    """Map each distinct type string present in a graph to its fill color."""
+def _color_map_for_graph_node_types(node_types: Iterable[str]) -> dict[str, str]:
+    """Map each distinct ``node_type`` present in the graph to its fill color."""
     unique = sorted({str(t) for t in node_types if str(t)})
-    return {t: _fill_color_for_vertex_type(t) for t in unique}
+    return {t: _fill_color_for_graph_node_type(t) for t in unique}
 
 
 def _serialize_graph_value(value: Any) -> str:
@@ -289,25 +289,6 @@ def _node_obj_display(node_obj: object) -> str:
     return str(node_obj)
 
 
-def interchange_model_dict_for_g6(node: BaseGraphNode[Any]) -> dict[str, Any]:
-    """
-    Vertex-weight ``dict`` for the G6 helpers in this module: ``id``, ``node_type``,
-    ``label``, ``properties``, ``node_obj`` (string), matching the interchange facet shape.
-    """
-    merged: dict[str, Any] = {
-        "id": node.node_id,
-        "node_type": node.node_type,
-        "label": node.label,
-        "properties": dict(node.properties),
-        "node_obj": _node_obj_display(node.node_obj),
-    }
-    text = str(merged.get("label", "") or "").strip()
-    if not text:
-        vid = str(merged["id"])
-        merged["label"] = vid.rsplit(".", maxsplit=1)[-1] if "." in vid else vid
-    return merged
-
-
 def interchange_node_to_visual_dict(node: BaseGraphNode[Any]) -> dict[str, Any]:
     """Shallow interchange node mapping (optional callers / tests)."""
     return {
@@ -319,6 +300,19 @@ def interchange_node_to_visual_dict(node: BaseGraphNode[Any]) -> dict[str, Any]:
     }
 
 
+def interchange_model_dict_for_g6(node: BaseGraphNode[Any]) -> dict[str, Any]:
+    """
+    Graph-node payload ``dict`` for the G6 helpers in this module: ``id``, ``node_type``,
+    ``label``, ``properties``, ``node_obj`` (string), aligned with interchange graph-node fields.
+    """
+    merged = interchange_node_to_visual_dict(node)
+    text = str(merged.get("label", "") or "").strip()
+    if not text:
+        vid = str(merged["id"])
+        merged["label"] = vid.rsplit(".", maxsplit=1)[-1] if "." in vid else vid
+    return merged
+
+
 def interchange_edge_to_visual_dict(edge: BaseGraphEdge) -> dict[str, Any]:
     """
     Edge payload for :func:`interchange_pygraph_for_g6` and G6 export.
@@ -326,8 +320,8 @@ def interchange_edge_to_visual_dict(edge: BaseGraphEdge) -> dict[str, Any]:
     Includes ArchiMate-style ``source_attachment`` / ``target_attachment`` / ``line_style``
     (``StrEnum`` string values) plus ``relationship_name`` for tooltips or debugging.
 
-    For ``COMPOSITION`` links to a ``RegularAspect`` / ``SummaryAspect`` / ``Compensator`` / ``error_handler`` vertex, attachment graphics are swapped so
-    the diamond sits on the **target** end (UML aggregate/composite whole); graph topology
+    For ``COMPOSITION`` links to a ``RegularAspect`` / ``SummaryAspect`` / ``Compensator`` / ``error_handler``
+    graph node, attachment graphics are swapped so the diamond sits on the **target** end (UML aggregate/composite whole); graph topology
     stays ``Action → callable node``.
     """
     er = edge.edge_relationship
@@ -352,12 +346,12 @@ def interchange_edge_to_visual_dict(edge: BaseGraphEdge) -> dict[str, Any]:
 
 def interchange_pygraph_for_g6(coordinator: NodeGraphCoordinator) -> Any:
     """
-    Clone the coordinator graph with dict vertex weights and ``BaseGraphEdge`` payloads on edges.
+    Clone the coordinator graph with dict graph-node payloads on nodes and ``BaseGraphEdge`` data on edges.
 
     Uses :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.get_all_nodes` and each node's
     ``edges`` (same topology as after :meth:`~graph.node_graph_coordinator.NodeGraphCoordinator.build`).
     ``rustworkx`` is imported only inside this function; the return value is a ``PyDiGraph`` for
-    callers that still want dict-weighted graphs (e.g. tests).
+    callers that still want graph nodes stored as dict payloads (e.g. tests).
     """
     import rustworkx as rx  # pylint: disable=import-outside-toplevel
 
@@ -393,13 +387,13 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
     for idx, raw in enumerate(nodes_tuple):
         if not isinstance(raw, BaseGraphNode):
             msg = (
-                f"generate_interchange_g6_html expects BaseGraphNode vertex weights; "
+                f"generate_interchange_g6_html expects BaseGraphNode payloads on nodes; "
                 f"got {type(raw).__name__!r} at coordinator node index {idx}"
             )
             raise TypeError(msg)
         idx_to_node[idx] = interchange_model_dict_for_g6(raw)
 
-    colors = _color_map_for_vertex_types(
+    colors = _color_map_for_graph_node_types(
         str(idx_to_node[idx].get("node_type", "unknown"))
         for idx in range(n_nodes)
     )
@@ -424,8 +418,8 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         node_type = str(node.get("node_type", "unknown"))
         short = _element_short_name(node)
         ntitle = _node_title_for_visual(node)
-        facet_label = _vertex_facet_label(node)
-        graph_key = _graph_vertex_key(node)
+        graph_node_subtitle = _graph_node_subtitle(node)
+        graph_key = _graph_node_key(node)
         qualified = _element_qualified_name(node)
         # Serialized interchange node fields only; derived labels for the canvas live on ``data``.
         payload_panel: dict[str, str] = {}
@@ -437,12 +431,12 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
             "data": {
                 "label": short,
                 "title": ntitle,
-                "facet_label": facet_label,
+                "graph_node_subtitle": graph_node_subtitle,
                 "graph_key": graph_key,
                 "qualified": qualified,
                 "node_type": node_type,
                 "fill": fill,
-                "iconSrc": svg_data_uri_for_vertex_icon(fill, node_type),
+                "iconSrc": svg_data_uri_for_graph_node_icon(fill, node_type),
                 "payload_panel": payload_panel,
             },
         })
@@ -476,7 +470,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         {
             "type": nt,
             "color": colors.get(nt, DEFAULT_COLOR),
-            "iconSrc": svg_data_uri_for_vertex_icon(colors.get(nt, DEFAULT_COLOR), nt),
+            "iconSrc": svg_data_uri_for_graph_node_icon(colors.get(nt, DEFAULT_COLOR), nt),
         }
         for nt in used_types
         if nt != "unknown"
@@ -486,7 +480,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
             {
                 "type": "unknown",
                 "color": DEFAULT_COLOR,
-                "iconSrc": svg_data_uri_for_vertex_icon(DEFAULT_COLOR, "unknown"),
+                "iconSrc": svg_data_uri_for_graph_node_icon(DEFAULT_COLOR, "unknown"),
             },
         ]
 
@@ -508,212 +502,6 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
     legend_json = json.dumps(legend_items, ensure_ascii=False)
     node_type_map_json = json.dumps(node_type_map, ensure_ascii=False)
     safe_title = html_escape(title)
-
-    html_template = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <title>{safe_title}</title>
-    <script src="{G6_CDN_URL}"></script>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        html, body {{ width: 100%; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; }}
-        #container {{
-            position: relative;
-            width: {width};
-            height: {height};
-            background-color: #f4f5f7;
-            background-image: radial-gradient(rgba(160,168,180,0.42) 1px, transparent 1px);
-            background-size: 20px 20px;
-        }}
-        #graph-hover-labels {{
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 20;
-            overflow: visible;
-        }}
-        .graph-hover-label {{
-            position: absolute;
-            /* Same stack as G6 ``labelFontFamily`` on edges */
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            color: #0f172a;
-            font-size: 10px;
-            font-weight: 500;
-            max-width: 160px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.2;
-            transform: translate(-50%, 0);
-        }}
-        .color-legend {{
-            position: fixed; top: 12px; left: 12px; z-index: 100000;
-            background: rgba(255,255,255,0.88); backdrop-filter: blur(8px);
-            border: 1px solid rgba(0,0,0,0.08); border-radius: 8px;
-            padding: 8px 10px; min-width: 132px; max-width: 240px;
-            max-height: 80vh; overflow-y: auto; font-size: 11px;
-            color: #2c3e50; box-shadow: 0 2px 10px rgba(0,0,0,0.07);
-            display: flex; flex-direction: column; gap: 5px;
-        }}
-        .color-legend .legend-title {{
-            font-weight: 600; font-size: 10px; text-transform: uppercase;
-            letter-spacing: 0.04em; color: #5c6370; margin-bottom: 2px;
-        }}
-        .color-legend .row {{ display: flex; align-items: center; gap: 8px; }}
-        .color-legend .legend-icon {{
-            width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
-            border: 1px solid rgba(0,0,0,0.12); object-fit: cover;
-            display: block;
-        }}
-        .color-legend .swatch {{
-            width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
-            border: 1px solid rgba(0,0,0,0.12);
-        }}
-        .node-detail-shell {{
-            position: fixed; top: 0; right: 0; height: 100vh; z-index: 100001;
-            width: min(306px, calc(92vw * 0.85)); max-width: 306px;
-            transform: translateX(100%);
-            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
-            box-shadow: -4px 0 28px rgba(0,0,0,0.07);
-        }}
-        .node-detail-shell.is-open {{
-            transform: translateX(0);
-            pointer-events: auto;
-        }}
-        .node-detail-panel {{
-            height: 100%;
-            background: #fff;
-            border-left: 1px solid #eee;
-            padding: 22px 22px 28px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            position: relative;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        }}
-        .node-detail-close {{
-            position: absolute; top: 10px; right: 10px;
-            width: 34px; height: 34px; border: none; border-radius: 8px;
-            background: transparent; color: #757575;
-            font-size: 22px; line-height: 1; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-        }}
-        .node-detail-close:hover {{ background: #f5f5f5; color: #333; }}
-        .properties-entity-name {{
-            font-size: 16px; font-weight: 700; letter-spacing: 0.04em;
-            text-transform: uppercase; color: #111; margin: 0 0 18px;
-            padding-right: 40px; line-height: 1.2;
-        }}
-        .properties-entity-name.is-vertex-kind {{
-            font-size: 14px; font-weight: 600; letter-spacing: 0.02em;
-            text-transform: none; color: #222;
-        }}
-        .prop-block {{ margin-bottom: 18px; }}
-        .prop-block-type {{ margin-bottom: 14px; }}
-        .prop-label {{
-            font-size: 11px; font-weight: 500; color: #757575; margin-bottom: 4px;
-        }}
-        .prop-label-type {{
-            font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
-            text-transform: uppercase; color: #9e9e9e; margin-bottom: 3px;
-        }}
-        .prop-value {{
-            font-size: 13px; color: #111; line-height: 1.5; word-break: break-word;
-        }}
-        .prop-value-empty-none {{
-            font-size: 13px; color: #ef5b54;
-        }}
-        .prop-type-value {{
-            font-size: 11px; font-weight: 400; color: #333; line-height: 1.35;
-        }}
-        .prop-short-label-value {{
-            font-size: 11px; color: #424242;
-        }}
-        .prop-value-mono {{
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size: 12px; word-break: break-all;
-        }}
-        .prop-value-row {{
-            display: flex; align-items: flex-start; gap: 8px;
-        }}
-        .prop-value-row .prop-mono {{
-            flex: 1; min-width: 0;
-        }}
-        .properties-section-title {{
-            font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
-            text-transform: uppercase; color: #9e9e9e; margin: 4px 0 12px;
-        }}
-        .prop-value-multiline {{
-            font-size: 11px; line-height: 1.45; white-space: pre-wrap;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            word-break: break-word;
-        }}
-        .copy-btn {{
-            flex-shrink: 0; width: 30px; height: 30px; border: none;
-            border-radius: 6px; background: #f0f0f0; color: #757575;
-            cursor: pointer; font-size: 14px; line-height: 1;
-        }}
-        .copy-btn:hover {{ background: #e8e8e8; color: #424242; }}
-        .type-row {{ display: flex; align-items: center; gap: 7px; }}
-        .type-icon {{
-            width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
-            border: 1px solid rgba(0,0,0,0.12); object-fit: cover; display: block;
-        }}
-        .type-dot {{
-            width: 7px; height: 7px; border-radius: 50%;
-            border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0;
-        }}
-        .zoom-toolbar {{
-            position: fixed; bottom: 10px; left: 10px; z-index: 100000;
-            display: flex; flex-direction: row; flex-wrap: wrap; align-items: center;
-            gap: 3px;
-            background: rgba(255,255,255,0.9); backdrop-filter: blur(6px);
-            border: 1px solid rgba(0,0,0,0.08); border-radius: 6px;
-            padding: 3px 5px; box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-        }}
-        .zoom-toolbar button {{
-            min-width: 0; width: 26px; height: 26px; padding: 0; font-size: 13px; line-height: 1;
-            cursor: pointer; border: 1px solid #c5cad3; border-radius: 4px;
-            background: #fff; color: #2c3e50; box-shadow: none;
-            display: flex; align-items: center; justify-content: center;
-        }}
-        .zoom-toolbar button:hover {{ background: #eef0f3; }}
-        .zoom-toolbar .zoom-label {{
-            font-size: 10px; font-variant-numeric: tabular-nums;
-            text-align: center; color: #5c6370; user-select: none;
-            padding: 0 4px; min-width: 2.5em;
-        }}
-    </style>
-</head>
-<body>
-    <div id="container"></div>
-    <div id="color-legend" class="color-legend"></div>
-    <aside id="node-detail-shell" class="node-detail-shell" aria-hidden="true">
-      <div class="node-detail-panel">
-        <button type="button" class="node-detail-close" id="node-detail-close" aria-label="Close properties">×</button>
-        <div id="node-detail-body"></div>
-      </div>
-    </aside>
-    <div class="zoom-toolbar" aria-label="Zoom">
-        <button type="button" id="zoom-in" title="Zoom in">+</button>
-        <button type="button" id="zoom-out" title="Zoom out">−</button>
-        <button type="button" id="zoom-fit" title="Fit to window">⊡</button>
-        <span class="zoom-label" id="zoom-pct">100%</span>
-    </div>
-    <script>
-__G6_SCRIPT__
-    </script>
-</body>
-</html>
-"""
 
     g6_script = f"""
         const graphData = {graph_data_json};
@@ -1041,7 +829,7 @@ __G6_SCRIPT__
           let html = '';
           html +=
             '<h2 class="properties-entity-name' +
-            (useHumanHeadingStyle ? ' is-vertex-kind' : '') +
+            (useHumanHeadingStyle ? ' is-graph-node-kind' : '') +
             '">' +
             esc(entityHeading) +
             '</h2>';
@@ -1274,8 +1062,15 @@ __G6_SCRIPT__
         }});
     """
 
-    html = html_template.replace("__G6_SCRIPT__", g6_script.strip())
-    path.write_text(html, encoding="utf-8")
+    html_document = (
+        _interchange_g6_shell_html_raw()
+        .replace("@@HTML_ESCAPED_TITLE@@", safe_title)
+        .replace("@@G6_CDN_URL@@", G6_CDN_URL)
+        .replace("@@CONTAINER_WIDTH@@", width)
+        .replace("@@CONTAINER_HEIGHT@@", height)
+        .replace("@@INLINE_G6_SCRIPT@@", g6_script.strip())
+    )
+    path.write_text(html_document, encoding="utf-8")
     return path
 
 
