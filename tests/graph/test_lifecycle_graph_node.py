@@ -3,8 +3,12 @@
 
 from __future__ import annotations
 
+import pytest
+
+from action_machine.domain.exceptions import LifecycleGraphError
 from action_machine.domain.lifecycle import Lifecycle
 from action_machine.graph_model.nodes.lifecycle_graph_node import LifeCycleGraphNode
+from action_machine.graph_model.nodes.state_graph_node import StateGraphNode
 
 
 class _Host:
@@ -32,3 +36,11 @@ def test_lifecycle_graph_node_edges_include_initial_state_attachment() -> None:
     assert [(edge.properties["from_state"], edge.properties["to_state"]) for edge in transitions] == [
         ("recorded", "settled"),
     ]
+
+
+def test_state_graph_node_rejects_lifecycle_without_template() -> None:
+    class _NoTemplateLifecycle(Lifecycle):
+        pass
+
+    with pytest.raises(LifecycleGraphError):
+        StateGraphNode(_NoTemplateLifecycle, "recorded", "host:status")
