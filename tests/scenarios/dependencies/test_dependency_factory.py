@@ -25,9 +25,11 @@ Scenarios covered:
 
 import pytest
 
+from action_machine.intents.meta.meta_decorator import meta
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.dependency_factory import DependencyFactory
 from action_machine.runtime.dependency_info import DependencyInfo
+from tests.scenarios.domain_model.domains import TestDomain
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper classes — intentionally simple, defined here for isolation.
@@ -46,6 +48,7 @@ class _NoArgService:
     pass
 
 
+@meta(description="Fake resource manager for dependency factory tests", domain=TestDomain)
 class _FakeResourceManager(BaseResource):
     """A fake resource manager that supports rollup."""
 
@@ -56,6 +59,7 @@ class _FakeResourceManager(BaseResource):
         return True
 
 
+@meta(description="Unsupported resource manager for dependency factory tests", domain=TestDomain)
 class _UnsupportedManager(BaseResource):
     """A resource manager that does NOT support rollup."""
 

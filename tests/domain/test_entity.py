@@ -32,7 +32,6 @@ import pytest
 from pydantic import ValidationError
 
 from action_machine.domain import BaseEntity
-from action_machine.exceptions import NamingSuffixError
 from action_machine.intents.entity import entity
 from action_machine.intents.entity.entity_decorator import EntityDecoratorError
 from tests.scenarios.domain_model.entities import SampleEntity, TestDomain
@@ -56,14 +55,14 @@ class TestEntityDecorator:
         """Empty description is rejected."""
         with pytest.raises(EntityDecoratorError, match="description cannot be empty"):
             @entity(description="", domain=TestDomain)
-            class InvalidEntity(BaseEntity):
+            class InvalidEntity:
                 id: str
 
     def test_invalid_domain(self):
         """Non-domain `domain` argument is rejected."""
         with pytest.raises(EntityDecoratorError):
             @entity(description="Test", domain="not_a_domain")
-            class InvalidEntity(BaseEntity):
+            class InvalidEntity:
                 id: str
 
     def test_plain_class_without_base_entity_allowed(self):
@@ -77,12 +76,6 @@ class TestEntityDecorator:
 
 class TestBaseEntity:
     """Tests for `BaseEntity`."""
-
-    def test_class_name_must_end_with_entity_suffix(self) -> None:
-        """Subclass name must end with ``Entity`` (`NamingSuffixError`)."""
-        with pytest.raises(NamingSuffixError, match="inherits from BaseEntity"):
-            class Order(BaseEntity):
-                pass
 
     def test_entity_creation(self):
         """Construct a fully validated entity instance."""

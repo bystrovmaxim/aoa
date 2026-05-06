@@ -22,13 +22,30 @@ Scenarios covered:
 
 import pytest
 
+from action_machine.domain.base_domain import BaseDomain
 from action_machine.resources.sql import SqlResource
+
+
+class _SqlResourceTestDomain(BaseDomain):
+    name = "sql_resource_test"
+    description = "Domain for SQL resource-layer tests."
+
+
+def meta(description: str, domain: type[BaseDomain]):
+    """Test-local metadata decorator matching the graph metadata contract."""
+
+    def decorator(cls):
+        cls._meta_info = {"description": description, "domain": domain}
+        return cls
+
+    return decorator
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Concrete subclass for testing — SqlResource is abstract.
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+@meta(description="SQL resource test connection manager", domain=_SqlResourceTestDomain)
 class _TestConnectionManager(SqlResource):
     """Minimal concrete implementation for testing SqlResource behavior."""
 
@@ -64,6 +81,7 @@ class _TestConnectionManager(SqlResource):
         self.committed = True
 
 
+@meta(description="SQL resource test manager without super init", domain=_SqlResourceTestDomain)
 class _NoSuperInitManager(SqlResource):
     """Subclass that intentionally skips super().__init__()."""
 
@@ -190,6 +208,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_open(self) -> None:
         """Subclass missing open() cannot be instantiated."""
 
+        @meta(description="Incomplete SQL resource missing open", domain=_SqlResourceTestDomain)
         class _Incomplete(SqlResource):
             def get_wrapper_class(self):
                 return None
@@ -209,6 +228,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_begin(self) -> None:
         """Subclass missing begin() cannot be instantiated."""
 
+        @meta(description="Incomplete SQL resource missing begin", domain=_SqlResourceTestDomain)
         class _Incomplete(SqlResource):
             def get_wrapper_class(self):
                 return None
@@ -228,6 +248,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_rollback(self) -> None:
         """Subclass missing rollback() cannot be instantiated."""
 
+        @meta(description="Incomplete SQL resource missing rollback", domain=_SqlResourceTestDomain)
         class _Incomplete(SqlResource):
             def get_wrapper_class(self):
                 return None
@@ -247,6 +268,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_execute(self) -> None:
         """Subclass missing execute() cannot be instantiated."""
 
+        @meta(description="Incomplete SQL resource missing execute", domain=_SqlResourceTestDomain)
         class _Incomplete(SqlResource):
             def get_wrapper_class(self):
                 return None

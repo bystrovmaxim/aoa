@@ -54,6 +54,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from action_machine.domain.base_domain import BaseDomain
 from action_machine.exceptions import HandleError, TransactionProhibitedError
 from action_machine.resources.base_resource import BaseResource
 from action_machine.resources.sql import (
@@ -62,10 +63,26 @@ from action_machine.resources.sql import (
     WrapperSqlResource,
 )
 
+
+class _WrapperSqlResourceTestDomain(BaseDomain):
+    name = "wrapper_sql_resource_test"
+    description = "Domain for wrapper SQL resource-layer tests."
+
+
+def meta(description: str, domain: type[BaseDomain]):
+    """Test-local metadata decorator matching the graph metadata contract."""
+
+    def decorator(cls):
+        cls._meta_info = {"description": description, "domain": domain}
+        return cls
+
+    return decorator
+
 # ======================================================================
 # Mock connection manager for tests
 # ======================================================================
 
+@meta(description="Wrapper SQL resource mock manager", domain=_WrapperSqlResourceTestDomain)
 class MockConnectionManager(SqlResource):
     """
     Mock SqlResource for testing WrapperSqlResource.

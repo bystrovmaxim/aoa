@@ -6,9 +6,26 @@ Aspects and ``machine.run(..., connections=...)`` accept a plain dict at runtime
 this module checks that a typical payload type-checks as the shared annotation.
 """
 
+from action_machine.domain.base_domain import BaseDomain
 from action_machine.resources.base_resource import BaseResource
 
 
+class _ResourceTestDomain(BaseDomain):
+    name = "resource_test"
+    description = "Domain for resource-layer tests."
+
+
+def meta(description: str, domain: type[BaseDomain]):
+    """Test-local metadata decorator matching the graph metadata contract."""
+
+    def decorator(cls):
+        cls._meta_info = {"description": description, "domain": domain}
+        return cls
+
+    return decorator
+
+
+@meta(description="Connections dict test resource", domain=_ResourceTestDomain)
 class DummyResourceManager(BaseResource):
     """Stub resource manager for tests."""
 

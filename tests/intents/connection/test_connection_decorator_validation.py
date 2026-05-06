@@ -2,14 +2,17 @@
 """@connection argument and target validation."""
 
 import pytest
+from tests.scenarios.domain_model.domains import TestDomain
 
 from action_machine.intents.connection.connection_decorator import (
     _validate_connection_args,
     connection,
 )
+from action_machine.intents.meta.meta_decorator import meta
 from action_machine.resources.base_resource import BaseResource
 
 
+@meta(description="Connection decorator test resource", domain=TestDomain)
 class _Mgr(BaseResource):
     def get_wrapper_class(self):
         return None
