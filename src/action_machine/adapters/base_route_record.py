@@ -45,35 +45,29 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from action_machine.intents.action_schema.action_schema_intent_resolver import (
+    ActionSchemaIntentResolver,
+)
 from action_machine.model.base_action import BaseAction
 from action_machine.runtime.binding import action_generic_params as _action_generic_params
-from action_machine.runtime.binding.extract_action_params_result_types import (
-    extract_action_params_result_types,
-)
 
 # Re-exported for adapter edge tests (forward-ref resolution helpers).
 _resolve_forward_ref = _action_generic_params._resolve_forward_ref
 _resolve_generic_arg = _action_generic_params._resolve_generic_arg
 
 
-def extract_action_types(action_class: type) -> tuple[type, type]:
+def extract_action_types(action_class: type) -> tuple[type | None, type | None]:
     """
     Extract P (params) and R (result) types from BaseAction[P, R].
 
-    Walks ``__orig_bases__`` of the action class MRO to locate the generic
-    instantiation of ``BaseAction``. Supports forward references (strings) for
-    nested Params/Result classes.
-
-    Raises:
-        TypeError: if extraction fails.
+    Uses :class:`~action_machine.intents.action_schema.action_schema_intent_resolver.ActionSchemaIntentResolver`
+    to walk MRO / ``__orig_bases__`` and resolve concrete ``BaseParams`` / ``BaseResult`` types
+    (including forward references where supported). Missing bindings yield ``None`` for that slot.
     """
-    p_type, r_type = extract_action_params_result_types(action_class)
-    if p_type is None or r_type is None:
-        raise TypeError(
-            f"Failed to extract generic parameters P and R from {action_class.__name__}. "
-            f"Action must be declared as BaseAction[Params, Result]."
-        )
-    return p_type, r_type
+    return (
+        ActionSchemaIntentResolver.resolve_params_type(action_class),
+        ActionSchemaIntentResolver.resolve_result_type(action_class),
+    )
 
 
 def ensure_machine_params(
@@ -152,6 +146,11 @@ AI-CORE-BEGIN
             )
 
         p_type, r_type = extract_action_types(self.action_class)
+        if p_type is None or r_type is None:
+            raise TypeError(
+                f"{self.action_class.__name__}: could not resolve BaseParams / BaseResult "
+                "from BaseAction[P, R].",
+            )
         object.__setattr__(self, "_cached_params_type", p_type)
         object.__setattr__(self, "_cached_result_type", r_type)
 

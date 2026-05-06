@@ -5,26 +5,20 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.exceptions import (
-    ActionResultDeclarationError,
-    MissingSummaryAspectError,
+from action_machine.exceptions import MissingSummaryAspectError
+from action_machine.intents.action_schema.action_schema_intent_resolver import (
+    ActionSchemaIntentResolver,
 )
-from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from action_machine.intents.check_roles import NoneRole, check_roles
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.model.base_state import BaseState
 from action_machine.model.params_stub import ParamsStub
 from action_machine.model.result_stub import ResultStub
-from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.binding.action_result_binding import (
-    bind_pipeline_result_to_action,
-    require_resolved_action_result_type,
     synthetic_summary_result_when_missing_aspect,
 )
-from action_machine.runtime.tools_box import ToolsBox
 from tests.scenarios.domain_model.domains import TestDomain
 
 
@@ -36,43 +30,12 @@ class _R(BaseResult):
     ok: bool = True
 
 
-def test_require_resolved_action_result_type_raises_on_plain_class() -> None:
+def test_resolve_result_type_plain_class_raises_value_error() -> None:
     class _Plain:
         pass
 
-    with pytest.raises(ActionResultDeclarationError, match="cannot resolve Result type"):
-        require_resolved_action_result_type(_Plain)
-
-
-def test_bind_pipeline_result_raises_declaration_error_when_r_unresolved() -> None:
-    class _Plain:
-        pass
-
-    with pytest.raises(ActionResultDeclarationError):
-        bind_pipeline_result_to_action(_Plain, BaseResult(), source="unit")
-
-
-def test_bind_pipeline_result_accepts_instance_of_declared_r() -> None:
-    @meta(description="probe", domain=TestDomain)
-    @check_roles(NoneRole)
-    class _ProbeAction(BaseAction[_P, _R]):
-        @summary_aspect("s")
-        async def probe_summary(
-            self,
-            params: _P,
-            state: BaseState,
-            box: ToolsBox,
-            connections: dict[str, BaseResource],
-        ) -> _R:
-            return _R()
-
-    out = bind_pipeline_result_to_action(
-        _ProbeAction,
-        _R(ok=True),
-        source="unit",
-    )
-    assert isinstance(out, _R)
-    assert out.ok is True
+    with pytest.raises(ValueError, match="Failed to resolve result type"):
+        ActionSchemaIntentResolver.resolve_result_type(_Plain)
 
 
 # Module-level: pytest's assertion rewriter can corrupt ``BaseAction[P, R]`` subscripts

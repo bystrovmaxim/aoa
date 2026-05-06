@@ -2,8 +2,9 @@
 """
 Low-level helpers to resolve generic type arguments (``ForwardRef``, strings).
 
-Primary extraction of ``P`` / ``R`` from ``BaseAction[P, R]`` lives in
-:mod:`action_machine.runtime.binding.extract_action_params_result_types`.
+Primary extraction of ``P`` / ``R`` from ``BaseAction[P, R]`` (as
+``BaseParams`` / ``BaseResult`` subclasses) lives in
+:class:`~action_machine.intents.action_schema.action_schema_intent_resolver.ActionSchemaIntentResolver`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE

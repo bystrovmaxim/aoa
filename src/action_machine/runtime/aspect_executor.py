@@ -38,13 +38,16 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Any, cast
 
 from action_machine.context.context_view import ContextView
 from action_machine.exceptions import ValidationFieldError
 from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
 from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
+from action_machine.intents.action_schema.action_schema_intent_resolver import (
+    ActionSchemaIntentResolver,
+)
 from action_machine.logging.domain_resolver import resolve_domain
 from action_machine.logging.log_coordinator import LogCoordinator
 from action_machine.logging.scoped_logger import ScopedLogger
@@ -54,7 +57,6 @@ from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.binding.action_result_binding import (
-    bind_pipeline_result_to_action,
     synthetic_summary_result_when_missing_aspect,
 )
 from action_machine.runtime.tools_box import ToolsBox
@@ -210,9 +212,6 @@ class AspectExecutor:
             connections=connections,
             context=context,
         )
-        result = bind_pipeline_result_to_action(
-            action_cls,
-            raw,
-            source=f"summary aspect `{summary_node.label}`",
-        )
+        ActionSchemaIntentResolver.resolve_result_type(action_cls)
+        result = cast(BaseResult, raw)
         return result, (time.time() - summary_start)

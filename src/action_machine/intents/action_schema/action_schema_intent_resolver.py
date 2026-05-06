@@ -14,7 +14,8 @@ class ActionSchemaIntentResolver:
     """
     AI-CORE-BEGIN
     ROLE: Resolve params/result schema intent declared by an action class generic binding.
-    CONTRACT: Returns concrete ``BaseParams`` / ``BaseResult`` subclasses when they can be resolved from ``BaseAction[P, R]``; otherwise returns ``None``.
+    CONTRACT: Returns concrete ``BaseParams`` / ``BaseResult`` subclasses resolved from ``BaseAction[P, R]``.
+    ``resolve_params_type`` may return ``None`` when args resolve to a non-``BaseParams`` type; ``resolve_result_type`` raises :exc:`ValueError` when args are missing or not a ``BaseResult`` subclass.
     AI-CORE-END
     """
 
@@ -22,17 +23,30 @@ class ActionSchemaIntentResolver:
     def resolve_params_type(action_cls: type) -> type[BaseParams] | None:
         """Resolve the ``BaseAction[P, R]`` params type."""
         params_type = ActionSchemaIntentResolver._resolve_schema_type(action_cls, 0)
+        if params_type is None:
+            raise ValueError(
+                f"Failed to resolve params type for {action_cls.__name__}. "
+                "Action must be declared as BaseAction[Params, Result]."
+            )
         if isinstance(params_type, type) and issubclass(params_type, BaseParams):
             return params_type
         return None
 
     @staticmethod
-    def resolve_result_type(action_cls: type) -> type[BaseResult] | None:
-        """Resolve the ``BaseAction[P, R]`` result type."""
+    def resolve_result_type(action_cls: type) -> type[BaseResult]:
+        """Resolve the ``BaseAction[P, R]`` result type (``BaseResult`` subclass)."""
         result_type = ActionSchemaIntentResolver._resolve_schema_type(action_cls, 1)
+        if result_type is None:
+            raise ValueError(
+                f"Failed to resolve result type for {action_cls.__name__}. "
+                "Action must be declared as BaseAction[Params, Result].",
+            )
         if isinstance(result_type, type) and issubclass(result_type, BaseResult):
             return result_type
-        return None
+        raise ValueError(
+            f"Declared result type {getattr(result_type, '__name__', result_type)!r} for "
+            f"{action_cls.__name__} must be a subclass of BaseResult.",
+        )
 
     @staticmethod
     def _resolve_schema_type(

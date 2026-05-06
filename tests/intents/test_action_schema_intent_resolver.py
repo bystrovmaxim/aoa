@@ -1,3 +1,5 @@
+import pytest
+
 from action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
@@ -16,6 +18,8 @@ def test_resolve_result_type_returns_base_result_subclass() -> None:
     assert ActionSchemaIntentResolver.resolve_result_type(PingAction) is PingAction.Result
 
 
-def test_resolve_schema_types_return_none_without_action_generic() -> None:
-    assert ActionSchemaIntentResolver.resolve_params_type(NoActionSchema) is None
-    assert ActionSchemaIntentResolver.resolve_result_type(NoActionSchema) is None
+def test_resolve_schema_types_raise_without_action_generic() -> None:
+    with pytest.raises(ValueError, match="Failed to resolve params type"):
+        ActionSchemaIntentResolver.resolve_params_type(NoActionSchema)
+    with pytest.raises(ValueError, match="Failed to resolve result type"):
+        ActionSchemaIntentResolver.resolve_result_type(NoActionSchema)
