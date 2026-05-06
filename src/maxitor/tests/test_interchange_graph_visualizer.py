@@ -23,6 +23,7 @@ from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.composition_graph_edge import CompositionGraphEdge
+from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
 from graph.exceptions import InvalidGraphError
 from graph.node_graph_coordinator import NodeGraphCoordinator
 from maxitor.graph_visualizer.domain_propagation import (
@@ -31,7 +32,6 @@ from maxitor.graph_visualizer.domain_propagation import (
 )
 from maxitor.graph_visualizer.visualizer import (
     G6_CDN_URL,
-    all_axis_graph_node_inspectors,
     generate_interchange_g6_html,
     interchange_edge_to_visual_dict,
     interchange_node_to_visual_dict,

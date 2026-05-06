@@ -18,16 +18,17 @@ import importlib
 from pathlib import Path
 
 from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
+from graph.debug_node_graph_coordinator import DebugNodeGraphCoordinator
 from graph.node_graph_coordinator import NodeGraphCoordinator
 from maxitor.graph_visualizer.visualizer import export_interchange_axes_graph_html
 from maxitor.samples.build import _MODULES
 
 
 def build_sample_node_graph_coordinator() -> NodeGraphCoordinator:
-    """Import sample modules and build a ``NodeGraphCoordinator`` for them."""
+    """Import sample modules and build a debug graph coordinator for Maxitor inspection."""
     for name in _MODULES:
         importlib.import_module(name)
-    coordinator = NodeGraphCoordinator()
+    coordinator = DebugNodeGraphCoordinator()
     coordinator.build(all_axis_graph_node_inspectors())
     return coordinator
 

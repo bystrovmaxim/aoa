@@ -21,8 +21,8 @@ behaviour while staying on the interchange-node pipeline only.
 Domain hull membership propagation is implemented in
 :mod:`~maxitor.graph_visualizer.domain_propagation` so this module stays maintainable.
 
-Edges use G6 ``line`` with default style; ``stroke`` / arrow colour follow ``isDag`` only
-(DAG accent ``#FF6163`` vs slate ``#95a5a6``) and never change on hover. On node hover, incident edges get state
+Edges use G6 ``line`` with default style; all edges are slate by default, while debug-collected
+forbidden DAG-cycle edges are red. On node hover, incident edges get state
 ``active``. Edge ``data`` still carries relationship fields for tests.
 """
 
@@ -63,6 +63,7 @@ from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAs
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
 from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
+from graph.debug_node_graph_coordinator import DebugNodeGraphCoordinator
 from graph.edge_relationship import Composition
 from graph.node_graph_coordinator import NodeGraphCoordinator
 from maxitor.graph_visualizer.domain_propagation import (
@@ -403,6 +404,11 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
     if node_colors:
         colors = {**colors, **node_colors}
 
+    cycle_violation_keys = {
+        (str(v.source_node_id), str(v.target_node_id), str(v.edge_name))
+        for v in getattr(coordinator, "dag_cycle_violations", ())
+    }
+
     g6_nodes: list[dict[str, Any]] = []
     g6_edges: list[dict[str, Any]] = []
 
@@ -453,6 +459,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
                 continue
             elabel, is_dag = _edge_label_and_dag(edge)
             vis = interchange_edge_to_visual_dict(edge)
+            is_forbidden_dag_cycle = (interchange_node.node_id, edge.target_node_id, edge.edge_name) in cycle_violation_keys
             g6_edges.append({
                 "id": f"e-{src_idx}-{tgt}-{ei}",
                 "source": str(src_idx),
@@ -460,6 +467,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
                 "data": {
                     "label": elabel,
                     "isDag": is_dag,
+                    "isForbiddenDagCycle": is_forbidden_dag_cycle,
                     "relationshipName": vis["relationship_name"],
                     "sourceAttachment": vis["source_attachment"],
                     "targetAttachment": vis["target_attachment"],
@@ -563,7 +571,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         for (const node of graphData.nodes) initAdj(node.id);
 
         function edgeBaseStroke(d) {{
-          return d.data?.isDag ? '#FF6163' : '#95a5a6';
+          return d.data?.isForbiddenDagCycle ? '#FF6163' : '#95a5a6';
         }}
         const container = document.getElementById('container');
         const graph = new G6.Graph({{
@@ -1099,7 +1107,7 @@ if __name__ == "__main__":
 
     for _mod in _MODULES:
         importlib.import_module(_mod)
-    _coord = NodeGraphCoordinator()
+    _coord = DebugNodeGraphCoordinator()
     _coord.build(all_axis_graph_node_inspectors())
     written = export_interchange_axes_graph_html(_coord)
     print(f"Interchange axes graph HTML written to {written.resolve()}")
