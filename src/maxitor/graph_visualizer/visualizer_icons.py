@@ -1,9 +1,9 @@
-# src/maxitor/viz2/visualizer_icons.py
+# src/maxitor/graph_visualizer/visualizer_icons.py
 """
 Lucide icon markup (inner SVG children only) per ``node_type``.
 
 Icons are from `lucide-static` (ISC, https://github.com/lucide-icons/lucide).
-Rendered as white strokes on the colored node disk in :mod:`maxitor.viz2.interchange_graph_visualizer`.
+Rendered as white strokes on the colored node disk in :mod:`maxitor.graph_visualizer.visualizer`.
 
 Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`,
 :class:`~action_machine.graph_model.nodes.checker_graph_node.CheckerGraphNode`,

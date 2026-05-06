@@ -1,5 +1,5 @@
 # tests/maxitor/test_interchange_graph_visualizer.py
-"""Second-path G6 export for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`maxitor.viz2.interchange_graph_visualizer`."""
+"""Second-path G6 export for :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`maxitor.graph_visualizer.visualizer`."""
 
 from __future__ import annotations
 
@@ -23,11 +23,11 @@ from graph.base_graph_node_inspector import BaseGraphNodeInspector
 from graph.composition_graph_edge import CompositionGraphEdge
 from graph.exceptions import InvalidGraphError
 from graph.node_graph_coordinator import NodeGraphCoordinator
-from maxitor.viz2.interchange_graph_domain_propagation import (
+from maxitor.graph_visualizer.domain_propagation import (
     g6_edge_propagates_domain_from_host_to_child,
     propagate_node_domains,
 )
-from maxitor.viz2.interchange_graph_visualizer import (
+from maxitor.graph_visualizer.visualizer import (
     G6_CDN_URL,
     all_axis_graph_node_inspectors,
     generate_interchange_g6_html,
@@ -256,14 +256,14 @@ class _BadRefInspector(BaseGraphNodeInspector[_BadRefAxis]):
         if cls is not _BadRefLeaf:
             return None
         dom = _TestGraphNode(
-            node_id="tests.viz2.bad_domain",
+            node_id="tests.graph_visualizer.bad_domain",
             node_type="Domain",
             label="BadDomain",
             edges=[
                 AssociationGraphEdge(
                     edge_name="belongs_to",
                     is_dag=False,
-                    target_node_id="tests.viz2.MISSING_APPLICATION_TARGET",
+                    target_node_id="tests.graph_visualizer.MISSING_APPLICATION_TARGET",
                 ),
             ],
             node_obj=object(),
@@ -272,7 +272,7 @@ class _BadRefInspector(BaseGraphNodeInspector[_BadRefAxis]):
 
 
 def test_coordinator_build_fails_on_dangling_edge_target() -> None:
-    """No viz2 helper may add missing vertices; the coordinator must reject dangling edges."""
+    """No graph visualizer helper may add missing vertices; the coordinator must reject dangling edges."""
     coord = NodeGraphCoordinator()
     with pytest.raises(InvalidGraphError, match="missing target_node_id"):
         coord.build([_BadRefInspector()])

@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Provide a minimal harness around :mod:`maxitor.samples`: one import path to the
-primary domain marker and the viz2 HTML export path built on
+primary domain marker and the graph visualizer HTML export path built on
 ``NodeGraphCoordinator``.
 """
 
