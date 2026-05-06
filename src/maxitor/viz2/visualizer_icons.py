@@ -12,6 +12,7 @@ Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.graph_mo
 :class:`~action_machine.graph_model.nodes.entity_graph_node.EntityGraphNode`, :class:`~action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`,
 :class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode`,
 :class:`~action_machine.graph_model.nodes.resource_graph_node.ResourceGraphNode`,
+:class:`~action_machine.graph_model.nodes.required_context_graph_node.RequiredContextGraphNode`,
 and :class:`~action_machine.graph_model.nodes.role_graph_node.RoleGraphNode`. Other keys are facet-only strings (no graph-node class).
 """
 
@@ -31,6 +32,9 @@ from action_machine.graph_model.nodes.params_graph_node import ParamsGraphNode
 from action_machine.graph_model.nodes.property_field_graph_node import PropertyFieldGraphNode
 from action_machine.graph_model.nodes.regular_aspect_graph_node import (
     RegularAspectGraphNode,
+)
+from action_machine.graph_model.nodes.required_context_graph_node import (
+    RequiredContextGraphNode,
 )
 from action_machine.graph_model.nodes.resource_graph_node import ResourceGraphNode
 from action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
@@ -197,6 +201,9 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
 # fmt: on
 
 VERTEX_TYPE_LUCIDE_INNER_SVG[RoleGraphNode.NODE_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG["role_class"]
+VERTEX_TYPE_LUCIDE_INNER_SVG[RequiredContextGraphNode.NODE_TYPE] = VERTEX_TYPE_LUCIDE_INNER_SVG[
+    "dependency"
+]
 VERTEX_TYPE_LUCIDE_INNER_SVG["resource_manager"] = VERTEX_TYPE_LUCIDE_INNER_SVG[
     ResourceGraphNode.NODE_TYPE
 ]
