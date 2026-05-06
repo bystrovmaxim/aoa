@@ -15,6 +15,14 @@ from typing import Any, cast
 from action_machine.system_core import TypeIntrospection
 
 
+def _missing_on_error_description_message(func: Callable[..., Any]) -> str:
+    qual = TypeIntrospection.qualname_of(func)
+    return (
+        f"{qual} has no usable @on_error description "
+        "required for graph metadata resolution."
+    )
+
+
 @dataclass(frozen=True)
 class OnErrorHandlerFacetHydration:
     """One handler decoded from facet ``node_meta`` (paired with ``@on_error`` on the owning class)."""
@@ -31,6 +39,7 @@ class OnErrorIntentResolver:
     AI-CORE-BEGIN
     ROLE: Resolve on-error handler intent declarations from one action class.
     CONTRACT: Returns own-class ``@on_error`` callables in declaration order and does not materialize graph nodes.
+    FAILURES: :exc:`ValueError` from :meth:`resolve_description` when ``_on_error_meta`` is missing or not a ``dict``.
     AI-CORE-END
     """
 
@@ -43,10 +52,13 @@ class OnErrorIntentResolver:
         )
 
     @staticmethod
-    def resolve_description(call_like: Any) -> str | None:
-        """Return ``@on_error`` description from callable scratch when present."""
+    def resolve_description(call_like: Any) -> Any:
+        """Return ``@on_error`` ``description`` from scratch; raise when ``_on_error_meta`` is not a ``dict``."""
         func = TypeIntrospection.unwrap_declaring_class_member(call_like)
-        return TypeIntrospection.description_from_meta(getattr(func, "_on_error_meta", None))
+        meta = getattr(func, "_on_error_meta", None)
+        if not isinstance(meta, dict):
+            raise ValueError(_missing_on_error_description_message(func))
+        return meta.get("description")
 
     @staticmethod
     def resolve_exception_types(call_like: Any) -> tuple[type[Exception], ...]:

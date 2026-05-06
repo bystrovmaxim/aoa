@@ -15,7 +15,7 @@ def test_resolve_regular_aspects_returns_own_regular_aspects() -> None:
     ]
 
 
-def test_resolve_description_returns_stripped_decorator_string() -> None:
+def test_resolve_description_returns_decorator_string() -> None:
     assert RegularAspectIntentResolver.resolve_description(ChildAction.process_aspect) == "Process value"
 
 

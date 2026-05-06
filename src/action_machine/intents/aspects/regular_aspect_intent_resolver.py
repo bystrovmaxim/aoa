@@ -22,7 +22,7 @@ class RegularAspectIntentResolver:
     AI-CORE-BEGIN
     ROLE: Resolve regular aspect intent declarations from one action class.
     CONTRACT: Returns own-class ``@regular_aspect`` callables in declaration order and does not materialize graph nodes.
-    FAILURES: :exc:`ValueError` from :meth:`resolve_description` when scratch is not a regular-aspect callable or carries no non-empty ``description``.
+    FAILURES: :exc:`ValueError` from :meth:`resolve_description` when the callable is not an aspect target, or ``_new_aspect_meta`` is missing or not a ``dict``.
     AI-CORE-END
     """
 
@@ -38,8 +38,8 @@ class RegularAspectIntentResolver:
         )
 
     @staticmethod
-    def resolve_description(call_like: Any) -> str:
-        """Return stripped ``@regular_aspect`` description or raise :exc:`ValueError`."""
+    def resolve_description(call_like: Any) -> Any:
+        """Return ``@regular_aspect`` ``description`` from scratch (exact ``dict`` value); raise when scratch is absent."""
         func = TypeIntrospection.unwrap_declaring_class_member(call_like)
         if not callable(func):
             raise ValueError(
@@ -47,9 +47,6 @@ class RegularAspectIntentResolver:
                 f"got {type(call_like).__name__}: {call_like!r}.",
             )
         meta = getattr(func, "_new_aspect_meta", None)
-        if not isinstance(meta, dict) or meta.get("type") != "regular":
+        if not isinstance(meta, dict):
             raise ValueError(_missing_regular_aspect_description_message(func))
-        desc = TypeIntrospection.description_from_meta(meta)
-        if desc is None:
-            raise ValueError(_missing_regular_aspect_description_message(func))
-        return desc
+        return meta.get("description")

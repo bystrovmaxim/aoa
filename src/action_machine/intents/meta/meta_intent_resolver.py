@@ -1,5 +1,4 @@
 # src/action_machine/intents/meta/meta_intent_resolver.py
-# src/action_machine/intents/meta/meta_intent_resolver.py
 """MetaIntentResolver — resolves normalized ``@meta`` declarations."""
 
 from __future__ import annotations
@@ -39,7 +38,8 @@ class MetaIntentResolver:
     @staticmethod
     def resolve_description(host_cls: type) -> str:
         """Return stripped ``@meta`` ``description`` or raise :exc:`MissingMetaError`."""
-        description = MetaIntentResolver.meta_info_dict(host_cls).get("description")
-        if not isinstance(description, str) or not description.strip():
+        info = MetaIntentResolver.meta_info_dict(host_cls)
+        raw = info.get("description")
+        if not isinstance(raw, str) or not raw.strip():
             raise MissingMetaError(host_cls, key="description")
-        return description.strip()
+        return raw.strip()
