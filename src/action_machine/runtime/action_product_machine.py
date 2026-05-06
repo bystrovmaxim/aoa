@@ -10,8 +10,8 @@ PURPOSE
 gates, ``ToolsBox`` construction, the aspect pipeline (regular → summary),
 typed plugin lifecycle events, saga rollback on failure, and ``@on_error``
 handling. Heavy logic lives in injectable components (``RoleChecker``,
-``ConnectionValidator``, ``ToolsBoxFactory``, ``AspectExecutor``,
-``ErrorHandlerExecutor``, ``SagaCoordinator``); this class wires order and
+``ConnectionValidator``, ``AspectExecutor``, ``ErrorHandlerExecutor``,
+``SagaCoordinator``); this class wires order and
 ``PluginCoordinator`` for all machine-owned plugin lifecycle emissions
 (global start/finish and regular/summary aspect events).
 
@@ -29,8 +29,7 @@ ARCHITECTURE / DATA FLOW
                 ├── _role_checker.check(context, action_node)
                 ├── conns = _connection_validator.validate(action, connections, action_node)
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
-                ├── box = _tools_box_factory.create(factory_resolver=self, ...,
-                │         nest_level, context, ...)
+                ├── box = get_tools_box(..., nested_level=current_nest)
                 ├── _plugin_coordinator.emit_global_start(...)
                 ├── _execute_pipeline_aspects(...)
                 │       ├── per regular aspect:
@@ -46,8 +45,8 @@ ARCHITECTURE / DATA FLOW
                 ├── _plugin_coordinator.emit_global_finish(...)
                 └── return Result
 
-``DependencyFactory`` for ``ToolsBox`` is resolved via the public
-``dependency_factory_for`` hook passed into ``ToolsBoxFactory.create``.
+``DependencyFactory`` for ``ToolsBox`` is built in ``get_tools_box`` with
+``DependsIntentResolver.resolve_dependency_infos(action_cls)``.
 
 **Where plugin events are emitted**
 
@@ -106,7 +105,6 @@ from action_machine.runtime.role_checker import RoleChecker
 from action_machine.runtime.saga_coordinator import SagaCoordinator
 from action_machine.runtime.saga_frame import SagaFrame
 from action_machine.runtime.tools_box import ToolsBox
-from action_machine.runtime.tools_box_factory import ToolsBoxFactory
 from action_machine.system_core.type_introspection import TypeIntrospection
 from graph.create_node_graph_coordinator import create_node_graph_coordinator
 from graph.node_graph_coordinator import NodeGraphCoordinator
@@ -147,7 +145,6 @@ class ActionProductMachine(BaseActionMachine):
         self.graph_coordinator = graph_coordinator or create_node_graph_coordinator()
         self._role_checker = role_checker or RoleChecker()
         self._connection_validator = connection_validator or ConnectionValidator()
-        self._tools_box_factory = ToolsBoxFactory(self._log_coordinator)
         self._aspect_executor = aspect_executor or AspectExecutor(self._log_coordinator)
         self._error_handler_executor = error_handler_executor or ErrorHandlerExecutor(
             self._plugin_coordinator
@@ -172,15 +169,12 @@ class ActionProductMachine(BaseActionMachine):
             ),
         )
 
-    def dependency_factory_for(self, action_cls: type) -> DependencyFactory:
-        """Return the dependency factory used by ``ToolsBoxFactory``."""
-        return DependencyFactory(DependsIntentResolver.resolve_dependency_infos(action_cls))
-
     def get_tools_box(
         self,
         *,
         context: Context,
         action_cls: type,
+        action_node: ActionGraphNode[BaseAction[Any, Any]],
         params: BaseParams,
         resources: dict[type, Any] | None,
         nested_level: int,
@@ -194,15 +188,25 @@ class ActionProductMachine(BaseActionMachine):
             nested_level=nested_level,
             rollup=rollup,
         )
-        return self._tools_box_factory.create(
-            factory_resolver=self,
+        action_name = f"{action_cls.__module__}.{action_cls.__name__}"
+        log = ScopedLogger(
+            coordinator=self._log_coordinator,
             nest_level=nested_level,
+            action_name=action_name,
+            aspect_name="",
             context=context,
-            action_cls=action_cls,
+            state=BaseState(),
             params=params,
-            resources=resources,
-            rollup=rollup,
+            domain=resolve_domain(action_cls),
+        )
+        factory = DependencyFactory(DependsIntentResolver.resolve_dependency_infos(action_cls))
+        return ToolsBox(
             run_child=run_child,
+            factory=factory,
+            resources=resources,
+            log=log,
+            nested_level=nested_level,
+            rollup=rollup,
         )
 
     # ─────────────────────────────────────────────────────────────────────
@@ -430,6 +434,7 @@ class ActionProductMachine(BaseActionMachine):
         box = self.get_tools_box(
             context=context,
             action_cls=action_cls,
+            action_node=action_node,
             params=params,
             resources=resources,
             nested_level=current_nest,
