@@ -38,19 +38,6 @@ def test_description_from_meta_branches(meta: object, expected: str | None) -> N
     assert TypeIntrospection.description_from_meta(meta) == expected
 
 
-@pytest.mark.parametrize(
-    "meta, expected",
-    [
-        ({}, None),
-        ({"target_aspect_name": "  "}, None),
-        ("not-mapping", None),
-        ({"target_aspect_name": " t "}, "t"),
-    ],
-)
-def test_target_aspect_name_from_meta_branches(meta: object, expected: str | None) -> None:
-    assert TypeIntrospection.target_aspect_name_from_meta(meta) == expected
-
-
 def test_unwrap_callable_strips_bound_method_wrapper() -> None:
     bound = types.MethodType(_CallableHost.keep_me, _CallableHost())
     unwrapped = TypeIntrospection.unwrap_callable(bound)

@@ -9,3 +9,12 @@ def test_resolve_compensators_returns_own_compensators() -> None:
         CompensatedOrderAction.rollback_charge_compensate,
         CompensatedOrderAction.rollback_reserve_compensate,
     ]
+
+
+def test_resolve_target_aspect_name_returns_stripped_compensate_target() -> None:
+    assert (
+        CompensateIntentResolver.resolve_target_aspect_name(
+            CompensatedOrderAction.rollback_charge_compensate
+        )
+        == "charge_aspect"
+    )
