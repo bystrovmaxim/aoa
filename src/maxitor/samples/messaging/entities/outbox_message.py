@@ -1,5 +1,5 @@
 # src/maxitor/samples/messaging/entities/outbox_message.py
-"""Минимальная сущность для вершины домена ``messaging`` в графе."""
+"""Minimal entity for the messaging-domain vertex in the graph."""
 
 from pydantic import Field
 

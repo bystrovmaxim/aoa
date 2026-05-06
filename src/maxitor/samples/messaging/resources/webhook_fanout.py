@@ -1,5 +1,5 @@
 # src/maxitor/samples/messaging/resources/webhook_fanout.py
-"""Фан-аут вебхуков (stub) для ``@depends`` и ресурсный менеджер для ``connections``."""
+"""Webhook fan-out stub for ``@depends`` and ``connections`` resource manager."""
 
 from action_machine.intents.meta import meta
 from action_machine.resources.external_service import ExternalServiceResource

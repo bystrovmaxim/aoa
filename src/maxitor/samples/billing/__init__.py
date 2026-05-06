@@ -1,9 +1,9 @@
 # src/maxitor/samples/billing/__init__.py
 """
-Платёжный контекст: списания, журнал, полный набор декораторов на действии ``InvoiceSettleAction``.
+Payments context: settlement, ledger, full decorator surface on ``InvoiceSettleAction``.
 
-Структура зеркалит ``store``: ``dependencies``, ``resources``, ``plugins``, ``actions``,
-сущности в ``entities``, шлюз ``PaymentGateway`` (также используется ``store``).
+Layout mirrors ``store``: ``dependencies``, ``resources``, ``plugins``, ``actions``,
+entities under ``entities``, ``PaymentGateway`` (also used from ``store``).
 """
 
 from maxitor.samples.billing.domain import BillingDomain

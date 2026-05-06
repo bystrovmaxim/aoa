@@ -1,5 +1,5 @@
 # src/maxitor/samples/billing/resources/ledger_archive.py
-"""Заглушка бухгалтерского журнала для ``@depends`` и ресурсный менеджер для ``connections``."""
+"""Accounting journal stub for ``@depends`` and ``connections`` resource manager."""
 
 from action_machine.intents.meta import meta
 from action_machine.resources.external_service import ExternalServiceResource

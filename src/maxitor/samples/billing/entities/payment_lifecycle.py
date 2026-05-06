@@ -1,11 +1,11 @@
 # src/maxitor/samples/billing/entities/payment_lifecycle.py
-"""Класс жизненного цикла для сущности платёжного события (как ``SalesOrderLifecycle`` в store)."""
+"""Lifecycle graph for payment-event entity (parallel to ``SalesOrderLifecycle`` in store)."""
 
 from action_machine.domain import Lifecycle
 
 
 class PaymentEventLifecycle(Lifecycle):
-    """Три состояния: запись → проведение → архив."""
+    """Three states: recorded → settled → archived."""
 
     _template = (
         Lifecycle()

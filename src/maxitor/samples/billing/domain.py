@@ -1,5 +1,5 @@
 # src/maxitor/samples/billing/domain.py
-"""Маркер bounded context «платежи и списания»."""
+"""Bounded-context marker for payments and settlement."""
 
 from action_machine.domain import BaseDomain
 

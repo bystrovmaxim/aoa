@@ -1,5 +1,5 @@
 # src/maxitor/samples/messaging/domain.py
-"""Маркер bounded context «уведомления клиенту»."""
+"""Bounded-context marker for customer notifications."""
 
 from action_machine.domain import BaseDomain
 

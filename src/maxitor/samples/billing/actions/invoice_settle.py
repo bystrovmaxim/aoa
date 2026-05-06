@@ -1,5 +1,5 @@
 # src/maxitor/samples/billing/actions/invoice_settle.py
-"""Полная поверхность декораторов в домене billing (аналог checkout в store)."""
+"""Full decorator surface in billing (checkout analogue in store)."""
 
 from __future__ import annotations
 

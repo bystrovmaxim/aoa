@@ -1,5 +1,5 @@
 # src/maxitor/samples/support/actions/depend_same_domain.py
-"""Сценарий: ``@depends`` на ``BaseAction`` в том же домене."""
+"""Scenario: ``@depends`` on a ``BaseAction`` in the same domain."""
 
 from __future__ import annotations
 

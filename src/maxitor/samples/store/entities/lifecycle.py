@@ -3,11 +3,11 @@ from action_machine.domain import Lifecycle
 
 
 class SalesOrderLifecycle(Lifecycle):
-    """Жизненный цикл заказа для демо-модели.
+    """Demo sales-order lifecycle.
 
-    Между ``confirmed`` и ``rework`` задан **цикл** (два направленных перехода).
-    В графе визуализации это две дуги ``LIFECYCLE_TRANSITION``; проверка DAG на
-    эти рёбра не распространяется — цикл отображается как есть.
+    A **cycle** exists between ``confirmed`` and ``rework`` (two directed transitions).
+    In the visualization graph these are two ``LIFECYCLE_TRANSITION`` edges; DAG validation
+    does not apply to those edges — the cycle is rendered as-is.
     """
 
     _template = (
@@ -22,7 +22,7 @@ class SalesOrderLifecycle(Lifecycle):
 
 
 class CustomerAccountLifecycle(Lifecycle):
-    """Три состояния: выдан → активен → закрыт."""
+    """Three states: provisioned → active → closed."""
 
     _template = (
         Lifecycle()
@@ -33,7 +33,7 @@ class CustomerAccountLifecycle(Lifecycle):
 
 
 class SalesOrderLineLifecycle(Lifecycle):
-    """Три состояния: открыта → зарезервирована → выполнена."""
+    """Three states: open → reserved → fulfilled."""
 
     _template = (
         Lifecycle()
@@ -44,7 +44,7 @@ class SalesOrderLineLifecycle(Lifecycle):
 
 
 class AuditLogEntryLifecycle(Lifecycle):
-    """Три состояния: запись → индексация → хранение."""
+    """Three states: written → indexed → retained."""
 
     _template = (
         Lifecycle()

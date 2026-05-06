@@ -1,54 +1,53 @@
 # tests/intents/logging/test_log_coordinator.py
 """
-Тесты LogCoordinator — центральной шины логирования.
+Tests for LogCoordinator — the central logging hub.
 
 ═══════════════════════════════════════════════════════════════════════════════
-НАЗНАЧЕНИЕ
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-LogCoordinator — единственная шина, через которую проходят все сообщения
-логирования. Он принимает сообщение, подставляет переменные из разных
-namespace (var, context, params, state, scope) через VariableSubstitutor,
-вычисляет iif-конструкции, а затем рассылает результат всем зарегистрированным
-логгерам.
+LogCoordinator is the sole bus through which all log messages flow. It accepts a
+message, substitutes variables from multiple namespaces (var, context,
+params, state, scope) via VariableSubstitutor, evaluates ``iif`` constructs, then
+fans the result out to every registered logger.
 
-Координатор вызывает logger.handle() для каждого логгера. Метод handle()
-определён в BaseLogger и выполняет двухфазный протокол:
-1. Фильтрация — match_filters() и подписки subscribe().
-2. Запись — write() выполняет фактический вывод (только если фильтрация прошла).
+The coordinator invokes ``logger.handle()`` for each logger. ``handle()`` is defined
+on BaseLogger and runs a two-phase protocol:
+1. Filtering — ``match_filters()`` and ``subscribe()`` rules.
+2. Writing — ``write()`` performs actual output only when filtering passes.
 
-RecordingLogger наследует BaseLogger.handle() без переопределения.
+RecordingLogger inherits BaseLogger.handle() without overriding it.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ПОКРЫВАЕМЫЕ СЦЕНАРИИ
+COVERAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Подстановка переменных:
-    - Из var: {%var.key}
-    - Из context: {%context.user.user_id}
-    - Из params: {%params.amount}
-    - Из state: {%state.total}
-    - Из scope: {%scope.action}
+Variable substitution:
+    - From var: {%var.key}
+    - From context: {%context.user.user_id}
+    - From params: {%params.amount}
+    - From state: {%state.total}
+    - From scope: {%scope.action}
 
-iif-конструкции:
-    - Простые условия внутри сообщения.
-    - Вложенные iif.
-    - Использование переменных внутри iif.
+``iif`` constructs:
+    - Simple conditions embedded in messages.
+    - Nested ``iif``.
+    - Variables inside ``iif``.
 
-Рассылка логгерам:
-    - Сообщение доставляется всем зарегистрированным логгерам.
-    - Каждый логгер фильтрует независимо через BaseLogger.handle().
-    - Пустой список логгеров не вызывает ошибок.
+Fan-out:
+    - The message reaches every registered logger.
+    - Each logger filters independently via BaseLogger.handle().
+    - An empty logger list does not raise.
 
-Параметры:
-    - indent передаётся логгерам.
-    - scope передаётся логгерам.
+Parameters:
+    - ``indent`` is forwarded to loggers.
+    - ``scope`` is forwarded to loggers.
 
-Ошибки:
-    - Отсутствующая переменная → LogTemplateError.
-    - Неизвестный namespace → LogTemplateError.
-    - Невалидный iif → LogTemplateError.
-    - Имя с подчёркиванием → LogTemplateError.
+Errors:
+    - Missing variable → LogTemplateError.
+    - Unknown namespace → LogTemplateError.
+    - Invalid ``iif`` → LogTemplateError.
+    - Leading-underscore names → LogTemplateError.
 
 """
 
@@ -82,7 +81,7 @@ def _valid_emit_var(**extra: Any) -> dict[str, Any]:
 
 
 class RecordingLogger(BaseLogger):
-    """Шпион: write складывает вызовы в records (как ConsoleLogger по протоколу)."""
+    """Spy logger: collects ``write`` calls in ``records`` (same contract as ConsoleLogger)."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -98,7 +97,7 @@ class RecordingLogger(BaseLogger):
         params: BaseParams,
         indent: int,
     ) -> None:
-        """Сохраняет вызов write в records."""
+        """Append one ``write`` call to ``records``."""
         self.records.append({
             "scope": scope,
             "message": message,
@@ -111,7 +110,7 @@ class RecordingLogger(BaseLogger):
 
 
 class FailingLogger(BaseLogger):
-    """Падает в ``write`` — для проверки изоляции при fan-out."""
+    """Raises from ``write`` — used to test isolation during fan-out."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -157,12 +156,12 @@ def detailed_scope() -> LogScope:
 
 
 # ======================================================================
-# ТЕСТЫ: Подстановка переменных из разных источников
+# TESTS: variable substitution from multiple sources
 # ======================================================================
 
 
 class TestVariableSubstitution:
-    """LogCoordinator подставляет переменные из var, context, params, state, scope."""
+    """LogCoordinator substitutes variables from var, context, params, state, scope."""
 
     @pytest.mark.anyio
     async def test_substitutes_var(
@@ -173,7 +172,7 @@ class TestVariableSubstitution:
         empty_params: BaseParams,
     ) -> None:
         """
-        {%var.count} заменяется на значение из словаря var.
+        {%var.count} resolves from the ``var`` dict.
         """
         # Arrange
         logger = RecordingLogger()
@@ -202,7 +201,7 @@ class TestVariableSubstitution:
         empty_params: BaseParams,
     ) -> None:
         """
-        {%context.user.user_id} подставляется через resolve из Context.
+        {%context.user.user_id} resolves via Context.
         """
         # Arrange
         from action_machine.context.user_info import UserInfo
@@ -232,12 +231,12 @@ class TestVariableSubstitution:
         empty_state: BaseState,
     ) -> None:
         """
-        {%params.amount} подставляется из pydantic-модели параметров.
+        {%params.amount} resolves from the Pydantic params model.
         """
         # Arrange
         from pydantic import Field
         class TestParams(BaseParams):
-            amount: float = Field(default=999.99, description="Сумма")
+            amount: float = Field(default=999.99, description="Amount")
 
         params = TestParams(amount=999.99)
         logger = RecordingLogger()
@@ -265,7 +264,7 @@ class TestVariableSubstitution:
         empty_params: BaseParams,
     ) -> None:
         """
-        {%state.total} подставляется из BaseState.
+        {%state.total} resolves from BaseState.
         """
         # Arrange
         state = BaseState(total=1500.0)
@@ -294,7 +293,7 @@ class TestVariableSubstitution:
         empty_params: BaseParams,
     ) -> None:
         """
-        {%scope.action} подставляется из LogScope.
+        {%scope.action} resolves from LogScope.
         """
         # Arrange
         scope = LogScope(action="ProcessOrder", aspect="validate")
@@ -317,12 +316,12 @@ class TestVariableSubstitution:
 
 
 # ======================================================================
-# ТЕСТЫ: iif-конструкции
+# TESTS: ``iif`` constructs
 # ======================================================================
 
 
 class TestIifConstructs:
-    """LogCoordinator обрабатывает конструкции {iif(...)}."""
+    """LogCoordinator evaluates ``{iif(...)}`` constructs."""
 
     @pytest.mark.anyio
     async def test_simple_iif(
@@ -333,14 +332,14 @@ class TestIifConstructs:
         empty_params: BaseParams,
     ) -> None:
         """
-        {iif(условие; ветка_истина; ветка_ложь)} вычисляется и подставляется.
+        ``{iif(condition; branch_true; branch_false)}`` is evaluated and inlined.
         """
         # Arrange
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
         var = _valid_emit_var(amount=1500.0)
 
-        # Act — iif с {%var.amount} внутри
+        # Act — ``iif`` referencing {%var.amount}
         await coordinator.emit(
             message="Risk: {iif({%var.amount} > 1000; 'HIGH'; 'LOW')}",
             var=var,
@@ -363,7 +362,7 @@ class TestIifConstructs:
         empty_params: BaseParams,
     ) -> None:
         """
-        Вложенные iif корректно вычисляются.
+        Nested ``iif`` forms evaluate correctly.
         """
         # Arrange
         logger = RecordingLogger()
@@ -392,7 +391,7 @@ class TestIifConstructs:
         empty_params: BaseParams,
     ) -> None:
         """
-        iif может использовать переменные из state.
+        ``iif`` may reference ``state`` variables.
         """
         # Arrange
         state = BaseState(processed=True)
@@ -415,12 +414,12 @@ class TestIifConstructs:
 
 
 # ======================================================================
-# ТЕСТЫ: Рассылка логгерам
+# TESTS: fan-out to loggers
 # ======================================================================
 
 
 class TestBroadcast:
-    """Сообщение рассылается всем зарегистрированным логгерам."""
+    """Message is delivered to every registered logger."""
 
     @pytest.mark.anyio
     async def test_broadcast_to_all_loggers(
@@ -431,9 +430,9 @@ class TestBroadcast:
         empty_params: BaseParams,
     ) -> None:
         """
-        Каждый логгер получает сообщение (после своей фильтрации).
+        Each logger receives the message after its own filtering.
         """
-        # Arrange — два логгера без фильтров
+        # Arrange — two loggers with no filters
         logger1 = RecordingLogger()
         logger2 = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger1, logger2])
@@ -449,7 +448,7 @@ class TestBroadcast:
             indent=0,
         )
 
-        # Assert — оба получили сообщение
+        # Assert — both captured the message
         assert len(logger1.records) == 1
         assert len(logger2.records) == 1
         assert logger1.records[0]["message"] == "Broadcast"
@@ -463,8 +462,8 @@ class TestBroadcast:
         empty_params: BaseParams,
     ) -> None:
         """
-        Логгеры независимо решают, писать ли сообщение: подписки у второго
-        логгера не совпадают с каналом в var (debug vs business).
+        Loggers filter independently; the second logger's subscriptions do not
+        match the channel carried in ``var`` (debug vs business).
         """
         all_logger = RecordingLogger()
         filtered_logger = RecordingLogger()
@@ -494,7 +493,7 @@ class TestBroadcast:
         empty_params: BaseParams,
     ) -> None:
         """
-        Логгер можно добавить после создания координатора.
+        A logger can be attached after coordinator construction.
         """
         # Arrange
         coordinator = LogCoordinator()
@@ -524,12 +523,12 @@ class TestBroadcast:
         empty_params: BaseParams,
     ) -> None:
         """
-        emit без логгеров не вызывает ошибок.
+        Emitting with zero loggers does not raise.
         """
         # Arrange
         coordinator = LogCoordinator()
 
-        # Act — не должно быть исключений
+        # Act — must complete without exceptions
         await coordinator.emit(
             message="No loggers",
             var=_valid_emit_var(),
@@ -542,7 +541,7 @@ class TestBroadcast:
 
 
 # ======================================================================
-# ТЕСТЫ: изоляция ошибок в handle (B-2 / best-effort logging)
+# TESTS: isolation when logger.handle fails (B-2 / best-effort logging)
 # ======================================================================
 
 
@@ -550,7 +549,7 @@ _COORDINATOR_FAILURE_LOGGER = "action_machine.logging.log_coordinator"
 
 
 class TestLoggerHandleFailureIsolation:
-    """Сбой одного BaseLogger не рвёт emit и не блокирует остальные синги."""
+    """A failing BaseLogger must not break ``emit`` or block sibling sinks."""
 
     @pytest.mark.anyio
     async def test_second_logger_receives_message_when_first_raises(
@@ -612,7 +611,7 @@ class TestLoggerHandleFailureIsolation:
         empty_state: BaseState,
         empty_params: BaseParams,
     ) -> None:
-        """Нет второго LogCoordinator — сбой сингa уходит в stdlib logging."""
+        """With no sibling sink, failures are reported through stdlib logging."""
         coordinator = LogCoordinator(loggers=[FailingLogger()])
         with caplog.at_level(logging.ERROR, logger=_COORDINATOR_FAILURE_LOGGER):
             await coordinator.emit(
@@ -632,12 +631,12 @@ class TestLoggerHandleFailureIsolation:
 
 
 # ======================================================================
-# ТЕСТЫ: Передача параметров логгерам
+# TESTS: forwarding parameters to loggers
 # ======================================================================
 
 
 class TestParameterPassing:
-    """LogCoordinator передаёт параметры логгерам."""
+    """LogCoordinator forwards logger parameters unchanged."""
 
     @pytest.mark.anyio
     async def test_passes_indent(
@@ -648,7 +647,7 @@ class TestParameterPassing:
         empty_params: BaseParams,
     ) -> None:
         """
-        indent передаётся каждому логгеру без изменений.
+        ``indent`` is forwarded to each sink untouched.
         """
         # Arrange
         logger = RecordingLogger()
@@ -676,7 +675,7 @@ class TestParameterPassing:
         empty_params: BaseParams,
     ) -> None:
         """
-        scope передаётся логгерам.
+        ``scope`` is forwarded to sinks.
         """
         # Arrange
         scope = LogScope(action="MyAction", aspect="test")
@@ -699,12 +698,12 @@ class TestParameterPassing:
 
 
 # ======================================================================
-# ТЕСТЫ: Вложенные структуры
+# TESTS: nested structures
 # ======================================================================
 
 
 class TestNestedStructures:
-    """Подстановка вложенных значений (dict внутри state, var и т.д.)."""
+    """Substitution for nested payloads (dicts inside state, var, etc.)."""
 
     @pytest.mark.anyio
     async def test_nested_state(
@@ -714,7 +713,7 @@ class TestNestedStructures:
         empty_params: BaseParams,
     ) -> None:
         """
-        Доступ к вложенным ключам state через точку: {%state.order.id}.
+        Dot paths into ``state`` work: {%state.order.id}.
         """
         # Arrange
         state = BaseState(order={"id": 42})
@@ -744,7 +743,7 @@ class TestNestedStructures:
         empty_params: BaseParams,
     ) -> None:
         """
-        Доступ к вложенным ключам var: {%var.data.value}.
+        Dot paths into ``var`` work: {%var.data.value}.
         """
         # Arrange
         logger = RecordingLogger()
@@ -788,12 +787,12 @@ class TestNestedStructures:
 
 
 # ======================================================================
-# ТЕСТЫ: Обработка ошибок
+# TESTS: error handling
 # ======================================================================
 
 
 class TestErrorHandling:
-    """LogCoordinator пробрасывает LogTemplateError при ошибках в шаблоне."""
+    """LogCoordinator raises LogTemplateError for template errors."""
 
     @pytest.mark.anyio
     async def test_emit_requires_level_and_channels(
@@ -847,7 +846,7 @@ class TestErrorHandling:
         empty_params: BaseParams,
     ) -> None:
         """
-        Обращение к несуществующей переменной → LogTemplateError.
+        Referencing a missing variable → LogTemplateError.
         """
         # Arrange
         coordinator = LogCoordinator(loggers=[])
@@ -873,7 +872,7 @@ class TestErrorHandling:
         empty_params: BaseParams,
     ) -> None:
         """
-        Неизвестный namespace в шаблоне → LogTemplateError.
+        Unknown template namespace → LogTemplateError.
         """
         # Arrange
         coordinator = LogCoordinator(loggers=[])
@@ -899,7 +898,7 @@ class TestErrorHandling:
         empty_params: BaseParams,
     ) -> None:
         """
-        Доступ к имени, начинающемуся с подчёркивания → LogTemplateError.
+        Leading-underscore names remain forbidden → LogTemplateError.
         """
         # Arrange
         coordinator = LogCoordinator(loggers=[])
@@ -926,7 +925,7 @@ class TestErrorHandling:
         empty_params: BaseParams,
     ) -> None:
         """
-        Переменная внутри iif не найдена → LogTemplateError.
+        Missing variable inside ``iif`` → LogTemplateError.
         """
         # Arrange
         coordinator = LogCoordinator(loggers=[])
@@ -952,7 +951,7 @@ class TestErrorHandling:
         empty_params: BaseParams,
     ) -> None:
         """
-        iif с неверным количеством аргументов → LogTemplateError.
+        Invalid ``iif`` arity → LogTemplateError.
         """
         # Arrange
         coordinator = LogCoordinator(loggers=[])

@@ -1,5 +1,5 @@
 # src/maxitor/samples/store/dependencies/__init__.py
-"""Связь магазина с биллингом и месседжингом (как в реальном сервисе)."""
+"""Wires the store to billing and messaging (like a real service)."""
 
 from maxitor.samples.billing import PaymentGateway
 from maxitor.samples.messaging import NotificationGateway, _shared_notifier

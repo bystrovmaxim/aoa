@@ -1,5 +1,5 @@
 # src/maxitor/samples/roles/__init__.py
-"""Роли приложения для примеров в :mod:`maxitor.samples` (магазин, граф, ACL)."""
+"""Application roles for :mod:`maxitor.samples` (store, graph, ACL)."""
 
 from maxitor.samples.roles.editor import EditorRole
 from maxitor.samples.roles.legacy import DeprecatedRole

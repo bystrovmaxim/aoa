@@ -1,5 +1,5 @@
 # src/maxitor/samples/store/actions/checkout_submit.py
-"""Полное действие: deps, connections, aspects, checkers, compensate, on_error, sensitive на Params."""
+"""Full action: deps, connections, aspects, checkers, compensate, on_error, sensitive on Params."""
 
 from __future__ import annotations
 
