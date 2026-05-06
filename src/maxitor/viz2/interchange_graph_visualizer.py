@@ -65,22 +65,59 @@ def _default_archive_logs_dir() -> Path:
     return Path(__file__).resolve().parents[3] / "archive" / "logs"
 
 
-# graph.md §5.1–5.2 — interchange ``edge_type`` labels used for viz domain propagation only.
-_OWNERSHIP_INTERCHANGE_EDGES: frozenset[str] = frozenset(
+_INTERNAL_INTERCHANGE_EDGES: frozenset[str] = frozenset({"CHECKS_ASPECT", "COMPENSATES_ASPECT"})
+
+# Seeds ``node_domains`` membership: interchange slot from host row → ``Domain`` vertex.
+_DOMAIN_EDGE_SLOTS: frozenset[str] = frozenset({"BELONGS_TO", "domain"})
+
+# Host→child interchange slots that are **Composition** or **Aggregation** in the typed
+# graph model, used only when G6 edge ``data`` omits ``relationshipName`` (tests / skinny
+# payloads). **Association-only** interchange slots (e.g. ``@check_roles``, entity
+# ``relations`` navigations, ``@depends`` targets) stay out of this table.
+_SLOT_ONLY_CONTAINMENT_CHILDREN: frozenset[str] = frozenset(
     {
-        "HAS_ASPECT",
-        "HAS_COMPENSATOR",
-        "HAS_ERROR_HANDLER",
-        "HAS_CHECKER",
-        "HAS_SENSITIVE_FIELD",
-        "HAS_PARAMS",
-        "HAS_RESULT",
-        "HAS_SUBSCRIPTION",
-        "HAS_LIFECYCLE",
-        "HAS_LIFECYCLE_STATE",
+        "@regular_aspect",
+        "@summary_aspect",
+        "@result_checker",
+        "@compensate",
+        "@on_error",
+        "@required_context",
+        "lifecycle",
+        "lifecycle_contains_state",
+        "lifecycle_transition",
+        "generic:params",
+        "generic:result",
+        "field",
+        "property",
     },
 )
-_INTERNAL_INTERCHANGE_EDGES: frozenset[str] = frozenset({"CHECKS_ASPECT", "COMPENSATES_ASPECT"})
+
+
+def _canonical_g6_edge_slot(edge_data: dict[str, Any]) -> str:
+    """Normalize viz edge ``label`` so ``belongs_to`` aliases match archived ``BELONGS_TO``."""
+    lab = str(edge_data.get("label", "") or "").strip()
+    if lab.lower() == "belongs_to":
+        return "BELONGS_TO"
+    return lab
+
+
+def _g6_edge_propagates_domain_from_host_to_child(e: dict[str, Any]) -> bool:
+    """
+    Whether host→child edges carry **domain bubble** membership downward.
+
+    Rule: only **whole–part containment** (**Aggregation**, **Composition**) — direct and,
+    via the fixpoint in :func:`_propagate_node_domains`, indirect. **Association**, **Flow**,
+    and other ArchiMate relationship names do **not** extend the bubble, even when the child
+    is structurally ``near`` the host (roles, entity lifecycle hubs, peers, …).
+    """
+    ed = e.get("data") or {}
+    rel = str(ed.get("relationshipName", "") or "").strip()
+    if rel in ("Composition", "Aggregation"):
+        return True
+    if not rel and _canonical_g6_edge_slot(ed) in _SLOT_ONLY_CONTAINMENT_CHILDREN:
+        return True
+    return False
+
 
 # Default write target for :func:`export_interchange_axes_graph_html`.
 INTERCHANGE_AXES_GRAPH_HTML_PATH: Path = _default_archive_logs_dir() / "graph_node_2.html"
@@ -264,10 +301,16 @@ def _propagate_node_domains(  # pylint: disable=too-many-branches
     g6_edges: list[dict[str, Any]],
 ) -> tuple[dict[str, str], list[str], defaultdict[str, set[str]]]:
     """
-    Same domain membership as domain bubble-sets: ``BELONGS_TO`` + propagation
-    along interchange ownership edges (`HAS_*` composition/host wiring, host→child)
-    and merge along internal checker/compensator–aspect edges
-    (`CHECKS_ASPECT`, `COMPENSATES_ASPECT`).
+    Domain bubble membership mirrors coordinator ``domain`` seeding plus **containment** only:
+
+    1. Seed from any interchange slot toward a ``Domain`` row
+       (``domain`` edge from typed graph model or legacy ``belongs_to`` / ``BELONGS_TO``).
+    2. Propagate along host→child edges whose ``relationshipName`` is ``Composition`` or
+       ``Aggregation`` (and the slot-only subset in :data:`_SLOT_ONLY_CONTAINMENT_CHILDREN`
+       when ``relationshipName`` is absent). Transitive closure pulls in nested parts the
+       same way: only along those relationship kinds.
+    3. Merge domains along checker/compensator bridges
+       ``CHECKS_ASPECT`` / ``COMPENSATES_ASPECT``.
     """
     id_to_type: dict[str, str] = {}
     for n in g6_nodes:
@@ -279,8 +322,10 @@ def _propagate_node_domains(  # pylint: disable=too-many-branches
     node_domains: defaultdict[str, set[str]] = defaultdict(set)
 
     for e in g6_edges:
-        ed = e.get("data") or {}
-        if str(ed.get("label", "") or "") != "BELONGS_TO":
+        ed_raw = e.get("data") or {}
+        ed = ed_raw if isinstance(ed_raw, dict) else {}
+        slot = _canonical_g6_edge_slot(ed)
+        if slot not in _DOMAIN_EDGE_SLOTS:
             continue
         src, tgt = str(e["source"]), str(e["target"])
         if id_to_type.get(tgt) != DomainGraphNode.NODE_TYPE:
@@ -293,23 +338,24 @@ def _propagate_node_domains(  # pylint: disable=too-many-branches
     while changed:
         changed = False
         for e in g6_edges:
-            ed = e.get("data") or {}
+            ed_raw = e.get("data") or {}
+            ed = ed_raw if isinstance(ed_raw, dict) else {}
             label = str(ed.get("label", "") or "")
             src, tgt = str(e["source"]), str(e["target"])
-            if label in _OWNERSHIP_INTERCHANGE_EDGES:
-                if not node_domains[src]:
-                    continue
-                before = len(node_domains[tgt])
-                node_domains[tgt] |= node_domains[src]
-                if len(node_domains[tgt]) > before:
-                    changed = True
-            elif label in _INTERNAL_INTERCHANGE_EDGES:
+            if label in _INTERNAL_INTERCHANGE_EDGES:
                 merged = node_domains[src] | node_domains[tgt]
                 if not merged:
                     continue
                 if merged != node_domains[src] or merged != node_domains[tgt]:
                     node_domains[src] = merged
                     node_domains[tgt] = merged
+                    changed = True
+            elif _g6_edge_propagates_domain_from_host_to_child(e):
+                if not node_domains[src]:
+                    continue
+                before = len(node_domains[tgt])
+                node_domains[tgt] |= node_domains[src]
+                if len(node_domains[tgt]) > before:
                     changed = True
 
     return id_to_type, domain_ids, node_domains
@@ -393,10 +439,11 @@ def _bubble_sets_plugins_for_domains(
     """
     Build G6 ``bubble-sets`` plugins: one hull per ``domain`` vertex.
 
-    Members: the domain vertex, every node with ``BELONGS_TO`` into that domain, and
-    nodes reachable by propagating domain along interchange ownership edges
-    and internal checker/compensator–aspect links (same rules as
-    :func:`_propagate_node_domains`).
+    Members: the domain vertex, interchange rows seeded with ``domain`` / ``belongs_to``
+    toward that domain (``Action``, ``Resource``, ``Entity``, …), and every row reached by
+    repeated host→child steps along **Composition** / **Aggregation** only (see
+    :func:`_g6_edge_propagates_domain_from_host_to_child`), plus checker/compensator bridge
+    merges from :func:`_propagate_node_domains`.
 
     The ``application`` vertex is never added to a domain bubble.
     """

@@ -1,6 +1,6 @@
 # src/action_machine/graph_model/edges/domain_graph_edge.py
 """
-DomainGraphEdge — ASSOCIATION from host class → declared domain interchange node.
+DomainGraphEdge — AGGREGATION from host class → declared domain interchange node.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -19,16 +19,16 @@ from typing import Any
 from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from action_machine.system_core.type_introspection import TypeIntrospection
-from graph.association_graph_edge import AssociationGraphEdge
+from graph.aggregation_graph_edge import AggregationGraphEdge
 from graph.base_graph_node import BaseGraphNode
 
 
-class DomainGraphEdge(AssociationGraphEdge):
+class DomainGraphEdge(AggregationGraphEdge):
     """
     AI-CORE-BEGIN
-    ROLE: Typed association edge ``host → domain``.
+    ROLE: Typed aggregation edge ``host → domain``.
     CONTRACT: ``edge_name`` ``domain``; ``target_node`` is wired by the coordinator when the domain vertex is present in the graph.
-    INVARIANTS: Frozen via ``AssociationGraphEdge`` base; ``target_node`` resolves lazily elsewhere (``None`` stub).
+    INVARIANTS: Frozen via ``AggregationGraphEdge`` base; ``target_node`` resolves lazily elsewhere (``None`` stub).
     FAILURES:
         :exc:`~action_machine.exceptions.MissingMetaError` from :meth:`from_meta_declared_host` when meta resolution fails;
         :exc:`~action_machine.exceptions.MissingEntityInfoError` from :meth:`from_entity_declared_host` when ``@entity`` omits domain.

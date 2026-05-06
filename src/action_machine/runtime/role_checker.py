@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``RoleChecker.check`` is the machine gate that compares declared role requirements
-(materialized as ``@check_roles`` composition edges on
+(materialized as ``@check_roles`` association edges on
 :class:`~action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`) to
 the authenticated user's role types. Matching uses ``issubclass(user_role, required)``.
 ``RoleMode.SILENCED`` user roles are ignored entirely.
@@ -57,7 +57,7 @@ class RoleChecker:
         action_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> Any:
         """
-        Reconstruct the ``@check_roles`` spec shape from wired role composition edges.
+        Reconstruct the ``@check_roles`` spec shape from wired role association edges.
 
         Returns ``NoneRole``, ``AnyRole``, a single concrete ``BaseRole`` subtype, or
         a tuple of subtypes (OR semantics), matching :class:`RoleGraphEdge` emission order.
@@ -68,7 +68,7 @@ class RoleChecker:
             target = edge.target_node
             if not isinstance(target, RoleGraphNode):
                 raise TypeError(
-                    f"Role composition edge on action {action_node.node_id!r} must resolve to a "
+                    f"Role association edge on action {action_node.node_id!r} must resolve to a "
                     f"Role interchange row; got {type(target).__name__!r}. "
                     "Ensure the graph coordinator wired ``RoleGraphEdge.target_node``.",
                 )

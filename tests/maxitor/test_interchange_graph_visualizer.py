@@ -25,6 +25,8 @@ from graph.exceptions import InvalidGraphError
 from graph.node_graph_coordinator import NodeGraphCoordinator
 from maxitor.viz2.interchange_graph_visualizer import (
     G6_CDN_URL,
+    _g6_edge_propagates_domain_from_host_to_child,
+    _propagate_node_domains,
     all_axis_graph_node_inspectors,
     generate_interchange_g6_html,
     interchange_edge_to_visual_dict,
@@ -282,3 +284,53 @@ def test_generate_interchange_g6_html_rejects_non_base_graph_node(tmp_path: Path
     object.__setattr__(coord, "_rx_graph", bad)
     with pytest.raises(TypeError, match="BaseGraphNode"):
         generate_interchange_g6_html(coord, tmp_path / "bad.html")
+
+
+def test_g6_edge_propagates_domain_containment_only() -> None:
+    """Bubbles extend only along Aggregation / Composition (including typed skinny slots)."""
+
+    def g6_edge(edge_data: dict[str, Any]) -> dict[str, Any]:
+        return {"source": "a", "target": "b", "data": edge_data}
+
+    assert _g6_edge_propagates_domain_from_host_to_child(
+        g6_edge({"relationshipName": "Composition", "label": "x"})
+    )
+    assert _g6_edge_propagates_domain_from_host_to_child(
+        g6_edge({"relationshipName": "Aggregation", "label": "domain"})
+    )
+    assert not _g6_edge_propagates_domain_from_host_to_child(
+        g6_edge({"relationshipName": "Association", "label": "@check_roles"})
+    )
+    assert not _g6_edge_propagates_domain_from_host_to_child(
+        g6_edge({"relationshipName": "Association", "label": "lifecycle"})
+    )
+    assert _g6_edge_propagates_domain_from_host_to_child(g6_edge({"label": "lifecycle"}))
+    assert _g6_edge_propagates_domain_from_host_to_child(g6_edge({"label": "@regular_aspect"}))
+    assert not _g6_edge_propagates_domain_from_host_to_child(g6_edge({"label": "@check_roles"}))
+
+
+def test_propagate_node_domains_transitive_containment_only() -> None:
+    """Association host→child edges do not pull targets into a domain bubble."""
+    nodes = [
+        {"id": "domain.D", "data": {"node_type": "Domain"}},
+        {"id": "action.A", "data": {"node_type": "Action"}},
+        {"id": "role.R", "data": {"node_type": "role_class"}},
+        {"id": "aspect.X", "data": {"node_type": "RegularAspect"}},
+    ]
+    edges = [
+        {"source": "action.A", "target": "domain.D", "data": {"label": "domain"}},
+        {
+            "source": "action.A",
+            "target": "role.R",
+            "data": {"relationshipName": "Association", "label": "@check_roles"},
+        },
+        {
+            "source": "action.A",
+            "target": "aspect.X",
+            "data": {"relationshipName": "Composition", "label": "asp"},
+        },
+    ]
+    _idmap, _dom_ids, node_domains = _propagate_node_domains(nodes, edges)
+    assert "domain.D" in node_domains["action.A"]
+    assert "domain.D" in node_domains["aspect.X"]
+    assert not node_domains.get("role.R")
