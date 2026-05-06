@@ -99,7 +99,6 @@ VERTEX_TYPE_FILL_COLORS: dict[str, str] = {
     "lifecycle_state_intermediate": "#6A51A3",
     "lifecycle_state_final": "#452E7A",
     RoleGraphNode.NODE_TYPE: "#66A61E",
-    "role": "#E6AB02",
     "sensitive_field": "#FB9A99",
     ParamsGraphNode.NODE_TYPE: "#CAB2D6",
     ResultGraphNode.NODE_TYPE: "#B2DF8A",
