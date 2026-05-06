@@ -29,7 +29,8 @@ ARCHITECTURE / DATA FLOW
                 ├── _role_checker.check(context, action_node)
                 ├── conns = _connection_validator.validate(action, connections, action_node)
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
-                ├── box = get_tools_box(..., nested_level=current_nest)
+                ├── log = ScopedLogger(..., domain=action_node.domain.target_node.node_obj)
+                ├── box = ToolsBox(..., factory=DependencyFactory(action_node.resolved_dependency_infos()))
                 ├── _plugin_coordinator.emit_global_start(...)
                 ├── _execute_pipeline_aspects(...)
                 │       ├── per regular aspect:
@@ -45,9 +46,8 @@ ARCHITECTURE / DATA FLOW
                 ├── _plugin_coordinator.emit_global_finish(...)
                 └── return Result
 
-``DependencyFactory`` for ``ToolsBox`` is built via
-``ActionGraphNode.resolved_dependency_infos``: wired ``@depends`` interchange edges
-and their targets (typically after coordinator resolution).
+``ScopedLogger`` and ``DependencyFactory`` are constructed in ``_run_internal``
+(``factory`` from ``resolved_dependency_infos()`` on the wired ``action_node``).
 
 **Where plugin events are emitted**
 
@@ -169,47 +169,6 @@ class ActionProductMachine(BaseActionMachine):
             ),
         )
 
-    def get_tools_box(
-        self,
-        *,
-        context: Context,
-        action_cls: type,
-        action_node: ActionGraphNode[BaseAction[Any, Any]],
-        params: BaseParams,
-        resources: dict[type, Any] | None,
-        nested_level: int,
-        rollup: bool,
-    ) -> ToolsBox:
-        """Create a ``ToolsBox`` for one run level."""
-        run_child = partial(
-            self._run_internal,
-            context=context,
-            resources=resources,
-            nested_level=nested_level,
-            rollup=rollup,
-        )
-        action_name = f"{action_cls.__module__}.{action_cls.__name__}"
-        log = ScopedLogger(
-            coordinator=self._log_coordinator,
-            nest_level=nested_level,
-            action_name=action_name,
-            aspect_name="",
-            context=context,
-            state=BaseState(),
-            params=params,
-            domain=resolve_domain(action_cls),
-        )
-        factory = DependencyFactory(action_node.resolved_dependency_infos())
-        return ToolsBox(
-            run_child=run_child,
-            factory=factory,
-            resources=resources,
-            log=log,
-            nested_level=nested_level,
-            rollup=rollup,
-        )
-
-    # ─────────────────────────────────────────────────────────────────────
     # Aspect pipeline + error path
     # ─────────────────────────────────────────────────────────────────────
 
@@ -431,14 +390,31 @@ class ActionProductMachine(BaseActionMachine):
         self._role_checker.check(context, action_node)
         conns = self._connection_validator.validate(action, connections, action_node)
         plugin_ctx = await self._plugin_coordinator.create_run_context()
-        box = self.get_tools_box(
+
+        log = ScopedLogger(
+            coordinator=self._log_coordinator,
+            nest_level=current_nest,
+            action_name=action_node.node_id,
+            aspect_name="",
             context=context,
-            action_cls=action_cls,
-            action_node=action_node,
+            state=BaseState(),
             params=params,
+            domain=action_node.domain.target_node.node_obj,
+        )
+
+        box = ToolsBox(
+            run_child=partial(
+                self._run_internal,
+                context=context,
+                resources=resources,
+                nested_level=current_nest,
+                rollup=rollup,
+            ),
             resources=resources,
+            log=log,
             nested_level=current_nest,
             rollup=rollup,
+            factory=DependencyFactory(action_node.resolved_dependency_infos()),
         )
 
         await self._plugin_coordinator.emit_global_start(
