@@ -23,6 +23,9 @@ This coordinator is **domain-agnostic**: it does not interpret ``node_type`` or
 with each node's :meth:`~graph.base_graph_node.BaseGraphNode.get_companion_nodes` result
 before validating and materializing the graph.
 
+The merged graph reflects **everything inspectors emitted for the loaded process**.
+Unexpected rows (duplicate ids, dangling targets, forbidden ``is_dag`` cycles, stray action types) indicate import or wiring issues to fix—not something to silently drop during inspection.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
@@ -72,7 +75,7 @@ class NodeGraphCoordinator:
     AI-CORE-BEGIN
     ROLE: Build rustworkx graph from ``BaseGraphNode`` contributions.
     CONTRACT: ``build`` with :class:`~graph.base_graph_node_inspector.BaseGraphNodeInspector` instances; each ``get_graph_nodes()``;
-        then expose the assembled ``PyDiGraph`` as :attr:`rx_graph` and interchange nodes via :meth:`get_all_nodes`.
+        then expose the assembled ``PyDiGraph`` as :attr:`rx_graph` and interchange nodes via :meth:`get_all_nodes`; graph shape is authoritative for loaded scope—validation failures cue import/packaging fixes rather than shrinking inspector emission.
     INVARIANTS: Duplicate id / missing target / DAG cycle raise during build; :attr:`rx_graph` / :meth:`get_all_nodes` unavailable until ``build`` succeeds.
     AI-CORE-END
     """
