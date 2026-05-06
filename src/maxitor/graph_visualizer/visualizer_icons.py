@@ -9,7 +9,7 @@ Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.graph_mo
 :class:`~action_machine.graph_model.nodes.checker_graph_node.CheckerGraphNode`,
 :class:`~action_machine.graph_model.nodes.params_graph_node.ParamsGraphNode`, :class:`~action_machine.graph_model.nodes.result_graph_node.ResultGraphNode`,
 :class:`~action_machine.graph_model.nodes.field_graph_node.FieldGraphNode`, :class:`~action_machine.graph_model.nodes.property_field_graph_node.PropertyFieldGraphNode`,
-:class:`~action_machine.graph_model.nodes.entity_graph_node.EntityGraphNode`, :class:`~action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`,
+:class:`~action_machine.graph_model.nodes.entity_graph_node.EntityGraphNode`, :class:`~action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`, :class:`~action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`,
 :class:`~action_machine.graph_model.nodes.domain_graph_node.DomainGraphNode`,
 :class:`~action_machine.graph_model.nodes.resource_graph_node.ResourceGraphNode`,
 :class:`~action_machine.graph_model.nodes.required_context_graph_node.RequiredContextGraphNode`,
@@ -28,6 +28,7 @@ from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 from action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
 from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandlerGraphNode
 from action_machine.graph_model.nodes.field_graph_node import FieldGraphNode
+from action_machine.graph_model.nodes.lifecycle_graph_node import LifeCycleGraphNode
 from action_machine.graph_model.nodes.params_graph_node import ParamsGraphNode
 from action_machine.graph_model.nodes.property_field_graph_node import PropertyFieldGraphNode
 from action_machine.graph_model.nodes.regular_aspect_graph_node import (
@@ -109,7 +110,7 @@ VERTEX_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
         '<path d="M3 5V19A9 3 0 0 0 21 19V5" /> '
         '<path d="M3 12A9 3 0 0 0 21 12" />'
     ),
-    "lifecycle": (
+    LifeCycleGraphNode.NODE_TYPE: (
         '<circle cx="18" cy="6" r="3" /> '
         '<circle cx="6" cy="18" r="3" /> '
         '<path d="M18 9v1a4 4 0 0 1-4 4H9a4 4 0 0 0-4 4v1" />'

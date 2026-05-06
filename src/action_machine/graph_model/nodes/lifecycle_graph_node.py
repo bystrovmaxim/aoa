@@ -55,7 +55,7 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
     AI-CORE-END
     """
 
-    NODE_TYPE: ClassVar[str] = "lifecycle"
+    NODE_TYPE: ClassVar[str] = "Lifecycle"
     states: list[StateGraphNode] = field(init=False)
 
     def __init__(

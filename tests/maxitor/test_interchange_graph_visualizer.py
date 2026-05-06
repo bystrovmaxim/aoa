@@ -11,6 +11,7 @@ import pytest
 import rustworkx as rx
 
 from action_machine.application import Application
+from action_machine.graph_model.edges.lifecycle_graph_edge import LifeCycleGraphEdge
 from action_machine.graph_model.nodes.application_graph_node import ApplicationGraphNode
 from action_machine.graph_model.nodes.compensator_graph_node import CompensatorGraphNode
 from action_machine.graph_model.nodes.error_handler_graph_node import ErrorHandlerGraphNode
@@ -305,9 +306,11 @@ def test_g6_edge_propagates_domain_containment_only() -> None:
         g6_edge({"relationshipName": "Association", "label": "@check_roles"})
     )
     assert not g6_edge_propagates_domain_from_host_to_child(
-        g6_edge({"relationshipName": "Association", "label": "lifecycle"})
+        g6_edge({"relationshipName": "Association", "label": LifeCycleGraphEdge.EDGE_NAME})
     )
-    assert g6_edge_propagates_domain_from_host_to_child(g6_edge({"label": "lifecycle"}))
+    assert g6_edge_propagates_domain_from_host_to_child(
+        g6_edge({"label": LifeCycleGraphEdge.EDGE_NAME})
+    )
     assert g6_edge_propagates_domain_from_host_to_child(g6_edge({"label": "@regular_aspect"}))
     assert not g6_edge_propagates_domain_from_host_to_child(g6_edge({"label": "@check_roles"}))
 

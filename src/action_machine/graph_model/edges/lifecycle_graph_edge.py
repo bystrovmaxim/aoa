@@ -14,7 +14,7 @@ Interchange companions for status vertices are chained only via :class:`~action_
 from __future__ import annotations
 
 from functools import cache
-from typing import Any
+from typing import Any, ClassVar
 
 from action_machine.domain.entity import BaseEntity
 from action_machine.graph_model.nodes.lifecycle_graph_node import LifeCycleGraphNode
@@ -34,6 +34,8 @@ class LifeCycleGraphEdge(CompositionGraphEdge):
     AI-CORE-END
     """
 
+    EDGE_NAME: ClassVar[str] = "lifecycle"
+
     def __init__(
         self,
         *,
@@ -51,7 +53,7 @@ class LifeCycleGraphEdge(CompositionGraphEdge):
             target_id = TypeIntrospection.full_qualname(lifecycle_cls)
 
         super().__init__(
-            edge_name="lifecycle",
+            edge_name=LifeCycleGraphEdge.EDGE_NAME,
             is_dag=False,
             target_node_id=target_id,
             target_node=target_node,
