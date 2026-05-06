@@ -41,7 +41,7 @@ import time
 from typing import Any, cast
 
 from action_machine.context.context_view import ContextView
-from action_machine.exceptions import ValidationFieldError
+from action_machine.exceptions import MissingSummaryAspectError, ValidationFieldError
 from action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
 from action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
@@ -56,9 +56,6 @@ from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
 from action_machine.resources.base_resource import BaseResource
-from action_machine.runtime.binding.action_result_binding import (
-    synthetic_summary_result_when_missing_aspect,
-)
 from action_machine.runtime.tools_box import ToolsBox
 
 
@@ -201,7 +198,10 @@ class AspectExecutor:
         """Execute summary aspect and return result with duration."""
         action_cls = type(action)
         if summary_node is None:
-            return synthetic_summary_result_when_missing_aspect(action_cls), 0.0
+            raise MissingSummaryAspectError(
+                f"{action_cls.__name__} has no summary aspect; declare @summary_aspect or use "
+                "an action graph that exposes a summary interchange vertex.",
+            )
         summary_start = time.time()
         raw = await self.call_aspect(
             action=action,
