@@ -22,7 +22,7 @@ from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 
 _INTERNAL_INTERCHANGE_EDGES: frozenset[str] = frozenset({"CHECKS_ASPECT", "COMPENSATES_ASPECT"})
 
-# Seeds ``node_domains`` membership: interchange slot from host row → ``Domain`` vertex.
+# Seeds ``node_domains`` membership: interchange slot from host row → ``Domain`` graph-node row.
 _DOMAIN_EDGE_SLOTS: frozenset[str] = frozenset({"BELONGS_TO", "domain"})
 
 # Host→child interchange slots that are **Composition** or **Aggregation** in the typed
@@ -74,7 +74,7 @@ def g6_edge_propagates_domain_from_host_to_child(e: dict[str, Any]) -> bool:
     return False
 
 
-# Hull colors for domain bubbles (one per domain vertex); distinct from typical node fills.
+# Hull colors for domain bubbles (one per domain graph-node row); distinct from typical node fills.
 _BUBBLE_SETS_PALETTE: tuple[str, ...] = (
     "#1783FF",
     "#00C9C9",
@@ -169,15 +169,15 @@ def bubble_sets_plugins_for_domains(
     propagation: tuple[dict[str, str], list[str], defaultdict[str, set[str]]] | None = None,
 ) -> list[dict[str, Any]]:
     """
-    Build G6 ``bubble-sets`` plugins: one hull per ``domain`` vertex.
+    Build G6 ``bubble-sets`` plugins: one hull per ``domain`` graph-node row.
 
-    Members: the domain vertex, interchange rows seeded with ``domain`` / ``belongs_to``
+    Members: the domain node, interchange rows seeded with ``domain`` / ``belongs_to``
     toward that domain (``Action``, ``Resource``, ``Entity``, …), and every row reached by
     repeated host→child steps along **Composition** / **Aggregation** only (see
     :func:`g6_edge_propagates_domain_from_host_to_child`), plus checker/compensator bridge
     merges from :func:`propagate_node_domains`.
 
-    The ``application`` vertex is never added to a domain bubble.
+    The ``application`` graph-node row is never added to a domain bubble.
     """
     if propagation is None:
         propagation = propagate_node_domains(g6_nodes, g6_edges)
