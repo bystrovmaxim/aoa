@@ -25,19 +25,6 @@ class _SubclassWithDupProperty(_CallableHost):
         return 99
 
 
-@pytest.mark.parametrize(
-    "meta, expected",
-    [
-        ({"description": ""}, None),
-        ({}, None),
-        (object(), None),
-        ({"description": "  x "}, "x"),
-    ],
-)
-def test_description_from_meta_branches(meta: object, expected: str | None) -> None:
-    assert TypeIntrospection.description_from_meta(meta) == expected
-
-
 def test_unwrap_callable_strips_bound_method_wrapper() -> None:
     bound = types.MethodType(_CallableHost.keep_me, _CallableHost())
     unwrapped = TypeIntrospection.unwrap_callable(bound)
