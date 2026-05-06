@@ -119,17 +119,6 @@ NODE_TYPE_FILL_COLORS: dict[str, str] = {
     PropertyFieldGraphNode.NODE_TYPE: "#43A047",
 }
 
-# Deprecated ``node_type`` strings (older payloads / exports); canonical keys are ``StateGraphNode.NODE_TYPE_STATE_*``.
-NODE_TYPE_FILL_COLORS["lifecycle_state_initial"] = NODE_TYPE_FILL_COLORS[
-    StateGraphNode.NODE_TYPE_STATE_INITIAL
-]
-NODE_TYPE_FILL_COLORS["lifecycle_state_intermediate"] = NODE_TYPE_FILL_COLORS[
-    StateGraphNode.NODE_TYPE_STATE_INTERMEDIATE
-]
-NODE_TYPE_FILL_COLORS["lifecycle_state_final"] = NODE_TYPE_FILL_COLORS[
-    StateGraphNode.NODE_TYPE_STATE_FINAL
-]
-
 DEFAULT_COLOR = "#95a5a6"
 
 GRAPH_NODE_VISUAL_PX = 24

@@ -158,19 +158,6 @@ GRAPH_NODE_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
 }
 # fmt: on
 
-GRAPH_NODE_TYPE_LUCIDE_INNER_SVG["lifecycle_state_initial"] = GRAPH_NODE_TYPE_LUCIDE_INNER_SVG[
-    StateGraphNode.NODE_TYPE_STATE_INITIAL
-]
-GRAPH_NODE_TYPE_LUCIDE_INNER_SVG["lifecycle_state_intermediate"] = GRAPH_NODE_TYPE_LUCIDE_INNER_SVG[
-    StateGraphNode.NODE_TYPE_STATE_INTERMEDIATE
-]
-GRAPH_NODE_TYPE_LUCIDE_INNER_SVG["lifecycle_state_final"] = GRAPH_NODE_TYPE_LUCIDE_INNER_SVG[
-    StateGraphNode.NODE_TYPE_STATE_FINAL
-]
-GRAPH_NODE_TYPE_LUCIDE_INNER_SVG["lifecycle_state"] = GRAPH_NODE_TYPE_LUCIDE_INNER_SVG[
-    StateGraphNode.NODE_TYPE_STATE_INTERMEDIATE
-]
-
 # Scale Lucide paths (native 24×24) about the center so strokes sit inside the disk with margin.
 _ICON_INNER_SCALE: float = 0.58
 # Keep apparent stroke width ~2 after scaling (stroke scales with transform).
