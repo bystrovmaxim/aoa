@@ -1,15 +1,19 @@
 # src/maxitor/visualizer/erd_visualizer/__init__.py
 """
-ERD viewer — reusable G6 shell (canvas, zoom, detail panel) with **data-only** graph assembly.
+ERD viewer — AntV **X6** ER-style nodes (see X6 practices ER example) with a G6-like shell
+(zoom toolbar, properties panel, LOD on scale).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-:class:`ErdGraphPayload` (:mod:`.erd_graph_data`) owns entity/relationship records and
-serialization to interchange-style ``nodes`` / ``edges`` dictionaries.
-:mod:`.erd_html` injects payloads into ``template.html`` and writes ``erd.html`` under
-``archive/logs`` by default (:data:`DEFAULT_ERD_HTML_PATH`).
+:class:`ErdGraphPayload` (:mod:`.erd_graph_data`) holds entity/relationship specs;
+:func:`.erd_payload_to_x6_document` serializes them to X6 ``fromJSON`` shape.
+:mod:`.erd_html` injects CSS + an ES-module bootstrap (dynamic ``import`` of X6) and
+:func:`.write_erd_html_from_coordinator`, which takes a production
+:class:`~graph.node_graph_coordinator.NodeGraphCoordinator` and a
+:class:`~action_machine.domain.base_domain.BaseDomain`, builds the ER payload from interchange
+vertices, and writes HTML.
 """
 
 from __future__ import annotations
@@ -19,21 +23,27 @@ from .erd_graph_data import (
     ErdEntitySpec,
     ErdGraphPayload,
     build_demo_erd_payload,
-    erd_payload_to_g6_records,
+    erd_payload_from_coordinator_for_domain,
+    erd_payload_to_x6_document,
 )
 from .erd_html import (
     DEFAULT_ERD_HTML_PATH,
-    G6_CDN_URL,
+    ELK_MODULE_URL,
+    X6_MODULE_URL,
     write_erd_html,
+    write_erd_html_from_coordinator,
 )
 
 __all__ = [
     "DEFAULT_ERD_HTML_PATH",
+    "ELK_MODULE_URL",
+    "X6_MODULE_URL",
     "ErdEdgeSpec",
     "ErdEntitySpec",
     "ErdGraphPayload",
-    "G6_CDN_URL",
     "build_demo_erd_payload",
-    "erd_payload_to_g6_records",
+    "erd_payload_from_coordinator_for_domain",
+    "erd_payload_to_x6_document",
     "write_erd_html",
+    "write_erd_html_from_coordinator",
 ]

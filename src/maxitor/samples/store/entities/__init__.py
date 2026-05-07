@@ -8,6 +8,18 @@ from maxitor.samples.store.entities.lifecycle import (
     SalesOrderLineLifecycle,
 )
 from maxitor.samples.store.entities.line_item import SalesOrderLineEntity
+from maxitor.samples.store.entities.order_extensions import (
+    DiscountApplicationEntity,
+    FulfillmentTaskEntity,
+    InvoiceRecordEntity,
+    PaymentAuthorizationEntity,
+    PaymentCaptureEntity,
+    RefundRequestEntity,
+    ReturnRequestEntity,
+    ShipmentParcelEntity,
+    ShipmentTrackingEventEntity,
+    TaxLineEntity,
+)
 from maxitor.samples.store.entities.order_record import SalesOrderEntity
 
 __all__ = [
@@ -15,8 +27,18 @@ __all__ = [
     "AuditLogEntryLifecycle",
     "CustomerAccountEntity",
     "CustomerAccountLifecycle",
+    "DiscountApplicationEntity",
+    "FulfillmentTaskEntity",
+    "InvoiceRecordEntity",
+    "PaymentAuthorizationEntity",
+    "PaymentCaptureEntity",
+    "RefundRequestEntity",
+    "ReturnRequestEntity",
     "SalesOrderEntity",
     "SalesOrderLifecycle",
     "SalesOrderLineEntity",
     "SalesOrderLineLifecycle",
+    "ShipmentParcelEntity",
+    "ShipmentTrackingEventEntity",
+    "TaxLineEntity",
 ]
