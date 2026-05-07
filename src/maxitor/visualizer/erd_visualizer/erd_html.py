@@ -74,6 +74,10 @@ _ERD_BOOTSTRAP_JS = """
           fill: '#5F95FF',
         },
         label: {
+          refX: NODE_WIDTH / 2,
+          refY: LINE_HEIGHT / 2,
+          textAnchor: 'middle',
+          textVerticalAnchor: 'middle',
           fontWeight: 'bold',
           fill: '#ffffff',
           fontSize: 12,
