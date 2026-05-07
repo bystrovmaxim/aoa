@@ -17,6 +17,8 @@ class ProfitCenterContributionEntity(BaseEntity):
     id: str = Field(description="Slice id")
     lifecycle: BillingDenseLifecycle = Field(description="Profit center lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
     ingest_manifest: Annotated[
         AssociationOne[BillingFileIngestManifestEntity],
         NoInverse(),

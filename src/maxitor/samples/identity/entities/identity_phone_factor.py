@@ -17,6 +17,12 @@ class IdentityPhoneFactorEntity(BaseEntity):
     id: str = Field(description="Phone factor id")
     lifecycle: IdentityDenseLifecycle = Field(description="Phone factor lifecycle")
 
+    subject_handle: str = Field(description="Pseudonymous subject moniker for federation")
+    risk_band: str = Field(description="Assurance tier surfaced to policy engines")
+    last_seen_ip_hash: str = Field(description="Salted client-network fingerprint heuristic")
+    mfa_saturation_pct: float = Field(description="MFA-factor coverage heuristic percent", ge=0, le=100)
+    recovery_budget_left: int = Field(description="Remaining recovery-token attempts envelope", ge=0)
+    linkage_audit_seq: int = Field(description="Monotonic merge audit ticker", ge=0)
     person: Annotated[
         AssociationOne[IdentityPersonHubEntity],
         NoInverse(),

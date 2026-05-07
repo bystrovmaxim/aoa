@@ -17,6 +17,8 @@ class BillingCanonicalRowArtifactEntity(BaseEntity):
     id: str = Field(description="Artifact id")
     lifecycle: BillingDenseLifecycle = Field(description="Row lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
     parse_pass: Annotated[
         AssociationOne[BillingParsePassEntity],
         NoInverse(),

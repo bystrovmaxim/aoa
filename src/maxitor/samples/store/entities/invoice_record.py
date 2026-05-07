@@ -19,6 +19,10 @@ class InvoiceRecordEntity(BaseEntity):
     subtotal: float = Field(description="Subtotal", ge=0)
     total: float = Field(description="Invoice total", ge=0)
 
+    storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
+    compliance_rating: str = Field(description="Fraud / AML posture snapshot")
+    fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
+    tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),

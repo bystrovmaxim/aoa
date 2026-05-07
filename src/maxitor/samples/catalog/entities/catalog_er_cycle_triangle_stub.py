@@ -33,6 +33,12 @@ class CatalogDirectedCycleTriangleAEntity(BaseEntity):
     id: str = Field(description="Vertex A id")
     lifecycle: _CatalogDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
+    commercial_region_code: str = Field(description="Merchandising / pricing region discriminator")
+    channel_partner_tag: str = Field(description="Acquisition partner or marketplace moniker")
+    compliance_locale: str = Field(description="Regulatory storefront locale code")
+    attribution_strategy: str = Field(description="Attribution-model key used for funnel credit")
+    hash_stale_after_sec: int = Field(description="Seconds until cached facets must invalidate", ge=0)
+    copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
     follow_b: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleBEntity],
         Inverse(CatalogDirectedCycleTriangleBEntity, "back_from_a"),
@@ -57,6 +63,12 @@ class CatalogDirectedCycleTriangleBEntity(BaseEntity):
     id: str = Field(description="Vertex B id")
     lifecycle: _CatalogDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
+    commercial_region_code: str = Field(description="Merchandising / pricing region discriminator")
+    channel_partner_tag: str = Field(description="Acquisition partner or marketplace moniker")
+    compliance_locale: str = Field(description="Regulatory storefront locale code")
+    attribution_strategy: str = Field(description="Attribution-model key used for funnel credit")
+    hash_stale_after_sec: int = Field(description="Seconds until cached facets must invalidate", ge=0)
+    copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
     back_from_a: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleAEntity],
         Inverse(CatalogDirectedCycleTriangleAEntity, "follow_b"),
@@ -81,6 +93,12 @@ class CatalogDirectedCycleTriangleCEntity(BaseEntity):
     id: str = Field(description="Vertex C id")
     lifecycle: _CatalogDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
+    commercial_region_code: str = Field(description="Merchandising / pricing region discriminator")
+    channel_partner_tag: str = Field(description="Acquisition partner or marketplace moniker")
+    compliance_locale: str = Field(description="Regulatory storefront locale code")
+    attribution_strategy: str = Field(description="Attribution-model key used for funnel credit")
+    hash_stale_after_sec: int = Field(description="Seconds until cached facets must invalidate", ge=0)
+    copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
     back_from_b: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleBEntity],
         Inverse(CatalogDirectedCycleTriangleBEntity, "follow_c"),

@@ -17,6 +17,8 @@ class FxResidualTagEntity(BaseEntity):
     id: str = Field(description="Residual id")
     lifecycle: BillingDenseLifecycle = Field(description="FX residual lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
     narrative: Annotated[
         AssociationOne[NarrativeCorrectionEntity],
         NoInverse(),

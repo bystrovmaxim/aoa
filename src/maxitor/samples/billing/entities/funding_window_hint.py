@@ -17,6 +17,8 @@ class FundingWindowHintEntity(BaseEntity):
     id: str = Field(description="Window id")
     lifecycle: BillingDenseLifecycle = Field(description="Liquidity facet lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
     sweep: Annotated[
         AssociationOne[BillingSweepInstructionEntity],
         NoInverse(),

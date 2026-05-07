@@ -17,6 +17,8 @@ class BillingSweepInstructionEntity(BaseEntity):
     id: str = Field(description="Sweep id")
     lifecycle: BillingDenseLifecycle = Field(description="Sweep lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
     payout_plan: Annotated[
         AssociationOne[BillingPayoutPlanEntity],
         NoInverse(),

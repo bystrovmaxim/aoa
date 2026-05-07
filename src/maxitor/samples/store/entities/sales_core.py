@@ -40,6 +40,10 @@ class CustomerAccountEntity(BaseEntity):
     name: str = Field(description="Display name")
     email: str = Field(description="Email")
 
+    storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
+    compliance_rating: str = Field(description="Fraud / AML posture snapshot")
+    fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
+    tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     identity_party: Annotated[
         AssociationOne["IdentityPersonHubEntity"],  # noqa: UP037
         NoInverse(),
@@ -58,6 +62,10 @@ class SalesOrderEntity(BaseEntity):
     currency: str = Field(default="USD", description="Currency")
     lifecycle: SalesOrderLifecycle = Field(description="Lifecycle")
 
+    storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
+    compliance_rating: str = Field(description="Fraud / AML posture snapshot")
+    fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
+    tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     customer: Annotated[
         AssociationOne[CustomerAccountEntity],
         Inverse(CustomerAccountEntity, "orders"),
@@ -82,6 +90,9 @@ class SalesOrderLineEntity(BaseEntity):
     quantity: int = Field(description="Qty", ge=1)
     unit_price: float = Field(description="Unit price", ge=0)
 
+    storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
+    compliance_rating: str = Field(description="Fraud / AML posture snapshot")
+    fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     catalog_product: Annotated[
         AssociationOne["CatalogProductEntity"],  # noqa: UP037
         NoInverse(),

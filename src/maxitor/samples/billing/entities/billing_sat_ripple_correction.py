@@ -17,6 +17,8 @@ class SettlementRippleCorrectionEntity(BaseEntity):
     id: str = Field(description="Memo id")
     lifecycle: BillingDenseLifecycle = Field(description="Ripple correction lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
     sweep: Annotated[
         AssociationOne[BillingSweepInstructionEntity],
         NoInverse(),

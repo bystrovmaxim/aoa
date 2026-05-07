@@ -17,6 +17,8 @@ class DuplicateSuppressionLedgerEntity(BaseEntity):
     id: str = Field(description="Ledger fragment id")
     lifecycle: BillingDenseLifecycle = Field(description="Duplicate ledger lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
     parse_pass: Annotated[
         AssociationOne[BillingParsePassEntity],
         NoInverse(),

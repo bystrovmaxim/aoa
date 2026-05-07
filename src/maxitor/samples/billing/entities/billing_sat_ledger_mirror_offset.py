@@ -17,6 +17,9 @@ class LedgerMirrorOffsetEntity(BaseEntity):
     id: str = Field(description="Offset id")
     lifecycle: BillingDenseLifecycle = Field(description="Mirror offset lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
+    posting_timezone: str = Field(description="Business-calendar timezone identifier")
     fee_schedule_pointer: Annotated[
         AssociationOne[MerchantFeeSchedulePointerEntity],
         NoInverse(),

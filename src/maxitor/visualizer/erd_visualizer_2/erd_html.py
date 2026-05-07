@@ -506,14 +506,25 @@ async function initD2() {{
 function buildDotSource() {{
   const {{ nodes, edges }} = getDomainData();
   const isLR = activeLayout === 'gv-dot-lr' || activeLayout === 'cy-dagre-lr' || activeLayout === 'dagre-lr';
-  const lines = [
-    'digraph ERD {{',
-    '  graph [rankdir=' + (isLR ? 'LR' : 'TB') +
-      ' fontname="Helvetica" bgcolor="#f8fafc" pad="0.5" nodesep="0.8" ranksep="1.2"]',
+  const lines = ['digraph ERD {{'];
+  // Neato ignores rankdir / nodesep / ranksep; those attrs produce a poor spring layout. Use
+  // spring-specific spacing (see graphviz attrs: overlap, sep) without changing dot/fdp/circo.
+  if (activeLayout === 'gv-neato') {{
+    lines.push(
+      '  graph [fontname="Helvetica" bgcolor="#f8fafc" pad="0.5" '
+        + 'overlap=false splines=false sep="+40"]',
+    );
+  }} else {{
+    lines.push(
+      '  graph [rankdir=' + (isLR ? 'LR' : 'TB') +
+        ' fontname="Helvetica" bgcolor="#f8fafc" pad="0.5" nodesep="0.8" ranksep="1.2"]',
+    );
+  }}
+  lines.push(
     '  node  [shape=none fontname="Helvetica" fontsize=11 margin="0"]',
     '  edge  [fontname="Helvetica" fontsize=9 color="#94a3b8" arrowsize=0.7]',
     '',
-  ];
+  );
 
   for (const nd of (nodes || [])) {{
     const color = nd.color || '#3b82f6';

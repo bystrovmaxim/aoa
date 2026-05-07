@@ -32,6 +32,12 @@ class StoreDirectedCyclePingEntity(BaseEntity):
     id: str = Field(description="Ping row id")
     lifecycle: _StoreDirectedCycleSketchLifecycle = Field(description="Ping sketch lifecycle")
 
+    storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
+    compliance_rating: str = Field(description="Fraud / AML posture snapshot")
+    fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
+    tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
+    shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
+    lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     pong_peer: Annotated[
         AssociationOne[StoreDirectedCyclePongEntity],
         Inverse(StoreDirectedCyclePongEntity, "ping_peer"),
@@ -53,6 +59,12 @@ class StoreDirectedCyclePongEntity(BaseEntity):
     id: str = Field(description="Pong row id")
     lifecycle: _StoreDirectedCycleSketchLifecycle = Field(description="Pong sketch lifecycle")
 
+    storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
+    compliance_rating: str = Field(description="Fraud / AML posture snapshot")
+    fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
+    tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
+    shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
+    lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     ping_peer: Annotated[
         AssociationOne[StoreDirectedCyclePingEntity],
         Inverse(StoreDirectedCyclePingEntity, "pong_peer"),

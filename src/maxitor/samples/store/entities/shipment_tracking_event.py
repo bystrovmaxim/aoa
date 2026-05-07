@@ -19,6 +19,10 @@ class ShipmentTrackingEventEntity(BaseEntity):
     status: str = Field(description="Carrier status")
     location: str = Field(description="Carrier location")
 
+    storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
+    compliance_rating: str = Field(description="Fraud / AML posture snapshot")
+    fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
+    tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     parcel: Annotated[
         AssociationOne[ShipmentParcelEntity],
         NoInverse(),

@@ -19,6 +19,10 @@ class FulfillmentTaskEntity(BaseEntity):
     assignee: str = Field(description="Assigned worker")
     task_kind: str = Field(description="Task kind")
 
+    storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
+    compliance_rating: str = Field(description="Fraud / AML posture snapshot")
+    fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
+    tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],
         NoInverse(),

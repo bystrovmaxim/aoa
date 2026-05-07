@@ -17,6 +17,12 @@ class DataQualityTicketEntity(BaseEntity):
     id: str = Field(description="Ticket id")
     lifecycle: AnalyticsFactLifecycle = Field(description="DQ ticket lifecycle")
 
+    ingress_batch_key: str = Field(description="Loader partition key echoed into lake prefixes")
+    source_anchor_slug: str = Field(description="Upstream subsystem / connector anchor moniker")
+    event_estimate: int = Field(description="Approximate attributable telemetry rows", ge=0)
+    payload_byte_hint: int = Field(description="Compressed payload footprint hint bytes", ge=0)
+    freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
+    privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     experiment_overlay: Annotated[
         AssociationOne[ExperimentOverlayEntity],
         NoInverse(),

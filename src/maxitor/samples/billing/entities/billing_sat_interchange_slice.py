@@ -23,6 +23,8 @@ class InterchangeAssessmentSliceEntity(BaseEntity):
     ic_plus_basis_points: int = Field(description="IC++ component in basis points", ge=0)
     network_batch_id: str = Field(description="Network settlement batch marker")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
     chargeback_ingest_correlate: Annotated[
         AssociationOne["BillingChargebackIngestCorrelateEntity"],  # noqa: F821, UP037
         NoInverse(),
