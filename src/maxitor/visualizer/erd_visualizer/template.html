@@ -18,6 +18,53 @@
             background-image: radial-gradient(rgba(160,168,180,0.42) 1px, transparent 1px);
             background-size: 20px 20px;
         }
+        #mermaid-container,
+        #graphviz-container,
+        #d2-container,
+        #d2-source-container {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: auto;
+            background: #f4f5f7;
+            z-index: 5;
+            display: none;
+        }
+        #mermaid-container {
+            padding: 72px 280px 80px 310px;
+        }
+        #graphviz-container {
+            padding: 72px 280px 80px 310px;
+        }
+        #d2-container {
+            padding: 72px 280px 80px 310px;
+        }
+        #mermaid-container svg {
+            display: block;
+            max-width: none;
+            height: auto;
+            margin: 0 auto;
+        }
+        #graphviz-container svg {
+            display: block;
+            max-width: none;
+            height: auto;
+            margin: 0 auto;
+        }
+        #d2-container svg {
+            display: block;
+            max-width: none;
+            height: auto;
+            margin: 0 auto;
+        }
+        #d2-source-container {
+            padding: 72px 280px 80px 310px;
+            margin: 0;
+            font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            color: #111827;
+            white-space: pre;
+        }
         #graph-hover-labels {
             position: absolute;
             left: 0;
@@ -71,6 +118,41 @@
             width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
             border: 1px solid rgba(0,0,0,0.12); object-fit: cover;
             display: block;
+        }
+        .layout-picker {
+            position: fixed; top: 156px; right: 12px; z-index: 100000;
+            background: rgba(255,255,255,0.9); backdrop-filter: blur(8px);
+            border: 1px solid rgba(0,0,0,0.08); border-radius: 8px;
+            padding: 8px 10px; min-width: 160px; max-width: 220px;
+            font-size: 11px; color: #2c3e50; box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            display: none; flex-direction: column; gap: 6px;
+        }
+        .renderer-picker {
+            position: fixed; top: 12px; right: 12px; z-index: 100000;
+            background: rgba(255,255,255,0.9); backdrop-filter: blur(8px);
+            border: 1px solid rgba(0,0,0,0.08); border-radius: 8px;
+            padding: 8px 10px; min-width: 160px; max-width: 220px;
+            font-size: 11px; color: #2c3e50; box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            display: none; flex-direction: column; gap: 6px;
+        }
+        .layout-picker .legend-title,
+        .renderer-picker .legend-title {
+            font-weight: 600; font-size: 10px; text-transform: uppercase;
+            letter-spacing: 0.04em; color: #5c6370; margin-bottom: 2px;
+        }
+        .layout-picker .layout-row,
+        .renderer-picker .renderer-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
+            width: 100%; border: none; background: transparent;
+            border-radius: 6px; padding: 4px 6px; cursor: pointer;
+            text-align: left; color: #2c3e50;
+        }
+        .layout-picker .layout-row:hover,
+        .renderer-picker .renderer-row:hover { background: #eef0f3; }
+        .layout-picker .layout-row.is-active,
+        .renderer-picker .renderer-row.is-active {
+            background: #e7efff;
+            color: #1d4ed8;
         }
         .node-detail-shell {
             position: fixed; top: 0; right: 0; height: 100vh; z-index: 100001;
@@ -197,12 +279,37 @@
             padding: 0 4px;
             min-width: 2.5em;
         }
+        /* ERD truncation—full strings on hover (X6 SVG has no reliable native title for our ports). */
+        #erd-hover-tip {
+            position: fixed;
+            z-index: 100002;
+            display: none;
+            max-width: min(420px, 92vw);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            line-height: 1.35;
+            color: #0f172a;
+            background: rgba(255, 255, 255, 0.97);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+            pointer-events: none;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
     </style>
 </head>
 <body>
     <div id="container"></div>
+    <div id="mermaid-container" aria-label="Mermaid ERD renderer"></div>
+    <div id="graphviz-container" aria-label="Graphviz ERD renderer"></div>
+    <div id="d2-container" aria-label="D2 ERD renderer"></div>
+    <pre id="d2-source-container" aria-label="D2 ERD source"></pre>
+    <div id="erd-hover-tip" role="tooltip" aria-hidden="true"></div>
     <div id="graph-hover-labels" aria-hidden="true"></div>
     <aside id="domain-picker" class="domain-picker" aria-label="Domains"></aside>
+    <aside id="renderer-picker" class="renderer-picker" aria-label="Renderer variants"></aside>
+    <aside id="layout-picker" class="layout-picker" aria-label="Layout variants"></aside>
     <aside id="node-detail-shell" class="node-detail-shell" aria-hidden="true">
       <div class="node-detail-panel">
         <button type="button" class="node-detail-close" id="node-detail-close" aria-label="Close properties">×</button>

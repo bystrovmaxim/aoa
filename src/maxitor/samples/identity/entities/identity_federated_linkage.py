@@ -10,9 +10,10 @@ from action_machine.intents.entity import entity
 from maxitor.samples.identity.domain import IdentityDomain
 from maxitor.samples.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
 from maxitor.samples.identity.entities.identity_email_factor import IdentityEmailFactorEntity
+from maxitor.samples.identity.entities.identity_person_hub import IdentityPersonHubEntity
 
 
-@entity(description="Federated IdP linkage on email spine continuation", domain=IdentityDomain)
+@entity(description="Federated IdP linkage for a person and optional email credential factor", domain=IdentityDomain)
 class IdentityFederatedLinkageEntity(BaseEntity):
     lifecycle: IdentityDenseLifecycle = Field(description="Federated linkage lifecycle")
     id: str = Field(description="Linkage id")
@@ -21,6 +22,11 @@ class IdentityFederatedLinkageEntity(BaseEntity):
         AssociationOne[IdentityEmailFactorEntity],
         NoInverse(),
     ] = Rel(description="Upstream email credential row")  # type: ignore[assignment]
+
+    person: Annotated[
+        AssociationOne[IdentityPersonHubEntity],
+        NoInverse(),
+    ] = Rel(description="Federated account owner")  # type: ignore[assignment]
 
 
 IdentityFederatedLinkageEntity.model_rebuild()

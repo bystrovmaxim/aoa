@@ -12,7 +12,7 @@ from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDens
 from maxitor.samples.billing.entities.billing_sweep_instruction import BillingSweepInstructionEntity
 
 
-@entity(description="Settlement ripple memo on sweep branch (distinct from ingest / interchange spines)", domain=BillingDomain)
+@entity(description="Settlement ripple memo on sweep branch", domain=BillingDomain)
 class SettlementRippleCorrectionEntity(BaseEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Ripple correction lifecycle")
     id: str = Field(description="Memo id")

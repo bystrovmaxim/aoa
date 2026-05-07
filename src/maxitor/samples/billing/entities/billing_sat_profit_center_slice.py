@@ -12,7 +12,7 @@ from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDens
 from maxitor.samples.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestEntity
 
 
-@entity(description="Profit-center split hanging off ingest manifest root (orthogonal tree)", domain=BillingDomain)
+@entity(description="Profit-center split hanging off ingest manifest root", domain=BillingDomain)
 class ProfitCenterContributionEntity(BaseEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Profit center lifecycle")
     id: str = Field(description="Slice id")

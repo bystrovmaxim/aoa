@@ -10,9 +10,10 @@ from action_machine.intents.entity import entity
 from maxitor.samples.identity.domain import IdentityDomain
 from maxitor.samples.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
 from maxitor.samples.identity.entities.identity_federated_linkage import IdentityFederatedLinkageEntity
+from maxitor.samples.identity.entities.identity_person_hub import IdentityPersonHubEntity
 
 
-@entity(description="Org binding continuing federated lineage (still no radial hub)", domain=IdentityDomain)
+@entity(description="Organization binding for a person through a federated linkage", domain=IdentityDomain)
 class IdentityOrgBindingStubEntity(BaseEntity):
     lifecycle: IdentityDenseLifecycle = Field(description="Org binding lifecycle")
     id: str = Field(description="Binding id")
@@ -21,6 +22,11 @@ class IdentityOrgBindingStubEntity(BaseEntity):
         AssociationOne[IdentityFederatedLinkageEntity],
         NoInverse(),
     ] = Rel(description="Parent federated linkage row")  # type: ignore[assignment]
+
+    person: Annotated[
+        AssociationOne[IdentityPersonHubEntity],
+        NoInverse(),
+    ] = Rel(description="Bound person identity")  # type: ignore[assignment]
 
 
 IdentityOrgBindingStubEntity.model_rebuild()

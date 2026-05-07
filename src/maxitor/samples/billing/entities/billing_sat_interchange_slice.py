@@ -1,5 +1,5 @@
 # src/maxitor/samples/billing/entities/billing_sat_interchange_slice.py
-"""Standalone interchange triangle head — outbound only to downstream fee artefacts."""
+"""Standalone interchange economics root row."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from maxitor.samples.billing.domain import BillingDomain
 from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 
 
-@entity(description="Interchange economics spine root (no shared settlement hub)", domain=BillingDomain)
+@entity(description="Interchange economics slice", domain=BillingDomain)
 class InterchangeAssessmentSliceEntity(BaseEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Interchange slice lifecycle")
     id: str = Field(description="Slice id")

@@ -1,4 +1,4 @@
-# src/src/maxitor/samples/billing/entities/__init__.py
+# src/maxitor/samples/billing/entities/__init__.py
 from __future__ import annotations
 
 from maxitor.samples.billing.entities.arbitration_brief_stub import ArbitrationBriefStubEntity
