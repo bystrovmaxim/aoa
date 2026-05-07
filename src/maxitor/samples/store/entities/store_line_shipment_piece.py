@@ -9,8 +9,7 @@ from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
 from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.entities.lifecycle import SalesOrderLineLifecycle
-from maxitor.samples.store.entities.sales_core import SalesOrderLineEntity
-from maxitor.samples.store.entities.sales_core import SalesOrderEntity
+from maxitor.samples.store.entities.sales_core import SalesOrderEntity, SalesOrderLineEntity
 
 
 @entity(description="Shipment piece bridging line + header (dense mesh cue)", domain=StoreDomain)

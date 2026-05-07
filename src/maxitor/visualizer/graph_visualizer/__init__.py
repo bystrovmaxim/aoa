@@ -9,6 +9,7 @@ Use :mod:`maxitor.visualizer.graph_visualizer.visualizer`.
 from __future__ import annotations
 
 from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
+
 from .visualizer import (
     G6_CDN_URL,
     HTML_PATH,

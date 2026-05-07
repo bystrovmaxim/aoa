@@ -8,8 +8,8 @@ from pydantic import Field
 from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
 from maxitor.samples.catalog.domain import CatalogDomain
-from maxitor.samples.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 from maxitor.samples.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerEntity
+from maxitor.samples.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 
 
 @entity(description="Attributed touch moment", domain=CatalogDomain)

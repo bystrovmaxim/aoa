@@ -35,6 +35,11 @@ _MODULES: Final[tuple[str, ...]] = (
     "maxitor.samples.inventory.entities",
     "maxitor.samples.analytics.domain",
     "maxitor.samples.analytics.entities",
+    # ERD topology echoes: clinical intake/dispatch mesh + QA portfolio mesh
+    "maxitor.samples.clinical_supply.domain",
+    "maxitor.samples.clinical_supply.entities",
+    "maxitor.samples.assurance_portfolio.domain",
+    "maxitor.samples.assurance_portfolio.entities",
     # store (depends on billing/messaging services)
     "maxitor.samples.store.domain",
     "maxitor.samples.store.dependencies",

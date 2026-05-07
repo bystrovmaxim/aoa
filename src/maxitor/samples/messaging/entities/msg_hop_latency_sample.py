@@ -8,8 +8,8 @@ from pydantic import Field
 from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
 from maxitor.samples.messaging.domain import MessagingDomain
-from maxitor.samples.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 from maxitor.samples.messaging.entities.msg_courier_attempt_ledger import CourierAttemptLedgerEntity
+from maxitor.samples.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 
 
 @entity(description="Hop latency sample chained from courier ledger", domain=MessagingDomain)
