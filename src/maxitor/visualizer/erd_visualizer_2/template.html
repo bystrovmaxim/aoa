@@ -50,6 +50,21 @@
     }
     .pill:hover  { background: #334155; color: #f1f5f9; }
     .pill.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+    .pill.domain-toggle:not(.active) {
+      opacity: 0.45;
+      text-decoration: line-through;
+      text-decoration-color: #94a3b8;
+    }
+    #neighborhood-filter .neighborhood-opt {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #cbd5e1;
+      cursor: pointer;
+      user-select: none;
+    }
+    #neighborhood-filter input { accent-color: #3b82f6; cursor: pointer; }
     .pill.recommended::after { content: " ✦"; font-size: 9px; opacity: .8; }
 
     /* ── Main canvas area ── */
@@ -244,8 +259,15 @@
     <h1>@@HTML_ESCAPED_TITLE@@</h1>
 
     <div class="picker-group" id="domain-picker" style="display:none">
-      <span class="picker-label">Domain:</span>
+      <span class="picker-label">Domains:</span>
       <div class="pill-bar" id="domain-pill-bar"></div>
+    </div>
+
+    <div class="picker-group" id="neighborhood-filter" style="display:none">
+      <label class="neighborhood-opt" title="When on, include entities exactly one interchange relation away from the selected domain(s).">
+        <input type="checkbox" id="neighborhood-expand" checked />
+        <span>1‑hop neighbors</span>
+      </label>
     </div>
 
     <div class="picker-group" id="renderer-picker">

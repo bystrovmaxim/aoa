@@ -8,6 +8,8 @@ import html
 import json
 from pathlib import Path
 
+from action_machine.system_core.type_introspection import TypeIntrospection
+
 # ── Package layout ────────────────────────────────────────────────────────────
 _PACKAGE_DIR = Path(__file__).resolve().parent
 _TEMPLATE_HTML = _PACKAGE_DIR / "template.html"
@@ -59,6 +61,35 @@ function escHtml(s) {{
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }}
 
+function escAttr(s) {{
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}}
+
+function mergeDomainPayloads(parts) {{
+  const nodeById = new Map();
+  const edgeSig = e =>
+    String(e.source) +
+    '\\u001f' +
+    String(e.target) +
+    '\\u001f' +
+    String(e.label || '');
+  const seenEdges = new Set();
+  const edgesOut = [];
+  for (const part of parts) {{
+    for (const n of (part.nodes || [])) nodeById.set(n.id, n);
+    for (const e of (part.edges || [])) {{
+      const sig = edgeSig(e);
+      if (seenEdges.has(sig)) continue;
+      seenEdges.add(sig);
+      edgesOut.push(e);
+    }}
+  }}
+  return {{ nodes: [...nodeById.values()], edges: edgesOut }};
+}}
+
 function loadScript(url, id) {{
   return new Promise((resolve, reject) => {{
     if (document.getElementById(id)) {{ resolve(); return; }}
@@ -75,21 +106,84 @@ function loadScript(url, id) {{
 // ── state ────────────────────────────────────────────────────────────────────
 let activeRenderer = 'd3gv';
 let activeLayout   = 'gv-dot-lr';
-let activeDomain   = null;
+/** @type {{Set<string>}} Domain keys toggled on (subset of ``ERD_DATA.domains``). */
+let enabledDomains = new Set();
 let x6graph        = null;
 let cyInstance     = null;
 let currentNodes   = [];
 let currentEdges   = [];
 
 let gvApi = null;
+let nhFilterWired = false;
 
 // ── domain data ──────────────────────────────────────────────────────────────
-function getDomainData() {{
+function mergeSelectedDomainPayloads() {{
   const domains = ERD_DATA && ERD_DATA.domains;
   if (!domains) return {{ nodes: [], edges: [] }};
-  if (activeDomain && domains[activeDomain]) return domains[activeDomain];
   const keys = Object.keys(domains);
-  return keys.length ? domains[keys[0]] : {{ nodes: [], edges: [] }};
+  if (!keys.length) return {{ nodes: [], edges: [] }};
+  const on = keys.filter(k => enabledDomains.has(k));
+  if (!on.length) return {{ nodes: [], edges: [] }};
+  if (on.length === 1) return domains[on[0]];
+  return mergeDomainPayloads(on.map(k => domains[k]));
+}}
+
+function scopeFilterDisabled() {{
+  const dq = ERD_DATA && ERD_DATA.domain_qualifiers;
+  if (!dq || typeof dq !== 'object') return true;
+  if (!Object.keys(dq).length) return true;
+  return false;
+}}
+
+function selectedDomainQualifiers() {{
+  const dq = ERD_DATA.domain_qualifiers || {{}};
+  const out = new Set();
+  for (const k of enabledDomains) {{
+    const q = dq[k];
+    if (q) out.add(q);
+  }}
+  return out;
+}}
+
+function applyNeighborhoodScope(raw) {{
+  const nodes = raw.nodes || [];
+  const edges = raw.edges || [];
+  if (scopeFilterDisabled()) return {{ nodes, edges }};
+  if (!nodes.length) return {{ nodes, edges }};
+  if (!nodes.some(n => n.domain_qualifier)) return {{ nodes, edges }};
+
+  const coreQuals = selectedDomainQualifiers();
+  if (!coreQuals.size) return {{ nodes: [], edges: [] }};
+
+  const expand =
+    document.getElementById('neighborhood-expand') === null
+      ? true
+      : !!document.getElementById('neighborhood-expand').checked;
+
+  const coreIds = new Set();
+  for (const n of nodes) {{
+    const q = n.domain_qualifier || '';
+    if (q && coreQuals.has(q)) coreIds.add(n.id);
+  }}
+
+  const keepIds = new Set(coreIds);
+  if (expand) {{
+    for (const e of edges) {{
+      if (coreIds.has(e.source) || coreIds.has(e.target)) {{
+        keepIds.add(e.source);
+        keepIds.add(e.target);
+      }}
+    }}
+  }}
+
+  const nodesOut = nodes.filter(n => keepIds.has(n.id));
+  const ok = new Set(nodesOut.map(n => n.id));
+  const edgesOut = edges.filter(e => ok.has(e.source) && ok.has(e.target));
+  return {{ nodes: nodesOut, edges: edgesOut }};
+}}
+
+function getDomainData() {{
+  return applyNeighborhoodScope(mergeSelectedDomainPayloads());
 }}
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -702,30 +796,67 @@ function initRendererPills() {{
     p.addEventListener('click', () => switchRenderer(p.dataset.renderer)));
 }}
 
+function renderDomainToggleBar() {{
+  const domains = ERD_DATA?.domains || {{}};
+  const keys = Object.keys(domains);
+  const bar = document.getElementById('domain-pill-bar');
+  if (!bar) return;
+
+  bar.innerHTML = keys.map(k => {{
+    const isOn = enabledDomains.has(k);
+    const cls = 'pill domain-toggle' + (isOn ? ' active' : '');
+    return (
+      '<button type="button" class="' + cls + '" role="switch" aria-checked="' + isOn + '"' +
+      ' data-domain="' + escAttr(k) + '" title="Toggle domain in the diagram">' +
+      escHtml(k) +
+      '</button>'
+    );
+  }}).join('');
+
+  bar.querySelectorAll('.domain-toggle').forEach(btn => {{
+    btn.addEventListener('click', () => {{
+      const key = btn.getAttribute('data-domain');
+      if (!key || !domains[key]) return;
+      if (enabledDomains.has(key)) enabledDomains.delete(key);
+      else enabledDomains.add(key);
+      renderDomainToggleBar();
+      switchRenderer(activeRenderer);
+    }});
+  }});
+}}
+
+function initNeighborhoodFilter() {{
+  const grp = document.getElementById('neighborhood-filter');
+  if (grp) {{
+    const dq = ERD_DATA?.domain_qualifiers;
+    grp.style.display = dq && Object.keys(dq).length ? '' : 'none';
+  }}
+  const cb = document.getElementById('neighborhood-expand');
+  if (cb && !nhFilterWired) {{
+    cb.addEventListener('change', () => switchRenderer(activeRenderer));
+    nhFilterWired = true;
+  }}
+}}
+
 function initDomainPicker() {{
   const domains = ERD_DATA?.domains || {{}};
   const keys = Object.keys(domains);
   const picker = document.getElementById('domain-picker');
-  if (!picker || keys.length <= 1) {{
-    if (keys.length === 1) activeDomain = keys[0];
+  if (!keys.length || !picker) {{
+    initNeighborhoodFilter();
     return;
   }}
-  activeDomain = keys[0];
+
+  if (keys.length === 1) {{
+    enabledDomains = new Set(keys);
+    initNeighborhoodFilter();
+    return;
+  }}
+
   picker.style.display = '';
-  const bar = document.getElementById('domain-pill-bar');
-  if (!bar) return;
-  bar.innerHTML = keys.map((k, i) =>
-    '<button class="pill' + (i === 0 ? ' active' : '') +
-    '" data-domain="' + k + '">' + k + '</button>'
-  ).join('');
-  bar.querySelectorAll('.pill').forEach(p => {{
-    p.addEventListener('click', () => {{
-      activeDomain = p.dataset.domain;
-      bar.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
-      p.classList.add('active');
-      switchRenderer(activeRenderer);
-    }});
-  }});
+  enabledDomains = new Set();
+  renderDomainToggleBar();
+  initNeighborhoodFilter();
 }}
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -771,12 +902,16 @@ def _serialize_entity(entity, color: str) -> dict:
             if k == "id":
                 continue
             fields.append({"name": k, "type": str(v), "primary_key": False, "foreign_key": False})
-    return {
+    qual = (getattr(entity, "declaring_domain_qual", None) or "").strip()
+    out = {
         "id": entity.id,
         "label": entity.label,
         "color": color,
         "fields": fields,
     }
+    if qual:
+        out["domain_qualifier"] = qual
+    return out
 
 
 def _serialize_edge(rel) -> dict:
@@ -794,7 +929,8 @@ def _payload_to_domain_dict(payload) -> dict:
     """
     nodes = []
     for i, entity in enumerate(payload.entities):
-        color = _ENTITY_COLORS[i % len(_ENTITY_COLORS)]
+        accent = (getattr(entity, "accent_color", None) or "").strip()
+        color = accent if accent else _ENTITY_COLORS[i % len(_ENTITY_COLORS)]
         nodes.append(_serialize_entity(entity, color))
 
     edges = [_serialize_edge(rel) for rel in payload.relationships]
@@ -879,6 +1015,7 @@ def write_erd_html_from_coordinator(
     if domain_cls is None:
         # One JS domain tab per Domain vertex in the interchange graph.
         domains_map: dict[str, dict] = {}
+        domain_qualifiers: dict[str, str] = {}
         for dc in domain_classes_from_coordinator(coordinator):
             try:
                 payload = erd_payload_from_coordinator_for_domain(coordinator, dc)
@@ -891,13 +1028,17 @@ def write_erd_html_from_coordinator(
                 domain_key = f"{base} ({n})"
                 n += 1
             domains_map[domain_key] = _payload_to_domain_dict(payload)
+            domain_qualifiers[domain_key] = TypeIntrospection.full_qualname(dc)
         if not domains_map:
             msg = "No domain ERD payloads could be built from the coordinator graph."
             raise LookupError(msg)
-        erd_data: dict = {"domains": domains_map}
+        erd_data: dict = {"domains": domains_map, "domain_qualifiers": domain_qualifiers}
     else:
         payload = erd_payload_from_coordinator_for_domain(coordinator, domain_cls)
         domain_name = getattr(domain_cls, "name", None) or domain_cls.__name__
-        erd_data = {"domains": {domain_name: _payload_to_domain_dict(payload)}}
+        erd_data = {
+            "domains": {domain_name: _payload_to_domain_dict(payload)},
+            "domain_qualifiers": {domain_name: TypeIntrospection.full_qualname(domain_cls)},
+        }
 
     return write_erd_html(erd_data, output_path, title=title, width=width, height=height)
