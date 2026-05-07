@@ -737,13 +737,13 @@ function showNodeDetail(nd) {{
       h += '<div class="rel-row">' +
            '<span class="rel-arrow">→</span>' +
            '<span class="rel-target">' + escHtml(e.target) + '</span>' +
-           '<span style="color:#94a3b8;font-size:10px">' + escHtml(e.label || '') + '</span>' +
+           '<span style="color:#5c6370;font-size:10px">' + escHtml(e.label || '') + '</span>' +
            '</div>';
     for (const e of relIn)
       h += '<div class="rel-row">' +
            '<span class="rel-arrow">←</span>' +
            '<span class="rel-target">' + escHtml(e.source) + '</span>' +
-           '<span style="color:#94a3b8;font-size:10px">' + escHtml(e.label || '') + '</span>' +
+           '<span style="color:#5c6370;font-size:10px">' + escHtml(e.label || '') + '</span>' +
            '</div>';
     h += '</div>';
   }}
