@@ -28,6 +28,17 @@ from maxitor.samples.billing.entities.payment_event_log import PaymentEventLogEn
 from maxitor.samples.billing.entities.payment_lifecycle import PaymentEventLifecycle
 from maxitor.samples.billing.entities.retrieval_evidence_bundle import RetrievalEvidenceBundleEntity
 
+# Deferred forward-ref resolution (import cycles: parse_pass <-> FX/narrative/canonical spine).
+BillingParsePassEntity.model_rebuild()
+
+# Deferred: ``InterchangeAssessmentSliceEntity.chargeback_ingest_correlate`` avoids import cycle
+# (mesh chargeback ingest imports ``ChargebackTicketEntity``, which imports this slice module).
+InterchangeAssessmentSliceEntity.model_rebuild()
+
+# Deferred: ``CashApplicationHintEntity.arbitration_brief`` uses a forward ref to
+# ``ArbitrationBriefStubEntity``; rebuild after the package imports resolve the billing import cycle.
+CashApplicationHintEntity.model_rebuild()
+
 __all__ = [
     "AcquirerIntegrityCheckEntity",
     "ArbitrationBriefStubEntity",

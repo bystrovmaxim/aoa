@@ -22,5 +22,10 @@ class MerchantFeeSchedulePointerEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Parent interchange economics row")  # type: ignore[assignment]
 
+    mcc_bucket_code: str = Field(description="Merchant category bucket key")
+    interchange_program_name: str = Field(description="Issuer-branded program moniker")
+    fee_effective_from_iso: str = Field(description="Schedule effective timestamp (UTC)")
+    rate_card_version: str = Field(description="Published rate card revision id")
+
 
 MerchantFeeSchedulePointerEntity.model_rebuild()

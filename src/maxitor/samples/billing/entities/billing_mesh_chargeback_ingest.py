@@ -28,5 +28,9 @@ class BillingChargebackIngestCorrelateEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Ingest workload anchor")  # type: ignore[assignment]
 
+    correlate_confidence_bps: int = Field(description="Heuristic linkage confidence basis points", ge=0, le=10000)
+    correlate_reason_code: str = Field(description="Why entities were bridged together")
+    linkage_batch_id: str = Field(description="Batch id for pairwise correlator run")
+
 
 BillingChargebackIngestCorrelateEntity.model_rebuild()

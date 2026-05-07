@@ -22,5 +22,10 @@ class DuplicateSuppressionLedgerEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Owning parse pass")  # type: ignore[assignment]
 
+    suppression_scope: str = Field(description="Scope key (merchant, MID, PAN prefix)")
+    fingerprint_hex: str = Field(description="Payload fingerprint sampled for duplicate probes")
+    collision_count: int = Field(description="Collisions suppressed in-batch", ge=0)
+    last_collision_at_iso: str = Field(description="Last suppressed duplicate occurrence (UTC)")
+
 
 DuplicateSuppressionLedgerEntity.model_rebuild()

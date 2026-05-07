@@ -22,5 +22,10 @@ class RetrievalEvidenceBundleEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Parent dispute ticket")  # type: ignore[assignment]
 
+    bundle_kind: str = Field(description="Evidence bundle category")
+    retrieval_deadline_iso: str = Field(description="Cutoff for representment package (UTC)")
+    exhibits_count: int = Field(description="Attached exhibit count", ge=0)
+    sealed: bool = Field(description="Whether bundle is cryptographically sealed")
+
 
 RetrievalEvidenceBundleEntity.model_rebuild()

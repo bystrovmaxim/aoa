@@ -22,5 +22,10 @@ class TaxRemittanceAdviceEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Upstream cash-application hint")  # type: ignore[assignment]
 
+    jurisdiction_code: str = Field(description="Tax authority region code")
+    filing_period_id: str = Field(description="Closed reporting period key")
+    accrued_minor_units: int = Field(description="Accrued obligation in minor currency units", ge=0)
+    remittance_deadline_iso: str = Field(description="Mandatory remittance timestamp (UTC)")
+
 
 TaxRemittanceAdviceEntity.model_rebuild()

@@ -22,5 +22,10 @@ class FundingWindowHintEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Parent sweep instruction surface")  # type: ignore[assignment]
 
+    window_label: str = Field(description="Human-visible liquidity lane label")
+    opens_at_iso: str = Field(description="Window opens (UTC ISO-8601)")
+    closes_at_iso: str = Field(description="Window closes (UTC ISO-8601)")
+    liquidity_band: str = Field(description="Tier label for cash availability")
+
 
 FundingWindowHintEntity.model_rebuild()

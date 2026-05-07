@@ -12,7 +12,9 @@ from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDens
 from maxitor.samples.billing.entities.retrieval_evidence_bundle import RetrievalEvidenceBundleEntity
 
 
-@entity(description="Acquirer integrity checkpoint between retrieval artefact and arbitration brief", domain=BillingDomain)
+@entity(
+    description="Acquirer integrity checkpoint between retrieval artefact and arbitration brief", domain=BillingDomain
+)
 class AcquirerIntegrityCheckEntity(BaseEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Integrity check lifecycle")
     id: str = Field(description="Checkpoint id")
@@ -21,6 +23,11 @@ class AcquirerIntegrityCheckEntity(BaseEntity):
         AssociationOne[RetrievalEvidenceBundleEntity],
         NoInverse(),
     ] = Rel(description="Parent retrieval submission bundle")  # type: ignore[assignment]
+
+    checkpoint_kind: str = Field(description="Integrity gate kind (PAN, CSC, MID)")
+    adjudication_outcome: str = Field(description="Rule outcome shorthand")
+    checked_at_iso: str = Field(description="Checkpoint evaluated at (UTC)")
+    risk_score: int = Field(description="0-100 calibrated risk heuristic", ge=0, le=100)
 
 
 AcquirerIntegrityCheckEntity.model_rebuild()

@@ -22,5 +22,10 @@ class ArbitrationBriefStubEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Upstream acquirer integrity artefact")  # type: ignore[assignment]
 
+    dispute_stage: str = Field(description="Arbitration stage label")
+    claimant_reference: str = Field(description="Internal claimant handle")
+    respondent_reference: str = Field(description="Network / acquirer handle")
+    filing_deadline_iso: str = Field(description="Submission deadline (UTC ISO-8601)")
+
 
 ArbitrationBriefStubEntity.model_rebuild()

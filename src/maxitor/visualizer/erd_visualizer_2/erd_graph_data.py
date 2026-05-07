@@ -17,6 +17,7 @@ from typing import Annotated, Any, Literal, get_args, get_origin
 
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.entity import BaseEntity
+from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 from action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
 from action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from action_machine.system_core.type_introspection import TypeIntrospection
@@ -156,6 +157,89 @@ def _merge_field_role(existing: FieldRole, incoming: FieldRole) -> FieldRole:
     return incoming if incoming != "field" else existing
 
 
+def domain_classes_from_coordinator(
+    coordinator: NodeGraphCoordinator,
+) -> tuple[type[BaseDomain], ...]:
+    """
+    Distinct :class:`~action_machine.domain.base_domain.BaseDomain` classes from interchange graph rows.
+
+    AI-CORE-BEGIN
+    ROLE: Enumerate bounded contexts present as ``DomainGraphNode`` payloads after coordinator build.
+    CONTRACT: Stable sort by lowercase ``domain.name``, then ``__name__``; one entry per class.
+    AI-CORE-END
+    """
+    domains: list[type[BaseDomain]] = []
+    seen: set[type[BaseDomain]] = set()
+    for node in coordinator.get_all_nodes():
+        if not isinstance(node, DomainGraphNode):
+            continue
+        dc = node.node_obj
+        if not isinstance(dc, type) or not issubclass(dc, BaseDomain):
+            continue
+        if dc in seen:
+            continue
+        seen.add(dc)
+        domains.append(dc)
+    domains.sort(
+        key=lambda c: (str(getattr(c, "name", None) or c.__name__).lower(), c.__qualname__),
+    )
+    return tuple(domains)
+
+
+def _append_relationship_edge_from_row(
+    *,
+    relationships: list[ErdEdgeSpec],
+    field_map: dict[str, dict[str, ErdFieldSpec]],
+    by_id: dict[str, EntityGraphNode],
+    row: tuple[str, str, str, dict[str, Any]],
+) -> None:
+    """Emit one directed relationship row into ``relationships`` and merge FK compartments."""
+    c_src, c_tgt, c_field, c_props = row
+    cardinality = c_props.get("cardinality", "")
+    label_field = c_field or str(c_props.get("field_name", "") or "")
+    chosen_is_to_one_fk = str(cardinality or "") == "one"
+    src_card, tgt_card = _cardinality_pair_for_chosen_relation(
+        str(cardinality or ""),
+        chosen_is_to_one_fk=chosen_is_to_one_fk,
+    )
+    if label_field:
+        label = label_field if not cardinality else f"{label_field} ({cardinality})"
+        rid_field = label_field
+        existing = field_map.setdefault(c_src, {}).get(label_field)
+        fk_type = f"FK -> {by_id[c_tgt].node_obj.__name__}" if c_tgt in by_id else "FK"
+        if existing is None:
+            field_map[c_src][label_field] = ErdFieldSpec(
+                name=label_field,
+                type=fk_type,
+                role="fk",
+                references=c_tgt,
+            )
+        else:
+            field_map[c_src][label_field] = ErdFieldSpec(
+                name=existing.name,
+                type=existing.type if existing.type else fk_type,
+                role=_merge_field_role(existing.role, "fk"),
+                references=existing.references or c_tgt,
+                nullable=existing.nullable,
+            )
+    else:
+        label = str(cardinality or "")
+        rid_field = "relation"
+    rid = f"rel.{c_src}.{rid_field}".replace(":", "_")
+    relationships.append(
+        ErdEdgeSpec(
+            id=rid,
+            source=c_src,
+            target=c_tgt,
+            label=label,
+            source_field=label_field,
+            source_cardinality=src_card,
+            target_cardinality=tgt_card,
+            relationship_kind=str(c_props.get("relation_type", "") or "association"),
+        ),
+    )
+
+
 def erd_payload_from_coordinator_for_domain(
     coordinator: NodeGraphCoordinator,
     domain_cls: type[BaseDomain],
@@ -166,6 +250,7 @@ def erd_payload_from_coordinator_for_domain(
     AI-CORE-BEGIN
     ROLE: Read interchange ``Entity`` vertices and ``entity_relation`` associations into transient ERD rows.
     CONTRACT: Runs after ``coordinator.build``; retains only entities declaring ``domain_cls`` via interchange domain edge target id matching ``TypeIntrospection.full_qualname(domain_cls)``.
+    Inverse pairs with **matching** cardinality (e.g. two ``AssociationOne`` / ``one``+``one``) emit **two** directed diagram edges so reciprocal FKs remain visible (cycles); classic many/one inverse pairs remain a single crow-foot edge.
     INVARIANTS: Relationship rows exist only when both entity interchange ids belong to that entity set (internal associations only).
     AI-CORE-END
     """
@@ -199,74 +284,62 @@ def erd_payload_from_coordinator_for_domain(
     relationships: list[ErdEdgeSpec] = []
     emitted_inverse_pairs: set[frozenset[tuple[str, str]]] = set()
     by_slot = {
-        (src, field_name): (src, tgt, field_name, props)
-        for src, tgt, field_name, props in relation_rows
-        if field_name
+        (src, field_name): (src, tgt, field_name, props) for src, tgt, field_name, props in relation_rows if field_name
     }
     for src_id, tgt, field_name, props in relation_rows:
         inv_entity_id = props.get("inverse_entity_id")
         inv_field = props.get("inverse_field")
-        inverse_key = (
-            frozenset({(src_id, field_name), (str(inv_entity_id), str(inv_field))})
-            if isinstance(inv_entity_id, str) and isinstance(inv_field, str) and inv_field
+        inverse_slot = (
+            (str(inv_entity_id), str(inv_field))
+            if inv_entity_id is not None and inv_field is not None and str(inv_field).strip()
             else None
         )
+        inverse_key = frozenset(((src_id, field_name), inverse_slot)) if inverse_slot is not None else None
         if inverse_key is not None and inverse_key in emitted_inverse_pairs:
             continue
 
         chosen = (src_id, tgt, field_name, props)
-        if inverse_key is not None and (inv := by_slot.get((inv_entity_id, inv_field))) is not None:
+        row_self = (src_id, tgt, field_name, props)
+        if inverse_key is not None and inverse_slot is not None and (inv := by_slot.get(inverse_slot)) is not None:
             this_card = str(props.get("cardinality", "") or "")
             inv_card = str(inv[3].get("cardinality", "") or "")
-            if this_card == "many" and inv_card == "one":
-                chosen = inv
-            elif this_card == inv_card:
-                chosen = min((src_id, tgt, field_name, props), inv, key=lambda row: (row[0], row[2]))
             emitted_inverse_pairs.add(inverse_key)
-
-        c_src, c_tgt, c_field, c_props = chosen
-        cardinality = c_props.get("cardinality", "")
-        label_field = c_field or str(c_props.get("field_name", "") or "")
-        chosen_is_to_one_fk = str(cardinality or "") == "one"
-        src_card, tgt_card = _cardinality_pair_for_chosen_relation(
-            str(cardinality or ""),
-            chosen_is_to_one_fk=chosen_is_to_one_fk,
-        )
-        if label_field:
-            label = label_field if not cardinality else f"{label_field} ({cardinality})"
-            rid_field = label_field
-            existing = field_map.setdefault(c_src, {}).get(label_field)
-            fk_type = f"FK -> {by_id[c_tgt].node_obj.__name__}" if c_tgt in by_id else "FK"
-            if existing is None:
-                field_map[c_src][label_field] = ErdFieldSpec(
-                    name=label_field,
-                    type=fk_type,
-                    role="fk",
-                    references=c_tgt,
+            if this_card == "many" and inv_card == "one":
+                _append_relationship_edge_from_row(
+                    relationships=relationships,
+                    field_map=field_map,
+                    by_id=by_id,
+                    row=inv,
+                )
+            elif this_card == inv_card:
+                # Symmetric cardinality (typical mutually inverse ``AssociationOne``): keep both arrows.
+                _append_relationship_edge_from_row(
+                    relationships=relationships,
+                    field_map=field_map,
+                    by_id=by_id,
+                    row=row_self,
+                )
+                _append_relationship_edge_from_row(
+                    relationships=relationships,
+                    field_map=field_map,
+                    by_id=by_id,
+                    row=inv,
                 )
             else:
-                field_map[c_src][label_field] = ErdFieldSpec(
-                    name=existing.name,
-                    type=existing.type if existing.type else fk_type,
-                    role=_merge_field_role(existing.role, "fk"),
-                    references=existing.references or c_tgt,
-                    nullable=existing.nullable,
+                cand = min(row_self, inv, key=lambda row: (row[0], row[2]))
+                _append_relationship_edge_from_row(
+                    relationships=relationships,
+                    field_map=field_map,
+                    by_id=by_id,
+                    row=cand,
                 )
-        else:
-            label = str(cardinality or "")
-            rid_field = "relation"
-        rid = f"rel.{c_src}.{rid_field}".replace(":", "_")
-        relationships.append(
-            ErdEdgeSpec(
-                id=rid,
-                source=c_src,
-                target=c_tgt,
-                label=label,
-                source_field=label_field,
-                source_cardinality=src_card,
-                target_cardinality=tgt_card,
-                relationship_kind=str(c_props.get("relation_type", "") or "association"),
-            ),
+            continue
+
+        _append_relationship_edge_from_row(
+            relationships=relationships,
+            field_map=field_map,
+            by_id=by_id,
+            row=chosen,
         )
 
     entities = tuple(
@@ -336,15 +409,17 @@ def erd_payload_to_x6_document(payload: ErdGraphPayload) -> dict[str, list[dict[
             lod_roles.append(role_label)
             western = _port_slug(ent.id, fld.name)
             role_font_weight = "bold" if fld.role in {"pk", "pk_fk"} else "normal"
-            port_items.append({
-                "id": western,
-                "group": "list",
-                "attrs": {
-                    "portRoleLabel": {"text": role_label},
-                    "portNameLabel": {"text": str(fld.name), "fontWeight": role_font_weight},
-                    "portTypeLabel": {"text": typ},
-                },
-            })
+            port_items.append(
+                {
+                    "id": western,
+                    "group": "list",
+                    "attrs": {
+                        "portRoleLabel": {"text": role_label},
+                        "portNameLabel": {"text": str(fld.name), "fontWeight": role_font_weight},
+                        "portTypeLabel": {"text": typ},
+                    },
+                }
+            )
             ref = f" -> {fld.references}" if fld.references else ""
             field_lines.append(f"{role_label:5} {fld.name}: {typ}{ref}".strip())
 
@@ -357,36 +432,44 @@ def erd_payload_to_x6_document(payload: ErdGraphPayload) -> dict[str, list[dict[
             "attributes": "\n".join(field_lines),
             "junction": str(bool(ent.is_junction)),
         }
-        cells.append({
-            "shape": "er-rect",
-            "id": ent.id,
-            "x": 12.0,
-            "y": 12.0,
-            "width": NODE_WIDTH,
-            "height": float(body_h),
-            "attrs": {"label": {"text": ent.label, "fontWeight": "bold"}},
-            "ports": {"items": port_items},
-            "data": {
-                "payload_panel": {k: _serialize_panel_value(v) if isinstance(v, dict) else str(v) for k, v in panel.items()},
-                "lod_port_names": lod_names,
-                "lod_port_types": lod_types,
-                "lod_port_roles": lod_roles,
-                "erd_entity_kind": "junction" if ent.is_junction else "entity",
-            },
-        })
+        cells.append(
+            {
+                "shape": "er-rect",
+                "id": ent.id,
+                "x": 12.0,
+                "y": 12.0,
+                "width": NODE_WIDTH,
+                "height": float(body_h),
+                "attrs": {"label": {"text": ent.label, "fontWeight": "bold"}},
+                "ports": {"items": port_items},
+                "data": {
+                    "payload_panel": {
+                        k: _serialize_panel_value(v) if isinstance(v, dict) else str(v) for k, v in panel.items()
+                    },
+                    "lod_port_names": lod_names,
+                    "lod_port_types": lod_types,
+                    "lod_port_roles": lod_roles,
+                    "erd_entity_kind": "junction" if ent.is_junction else "entity",
+                },
+            }
+        )
 
     for rel in payload.relationships:
         lp: list[dict[str, Any]] = []
         source_marker = _cardinality_marker(rel.source_cardinality)
         target_marker = _cardinality_marker(rel.target_cardinality)
-        lp.append({
-            "attrs": {"label": {"text": source_marker, "fontSize": 12, "fontWeight": "bold", "fill": "#111827"}},
-            "position": {"distance": 0.08, "offset": {"y": -10}},
-        })
-        lp.append({
-            "attrs": {"label": {"text": target_marker, "fontSize": 12, "fontWeight": "bold", "fill": "#111827"}},
-            "position": {"distance": 0.92, "offset": {"y": -10}},
-        })
+        lp.append(
+            {
+                "attrs": {"label": {"text": source_marker, "fontSize": 12, "fontWeight": "bold", "fill": "#111827"}},
+                "position": {"distance": 0.08, "offset": {"y": -10}},
+            }
+        )
+        lp.append(
+            {
+                "attrs": {"label": {"text": target_marker, "fontSize": 12, "fontWeight": "bold", "fill": "#111827"}},
+                "position": {"distance": 0.92, "offset": {"y": -10}},
+            }
+        )
         if rel.source == rel.target:
             source_spec = {"cell": rel.source, "anchor": {"name": "right"}}
             target_spec = {"cell": rel.target, "anchor": {"name": "right"}}
@@ -406,24 +489,26 @@ def erd_payload_to_x6_document(payload: ErdGraphPayload) -> dict[str, list[dict[
             "target_cardinality": rel.target_cardinality,
             "relationship_kind": rel.relationship_kind,
         }
-        cells.append({
-            "shape": "edge",
-            "id": rel.id,
-            "source": source_spec,
-            "target": target_spec,
-            "router": {"name": "orth"},
-            "connector": {"name": "rounded", "args": {"radius": 4}},
-            "attrs": {
-                "line": {
-                    "stroke": "#374151",
-                    "strokeWidth": 1.4,
-                    "targetMarker": None,
-                    "sourceMarker": None,
-                }
-            },
-            "labels": lp,
-            "data": {"payload_panel": {k: str(v) for k, v in epanel.items()}, "erd_source_field": rel.source_field},
-        })
+        cells.append(
+            {
+                "shape": "edge",
+                "id": rel.id,
+                "source": source_spec,
+                "target": target_spec,
+                "router": {"name": "orth"},
+                "connector": {"name": "rounded", "args": {"radius": 4}},
+                "attrs": {
+                    "line": {
+                        "stroke": "#374151",
+                        "strokeWidth": 1.4,
+                        "targetMarker": None,
+                        "sourceMarker": None,
+                    }
+                },
+                "labels": lp,
+                "data": {"payload_panel": {k: str(v) for k, v in epanel.items()}, "erd_source_field": rel.source_field},
+            }
+        )
 
     return {"cells": cells}
 

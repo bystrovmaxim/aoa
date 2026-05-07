@@ -22,5 +22,10 @@ class NarrativeCorrectionEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Parent canonical ingest artifact")  # type: ignore[assignment]
 
+    correction_reason_code: str = Field(description="Reason vocabulary key")
+    editor_actor_id: str = Field(description="Actor approving narrative delta")
+    prior_narrative_hash_hex: str = Field(description="Hash of pre-correction storyline")
+    corrected_at_iso: str = Field(description="Correction applied at (UTC)")
+
 
 NarrativeCorrectionEntity.model_rebuild()

@@ -7,6 +7,11 @@ from maxitor.samples.messaging.entities.msg_dedupe_correlation import DedupeCorr
 from maxitor.samples.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle, MsgWebhookLifecycle
 from maxitor.samples.messaging.entities.msg_dispatcher_cursor_shard import DispatcherCursorShardEntity
 from maxitor.samples.messaging.entities.msg_downstream_watermark import DownstreamWatermarkEntity
+from maxitor.samples.messaging.entities.msg_er_cycle_triangle_stub import (
+    MsgDirectedCycleTriangleAEntity,
+    MsgDirectedCycleTriangleBEntity,
+    MsgDirectedCycleTriangleCEntity,
+)
 from maxitor.samples.messaging.entities.msg_fanout_replay_cursor import FanoutReplayCursorEntity
 from maxitor.samples.messaging.entities.msg_hop_latency_sample import HopLatencySampleEntity
 from maxitor.samples.messaging.entities.msg_mesh_courier_replay import MsgCourierReplayCorrelateEntity
@@ -29,6 +34,9 @@ __all__ = [
     "HopLatencySampleEntity",
     "MsgCourierReplayCorrelateEntity",
     "MsgDenseLifecycle",
+    "MsgDirectedCycleTriangleAEntity",
+    "MsgDirectedCycleTriangleBEntity",
+    "MsgDirectedCycleTriangleCEntity",
     "MsgOutboxWebhookCorrelateEntity",
     "MsgWebhookLifecycle",
     "OutboxMessageEntity",

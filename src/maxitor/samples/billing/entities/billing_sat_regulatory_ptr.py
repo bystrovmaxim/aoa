@@ -22,5 +22,10 @@ class RegulatorySubmissionPointerEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Upstream arbitration artefact")  # type: ignore[assignment]
 
+    regulator_code: str = Field(description="Regulator identifier")
+    submission_channel: str = Field(description="Portal or batch channel code")
+    external_case_id: str = Field(description="Downstream regulator ticket id")
+    submitted_at_iso: str = Field(description="Submission timestamp (UTC)")
+
 
 RegulatorySubmissionPointerEntity.model_rebuild()

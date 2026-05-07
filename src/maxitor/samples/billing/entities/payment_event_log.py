@@ -14,6 +14,11 @@ class PaymentEventLogEntity(BaseEntity):
     lifecycle: PaymentEventLifecycle = Field(description="Payment event lifecycle")
     id: str = Field(description="Event id")
     kind: str = Field(description="Event kind label")
+    amount_minor_units: int = Field(description="Settlement amount in minor currency units", ge=0)
+    currency_iso: str = Field(description="ISO-4217 currency code", min_length=3, max_length=3)
+    processor_reference: str = Field(description="Upstream processor correlation id")
+    occurred_at_utc: str = Field(description="Event timestamp (UTC ISO-8601)")
+    settlement_batch_id: str = Field(description="Batch id when event was rolled into settlement")
 
 
 PaymentEventLogEntity.model_rebuild()

@@ -9,27 +9,33 @@ import json
 from pathlib import Path
 
 # ── Package layout ────────────────────────────────────────────────────────────
-_PACKAGE_DIR          = Path(__file__).resolve().parent
-_TEMPLATE_HTML        = _PACKAGE_DIR / "template.html"
+_PACKAGE_DIR = Path(__file__).resolve().parent
+_TEMPLATE_HTML = _PACKAGE_DIR / "template.html"
 DEFAULT_ERD_HTML_PATH = "/Users/bystrovmaxim/PythonDev/aoa/archive/logs/erd.html"
 
 # ── CDN URLs ──────────────────────────────────────────────────────────────────
-X6_MODULE_URL       = "https://esm.sh/@antv/x6@2.19.2"
-ELK_MODULE_URL      = "https://esm.sh/elkjs@0.11.1"
-DAGRE_MODULE_URL    = "https://esm.sh/@dagrejs/dagre@1.1.4"
-MERMAID_MODULE_URL  = "https://esm.sh/mermaid@11.12.0"
-D2_MODULE_URL       = "https://esm.sh/@terrastruct/d2@0.1.33"
+X6_MODULE_URL = "https://esm.sh/@antv/x6@2.19.2"
+ELK_MODULE_URL = "https://esm.sh/elkjs@0.11.1"
+DAGRE_MODULE_URL = "https://esm.sh/@dagrejs/dagre@1.1.4"
+MERMAID_MODULE_URL = "https://esm.sh/mermaid@11.12.0"
+D2_MODULE_URL = "https://esm.sh/@terrastruct/d2@0.1.33"
 GRAPHVIZ_MODULE_URL = "https://esm.sh/@hpcc-js/wasm-graphviz@1.21.5"
 
 # Cytoscape stack (UMD)
-_CYTOSCAPE_URL        = "https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"
-_CYTOSCAPE_DAGRE_URL  = "https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"
-_DAGRE_UMD_URL        = "https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"
+_CYTOSCAPE_URL = "https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"
+_CYTOSCAPE_DAGRE_URL = "https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"
+_DAGRE_UMD_URL = "https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"
 
 # ── Domain entity color palette ───────────────────────────────────────────────
 _ENTITY_COLORS = [
-    "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b",
-    "#ef4444", "#06b6d4", "#ec4899", "#64748b",
+    "#3b82f6",
+    "#8b5cf6",
+    "#10b981",
+    "#f59e0b",
+    "#ef4444",
+    "#06b6d4",
+    "#ec4899",
+    "#64748b",
 ]
 
 # ── Bootstrap JS (Python format-string; JS braces are doubled) ────────────────
@@ -734,6 +740,7 @@ function initDomainPicker() {{
 
 # ── ErdGraphPayload serialization for the JS runtime ─────────────────────────
 
+
 def _role_to_flags(role: str) -> dict:
     """Convert a field role string into boolean flags for JS."""
     return {
@@ -749,12 +756,14 @@ def _serialize_entity(entity, color: str) -> dict:
     fields = []
     for f in entity.fields:
         flags = _role_to_flags(f.role)
-        fields.append({
-            "name":        f.name,
-            "type":        f.type or "",
-            "primary_key": flags["primary_key"],
-            "foreign_key": flags["foreign_key"],
-        })
+        fields.append(
+            {
+                "name": f.name,
+                "type": f.type or "",
+                "primary_key": flags["primary_key"],
+                "foreign_key": flags["foreign_key"],
+            }
+        )
     # If there are no fields, keep the table visible with an id row and attributes.
     if not fields:
         fields.append({"name": "id", "type": "str", "primary_key": True, "foreign_key": False})
@@ -763,9 +772,9 @@ def _serialize_entity(entity, color: str) -> dict:
                 continue
             fields.append({"name": k, "type": str(v), "primary_key": False, "foreign_key": False})
     return {
-        "id":     entity.id,
-        "label":  entity.label,
-        "color":  color,
+        "id": entity.id,
+        "label": entity.label,
+        "color": color,
         "fields": fields,
     }
 
@@ -775,7 +784,7 @@ def _serialize_edge(rel) -> dict:
     return {
         "source": rel.source,
         "target": rel.target,
-        "label":  rel.label or "",
+        "label": rel.label or "",
     }
 
 
@@ -794,17 +803,18 @@ def _payload_to_domain_dict(payload) -> dict:
 
 # ── Python API ────────────────────────────────────────────────────────────────
 
+
 def _make_bootstrap(erd_data: dict) -> str:
     return _ERD_BOOTSTRAP_TEMPLATE.format(
-        X6_URL              = X6_MODULE_URL,
-        DAGRE_URL           = DAGRE_MODULE_URL,
-        MERMAID_URL         = MERMAID_MODULE_URL,
-        D2_URL              = D2_MODULE_URL,
-        GRAPHVIZ_URL        = GRAPHVIZ_MODULE_URL,
-        DAGRE_UMD_URL       = _DAGRE_UMD_URL,
-        CYTOSCAPE_URL       = _CYTOSCAPE_URL,
-        CYTOSCAPE_DAGRE_URL = _CYTOSCAPE_DAGRE_URL,
-        ERD_DATA_JSON       = json.dumps(erd_data, ensure_ascii=False),
+        X6_URL=X6_MODULE_URL,
+        DAGRE_URL=DAGRE_MODULE_URL,
+        MERMAID_URL=MERMAID_MODULE_URL,
+        D2_URL=D2_MODULE_URL,
+        GRAPHVIZ_URL=GRAPHVIZ_MODULE_URL,
+        DAGRE_UMD_URL=_DAGRE_UMD_URL,
+        CYTOSCAPE_URL=_CYTOSCAPE_URL,
+        CYTOSCAPE_DAGRE_URL=_CYTOSCAPE_DAGRE_URL,
+        ERD_DATA_JSON=json.dumps(erd_data, ensure_ascii=False),
     )
 
 
@@ -812,14 +822,20 @@ def _template_raw() -> str:
     return _TEMPLATE_HTML.read_text(encoding="utf-8")
 
 
-def _load_payload_builder():
-    """Load the sibling graph-data builder for package and direct directory execution."""
+def _load_coord_export_helpers():
+    """Load graph-data helpers for package and direct directory execution."""
     try:
-        from .erd_graph_data import erd_payload_from_coordinator_for_domain
+        from .erd_graph_data import (
+            domain_classes_from_coordinator,
+            erd_payload_from_coordinator_for_domain,
+        )
     except ImportError:
-        from erd_graph_data import erd_payload_from_coordinator_for_domain
+        from erd_graph_data import (
+            domain_classes_from_coordinator,
+            erd_payload_from_coordinator_for_domain,
+        )
 
-    return erd_payload_from_coordinator_for_domain
+    return domain_classes_from_coordinator, erd_payload_from_coordinator_for_domain
 
 
 def write_erd_html(
@@ -837,11 +853,10 @@ def write_erd_html(
     tpl = _template_raw()
 
     result = (
-        tpl
-        .replace("@@HTML_ESCAPED_TITLE@@", html.escape(title))
-        .replace("@@CONTAINER_WIDTH@@",    str(width))
-        .replace("@@CONTAINER_HEIGHT@@",   str(height))
-        .replace("@@INLINE_ERD_SCRIPT@@",  bootstrap)
+        tpl.replace("@@HTML_ESCAPED_TITLE@@", html.escape(title))
+        .replace("@@CONTAINER_WIDTH@@", str(width))
+        .replace("@@CONTAINER_HEIGHT@@", str(height))
+        .replace("@@INLINE_ERD_SCRIPT@@", bootstrap)
     )
     out.write_text(result, encoding="utf-8")
     return out
@@ -856,29 +871,33 @@ def write_erd_html_from_coordinator(
     height: int = 900,
 ) -> Path:
     """Generate an ERD HTML file from a NodeGraphCoordinator."""
-    erd_payload_from_coordinator_for_domain = _load_payload_builder()
+    domain_classes_from_coordinator, erd_payload_from_coordinator_for_domain = _load_coord_export_helpers()
 
     if output_path is None:
         output_path = DEFAULT_ERD_HTML_PATH
 
     if domain_cls is None:
-        # Collect every registered domain when no explicit domain is requested.
-        domains_map: dict = {}
-        for dc in coordinator.get_registered_domains():
+        # One JS domain tab per Domain vertex in the interchange graph.
+        domains_map: dict[str, dict] = {}
+        for dc in domain_classes_from_coordinator(coordinator):
             try:
                 payload = erd_payload_from_coordinator_for_domain(coordinator, dc)
-                domain_name = getattr(dc, "name", None) or dc.__name__
-                domains_map[domain_name] = _payload_to_domain_dict(payload)
             except Exception:
                 continue
+            base = getattr(dc, "name", None) or dc.__name__
+            domain_key = base
+            n = 2
+            while domain_key in domains_map:
+                domain_key = f"{base} ({n})"
+                n += 1
+            domains_map[domain_key] = _payload_to_domain_dict(payload)
+        if not domains_map:
+            msg = "No domain ERD payloads could be built from the coordinator graph."
+            raise LookupError(msg)
         erd_data: dict = {"domains": domains_map}
     else:
         payload = erd_payload_from_coordinator_for_domain(coordinator, domain_cls)
         domain_name = getattr(domain_cls, "name", None) or domain_cls.__name__
-        erd_data = {
-            "domains": {
-                domain_name: _payload_to_domain_dict(payload)
-            }
-        }
+        erd_data = {"domains": {domain_name: _payload_to_domain_dict(payload)}}
 
     return write_erd_html(erd_data, output_path, title=title, width=width, height=height)
