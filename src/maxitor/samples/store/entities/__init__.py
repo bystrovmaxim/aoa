@@ -19,6 +19,10 @@ from maxitor.samples.store.entities.sales_core import CustomerAccountEntity, Sal
 from maxitor.samples.store.entities.shipment_parcel import ShipmentParcelEntity
 from maxitor.samples.store.entities.shipment_tracking_event import ShipmentTrackingEventEntity
 from maxitor.samples.store.entities.store_cart_merge_trace import CartMergeTraceEntity
+from maxitor.samples.store.entities.store_er_cycle_ping_pong import (
+    StoreDirectedCyclePingEntity,
+    StoreDirectedCyclePongEntity,
+)
 from maxitor.samples.store.entities.store_line_backorder_eta import BackorderEtaFacetEntity
 from maxitor.samples.store.entities.store_line_kit_explosion import KitExplosionLineEntity
 from maxitor.samples.store.entities.store_line_pick_variance import PickVarianceRecordEntity
@@ -86,6 +90,8 @@ __all__ = [
     "ShipmentTrackingEventEntity",
     "SplitBillAllocationEntity",
     "StoreCustomerOrderAffinityEntity",
+    "StoreDirectedCyclePingEntity",
+    "StoreDirectedCyclePongEntity",
     "StoreInvoiceLineTieEntity",
     "StoreLineParcelPickEntity",
     "StoreOrderInvoiceBridgeEntity",

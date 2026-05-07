@@ -28,5 +28,9 @@ class BillingParseInterchangeBridgeEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Interchange economics anchor")  # type: ignore[assignment]
 
+    bridge_quality_tier: str = Field(description="Sync quality tier label")
+    last_synced_at_iso: str = Field(description="Last successful bridge refresh (UTC)")
+    reconcile_audit_token: str = Field(description="Cross-check token for auditors")
+
 
 BillingParseInterchangeBridgeEntity.model_rebuild()

@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from pydantic import Field
 
-from action_machine.domain import BaseEntity
+from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
 from maxitor.samples.billing.domain import BillingDomain
 from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -16,5 +18,14 @@ class InterchangeAssessmentSliceEntity(BaseEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Interchange slice lifecycle")
     id: str = Field(description="Slice id")
 
+    scheme_code: str = Field(description="Interchange program / scheme code")
+    assessor_build: str = Field(description="Tariff engine build id")
+    ic_plus_basis_points: int = Field(description="IC++ component in basis points", ge=0)
+    network_batch_id: str = Field(description="Network settlement batch marker")
 
-InterchangeAssessmentSliceEntity.model_rebuild()
+    chargeback_ingest_correlate: Annotated[
+        AssociationOne["BillingChargebackIngestCorrelateEntity"],  # noqa: F821, UP037
+        NoInverse(),
+    ] = Rel(
+        description="Correlate row linking dispute artefacts to ingest manifests",
+    )  # type: ignore[assignment]

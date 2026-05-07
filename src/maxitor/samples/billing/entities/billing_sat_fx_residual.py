@@ -22,5 +22,10 @@ class FxResidualTagEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Upstream narrative correction")  # type: ignore[assignment]
 
+    quote_currency_iso: str = Field(description="Currency used for hedge quote")
+    base_amount_minor: int = Field(description="Amount in transactional currency minors", ge=0)
+    residual_amount_minor: int = Field(description="Post-conversion rounding residual", ge=0)
+    fx_feed_provider: str = Field(description="Rate feed supplier code")
+
 
 FxResidualTagEntity.model_rebuild()

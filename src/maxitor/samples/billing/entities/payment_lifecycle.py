@@ -9,7 +9,12 @@ class PaymentEventLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("recorded", "Recorded").to("settled").initial()
-        .state("settled", "Settled").to("archived").intermediate()
-        .state("archived", "Archived").final()
+        .state("recorded", "Recorded")
+        .to("settled")
+        .initial()
+        .state("settled", "Settled")
+        .to("archived")
+        .intermediate()
+        .state("archived", "Archived")
+        .final()
     )

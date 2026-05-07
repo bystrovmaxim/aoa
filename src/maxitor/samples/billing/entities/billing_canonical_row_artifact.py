@@ -22,5 +22,10 @@ class BillingCanonicalRowArtifactEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Originating parse pass")  # type: ignore[assignment]
 
+    logical_row_key: str = Field(description="Dedup-stable business key emitted by parser")
+    row_revision_no: int = Field(description="Monotonic intra-pass revision counter", ge=0)
+    ingest_checksum_crc32c: str = Field(description="Payload checksum fingerprint")
+    parser_profile_id: str = Field(description="Rulepack profile stamped on row")
+
 
 BillingCanonicalRowArtifactEntity.model_rebuild()

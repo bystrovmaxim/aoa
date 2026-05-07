@@ -5,6 +5,12 @@ from maxitor.samples.analytics.entities.an_dense_lifecycle import AnalyticsFactL
 from maxitor.samples.analytics.entities.analytics_aggregate_sketch_stub import AnalyticsAggregateSketchStubEntity
 from maxitor.samples.analytics.entities.analytics_canonical_telemetry_row import AnalyticsCanonicalTelemetryRowEntity
 from maxitor.samples.analytics.entities.analytics_dedup_bloom_row import AnalyticsDedupBloomRowEntity
+from maxitor.samples.analytics.entities.analytics_er_cycle_quad_stub import (
+    AnalyticsDirectedCycleQuadAEntity,
+    AnalyticsDirectedCycleQuadBEntity,
+    AnalyticsDirectedCycleQuadCEntity,
+    AnalyticsDirectedCycleQuadDEntity,
+)
 from maxitor.samples.analytics.entities.analytics_ingress_batch import AnalyticsIngressBatchEntity
 from maxitor.samples.analytics.entities.analytics_mesh_canonical_sampling import (
     AnalyticsCanonicalSamplingCorrelateEntity,
@@ -30,6 +36,10 @@ __all__ = [
     "AnalyticsCanonicalTelemetryRowEntity",
     "AnalyticsDedupBloomRowEntity",
     "AnalyticsDedupDimensionCorrelateEntity",
+    "AnalyticsDirectedCycleQuadAEntity",
+    "AnalyticsDirectedCycleQuadBEntity",
+    "AnalyticsDirectedCycleQuadCEntity",
+    "AnalyticsDirectedCycleQuadDEntity",
     "AnalyticsFactLifecycle",
     "AnalyticsIngressBatchEntity",
     "AnalyticsMetricRollupStagingEntity",

@@ -22,5 +22,9 @@ class LedgerMirrorOffsetEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Upstream fee schedule pointer")  # type: ignore[assignment]
 
+    mirror_partition_id: str = Field(description="Sharding partition for mirrored ledger")
+    observation_lag_seconds: int = Field(description="Replication lag observed at capture", ge=0)
+    imbalance_minor_units: int = Field(description="Detected mirror drift in minor currency units")
+
 
 LedgerMirrorOffsetEntity.model_rebuild()

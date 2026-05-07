@@ -22,5 +22,12 @@ class CashApplicationHintEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Upstream funding guidance row")  # type: ignore[assignment]
 
+    arbitration_brief: Annotated[
+        AssociationOne["ArbitrationBriefStubEntity"],  # noqa: F821, UP037
+        NoInverse(),
+    ] = Rel(description="Arbitration brief context for disputed cash-application routing")  # type: ignore[assignment]
 
-CashApplicationHintEntity.model_rebuild()
+    routing_lane: str = Field(description="Cash-application routing lane key")
+    tentative_clearing_date_iso: str = Field(description="Target clearing calendar date")
+    residual_tolerance_minor: int = Field(description="Allowed residuals in minor units", ge=0)
+    priority_bucket: str = Field(description="Ops escalation bucket")

@@ -22,5 +22,10 @@ class BillingSweepInstructionEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Parent payout plan")  # type: ignore[assignment]
 
+    corridor_code: str = Field(description="Treasury corridor identifier")
+    priority_rank: int = Field(description="Relative ordering within plan", ge=0)
+    netting_window_hours: int = Field(description="Aggregation window duration", ge=1, le=240)
+    suspense_bucket_tag: str = Field(description="Default suspense bucket label")
+
 
 BillingSweepInstructionEntity.model_rebuild()

@@ -22,5 +22,10 @@ class ProfitCenterContributionEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Owning ingest manifest")  # type: ignore[assignment]
 
+    cost_center_code: str = Field(description="Finance cost center key")
+    allocation_ratio: float = Field(description="Allocated share of manifest totals", gt=0.0, le=1.0)
+    accrued_allocation_minor: int = Field(description="Accrued attribution in minor currency units", ge=0)
+    profit_center_label: str = Field(description="Readable profit center moniker")
+
 
 ProfitCenterContributionEntity.model_rebuild()

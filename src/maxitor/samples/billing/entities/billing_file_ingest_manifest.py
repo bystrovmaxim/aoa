@@ -13,6 +13,11 @@ from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingPipe
 class BillingFileIngestManifestEntity(BaseEntity):
     lifecycle: BillingPipelineLifecycle = Field(description="Ingest lifecycle")
     id: str = Field(description="Manifest id")
+    file_logical_name: str = Field(description="Declared file label before landing")
+    content_sha256_hex: str = Field(description="Hex digest after virus scan checkpoint")
+    approximate_row_count: int = Field(description="Parser-estimated ingest rows", ge=0)
+    batch_correlation_key: str = Field(description="Cross-feed dedupe grouping key")
+    originating_feed_system: str = Field(description="Source system moniker (issuer, PSP, ERP)")
 
 
 BillingFileIngestManifestEntity.model_rebuild()

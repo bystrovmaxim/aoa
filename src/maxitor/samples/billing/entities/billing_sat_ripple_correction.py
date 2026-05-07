@@ -22,5 +22,10 @@ class SettlementRippleCorrectionEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Parent sweep instruction")  # type: ignore[assignment]
 
+    ripple_sequence: int = Field(description="Monotonic ripple attempt within sweep", ge=0)
+    ripple_amount_minor: int = Field(description="Memoized adjustment in minor units")
+    settlement_lane: str = Field(description="Ledger lane code")
+    trace_token: str = Field(description="End-to-end reconciliation token")
+
 
 SettlementRippleCorrectionEntity.model_rebuild()

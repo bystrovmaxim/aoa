@@ -22,5 +22,17 @@ class BillingParsePassEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Source manifest")  # type: ignore[assignment]
 
+    fx_residual_tag: Annotated[
+        AssociationOne["FxResidualTagEntity"],  # noqa: F821, UP037
+        NoInverse(),
+    ] = Rel(description="FX residual tag linked to this parse pass")  # type: ignore[assignment]
 
-BillingParsePassEntity.model_rebuild()
+    retrieval_evidence_bundle: Annotated[
+        AssociationOne["RetrievalEvidenceBundleEntity"],  # noqa: F821, UP037
+        NoInverse(),
+    ] = Rel(description="Retrieval evidence bundle associated with parse outcome")  # type: ignore[assignment]
+
+    parser_semver: str = Field(description="Parser implementation semantic version")
+    pass_sequence_no: int = Field(description="Monotonic retry index for same manifest hash", ge=0)
+    diagnostics_uri: str = Field(description="Pointer to diagnostics bundle")
+    wallclock_elapsed_ms: int = Field(description="Observed ingest duration milliseconds", ge=0)

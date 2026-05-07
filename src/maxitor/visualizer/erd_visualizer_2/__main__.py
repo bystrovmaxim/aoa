@@ -7,7 +7,7 @@ CLI for standalone ERD HTML from the live sample coordinator graph.
 Usage
 -----
     python -m maxitor.visualizer.erd_visualizer_2
-    python -m maxitor.visualizer.erd_visualizer_2 --domain all
+    python -m maxitor.visualizer.erd_visualizer_2 --domain store
     python -m maxitor.visualizer.erd_visualizer_2 -o /tmp/my_erd.html
 """
 
@@ -58,18 +58,16 @@ def main() -> None:
     default_out, write_from_coord = _load_pkg()
 
     ap = argparse.ArgumentParser(
-        description=(
-            "Write standalone ERD HTML with X6, Graphviz SVG, "
-            "Cytoscape, Mermaid, and D2 renderers."
-        )
+        description=("Write standalone ERD HTML with X6, Graphviz SVG, Cytoscape, Mermaid, and D2 renderers.")
     )
     ap.add_argument(
         "--domain",
         choices=("all", "store"),
-        default="store",
+        default="all",
         help=(
-            'Domain selection from the live sample coordinator graph. '
-            '"all" enables the domain picker in the UI.'
+            "Domain data embedded in the HTML. "
+            '"all" exports every domain from the interchange graph and shows the Domain picker; '
+            '"store" embeds only the store bounded context.'
         ),
     )
     ap.add_argument(
@@ -92,11 +90,7 @@ def main() -> None:
     coordinator = build_registered_interchange_coordinator()
 
     domain_cls = None if args.domain == "all" else StoreDomain
-    title = (
-        "ERD · samples (interchange graph)"
-        if args.domain == "all"
-        else "ERD · store (interchange graph)"
-    )
+    title = "ERD · samples (interchange graph)" if args.domain == "all" else "ERD · store (interchange graph)"
 
     path = write_from_coord(
         coordinator,
