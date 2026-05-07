@@ -108,6 +108,214 @@ let currentEdges   = [];
 let gvApi = null;
 let nhFilterWired = false;
 
+// ── Zoom / pan (same mechanics as erd_visualizer: rAF wheel + exp factor, 1.25 / 0.8, clamp)
+const MIN_SCALE = 0.2;
+const MAX_SCALE = 2.5;
+const WHEEL_ZOOM_SENSITIVITY = 0.0045;
+
+let svgPan = {{ vpid: '', pnid: '', scale: 1, tx: 0, ty: 0 }};
+let svgWheelAccum = 0;
+let svgWheelRaf = null;
+let cyInteract = null;
+let cyWheelAccum = 0;
+let cyWheelRaf = null;
+let svgPanDrag = null;
+
+function clampUserScale(scale) {{
+  return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
+}}
+
+function svgApplyTransform() {{
+  const panner = document.getElementById(svgPan.pnid);
+  if (!panner) return;
+  panner.style.transform =
+    'translate(' + svgPan.tx + 'px,' + svgPan.ty + 'px) scale(' + svgPan.scale + ')';
+}}
+
+function fitSvgPanorama() {{
+  const vp = document.getElementById(svgPan.vpid);
+  const panner = document.getElementById(svgPan.pnid);
+  if (!vp || !panner) return;
+  const svg = panner.querySelector('svg');
+  if (!svg) return;
+  svg.removeAttribute('width');
+  svg.removeAttribute('height');
+
+  const vb = svg.viewBox && svg.viewBox.baseVal;
+  let w;
+  let h;
+  let bx = 0;
+  let by = 0;
+  if (vb && Number(vb.width) > 0 && Number(vb.height) > 0) {{
+    w = vb.width;
+    h = vb.height;
+    bx = vb.x || 0;
+    by = vb.y || 0;
+  }} else {{
+    try {{
+      const bbox = svg.getBBox();
+      w = bbox.width || 1;
+      h = bbox.height || 1;
+      bx = bbox.x || 0;
+      by = bbox.y || 0;
+    }} catch (_) {{
+      w = 800;
+      h = 600;
+    }}
+  }}
+  if (!Number.isFinite(w) || w < 1) w = 1;
+  if (!Number.isFinite(h) || h < 1) h = 1;
+
+  // Ensure the SVG has a real layout box (required after stripping width/height).
+  if (vb && Number(vb.width) > 0) {{
+    svg.setAttribute('width', String(vb.width));
+    svg.setAttribute('height', String(vb.height));
+  }} else {{
+    svg.setAttribute('width', String(w));
+    svg.setAttribute('height', String(h));
+  }}
+
+  const cw = vp.clientWidth || 1;
+  const ch = vp.clientHeight || 1;
+  let s = Math.min(cw / w, ch / h) * 0.92;
+  s = Math.max(0.05, Math.min(s, MAX_SCALE));
+  svgPan.scale = s;
+  svgPan.tx = (cw - w * s) / 2 - bx * s;
+  svgPan.ty = (ch - h * s) / 2 - by * s;
+  svgApplyTransform();
+  syncZoomPct();
+}}
+
+function zoomSvgFromViewportCenter(factor) {{
+  const vp = document.getElementById(svgPan.vpid);
+  if (!vp || !svgPan.pnid) return;
+  const cx = vp.clientWidth / 2;
+  const cy = vp.clientHeight / 2;
+  const s0 = svgPan.scale;
+  const s1 = clampUserScale(s0 * factor);
+  if (s1 === s0) return;
+  svgPan.tx = cx - (cx - svgPan.tx) * (s1 / s0);
+  svgPan.ty = cy - (cy - svgPan.ty) * (s1 / s0);
+  svgPan.scale = s1;
+  svgApplyTransform();
+  syncZoomPct();
+}}
+
+let svgPanInteract = null;
+
+function flushSvgWheelZoom() {{
+  svgWheelRaf = null;
+  const vp = document.getElementById(svgPan.vpid);
+  if (!vp || !svgPan.pnid) return;
+  const dy = Math.max(-120, Math.min(120, svgWheelAccum));
+  svgWheelAccum = 0;
+  const factor = Math.exp(-dy * WHEEL_ZOOM_SENSITIVITY);
+  const rect = vp.getBoundingClientRect();
+  const wx = typeof svgPan.wheelClientX === 'number' ? svgPan.wheelClientX : rect.left + rect.width / 2;
+  const wy = typeof svgPan.wheelClientY === 'number' ? svgPan.wheelClientY : rect.top + rect.height / 2;
+  svgPan.wheelClientX = svgPan.wheelClientY = undefined;
+  const ox = wx - rect.left;
+  const oy = wy - rect.top;
+  const s0 = svgPan.scale;
+  const s1 = clampUserScale(s0 * factor);
+  if (s1 === s0) return;
+  svgPan.tx = ox - (ox - svgPan.tx) * (s1 / s0);
+  svgPan.ty = oy - (oy - svgPan.ty) * (s1 / s0);
+  svgPan.scale = s1;
+  svgApplyTransform();
+  syncZoomPct();
+}}
+
+function attachSvgViewportInteraction() {{
+  const vp = document.getElementById(svgPan.vpid);
+  if (!vp) return;
+  if (svgPanInteract) svgPanInteract.abort();
+  svgPanInteract = new AbortController();
+  const sig = svgPanInteract.signal;
+
+  vp.addEventListener(
+    'wheel',
+    (evt) => {{
+      evt.preventDefault();
+      svgPan.wheelClientX = evt.clientX;
+      svgPan.wheelClientY = evt.clientY;
+      svgWheelAccum += evt.deltaY;
+      if (svgWheelRaf == null) svgWheelRaf = requestAnimationFrame(flushSvgWheelZoom);
+    }},
+    {{ passive: false, signal: sig }},
+  );
+  vp.addEventListener('mousedown', (evt) => {{
+    if (evt.button !== 0) return;
+    evt.preventDefault();
+    svgPanDrag = {{ x: evt.clientX, y: evt.clientY, tx: svgPan.tx, ty: svgPan.ty }};
+    vp.classList.add('erd-panning');
+  }}, {{ signal: sig }});
+  window.addEventListener('mousemove', (evt) => {{
+    if (!svgPanDrag) return;
+    svgPan.tx = svgPanDrag.tx + (evt.clientX - svgPanDrag.x);
+    svgPan.ty = svgPanDrag.ty + (evt.clientY - svgPanDrag.y);
+    svgApplyTransform();
+  }}, {{ signal: sig }});
+  window.addEventListener('mouseup', () => {{
+    if (svgPanDrag) {{
+      svgPanDrag = null;
+      vp.classList.remove('erd-panning');
+    }}
+  }}, {{ signal: sig }});
+}}
+
+function currentZoomRatio() {{
+  if (activeRenderer === 'cytoscape' && cyInstance)
+    return cyInstance.zoom();
+  if ((activeRenderer === 'd3gv' || activeRenderer === 'mermaid') && svgPan.pnid)
+    return svgPan.scale;
+  return 1;
+}}
+
+function syncZoomPct() {{
+  const lab = document.getElementById('zoom-pct');
+  if (lab) lab.textContent = Math.round(Number(currentZoomRatio()) * 100) + '%';
+}}
+
+function flushCyWheelZoom() {{
+  cyWheelRaf = null;
+  if (!cyInstance) return;
+  const dy = Math.max(-120, Math.min(120, cyWheelAccum));
+  cyWheelAccum = 0;
+  const factor = Math.exp(-dy * WHEEL_ZOOM_SENSITIVITY);
+  const z0 = cyInstance.zoom();
+  const z1 = clampUserScale(z0 * factor);
+  cyInstance.zoom(z1);
+  syncZoomPct();
+}}
+
+function zoomCyRelative(factor) {{
+  if (!cyInstance) return;
+  cyInstance.zoom(clampUserScale(cyInstance.zoom() * factor));
+  syncZoomPct();
+}}
+
+function installZoomChrome() {{
+  document.getElementById('btn-zoom-in')?.addEventListener('click', () => {{
+    if (activeRenderer === 'cytoscape') zoomCyRelative(1.25);
+    else if (activeRenderer === 'd3gv' || activeRenderer === 'mermaid')
+      zoomSvgFromViewportCenter(1.25);
+  }});
+  document.getElementById('btn-zoom-out')?.addEventListener('click', () => {{
+    if (activeRenderer === 'cytoscape') zoomCyRelative(0.8);
+    else if (activeRenderer === 'd3gv' || activeRenderer === 'mermaid')
+      zoomSvgFromViewportCenter(0.8);
+  }});
+  document.getElementById('btn-zoom-fit')?.addEventListener('click', () => {{
+    if (activeRenderer === 'cytoscape' && cyInstance) {{
+      cyInstance.fit(undefined, 40);
+      syncZoomPct();
+      return;
+    }}
+    if (activeRenderer === 'd3gv' || activeRenderer === 'mermaid') fitSvgPanorama();
+  }});
+}}
+
 // ── domain data ──────────────────────────────────────────────────────────────
 function mergeSelectedDomainPayloads() {{
   const domains = ERD_DATA && ERD_DATA.domains;
@@ -206,16 +414,31 @@ async function initD3Graphviz() {{
   try {{
     const api = await ensureGraphvizApi();
     const svg = api.layout(dot, 'svg', engine);
-    cont.innerHTML = svg;
-    const svgEl = cont.querySelector('svg');
+    cont.innerHTML =
+      '<div class="erd-svg-viewport" id="gv-viewport">' +
+        '<div class="erd-svg-panner" id="gv-panner">' + svg + '</div></div>';
+    const svgEl = cont.querySelector('#gv-panner svg');
     if (svgEl) {{
       svgEl.removeAttribute('width');
       svgEl.removeAttribute('height');
-      svgEl.style.width = '100%';
-      svgEl.style.height = '100%';
-      svgEl.style.display = 'block';
+      const gg = svgEl.querySelector('g.graph');
+      const bgPoly = gg && gg.querySelector('polygon');
+      if (bgPoly) {{
+        const fill = String(bgPoly.getAttribute('fill') || '').toLowerCase();
+        if (fill === '#f8fafc' || fill === '#f4f5f7' || fill === 'lightgray' || fill === 'lightgrey')
+          bgPoly.setAttribute('fill', 'none');
+      }}
     }}
+    svgPan.vpid = 'gv-viewport';
+    svgPan.pnid = 'gv-panner';
+    requestAnimationFrame(() => {{
+      requestAnimationFrame(() => {{
+        fitSvgPanorama();
+        attachSvgViewportInteraction();
+      }});
+    }});
     onGvRendered();
+    syncZoomPct();
   }} catch(e) {{
     cont.innerHTML = '<div class="erd-error">Graphviz render error:\\n' + e + '</div>';
   }}
@@ -265,6 +488,10 @@ async function initCytoscape() {{
   const cont = document.getElementById('cy-container');
   cont.innerHTML = '<div class="erd-loading">&#x23F3; Loading Cytoscape\u2026</div>';
 
+  if (cyInteract) cyInteract.abort();
+  cyInteract = new AbortController();
+  const cySig = cyInteract.signal;
+
   try {{
     await loadScript('{DAGRE_UMD_URL}',       'dagre-umd');
     await loadScript('{CYTOSCAPE_URL}',       'cytoscape-script');
@@ -274,7 +501,7 @@ async function initCytoscape() {{
     return;
   }}
 
-  cont.innerHTML = '<div id="cy-graph" style="width:100%;height:100%;background:#f8fafc;"></div>';
+  cont.innerHTML = '<div id="cy-graph" style="width:100%;height:100%;background:transparent;"></div>';
 
   const {{ nodes, edges }} = getDomainData();
   currentNodes = nodes || [];
@@ -303,19 +530,32 @@ async function initCytoscape() {{
     layout: {{ name: 'dagre', rankDir: isLR ? 'LR' : 'TB',
                nodeSep: 60, rankSep: 100, padding: 40,
                animate: true, animationDuration: 400 }},
-    minZoom: 0.05, maxZoom: 4, wheelSensitivity: 0.3,
+    minZoom: MIN_SCALE,
+    maxZoom: MAX_SCALE,
+    zoomingEnabled: true,
+    userZoomingEnabled: false,
+    boxSelectionEnabled: false,
   }});
+
+  cyInstance.on('zoom', () => syncZoomPct());
+
+  const cyGraph = document.getElementById('cy-graph');
+  cyGraph.addEventListener(
+    'wheel',
+    (e) => {{
+      e.preventDefault();
+      cyWheelAccum += e.deltaY;
+      if (cyWheelRaf == null) cyWheelRaf = requestAnimationFrame(flushCyWheelZoom);
+    }},
+    {{ passive: false, signal: cySig }},
+  );
 
   cyInstance.on('tap', 'node', evt => {{
     const nd = currentNodes.find(n => n.id === evt.target.id());
     if (nd) showNodeDetail(nd);
   }});
 
-  setupZoomButtons(
-    () => cyInstance.zoom(cyInstance.zoom() * 1.2),
-    () => cyInstance.zoom(cyInstance.zoom() * 0.8),
-    () => cyInstance.fit(undefined, 40),
-  );
+  syncZoomPct();
 }}
 
 function buildCytoscapeStyle() {{
@@ -356,7 +596,23 @@ async function initMermaid() {{
     mermaid.initialize({{ startOnLoad: false, theme: 'default',
                           er: {{ useMaxWidth: false }} }});
     const {{ svg }} = await mermaid.render('mermaid-erd-svg', buildMermaidSource());
-    cont.innerHTML = svg;
+    cont.innerHTML =
+      '<div class="erd-svg-viewport" id="mm-viewport">' +
+        '<div class="erd-svg-panner" id="mm-panner">' + svg + '</div></div>';
+    const svgEl = cont.querySelector('#mm-panner svg');
+    if (svgEl) {{
+      svgEl.removeAttribute('width');
+      svgEl.removeAttribute('height');
+    }}
+    svgPan.vpid = 'mm-viewport';
+    svgPan.pnid = 'mm-panner';
+    requestAnimationFrame(() => {{
+      requestAnimationFrame(() => {{
+        fitSvgPanorama();
+        attachSvgViewportInteraction();
+      }});
+    }});
+    syncZoomPct();
   }} catch(e) {{
     cont.innerHTML = '<div class="erd-error">Mermaid error:\\n' + e + '</div>';
   }}
@@ -373,13 +629,13 @@ function buildDotSource() {{
   // spring-specific spacing (see graphviz attrs: overlap, sep) without changing dot/fdp/circo.
   if (activeLayout === 'gv-neato') {{
     lines.push(
-      '  graph [fontname="Helvetica" bgcolor="#f8fafc" pad="0.5" '
+      '  graph [fontname="Helvetica" bgcolor=transparent pad="0.5" '
         + 'overlap=false splines=false sep="+40"]',
     );
   }} else {{
     lines.push(
       '  graph [rankdir=' + (isLR ? 'LR' : 'TB') +
-        ' fontname="Helvetica" bgcolor="#f8fafc" pad="0.5" nodesep="0.8" ranksep="1.2"]',
+        ' fontname="Helvetica" bgcolor=transparent pad="0.5" nodesep="0.8" ranksep="1.2"]',
     );
   }}
   lines.push(
@@ -500,20 +756,6 @@ document.getElementById('node-detail-close')
     document.getElementById('node-detail-shell')?.classList.remove('open'));
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Utilities
-// ════════════════════════════════════════════════════════════════════════════
-function setupZoomButtons(zIn, zOut, zFit) {{
-  [['btn-zoom-in', zIn], ['btn-zoom-out', zOut], ['btn-zoom-fit', zFit]]
-    .forEach(([id, fn]) => {{
-      const el = document.getElementById(id);
-      if (!el) return;
-      const clone = el.cloneNode(true);
-      el.parentNode.replaceChild(clone, el);
-      if (fn) clone.addEventListener('click', fn);
-    }});
-}}
-
-// ════════════════════════════════════════════════════════════════════════════
 //  Renderer switching
 // ════════════════════════════════════════════════════════════════════════════
 const ALL_CONT_IDS = [
@@ -552,14 +794,11 @@ function switchRenderer(name) {{
     if (el) {{ el.style.display = 'none'; el.classList.remove('active'); }}
   }}
   const zt = document.getElementById('zoom-toolbar');
-  if (zt) zt.style.display = 'none';
+  if (zt) zt.style.display = '';
 
   for (const id of (RENDERER_SHOWS[name] || [])) {{
     const el = document.getElementById(id);
     if (el) {{ el.style.display = ''; el.classList.add('active'); }}
-  }}
-  if (name === 'cytoscape') {{
-    if (zt) zt.style.display = '';
   }}
 
   const lp = document.getElementById('layout-picker');
@@ -678,6 +917,7 @@ function initDomainPicker() {{
 (function boot() {{
   initDomainPicker();
   initRendererPills();
+  installZoomChrome();
   switchRenderer('d3gv');
 }})();
 """

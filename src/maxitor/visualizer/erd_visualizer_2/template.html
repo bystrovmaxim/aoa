@@ -9,7 +9,7 @@
 
     body {
       font-family: system-ui, -apple-system, sans-serif;
-      background: #f8fafc;
+      background: #f4f5f7;
       color: #1e293b;
       height: 100vh;
       overflow: hidden;
@@ -72,16 +72,34 @@
       flex: 1;
       position: relative;
       overflow: hidden;
+      isolation: isolate;
     }
-
-    /* Alt containers */
+    /* Fixed dot backdrop (does not zoom / pan with diagram content) */
+    #main::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-color: #f4f5f7;
+      background-image: radial-gradient(rgba(160, 168, 180, 0.42) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    /* Stacking: dot layer is ::before; do NOT use #main > * or it overrides
+       .alt-container / absolute canvas children (ID beats class — content “disappeared”). */
+    #d3gv-container,
+    #cy-container,
+    #mermaid-container,
+    #graph-hover-labels {
+      z-index: 1;
+    }
     .alt-container {
       position: absolute;
       inset: 0;
       display: none;
-      overflow: auto;
-      background: #fff;
-      padding: 24px;
+      overflow: hidden;
+      background: transparent;
+      padding: 0;
     }
     .alt-container.active { display: block; }
 
@@ -91,10 +109,9 @@
       inset: 0;
       display: none;
       overflow: hidden;
-      background: #f8fafc;
+      background: transparent;
     }
     #d3gv-container.active { display: block; }
-    #d3gv-container svg { width: 100%; height: 100%; }
 
     /* Cytoscape container */
     #cy-container {
@@ -102,36 +119,78 @@
       inset: 0;
       display: none;
       overflow: hidden;
-      background: #f8fafc;
+      background: transparent;
     }
     #cy-container.active { display: block; }
 
-    #mermaid-container svg,
-    #graphviz-container svg { max-width: 100%; height: auto; }
-
-    /* ── Zoom toolbar ── */
-    #zoom-toolbar {
+    /* SVG pan / zoom layers (content scales; backdrop stays fixed via #main::before) */
+    .erd-svg-viewport {
       position: absolute;
-      bottom: 20px;
-      right: 20px;
+      inset: 0;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+      background: transparent;
+    }
+    .erd-svg-viewport.erd-panning { cursor: grabbing; }
+    .erd-svg-panner {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+    .erd-svg-panner > svg {
+      display: block;
+      max-width: none;
+      height: auto;
+    }
+
+    /* ── Zoom toolbar (aligned with erd_visualizer: row + %) ── */
+    #zoom-toolbar.zoom-toolbar {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      z-index: 100000;
       display: flex;
-      flex-direction: column;
-      gap: 4px;
-      z-index: 50;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 3px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 6px;
+      padding: 3px 5px;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
     }
-    .zoom-btn {
-      width: 32px; height: 32px;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
-      background: #fff;
-      color: #475569;
-      font-size: 16px;
+    #zoom-toolbar.zoom-toolbar .zoom-btn {
+      min-width: 0;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      font-size: 13px;
+      line-height: 1;
       cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 1px 4px rgba(0,0,0,.12);
-      transition: background .15s;
+      border: 1px solid #c5cad3;
+      border-radius: 4px;
+      background: #fff;
+      color: #2c3e50;
+      box-shadow: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .zoom-btn:hover { background: #f1f5f9; }
+    #zoom-toolbar.zoom-toolbar .zoom-btn:hover { background: #eef0f3; }
+    #zoom-toolbar.zoom-toolbar .zoom-pct {
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      color: #5c6370;
+      user-select: none;
+      padding: 0 4px;
+      min-width: 2.8em;
+    }
 
     /* ── Node detail panel ── */
     #node-detail-shell {
@@ -276,11 +335,12 @@
     <!-- Mermaid -->
     <div class="alt-container" id="mermaid-container"></div>
 
-    <!-- Zoom toolbar -->
-    <div id="zoom-toolbar">
-      <button class="zoom-btn" id="btn-zoom-in"  title="Zoom in">+</button>
-      <button class="zoom-btn" id="btn-zoom-fit" title="Fit">⊡</button>
-      <button class="zoom-btn" id="btn-zoom-out" title="Zoom out">−</button>
+    <!-- Zoom toolbar (+ / − / fit / %) — same mechanics as erd_visualizer -->
+    <div id="zoom-toolbar" class="zoom-toolbar" aria-label="Zoom">
+      <button type="button" class="zoom-btn" id="btn-zoom-in" title="Zoom in">+</button>
+      <button type="button" class="zoom-btn" id="btn-zoom-out" title="Zoom out">−</button>
+      <button type="button" class="zoom-btn" id="btn-zoom-fit" title="Fit to window">⊡</button>
+      <span class="zoom-pct" id="zoom-pct">100%</span>
     </div>
 
     <div id="graph-hover-labels"></div>
