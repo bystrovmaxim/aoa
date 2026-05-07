@@ -4,10 +4,12 @@
 """
 Pure data layer for normalized ERD-style graphs — no browser runtime.
 
-Produces an AntV **X6** graph document (``{ "cells": [...] }``) for :mod:`erd_html`
-by reading the current :class:`~graph.node_graph_coordinator.NodeGraphCoordinator`
-graph at export time. Sample entities stay one class per file; ERD rows come from
-their live graph metadata and declared relation fields.
+Builds a **cells** JSON document (``{"cells": [...]}``) from the current
+:class:`~graph.node_graph_coordinator.NodeGraphCoordinator` graph at export time.
+The standalone :mod:`erd_html` viewer consumes a parallel nodes/edges projection;
+these cells remain available for tooling and compatibility. Sample entities stay
+one class per file; ERD rows come from their live graph metadata and declared
+relation fields.
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ from graph.node_graph_coordinator import NodeGraphCoordinator
 LINE_HEIGHT = 24
 NODE_WIDTH = 190
 
-# Matches ``erd_html._ENTITY_COLORS`` order for consistent HTML / X6 demos.
+# Matches ``erd_html._ENTITY_COLORS`` order for consistent HTML viewer demos.
 _DOMAIN_ACCENT_PALETTE: tuple[str, ...] = (
     "#3b82f6",
     "#8b5cf6",
@@ -64,7 +66,7 @@ class ErdFieldSpec:
     One visible ERD table row.
 
     AI-CORE-BEGIN
-    ROLE: Preserve relational-table semantics for one field row before X6 serialization.
+    ROLE: Preserve relational-table semantics for one field row before cell-graph serialization.
     CONTRACT: ``role`` controls the PK/FK compartment; ``references`` stores the referenced table id when this is an FK row.
     AI-CORE-END
     """
@@ -412,12 +414,13 @@ def erd_document_from_coordinator_graph(
     domain_cls: type[BaseDomain],
 ) -> dict[str, list[dict[str, Any]]]:
     """
-    Read the current coordinator graph and immediately return an X6 ERD document.
+    Read the current coordinator graph and immediately return a cells-based ERD document.
 
     AI-CORE-BEGIN
     ROLE: Public graph-backed ERD serializer; it reads only the live coordinator graph.
     CONTRACT: Uses ``coordinator.get_all_nodes()`` at call time and serializes only the requested domain.
-    OUTPUT: X6 ``fromJSON`` document consumed directly by ``write_erd_html``.
+    OUTPUT: JSON with ``{"cells": [...]}`` in AntV-style table-node form. The :mod:`erd_html`
+    HTML writer uses a separate nodes/edges build from the same coordinator payload.
     AI-CORE-END
     """
     return erd_payload_to_x6_document(
@@ -427,11 +430,11 @@ def erd_document_from_coordinator_graph(
 
 def erd_payload_to_x6_document(payload: ErdGraphPayload) -> dict[str, list[dict[str, Any]]]:
     """
-    Build an X6 ``fromJSON`` payload: ``{\"cells\": [ ... ]}``.
+    Build an AntV-style ``fromJSON`` cell document (table ER nodes).
 
-    Entity nodes use ``shape: \"er-rect\"`` (registered in ``erd_html``). Attribute rows are
-    visible ``list`` ports for the ER-table look; relationships attach to table boundaries,
-    not to individual field rows. Node ``x/y`` are placeholders; bootstrap runs ELK.
+    Top-level shape is ``{"cells": [ ... ]}``. Entity nodes use ``er-rect``-style
+    table markup with ``list`` ports for field rows; relationships attach to table
+    boundaries. Node ``x/y`` are placeholders; callers may run layout externally.
 
     LOD keeps ``lod_port_names`` / ``lod_port_types`` aligned with ``list`` port order (tooltip + labels).
     """

@@ -4,7 +4,7 @@
 """
 Standalone ERD HTML export.
 
-Renderers: X6 (interactive), Mermaid, Graphviz SVG, D2, D2 source.
+Renderers: X6 (interactive), Mermaid, Graphviz SVG.
 X6 layout engines: ELK Right/Down/Tree/Stress/Force, Dagre LR/TB,
                    Grid, Graphviz-backed X6 (Dot LR/TB, Neato, FDP, SFDP, Circo, Twopi).
 
@@ -25,7 +25,6 @@ ELK_MODULE_URL     = "https://esm.sh/elkjs@0.11.1"
 DAGRE_MODULE_URL   = "https://esm.sh/@dagrejs/dagre@1.1.4"
 MERMAID_MODULE_URL = "https://esm.sh/mermaid@11.12.0"
 GRAPHVIZ_MODULE_URL = "https://esm.sh/@hpcc-js/wasm-graphviz@1.21.5"
-D2_MODULE_URL      = "https://esm.sh/@terrastruct/d2@0.1.33"
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
 _TEMPLATE_HTML = _PACKAGE_DIR / "template.html"
@@ -72,7 +71,6 @@ _ERD_BOOTSTRAP_JS = """
 
   let gvApi = null;
   let mmApi = null;
-  let d2Api = null;
 
   /* ── constants ── */
   const LINE_H  = 24;
@@ -599,7 +597,7 @@ _ERD_BOOTSTRAP_JS = """
   }
 
   /* ════════════════════════════════════════════════════════════════════
-     DIAGRAM BUILDERS (Mermaid / Graphviz SVG / D2)
+     DIAGRAM BUILDERS (Mermaid / Graphviz SVG)
      ════════════════════════════════════════════════════════════════════ */
   function stableIds(nodes) {
     var used = new Set(), out = new Map();
@@ -722,45 +720,6 @@ _ERD_BOOTSTRAP_JS = """
     return { dot: lines.join('\\n'), engine: engine, nodeByGvId: nodeByGvId, edgeByGvId: edgeByGvId };
   }
 
-  /* ── D2 ── */
-  function buildD2(doc) {
-    var nodes = erdNodes(doc), ids = stableIds(nodes);
-    var fieldMap = new Map();
-    var lines = ['direction: right', ''];
-    nodes.forEach(function(nd) {
-      var id    = gvSafeId(ids.get(String(nd.id)));
-      var names = Array.isArray(nd.data && nd.data.lod_port_names) ? nd.data.lod_port_names : [];
-      var types = Array.isArray(nd.data && nd.data.lod_port_types) ? nd.data.lod_port_types : [];
-      var roles = Array.isArray(nd.data && nd.data.lod_port_roles) ? nd.data.lod_port_roles : [];
-      var lf = new Map();
-      lines.push(id + ': {', '  shape: sql_table');
-      if (!names.length) lines.push('  id: string {constraint: primary_key}');
-      names.forEach(function(nm, i) {
-        var raw = String(nm || ('f' + i)).replace(/[^A-Za-z0-9_]/g,'_') || ('f' + i);
-        var fld = /^[0-9]/.test(raw) ? 'f_' + raw : raw;
-        var typ = String(types[i] || '').indexOf('FK') >= 0 ? 'string' : simpleType(types[i]);
-        var rr  = String(roles[i] || '');
-        var con = (rr.indexOf('PK') >= 0 && rr.indexOf('FK') >= 0) ? '{constraint: [primary_key; foreign_key]}'
-                : rr.indexOf('PK') >= 0 ? '{constraint: primary_key}'
-                : rr.indexOf('FK') >= 0 ? '{constraint: foreign_key}' : '';
-        lf.set(String(nm || ''), fld);
-        lines.push('  ' + fld + ': ' + typ + (con ? ' ' + con : ''));
-      });
-      fieldMap.set(String(nd.id), lf);
-      lines.push('}', '');
-    });
-    erdEdges(doc).forEach(function(e) {
-      var sR = srcId(e), tR = tgtId(e);
-      var s  = gvSafeId(ids.get(sR)), t = gvSafeId(ids.get(tR));
-      if (!s || !t) return;
-      var p  = ePanel(e);
-      var sf = String(p.source_field || '');
-      var sfld = (fieldMap.get(sR) && fieldMap.get(sR).get(sf)) || 'id';
-      lines.push(s + '.' + sfld + ' -> ' + t + '.id');
-    });
-    return lines.join('\\n');
-  }
-
   /* ── API loaders ── */
   async function ensureMermaid() {
     if (mmApi) return mmApi;
@@ -770,21 +729,10 @@ _ERD_BOOTSTRAP_JS = """
       mmApi.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'base', er: { useMaxWidth: false } });
     return mmApi;
   }
-  async function ensureD2() {
-    if (d2Api) return d2Api;
-    var m   = await withTimeout(import(/*D2*/"__D2_URL__"), 'D2 import');
-    var Cls = m.D2 || (m.default && m.default.D2) || m.default;
-    if (!Cls) throw new Error('D2: no D2 export');
-    d2Api = new Cls();
-    if (typeof d2Api.ready === 'function') await withTimeout(d2Api.ready(), 'D2 ready', 15000);
-    return d2Api;
-  }
 
   /* ── Render functions ── */
   var mmCont   = document.getElementById('mermaid-container');
   var gvCont   = document.getElementById('graphviz-container');
-  var d2Cont   = document.getElementById('d2-container');
-  var d2SrcCont = document.getElementById('d2-source-container');
   var gvSvgState = null;
   var gvView = { base: null, viewBox: null, dragging: false, lastX: 0, lastY: 0 };
 
@@ -951,29 +899,6 @@ _ERD_BOOTSTRAP_JS = """
       gvCont.innerHTML = '<pre class="erd-error">' + esc(String(e && e.message || e)) + '\\n\\n' + esc(built.dot) + '</pre>';
     }
   }
-  async function renderD2(doc) {
-    d2Cont.innerHTML = '<div class="erd-loading">Rendering D2\u2026</div>';
-    var src = buildD2(doc);
-    try {
-      var api = await ensureD2();
-      var svg;
-      if (typeof api.layout === 'function') {
-        svg = await withTimeout(api.layout(src), 'D2 layout', 30000);
-      } else if (typeof api.compile === 'function') {
-        var res = await withTimeout(api.compile(src, { layout: 'dagre' }), 'D2 compile', 30000);
-        if (typeof res === 'string') svg = res;
-        else if (res && typeof res.svg === 'string') svg = res.svg;
-        else if (res && res.diagram && typeof api.render === 'function')
-          svg = await withTimeout(api.render(res.diagram, Object.assign({}, res.renderOptions || {}, { noXMLTag: true })), 'D2 render', 15000);
-        else throw new Error('D2: unexpected compile() return');
-      } else throw new Error('D2: no usable API');
-      if (!svg || typeof svg !== 'string') throw new Error('D2: empty SVG');
-      d2Cont.innerHTML = svg;
-    } catch(e) {
-      d2Cont.innerHTML = '<pre class="erd-error">D2 failed.\\n' + esc(String(e && e.message || e)) + '\\n\\nD2 source:\\n' + esc(src) + '</pre>';
-    }
-  }
-  function renderD2Src(doc) { d2SrcCont.textContent = buildD2(doc); }
 
   function resetGvState() {
     gvSvgState = null;
@@ -988,8 +913,6 @@ _ERD_BOOTSTRAP_JS = """
     { id: 'x6',        label: 'X6 (interactive)' },
     { id: 'mermaid',   label: 'Mermaid'           },
     { id: 'graphviz',  label: 'Graphviz SVG'      },
-    { id: 'd2',        label: 'D2'                },
-    { id: 'd2-source', label: 'D2 source'         },
   ];
   var layoutModes = [
     { id: 'x6-gv-dot-lr', label: 'GV Dot LR \u2756' },
@@ -1282,15 +1205,11 @@ _ERD_BOOTSTRAP_JS = """
     container.style.display = isX6 ? 'block' : 'none';
     if (mmCont)    mmCont.style.display    = activeRenderer === 'mermaid'   ? 'block' : 'none';
     if (gvCont)    gvCont.style.display    = isGv                           ? 'block' : 'none';
-    if (d2Cont)    d2Cont.style.display    = activeRenderer === 'd2'        ? 'block' : 'none';
-    if (d2SrcCont) d2SrcCont.style.display = activeRenderer === 'd2-source' ? 'block' : 'none';
     if (layPicker) layPicker.style.display = (isX6 || isGv)                 ? 'flex'  : 'none';
     if (!isX6) {
       graph.resetCells && graph.resetCells([]);
       if (activeRenderer === 'mermaid')   await renderMermaid(doc);
       if (isGv)                           await renderGvSvg(doc);
-      if (activeRenderer === 'd2')        await renderD2(doc);
-      if (activeRenderer === 'd2-source') renderD2Src(doc);
       syncZoom(); return;
     }
     resetGvState();
@@ -1357,7 +1276,6 @@ def _make_bootstrap(model_json: str) -> str:
     js = js.replace("__DAGRE_URL__", DAGRE_MODULE_URL)
     js = js.replace("__MM_URL__",    MERMAID_MODULE_URL)
     js = js.replace("__GV_URL__",    GRAPHVIZ_MODULE_URL)
-    js = js.replace("__D2_URL__",    D2_MODULE_URL)
     js = js.replace("__MODEL_JSON__", model_json)
     return js
 

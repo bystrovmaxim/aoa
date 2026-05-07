@@ -19,9 +19,7 @@
             background-size: 20px 20px;
         }
         #mermaid-container,
-        #graphviz-container,
-        #d2-container,
-        #d2-source-container {
+        #graphviz-container {
             position: fixed;
             inset: 0;
             width: 100vw;
@@ -37,9 +35,6 @@
         #graphviz-container {
             padding: 72px 280px 80px 310px;
         }
-        #d2-container {
-            padding: 72px 280px 80px 310px;
-        }
         #mermaid-container svg {
             display: block;
             max-width: none;
@@ -51,19 +46,6 @@
             max-width: none;
             height: auto;
             margin: 0 auto;
-        }
-        #d2-container svg {
-            display: block;
-            max-width: none;
-            height: auto;
-            margin: 0 auto;
-        }
-        #d2-source-container {
-            padding: 72px 280px 80px 310px;
-            margin: 0;
-            font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            color: #111827;
-            white-space: pre;
         }
         #graph-hover-labels {
             position: absolute;
@@ -303,8 +285,6 @@
     <div id="container"></div>
     <div id="mermaid-container" aria-label="Mermaid ERD renderer"></div>
     <div id="graphviz-container" aria-label="Graphviz ERD renderer"></div>
-    <div id="d2-container" aria-label="D2 ERD renderer"></div>
-    <pre id="d2-source-container" aria-label="D2 ERD source"></pre>
     <div id="erd-hover-tip" role="tooltip" aria-hidden="true"></div>
     <div id="graph-hover-labels" aria-hidden="true"></div>
     <aside id="domain-picker" class="domain-picker" aria-label="Domains"></aside>

@@ -1,7 +1,7 @@
 # src/maxitor/visualizer/erd_visualizer/erd_html.py
 # pylint: disable=import-outside-toplevel,too-many-lines
 """
-Standalone ERD HTML export — normalized table nodes with X6, Mermaid, Graphviz, and D2
+Standalone ERD HTML export — normalized table nodes with X6, Mermaid, and Graphviz
 renderer variants plus ERD/Graphviz layout pickers.
 Tables render PK/FK compartments; relationship ends use crow-foot text markers instead of
 arrowheads. Long table, field, and type labels are truncated with a fixed tooltip.
@@ -21,7 +21,6 @@ X6_MODULE_URL = "https://esm.sh/@antv/x6@2.19.2"
 ELK_MODULE_URL = "https://esm.sh/elkjs@0.11.1"
 MERMAID_MODULE_URL = "https://esm.sh/mermaid@11.12.0"
 GRAPHVIZ_MODULE_URL = "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm-graphviz/dist/index.js"
-D2_MODULE_URL = "https://esm.sh/@terrastruct/d2@0.1.33"
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
 _TEMPLATE_HTML = _PACKAGE_DIR / "template.html"
@@ -53,7 +52,6 @@ _ERD_BOOTSTRAP_JS = """
   }
   let mermaidApi = null;
   let graphvizApi = null;
-  let d2Api = null;
 
   const LINE_HEIGHT = 24;
   const NODE_WIDTH = 190;
@@ -583,14 +581,10 @@ _ERD_BOOTSTRAP_JS = """
   const layoutPicker = document.getElementById('layout-picker');
   const mermaidContainer = document.getElementById('mermaid-container');
   const graphvizContainer = document.getElementById('graphviz-container');
-  const d2Container = document.getElementById('d2-container');
-  const d2SourceContainer = document.getElementById('d2-source-container');
   const rendererModes = [
     { id: 'x6', label: 'X6' },
     { id: 'mermaid', label: 'Mermaid' },
     { id: 'graphviz', label: 'Graphviz' },
-    { id: 'd2', label: 'D2' },
-    { id: 'd2-source', label: 'D2 source' },
   ];
   const layoutModes = [
     { id: 'grid', label: 'Grid' },
@@ -688,31 +682,6 @@ _ERD_BOOTSTRAP_JS = """
     return JSON.stringify(String(value ?? ''));
   }
 
-  function d2Id(id) {
-    return dotId(id);
-  }
-
-  function d2FieldName(value, fallback) {
-    const raw = String(value ?? '').replace(/[^A-Za-z0-9_]/g, '_').replace(/^_+|_+$/g, '');
-    const name = raw || fallback || 'field';
-    return /^[0-9]/.test(name) ? `f_${name}` : name;
-  }
-
-  function d2Type(typeName) {
-    const raw = String(typeName ?? '').trim();
-    if (!raw) return 'string';
-    if (raw.includes('FK ->')) return 'string';
-    return simpleTypeForDiagram(raw);
-  }
-
-  function d2Constraint(role) {
-    const raw = String(role ?? '');
-    const constraints = [];
-    if (raw.includes('PK')) constraints.push('PK');
-    if (raw.includes('FK')) constraints.push('FK');
-    return constraints.join(' ');
-  }
-
   function dotHtml(value) {
     return esc(String(value ?? '')).replace(/"/g, '&quot;');
   }
@@ -778,46 +747,6 @@ _ERD_BOOTSTRAP_JS = """
         .replace(/\\s+/g, ' ')
         .trim();
       lines.push(`  ${src} ${left}--${right} ${tgt} : "${label || 'rel'}"`);
-    });
-    return lines.join('\\n');
-  }
-
-  function buildD2Source(doc) {
-    const nodes = erdNodes(doc);
-    const ids = stableDiagramIds(nodes);
-    const fieldMap = new Map();
-    const lines = ['direction: right', ''];
-    nodes.forEach((node) => {
-      const entityId = d2Id(ids.get(String(node.id)));
-      const names = Array.isArray(node?.data?.lod_port_names) ? node.data.lod_port_names : [];
-      const types = Array.isArray(node?.data?.lod_port_types) ? node.data.lod_port_types : [];
-      const roles = Array.isArray(node?.data?.lod_port_roles) ? node.data.lod_port_roles : [];
-      const localFields = new Map();
-      lines.push(`${entityId}: {`);
-      lines.push('  shape: sql_table');
-      if (!names.length) lines.push('  id: string PK');
-      names.forEach((name, ix) => {
-        const field = d2FieldName(name, `field_${ix + 1}`);
-        const typ = d2Type(types[ix]);
-        const constraint = d2Constraint(roles[ix]);
-        localFields.set(String(name ?? ''), field);
-        lines.push(`  ${field}: ${typ}${constraint ? ` ${constraint}` : ''}`);
-      });
-      fieldMap.set(String(node.id), localFields);
-      lines.push('}');
-      lines.push('');
-    });
-    erdEdges(doc).forEach((edge) => {
-      const srcRaw = sourceCellId(edge);
-      const tgtRaw = targetCellId(edge);
-      const src = ids.get(srcRaw);
-      const tgt = ids.get(tgtRaw);
-      if (!src || !tgt) return;
-      const panel = edgePanel(edge);
-      const sourceField = String(panel.source_field || '');
-      const sourceD2Field =
-        fieldMap.get(srcRaw)?.get(sourceField) ?? d2FieldName(sourceField || 'id', 'id');
-      lines.push(`${d2Id(src)}.${sourceD2Field} -> ${d2Id(tgt)}.id`);
     });
     return lines.join('\\n');
   }
@@ -955,15 +884,6 @@ _ERD_BOOTSTRAP_JS = """
     return graphvizApi;
   }
 
-  async function ensureD2Api() {
-    if (d2Api) return d2Api;
-    const mod = await withTimeout(import(__D2_MODULE_IMPORT__), 'D2 module import');
-    const D2 = mod.D2 ?? mod.default?.D2 ?? mod.default;
-    if (!D2) throw new Error('D2 module did not expose D2');
-    d2Api = new D2();
-    return d2Api;
-  }
-
   async function renderMermaidDomain(doc) {
     if (!mermaidContainer) return;
     mermaidContainer.innerHTML = '<div style="font-size:12px;color:#64748b">Rendering Mermaid ERD...</div>';
@@ -977,41 +897,6 @@ _ERD_BOOTSTRAP_JS = """
       console.warn('erd: mermaid renderer failed', err);
       mermaidContainer.innerHTML =
         '<pre style="white-space:pre-wrap;color:#991b1b;background:#fff;border:1px solid #fecaca;border-radius:8px;padding:12px">' +
-        esc(String(err?.message ?? err)) +
-        '\\n\\n' +
-        esc(source) +
-        '</pre>';
-    }
-  }
-
-  function renderD2SourceDomain(doc) {
-    if (!d2SourceContainer) return;
-    d2SourceContainer.textContent = buildD2Source(doc);
-  }
-
-  async function renderD2Domain(doc) {
-    if (!d2Container) return;
-    d2Container.innerHTML =
-      '<div style="font-size:12px;color:#64748b">Rendering D2 ERD... If the browser WASM worker stalls, this will fall back automatically.</div>';
-    const source = buildD2Source(doc);
-    try {
-      const api = await ensureD2Api();
-      const result = await withTimeout(api.compile(source, { layout: 'dagre' }), 'D2 compile');
-      const svg = await withTimeout(
-        api.render(result.diagram, {
-          ...(result.renderOptions ?? {}),
-          pad: 80,
-          scale: 1,
-          noXMLTag: true,
-        }),
-        'D2 render',
-      );
-      d2Container.innerHTML = svg;
-    } catch (err) {
-      console.warn('erd: d2 renderer failed', err);
-      d2Container.innerHTML =
-        '<pre style="white-space:pre-wrap;color:#991b1b;background:#fff;border:1px solid #fecaca;border-radius:8px;padding:12px">' +
-        'D2 browser renderer failed or timed out. The generated D2 source is shown below.\\n\\n' +
         esc(String(err?.message ?? err)) +
         '\\n\\n' +
         esc(source) +
@@ -1060,15 +945,11 @@ _ERD_BOOTSTRAP_JS = """
     container.style.display = isX6 ? 'block' : 'none';
     if (mermaidContainer) mermaidContainer.style.display = activeRendererMode === 'mermaid' ? 'block' : 'none';
     if (graphvizContainer) graphvizContainer.style.display = activeRendererMode === 'graphviz' ? 'block' : 'none';
-    if (d2Container) d2Container.style.display = activeRendererMode === 'd2' ? 'block' : 'none';
-    if (d2SourceContainer) d2SourceContainer.style.display = activeRendererMode === 'd2-source' ? 'block' : 'none';
     if (layoutPicker) layoutPicker.style.display = isX6 || activeRendererMode === 'graphviz' ? 'flex' : 'none';
     if (!isX6) {
       if (typeof graph.resetCells === 'function') graph.resetCells([]);
       if (activeRendererMode === 'mermaid') await renderMermaidDomain(doc);
       if (activeRendererMode === 'graphviz') await renderGraphvizDomain(doc);
-      if (activeRendererMode === 'd2') await renderD2Domain(doc);
-      if (activeRendererMode === 'd2-source') renderD2SourceDomain(doc);
       syncZoom();
       return;
     }
@@ -1473,13 +1354,11 @@ def write_erd_html(
     elk_imp = json.dumps(ELK_MODULE_URL)
     mermaid_imp = json.dumps(MERMAID_MODULE_URL)
     graphviz_imp = json.dumps(GRAPHVIZ_MODULE_URL)
-    d2_imp = json.dumps(D2_MODULE_URL)
     bootstrap = (
         _ERD_BOOTSTRAP_JS.replace("__X6_MODULE_IMPORT__", js_import)
         .replace("__ELK_MODULE_IMPORT__", elk_imp)
         .replace("__MERMAID_MODULE_IMPORT__", mermaid_imp)
         .replace("__GRAPHVIZ_MODULE_IMPORT__", graphviz_imp)
-        .replace("__D2_MODULE_IMPORT__", d2_imp)
         .replace("__ERD_DOMAIN_MODEL_JSON__", model_json)
     )
     safe_title = html_escape(title)
@@ -1580,13 +1459,11 @@ def write_erd_html_from_coordinator(
     elk_imp = json.dumps(ELK_MODULE_URL)
     mermaid_imp = json.dumps(MERMAID_MODULE_URL)
     graphviz_imp = json.dumps(GRAPHVIZ_MODULE_URL)
-    d2_imp = json.dumps(D2_MODULE_URL)
     bootstrap = (
         _ERD_BOOTSTRAP_JS.replace("__X6_MODULE_IMPORT__", js_import)
         .replace("__ELK_MODULE_IMPORT__", elk_imp)
         .replace("__MERMAID_MODULE_IMPORT__", mermaid_imp)
         .replace("__GRAPHVIZ_MODULE_IMPORT__", graphviz_imp)
-        .replace("__D2_MODULE_IMPORT__", d2_imp)
         .replace("__ERD_DOMAIN_MODEL_JSON__", model_json)
     )
     safe_title = html_escape(title)

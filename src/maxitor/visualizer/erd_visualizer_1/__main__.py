@@ -56,7 +56,7 @@ def main() -> None:
 
     default_out, write_from_coord = _load_pkg()
 
-    ap = argparse.ArgumentParser(description="Write standalone ERD HTML with X6, Mermaid, Graphviz, and D2 renderers.")
+    ap = argparse.ArgumentParser(description="Write standalone ERD HTML with X6, Mermaid, and Graphviz renderers.")
     ap.add_argument(
         "--domain",
         choices=("all", "store"),

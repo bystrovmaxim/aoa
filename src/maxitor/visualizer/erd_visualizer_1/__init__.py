@@ -1,6 +1,6 @@
 # src/maxitor/visualizer/erd_visualizer_1/__init__.py
 """
-ERD viewer — graph-backed ERD export with X6, Mermaid, Graphviz, D2, and Dagre renderers.
+ERD viewer — graph-backed ERD export with X6, Mermaid, Graphviz, and Dagre renderers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -8,7 +8,7 @@ PURPOSE
 
 :func:`.erd_document_from_coordinator_graph` reads the current coordinator graph and
 serializes an X6 ``fromJSON`` shape for one domain. :mod:`.erd_html` injects CSS +
-an ES-module bootstrap (dynamic imports of X6, ELK, Dagre, Mermaid, Graphviz, and D2)
+an ES-module bootstrap (dynamic imports of X6, ELK, Dagre, Mermaid, and Graphviz)
 and :func:`.write_erd_html_from_coordinator`, which takes a production
 :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` and a
 :class:`~action_machine.domain.base_domain.BaseDomain`, reads graph vertices at call
@@ -19,8 +19,6 @@ Renderers available in the generated HTML
 - **X6 (interactive)** — AntV X6 canvas with port-based ER-table nodes.
 - **Mermaid** — ``erDiagram`` via Mermaid v11.
 - **Graphviz SVG** — full HTML-label DOT rendered via ``@hpcc-js/wasm-graphviz``.
-- **D2** — ``sql_table`` shapes via ``@terrastruct/d2`` WASM.
-- **D2 source** — raw D2 text for copy-paste.
 
 Layout engines available for the X6 renderer
 ─────────────────────────────────────────────
@@ -42,7 +40,6 @@ from .erd_graph_data import (
     erd_payload_to_x6_document,
 )
 from .erd_html import (
-    D2_MODULE_URL,
     DAGRE_MODULE_URL,
     DEFAULT_ERD_HTML_PATH,
     ELK_MODULE_URL,
@@ -54,7 +51,6 @@ from .erd_html import (
 )
 
 __all__ = [
-    "D2_MODULE_URL",
     "DAGRE_MODULE_URL",
     "DEFAULT_ERD_HTML_PATH",
     "ELK_MODULE_URL",
