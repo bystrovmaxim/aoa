@@ -17,6 +17,8 @@ class MerchantFeeSchedulePointerEntity(BaseEntity):
     id: str = Field(description="Pointer id")
     lifecycle: BillingDenseLifecycle = Field(description="Fee schedule lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
     interchange_slice: Annotated[
         AssociationOne[InterchangeAssessmentSliceEntity],
         NoInverse(),

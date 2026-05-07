@@ -27,6 +27,12 @@ class AnalyticsDirectedCycleQuadAEntity(BaseEntity):
     id: str = Field(description="Vertex A id")
     lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
+    ingress_batch_key: str = Field(description="Loader partition key echoed into lake prefixes")
+    source_anchor_slug: str = Field(description="Upstream subsystem / connector anchor moniker")
+    event_estimate: int = Field(description="Approximate attributable telemetry rows", ge=0)
+    payload_byte_hint: int = Field(description="Compressed payload footprint hint bytes", ge=0)
+    freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
+    privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     follow_b: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadBEntity],
         Inverse(AnalyticsDirectedCycleQuadBEntity, "back_from_a"),
@@ -43,6 +49,12 @@ class AnalyticsDirectedCycleQuadBEntity(BaseEntity):
     id: str = Field(description="Vertex B id")
     lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
+    ingress_batch_key: str = Field(description="Loader partition key echoed into lake prefixes")
+    source_anchor_slug: str = Field(description="Upstream subsystem / connector anchor moniker")
+    event_estimate: int = Field(description="Approximate attributable telemetry rows", ge=0)
+    payload_byte_hint: int = Field(description="Compressed payload footprint hint bytes", ge=0)
+    freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
+    privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     back_from_a: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadAEntity],
         Inverse(AnalyticsDirectedCycleQuadAEntity, "follow_b"),
@@ -64,6 +76,12 @@ class AnalyticsDirectedCycleQuadCEntity(BaseEntity):
     id: str = Field(description="Vertex C id")
     lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
+    ingress_batch_key: str = Field(description="Loader partition key echoed into lake prefixes")
+    source_anchor_slug: str = Field(description="Upstream subsystem / connector anchor moniker")
+    event_estimate: int = Field(description="Approximate attributable telemetry rows", ge=0)
+    payload_byte_hint: int = Field(description="Compressed payload footprint hint bytes", ge=0)
+    freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
+    privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     back_from_b: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadBEntity],
         Inverse(AnalyticsDirectedCycleQuadBEntity, "follow_c"),
@@ -80,6 +98,12 @@ class AnalyticsDirectedCycleQuadDEntity(BaseEntity):
     id: str = Field(description="Vertex D id")
     lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
+    ingress_batch_key: str = Field(description="Loader partition key echoed into lake prefixes")
+    source_anchor_slug: str = Field(description="Upstream subsystem / connector anchor moniker")
+    event_estimate: int = Field(description="Approximate attributable telemetry rows", ge=0)
+    payload_byte_hint: int = Field(description="Compressed payload footprint hint bytes", ge=0)
+    freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
+    privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     back_from_c: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadCEntity],
         Inverse(AnalyticsDirectedCycleQuadCEntity, "follow_d"),

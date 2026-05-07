@@ -15,5 +15,11 @@ class OutboxMessageEntity(BaseEntity):
     lifecycle: OutboxMessageLifecycle = Field(description="Outbox message lifecycle")
     topic: str = Field(description="Routing topic")
 
+    traceparent_seed: str = Field(description="Propagation root echoed to downstream carriers")
+    dedupe_partition: str = Field(description="Logical inbox partition for idempotent consumers")
+    backpressure_budget: int = Field(description="Outstanding backlog units tolerated per lane", ge=0)
+    deadline_budget_ms: int = Field(description="End-to-end SLA budget millis", ge=0)
+    content_class: str = Field(description="Envelope / codec family moniker")
+
 
 OutboxMessageEntity.model_rebuild()

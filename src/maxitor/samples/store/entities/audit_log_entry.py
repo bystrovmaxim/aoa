@@ -19,6 +19,10 @@ class AuditLogEntryEntity(BaseEntity):
     action_performed: str = Field(description="Action label")
     actor_id: str = Field(description="Actor id")
 
+    storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
+    compliance_rating: str = Field(description="Fraud / AML posture snapshot")
+    fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
+    tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     target_order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),

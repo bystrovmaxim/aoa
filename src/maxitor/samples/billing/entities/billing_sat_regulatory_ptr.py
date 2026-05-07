@@ -17,6 +17,8 @@ class RegulatorySubmissionPointerEntity(BaseEntity):
     id: str = Field(description="Pointer id")
     lifecycle: BillingDenseLifecycle = Field(description="Regulatory pointer lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
     brief: Annotated[
         AssociationOne[ArbitrationBriefStubEntity],
         NoInverse(),

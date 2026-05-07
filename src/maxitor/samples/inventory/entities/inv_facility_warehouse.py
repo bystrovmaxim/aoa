@@ -14,5 +14,12 @@ class FacilityWarehouseEntity(BaseEntity):
     id: str = Field(description="Facility id")
     lifecycle: InvPipelineLifecycle = Field(description="Facility lifecycle")
 
+    facility_tz: str = Field(description="Warehouse operational timezone identifier")
+    capacity_cu_m: float = Field(description="Usable volumetric envelope cubic metres")
+    hazmat_classification: str = Field(description="Material-handling tier label")
+    cycle_count_due_unix: int = Field(description="Next physical audit milestone epoch seconds", ge=0)
+    dock_door_anchor: str = Field(description="Primary receiving / staging door label")
+    velocity_bucket: str = Field(description="ABC / throughput velocity class")
+
 
 FacilityWarehouseEntity.model_rebuild()

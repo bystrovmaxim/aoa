@@ -19,5 +19,7 @@ class BillingFileIngestManifestEntity(BaseEntity):
     batch_correlation_key: str = Field(description="Cross-feed dedupe grouping key")
     originating_feed_system: str = Field(description="Source system moniker (issuer, PSP, ERP)")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+
 
 BillingFileIngestManifestEntity.model_rebuild()

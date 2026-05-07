@@ -16,6 +16,12 @@ class AnalyticsIngressBatchEntity(BaseEntity):
     id: str = Field(description="Batch id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Batch lifecycle")
 
+    ingress_batch_key: str = Field(description="Loader partition key echoed into lake prefixes")
+    source_anchor_slug: str = Field(description="Upstream subsystem / connector anchor moniker")
+    event_estimate: int = Field(description="Approximate attributable telemetry rows", ge=0)
+    payload_byte_hint: int = Field(description="Compressed payload footprint hint bytes", ge=0)
+    freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
+    privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     billing_manifest_correlation: Annotated[
         AssociationOne["BillingFileIngestManifestEntity"],  # noqa: UP037
         NoInverse(),

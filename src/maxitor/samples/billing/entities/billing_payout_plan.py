@@ -19,5 +19,7 @@ class BillingPayoutPlanEntity(BaseEntity):
     horizon_calendar_days: int = Field(description="Rolling coverage window", ge=1, le=3650)
     payout_frequency_hint: str = Field(description="Expected cadence label (weekly, intra-day)")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+
 
 BillingPayoutPlanEntity.model_rebuild()

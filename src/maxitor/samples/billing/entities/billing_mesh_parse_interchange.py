@@ -18,6 +18,9 @@ class BillingParseInterchangeBridgeEntity(BaseEntity):
     id: str = Field(description="Bridge id")
     lifecycle: BillingDenseLifecycle = Field(description="Bridge lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
+    posting_timezone: str = Field(description="Business-calendar timezone identifier")
     parse_pass: Annotated[
         AssociationOne[BillingParsePassEntity],
         NoInverse(),

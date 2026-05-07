@@ -19,6 +19,8 @@ class AcquirerIntegrityCheckEntity(BaseEntity):
     id: str = Field(description="Checkpoint id")
     lifecycle: BillingDenseLifecycle = Field(description="Integrity check lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
     evidence_bundle: Annotated[
         AssociationOne[RetrievalEvidenceBundleEntity],
         NoInverse(),

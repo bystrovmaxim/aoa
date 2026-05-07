@@ -17,6 +17,8 @@ class ArbitrationBriefStubEntity(BaseEntity):
     id: str = Field(description="Brief id")
     lifecycle: BillingDenseLifecycle = Field(description="Brief lifecycle")
 
+    legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
+    currency_iso: str = Field(description="Declared ISO-4217 money unit")
     integrity_checkpoint: Annotated[
         AssociationOne[AcquirerIntegrityCheckEntity],
         NoInverse(),

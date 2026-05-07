@@ -17,5 +17,12 @@ class ClinicalOwnershipAnchorEntity(BaseEntity):
     id: str = Field(description="Ownership pattern id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Ownership catalog lifecycle")
 
+    sterility_claim_code: str = Field(description="Sterile-environment handling claim discriminator")
+    lot_trace_handle: str = Field(description="Serialized trace corridor locator")
+    temperature_ceiling_k: float = Field(description="Max allowed ambient storage kelvin snapshot")
+    recall_watch_state: str = Field(description="Recall / embargo disposition label")
+    quarantine_fence_id: str = Field(description="Facility quarantine corridor moniker")
+    regulatory_territory: str = Field(description="Governing geography for distribution assertions")
+
 
 ClinicalOwnershipAnchorEntity.model_rebuild()
