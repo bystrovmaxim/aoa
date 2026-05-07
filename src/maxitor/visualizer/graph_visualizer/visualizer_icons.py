@@ -3,7 +3,8 @@
 Lucide icon markup (inner SVG children only) per ``node_type``.
 
 Icons are from `lucide-static` (ISC, https://github.com/lucide-icons/lucide).
-Rendered as white strokes on the colored node disk in :mod:`maxitor.visualizer.graph_visualizer.visualizer`.
+Rendered as white strokes on the colored node disk in :mod:`maxitor.visualizer.graph_visualizer.visualizer`
+(G6 ``circle`` ``fill`` plus transparent glyph ``data:`` URLs).
 
 Interchange axis kinds share ``NODE_TYPE`` from :class:`~action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`,
 :class:`~action_machine.graph_model.nodes.checker_graph_node.CheckerGraphNode`,
@@ -170,6 +171,22 @@ GRAPH_NODE_TYPE_LUCIDE_INNER_SVG: dict[str, str] = {
 _ICON_INNER_SCALE: float = 0.58
 # Keep apparent stroke width ~2 after scaling (stroke scales with transform).
 _ICON_STROKE_WIDTH: float = 2.0 / _ICON_INNER_SCALE
+
+
+def svg_data_uri_for_graph_node_glyph_only(node_type: str) -> str:
+    """Return a data: URL for Lucide paths only (transparent); for G6 ``circle`` nodes with ``fill`` from data."""
+    nt = str(node_type).strip()
+    inner = GRAPH_NODE_TYPE_LUCIDE_INNER_SVG.get(nt) or GRAPH_NODE_TYPE_LUCIDE_INNER_SVG["unknown"]
+    stroke_hex = _ERROR_HANDLER_INNER_STROKE if nt == ErrorHandlerGraphNode.NODE_TYPE else "#ffffff"
+    s = _ICON_INNER_SCALE
+    sw = _ICON_STROKE_WIDTH
+    g_open = (
+        f'<g transform="translate(12,12) scale({s}) translate(-12,-12)" '
+        f'fill="none" stroke="{stroke_hex}" stroke-width="{sw:.4f}" '
+        f'stroke-linecap="round" stroke-linejoin="round">'
+    )
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">{g_open}{inner}</g></svg>'
+    return "data:image/svg+xml," + quote(svg)
 
 
 def svg_data_uri_for_graph_node_icon(fill_hex: str, node_type: str) -> str:
