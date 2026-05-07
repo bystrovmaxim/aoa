@@ -58,7 +58,7 @@ def main() -> None:
     default_out, write_from_coord = _load_pkg()
 
     ap = argparse.ArgumentParser(
-        description=("Write standalone ERD HTML with X6, Graphviz SVG, Cytoscape, Mermaid, and D2 renderers.")
+        description=("Write standalone ERD HTML with Graphviz SVG, Cytoscape, and Mermaid renderers.")
     )
     ap.add_argument(
         "--domain",

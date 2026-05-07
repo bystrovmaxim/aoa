@@ -16,11 +16,7 @@ _TEMPLATE_HTML = _PACKAGE_DIR / "template.html"
 DEFAULT_ERD_HTML_PATH = "/Users/bystrovmaxim/PythonDev/aoa/archive/logs/erd.html"
 
 # ── CDN URLs ──────────────────────────────────────────────────────────────────
-X6_MODULE_URL = "https://esm.sh/@antv/x6@2.19.2"
-ELK_MODULE_URL = "https://esm.sh/elkjs@0.11.1"
-DAGRE_MODULE_URL = "https://esm.sh/@dagrejs/dagre@1.1.4"
 MERMAID_MODULE_URL = "https://esm.sh/mermaid@11.12.0"
-D2_MODULE_URL = "https://esm.sh/@terrastruct/d2@0.1.33"
 GRAPHVIZ_MODULE_URL = "https://esm.sh/@hpcc-js/wasm-graphviz@1.21.5"
 
 # Cytoscape stack (UMD)
@@ -46,10 +42,7 @@ _ERD_BOOTSTRAP_TEMPLATE = """\
 //  ERD Viewer Bootstrap  —  injected by erd_html.py
 // ════════════════════════════════════════════════════════════════════════════
 
-const __X6_URL__      = "{X6_URL}";
-const __DAGRE_URL__   = "{DAGRE_URL}";
 const __MERMAID_URL__ = "{MERMAID_URL}";
-const __D2_URL__      = "{D2_URL}";
 const __GRAPHVIZ_URL__ = "{GRAPHVIZ_URL}";
 
 const ERD_DATA = {ERD_DATA_JSON};
@@ -108,7 +101,6 @@ let activeRenderer = 'd3gv';
 let activeLayout   = 'gv-dot-lr';
 /** @type {{Set<string>}} Domain keys toggled on (subset of ``ERD_DATA.domains``). */
 let enabledDomains = new Set();
-let x6graph        = null;
 let cyInstance     = null;
 let currentNodes   = [];
 let currentEdges   = [];
@@ -187,119 +179,7 @@ function getDomainData() {{
 }}
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Renderer 1 — X6 + Dagre
-// ════════════════════════════════════════════════════════════════════════════
-async function initX6() {{
-  const container = document.getElementById('container');
-  container.innerHTML = '<div class="erd-loading">&#x23F3; Loading X6\u2026</div>';
-
-  let X6mod, Dagre;
-  try {{
-    [X6mod, Dagre] = await Promise.all([
-      import(__X6_URL__),
-      import(__DAGRE_URL__),
-    ]);
-  }} catch(e) {{
-    container.innerHTML = '<div class="erd-error">X6/Dagre loading error:\\n' + e + '</div>';
-    return;
-  }}
-
-  const {{ Graph }} = X6mod;
-  const dagre = Dagre.default || Dagre;
-
-  if (x6graph) {{ try {{ x6graph.dispose(); }} catch(_){{}} }}
-
-  x6graph = new Graph({{
-    container,
-    autoResize: true,
-    panning:    {{ enabled: true, modifiers: null }},
-    mousewheel: {{ enabled: true, modifiers: null }},
-    background: {{ color: '#f8fafc' }},
-    grid: {{ visible: true, size: 20, type: 'dot', args: {{ color: '#e2e8f0' }} }},
-    connecting: {{
-      router:    'manhattan',
-      connector: {{ name: 'rounded', args: {{ radius: 6 }} }},
-    }},
-    interacting: {{ nodeMovable: true, edgeMovable: false }},
-  }});
-
-  const {{ nodes, edges }} = getDomainData();
-  currentNodes = nodes || [];
-  currentEdges = edges || [];
-
-  for (const nd of currentNodes) {{
-    const fields = nd.fields || [];
-    x6graph.addNode({{
-      id:     nd.id,
-      shape:  'html',
-      width:  240,
-      height: Math.max(60, 36 + fields.length * 24),
-      html: () => {{
-        const div = document.createElement('div');
-        div.style.cssText = 'width:100%;height:100%;';
-        div.innerHTML = buildTableHtml(nd);
-        return div;
-      }},
-    }});
-  }}
-
-  for (const ed of currentEdges) {{
-    try {{
-      x6graph.addEdge({{
-        source: ed.source,
-        target: ed.target,
-        attrs:  {{ line: {{ stroke: '#94a3b8', strokeWidth: 1.5,
-                            targetMarker: {{ name: 'block', size: 6 }} }} }},
-        labels: ed.label
-          ? [{{ attrs: {{ label: {{ text: ed.label, fontSize: 10, fill: '#64748b' }} }},
-               position: 0.5 }}]
-          : [],
-      }});
-    }} catch(_) {{}}
-  }}
-
-  applyDagreToX6(dagre);
-  setTimeout(() => {{ try {{ x6graph.zoomToFit({{ padding: 40 }}); }} catch(_){{}} }}, 150);
-
-  x6graph.on('node:click', ({{ node }}) => {{
-    const nd = currentNodes.find(n => n.id === node.id);
-    if (nd) showNodeDetail(nd);
-  }});
-
-  setupZoomButtons(
-    () => x6graph.zoom(0.1),
-    () => x6graph.zoom(-0.1),
-    () => x6graph.zoomToFit({{ padding: 40 }}),
-  );
-  container.querySelector('.erd-loading')?.remove();
-}}
-
-function applyDagreToX6(dagre) {{
-  const g = new dagre.graphlib.Graph();
-  const isLR = activeLayout === 'dagre-lr';
-  g.setGraph({{ rankdir: isLR ? 'LR' : 'TB',
-                nodesep: 60, ranksep: 80, marginx: 40, marginy: 40 }});
-  g.setDefaultEdgeLabel(() => ({{}}));
-  for (const nd of currentNodes) {{
-    const node = x6graph.getCellById(nd.id);
-    if (!node) continue;
-    const sz = node.getSize();
-    g.setNode(nd.id, {{ width: sz.width, height: sz.height }});
-  }}
-  for (const ed of currentEdges) {{
-    try {{ g.setEdge(ed.source, ed.target); }} catch(_){{}}
-  }}
-  dagre.layout(g);
-  g.nodes().forEach(id => {{
-    const pos = g.node(id);
-    if (!pos) return;
-    const node = x6graph.getCellById(id);
-    if (node) node.setPosition(pos.x - pos.width / 2, pos.y - pos.height / 2);
-  }});
-}}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Renderer 2 — Graphviz SVG via @hpcc-js/wasm-graphviz
+//  Renderer 1 — Graphviz SVG via @hpcc-js/wasm-graphviz
 // ════════════════════════════════════════════════════════════════════════════
 
 async function ensureGraphvizApi() {{
@@ -379,7 +259,7 @@ function getGvEngine() {{
 }}
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Renderer 3 — Cytoscape.js
+//  Renderer 2 — Cytoscape.js
 // ════════════════════════════════════════════════════════════════════════════
 async function initCytoscape() {{
   const cont = document.getElementById('cy-container');
@@ -465,7 +345,7 @@ function buildCytoscapeStyle() {{
 }}
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Renderer 4 — Mermaid
+//  Renderer 3 — Mermaid
 // ════════════════════════════════════════════════════════════════════════════
 async function initMermaid() {{
   const cont = document.getElementById('mermaid-container');
@@ -483,29 +363,11 @@ async function initMermaid() {{
 }}
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Renderer 5 — D2
-// ════════════════════════════════════════════════════════════════════════════
-async function initD2() {{
-  const cont = document.getElementById('d2-container');
-  cont.innerHTML = '<div class="erd-loading">&#x23F3; Loading D2\u2026</div>';
-  try {{
-    const mod  = await import(__D2_URL__);
-    const D2cls = mod.D2 || mod.default?.D2 || mod.default;
-    const d2   = new D2cls();
-    const result = await d2.layout(buildD2Source());
-    cont.innerHTML = typeof result === 'string' ? result
-                   : result?.svg || JSON.stringify(result);
-  }} catch(e) {{
-    cont.innerHTML = '<div class="erd-error">D2 error:\\n' + e + '</div>';
-  }}
-}}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  DOT / Mermaid / D2 source builders
+//  DOT / Mermaid source builders
 // ════════════════════════════════════════════════════════════════════════════
 function buildDotSource() {{
   const {{ nodes, edges }} = getDomainData();
-  const isLR = activeLayout === 'gv-dot-lr' || activeLayout === 'cy-dagre-lr' || activeLayout === 'dagre-lr';
+  const isLR = activeLayout === 'gv-dot-lr' || activeLayout === 'cy-dagre-lr';
   const lines = ['digraph ERD {{'];
   // Neato ignores rankdir / nodesep / ranksep; those attrs produce a poor spring layout. Use
   // spring-specific spacing (see graphviz attrs: overlap, sep) without changing dot/fdp/circo.
@@ -576,49 +438,6 @@ function buildMermaidSource() {{
                ' : "' + escHtml(ed.label || 'has') + '"');
   }}
   return lines.join('\\n');
-}}
-
-function buildD2Source() {{
-  const {{ nodes, edges }} = getDomainData();
-  const lines = [];
-  for (const nd of (nodes || [])) {{
-    lines.push(nd.id + ': {{');
-    lines.push('  shape: sql_table');
-    for (const f of (nd.fields || [])) {{
-      const kw = f.primary_key ? ' {{constraint: primary_key}}'
-               : f.foreign_key ? ' {{constraint: foreign_key}}' : '';
-      lines.push('  ' + f.name + ': ' + (f.type || 'text') + kw);
-    }}
-    lines.push('}}');
-  }}
-  for (const ed of (edges || [])) {{
-    lines.push(ed.source + ' -> ' + ed.target +
-               ': "' + escHtml(ed.label || '') + '"');
-  }}
-  return lines.join('\\n');
-}}
-
-function buildTableHtml(nd) {{
-  const color = nd.color || '#3b82f6';
-  const rows = (nd.fields || []).map(f => {{
-    const bg   = f.primary_key ? '#fef9c3' : f.foreign_key ? '#dbeafe' : '#fff';
-    const badge = f.primary_key
-      ? '<span style="font-size:9px;font-weight:700;color:#92400e;background:#fef3c7;padding:0 4px;border-radius:3px">PK</span>'
-      : f.foreign_key
-      ? '<span style="font-size:9px;font-weight:700;color:#1e40af;background:#dbeafe;padding:0 4px;border-radius:3px">FK</span>'
-      : '<span style="color:#cbd5e1;font-size:11px">&#183;</span>';
-    return '<div style="display:flex;align-items:center;gap:6px;padding:3px 8px;' +
-           'background:' + bg + ';border-bottom:1px solid #f1f5f9;font-size:11px;">' +
-           badge +
-           '<span style="flex:1;color:#334155;font-weight:500">' + escHtml(f.name) + '</span>' +
-           '<span style="color:#64748b;font-style:italic">' + escHtml(f.type || '') + '</span>' +
-           '</div>';
-  }}).join('');
-  return '<div style="border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.12);' +
-         'border:1.5px solid ' + color + ';font-family:system-ui,sans-serif;background:#fff;">' +
-         '<div style="background:' + color + ';padding:6px 12px;color:#fff;font-weight:700;' +
-         'font-size:13px;text-align:center;">' + escHtml(nd.label || nd.id) + '</div>' +
-         rows + '</div>';
 }}
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -698,23 +517,16 @@ function setupZoomButtons(zIn, zOut, zFit) {{
 //  Renderer switching
 // ════════════════════════════════════════════════════════════════════════════
 const ALL_CONT_IDS = [
-  'container', 'd3gv-container', 'cy-container',
-  'mermaid-container', 'd2-container', 'd2-source-container',
+  'd3gv-container', 'cy-container',
+  'mermaid-container',
 ];
 const RENDERER_SHOWS = {{
-  x6:        ['container'],
   d3gv:      ['d3gv-container'],
   cytoscape: ['cy-container'],
   mermaid:   ['mermaid-container'],
-  d2:        ['d2-container'],
-  d2src:     ['d2-source-container'],
 }};
-const HAS_LAYOUT = new Set(['x6', 'd3gv', 'cytoscape']);
+const HAS_LAYOUT = new Set(['d3gv', 'cytoscape']);
 const LAYOUT_GROUPS = {{
-  x6: [
-    {{ id: 'dagre-lr', label: 'Dagre LR', recommended: true }},
-    {{ id: 'dagre-tb', label: 'Dagre TB' }},
-  ],
   d3gv: [
     {{ id: 'gv-dot-lr', label: 'Dot LR', recommended: true }},
     {{ id: 'gv-dot-tb', label: 'Dot TB' }},
@@ -730,10 +542,7 @@ const LAYOUT_GROUPS = {{
 const RENDERERS = [
   {{ id: 'd3gv',      label: 'Graphviz \u2756', recommended: true }},
   {{ id: 'cytoscape', label: 'Cytoscape' }},
-  {{ id: 'x6',        label: 'X6 + Dagre' }},
   {{ id: 'mermaid',   label: 'Mermaid' }},
-  {{ id: 'd2',        label: 'D2' }},
-  {{ id: 'd2src',     label: 'D2 Source' }},
 ];
 
 function switchRenderer(name) {{
@@ -749,7 +558,7 @@ function switchRenderer(name) {{
     const el = document.getElementById(id);
     if (el) {{ el.style.display = ''; el.classList.add('active'); }}
   }}
-  if (name === 'x6' || name === 'cytoscape') {{
+  if (name === 'cytoscape') {{
     if (zt) zt.style.display = '';
   }}
 
@@ -761,16 +570,9 @@ function switchRenderer(name) {{
     p.classList.toggle('active', p.dataset.renderer === name));
 
   switch (name) {{
-    case 'x6':        initX6();         break;
     case 'd3gv':      initD3Graphviz(); break;
     case 'cytoscape': initCytoscape();  break;
     case 'mermaid':   initMermaid();    break;
-    case 'd2':        initD2();         break;
-    case 'd2src': {{
-      const c = document.getElementById('d2-source-container');
-      if (c) c.textContent = buildD2Source();
-      break;
-    }}
   }}
 }}
 
@@ -953,10 +755,7 @@ def _payload_to_domain_dict(payload) -> dict:
 
 def _make_bootstrap(erd_data: dict) -> str:
     return _ERD_BOOTSTRAP_TEMPLATE.format(
-        X6_URL=X6_MODULE_URL,
-        DAGRE_URL=DAGRE_MODULE_URL,
         MERMAID_URL=MERMAID_MODULE_URL,
-        D2_URL=D2_MODULE_URL,
         GRAPHVIZ_URL=GRAPHVIZ_MODULE_URL,
         DAGRE_UMD_URL=_DAGRE_UMD_URL,
         CYTOSCAPE_URL=_CYTOSCAPE_URL,

@@ -1,6 +1,6 @@
 # src/maxitor/visualizer/erd_visualizer/__init__.py
 """
-ERD viewer — graph-backed ERD export with X6, Mermaid, Graphviz, and D2 renderers.
+ERD viewer — graph-backed ERD export with X6, Mermaid, and Graphviz renderers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -8,7 +8,7 @@ PURPOSE
 
 :func:`.erd_document_from_coordinator_graph` reads the current coordinator graph and
 serializes X6 ``fromJSON`` shape for one domain. :mod:`.erd_html` injects CSS + an
-ES-module bootstrap (dynamic imports of X6, Mermaid, Graphviz, and D2) and
+ES-module bootstrap (dynamic imports of X6, Mermaid, and Graphviz) and
 :func:`.write_erd_html_from_coordinator`, which takes a production
 :class:`~graph.node_graph_coordinator.NodeGraphCoordinator` and a
 :class:`~action_machine.domain.base_domain.BaseDomain`, reads graph vertices at call
@@ -27,7 +27,6 @@ from .erd_graph_data import (
     erd_payload_to_x6_document,
 )
 from .erd_html import (
-    D2_MODULE_URL,
     DEFAULT_ERD_HTML_PATH,
     ELK_MODULE_URL,
     GRAPHVIZ_MODULE_URL,
@@ -38,7 +37,6 @@ from .erd_html import (
 )
 
 __all__ = [
-    "D2_MODULE_URL",
     "DEFAULT_ERD_HTML_PATH",
     "ELK_MODULE_URL",
     "GRAPHVIZ_MODULE_URL",
