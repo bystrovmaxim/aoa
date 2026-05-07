@@ -28,6 +28,13 @@ _MODULES: Final[tuple[str, ...]] = (
     "maxitor.samples.catalog.dependencies",
     "maxitor.samples.catalog.resources",
     "maxitor.samples.catalog.plugins",
+    # synthetic domains for heterogeneous ERD / graph cardinality demos
+    "maxitor.samples.identity.domain",
+    "maxitor.samples.identity.entities",
+    "maxitor.samples.inventory.domain",
+    "maxitor.samples.inventory.entities",
+    "maxitor.samples.analytics.domain",
+    "maxitor.samples.analytics.entities",
     # store (depends on billing/messaging services)
     "maxitor.samples.store.domain",
     "maxitor.samples.store.dependencies",
@@ -38,5 +45,6 @@ _MODULES: Final[tuple[str, ...]] = (
     "maxitor.samples.store.actions",
     # support: @depends on BaseAction in the same domain and in store
     "maxitor.samples.support.domain",
+    "maxitor.samples.support.entities",
     "maxitor.samples.support.actions",
 )

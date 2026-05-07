@@ -64,20 +64,20 @@ from action_machine.graph_model.nodes.state_graph_node import StateGraphNode
 from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from graph.base_graph_edge import BaseGraphEdge
 from graph.base_graph_node import BaseGraphNode
-from graph.create_node_graph_coordinator import all_axis_graph_node_inspectors
-from graph.debug_node_graph_coordinator import DebugNodeGraphCoordinator
 from graph.edge_relationship import Composition
 from graph.node_graph_coordinator import NodeGraphCoordinator
-from .domain_propagation import (
+from maxitor.visualizer.graph_visualizer.domain_propagation import (
     bubble_sets_plugins_for_domains as _bubble_sets_plugins_for_domains,
 )
-from .domain_propagation import (
+from maxitor.visualizer.graph_visualizer.domain_propagation import (
     domain_sort_key_for_id as _domain_sort_key_for_id,
 )
-from .domain_propagation import (
+from maxitor.visualizer.graph_visualizer.domain_propagation import (
     propagate_node_domains as _propagate_node_domains,
 )
-from .visualizer_icons import svg_data_uri_for_graph_node_icon
+from maxitor.visualizer.graph_visualizer.visualizer_icons import (
+    svg_data_uri_for_graph_node_icon,
+)
 
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 
@@ -1122,14 +1122,18 @@ def export_interchange_axes_graph_html(
     """
     return generate_interchange_g6_html(coordinator, HTML_PATH, title=title)
 
+def write_demo_interchange_axes_graph_html() -> Path:
+    """Build sample graph coordinator and emit G6 HTML to :data:`HTML_PATH`."""
+    from maxitor.samples.interchange_demo_coordinator import (
+        build_registered_interchange_coordinator,
+        import_sample_registration_modules,
+    )
+
+    import_sample_registration_modules()
+    coord = build_registered_interchange_coordinator()
+    return export_interchange_axes_graph_html(coord)
+
+
 if __name__ == "__main__":
-    import importlib
-
-    from maxitor.samples.build import _MODULES
-
-    for _mod in _MODULES:
-        importlib.import_module(_mod)
-    _coord = DebugNodeGraphCoordinator()
-    _coord.build(all_axis_graph_node_inspectors())
-    written = export_interchange_axes_graph_html(_coord)
+    written = write_demo_interchange_axes_graph_html()
     print(f"Interchange axes graph HTML written to {written.resolve()}")

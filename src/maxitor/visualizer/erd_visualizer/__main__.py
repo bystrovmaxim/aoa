@@ -1,19 +1,16 @@
 # src/maxitor/visualizer/erd_visualizer/__main__.py
 """
-Write :file:`erd.html` for the **store** bounded context using the production interchange graph.
+Write :file:`erd.html` for the **store** bounded context using the interchange graph.
 
-Loads the same sample registration modules as ``maxitor.samples.node_build``, builds
-an interchange :class:`~graph.node_graph_coordinator.NodeGraphCoordinator`
-(``create_node_graph_coordinator()`` first; on sample-only DAG cycles falls back to
-:class:`~graph.debug_node_graph_coordinator.DebugNodeGraphCoordinator` like the interchange
-HTML exporter),
+Loads sample registration (:func:`maxitor.samples.interchange_demo_coordinator.import_sample_registration_modules`),
+builds coordinator via :func:`maxitor.samples.interchange_demo_coordinator.build_registered_interchange_coordinator`
+(same DAG-or-debug logic as :mod:`maxitor.visualizer.graph_visualizer` demos),
 projects entities for :class:`~maxitor.samples.store.domain.StoreDomain`,
 and emits X6 HTML.
 """
 
 from __future__ import annotations
 
-import importlib
 from pathlib import Path
 
 
@@ -25,14 +22,6 @@ def _ensure_src_on_path() -> None:
     s = str(src_root)
     if s not in sys.path:
         sys.path.insert(0, s)
-
-
-def _import_sample_registration_modules() -> None:
-    """Ensure entity/action graph contributions from ``maxitor.samples`` are registered."""
-    from maxitor.samples.build import _MODULES
-
-    for name in _MODULES:
-        importlib.import_module(name)
 
 
 def _load_erd_html_exports():
@@ -52,20 +41,14 @@ def _load_erd_html_exports():
 
 def main() -> None:
     default_out, write_from_coord = _load_erd_html_exports()
-    _import_sample_registration_modules()
-    from graph.create_node_graph_coordinator import (
-        all_axis_graph_node_inspectors,
-        create_node_graph_coordinator,
+    from maxitor.samples.interchange_demo_coordinator import (
+        build_registered_interchange_coordinator,
+        import_sample_registration_modules,
     )
-    from graph.debug_node_graph_coordinator import DebugNodeGraphCoordinator
-    from graph.exceptions import InvalidGraphError
     from maxitor.samples.store.domain import StoreDomain
 
-    try:
-        coordinator = create_node_graph_coordinator()
-    except InvalidGraphError:
-        coordinator = DebugNodeGraphCoordinator()
-        coordinator.build(all_axis_graph_node_inspectors())
+    import_sample_registration_modules()
+    coordinator = build_registered_interchange_coordinator()
     path = write_from_coord(
         coordinator,
         StoreDomain,
