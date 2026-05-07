@@ -22,5 +22,12 @@ class CrossDockStagingEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Upstream recall signal")  # type: ignore[assignment]
 
+    catalog_product_anchor: Annotated[
+        AssociationOne["CatalogProductEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Catalog SKU keyed when diverting stock through cross-dock")  # type: ignore[assignment]
+
+
+from maxitor.samples.catalog.entities.product_row import CatalogProductEntity  # noqa: E402
 
 CrossDockStagingEntity.model_rebuild()

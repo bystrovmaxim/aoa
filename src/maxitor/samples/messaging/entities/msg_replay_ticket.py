@@ -22,5 +22,14 @@ class ReplayTicketEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Parent watermark row")  # type: ignore[assignment]
 
+    billing_parse_pass: Annotated[
+        AssociationOne["BillingParsePassEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Billing parse artifact correlated with replay bookkeeping")  # type: ignore[assignment]
+
+
+from maxitor.samples.billing.entities.billing_parse_pass import (  # noqa: E402
+    BillingParsePassEntity,
+)
 
 ReplayTicketEntity.model_rebuild()

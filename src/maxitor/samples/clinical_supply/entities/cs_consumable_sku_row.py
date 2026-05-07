@@ -25,5 +25,14 @@ class ClinicalConsumableSkuEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Compound / sterility anchor")  # type: ignore[assignment]
 
+    inventory_lot_mirror: Annotated[
+        AssociationOne["LotSnapshotLedgerEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Inventory lot snapshot keyed for sterile consumable traceability")  # type: ignore[assignment]
+
+
+from maxitor.samples.inventory.entities.inv_lot_snapshot_ledger import (  # noqa: E402
+    LotSnapshotLedgerEntity,
+)
 
 ClinicalConsumableSkuEntity.model_rebuild()

@@ -24,5 +24,12 @@ class ShipmentParcelEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Shipped order")  # type: ignore[assignment]
 
+    origin_facility: Annotated[
+        AssociationOne["FacilityWarehouseEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Inventory facility staging this shipment")  # type: ignore[assignment]
+
+
+from maxitor.samples.inventory.entities.inv_facility_warehouse import FacilityWarehouseEntity  # noqa: E402
 
 ShipmentParcelEntity.model_rebuild()

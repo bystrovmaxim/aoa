@@ -24,5 +24,12 @@ class DiscountApplicationEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Discounted order")  # type: ignore[assignment]
 
+    acquisition_attribution_head: Annotated[
+        AssociationOne["AcquisitionChannelLedgerEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Catalog acquisition ledger head for attributed demand")  # type: ignore[assignment]
+
+
+from maxitor.samples.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerEntity  # noqa: E402, I001
 
 DiscountApplicationEntity.model_rebuild()

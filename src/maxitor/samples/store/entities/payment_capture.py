@@ -24,5 +24,12 @@ class PaymentCaptureEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Captured order")  # type: ignore[assignment]
 
+    processor_webhook_receipt: Annotated[
+        AssociationOne["WebhookIngressReceiptEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Ingress receipt for PSP / acquirer callback correlation")  # type: ignore[assignment]
+
+
+from maxitor.samples.messaging.entities.msg_webhook_ingress_receipt import WebhookIngressReceiptEntity  # noqa: E402
 
 PaymentCaptureEntity.model_rebuild()
