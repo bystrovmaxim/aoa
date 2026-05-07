@@ -9,7 +9,7 @@ from maxitor.samples.billing.domain import BillingDomain
 from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingPipelineLifecycle
 
 
-@entity(description="Billing file ingest manifest (linear pipeline head)", domain=BillingDomain)
+@entity(description="Billing file ingest manifest", domain=BillingDomain)
 class BillingFileIngestManifestEntity(BaseEntity):
     lifecycle: BillingPipelineLifecycle = Field(description="Ingest lifecycle")
     id: str = Field(description="Manifest id")

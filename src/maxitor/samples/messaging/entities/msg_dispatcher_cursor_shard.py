@@ -12,7 +12,7 @@ from maxitor.samples.messaging.entities.msg_dense_lifecycle import MsgDenseLifec
 from maxitor.samples.messaging.entities.outbox_message import OutboxMessageEntity
 
 
-@entity(description="Dispatcher shard — only reconciliation chain hop tied to outbox", domain=MessagingDomain)
+@entity(description="Dispatcher shard tied to outbox", domain=MessagingDomain)
 class DispatcherCursorShardEntity(BaseEntity):
     lifecycle: MsgDenseLifecycle = Field(description="Dispatcher cursor lifecycle")
     id: str = Field(description="Cursor id")

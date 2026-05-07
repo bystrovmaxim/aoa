@@ -14,3 +14,6 @@ class OutboxMessageEntity(BaseEntity):
     lifecycle: OutboxMessageLifecycle = Field(description="Outbox message lifecycle")
     id: str = Field(description="Message id")
     topic: str = Field(description="Routing topic")
+
+
+OutboxMessageEntity.model_rebuild()

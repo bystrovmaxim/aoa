@@ -14,3 +14,6 @@ class PaymentEventLogEntity(BaseEntity):
     lifecycle: PaymentEventLifecycle = Field(description="Payment event lifecycle")
     id: str = Field(description="Event id")
     kind: str = Field(description="Event kind label")
+
+
+PaymentEventLogEntity.model_rebuild()

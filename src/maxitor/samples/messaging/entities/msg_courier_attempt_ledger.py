@@ -12,7 +12,7 @@ from maxitor.samples.messaging.entities.msg_batching_fence import BatchingFenceE
 from maxitor.samples.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 
 
-@entity(description="Courier ledger grafted onto reconciliation tail (orthogonal delivery spine)", domain=MessagingDomain)
+@entity(description="Courier ledger grafted onto reconciliation tail", domain=MessagingDomain)
 class CourierAttemptLedgerEntity(BaseEntity):
     lifecycle: MsgDenseLifecycle = Field(description="Courier ledger lifecycle")
     id: str = Field(description="Ledger id")

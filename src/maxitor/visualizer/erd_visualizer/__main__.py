@@ -1,12 +1,6 @@
 # src/maxitor/visualizer/erd_visualizer/__main__.py
 """
-Write :file:`erd.html` for the **store** bounded context using the interchange graph.
-
-Loads sample registration (:func:`maxitor.samples.interchange_demo_coordinator.import_sample_registration_modules`),
-builds coordinator via :func:`maxitor.samples.interchange_demo_coordinator.build_registered_interchange_coordinator`
-(same DAG-or-debug logic as :mod:`maxitor.visualizer.graph_visualizer` demos),
-projects entities for :class:`~maxitor.samples.store.domain.StoreDomain`,
-and emits X6 HTML.
+CLI for standalone ERD HTML from the live sample coordinator graph.
 """
 
 from __future__ import annotations
@@ -24,23 +18,49 @@ def _ensure_src_on_path() -> None:
         sys.path.insert(0, s)
 
 
-def _load_erd_html_exports():
+def _load_pkg():
     """Import package exports (supports ``python path/to/__main__.py`` invocation)."""
     if __package__:
         from .erd_html import DEFAULT_ERD_HTML_PATH, write_erd_html_from_coordinator
 
-        return DEFAULT_ERD_HTML_PATH, write_erd_html_from_coordinator
+        return (
+            DEFAULT_ERD_HTML_PATH,
+            write_erd_html_from_coordinator,
+        )
     _ensure_src_on_path()
     from maxitor.visualizer.erd_visualizer.erd_html import (
         DEFAULT_ERD_HTML_PATH,
         write_erd_html_from_coordinator,
     )
 
-    return DEFAULT_ERD_HTML_PATH, write_erd_html_from_coordinator
+    return (
+        DEFAULT_ERD_HTML_PATH,
+        write_erd_html_from_coordinator,
+    )
 
 
 def main() -> None:
-    default_out, write_from_coord = _load_erd_html_exports()
+    import argparse
+
+    default_out, write_from_coord = _load_pkg()
+
+    ap = argparse.ArgumentParser(description="Write standalone ERD HTML with X6, Mermaid, Graphviz, and D2 renderers.")
+    ap.add_argument(
+        "--domain",
+        choices=("all", "store"),
+        default="store",
+        help='Domain selection from the live sample coordinator graph. "all" enables the domain picker.',
+    )
+    ap.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        help=f'Output HTML path (default: {default_out}).',
+    )
+    args = ap.parse_args()
+    out = args.output if args.output is not None else Path(default_out)
+
     from maxitor.samples.interchange_demo_coordinator import (
         build_registered_interchange_coordinator,
         import_sample_registration_modules,
@@ -49,11 +69,13 @@ def main() -> None:
 
     import_sample_registration_modules()
     coordinator = build_registered_interchange_coordinator()
+    domain_cls = None if args.domain == "all" else StoreDomain
+    title = "ERD · samples (interchange graph)" if args.domain == "all" else "ERD · store (interchange graph)"
     path = write_from_coord(
         coordinator,
-        StoreDomain,
-        output_path=default_out,
-        title="ERD · store (interchange)",
+        domain_cls,
+        output_path=out,
+        title=title,
     )
     print(f"Written {path.resolve()}")
 

@@ -10,10 +10,11 @@ from action_machine.intents.entity import entity
 from maxitor.samples.identity.domain import IdentityDomain
 from maxitor.samples.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
 from maxitor.samples.identity.entities.identity_email_factor import IdentityEmailFactorEntity
+from maxitor.samples.identity.entities.identity_person_hub import IdentityPersonHubEntity
 from maxitor.samples.identity.entities.identity_phone_factor import IdentityPhoneFactorEntity
 
 
-@entity(description="Explicit merge correlate across disjoint credential subtrees (diamond apex without radial hub)", domain=IdentityDomain)
+@entity(description="Credential merge correlate across person, email, and phone factors", domain=IdentityDomain)
 class IdentityCredentialMergeCorrelateEntity(BaseEntity):
     lifecycle: IdentityDenseLifecycle = Field(description="Merge correlate lifecycle")
     id: str = Field(description="Correlate id")
@@ -27,6 +28,11 @@ class IdentityCredentialMergeCorrelateEntity(BaseEntity):
         AssociationOne[IdentityPhoneFactorEntity],
         NoInverse(),
     ] = Rel(description="Phone credential anchor")  # type: ignore[assignment]
+
+    person: Annotated[
+        AssociationOne[IdentityPersonHubEntity],
+        NoInverse(),
+    ] = Rel(description="Merged person identity")  # type: ignore[assignment]
 
 
 IdentityCredentialMergeCorrelateEntity.model_rebuild()

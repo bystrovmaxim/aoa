@@ -9,7 +9,7 @@ from maxitor.samples.inventory.domain import InventoryDomain
 from maxitor.samples.inventory.entities.inv_dense_lifecycle import InvPipelineLifecycle
 
 
-@entity(description="Warehouse root of long chain topology", domain=InventoryDomain)
+@entity(description="Warehouse / facility hub for inventory locations and cross-dock operations", domain=InventoryDomain)
 class FacilityWarehouseEntity(BaseEntity):
     lifecycle: InvPipelineLifecycle = Field(description="Facility lifecycle")
     id: str = Field(description="Facility id")

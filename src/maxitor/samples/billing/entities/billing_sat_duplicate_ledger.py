@@ -12,7 +12,7 @@ from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDens
 from maxitor.samples.billing.entities.billing_parse_pass import BillingParsePassEntity
 
 
-@entity(description="Duplicate suppression fragment attached to parse pass (fork off ingest spine)", domain=BillingDomain)
+@entity(description="Duplicate suppression fragment attached to parse pass", domain=BillingDomain)
 class DuplicateSuppressionLedgerEntity(BaseEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Duplicate ledger lifecycle")
     id: str = Field(description="Ledger fragment id")

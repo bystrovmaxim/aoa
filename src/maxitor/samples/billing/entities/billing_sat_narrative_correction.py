@@ -12,7 +12,7 @@ from maxitor.samples.billing.entities.billing_canonical_row_artifact import Bill
 from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 
 
-@entity(description="Narrative correction chained off canonical ingest row", domain=BillingDomain)
+@entity(description="Narrative correction attached to canonical ingest row", domain=BillingDomain)
 class NarrativeCorrectionEntity(BaseEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Correction lifecycle")
     id: str = Field(description="Row id")

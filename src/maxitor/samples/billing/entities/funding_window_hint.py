@@ -12,15 +12,15 @@ from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDens
 from maxitor.samples.billing.entities.billing_sweep_instruction import BillingSweepInstructionEntity
 
 
-@entity(description="Funding window sizing hint chained from sweep", domain=BillingDomain)
+@entity(description="Funding window anchored on sweep instruction", domain=BillingDomain)
 class FundingWindowHintEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Funding window lifecycle")
-    id: str = Field(description="Hint id")
+    lifecycle: BillingDenseLifecycle = Field(description="Liquidity facet lifecycle")
+    id: str = Field(description="Window id")
 
     sweep: Annotated[
         AssociationOne[BillingSweepInstructionEntity],
         NoInverse(),
-    ] = Rel(description="Parent sweep")  # type: ignore[assignment]
+    ] = Rel(description="Parent sweep instruction surface")  # type: ignore[assignment]
 
 
 FundingWindowHintEntity.model_rebuild()

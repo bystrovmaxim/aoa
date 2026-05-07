@@ -1,7 +1,9 @@
 # src/maxitor/visualizer/erd_visualizer/erd_html.py
 """
-Standalone ERD HTML export — AntV **X6** ER-style nodes plus **ELK** layered auto-layout,
-domain picker, orthogonal edge routing, and G6-style UX (zoom, properties panel, LOD).
+Standalone ERD HTML export — normalized table nodes with X6, Mermaid, Graphviz, and D2
+renderer variants plus ERD/Graphviz layout pickers.
+Tables render PK/FK compartments; relationship ends use crow-foot text markers instead of
+arrowheads. Long table, field, and type labels are truncated with a fixed tooltip.
 """
 
 from __future__ import annotations
@@ -16,6 +18,9 @@ from typing import Any
 # ESM entry (browser ``import()``); pinned for reproducible offline-friendly builds.
 X6_MODULE_URL = "https://esm.sh/@antv/x6@2.19.2"
 ELK_MODULE_URL = "https://esm.sh/elkjs@0.11.1"
+MERMAID_MODULE_URL = "https://esm.sh/mermaid@11.12.0"
+GRAPHVIZ_MODULE_URL = "https://cdn.jsdelivr.net/npm/@hpcc-js/wasm-graphviz/dist/index.js"
+D2_MODULE_URL = "https://esm.sh/@terrastruct/d2@0.1.33"
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
 _TEMPLATE_HTML = _PACKAGE_DIR / "template.html"
@@ -45,9 +50,14 @@ _ERD_BOOTSTRAP_JS = """
   } catch (err) {
     console.warn('erd: failed to import elkjs; falling back to simple layout', err);
   }
+  let mermaidApi = null;
+  let graphvizApi = null;
+  let d2Api = null;
 
   const LINE_HEIGHT = 24;
-  const NODE_WIDTH = 150;
+  const NODE_WIDTH = 190;
+  const ROLE_WIDTH = 46;
+  const TYPE_X = 132;
 
   Graph.registerPortLayout(
     'erPortPosition',
@@ -70,16 +80,16 @@ _ERD_BOOTSTRAP_JS = """
       attrs: {
         body: {
           strokeWidth: 1,
-          stroke: '#5F95FF',
-          fill: '#5F95FF',
+          stroke: '#1f2937',
+          fill: '#e5e7eb',
         },
         label: {
           refX: NODE_WIDTH / 2,
           refY: LINE_HEIGHT / 2,
           textAnchor: 'middle',
           textVerticalAnchor: 'middle',
-          fontWeight: 'bold',
-          fill: '#ffffff',
+          fontWeight: '500',
+          fill: '#111827',
           fontSize: 12,
         },
       },
@@ -88,6 +98,8 @@ _ERD_BOOTSTRAP_JS = """
           list: {
             markup: [
               { tagName: 'rect', selector: 'portBody' },
+              { tagName: 'line', selector: 'roleDivider' },
+              { tagName: 'text', selector: 'portRoleLabel' },
               { tagName: 'text', selector: 'portNameLabel' },
               { tagName: 'text', selector: 'portTypeLabel' },
             ],
@@ -96,21 +108,39 @@ _ERD_BOOTSTRAP_JS = """
                 width: NODE_WIDTH,
                 height: LINE_HEIGHT,
                 strokeWidth: 1,
-                stroke: '#5F95FF',
-                fill: '#EFF4FF',
-                magnet: true,
+                stroke: '#1f2937',
+                fill: '#f9fafb',
+                magnet: false,
               },
-              portNameLabel: {
+              roleDivider: {
+                x1: ROLE_WIDTH,
+                y1: 0,
+                x2: ROLE_WIDTH,
+                y2: LINE_HEIGHT,
+                stroke: '#1f2937',
+                strokeWidth: 1,
+              },
+              portRoleLabel: {
                 ref: 'portBody',
                 refX: 6,
                 refY: 6,
                 fontSize: 10,
+                fontWeight: 'bold',
+                fill: '#111827',
+              },
+              portNameLabel: {
+                ref: 'portBody',
+                refX: ROLE_WIDTH + 8,
+                refY: 6,
+                fontSize: 10,
+                fill: '#111827',
               },
               portTypeLabel: {
                 ref: 'portBody',
-                refX: 95,
+                refX: TYPE_X,
                 refY: 6,
                 fontSize: 10,
+                fill: '#374151',
               },
             },
             position: 'erPortPosition',
@@ -121,7 +151,153 @@ _ERD_BOOTSTRAP_JS = """
     true,
   );
 
-  async function layoutElk(g) {
+  async function layoutGrid(g) {
+    const nodes = g.getNodes().filter((n) => n.shape === 'er-rect');
+    const edges = g.getEdges();
+    if (!nodes.length) return true;
+    const byId = new Map(nodes.map((n) => [String(n.id), n]));
+    const neighbors = new Map(nodes.map((n) => [String(n.id), new Set()]));
+    edges.forEach((e) => {
+      const sCell = typeof e.getSourceCell === 'function' ? e.getSourceCell() : null;
+      const tCell = typeof e.getTargetCell === 'function' ? e.getTargetCell() : null;
+      const sid = sCell && String(sCell.id);
+      const tid = tCell && String(tCell.id);
+      if (!sid || !tid || sid === tid || !neighbors.has(sid) || !neighbors.has(tid)) return;
+      neighbors.get(sid).add(tid);
+      neighbors.get(tid).add(sid);
+    });
+
+    const components = [];
+    const seen = new Set();
+    const degree = (id) => neighbors.get(id)?.size ?? 0;
+    nodes.forEach((n) => {
+      const root = String(n.id);
+      if (seen.has(root)) return;
+      const queue = [root];
+      const ids = [];
+      seen.add(root);
+      while (queue.length) {
+        const id = queue.shift();
+        ids.push(id);
+        [...(neighbors.get(id) ?? [])]
+          .sort((a, b) => degree(b) - degree(a) || a.localeCompare(b))
+          .forEach((next) => {
+            if (seen.has(next)) return;
+            seen.add(next);
+            queue.push(next);
+          });
+      }
+      components.push(ids);
+    });
+    components.sort((a, b) => b.length - a.length);
+
+    let offsetX = 340;
+    let offsetY = 120;
+    let rowHeight = 0;
+    const viewportWidth = Math.max(1280, container.clientWidth || 1280);
+    components.forEach((ids) => {
+      const hub = ids.slice().sort((a, b) => degree(b) - degree(a) || a.localeCompare(b))[0];
+      const order = [];
+      const localSeen = new Set([hub]);
+      const queue = [hub];
+      while (queue.length) {
+        const id = queue.shift();
+        order.push(id);
+        [...(neighbors.get(id) ?? [])]
+          .filter((next) => ids.includes(next))
+          .sort((a, b) => degree(b) - degree(a) || a.localeCompare(b))
+          .forEach((next) => {
+            if (localSeen.has(next)) return;
+            localSeen.add(next);
+            queue.push(next);
+          });
+      }
+      ids
+        .filter((id) => !localSeen.has(id))
+        .sort((a, b) => degree(b) - degree(a) || a.localeCompare(b))
+        .forEach((id) => order.push(id));
+
+      const count = order.length;
+      const cols = count <= 4 ? count : Math.min(5, Math.max(3, Math.ceil(Math.sqrt(count))));
+      const rows = Math.ceil(count / cols);
+      const cellW = 340;
+      const cellH = 215;
+      const compW = Math.max(1, cols) * cellW;
+      const compH = Math.max(1, rows) * cellH;
+      if (offsetX + compW > viewportWidth && offsetX > 340) {
+        offsetX = 340;
+        offsetY += rowHeight + 150;
+        rowHeight = 0;
+      }
+      order.forEach((id, ix) => {
+        const row = Math.floor(ix / cols);
+        const colRaw = ix % cols;
+        const col = row % 2 === 0 ? colRaw : cols - 1 - colRaw;
+        const node = byId.get(id);
+        if (!node) return;
+        node.position(offsetX + col * cellW, offsetY + row * cellH);
+      });
+      offsetX += compW + 180;
+      rowHeight = Math.max(rowHeight, compH);
+    });
+
+    refreshEdgeAnchors(g);
+    return true;
+  }
+
+  function elkOptionsForLayoutMode(mode) {
+    if (mode === 'elk-down') {
+      return {
+        'elk.algorithm': 'layered',
+        'elk.direction': 'DOWN',
+        'elk.edgeRouting': 'ORTHOGONAL',
+        'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+        'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+        'elk.spacing.nodeNode': '96',
+        'elk.spacing.edgeEdge': '38',
+        'elk.spacing.edgeNode': '52',
+        'elk.layered.spacing.nodeNodeBetweenLayers': '170',
+        'elk.layered.spacing.edgeNodeBetweenLayers': '64',
+        'elk.padding': '[top=90,left=90,bottom=90,right=90]',
+      };
+    }
+    if (mode === 'elk-tree') {
+      return {
+        'elk.algorithm': 'mrtree',
+        'elk.direction': 'RIGHT',
+        'elk.spacing.nodeNode': '96',
+        'elk.mrtree.spacing.nodeNode': '96',
+        'elk.padding': '[top=90,left=90,bottom=90,right=90]',
+      };
+    }
+    if (mode === 'elk-stress') {
+      return {
+        'elk.algorithm': 'stress',
+        'elk.stress.desiredEdgeLength': '230',
+        'elk.spacing.nodeNode': '120',
+        'elk.spacing.edgeNode': '64',
+        'elk.padding': '[top=90,left=90,bottom=90,right=90]',
+      };
+    }
+    return {
+      'elk.algorithm': 'layered',
+      'elk.direction': 'RIGHT',
+      'elk.edgeRouting': 'ORTHOGONAL',
+      'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+      'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
+      'elk.layered.mergeEdges': 'false',
+      'elk.spacing.nodeNode': '110',
+      'elk.spacing.edgeEdge': '44',
+      'elk.spacing.edgeNode': '56',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '230',
+      'elk.layered.spacing.edgeNodeBetweenLayers': '72',
+      'elk.layered.spacing.edgeEdgeBetweenLayers': '44',
+      'elk.padding': '[top=90,left=90,bottom=90,right=90]',
+    };
+  }
+
+  async function layoutElkVariant(g, mode) {
     if (typeof ELK !== 'function') {
       console.warn('erd: elkjs bundle did not export a constructor');
       return false;
@@ -129,49 +305,37 @@ _ERD_BOOTSTRAP_JS = """
     const elk = new ELK();
     const nodes = g.getNodes().filter((n) => n.shape === 'er-rect');
     const edges = g.getEdges();
-    const idSet = new Set(nodes.map((n) => n.id));
+    if (!nodes.length) return true;
+    const idSet = new Set(nodes.map((n) => String(n.id)));
     const elkGraph = {
       id: 'root',
-      layoutOptions: {
-        'elk.algorithm': 'layered',
-        'elk.direction': 'RIGHT',
-        'elk.edgeRouting': 'ORTHOGONAL',
-        'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
-        'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-        'elk.spacing.nodeNode': '72',
-        'elk.spacing.edgeEdge': '24',
-        'elk.spacing.edgeNode': '36',
-        'elk.layered.spacing.nodeNodeBetweenLayers': '140',
-        'elk.layered.spacing.edgeNodeBetweenLayers': '48',
-        'elk.layered.spacing.edgeEdgeBetweenLayers': '24',
-        'elk.padding': '[top=60,left=60,bottom=60,right=60]',
-      },
+      layoutOptions: elkOptionsForLayoutMode(mode),
       children: [],
       edges: [],
     };
     nodes.forEach((n) => {
       const sz = n.size();
-      elkGraph.children.push({ id: n.id, width: sz.width, height: sz.height });
+      elkGraph.children.push({ id: String(n.id), width: sz.width, height: sz.height });
     });
     edges.forEach((e) => {
-      const sCell = typeof e.getSourceCell === 'function' ? e.getSourceCell() : null;
-      const tCell = typeof e.getTargetCell === 'function' ? e.getTargetCell() : null;
-      const sid = sCell && sCell.id;
-      const tid = tCell && tCell.id;
-      if (!sid || !tid || !idSet.has(sid) || !idSet.has(tid)) return;
+      const s = typeof e.getSourceCell === 'function' ? e.getSourceCell() : null;
+      const t = typeof e.getTargetCell === 'function' ? e.getTargetCell() : null;
+      const sid = s && String(s.id);
+      const tid = t && String(t.id);
+      if (!sid || !tid || sid === tid || !idSet.has(sid) || !idSet.has(tid)) return;
       elkGraph.edges.push({ id: String(e.id), sources: [sid], targets: [tid] });
     });
     let layout;
     try {
       layout = await elk.layout(elkGraph);
     } catch (err) {
-      console.warn('erd elk layout failed', err);
+      console.warn(`erd: ${mode} layout failed`, err);
       return false;
     }
-    const byId = new Map(nodes.map((n) => [n.id, n]));
+    const byId = new Map(nodes.map((n) => [String(n.id), n]));
     (layout.children ?? []).forEach((child) => {
       if (child.x == null || child.y == null) return;
-      const n = byId.get(child.id);
+      const n = byId.get(String(child.id));
       if (!n) return;
       n.position(child.x, child.y);
     });
@@ -180,19 +344,68 @@ _ERD_BOOTSTRAP_JS = """
       const edge = edgeById.get(String(le.id));
       if (!edge) return;
       const firstSection = Array.isArray(le.sections) ? le.sections[0] : null;
-      if (!firstSection) return;
-      const bends = Array.isArray(firstSection.bendPoints) ? firstSection.bendPoints : [];
-      if (typeof edge.setVertices === 'function') {
-        edge.setVertices(bends.map((p) => ({ x: p.x, y: p.y })));
-      }
+      const bends = firstSection && Array.isArray(firstSection.bendPoints) ? firstSection.bendPoints : [];
+      if (typeof edge.setVertices === 'function') edge.setVertices(bends.map((p) => ({ x: p.x, y: p.y })));
     });
+    refreshEdgeAnchors(g, { clearVertices: false });
     return true;
+  }
+
+  async function layoutGraph(g) {
+    if (activeLayoutMode === 'grid') return layoutGrid(g);
+    return layoutElkVariant(g, activeLayoutMode);
+  }
+
+  function anchorForDelta(dx, dy, sourceSide) {
+    if (Math.abs(dx) > Math.abs(dy)) {
+      return dx >= 0 ? (sourceSide ? 'right' : 'left') : (sourceSide ? 'left' : 'right');
+    }
+    return dy >= 0 ? (sourceSide ? 'bottom' : 'top') : (sourceSide ? 'top' : 'bottom');
+  }
+
+  function refreshEdgeAnchors(g, opts = {}) {
+    const clearVertices = opts.clearVertices !== false;
+    g.getEdges().forEach((edge) => {
+      const s = typeof edge.getSourceCell === 'function' ? edge.getSourceCell() : null;
+      const t = typeof edge.getTargetCell === 'function' ? edge.getTargetCell() : null;
+      if (!s || !t || s.shape !== 'er-rect' || t.shape !== 'er-rect') return;
+      if (s.id === t.id) {
+        if (typeof edge.setSource === 'function') edge.setSource({ cell: s.id, anchor: { name: 'right' } });
+        if (typeof edge.setTarget === 'function') edge.setTarget({ cell: t.id, anchor: { name: 'top' } });
+        if (typeof edge.setVertices === 'function') {
+          const p = s.position();
+          const sz = s.size();
+          edge.setVertices([
+            { x: p.x + sz.width + 70, y: p.y - 54 },
+            { x: p.x + sz.width + 70, y: p.y + 20 },
+          ]);
+        }
+        return;
+      }
+      const sb = s.getBBox();
+      const tb = t.getBBox();
+      const sp = { x: sb.x + sb.width / 2, y: sb.y + sb.height / 2 };
+      const tp = { x: tb.x + tb.width / 2, y: tb.y + tb.height / 2 };
+      const dx = tp.x - sp.x;
+      const dy = tp.y - sp.y;
+      if (typeof edge.setSource === 'function') edge.setSource({ cell: s.id, anchor: { name: anchorForDelta(dx, dy, true) } });
+      if (typeof edge.setTarget === 'function') edge.setTarget({ cell: t.id, anchor: { name: anchorForDelta(dx, dy, false) } });
+      if (clearVertices && typeof edge.setVertices === 'function') edge.setVertices([]);
+    });
   }
 
   function layoutFallback(g) {
     const nodes = g.getNodes().filter((n) => n.shape === 'er-rect');
+    const degree = new Map(nodes.map((n) => [String(n.id), 0]));
+    g.getEdges().forEach((e) => {
+      const s = typeof e.getSourceCell === 'function' ? e.getSourceCell() : null;
+      const t = typeof e.getTargetCell === 'function' ? e.getTargetCell() : null;
+      if (s && degree.has(String(s.id))) degree.set(String(s.id), degree.get(String(s.id)) + 1);
+      if (t && degree.has(String(t.id))) degree.set(String(t.id), degree.get(String(t.id)) + 1);
+    });
     const centerId =
       nodes.find((n) => /OrderEntity$/.test(String(n.id)))?.id ??
+      nodes.slice().sort((a, b) => (degree.get(String(b.id)) ?? 0) - (degree.get(String(a.id)) ?? 0))[0]?.id ??
       nodes[Math.floor(nodes.length / 2)]?.id;
     const ordered = nodes
       .slice()
@@ -203,13 +416,16 @@ _ERD_BOOTSTRAP_JS = """
       });
     ordered.forEach((n, i) => {
       if (i === 0) {
-        n.position(360, 160);
+        n.position(420, 280);
         return;
       }
-      const col = i % 2 === 1 ? -1 : 1;
-      const row = Math.floor((i - 1) / 2);
-      n.position(360 + col * 280, 80 + row * 220);
+      const ring = Math.ceil(Math.sqrt(i));
+      const angle = (i * 137.508 * Math.PI) / 180;
+      const radiusX = 260 + ring * 50;
+      const radiusY = 170 + ring * 34;
+      n.position(420 + Math.cos(angle) * radiusX, 280 + Math.sin(angle) * radiusY);
     });
+    refreshEdgeAnchors(g);
   }
 
   const esc = (s) =>
@@ -228,8 +444,11 @@ _ERD_BOOTSTRAP_JS = """
     width: container.clientWidth,
     height: container.clientHeight,
     connecting: {
-      router: { name: 'normal' },
-      connector: { name: 'rounded', args: { radius: 8 } },
+      router: { name: 'orth' },
+      connector: { name: 'rounded', args: { radius: 4 } },
+      validateMagnet() {
+        return false;
+      },
       createEdge() {
         return new Shape.Edge({
           attrs: {
@@ -256,8 +475,142 @@ _ERD_BOOTSTRAP_JS = """
     },
   });
 
+  let lodLevel = 'detailed';
+  const erdTipEl = document.getElementById('erd-hover-tip');
+  let erdTipHideTimer = null;
+  const ERD_MAX_TABLE_CHARS = 22;
+  const ERD_MAX_FIELD_CHARS = 14;
+  const ERD_MAX_TYPE_CHARS = 9;
+
+  function ellipTail(str, maxLen) {
+    const t = String(str);
+    if (!t.length || maxLen <= 0 || t.length <= maxLen) return t;
+    if (maxLen < 2) return '\u2026';
+    return t.slice(0, maxLen - 1) + '\u2026';
+  }
+
+  function hideErdTip() {
+    if (erdTipHideTimer != null) {
+      clearTimeout(erdTipHideTimer);
+      erdTipHideTimer = null;
+    }
+    if (erdTipEl) {
+      erdTipEl.style.display = 'none';
+      erdTipEl.setAttribute('aria-hidden', 'true');
+      erdTipEl.textContent = '';
+    }
+  }
+
+  function showErdTip(clientX, clientY, txt) {
+    if (!erdTipEl || !txt) return;
+    hideErdTip();
+    erdTipEl.textContent = txt;
+    erdTipEl.style.display = 'block';
+    erdTipEl.setAttribute('aria-hidden', 'false');
+    const pw = typeof erdTipEl.offsetWidth === 'number' && erdTipEl.offsetWidth > 0 ? erdTipEl.offsetWidth : 360;
+    const ph = typeof erdTipEl.offsetHeight === 'number' && erdTipEl.offsetHeight > 0 ? erdTipEl.offsetHeight : 44;
+    const pad = 8;
+    let x = clientX + 14;
+    let y = clientY + 14;
+    if (x + pw + pad > window.innerWidth) x = Math.max(pad, window.innerWidth - pw - pad);
+    if (y + ph + pad > window.innerHeight) y = Math.max(pad, window.innerHeight - ph - pad);
+    erdTipEl.style.left = `${x}px`;
+    erdTipEl.style.top = `${y}px`;
+  }
+
+  function scheduleHideErdTip() {
+    if (erdTipHideTimer != null) clearTimeout(erdTipHideTimer);
+    erdTipHideTimer = setTimeout(() => {
+      hideErdTip();
+      erdTipHideTimer = null;
+    }, 160);
+  }
+
+  function refreshErdLodAndText() {
+    graph.batchUpdate(() => {
+      graph.getNodes().forEach((node) => {
+        if (node.shape !== 'er-rect') return;
+        const dd = typeof node.getData === 'function' ? node.getData() : {};
+        const panel =
+          dd.payload_panel && typeof dd.payload_panel === 'object' && !Array.isArray(dd.payload_panel)
+            ? dd.payload_panel
+            : {};
+        const tblFull = String(panel.label != null ? panel.label : '').trim();
+        node.attr(
+          'label/text',
+          ellipTail(tblFull || String(node.attr('label/text') ?? ''), ERD_MAX_TABLE_CHARS),
+        );
+        const types =
+          dd && Array.isArray(dd.lod_port_types)
+            ? dd.lod_port_types
+            : [];
+        const names = Array.isArray(dd.lod_port_names) ? dd.lod_port_names : [];
+        const roles = Array.isArray(dd.lod_port_roles) ? dd.lod_port_roles : [];
+        const listPorts =
+          typeof node.getPorts === 'function'
+            ? node.getPorts().filter((p) => p.group === 'list')
+            : [];
+        listPorts.forEach((slot, i) => {
+          const pid = slot?.id == null ? null : String(slot.id);
+          if (!pid) return;
+          const rawT = types[i] != null ? String(types[i]) : '';
+          const rawN = names[i] != null ? String(names[i]) : '';
+          const rawR = roles[i] != null ? String(roles[i]) : '';
+          node.setPortProp(pid, 'attrs/portRoleLabel/text', rawR);
+          node.setPortProp(
+            pid,
+            'attrs/portTypeLabel/text',
+            lodLevel === 'overview' ? '' : ellipTail(rawT, ERD_MAX_TYPE_CHARS),
+          );
+          node.setPortProp(pid, 'attrs/portNameLabel/fontSize', lodLevel === 'overview' ? 9 : 10);
+          node.setPortProp(pid, 'attrs/portNameLabel/text', ellipTail(rawN, ERD_MAX_FIELD_CHARS));
+        });
+        node.attr('label/fontSize', lodLevel === 'overview' ? 11 : 12);
+      });
+    });
+  }
+
+  function applyLodLevel(level, force) {
+    if (!force && lodLevel === level) return;
+    lodLevel = level;
+    refreshErdLodAndText();
+  }
+
   const erdDomainModel = __ERD_DOMAIN_MODEL_JSON__;
   const domainPicker = document.getElementById('domain-picker');
+  const rendererPicker = document.getElementById('renderer-picker');
+  const layoutPicker = document.getElementById('layout-picker');
+  const mermaidContainer = document.getElementById('mermaid-container');
+  const graphvizContainer = document.getElementById('graphviz-container');
+  const d2Container = document.getElementById('d2-container');
+  const d2SourceContainer = document.getElementById('d2-source-container');
+  const rendererModes = [
+    { id: 'x6', label: 'X6' },
+    { id: 'mermaid', label: 'Mermaid' },
+    { id: 'graphviz', label: 'Graphviz' },
+    { id: 'd2', label: 'D2' },
+    { id: 'd2-source', label: 'D2 source' },
+  ];
+  const layoutModes = [
+    { id: 'grid', label: 'Grid' },
+    { id: 'elk-right', label: 'ELK Right' },
+    { id: 'elk-down', label: 'ELK Down' },
+    { id: 'elk-tree', label: 'ELK Tree' },
+    { id: 'elk-stress', label: 'ELK Stress' },
+  ];
+  const graphvizLayoutModes = [
+    { id: 'dot-lr', label: 'Dot LR' },
+    { id: 'dot-tb', label: 'Dot Down' },
+    { id: 'neato', label: 'Neato' },
+    { id: 'fdp', label: 'FDP' },
+    { id: 'sfdp', label: 'SFDP' },
+    { id: 'circo', label: 'Circo' },
+    { id: 'twopi', label: 'Twopi' },
+    { id: 'osage', label: 'Osage' },
+  ];
+  let activeRendererMode = 'x6';
+  let activeLayoutMode = 'grid';
+  let activeGraphvizLayoutMode = 'dot-lr';
   const domainList = Array.isArray(erdDomainModel?.domains) ? erdDomainModel.domains : [];
   const documentMap =
     erdDomainModel && typeof erdDomainModel.documents === 'object'
@@ -274,12 +627,506 @@ _ERD_BOOTSTRAP_JS = """
     return { cells: [] };
   }
 
+  function erdCells(doc) {
+    return Array.isArray(doc?.cells) ? doc.cells : [];
+  }
+
+  function erdNodes(doc) {
+    return erdCells(doc).filter((cell) => cell?.shape === 'er-rect');
+  }
+
+  function erdEdges(doc) {
+    return erdCells(doc).filter((cell) => cell?.shape === 'edge');
+  }
+
+  function sourceCellId(edge) {
+    return typeof edge?.source === 'object' ? String(edge.source.cell ?? '') : String(edge?.source ?? '');
+  }
+
+  function targetCellId(edge) {
+    return typeof edge?.target === 'object' ? String(edge.target.cell ?? '') : String(edge?.target ?? '');
+  }
+
+  function stableDiagramIds(nodes) {
+    const used = new Set();
+    const out = new Map();
+    nodes.forEach((node, ix) => {
+      const panel = node?.data?.payload_panel ?? {};
+      const label = String(panel.label ?? node?.attrs?.label?.text ?? node?.id ?? `Entity${ix + 1}`);
+      let base = label.replace(/[^A-Za-z0-9_]/g, '_').replace(/^_+|_+$/g, '');
+      if (!base) base = `Entity${ix + 1}`;
+      if (/^[0-9]/.test(base)) base = `E_${base}`;
+      let candidate = base;
+      let suffix = 2;
+      while (used.has(candidate)) {
+        candidate = `${base}_${suffix}`;
+        suffix += 1;
+      }
+      used.add(candidate);
+      out.set(String(node.id), candidate);
+    });
+    return out;
+  }
+
+  function simpleTypeForDiagram(typeName) {
+    const raw = String(typeName ?? '').trim();
+    if (!raw) return 'string';
+    const lowered = raw.toLowerCase();
+    if (lowered.includes('int')) return 'int';
+    if (lowered.includes('float') || lowered.includes('decimal') || lowered.includes('money')) return 'float';
+    if (lowered.includes('bool')) return 'boolean';
+    if (lowered.includes('date') || lowered.includes('time')) return 'datetime';
+    return raw.replace(/[^A-Za-z0-9_]/g, '_').slice(0, 48) || 'string';
+  }
+
+  function dotId(id) {
+    return String(id ?? '').replace(/[^A-Za-z0-9_]/g, '_') || 'Entity';
+  }
+
+  function dotString(value) {
+    return JSON.stringify(String(value ?? ''));
+  }
+
+  function d2Id(id) {
+    return dotId(id);
+  }
+
+  function d2FieldName(value, fallback) {
+    const raw = String(value ?? '').replace(/[^A-Za-z0-9_]/g, '_').replace(/^_+|_+$/g, '');
+    const name = raw || fallback || 'field';
+    return /^[0-9]/.test(name) ? `f_${name}` : name;
+  }
+
+  function d2Type(typeName) {
+    const raw = String(typeName ?? '').trim();
+    if (!raw) return 'string';
+    if (raw.includes('FK ->')) return 'string';
+    return simpleTypeForDiagram(raw);
+  }
+
+  function d2Constraint(role) {
+    const raw = String(role ?? '');
+    const constraints = [];
+    if (raw.includes('PK')) constraints.push('PK');
+    if (raw.includes('FK')) constraints.push('FK');
+    return constraints.join(' ');
+  }
+
+  function dotHtml(value) {
+    return esc(String(value ?? '')).replace(/"/g, '&quot;');
+  }
+
+  function edgePanel(edge) {
+    const panel = edge?.data?.payload_panel;
+    return panel && typeof panel === 'object' && !Array.isArray(panel) ? panel : {};
+  }
+
+  function mermaidLeftCardinality(cardinality) {
+    return {
+      one: '||',
+      zero_one: 'o|',
+      one_many: '}|',
+      zero_many: '}o',
+    }[String(cardinality ?? '')] ?? '||';
+  }
+
+  function mermaidRightCardinality(cardinality) {
+    return {
+      one: '||',
+      zero_one: '|o',
+      one_many: '|{',
+      zero_many: 'o{',
+    }[String(cardinality ?? '')] ?? '||';
+  }
+
+  function mermaidFieldKey(role) {
+    const raw = String(role ?? '');
+    if (raw.includes('PK')) return 'PK';
+    if (raw.includes('FK')) return 'FK';
+    return '';
+  }
+
+  function buildMermaidErd(doc) {
+    const nodes = erdNodes(doc);
+    const ids = stableDiagramIds(nodes);
+    const lines = ['erDiagram'];
+    nodes.forEach((node) => {
+      const entityId = ids.get(String(node.id));
+      const names = Array.isArray(node?.data?.lod_port_names) ? node.data.lod_port_names : [];
+      const types = Array.isArray(node?.data?.lod_port_types) ? node.data.lod_port_types : [];
+      const roles = Array.isArray(node?.data?.lod_port_roles) ? node.data.lod_port_roles : [];
+      lines.push(`  ${entityId} {`);
+      if (!names.length) lines.push('    string id PK');
+      names.forEach((name, ix) => {
+        const typ = simpleTypeForDiagram(types[ix]);
+        const field = String(name ?? `field_${ix + 1}`).replace(/[^A-Za-z0-9_]/g, '_') || `field_${ix + 1}`;
+        const role = mermaidFieldKey(roles[ix]);
+        lines.push(`    ${typ} ${field}${role ? ` ${role}` : ''}`);
+      });
+      lines.push('  }');
+    });
+    erdEdges(doc).forEach((edge) => {
+      const src = ids.get(sourceCellId(edge));
+      const tgt = ids.get(targetCellId(edge));
+      if (!src || !tgt) return;
+      const panel = edgePanel(edge);
+      const left = mermaidLeftCardinality(panel.source_cardinality);
+      const right = mermaidRightCardinality(panel.target_cardinality);
+      const label = String(panel.source_field || panel.label || panel.relationship_kind || 'rel')
+        .replace(/"/g, "'")
+        .replace(/\\s+/g, ' ')
+        .trim();
+      lines.push(`  ${src} ${left}--${right} ${tgt} : "${label || 'rel'}"`);
+    });
+    return lines.join('\\n');
+  }
+
+  function buildD2Source(doc) {
+    const nodes = erdNodes(doc);
+    const ids = stableDiagramIds(nodes);
+    const fieldMap = new Map();
+    const lines = ['direction: right', ''];
+    nodes.forEach((node) => {
+      const entityId = d2Id(ids.get(String(node.id)));
+      const names = Array.isArray(node?.data?.lod_port_names) ? node.data.lod_port_names : [];
+      const types = Array.isArray(node?.data?.lod_port_types) ? node.data.lod_port_types : [];
+      const roles = Array.isArray(node?.data?.lod_port_roles) ? node.data.lod_port_roles : [];
+      const localFields = new Map();
+      lines.push(`${entityId}: {`);
+      lines.push('  shape: sql_table');
+      if (!names.length) lines.push('  id: string PK');
+      names.forEach((name, ix) => {
+        const field = d2FieldName(name, `field_${ix + 1}`);
+        const typ = d2Type(types[ix]);
+        const constraint = d2Constraint(roles[ix]);
+        localFields.set(String(name ?? ''), field);
+        lines.push(`  ${field}: ${typ}${constraint ? ` ${constraint}` : ''}`);
+      });
+      fieldMap.set(String(node.id), localFields);
+      lines.push('}');
+      lines.push('');
+    });
+    erdEdges(doc).forEach((edge) => {
+      const srcRaw = sourceCellId(edge);
+      const tgtRaw = targetCellId(edge);
+      const src = ids.get(srcRaw);
+      const tgt = ids.get(tgtRaw);
+      if (!src || !tgt) return;
+      const panel = edgePanel(edge);
+      const sourceField = String(panel.source_field || '');
+      const sourceD2Field =
+        fieldMap.get(srcRaw)?.get(sourceField) ?? d2FieldName(sourceField || 'id', 'id');
+      lines.push(`${d2Id(src)}.${sourceD2Field} -> ${d2Id(tgt)}.id`);
+    });
+    return lines.join('\\n');
+  }
+
+  function graphvizCardinalityLabel(cardinality) {
+    return {
+      one: '||',
+      zero_one: 'o|',
+      one_many: '|<',
+      zero_many: 'o<',
+    }[String(cardinality ?? '')] ?? '';
+  }
+
+  function graphvizEngineForLayoutMode(mode) {
+    return {
+      'dot-lr': 'dot',
+      'dot-tb': 'dot',
+      neato: 'neato',
+      fdp: 'fdp',
+      sfdp: 'sfdp',
+      circo: 'circo',
+      twopi: 'twopi',
+      osage: 'osage',
+    }[mode] ?? 'dot';
+  }
+
+  function graphvizGraphAttrs(mode) {
+    if (mode === 'dot-tb') {
+      return 'rankdir=TB, bgcolor="transparent", splines=ortho, nodesep=0.8, ranksep=1.25, pad=0.35';
+    }
+    if (mode === 'neato') {
+      return 'bgcolor="transparent", overlap=false, splines=true, sep="+48", model=shortpath, pad=0.35';
+    }
+    if (mode === 'fdp') {
+      return 'bgcolor="transparent", overlap=false, splines=true, K=1.2, sep="+56", pad=0.35';
+    }
+    if (mode === 'sfdp') {
+      return 'bgcolor="transparent", overlap=prism, splines=true, K=1.4, sep="+64", pad=0.35, outputorder=edgesfirst';
+    }
+    if (mode === 'circo') {
+      return 'bgcolor="transparent", overlap=false, splines=true, oneblock=true, mindist=1.3, pad=0.35';
+    }
+    if (mode === 'twopi') {
+      return 'bgcolor="transparent", overlap=false, splines=true, ranksep=1.8, pad=0.35';
+    }
+    if (mode === 'osage') {
+      return 'bgcolor="transparent", overlap=false, splines=ortho, pack=true, packmode=clust, pad=0.35';
+    }
+    return 'rankdir=LR, bgcolor="transparent", overlap=false, splines=ortho, nodesep=0.8, ranksep=1.4, pad=0.35';
+  }
+
+  function buildGraphvizDot(doc) {
+    const nodes = erdNodes(doc);
+    const ids = stableDiagramIds(nodes);
+    const lines = [
+      'digraph ERD {',
+      `  graph [${graphvizGraphAttrs(activeGraphvizLayoutMode)}];`,
+      '  node [shape=plain, fontname="Arial"];',
+      '  edge [fontname="Arial", fontsize=10, color="#374151", arrowsize=0.7, dir=none];',
+      '',
+    ];
+    nodes.forEach((node) => {
+      const entityId = dotId(ids.get(String(node.id)));
+      const panel = node?.data?.payload_panel ?? {};
+      const label = dotHtml(panel.label ?? entityId);
+      const names = Array.isArray(node?.data?.lod_port_names) ? node.data.lod_port_names : [];
+      const types = Array.isArray(node?.data?.lod_port_types) ? node.data.lod_port_types : [];
+      const roles = Array.isArray(node?.data?.lod_port_roles) ? node.data.lod_port_roles : [];
+      lines.push(`  ${entityId} [label=<`);
+      lines.push('    <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#1f2937">');
+      lines.push(`      <TR><TD BGCOLOR="#e5e7eb" COLSPAN="3"><B>${label}</B></TD></TR>`);
+      if (!names.length) {
+        lines.push('      <TR><TD><B>PK</B></TD><TD ALIGN="LEFT">id</TD><TD ALIGN="LEFT">str</TD></TR>');
+      }
+      names.forEach((name, ix) => {
+        const role = dotHtml(roles[ix] ?? '');
+        const fname = dotHtml(name ?? `field_${ix + 1}`);
+        const typ = dotHtml(types[ix] ?? '');
+        const roleCell = role ? `<B>${role}</B>` : '';
+        lines.push(`      <TR><TD>${roleCell}</TD><TD ALIGN="LEFT">${fname}</TD><TD ALIGN="LEFT">${typ}</TD></TR>`);
+      });
+      lines.push('    </TABLE>');
+      lines.push('  >];');
+      lines.push('');
+    });
+    erdEdges(doc).forEach((edge) => {
+      const src = ids.get(sourceCellId(edge));
+      const tgt = ids.get(targetCellId(edge));
+      if (!src || !tgt) return;
+      const panel = edgePanel(edge);
+      const label = String(panel.source_field || panel.label || panel.relationship_kind || 'rel').trim();
+      const tail = graphvizCardinalityLabel(panel.source_cardinality);
+      const head = graphvizCardinalityLabel(panel.target_cardinality);
+      lines.push(
+        `  ${dotId(src)} -> ${dotId(tgt)} [label=${dotString(label)}, taillabel=${dotString(tail)}, headlabel=${dotString(head)}];`,
+      );
+    });
+    lines.push('}');
+    return lines.join('\\n');
+  }
+
+  async function ensureMermaidApi() {
+    if (mermaidApi) return mermaidApi;
+    const mod = await import(__MERMAID_MODULE_IMPORT__);
+    mermaidApi = mod.default ?? mod;
+    if (typeof mermaidApi.initialize === 'function') {
+      mermaidApi.initialize({
+        startOnLoad: false,
+        securityLevel: 'loose',
+        theme: 'base',
+        er: { useMaxWidth: false },
+      });
+    }
+    return mermaidApi;
+  }
+
+  function withTimeout(promise, label, ms = 20000) {
+    let timer = null;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => {
+      if (timer != null) clearTimeout(timer);
+    });
+  }
+
+  async function ensureGraphvizApi() {
+    if (graphvizApi) return graphvizApi;
+    const mod = await withTimeout(import(__GRAPHVIZ_MODULE_IMPORT__), 'Graphviz module import');
+    const Graphviz = mod.Graphviz ?? mod.default?.Graphviz ?? mod.default;
+    if (!Graphviz || typeof Graphviz.load !== 'function') {
+      throw new Error('Graphviz WASM module did not expose Graphviz.load()');
+    }
+    graphvizApi = await Graphviz.load();
+    return graphvizApi;
+  }
+
+  async function ensureD2Api() {
+    if (d2Api) return d2Api;
+    const mod = await withTimeout(import(__D2_MODULE_IMPORT__), 'D2 module import');
+    const D2 = mod.D2 ?? mod.default?.D2 ?? mod.default;
+    if (!D2) throw new Error('D2 module did not expose D2');
+    d2Api = new D2();
+    return d2Api;
+  }
+
+  async function renderMermaidDomain(doc) {
+    if (!mermaidContainer) return;
+    mermaidContainer.innerHTML = '<div style="font-size:12px;color:#64748b">Rendering Mermaid ERD...</div>';
+    const source = buildMermaidErd(doc);
+    try {
+      const api = await ensureMermaidApi();
+      const renderId = `mermaid-erd-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+      const rendered = await api.render(renderId, source);
+      mermaidContainer.innerHTML = rendered.svg ?? String(rendered);
+    } catch (err) {
+      console.warn('erd: mermaid renderer failed', err);
+      mermaidContainer.innerHTML =
+        '<pre style="white-space:pre-wrap;color:#991b1b;background:#fff;border:1px solid #fecaca;border-radius:8px;padding:12px">' +
+        esc(String(err?.message ?? err)) +
+        '\\n\\n' +
+        esc(source) +
+        '</pre>';
+    }
+  }
+
+  function renderD2SourceDomain(doc) {
+    if (!d2SourceContainer) return;
+    d2SourceContainer.textContent = buildD2Source(doc);
+  }
+
+  async function renderD2Domain(doc) {
+    if (!d2Container) return;
+    d2Container.innerHTML =
+      '<div style="font-size:12px;color:#64748b">Rendering D2 ERD... If the browser WASM worker stalls, this will fall back automatically.</div>';
+    const source = buildD2Source(doc);
+    try {
+      const api = await ensureD2Api();
+      const result = await withTimeout(api.compile(source, { layout: 'dagre' }), 'D2 compile');
+      const svg = await withTimeout(
+        api.render(result.diagram, {
+          ...(result.renderOptions ?? {}),
+          pad: 80,
+          scale: 1,
+          noXMLTag: true,
+        }),
+        'D2 render',
+      );
+      d2Container.innerHTML = svg;
+    } catch (err) {
+      console.warn('erd: d2 renderer failed', err);
+      d2Container.innerHTML =
+        '<pre style="white-space:pre-wrap;color:#991b1b;background:#fff;border:1px solid #fecaca;border-radius:8px;padding:12px">' +
+        'D2 browser renderer failed or timed out. The generated D2 source is shown below.\\n\\n' +
+        esc(String(err?.message ?? err)) +
+        '\\n\\n' +
+        esc(source) +
+        '</pre>';
+    }
+  }
+
+  async function renderGraphvizDomain(doc) {
+    if (!graphvizContainer) return;
+    const engine = graphvizEngineForLayoutMode(activeGraphvizLayoutMode);
+    const mode = graphvizLayoutModes.find((item) => item.id === activeGraphvizLayoutMode);
+    graphvizContainer.innerHTML =
+      '<div style="font-size:12px;color:#64748b">Rendering Graphviz ERD with ' +
+      esc(mode?.label ?? engine) +
+      '...</div>';
+    const source = buildGraphvizDot(doc);
+    try {
+      const api = await ensureGraphvizApi();
+      const svg = await withTimeout(
+        Promise.resolve(
+          typeof api.layout === 'function'
+            ? api.layout(source, 'svg', engine)
+            : typeof api.dot === 'function'
+              ? api.dot(source)
+              : '',
+        ),
+        `Graphviz ${engine}`,
+      );
+      if (!svg) throw new Error('Graphviz renderer returned no SVG');
+      graphvizContainer.innerHTML = svg;
+    } catch (err) {
+      console.warn('erd: graphviz renderer failed', err);
+      graphvizContainer.innerHTML =
+        '<pre style="white-space:pre-wrap;color:#991b1b;background:#fff;border:1px solid #fecaca;border-radius:8px;padding:12px">' +
+        esc(String(err?.message ?? err)) +
+        '\\n\\n' +
+        esc(source) +
+        '</pre>';
+    }
+  }
+
   async function renderActiveDomain() {
+    hideErdTip();
+    const doc = activeDocument();
+    const isX6 = activeRendererMode === 'x6';
+    container.style.display = isX6 ? 'block' : 'none';
+    if (mermaidContainer) mermaidContainer.style.display = activeRendererMode === 'mermaid' ? 'block' : 'none';
+    if (graphvizContainer) graphvizContainer.style.display = activeRendererMode === 'graphviz' ? 'block' : 'none';
+    if (d2Container) d2Container.style.display = activeRendererMode === 'd2' ? 'block' : 'none';
+    if (d2SourceContainer) d2SourceContainer.style.display = activeRendererMode === 'd2-source' ? 'block' : 'none';
+    if (layoutPicker) layoutPicker.style.display = isX6 || activeRendererMode === 'graphviz' ? 'flex' : 'none';
+    if (!isX6) {
+      if (typeof graph.resetCells === 'function') graph.resetCells([]);
+      if (activeRendererMode === 'mermaid') await renderMermaidDomain(doc);
+      if (activeRendererMode === 'graphviz') await renderGraphvizDomain(doc);
+      if (activeRendererMode === 'd2') await renderD2Domain(doc);
+      if (activeRendererMode === 'd2-source') renderD2SourceDomain(doc);
+      syncZoom();
+      return;
+    }
     if (typeof graph.resetCells === 'function') graph.resetCells([]);
-    graph.fromJSON(activeDocument());
-    const didLayout = await layoutElk(graph);
+    graph.fromJSON(doc);
+    const didLayout = await layoutGraph(graph);
     if (!didLayout) layoutFallback(graph);
-    graph.zoomToFit({ padding: 48, maxScale: 1.08 });
+    graph.zoomToFit({ padding: { top: 72, right: 260, bottom: 80, left: 310 }, maxScale: 1.0 });
+    syncZoom();
+    applyLodLevel(currentScale() <= 0.65 ? 'overview' : 'detailed', true);
+  }
+
+  function renderLayoutPicker() {
+    if (!layoutPicker) return;
+    const modes =
+      activeRendererMode === 'graphviz'
+        ? graphvizLayoutModes
+        : activeRendererMode === 'x6'
+          ? layoutModes
+          : [];
+    layoutPicker.style.display = modes.length ? 'flex' : 'none';
+    layoutPicker.innerHTML =
+      '<div class="legend-title">Layout</div>' +
+      modes
+        .map((mode) => {
+          const activeId = activeRendererMode === 'graphviz' ? activeGraphvizLayoutMode : activeLayoutMode;
+          const activeCls = mode.id === activeId ? ' is-active' : '';
+          return (
+            '<button type="button" class="layout-row' +
+            activeCls +
+            '" data-layout-id="' +
+            mode.id +
+            '"><span>' +
+            esc(mode.label) +
+            '</span></button>'
+          );
+        })
+        .join('');
+  }
+
+  function renderRendererPicker() {
+    if (!rendererPicker) return;
+    rendererPicker.style.display = 'flex';
+    rendererPicker.innerHTML =
+      '<div class="legend-title">Renderer</div>' +
+      rendererModes
+        .map((mode) => {
+          const activeCls = mode.id === activeRendererMode ? ' is-active' : '';
+          return (
+            '<button type="button" class="renderer-row' +
+            activeCls +
+            '" data-renderer-id="' +
+            mode.id +
+            '"><span>' +
+            esc(mode.label) +
+            '</span></button>'
+          );
+        })
+        .join('');
   }
 
   function renderDomainPicker() {
@@ -333,10 +1180,39 @@ _ERD_BOOTSTRAP_JS = """
     if (!did || did === activeDomainId || !documentMap[did]) return;
     activeDomainId = did;
     closeDetail();
+    hideErdTip();
     renderDomainPicker();
     await renderActiveDomain();
-    syncZoom();
-    applyLodLevel(currentScale() <= 0.65 ? 'overview' : 'detailed');
+  });
+
+  rendererPicker?.addEventListener('click', async (evt) => {
+    const btn = evt.target.closest('.renderer-row');
+    if (!btn || !rendererPicker.contains(btn)) return;
+    const rid = btn.getAttribute('data-renderer-id');
+    if (!rid || rid === activeRendererMode || !rendererModes.some((mode) => mode.id === rid)) return;
+    activeRendererMode = rid;
+    closeDetail();
+    hideErdTip();
+    renderRendererPicker();
+    await renderActiveDomain();
+    renderLayoutPicker();
+  });
+
+  layoutPicker?.addEventListener('click', async (evt) => {
+    const btn = evt.target.closest('.layout-row');
+    if (!btn || !layoutPicker.contains(btn)) return;
+    const lid = btn.getAttribute('data-layout-id');
+    if (activeRendererMode === 'graphviz') {
+      if (!lid || lid === activeGraphvizLayoutMode || !graphvizLayoutModes.some((mode) => mode.id === lid)) return;
+      activeGraphvizLayoutMode = lid;
+    } else {
+      if (!lid || lid === activeLayoutMode || !layoutModes.some((mode) => mode.id === lid)) return;
+      activeLayoutMode = lid;
+    }
+    closeDetail();
+    hideErdTip();
+    await renderActiveDomain();
+    renderLayoutPicker();
   });
 
   function showDetail(cell) {
@@ -402,7 +1278,12 @@ _ERD_BOOTSTRAP_JS = """
     closeDetail();
   });
 
-  graph.on('blank:click', () => closeDetail());
+  graph.on('blank:click', () => {
+    closeDetail();
+    hideErdTip();
+  });
+
+  graph.on('blank:mousemove', hideErdTip);
 
   graph.on('cell:click', ({ cell }) => {
     if (!cell || !cell.id) return;
@@ -418,37 +1299,52 @@ _ERD_BOOTSTRAP_JS = """
     showDetail(cell);
   });
 
-  let lodLevel = 'detailed';
+  graph.on('node:port:mouseenter', ({ e, node, port }) => {
+    if (erdTipHideTimer != null) {
+      clearTimeout(erdTipHideTimer);
+      erdTipHideTimer = null;
+    }
+    const pid = port?.id != null ? String(port.id) : '';
+    if (!node || node.shape !== 'er-rect' || !pid) return;
+    const dd = typeof node.getData === 'function' ? node.getData() : {};
+    const names = Array.isArray(dd.lod_port_names) ? dd.lod_port_names : [];
+    const types = Array.isArray(dd.lod_port_types) ? dd.lod_port_types : [];
+    const roles = Array.isArray(dd.lod_port_roles) ? dd.lod_port_roles : [];
+    const listPorts =
+      typeof node.getPorts === 'function'
+        ? node.getPorts().filter((p) => p.group === 'list')
+        : [];
+    const ix = listPorts.findIndex((p) => String(p.id) === pid);
+    if (ix < 0) return;
+    const fullN = names[ix] != null ? String(names[ix]) : '';
+    const fullT = types[ix] != null ? String(types[ix]) : '';
+    const fullR = roles[ix] != null ? String(roles[ix]) : '';
+    const tip = [fullR, fullN, fullT].filter(Boolean).join('\\n');
+    if (tip) showErdTip(e.clientX, e.clientY, tip);
+  });
 
-  function applyLodLevel(level) {
-    if (lodLevel === level) return;
-    lodLevel = level;
-    graph.batchUpdate(() => {
-      graph.getNodes().forEach((node) => {
-        if (node.shape !== 'er-rect') return;
-        const dd = typeof node.getData === 'function' ? node.getData() : {};
-        const types =
-          dd && Array.isArray(dd.lod_port_types)
-            ? dd.lod_port_types
-            : [];
-        const listPorts =
-          typeof node.getPorts === 'function'
-            ? node.getPorts().filter((p) => p.group === 'list')
-            : [];
-        listPorts.forEach((slot, i) => {
-          const pid = slot?.id == null ? null : String(slot.id);
-          if (!pid) return;
-          node.setPortProp(
-            pid,
-            'attrs/portTypeLabel/text',
-            level === 'overview' ? '' : String(types[i] ?? ''),
-          );
-          node.setPortProp(pid, 'attrs/portNameLabel/fontSize', level === 'overview' ? 9 : 10);
-        });
-        node.attr('label/fontSize', level === 'overview' ? 11 : 12);
-      });
-    });
-  }
+  graph.on('node:port:mouseleave', () => {
+    scheduleHideErdTip();
+  });
+
+  graph.on('node:mousemove', ({ node, e }) => {
+    if (!node || node.shape !== 'er-rect') return;
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.closest && t.closest('[class*="x6-port"]')) return;
+    const dd = typeof node.getData === 'function' ? node.getData() : {};
+    const panel =
+      dd.payload_panel && typeof dd.payload_panel === 'object' && !Array.isArray(dd.payload_panel)
+        ? dd.payload_panel
+        : {};
+    const full = String(panel.label != null ? panel.label : '').trim();
+    if (!full || full.length <= ERD_MAX_TABLE_CHARS) return;
+    showErdTip(e.clientX, e.clientY, full);
+  });
+
+  graph.on('node:mouseleave', () => {
+    scheduleHideErdTip();
+  });
 
   const zoomPct = document.getElementById('zoom-pct');
   function currentScale() {
@@ -479,12 +1375,19 @@ _ERD_BOOTSTRAP_JS = """
     applyLodLevel(sx <= 0.65 ? 'overview' : 'detailed');
   });
 
-  graph.on('translate', () => syncZoom());
+  graph.on('translate', () => {
+    syncZoom();
+    hideErdTip();
+  });
 
   let wheelAccum = 0;
   let wheelRaf = null;
   const flushWheelZoom = () => {
     wheelRaf = null;
+    if (activeRendererMode !== 'x6') {
+      wheelAccum = 0;
+      return;
+    }
     // Clamp one frame impulse to avoid large jump spikes from trackpads.
     const dy = Math.max(-120, Math.min(120, wheelAccum));
     wheelAccum = 0;
@@ -503,6 +1406,7 @@ _ERD_BOOTSTRAP_JS = """
   );
 
   const doZoom = (factor) => {
+    if (activeRendererMode !== 'x6') return;
     const cur = currentScale();
     setAbsoluteZoom(cur * factor);
     syncZoom();
@@ -515,21 +1419,23 @@ _ERD_BOOTSTRAP_JS = """
     doZoom(0.8);
   });
   document.getElementById('zoom-fit')?.addEventListener('click', () => {
-    graph.zoomToFit({ padding: 48, maxScale: 1.08 });
+    if (activeRendererMode !== 'x6') return;
+    graph.zoomToFit({ padding: { top: 72, right: 260, bottom: 80, left: 310 }, maxScale: 1.0 });
     syncZoom();
-    applyLodLevel(currentScale() <= 0.65 ? 'overview' : 'detailed');
+    applyLodLevel(currentScale() <= 0.65 ? 'overview' : 'detailed', true);
   });
 
   renderDomainPicker();
+  renderRendererPicker();
+  renderLayoutPicker();
   await renderActiveDomain();
   syncZoom();
 
   window.addEventListener('resize', () => {
+    if (activeRendererMode !== 'x6') return;
     graph.resize(container.clientWidth, container.clientHeight);
     syncZoom();
   });
-
-  applyLodLevel(currentScale() <= 0.65 ? 'overview' : 'detailed');
 })();
 """
 
@@ -564,9 +1470,15 @@ def write_erd_html(
     )
     js_import = json.dumps(X6_MODULE_URL)
     elk_imp = json.dumps(ELK_MODULE_URL)
+    mermaid_imp = json.dumps(MERMAID_MODULE_URL)
+    graphviz_imp = json.dumps(GRAPHVIZ_MODULE_URL)
+    d2_imp = json.dumps(D2_MODULE_URL)
     bootstrap = (
         _ERD_BOOTSTRAP_JS.replace("__X6_MODULE_IMPORT__", js_import)
         .replace("__ELK_MODULE_IMPORT__", elk_imp)
+        .replace("__MERMAID_MODULE_IMPORT__", mermaid_imp)
+        .replace("__GRAPHVIZ_MODULE_IMPORT__", graphviz_imp)
+        .replace("__D2_MODULE_IMPORT__", d2_imp)
         .replace("__ERD_DOMAIN_MODEL_JSON__", model_json)
     )
     safe_title = html_escape(title)
@@ -602,18 +1514,15 @@ def write_erd_html_from_coordinator(
     it is used as initial selection in the right-side domain picker.
 
     AI-CORE-BEGIN
-    PURPOSE: Convenience path from built interchange graph → X6 ER export without assembling payload manually.
+    PURPOSE: Convenience path from built interchange graph → X6 ER export by reading coordinator graph at call time.
     INPUT: Coordinator after ``build``; ``domain_cls`` ``BaseDomain`` subclass.
-    OUTPUT: Same as :func:`write_erd_html`; document is ``erd_payload_to_x6_document(projection)``.
+    OUTPUT: Same as :func:`write_erd_html`; document is serialized directly from current graph metadata.
     AI-CORE-END
     """
     from action_machine.domain.base_domain import BaseDomain
     from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
     from graph.node_graph_coordinator import NodeGraphCoordinator
-    from maxitor.visualizer.erd_visualizer.erd_graph_data import (
-        erd_payload_from_coordinator_for_domain,
-        erd_payload_to_x6_document,
-    )
+    from maxitor.visualizer.erd_visualizer.erd_graph_data import erd_document_from_coordinator_graph
     from maxitor.visualizer.graph_visualizer.visualizer_icons import (
         svg_data_uri_for_graph_node_icon,
     )
@@ -636,8 +1545,7 @@ def write_erd_html_from_coordinator(
     initial_domain_id: str | None = None
     for dnode in domain_nodes:
         dcls = dnode.node_obj
-        payload = erd_payload_from_coordinator_for_domain(coordinator, dcls)
-        doc = erd_payload_to_x6_document(payload)
+        doc = erd_document_from_coordinator_graph(coordinator, dcls)
         domain_id = dnode.node_id
         domain_documents[domain_id] = doc
         domain_items.append(
@@ -654,8 +1562,7 @@ def write_erd_html_from_coordinator(
         if domain_cls is None:
             msg = "No Domain nodes found in coordinator graph."
             raise LookupError(msg)
-        payload = erd_payload_from_coordinator_for_domain(coordinator, domain_cls)
-        doc = erd_payload_to_x6_document(payload)
+        doc = erd_document_from_coordinator_graph(coordinator, domain_cls)
         return write_erd_html(doc, output_path=output_path, title=title, width=width, height=height)
 
     if initial_domain_id is None:
@@ -670,9 +1577,15 @@ def write_erd_html_from_coordinator(
     )
     js_import = json.dumps(X6_MODULE_URL)
     elk_imp = json.dumps(ELK_MODULE_URL)
+    mermaid_imp = json.dumps(MERMAID_MODULE_URL)
+    graphviz_imp = json.dumps(GRAPHVIZ_MODULE_URL)
+    d2_imp = json.dumps(D2_MODULE_URL)
     bootstrap = (
         _ERD_BOOTSTRAP_JS.replace("__X6_MODULE_IMPORT__", js_import)
         .replace("__ELK_MODULE_IMPORT__", elk_imp)
+        .replace("__MERMAID_MODULE_IMPORT__", mermaid_imp)
+        .replace("__GRAPHVIZ_MODULE_IMPORT__", graphviz_imp)
+        .replace("__D2_MODULE_IMPORT__", d2_imp)
         .replace("__ERD_DOMAIN_MODEL_JSON__", model_json)
     )
     safe_title = html_escape(title)

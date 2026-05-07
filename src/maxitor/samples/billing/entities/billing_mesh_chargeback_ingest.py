@@ -13,10 +13,7 @@ from maxitor.samples.billing.entities.billing_file_ingest_manifest import Billin
 from maxitor.samples.billing.entities.chargeback_ticket import ChargebackTicketEntity
 
 
-@entity(
-    description="Cross-spine correlate row wiring dispute artefacts to ingestion manifests (medium mesh)",
-    domain=BillingDomain,
-)
+@entity(description="Correlate row wiring dispute artefacts to ingestion manifests", domain=BillingDomain)
 class BillingChargebackIngestCorrelateEntity(BaseEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Correlate lifecycle")
     id: str = Field(description="Correlate id")
