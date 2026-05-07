@@ -745,6 +745,31 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
 
         let hoverLabelNodeId = null;
         let glowClearTimer = null;
+        let hoverPointerOutPending = false;
+        let viewportQuietTimer = null;
+        const HOVER_CLEAR_DELAY_MS = 420;
+
+        function clearViewportQuietTimer() {{
+          if (viewportQuietTimer != null) {{
+            clearTimeout(viewportQuietTimer);
+            viewportQuietTimer = null;
+          }}
+        }}
+
+        function armHoverClearDeferred() {{
+          if (glowClearTimer != null) {{
+            clearTimeout(glowClearTimer);
+            glowClearTimer = null;
+          }}
+          glowClearTimer = setTimeout(() => {{
+            clearNeighborGlow();
+            hoverLabelNodeId = null;
+            hoverPointerOutPending = false;
+            scheduleHoverOverlaySync();
+            glowClearTimer = null;
+            clearViewportQuietTimer();
+          }}, HOVER_CLEAR_DELAY_MS);
+        }}
         let hoverGlowSnap = null;
 
         function applyNeighborGlow(nodeIdStr) {{
@@ -1060,6 +1085,8 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         }});
 
         graph.on('node:pointerover', (evt) => {{
+          hoverPointerOutPending = false;
+          clearViewportQuietTimer();
           if (glowClearTimer) {{
             clearTimeout(glowClearTimer);
             glowClearTimer = null;
@@ -1075,15 +1102,13 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         }});
 
         graph.on('node:pointerout', () => {{
-          glowClearTimer = setTimeout(() => {{
-            clearNeighborGlow();
-            hoverLabelNodeId = null;
-            scheduleHoverOverlaySync();
-            glowClearTimer = null;
-          }}, 50);
+          hoverPointerOutPending = true;
+          armHoverClearDeferred();
         }});
 
         graph.on('canvas:click', () => {{
+          hoverPointerOutPending = false;
+          clearViewportQuietTimer();
           if (glowClearTimer) {{
             clearTimeout(glowClearTimer);
             glowClearTimer = null;
@@ -1095,6 +1120,8 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         }});
 
         graph.on('canvas:mouseleave', () => {{
+          hoverPointerOutPending = false;
+          clearViewportQuietTimer();
           if (glowClearTimer) {{
             clearTimeout(glowClearTimer);
             glowClearTimer = null;
@@ -1114,7 +1141,35 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         graph.on('viewportchange', () => {{
           syncZoom();
           scheduleHoverOverlaySync();
+          if (hoverPointerOutPending && glowClearTimer != null) {{
+            clearTimeout(glowClearTimer);
+            glowClearTimer = null;
+          }}
+          clearViewportQuietTimer();
+          viewportQuietTimer = setTimeout(() => {{
+            viewportQuietTimer = null;
+            if (hoverPointerOutPending && hoverGlowSnap !== null)
+              armHoverClearDeferred();
+          }}, 170);
         }});
+
+        container.addEventListener(
+          'wheel',
+          () => {{
+            scheduleHoverOverlaySync();
+            if (hoverPointerOutPending && glowClearTimer != null) {{
+              clearTimeout(glowClearTimer);
+              glowClearTimer = null;
+            }}
+            clearViewportQuietTimer();
+            viewportQuietTimer = setTimeout(() => {{
+              viewportQuietTimer = null;
+              if (hoverPointerOutPending && hoverGlowSnap !== null)
+                armHoverClearDeferred();
+            }}, 170);
+          }},
+          {{ passive: true }},
+        );
 
         const doZoom = async (factor) => {{
           const cur = graph.getZoom();
