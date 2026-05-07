@@ -1247,7 +1247,7 @@ def export_interchange_axes_graph_html(
 
 def write_demo_interchange_axes_graph_html() -> Path:
     """Build sample graph coordinator and emit G6 HTML to :data:`HTML_PATH`."""
-    from maxitor.samples.interchange_demo_coordinator import (
+    from maxitor.samples.interchange_demo_coordinator import (  # pylint: disable=import-outside-toplevel
         build_registered_interchange_coordinator,
         import_sample_registration_modules,
     )

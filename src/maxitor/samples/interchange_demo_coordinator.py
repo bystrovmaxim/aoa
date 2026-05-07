@@ -36,7 +36,7 @@ from graph.node_graph_coordinator import NodeGraphCoordinator
 
 def import_sample_registration_modules() -> None:
     """Import same modules as ``maxitor.samples.build`` for registration side effects."""
-    from maxitor.samples.build import _MODULES
+    from maxitor.samples.build import _MODULES  # pylint: disable=import-outside-toplevel
 
     for name in _MODULES:
         importlib.import_module(name)

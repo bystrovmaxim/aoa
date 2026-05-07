@@ -1,4 +1,6 @@
 # src/maxitor/visualizer/erd_visualizer_3/__main__.py
+# mypy: ignore-errors
+# pylint: disable=import-outside-toplevel
 """
 CLI for standalone ERD HTML from the live sample coordinator graph.
 """

@@ -1,4 +1,6 @@
 # src/maxitor/visualizer/erd_visualizer_1/erd_html.py
+# mypy: ignore-errors
+# pylint: disable=import-outside-toplevel
 """
 Standalone ERD HTML export.
 

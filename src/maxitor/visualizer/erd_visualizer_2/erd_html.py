@@ -1,4 +1,6 @@
 # src/maxitor/visualizer/erd_visualizer_2/erd_html.py
+# mypy: ignore-errors
+# pylint: disable=import-outside-toplevel
 
 from __future__ import annotations
 

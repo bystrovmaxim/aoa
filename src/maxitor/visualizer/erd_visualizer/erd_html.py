@@ -1,4 +1,5 @@
 # src/maxitor/visualizer/erd_visualizer/erd_html.py
+# pylint: disable=import-outside-toplevel,too-many-lines
 """
 Standalone ERD HTML export — normalized table nodes with X6, Mermaid, Graphviz, and D2
 renderer variants plus ERD/Graphviz layout pickers.

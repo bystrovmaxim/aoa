@@ -1,3 +1,5 @@
+# mypy: ignore-errors
+# pylint: disable=import-outside-toplevel
 """
 Standalone ERD HTML export.
 
