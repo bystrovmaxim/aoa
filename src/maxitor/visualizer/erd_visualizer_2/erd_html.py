@@ -107,6 +107,7 @@ let currentEdges   = [];
 
 let gvApi = null;
 let nhFilterWired = false;
+let domainPickerWired = false;
 
 // ── Zoom / pan (same mechanics as erd_visualizer: rAF wheel + exp factor, 1.25 / 0.8, clamp)
 const MIN_SCALE = 0.2;
@@ -767,25 +768,143 @@ const RENDERER_SHOWS = {{
   cytoscape: ['cy-container'],
   mermaid:   ['mermaid-container'],
 }};
-const HAS_LAYOUT = new Set(['d3gv', 'cytoscape']);
-const LAYOUT_GROUPS = {{
-  d3gv: [
-    {{ id: 'gv-dot-lr', label: 'Dot LR', recommended: true }},
-    {{ id: 'gv-dot-tb', label: 'Dot TB' }},
-    {{ id: 'gv-neato',  label: 'Neato' }},
-    {{ id: 'gv-fdp',    label: 'FDP' }},
-    {{ id: 'gv-circo',  label: 'Circo' }},
-  ],
-  cytoscape: [
-    {{ id: 'cy-dagre-lr', label: 'Dagre LR', recommended: true }},
-    {{ id: 'cy-dagre-tb', label: 'Dagre TB' }},
-  ],
-}};
-const RENDERERS = [
-  {{ id: 'd3gv',      label: 'Graphviz \u2756', recommended: true }},
-  {{ id: 'cytoscape', label: 'Cytoscape' }},
-  {{ id: 'mermaid',   label: 'Mermaid' }},
-];
+
+function buildModeDockHtml() {{
+  const gvLR =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round">' +
+    '<rect x="1" y="5" width="4" height="6" rx="0.75"/>' +
+    '<path d="M5 8h1" stroke-linecap="round"/>' +
+    '<rect x="6" y="5" width="4" height="6" rx="0.75"/>' +
+    '<path d="M10 8h1" stroke-linecap="round"/>' +
+    '<rect x="11" y="5" width="4" height="6" rx="0.75"/>' +
+    '</svg>';
+  const gvTB =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round">' +
+    '<rect x="4.5" y="1.5" width="7" height="3" rx="0.75"/>' +
+    '<path d="M8 4.5v1.2" stroke-linecap="round"/>' +
+    '<rect x="4.5" y="6.2" width="7" height="3" rx="0.75"/>' +
+    '<path d="M8 9.2v1.2" stroke-linecap="round"/>' +
+    '<rect x="4.5" y="11" width="7" height="3" rx="0.75"/>' +
+    '</svg>';
+  const gvNeato =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">' +
+    '<circle cx="4" cy="4.5" r="1.7"/><circle cx="12" cy="4" r="1.7"/>' +
+    '<circle cx="5.5" cy="12" r="1.7"/><circle cx="11.5" cy="11" r="1.7"/>' +
+    '<path d="M5.5 6.2Q8 8 10.3 5.7M10.3 5.7q1 3 .7 4.8M6.8 10.2q2 1.2 3.9-.2"/>' +
+    '</svg>';
+  const gvFdp =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round">' +
+    '<circle cx="8" cy="8" r="1.8" fill="currentColor" fill-opacity="0.25"/>' +
+    '<circle cx="8" cy="2.5" r="1.3"/><circle cx="13.5" cy="8" r="1.3"/>' +
+    '<circle cx="8" cy="13.5" r="1.3"/><circle cx="2.5" cy="8" r="1.3"/>' +
+    '<circle cx="11.5" cy="4" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/>' +
+    '<path d="M8 3.8v2.3M12.2 4.8 10.8 6.5M13.2 8.7l-2.4.6M11 11l-1.7 1.5M8.1 10.2v2.2M4.7 11.8 3.8 10M2.7 8l2.6-.5M4.5 4.8 5.8 6.4"/>' +
+    '</svg>';
+  const gvCirco =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.2">' +
+    '<circle cx="8" cy="8" r="5.5" stroke-opacity="0.35"/>' +
+    '<circle cx="8" cy="2.5" r="1.35"/><circle cx="13.2" cy="6.2" r="1.35"/>' +
+    '<circle cx="11.2" cy="12.8" r="1.35"/><circle cx="4.8" cy="12.8" r="1.35"/>' +
+    '<circle cx="2.8" cy="6.2" r="1.35"/>' +
+    '</svg>';
+  const cyLR =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round">' +
+    '<rect x="1.5" y="3" width="4" height="3" rx="0.5"/><rect x="9.5" y="3" width="4" height="3" rx="0.5"/>' +
+    '<rect x="5.5" y="9.5" width="5" height="3.5" rx="0.5"/>' +
+    '<path d="M5.5 4.5H9M12.5 4.5v4.8M8 9.5V8.2H11.5" stroke-linecap="round"/>' +
+    '</svg>';
+  const cyTB =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round">' +
+    '<rect x="4.5" y="1.5" width="7" height="3" rx="0.5"/>' +
+    '<rect x="4.5" y="6.5" width="7" height="3" rx="0.5"/>' +
+    '<rect x="1.5" y="11.5" width="5" height="3" rx="0.5"/><rect x="9.5" y="11.5" width="5" height="3" rx="0.5"/>' +
+    '<path d="M8 4.5v2M8 9.5v1.5M4.5 13H3v-2.5h2.5M12.5 13H14v-2.5h-2.5" stroke-linecap="round"/>' +
+    '</svg>';
+  const mm =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M2 9.5 Q6 3.5 10 9.5 T14 7"/>' +
+    '<path d="M12.5 5.5l2 2-2.5 1.2" opacity="0.9"/>' +
+    '<circle cx="4" cy="10" r="1.1" fill="currentColor"/>' +
+    '</svg>';
+
+  const rows = [
+    [ 'gv-dot-lr',   'gv', 'Dot — left to right', gvLR ],
+    [ 'gv-dot-tb',   'gv', 'Dot — top to bottom', gvTB ],
+    [ 'gv-neato',    'gv', 'Neato — spring layout', gvNeato ],
+    [ 'gv-fdp',      'gv', 'FDP — force layout', gvFdp ],
+    [ 'gv-circo',    'gv', 'Circo — radial tiers', gvCirco ],
+    [ 'cy-dagre-lr', 'cy', 'Dagre — left to right', cyLR ],
+    [ 'cy-dagre-tb', 'cy', 'Dagre — top to bottom', cyTB ],
+    [ 'mermaid',     'mm', 'Mermand', mm ],
+  ];
+
+  return rows
+    .map((r) => {{
+      return (
+        '<button type="button" class="mode-btn mode-btn--' +
+        r[1] +
+        '" data-mode="' +
+        r[0] +
+        '" title="' +
+        escAttr(r[2]) +
+        '">' +
+        r[3] +
+        '</button>'
+      );
+    }})
+    .join('');
+}}
+
+let modeDockWired = false;
+
+function syncModeDock() {{
+  const dock = document.getElementById('mode-dock');
+  if (!dock) return;
+  dock.querySelectorAll('.mode-btn').forEach((btn) => {{
+    const key = btn.getAttribute('data-mode');
+    let on = false;
+    if (key === 'mermaid') on = activeRenderer === 'mermaid';
+    else if (key && key.indexOf('cy-') === 0)
+      on = activeRenderer === 'cytoscape' && activeLayout === key;
+    else if (key) on = activeRenderer === 'd3gv' && activeLayout === key;
+    btn.classList.toggle('active', on);
+  }});
+}}
+
+function applyModePreset(key) {{
+  if (key === 'mermaid') {{
+    activeRenderer = 'mermaid';
+  }} else if (key === 'cy-dagre-lr' || key === 'cy-dagre-tb') {{
+    activeRenderer = 'cytoscape';
+    activeLayout = key;
+  }} else {{
+    activeRenderer = 'd3gv';
+    activeLayout = key;
+  }}
+  switchRenderer(activeRenderer);
+}}
+
+function initModeDock() {{
+  const dock = document.getElementById('mode-dock');
+  if (!dock) return;
+  dock.innerHTML = buildModeDockHtml();
+  if (modeDockWired) return;
+  modeDockWired = true;
+  dock.addEventListener('click', (evt) => {{
+    const b = evt.target.closest('.mode-btn');
+    if (!b || !dock.contains(b)) return;
+    const k = b.getAttribute('data-mode');
+    if (k) applyModePreset(k);
+  }});
+}}
 
 function switchRenderer(name) {{
   activeRenderer = name;
@@ -801,13 +920,7 @@ function switchRenderer(name) {{
     if (el) {{ el.style.display = ''; el.classList.add('active'); }}
   }}
 
-  const lp = document.getElementById('layout-picker');
-  if (lp) lp.style.display = HAS_LAYOUT.has(name) ? '' : 'none';
-  renderLayoutPills(name);
-
-  document.querySelectorAll('#renderer-pill-bar .pill').forEach(p =>
-    p.classList.toggle('active', p.dataset.renderer === name));
-
+  syncModeDock();
   switch (name) {{
     case 'd3gv':      initD3Graphviz(); break;
     case 'cytoscape': initCytoscape();  break;
@@ -815,65 +928,49 @@ function switchRenderer(name) {{
   }}
 }}
 
-function renderLayoutPills(renderer) {{
-  const bar = document.getElementById('layout-pill-bar');
-  if (!bar) return;
-  const group = LAYOUT_GROUPS[renderer] || [];
-  if (!group.length) {{ bar.innerHTML = ''; return; }}
-  if (!group.find(l => l.id === activeLayout)) activeLayout = group[0].id;
-  bar.innerHTML = group.map(l =>
-    '<button class="pill' + (l.recommended ? ' recommended' : '') +
-    (activeLayout === l.id ? ' active' : '') +
-    '" data-layout="' + l.id + '">' + l.label + '</button>'
-  ).join('');
-  bar.querySelectorAll('.pill').forEach(p => {{
-    p.addEventListener('click', () => {{
-      activeLayout = p.dataset.layout;
-      bar.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
-      p.classList.add('active');
-      switchRenderer(activeRenderer);
-    }});
-  }});
-}}
-
-function initRendererPills() {{
-  const bar = document.getElementById('renderer-pill-bar');
-  if (!bar) return;
-  bar.innerHTML = RENDERERS.map(r =>
-    '<button class="pill' + (r.recommended ? ' recommended' : '') +
-    (r.id === activeRenderer ? ' active' : '') +
-    '" data-renderer="' + r.id + '">' + r.label + '</button>'
-  ).join('');
-  bar.querySelectorAll('.pill').forEach(p =>
-    p.addEventListener('click', () => switchRenderer(p.dataset.renderer)));
-}}
-
-function renderDomainToggleBar() {{
+function renderDomainPanel() {{
   const domains = ERD_DATA?.domains || {{}};
   const keys = Object.keys(domains);
-  const bar = document.getElementById('domain-pill-bar');
-  if (!bar) return;
+  const picker = document.getElementById('domain-picker');
+  if (!picker) return;
+  if (keys.length <= 1) {{
+    picker.style.display = 'none';
+    return;
+  }}
+  const accents = ERD_DATA.domain_accent_colors || {{}};
+  picker.style.display = 'flex';
+  picker.innerHTML =
+    '<div class="legend-title">Domains</div>' +
+    keys.map((k) => {{
+      const isOn = enabledDomains.has(k);
+      const color = accents[k] || '#3b82f6';
+      const rowCls = 'domain-row' + (isOn ? ' is-on' : ' is-off');
+      return (
+        '<button type="button" class="' + rowCls + '" data-domain="' + escAttr(k) + '"' +
+        ' role="switch" aria-pressed="' + isOn + '"' +
+        ' title="Toggle domain visibility in the diagram">' +
+        '<span class="legend-icon legend-icon--accent" style="background-color:' + escAttr(color) + '"></span>' +
+        '<span class="domain-row-label">' + escHtml(k) + '</span>' +
+        '</button>'
+      );
+    }}).join('');
+}}
 
-  bar.innerHTML = keys.map(k => {{
-    const isOn = enabledDomains.has(k);
-    const cls = 'pill domain-toggle' + (isOn ? ' active' : '');
-    return (
-      '<button type="button" class="' + cls + '" role="switch" aria-checked="' + isOn + '"' +
-      ' data-domain="' + escAttr(k) + '" title="Toggle domain in the diagram">' +
-      escHtml(k) +
-      '</button>'
-    );
-  }}).join('');
-
-  bar.querySelectorAll('.domain-toggle').forEach(btn => {{
-    btn.addEventListener('click', () => {{
-      const key = btn.getAttribute('data-domain');
-      if (!key || !domains[key]) return;
-      if (enabledDomains.has(key)) enabledDomains.delete(key);
-      else enabledDomains.add(key);
-      renderDomainToggleBar();
-      switchRenderer(activeRenderer);
-    }});
+function wireDomainPickerOnce() {{
+  if (domainPickerWired) return;
+  const picker = document.getElementById('domain-picker');
+  if (!picker) return;
+  domainPickerWired = true;
+  picker.addEventListener('click', (evt) => {{
+    const btn = evt.target.closest('.domain-row');
+    if (!btn || !picker.contains(btn)) return;
+    const key = btn.getAttribute('data-domain');
+    const domains = ERD_DATA?.domains || {{}};
+    if (!key || !domains[key]) return;
+    if (enabledDomains.has(key)) enabledDomains.delete(key);
+    else enabledDomains.add(key);
+    renderDomainPanel();
+    switchRenderer(activeRenderer);
   }});
 }}
 
@@ -881,7 +978,7 @@ function initNeighborhoodFilter() {{
   const grp = document.getElementById('neighborhood-filter');
   if (grp) {{
     const dq = ERD_DATA?.domain_qualifiers;
-    grp.style.display = dq && Object.keys(dq).length ? '' : 'none';
+    grp.style.display = dq && Object.keys(dq).length ? 'flex' : 'none';
   }}
   const cb = document.getElementById('neighborhood-expand');
   if (cb && !nhFilterWired) {{
@@ -891,6 +988,7 @@ function initNeighborhoodFilter() {{
 }}
 
 function initDomainPicker() {{
+  wireDomainPickerOnce();
   const domains = ERD_DATA?.domains || {{}};
   const keys = Object.keys(domains);
   const picker = document.getElementById('domain-picker');
@@ -901,13 +999,13 @@ function initDomainPicker() {{
 
   if (keys.length === 1) {{
     enabledDomains = new Set(keys);
+    picker.style.display = 'none';
     initNeighborhoodFilter();
     return;
   }}
 
-  picker.style.display = '';
   enabledDomains = new Set();
-  renderDomainToggleBar();
+  renderDomainPanel();
   initNeighborhoodFilter();
 }}
 
@@ -916,7 +1014,7 @@ function initDomainPicker() {{
 // ════════════════════════════════════════════════════════════════════════════
 (function boot() {{
   initDomainPicker();
-  initRendererPills();
+  initModeDock();
   installZoomChrome();
   switchRenderer('d3gv');
 }})();
@@ -990,6 +1088,27 @@ def _payload_to_domain_dict(payload) -> dict:
     return {"nodes": nodes, "edges": edges}
 
 
+def _domain_accent_from_payload_dict(d: dict) -> str:
+    """First entity table header color in this domain (matches Graphviz / graph nodes)."""
+    for n in d.get("nodes") or []:
+        c = (n.get("color") or "").strip()
+        if c:
+            return c
+    return _ENTITY_COLORS[0]
+
+
+def _with_domain_accent_colors(erd_data: dict) -> dict:
+    """Attach ``domain_accent_colors`` for the left domain panel swatches."""
+    domains = erd_data.get("domains")
+    if not isinstance(domains, dict) or not domains:
+        erd_data["domain_accent_colors"] = {}
+        return erd_data
+    erd_data["domain_accent_colors"] = {
+        k: _domain_accent_from_payload_dict(v) for k, v in domains.items()
+    }
+    return erd_data
+
+
 # ── Python API ────────────────────────────────────────────────────────────────
 
 
@@ -1035,6 +1154,7 @@ def write_erd_html(
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
 
+    _with_domain_accent_colors(erd_data)
     bootstrap = _make_bootstrap(erd_data)
     tpl = _template_raw()
 
@@ -1082,7 +1202,7 @@ def write_erd_html_from_coordinator(
         if not domains_map:
             msg = "No domain ERD payloads could be built from the coordinator graph."
             raise LookupError(msg)
-        erd_data: dict = {"domains": domains_map, "domain_qualifiers": domain_qualifiers}
+        erd_data = {"domains": domains_map, "domain_qualifiers": domain_qualifiers}
     else:
         payload = erd_payload_from_coordinator_for_domain(coordinator, domain_cls)
         domain_name = getattr(domain_cls, "name", None) or domain_cls.__name__
