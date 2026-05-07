@@ -24,5 +24,12 @@ class InvoiceRecordEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Invoiced order")  # type: ignore[assignment]
 
+    invoice_outbox_row: Annotated[
+        AssociationOne["OutboxMessageEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Transactional outbox publish for invoice side-effects")  # type: ignore[assignment]
+
+
+from maxitor.samples.messaging.entities.outbox_message import OutboxMessageEntity  # noqa: E402
 
 InvoiceRecordEntity.model_rebuild()

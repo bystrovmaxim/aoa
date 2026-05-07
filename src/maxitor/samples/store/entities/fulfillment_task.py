@@ -24,5 +24,12 @@ class FulfillmentTaskEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Target order line")  # type: ignore[assignment]
 
+    lot_inventory_slice: Annotated[
+        AssociationOne["LotSnapshotLedgerEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Inventory lot snapshot consulted for allocation")  # type: ignore[assignment]
+
+
+from maxitor.samples.inventory.entities.inv_lot_snapshot_ledger import LotSnapshotLedgerEntity  # noqa: E402
 
 FulfillmentTaskEntity.model_rebuild()

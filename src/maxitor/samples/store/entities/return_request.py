@@ -24,5 +24,12 @@ class ReturnRequestEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Returned order")  # type: ignore[assignment]
 
+    reverse_logistics_metrics_batch: Annotated[
+        AssociationOne["AnalyticsIngressBatchEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Analytics ingress shard for reverse-logistics telemetry")  # type: ignore[assignment]
+
+
+from maxitor.samples.analytics.entities.analytics_ingress_batch import AnalyticsIngressBatchEntity  # noqa: E402
 
 ReturnRequestEntity.model_rebuild()

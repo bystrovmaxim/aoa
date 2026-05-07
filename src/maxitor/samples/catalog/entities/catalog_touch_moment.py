@@ -22,5 +22,14 @@ class TouchMomentEntity(BaseEntity):
         NoInverse(),
     ] = Rel(description="Acquisition ledger segment")  # type: ignore[assignment]
 
+    replay_ticket: Annotated[
+        AssociationOne["ReplayTicketEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Messaging replay ticket for deterministic touch lineage")  # type: ignore[assignment]
+
+
+from maxitor.samples.messaging.entities.msg_replay_ticket import (  # noqa: E402
+    ReplayTicketEntity,
+)
 
 TouchMomentEntity.model_rebuild()
