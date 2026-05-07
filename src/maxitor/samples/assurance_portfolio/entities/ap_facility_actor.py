@@ -1,0 +1,26 @@
+# src/maxitor/samples/assurance_portfolio/entities/ap_facility_actor.py
+from __future__ import annotations
+
+from typing import Annotated
+
+from pydantic import Field
+
+from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from action_machine.intents.entity import entity
+from maxitor.samples.assurance_portfolio.domain import AssurancePortfolioDomain
+from maxitor.samples.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
+from maxitor.samples.assurance_portfolio.entities.ap_reference_axes import AssuranceAccountPhaseAxisEntity
+
+
+@entity(description="Portfolio identity row (v_user analogue)", domain=AssurancePortfolioDomain)
+class AssuranceFacilityActorEntity(BaseEntity):
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Actor lifecycle")
+    id: str = Field(description="Actor id")
+
+    account_phase_axis: Annotated[
+        AssociationOne[AssuranceAccountPhaseAxisEntity],
+        NoInverse(),
+    ] = Rel(description="Credential posture snapshot")  # type: ignore[assignment]
+
+
+AssuranceFacilityActorEntity.model_rebuild()

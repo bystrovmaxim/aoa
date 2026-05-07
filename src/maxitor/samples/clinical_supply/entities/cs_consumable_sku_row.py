@@ -1,0 +1,29 @@
+# src/maxitor/samples/clinical_supply/entities/cs_consumable_sku_row.py
+from __future__ import annotations
+
+from typing import Annotated
+
+from pydantic import Field
+
+from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from action_machine.intents.entity import entity
+from maxitor.samples.clinical_supply.domain import ClinicalSupplyDomain
+from maxitor.samples.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
+from maxitor.samples.clinical_supply.entities.cs_material_anchor import ClinicalMaterialAnchorEntity
+
+
+@entity(
+    description="Stock-keeping instrument row (detail / part master analogue)",
+    domain=ClinicalSupplyDomain,
+)
+class ClinicalConsumableSkuEntity(BaseEntity):
+    lifecycle: ClinicalSupplyLifecycle = Field(description="SKU lifecycle")
+    id: str = Field(description="SKU id")
+
+    material_anchor: Annotated[
+        AssociationOne[ClinicalMaterialAnchorEntity],
+        NoInverse(),
+    ] = Rel(description="Compound / sterility anchor")  # type: ignore[assignment]
+
+
+ClinicalConsumableSkuEntity.model_rebuild()

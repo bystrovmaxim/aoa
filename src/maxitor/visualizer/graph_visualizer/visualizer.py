@@ -24,8 +24,9 @@ Domain hull membership propagation is implemented in
 Edges use G6 ``line`` with default style; all edges are slate by default. Debug-collected
 forbidden DAG-cycle edges use the reserved violation red (**not** reused by any stable node-type
 fill). Nodes incident on those edges use the same red disk so endpoints read as hotspots. Action
-nodes use indigo (:data:`NODE_TYPE_FILL_COLORS`), not violation red. On node hover, incident edges
-get state ``active``. Edge ``data`` still carries relationship fields for tests.
+nodes use indigo (:data:`NODE_TYPE_FILL_COLORS`), not violation red. On node hover, the hovered
+node gets state ``hub``, adjacent nodes ``nb``, and incident edges ``active`` (updates only that
+local neighborhood, not the full graph). Edge ``data`` still carries relationship fields for tests.
 """
 
 from __future__ import annotations
@@ -585,6 +586,10 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           adjIndex[edge.target].neighbors.add(edge.source);
         }}
         for (const node of graphData.nodes) initAdj(node.id);
+        const nodeById = new Map();
+        for (const node of graphData.nodes) {{
+          nodeById.set(String(node.id), node);
+        }}
 
         function edgeBaseStroke(d) {{
           return d.data?.isForbiddenDagCycle ? DAG_CYCLE_VIOLATION_COLOR : '#95a5a6';
@@ -609,9 +614,6 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
               cursor: 'grab',
             }},
             state: {{
-              dim: {{
-                opacity: 0.22,
-              }},
               hub: {{
                 opacity: 1,
                 stroke: '#DC2626',
@@ -723,45 +725,81 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
 
         let hoverLabelNodeId = null;
         let glowClearTimer = null;
+        // Last hover highlighting (incremental clears; avoids O(|V|+|E|) setElementState per move).
+        let hoverGlowSnap = null;
 
         function applyNeighborGlow(nodeIdStr) {{
           const adj = adjIndex[nodeIdStr];
           if (!adj || typeof graph.setElementState !== 'function') return;
-          const st = {{}};
           const hub = String(nodeIdStr);
-          graphData.nodes.forEach((n) => {{
-            const nid = String(n.id);
-            if (nid === hub) st[nid] = ['hub'];
-            else if (adj.neighbors.has(nid)) st[nid] = ['nb'];
-            else st[nid] = ['dim'];
-          }});
-          graphData.edges.forEach((e) => {{
-            st[e.id] = adj.edges.has(e.id) ? ['active'] : [];
-          }});
+          const nbNorm = new Set();
+          adj.neighbors.forEach((x) => nbNorm.add(String(x)));
+          const eActive = adj.edges;
+          const st = {{}};
+          const prev = hoverGlowSnap;
+
+          if (prev == null) {{
+            st[hub] = ['hub'];
+            nbNorm.forEach((s) => {{
+              if (s !== hub) st[s] = ['nb'];
+            }});
+            eActive.forEach((eid) => {{
+              st[eid] = ['active'];
+            }});
+          }} else {{
+            const candNodes = new Set([prev.hubId, hub]);
+            prev.neighborIds.forEach((s) => candNodes.add(String(s)));
+            nbNorm.forEach((s) => candNodes.add(s));
+            for (const nid of candNodes) {{
+              const s = String(nid);
+              if (s === hub) st[s] = ['hub'];
+              else if (nbNorm.has(s)) st[s] = ['nb'];
+              else st[s] = [];
+            }}
+            const candEdges = new Set();
+            prev.edgeIds.forEach((eid) => candEdges.add(eid));
+            eActive.forEach((eid) => candEdges.add(eid));
+            for (const eid of candEdges) {{
+              st[eid] = eActive.has(eid) ? ['active'] : [];
+            }}
+          }}
+
           void graph.setElementState(st);
+          hoverGlowSnap = {{
+            hubId: hub,
+            neighborIds: new Set(nbNorm),
+            edgeIds: new Set(eActive),
+          }};
         }}
 
         function clearNeighborGlow() {{
           if (typeof graph.setElementState !== 'function') return;
+          if (hoverGlowSnap == null) return;
+          const prev = hoverGlowSnap;
           const st = {{}};
-          graphData.nodes.forEach((n) => {{ st[n.id] = []; }});
-          graphData.edges.forEach((e) => {{ st[e.id] = []; }});
+          st[prev.hubId] = [];
+          prev.neighborIds.forEach((nid) => {{
+            st[String(nid)] = [];
+          }});
+          prev.edgeIds.forEach((eid) => {{
+            st[eid] = [];
+          }});
           void graph.setElementState(st);
+          hoverGlowSnap = null;
         }}
 
         function syncHoverLabels() {{
           hoverOverlay.innerHTML = '';
           if (hoverLabelNodeId == null) return;
           const adj = adjIndex[hoverLabelNodeId];
-          const labelIds = new Set();
-          labelIds.add(String(hoverLabelNodeId));
+          const labelIds = new Set([String(hoverLabelNodeId)]);
           if (adj) {{
             adj.neighbors.forEach((nid) => labelIds.add(String(nid)));
           }}
           const cr = container.getBoundingClientRect();
-          graphData.nodes.forEach((n) => {{
-            const id = String(n.id);
-            if (!labelIds.has(id)) return;
+          for (const id of labelIds) {{
+            const n = nodeById.get(id);
+            if (!n) continue;
             const d = n.data || {{}};
             const hoverText =
               d.label != null && String(d.label).trim() !== ''
@@ -772,7 +810,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
                     ? String(d.graph_key)
                     : id;
             const canvasPt = _canvasPointForLabel(id);
-            if (canvasPt == null) return;
+            if (canvasPt == null) continue;
             let left;
             let top;
             try {{
@@ -797,13 +835,22 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
                 }}
               }} catch (_) {{}}
             }}
-            if (left == null || top == null) return;
+            if (left == null || top == null) continue;
             const div = document.createElement('div');
             div.className = 'graph-hover-label';
             div.textContent = hoverText;
             div.style.left = `${{left}}px`;
             div.style.top = `${{top}}px`;
             hoverOverlay.appendChild(div);
+          }}
+        }}
+
+        let hoverLabelSyncRaf = null;
+        function scheduleSyncHoverLabels() {{
+          if (hoverLabelSyncRaf != null) return;
+          hoverLabelSyncRaf = requestAnimationFrame(() => {{
+            hoverLabelSyncRaf = null;
+            syncHoverLabels();
           }});
         }}
 
@@ -1025,14 +1072,14 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           const sid = String(id);
           applyNeighborGlow(sid);
           hoverLabelNodeId = sid;
-          requestAnimationFrame(() => syncHoverLabels());
+          scheduleSyncHoverLabels();
         }});
 
         graph.on('node:pointerout', () => {{
           glowClearTimer = setTimeout(() => {{
             clearNeighborGlow();
             hoverLabelNodeId = null;
-            syncHoverLabels();
+            scheduleSyncHoverLabels();
             glowClearTimer = null;
           }}, 50);
         }});
@@ -1044,7 +1091,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           }}
           clearNeighborGlow();
           hoverLabelNodeId = null;
-          syncHoverLabels();
+          scheduleSyncHoverLabels();
           closeNodeDetailPanel();
         }});
 
@@ -1055,7 +1102,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           }}
           clearNeighborGlow();
           hoverLabelNodeId = null;
-          syncHoverLabels();
+          scheduleSyncHoverLabels();
         }});
 
         // Zoom toolbar
@@ -1067,7 +1114,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         }};
         graph.on('viewportchange', () => {{
           syncZoom();
-          syncHoverLabels();
+          scheduleSyncHoverLabels();
         }});
 
         const doZoom = async (factor) => {{
@@ -1085,13 +1132,13 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         }});
 
         graph.on('element:dragend', () => {{
-          syncHoverLabels();
+          scheduleSyncHoverLabels();
         }});
 
         window.addEventListener('resize', () => {{
           graph.resize(container.clientWidth, container.clientHeight);
           syncZoom();
-          syncHoverLabels();
+          scheduleSyncHoverLabels();
         }});
     """
 
