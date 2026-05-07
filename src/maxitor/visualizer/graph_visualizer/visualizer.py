@@ -24,9 +24,10 @@ Domain hull membership propagation is implemented in
 Edges use G6 ``line`` with default style; all edges are slate by default. Debug-collected
 forbidden DAG-cycle edges use the reserved violation red (**not** reused by any stable node-type
 fill). Nodes incident on those edges use the same red disk so endpoints read as hotspots. Action
-nodes use indigo (:data:`NODE_TYPE_FILL_COLORS`), not violation red. On node hover, the hovered
-node gets state ``hub``, adjacent nodes ``nb``, and incident edges ``active`` (updates only that
-local neighborhood, not the full graph). Edge ``data`` still carries relationship fields for tests.
+nodes use indigo (:data:`NODE_TYPE_FILL_COLORS`), not violation red. On node hover, floating labels
+use a flat rectangular panel; the **left stripe** uses each node’s ``data.fill`` (same hue as the
+on-canvas disk). G6 assigns ``hub`` / ``nb`` and incident edges ``active`` for the neighborhood.
+Edge ``data`` still carries relationship fields for tests.
 """
 
 from __future__ import annotations
@@ -572,7 +573,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
             }}).join('');
         }}
 
-        // Adjacency for hover highlight (no data mutation — use setElementState only).
+        // Adjacency for hover: G6 states on hub / neighbors / edges; label stripe from node fill.
         const adjIndex = {{}};
         const initAdj = (nid) => {{
           if (!adjIndex[nid]) adjIndex[nid] = {{ edges: new Set(), neighbors: new Set() }};
@@ -723,9 +724,27 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           return null;
         }}
 
+        function _containerOffsetFromCanvasPoint(canvasPt) {{
+          const cr = container.getBoundingClientRect();
+          try {{
+            if (typeof graph.getClientByCanvas === 'function') {{
+              const client = graph.getClientByCanvas(canvasPt);
+              const cxy = _xyFromPoint(client);
+              if (cxy) return [cxy[0] - cr.left, cxy[1] - cr.top];
+            }}
+          }} catch (_) {{}}
+          try {{
+            if (typeof graph.getViewportByCanvas === 'function') {{
+              const vp = graph.getViewportByCanvas(canvasPt);
+              const vxy = _xyFromPoint(vp);
+              if (vxy) return [vxy[0], vxy[1]];
+            }}
+          }} catch (_) {{}}
+          return null;
+        }}
+
         let hoverLabelNodeId = null;
         let glowClearTimer = null;
-        // Last hover highlighting (incremental clears; avoids O(|V|+|E|) setElementState per move).
         let hoverGlowSnap = null;
 
         function applyNeighborGlow(nodeIdStr) {{
@@ -774,8 +793,8 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
 
         function clearNeighborGlow() {{
           if (typeof graph.setElementState !== 'function') return;
-          if (hoverGlowSnap == null) return;
           const prev = hoverGlowSnap;
+          if (prev == null) return;
           const st = {{}};
           st[prev.hubId] = [];
           prev.neighborIds.forEach((nid) => {{
@@ -796,7 +815,6 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           if (adj) {{
             adj.neighbors.forEach((nid) => labelIds.add(String(nid)));
           }}
-          const cr = container.getBoundingClientRect();
           for (const id of labelIds) {{
             const n = nodeById.get(id);
             if (!n) continue;
@@ -809,47 +827,28 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
                   : d.graph_key != null && String(d.graph_key).trim() !== ''
                     ? String(d.graph_key)
                     : id;
+            const fill =
+              d.fill != null && String(d.fill).trim() !== '' ? String(d.fill).trim() : '';
+            const stripe = fill !== '' ? fill : '{DEFAULT_COLOR}';
             const canvasPt = _canvasPointForLabel(id);
             if (canvasPt == null) continue;
-            let left;
-            let top;
-            try {{
-              if (typeof graph.getClientByCanvas === 'function') {{
-                const client = graph.getClientByCanvas(canvasPt);
-                const cxy = _xyFromPoint(client);
-                if (cxy) {{
-                  left = cxy[0] - cr.left;
-                  top = cxy[1] - cr.top;
-                }}
-              }}
-            }} catch (_) {{}}
-            if (left == null || top == null) {{
-              try {{
-                if (typeof graph.getViewportByCanvas === 'function') {{
-                  const vp = graph.getViewportByCanvas(canvasPt);
-                  const vxy = _xyFromPoint(vp);
-                  if (vxy) {{
-                    left = vxy[0];
-                    top = vxy[1];
-                  }}
-                }}
-              }} catch (_) {{}}
-            }}
-            if (left == null || top == null) continue;
+            const off = _containerOffsetFromCanvasPoint(canvasPt);
+            if (off == null) continue;
             const div = document.createElement('div');
             div.className = 'graph-hover-label';
             div.textContent = hoverText;
-            div.style.left = `${{left}}px`;
-            div.style.top = `${{top}}px`;
+            div.style.borderLeftColor = stripe;
+            div.style.left = `${{off[0]}}px`;
+            div.style.top = `${{off[1]}}px`;
             hoverOverlay.appendChild(div);
           }}
         }}
 
-        let hoverLabelSyncRaf = null;
-        function scheduleSyncHoverLabels() {{
-          if (hoverLabelSyncRaf != null) return;
-          hoverLabelSyncRaf = requestAnimationFrame(() => {{
-            hoverLabelSyncRaf = null;
+        let hoverOverlaySyncRaf = null;
+        function scheduleHoverOverlaySync() {{
+          if (hoverOverlaySyncRaf != null) return;
+          hoverOverlaySyncRaf = requestAnimationFrame(() => {{
+            hoverOverlaySyncRaf = null;
             syncHoverLabels();
           }});
         }}
@@ -1072,14 +1071,14 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           const sid = String(id);
           applyNeighborGlow(sid);
           hoverLabelNodeId = sid;
-          scheduleSyncHoverLabels();
+          scheduleHoverOverlaySync();
         }});
 
         graph.on('node:pointerout', () => {{
           glowClearTimer = setTimeout(() => {{
             clearNeighborGlow();
             hoverLabelNodeId = null;
-            scheduleSyncHoverLabels();
+            scheduleHoverOverlaySync();
             glowClearTimer = null;
           }}, 50);
         }});
@@ -1091,7 +1090,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           }}
           clearNeighborGlow();
           hoverLabelNodeId = null;
-          scheduleSyncHoverLabels();
+          scheduleHoverOverlaySync();
           closeNodeDetailPanel();
         }});
 
@@ -1102,7 +1101,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           }}
           clearNeighborGlow();
           hoverLabelNodeId = null;
-          scheduleSyncHoverLabels();
+          scheduleHoverOverlaySync();
         }});
 
         // Zoom toolbar
@@ -1114,7 +1113,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         }};
         graph.on('viewportchange', () => {{
           syncZoom();
-          scheduleSyncHoverLabels();
+          scheduleHoverOverlaySync();
         }});
 
         const doZoom = async (factor) => {{
@@ -1132,13 +1131,13 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         }});
 
         graph.on('element:dragend', () => {{
-          scheduleSyncHoverLabels();
+          scheduleHoverOverlaySync();
         }});
 
         window.addEventListener('resize', () => {{
           graph.resize(container.clientWidth, container.clientHeight);
           syncZoom();
-          scheduleSyncHoverLabels();
+          scheduleHoverOverlaySync();
         }});
     """
 

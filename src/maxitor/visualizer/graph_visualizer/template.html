@@ -10,14 +10,31 @@
     <script src="@@G6_CDN_URL@@"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* Interchange graph shell — shared tokens with ERD (frost panels, slate type, indigo accent). */
+        :root {
+            --ix-surface: #f4f5f7;
+            --ix-grid-dot: rgba(160, 168, 180, 0.42);
+            --ix-frost: rgba(255, 255, 255, 0.88);
+            --ix-frost-solid: rgba(255, 255, 255, 0.96);
+            --ix-border: rgba(0, 0, 0, 0.08);
+            --ix-text: #2c3e50;
+            --ix-text-strong: #0f172a;
+            --ix-muted: #5c6370;
+            --ix-accent: #1d4ed8;
+            --ix-accent-soft: #e7efff;
+            --ix-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+            --ix-neutral-stripe: #95a5a6;
+        }
         html, body { width: 100%; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; }
+        /* Default chrome. G6 paints nodes on canvas; hover labels stack above via #graph-hover-labels. */
         #container {
             position: relative;
             width: @@CONTAINER_WIDTH@@;
             height: @@CONTAINER_HEIGHT@@;
-            background-color: #f4f5f7;
-            background-image: radial-gradient(rgba(160,168,180,0.42) 1px, transparent 1px);
+            background-color: var(--ix-surface);
+            background-image: radial-gradient(var(--ix-grid-dot) 1px, transparent 1px);
             background-size: 20px 20px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
         }
         #graph-hover-labels {
             position: absolute;
@@ -26,35 +43,41 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 20;
+            z-index: 25;
             overflow: visible;
         }
         .graph-hover-label {
             position: absolute;
-            /* Same stack as G6 ``labelFontFamily`` on edges */
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            color: #0f172a;
+            color: var(--ix-text-strong);
             font-size: 10px;
-            font-weight: 500;
-            max-width: 160px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            max-width: 168px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            line-height: 1.2;
+            line-height: 1.3;
             transform: translate(-50%, 0);
+            padding: 3px 8px 3px 7px;
+            border-radius: 0;
+            background: var(--ix-frost-solid);
+            border: 1px solid var(--ix-border);
+            border-left: 3px solid var(--ix-neutral-stripe);
+            box-shadow: var(--ix-shadow);
         }
         .color-legend {
             position: fixed; top: 12px; left: 12px; z-index: 100000;
-            background: rgba(255,255,255,0.88); backdrop-filter: blur(8px);
-            border: 1px solid rgba(0,0,0,0.08); border-radius: 8px;
+            background: var(--ix-frost); backdrop-filter: blur(8px);
+            border: 1px solid var(--ix-border); border-radius: 8px;
             padding: 8px 10px; min-width: 132px; max-width: 240px;
             max-height: 80vh; overflow-y: auto; font-size: 11px;
-            color: #2c3e50; box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            color: var(--ix-text); box-shadow: var(--ix-shadow);
             display: flex; flex-direction: column; gap: 5px;
         }
         .color-legend .legend-title {
             font-weight: 600; font-size: 10px; text-transform: uppercase;
-            letter-spacing: 0.04em; color: #5c6370; margin-bottom: 2px;
+            letter-spacing: 0.04em; color: var(--ix-muted); margin-bottom: 2px;
         }
         .color-legend .row { display: flex; align-items: center; gap: 8px; }
         .color-legend .legend-icon {
@@ -164,20 +187,20 @@
             position: fixed; bottom: 10px; left: 10px; z-index: 100000;
             display: flex; flex-direction: row; flex-wrap: wrap; align-items: center;
             gap: 3px;
-            background: rgba(255,255,255,0.9); backdrop-filter: blur(6px);
-            border: 1px solid rgba(0,0,0,0.08); border-radius: 6px;
-            padding: 3px 5px; box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+            background: var(--ix-frost); backdrop-filter: blur(6px);
+            border: 1px solid var(--ix-border); border-radius: 6px;
+            padding: 3px 5px; box-shadow: var(--ix-shadow);
         }
         .zoom-toolbar button {
             min-width: 0; width: 26px; height: 26px; padding: 0; font-size: 13px; line-height: 1;
             cursor: pointer; border: 1px solid #c5cad3; border-radius: 4px;
-            background: #fff; color: #2c3e50; box-shadow: none;
+            background: #fff; color: var(--ix-text); box-shadow: none;
             display: flex; align-items: center; justify-content: center;
         }
         .zoom-toolbar button:hover { background: #eef0f3; }
         .zoom-toolbar .zoom-label {
             font-size: 10px; font-variant-numeric: tabular-nums;
-            text-align: center; color: #5c6370; user-select: none;
+            text-align: center; color: var(--ix-muted); user-select: none;
             padding: 0 4px; min-width: 2.5em;
         }
     </style>
