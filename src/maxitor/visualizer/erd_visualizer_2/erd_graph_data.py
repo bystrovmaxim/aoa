@@ -120,7 +120,7 @@ def entity_attributes_from_class(entity_cls: type[BaseEntity]) -> dict[str, str]
 
 
 def entity_fields_from_class(entity_cls: type[BaseEntity]) -> tuple[ErdFieldSpec, ...]:
-    """Non-relation model fields as ERD rows; ``id`` is treated as the primary key."""
+    """Non-relation model fields as ERD rows (declaration order); ``id`` is the PK row."""
     attrs = entity_attributes_from_class(entity_cls)
     out: list[ErdFieldSpec] = []
     if "id" not in attrs:

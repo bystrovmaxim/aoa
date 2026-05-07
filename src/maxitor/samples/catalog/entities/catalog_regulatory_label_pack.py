@@ -14,8 +14,8 @@ from maxitor.samples.catalog.entities.catalog_merch_copy_variant import MerchCop
 
 @entity(description="Regulatory label continuation of planogram / copy spine", domain=CatalogDomain)
 class RegulatoryLabelPackEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Regulatory pack lifecycle")
     id: str = Field(description="Pack id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Regulatory pack lifecycle")
 
     merch_copy: Annotated[
         AssociationOne[MerchCopyVariantEntity],

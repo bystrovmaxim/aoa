@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Shipment parcel row", domain=StoreDomain)
 class ShipmentParcelEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Shipment lifecycle")
     id: str = Field(description="Parcel id")
+    lifecycle: SalesOrderLifecycle = Field(description="Shipment lifecycle")
     carrier: str = Field(description="Carrier code")
     tracking_number: str = Field(description="Tracking number")
 

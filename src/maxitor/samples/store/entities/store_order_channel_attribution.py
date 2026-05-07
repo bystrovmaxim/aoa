@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Order channel attribution facet", domain=StoreDomain)
 class OrderChannelAttributionEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="OrderChannelAttributionEntity lifecycle")
     id: str = Field(description="OrderChannelAttributionEntity id")
+    lifecycle: SalesOrderLifecycle = Field(description="OrderChannelAttributionEntity lifecycle")
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],

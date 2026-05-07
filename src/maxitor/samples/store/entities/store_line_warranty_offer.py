@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderLineEntity
 
 @entity(description="Warranty facet on catalog line", domain=StoreDomain)
 class WarrantyOfferFacetEntity(BaseEntity):
-    lifecycle: SalesOrderLineLifecycle = Field(description="WarrantyOfferFacetEntity lifecycle")
     id: str = Field(description="WarrantyOfferFacetEntity id")
+    lifecycle: SalesOrderLineLifecycle = Field(description="WarrantyOfferFacetEntity lifecycle")
 
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],

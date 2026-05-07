@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderLineEntity
 
 @entity(description="Pick-pack variance ledger", domain=StoreDomain)
 class PickVarianceRecordEntity(BaseEntity):
-    lifecycle: SalesOrderLineLifecycle = Field(description="PickVarianceRecordEntity lifecycle")
     id: str = Field(description="PickVarianceRecordEntity id")
+    lifecycle: SalesOrderLineLifecycle = Field(description="PickVarianceRecordEntity lifecycle")
 
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],

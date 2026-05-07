@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.lifecycle import SalesOrderLifecycle
 
 @entity(description="Deposit allocation keyed to invoice artefacts instead of repeating order spine only", domain=StoreDomain)
 class DepositAllocationEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Deposit allocation lifecycle")
     id: str = Field(description="Allocation id")
+    lifecycle: SalesOrderLifecycle = Field(description="Deposit allocation lifecycle")
 
     invoice: Annotated[
         AssociationOne[InvoiceRecordEntity],

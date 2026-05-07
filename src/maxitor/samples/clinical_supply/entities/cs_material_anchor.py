@@ -11,8 +11,8 @@ from maxitor.samples.clinical_supply.entities.cs_lifecycle import ClinicalSupply
 
 @entity(description="Sterility / compound family catalog for SKU rows", domain=ClinicalSupplyDomain)
 class ClinicalMaterialAnchorEntity(BaseEntity):
-    lifecycle: ClinicalSupplyLifecycle = Field(description="Material catalog lifecycle")
     id: str = Field(description="Material family id")
+    lifecycle: ClinicalSupplyLifecycle = Field(description="Material catalog lifecycle")
 
 
 ClinicalMaterialAnchorEntity.model_rebuild()

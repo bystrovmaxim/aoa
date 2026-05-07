@@ -28,8 +28,8 @@ class _MsgDirectedCycleSketchLifecycle(Lifecycle):
     domain=MessagingDomain,
 )
 class MsgDirectedCycleTriangleAEntity(BaseEntity):
-    lifecycle: _MsgDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
     id: str = Field(description="Hop A id")
+    lifecycle: _MsgDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
     follow_b: Annotated[
         AssociationOne[MsgDirectedCycleTriangleBEntity],
@@ -47,8 +47,8 @@ class MsgDirectedCycleTriangleAEntity(BaseEntity):
     domain=MessagingDomain,
 )
 class MsgDirectedCycleTriangleBEntity(BaseEntity):
-    lifecycle: _MsgDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
     id: str = Field(description="Hop B id")
+    lifecycle: _MsgDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
     back_from_a: Annotated[
         AssociationOne[MsgDirectedCycleTriangleAEntity],
@@ -71,8 +71,8 @@ class MsgDirectedCycleTriangleBEntity(BaseEntity):
     domain=MessagingDomain,
 )
 class MsgDirectedCycleTriangleCEntity(BaseEntity):
-    lifecycle: _MsgDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
     id: str = Field(description="Hop C id")
+    lifecycle: _MsgDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
     back_from_b: Annotated[
         AssociationOne[MsgDirectedCycleTriangleBEntity],

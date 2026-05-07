@@ -11,8 +11,8 @@ from maxitor.samples.messaging.entities.msg_dense_lifecycle import MsgWebhookLif
 
 @entity(description="Webhook ingress subgraph root isolated from reconciliation spine", domain=MessagingDomain)
 class WebhookIngressReceiptEntity(BaseEntity):
-    lifecycle: MsgWebhookLifecycle = Field(description="Receipt lifecycle")
     id: str = Field(description="Receipt id")
+    lifecycle: MsgWebhookLifecycle = Field(description="Receipt lifecycle")
 
 
 WebhookIngressReceiptEntity.model_rebuild()

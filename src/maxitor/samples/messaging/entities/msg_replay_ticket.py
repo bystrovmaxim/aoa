@@ -14,8 +14,8 @@ from maxitor.samples.messaging.entities.msg_downstream_watermark import Downstre
 
 @entity(description="Replay ticket hanging off watermark segment", domain=MessagingDomain)
 class ReplayTicketEntity(BaseEntity):
-    lifecycle: MsgDenseLifecycle = Field(description="Replay lifecycle")
     id: str = Field(description="Ticket id")
+    lifecycle: MsgDenseLifecycle = Field(description="Replay lifecycle")
 
     watermark: Annotated[
         AssociationOne[DownstreamWatermarkEntity],

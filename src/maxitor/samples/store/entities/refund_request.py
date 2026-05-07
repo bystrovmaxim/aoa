@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Refund request row", domain=StoreDomain)
 class RefundRequestEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Refund lifecycle")
     id: str = Field(description="Refund id")
+    lifecycle: SalesOrderLifecycle = Field(description="Refund lifecycle")
     amount: float = Field(description="Requested refund amount", ge=0)
     reason: str = Field(description="Refund reason")
 

@@ -14,8 +14,8 @@ from maxitor.samples.catalog.entities.catalog_dense_lifecycle import CatalogDens
 
 @entity(description="Search boost chaining off availability subtree", domain=CatalogDomain)
 class SearchBoostWeightEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Search boost lifecycle")
     id: str = Field(description="Boost id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Search boost lifecycle")
 
     availability_projection: Annotated[
         AssociationOne[AvailabilityProjectionEntity],

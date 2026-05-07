@@ -20,8 +20,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_reference_axes import (
 
 @entity(description="Versioned expectation corpus entry (requirement analogue)", domain=AssurancePortfolioDomain)
 class AssuranceRegulatedExpectationRowEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Expectation row lifecycle")
     id: str = Field(description="Expectation entry id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Expectation row lifecycle")
 
     catalog_bucket: Annotated[
         AssociationOne[AssuranceExpectationCatalogStubEntity],

@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderLineEntity
 
 @entity(description="Backorder ETA facet", domain=StoreDomain)
 class BackorderEtaFacetEntity(BaseEntity):
-    lifecycle: SalesOrderLineLifecycle = Field(description="BackorderEtaFacetEntity lifecycle")
     id: str = Field(description="BackorderEtaFacetEntity id")
+    lifecycle: SalesOrderLineLifecycle = Field(description="BackorderEtaFacetEntity lifecycle")
 
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],

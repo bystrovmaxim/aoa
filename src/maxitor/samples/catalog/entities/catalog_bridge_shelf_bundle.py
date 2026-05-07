@@ -15,8 +15,8 @@ from maxitor.samples.catalog.entities.catalog_shelf_placement_hint import ShelfP
 
 @entity(description="Associative row sewing planogram island to bundle cardinality island", domain=CatalogDomain)
 class CatalogShelfBundleLinkEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Link lifecycle")
     id: str = Field(description="Assoc id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Link lifecycle")
 
     shelf_hint: Annotated[
         AssociationOne[ShelfPlacementHintEntity],

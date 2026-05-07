@@ -14,8 +14,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_scenario_sheet import Assur
 
 @entity(description="Ordered choreography line within scenario sheet (step analogue)", domain=AssurancePortfolioDomain)
 class AssuranceScenarioInstructionLineEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Instruction lifecycle")
     id: str = Field(description="Instruction line id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Instruction lifecycle")
 
     scenario_sheet: Annotated[
         AssociationOne[AssuranceScenarioSheetEntity],

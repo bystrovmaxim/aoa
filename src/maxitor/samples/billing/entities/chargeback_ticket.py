@@ -15,8 +15,8 @@ from maxitor.samples.billing.entities.payment_event_log import PaymentEventLogEn
 
 @entity(description="Chargeback case opened on payment-event", domain=BillingDomain)
 class ChargebackTicketEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Dispute lifecycle")
     id: str = Field(description="Ticket id")
+    lifecycle: BillingDenseLifecycle = Field(description="Dispute lifecycle")
 
     payment_event: Annotated[
         AssociationOne[PaymentEventLogEntity],
@@ -37,6 +37,12 @@ class ChargebackTicketEntity(BaseEntity):
     network_reason_code: str = Field(description="Network standardized dispute reason code")
     opened_at_utc_iso: str = Field(description="Case opened timestamp (UTC ISO-8601)")
     provisional_credit_minor: int = Field(description="Provisional credit in minor currency units", ge=0)
+
+    issuer_bin_country_iso: str = Field(description="ISO country inferred from BIN prefix")
+    liability_shift_requested: bool = Field(description="Whether merchant seeks liability shift")
+    representment_deadline_iso: str = Field(description="Last date to assemble counter-evidence")
+    disputed_amount_minor: int = Field(description="Disputed amount in minor transactional currency", ge=0)
+    cardholder_contact_locale: str = Field(description="Locale hint for outbound comms")
 
 
 from maxitor.samples.billing.entities.billing_sat_tax_remit_stub import TaxRemittanceAdviceEntity  # noqa: E402

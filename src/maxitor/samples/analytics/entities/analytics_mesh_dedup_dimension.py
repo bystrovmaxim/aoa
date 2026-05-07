@@ -15,8 +15,8 @@ from maxitor.samples.analytics.entities.analytics_sat_dimension_slice_stub impor
 
 @entity(description="Tie row connecting dedupe spine ingress with parallel dimension branching", domain=AnalyticsDomain)
 class AnalyticsDedupDimensionCorrelateEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Correlator lifecycle")
     id: str = Field(description="Correlator id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Correlator lifecycle")
 
     dedup_row: Annotated[
         AssociationOne[AnalyticsDedupBloomRowEntity],

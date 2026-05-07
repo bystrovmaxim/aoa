@@ -14,8 +14,8 @@ from maxitor.samples.messaging.entities.msg_replay_ticket import ReplayTicketEnt
 
 @entity(description="Throttle lease chaining from replay facilitation row", domain=MessagingDomain)
 class ThrottleLeaseEntity(BaseEntity):
-    lifecycle: MsgDenseLifecycle = Field(description="Throttle lifecycle")
     id: str = Field(description="Lease id")
+    lifecycle: MsgDenseLifecycle = Field(description="Throttle lifecycle")
 
     replay_ticket: Annotated[
         AssociationOne[ReplayTicketEntity],

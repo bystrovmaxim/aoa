@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Per-order risk score snapshot", domain=StoreDomain)
 class OrderRiskScoreEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="OrderRiskScoreEntity lifecycle")
     id: str = Field(description="OrderRiskScoreEntity id")
+    lifecycle: SalesOrderLifecycle = Field(description="OrderRiskScoreEntity lifecycle")
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],

@@ -17,8 +17,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_lifecycle import AssuranceP
 
 @entity(description="Actor ↔ execution wave duty binding (plan role analogue)", domain=AssurancePortfolioDomain)
 class AssuranceWaveSeatCouplingEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Wave seat coupling lifecycle")
     id: str = Field(description="Wave seat coupling id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Wave seat coupling lifecycle")
 
     actor: Annotated[
         AssociationOne[AssuranceFacilityActorEntity],

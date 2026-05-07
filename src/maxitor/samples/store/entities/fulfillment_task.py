@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderLineEntity
 
 @entity(description="Fulfillment task row", domain=StoreDomain)
 class FulfillmentTaskEntity(BaseEntity):
-    lifecycle: SalesOrderLineLifecycle = Field(description="Fulfillment task lifecycle")
     id: str = Field(description="Task id")
+    lifecycle: SalesOrderLineLifecycle = Field(description="Fulfillment task lifecycle")
     assignee: str = Field(description="Assigned worker")
     task_kind: str = Field(description="Task kind")
 

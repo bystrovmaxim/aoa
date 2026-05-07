@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_sweep_instruction import BillingSw
 
 @entity(description="Settlement ripple memo on sweep branch", domain=BillingDomain)
 class SettlementRippleCorrectionEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Ripple correction lifecycle")
     id: str = Field(description="Memo id")
+    lifecycle: BillingDenseLifecycle = Field(description="Ripple correction lifecycle")
 
     sweep: Annotated[
         AssociationOne[BillingSweepInstructionEntity],

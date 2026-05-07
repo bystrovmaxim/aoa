@@ -14,8 +14,8 @@ from maxitor.samples.analytics.entities.analytics_sampling_policy import Analyti
 
 @entity(description="Budgeted interactive query facet on sampling policy branch", domain=AnalyticsDomain)
 class BudgetedQueryPlanEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Budget plan lifecycle")
     id: str = Field(description="Plan id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Budget plan lifecycle")
 
     sampling_policy: Annotated[
         AssociationOne[AnalyticsSamplingPolicyEntity],

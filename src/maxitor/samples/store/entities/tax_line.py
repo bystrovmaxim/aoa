@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Tax line row", domain=StoreDomain)
 class TaxLineEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Tax line lifecycle")
     id: str = Field(description="Tax line id")
+    lifecycle: SalesOrderLifecycle = Field(description="Tax line lifecycle")
     tax_code: str = Field(description="Tax code")
     tax_amount: float = Field(description="Tax amount", ge=0)
 

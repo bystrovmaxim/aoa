@@ -11,8 +11,8 @@ from maxitor.samples.support.entities.support_simple_lifecycle import SupportSpa
 
 @entity(description="Sparse support-domain hub (minimal star topology)", domain=SupportDomain)
 class SupportTicketAggregateEntity(BaseEntity):
-    lifecycle: SupportSparseLifecycle = Field(description="Ticket lifecycle")
     id: str = Field(description="Ticket id")
+    lifecycle: SupportSparseLifecycle = Field(description="Ticket lifecycle")
 
 
 SupportTicketAggregateEntity.model_rebuild()

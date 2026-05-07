@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderLineEntity
 
 @entity(description="Serialized lot linkage on line", domain=StoreDomain)
 class LineSerialLotTraceEntity(BaseEntity):
-    lifecycle: SalesOrderLineLifecycle = Field(description="LineSerialLotTraceEntity lifecycle")
     id: str = Field(description="LineSerialLotTraceEntity id")
+    lifecycle: SalesOrderLineLifecycle = Field(description="LineSerialLotTraceEntity lifecycle")
 
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],

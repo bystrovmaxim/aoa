@@ -19,8 +19,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_lifecycle import AssuranceP
 
 @entity(description="Associative scheduling link between waves and executions (plan_has_test analogue)", domain=AssurancePortfolioDomain)
 class AssuranceWaveExecutionSlotEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Slot lifecycle")
     id: str = Field(description="Wave execution slot id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Slot lifecycle")
 
     campaign_wave: Annotated[
         AssociationOne[AssuranceCampaignWaveBannerEntity],

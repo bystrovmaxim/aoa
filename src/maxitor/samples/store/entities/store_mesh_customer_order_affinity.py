@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import CustomerAccountEntity, Sal
 
 @entity(description="Many-to-many style affinity row bridging buyer subgraph and transactional orders", domain=StoreDomain)
 class StoreCustomerOrderAffinityEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Affinity lifecycle")
     id: str = Field(description="Affinity id")
+    lifecycle: SalesOrderLifecycle = Field(description="Affinity lifecycle")
 
     customer: Annotated[
         AssociationOne[CustomerAccountEntity],

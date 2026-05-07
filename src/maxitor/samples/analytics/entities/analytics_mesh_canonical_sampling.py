@@ -15,8 +15,8 @@ from maxitor.samples.analytics.entities.analytics_sampling_policy import Analyti
 
 @entity(description="Short-circuit between canonical telemetry egress and exploratory sampling subgraph", domain=AnalyticsDomain)
 class AnalyticsCanonicalSamplingCorrelateEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Correlator lifecycle")
     id: str = Field(description="Correlator id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Correlator lifecycle")
 
     canonical_row: Annotated[
         AssociationOne[AnalyticsCanonicalTelemetryRowEntity],

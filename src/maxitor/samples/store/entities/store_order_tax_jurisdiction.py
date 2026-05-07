@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Jurisdiction snapshot", domain=StoreDomain)
 class OrderTaxJurisdictionSnapshotEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="OrderTaxJurisdictionSnapshotEntity lifecycle")
     id: str = Field(description="OrderTaxJurisdictionSnapshotEntity id")
+    lifecycle: SalesOrderLifecycle = Field(description="OrderTaxJurisdictionSnapshotEntity lifecycle")
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],

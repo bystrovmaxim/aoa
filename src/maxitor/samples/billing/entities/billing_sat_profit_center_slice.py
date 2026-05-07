@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_file_ingest_manifest import Billin
 
 @entity(description="Profit-center split hanging off ingest manifest root", domain=BillingDomain)
 class ProfitCenterContributionEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Profit center lifecycle")
     id: str = Field(description="Slice id")
+    lifecycle: BillingDenseLifecycle = Field(description="Profit center lifecycle")
 
     ingest_manifest: Annotated[
         AssociationOne[BillingFileIngestManifestEntity],

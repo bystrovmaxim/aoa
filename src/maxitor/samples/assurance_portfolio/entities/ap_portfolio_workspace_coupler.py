@@ -17,8 +17,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_workspace_program_stub impo
 
 @entity(description="Associative linkage from lane to encapsulated workspace programs", domain=AssurancePortfolioDomain)
 class AssurancePortfolioWorkspaceCouplerEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Coupler lifecycle")
     id: str = Field(description="Coupler id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Coupler lifecycle")
 
     portfolio_lane: Annotated[
         AssociationOne[AssurancePortfolioLaneStubEntity],

@@ -14,8 +14,8 @@ from maxitor.samples.clinical_supply.entities.cs_lifecycle import ClinicalSupply
     domain=ClinicalSupplyDomain,
 )
 class ClinicalGeographicAnchorEntity(BaseEntity):
-    lifecycle: ClinicalSupplyLifecycle = Field(description="Anchor lifecycle")
     id: str = Field(description="Geographic anchor id")
+    lifecycle: ClinicalSupplyLifecycle = Field(description="Anchor lifecycle")
 
 
 ClinicalGeographicAnchorEntity.model_rebuild()

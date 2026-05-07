@@ -14,8 +14,8 @@ from maxitor.samples.analytics.entities.analytics_aggregate_sketch_stub import A
 
 @entity(description="Time bucket mapper on sketch sampling pipeline continuation", domain=AnalyticsDomain)
 class TimeBucketMapperEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Mapper lifecycle")
     id: str = Field(description="Mapper id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Mapper lifecycle")
 
     sketch_stub: Annotated[
         AssociationOne[AnalyticsAggregateSketchStubEntity],

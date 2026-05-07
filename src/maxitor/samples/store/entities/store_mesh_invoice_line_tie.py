@@ -15,8 +15,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderLineEntity
 
 @entity(description="Structured tie reconciling invoicing artefacts with fulfilment-line rows", domain=StoreDomain)
 class StoreInvoiceLineTieEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Tie lifecycle")
     id: str = Field(description="Correlation id")
+    lifecycle: SalesOrderLifecycle = Field(description="Tie lifecycle")
 
     invoice: Annotated[
         AssociationOne[InvoiceRecordEntity],

@@ -27,8 +27,8 @@ from maxitor.samples.store.entities.lifecycle import (
 
 @entity(description="Registered customer", domain=StoreDomain)
 class CustomerAccountEntity(BaseEntity):
-    lifecycle: CustomerAccountLifecycle = Field(description="Account lifecycle")
     id: str = Field(description="Customer id")
+    lifecycle: CustomerAccountLifecycle = Field(description="Account lifecycle")
     name: str = Field(description="Display name")
     email: str = Field(description="Email")
 
@@ -58,8 +58,8 @@ class SalesOrderEntity(BaseEntity):
 
 @entity(description="Order line", domain=StoreDomain)
 class SalesOrderLineEntity(BaseEntity):
-    lifecycle: SalesOrderLineLifecycle = Field(description="Line lifecycle")
     id: str = Field(description="Item id")
+    lifecycle: SalesOrderLineLifecycle = Field(description="Line lifecycle")
     product_name: str = Field(description="Product")
     quantity: int = Field(description="Qty", ge=1)
     unit_price: float = Field(description="Unit price", ge=0)

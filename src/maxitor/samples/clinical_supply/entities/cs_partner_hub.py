@@ -14,8 +14,8 @@ from maxitor.samples.clinical_supply.entities.cs_lifecycle import ClinicalSupply
 
 @entity(description="Neutral partner root keyed for subtype projections", domain=ClinicalSupplyDomain)
 class ClinicalPartnerHubEntity(BaseEntity):
-    lifecycle: ClinicalSupplyLifecycle = Field(description="Partner lifecycle")
     id: str = Field(description="Partner id")
+    lifecycle: ClinicalSupplyLifecycle = Field(description="Partner lifecycle")
 
     site_anchor: Annotated[
         AssociationOne[ClinicalGeographicAnchorEntity],

@@ -15,8 +15,8 @@ from maxitor.samples.inventory.entities.inv_lot_freeze_flag import LotFreezeFlag
 
 @entity(description="Disposition advice for a frozen lot within a facility", domain=InventoryDomain)
 class DispositionAdviceEntity(BaseEntity):
-    lifecycle: InvDenseLifecycle = Field(description="Disposition lifecycle")
     id: str = Field(description="Advice id")
+    lifecycle: InvDenseLifecycle = Field(description="Disposition lifecycle")
 
     freeze_flag: Annotated[
         AssociationOne[LotFreezeFlagEntity],

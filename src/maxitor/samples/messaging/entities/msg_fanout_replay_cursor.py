@@ -14,8 +14,8 @@ from maxitor.samples.messaging.entities.msg_webhook_signature_envelope import We
 
 @entity(description="Fanout replay cursor on verified webhook signatures", domain=MessagingDomain)
 class FanoutReplayCursorEntity(BaseEntity):
-    lifecycle: MsgDenseLifecycle = Field(description="Cursor lifecycle")
     id: str = Field(description="Cursor id")
+    lifecycle: MsgDenseLifecycle = Field(description="Cursor lifecycle")
 
     signature_envelope: Annotated[
         AssociationOne[WebhookSignatureEnvelopeEntity],

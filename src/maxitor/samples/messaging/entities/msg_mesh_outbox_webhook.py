@@ -15,8 +15,8 @@ from maxitor.samples.messaging.entities.outbox_message import OutboxMessageEntit
 
 @entity(description="Correlates isolated webhook verification path with transactional outbox rows", domain=MessagingDomain)
 class MsgOutboxWebhookCorrelateEntity(BaseEntity):
-    lifecycle: MsgDenseLifecycle = Field(description="Correlator lifecycle")
     id: str = Field(description="Correlator id")
+    lifecycle: MsgDenseLifecycle = Field(description="Correlator lifecycle")
 
     outbox_row: Annotated[
         AssociationOne[OutboxMessageEntity],

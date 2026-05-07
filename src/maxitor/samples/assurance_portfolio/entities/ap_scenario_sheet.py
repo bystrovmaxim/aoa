@@ -16,8 +16,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_workspace_program_stub impo
 
 @entity(description="Scenario blueprint bound to workspace (test_case analogue)", domain=AssurancePortfolioDomain)
 class AssuranceScenarioSheetEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Scenario lifecycle")
     id: str = Field(description="Scenario sheet id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Scenario lifecycle")
 
     workspace_program: Annotated[
         AssociationOne[AssuranceWorkspaceProgramStubEntity],

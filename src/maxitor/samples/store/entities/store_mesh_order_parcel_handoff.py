@@ -18,8 +18,8 @@ from maxitor.samples.store.entities.shipment_parcel import ShipmentParcelEntity
     domain=StoreDomain,
 )
 class StoreOrderParcelHandoffEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Handoff lifecycle")
     id: str = Field(description="Link id")
+    lifecycle: SalesOrderLifecycle = Field(description="Handoff lifecycle")
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],

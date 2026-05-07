@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_sweep_instruction import BillingSw
 
 @entity(description="Funding window anchored on sweep instruction", domain=BillingDomain)
 class FundingWindowHintEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Liquidity facet lifecycle")
     id: str = Field(description="Window id")
+    lifecycle: BillingDenseLifecycle = Field(description="Liquidity facet lifecycle")
 
     sweep: Annotated[
         AssociationOne[BillingSweepInstructionEntity],

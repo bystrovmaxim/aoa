@@ -14,8 +14,8 @@ from maxitor.samples.messaging.entities.msg_dispatcher_cursor_shard import Dispa
 
 @entity(description="Dedupe correlation chaining from dispatcher watermark", domain=MessagingDomain)
 class DedupeCorrelationEntity(BaseEntity):
-    lifecycle: MsgDenseLifecycle = Field(description="Dedupe lifecycle")
     id: str = Field(description="Dedupe id")
+    lifecycle: MsgDenseLifecycle = Field(description="Dedupe lifecycle")
 
     dispatcher_cursor: Annotated[
         AssociationOne[DispatcherCursorShardEntity],

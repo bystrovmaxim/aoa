@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_payout_plan import BillingPayoutPl
 
 @entity(description="Sweep instruction under payout plan", domain=BillingDomain)
 class BillingSweepInstructionEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Sweep lifecycle")
     id: str = Field(description="Sweep id")
+    lifecycle: BillingDenseLifecycle = Field(description="Sweep lifecycle")
 
     payout_plan: Annotated[
         AssociationOne[BillingPayoutPlanEntity],

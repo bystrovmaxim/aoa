@@ -29,8 +29,8 @@ class _StoreDirectedCycleSketchLifecycle(Lifecycle):
     domain=StoreDomain,
 )
 class StoreDirectedCyclePingEntity(BaseEntity):
-    lifecycle: _StoreDirectedCycleSketchLifecycle = Field(description="Ping sketch lifecycle")
     id: str = Field(description="Ping row id")
+    lifecycle: _StoreDirectedCycleSketchLifecycle = Field(description="Ping sketch lifecycle")
 
     pong_peer: Annotated[
         AssociationOne[StoreDirectedCyclePongEntity],
@@ -50,8 +50,8 @@ class StoreDirectedCyclePingEntity(BaseEntity):
     domain=StoreDomain,
 )
 class StoreDirectedCyclePongEntity(BaseEntity):
-    lifecycle: _StoreDirectedCycleSketchLifecycle = Field(description="Pong sketch lifecycle")
     id: str = Field(description="Pong row id")
+    lifecycle: _StoreDirectedCycleSketchLifecycle = Field(description="Pong sketch lifecycle")
 
     ping_peer: Annotated[
         AssociationOne[StoreDirectedCyclePingEntity],

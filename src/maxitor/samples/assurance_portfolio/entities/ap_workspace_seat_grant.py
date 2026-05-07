@@ -17,8 +17,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_workspace_program_stub impo
 
 @entity(description="Actor ↔ workspace stewardship grant (test project role analogue)", domain=AssurancePortfolioDomain)
 class AssuranceWorkspaceSeatGrantEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Seat lifecycle")
     id: str = Field(description="Seat grant id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Seat lifecycle")
 
     actor: Annotated[
         AssociationOne[AssuranceFacilityActorEntity],

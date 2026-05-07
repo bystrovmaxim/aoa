@@ -11,6 +11,7 @@ from maxitor.samples.catalog.entities.catalog_product_lifecycle import CatalogPr
 
 @entity(description="Sellable SKU in the sample catalog", domain=CatalogDomain)
 class CatalogProductEntity(BaseEntity):
+    id: str = Field(description="Product row id")
     lifecycle: CatalogProductLifecycle = Field(description="Catalog product lifecycle")
     sku: str = Field(description="Stock keeping unit")
     title: str = Field(description="Display title")

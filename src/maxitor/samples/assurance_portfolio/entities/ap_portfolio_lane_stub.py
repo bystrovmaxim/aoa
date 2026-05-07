@@ -11,8 +11,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_lifecycle import AssuranceP
 
 @entity(description="Broader organizational lane tying multiple workspaces", domain=AssurancePortfolioDomain)
 class AssurancePortfolioLaneStubEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Lane lifecycle")
     id: str = Field(description="Portfolio lane id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Lane lifecycle")
 
 
 AssurancePortfolioLaneStubEntity.model_rebuild()

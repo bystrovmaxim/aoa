@@ -14,8 +14,8 @@ from maxitor.samples.messaging.entities.msg_dense_lifecycle import MsgDenseLifec
 
 @entity(description="Downstream watermark continuing dispatcher reconciliation backbone", domain=MessagingDomain)
 class DownstreamWatermarkEntity(BaseEntity):
-    lifecycle: MsgDenseLifecycle = Field(description="Watermark lifecycle")
     id: str = Field(description="Watermark id")
+    lifecycle: MsgDenseLifecycle = Field(description="Watermark lifecycle")
 
     dedupe: Annotated[
         AssociationOne[DedupeCorrelationEntity],

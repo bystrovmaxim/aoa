@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_parse_pass import BillingParsePass
 
 @entity(description="Duplicate suppression fragment attached to parse pass", domain=BillingDomain)
 class DuplicateSuppressionLedgerEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Duplicate ledger lifecycle")
     id: str = Field(description="Ledger fragment id")
+    lifecycle: BillingDenseLifecycle = Field(description="Duplicate ledger lifecycle")
 
     parse_pass: Annotated[
         AssociationOne[BillingParsePassEntity],

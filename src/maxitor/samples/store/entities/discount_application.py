@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Discount application row", domain=StoreDomain)
 class DiscountApplicationEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Discount lifecycle")
     id: str = Field(description="Discount application id")
+    lifecycle: SalesOrderLifecycle = Field(description="Discount lifecycle")
     coupon_code: str = Field(description="Coupon code")
     discount_amount: float = Field(description="Discount amount", ge=0)
 

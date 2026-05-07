@@ -15,8 +15,8 @@ from maxitor.samples.catalog.entities.catalog_dense_lifecycle import CatalogDens
 
 @entity(description="Diamond bridge: merges acquisition funnel with assortment island (still no SKU star)", domain=CatalogDomain)
 class AudienceSegmentGlueEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Glue lifecycle")
     id: str = Field(description="Glue id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Glue lifecycle")
 
     conversion_stub: Annotated[
         AssociationOne[ConversionAttributionStubEntity],

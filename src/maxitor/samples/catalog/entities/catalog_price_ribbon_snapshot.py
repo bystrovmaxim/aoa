@@ -14,8 +14,8 @@ from maxitor.samples.catalog.entities.catalog_search_boost_weight import SearchB
 
 @entity(description="Price ribbon chained from search/boost spine (still no SKU hop)", domain=CatalogDomain)
 class PriceRibbonSnapshotEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Price ribbon lifecycle")
     id: str = Field(description="Ribbon id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Price ribbon lifecycle")
 
     search_boost: Annotated[
         AssociationOne[SearchBoostWeightEntity],

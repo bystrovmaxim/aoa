@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_parse_pass import BillingParsePass
 
 @entity(description="Canonical row emitted from parser", domain=BillingDomain)
 class BillingCanonicalRowArtifactEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Row lifecycle")
     id: str = Field(description="Artifact id")
+    lifecycle: BillingDenseLifecycle = Field(description="Row lifecycle")
 
     parse_pass: Annotated[
         AssociationOne[BillingParsePassEntity],

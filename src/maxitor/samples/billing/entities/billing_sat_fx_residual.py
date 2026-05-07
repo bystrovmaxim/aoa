@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_sat_narrative_correction import Na
 
 @entity(description="FX residual facet continuing ingest narrative spine", domain=BillingDomain)
 class FxResidualTagEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="FX residual lifecycle")
     id: str = Field(description="Residual id")
+    lifecycle: BillingDenseLifecycle = Field(description="FX residual lifecycle")
 
     narrative: Annotated[
         AssociationOne[NarrativeCorrectionEntity],

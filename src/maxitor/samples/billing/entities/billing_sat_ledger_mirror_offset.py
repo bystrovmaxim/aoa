@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_sat_fee_schedule_ptr import Mercha
 
 @entity(description="Ledger mirror continuation on interchange fee spine", domain=BillingDomain)
 class LedgerMirrorOffsetEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Mirror offset lifecycle")
     id: str = Field(description="Offset id")
+    lifecycle: BillingDenseLifecycle = Field(description="Mirror offset lifecycle")
 
     fee_schedule_pointer: Annotated[
         AssociationOne[MerchantFeeSchedulePointerEntity],

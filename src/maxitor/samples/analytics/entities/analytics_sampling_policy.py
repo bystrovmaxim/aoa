@@ -11,8 +11,8 @@ from maxitor.samples.analytics.entities.an_dense_lifecycle import AnalyticsPipel
 
 @entity(description="Parallel sampling subgraph head", domain=AnalyticsDomain)
 class AnalyticsSamplingPolicyEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Sampling lifecycle")
     id: str = Field(description="Policy id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Sampling lifecycle")
 
 
 AnalyticsSamplingPolicyEntity.model_rebuild()

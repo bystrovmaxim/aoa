@@ -11,8 +11,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_lifecycle import AssuranceP
 
 @entity(description="Expectation bucket container (requirement_spec analogue)", domain=AssurancePortfolioDomain)
 class AssuranceExpectationCatalogStubEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Catalog lifecycle")
     id: str = Field(description="Expectation catalog id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Catalog lifecycle")
 
 
 AssuranceExpectationCatalogStubEntity.model_rebuild()

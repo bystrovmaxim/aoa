@@ -15,8 +15,8 @@ from maxitor.samples.inventory.entities.inv_facility_warehouse import FacilityWa
 
 @entity(description="Associates upstream facility footprints with lateral cross-dock staging gates", domain=InventoryDomain)
 class InvFacilityCrossdockBridgeEntity(BaseEntity):
-    lifecycle: InvDenseLifecycle = Field(description="Bridge lifecycle")
     id: str = Field(description="Bridge id")
+    lifecycle: InvDenseLifecycle = Field(description="Bridge lifecycle")
 
     facility: Annotated[
         AssociationOne[FacilityWarehouseEntity],

@@ -14,8 +14,8 @@ from maxitor.samples.catalog.entities.catalog_dense_lifecycle import CatalogDens
 
 @entity(description="Attributed touch moment", domain=CatalogDomain)
 class TouchMomentEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Touch lifecycle")
     id: str = Field(description="Touch id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Touch lifecycle")
 
     channel_ledger: Annotated[
         AssociationOne[AcquisitionChannelLedgerEntity],

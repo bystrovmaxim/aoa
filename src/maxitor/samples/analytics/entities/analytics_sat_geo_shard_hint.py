@@ -14,8 +14,8 @@ from maxitor.samples.analytics.entities.analytics_sat_replay_watermark_stub impo
 
 @entity(description="Geo shard hint chaining off replay watermark bridge", domain=AnalyticsDomain)
 class GeoShardHintEntity(BaseEntity):
-    lifecycle: AnalyticsFactLifecycle = Field(description="Geo shard hint lifecycle")
     id: str = Field(description="Shard hint id")
+    lifecycle: AnalyticsFactLifecycle = Field(description="Geo shard hint lifecycle")
 
     replay_watermark: Annotated[
         AssociationOne[ReplayWatermarkStubEntity],

@@ -14,8 +14,8 @@ from maxitor.samples.analytics.entities.analytics_sat_time_bucket_mapper import 
 
 @entity(description="Hash salt bookkeeping continuing time-bucket spine", domain=AnalyticsDomain)
 class UserHashSaltStubEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Salt stub lifecycle")
     id: str = Field(description="Salt id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Salt stub lifecycle")
 
     bucket_mapper: Annotated[
         AssociationOne[TimeBucketMapperEntity],

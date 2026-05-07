@@ -11,8 +11,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_lifecycle import AssuranceP
 
 @entity(description="Primary assurance workspace capsule (test_project analogue)", domain=AssurancePortfolioDomain)
 class AssuranceWorkspaceProgramStubEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Workspace lifecycle")
     id: str = Field(description="Workspace program id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Workspace lifecycle")
 
 
 AssuranceWorkspaceProgramStubEntity.model_rebuild()

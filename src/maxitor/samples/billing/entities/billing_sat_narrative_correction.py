@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDens
 
 @entity(description="Narrative correction attached to canonical ingest row", domain=BillingDomain)
 class NarrativeCorrectionEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Correction lifecycle")
     id: str = Field(description="Row id")
+    lifecycle: BillingDenseLifecycle = Field(description="Correction lifecycle")
 
     canonical_row: Annotated[
         AssociationOne[BillingCanonicalRowArtifactEntity],

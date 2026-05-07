@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Geo compliance fence row", domain=StoreDomain)
 class OrderGeoFenceEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="OrderGeoFenceEntity lifecycle")
     id: str = Field(description="OrderGeoFenceEntity id")
+    lifecycle: SalesOrderLifecycle = Field(description="OrderGeoFenceEntity lifecycle")
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],

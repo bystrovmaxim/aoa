@@ -16,8 +16,8 @@ from maxitor.samples.analytics.entities.analytics_canonical_telemetry_row import
 
 @entity(description="Metric rollup staging chained from canonical row", domain=AnalyticsDomain)
 class AnalyticsMetricRollupStagingEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Rollup lifecycle")
     id: str = Field(description="Staging shard id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Rollup lifecycle")
 
     canonical_row: Annotated[
         AssociationOne[AnalyticsCanonicalTelemetryRowEntity],

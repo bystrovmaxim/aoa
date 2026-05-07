@@ -14,8 +14,8 @@ from maxitor.samples.support.entities.support_simple_lifecycle import SupportSpa
 
 @entity(description="SLA interval chaining from participant row", domain=SupportDomain)
 class SupportSlaIntervalEntity(BaseEntity):
-    lifecycle: SupportSparseLifecycle = Field(description="SLA interval lifecycle")
     id: str = Field(description="Interval id")
+    lifecycle: SupportSparseLifecycle = Field(description="SLA interval lifecycle")
 
     participant: Annotated[
         AssociationOne[SupportParticipantEntity],

@@ -15,8 +15,8 @@ from maxitor.samples.support.entities.support_ticket_aggregate import SupportTic
 
 @entity(description="Associative pairing on sparse support graph (triangle completion on ticket spine)", domain=SupportDomain)
 class SupportTicketParticipantPairEntity(BaseEntity):
-    lifecycle: SupportSparseLifecycle = Field(description="Pair lifecycle")
     id: str = Field(description="Assoc id")
+    lifecycle: SupportSparseLifecycle = Field(description="Pair lifecycle")
 
     ticket: Annotated[
         AssociationOne[SupportTicketAggregateEntity],

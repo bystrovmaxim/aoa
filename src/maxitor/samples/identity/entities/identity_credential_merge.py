@@ -16,8 +16,8 @@ from maxitor.samples.identity.entities.identity_phone_factor import IdentityPhon
 
 @entity(description="Credential merge correlate across person, email, and phone factors", domain=IdentityDomain)
 class IdentityCredentialMergeCorrelateEntity(BaseEntity):
-    lifecycle: IdentityDenseLifecycle = Field(description="Merge correlate lifecycle")
     id: str = Field(description="Correlate id")
+    lifecycle: IdentityDenseLifecycle = Field(description="Merge correlate lifecycle")
 
     email_factor: Annotated[
         AssociationOne[IdentityEmailFactorEntity],

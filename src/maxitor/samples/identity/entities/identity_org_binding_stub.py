@@ -15,8 +15,8 @@ from maxitor.samples.identity.entities.identity_person_hub import IdentityPerson
 
 @entity(description="Organization binding for a person through a federated linkage", domain=IdentityDomain)
 class IdentityOrgBindingStubEntity(BaseEntity):
-    lifecycle: IdentityDenseLifecycle = Field(description="Org binding lifecycle")
     id: str = Field(description="Binding id")
+    lifecycle: IdentityDenseLifecycle = Field(description="Org binding lifecycle")
 
     federated_linkage: Annotated[
         AssociationOne[IdentityFederatedLinkageEntity],

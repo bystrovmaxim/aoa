@@ -22,8 +22,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_reference_axes import (
     domain=AssurancePortfolioDomain,
 )
 class AssuranceExpectationOutlineNodeEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Outline node lifecycle")
     id: str = Field(description="Outline node id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Outline node lifecycle")
 
     catalog_bucket: Annotated[
         AssociationOne[AssuranceExpectationCatalogStubEntity],

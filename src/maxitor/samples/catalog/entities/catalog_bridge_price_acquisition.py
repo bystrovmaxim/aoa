@@ -15,8 +15,8 @@ from maxitor.samples.catalog.entities.catalog_price_ribbon_snapshot import Price
 
 @entity(description="Associative stitching between attribution ledger and elasticity ribbon subgraph", domain=CatalogDomain)
 class CatalogPriceAcquisitionLinkEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Stitch lifecycle")
     id: str = Field(description="Link id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Stitch lifecycle")
 
     price_ribbon: Annotated[
         AssociationOne[PriceRibbonSnapshotEntity],

@@ -15,8 +15,8 @@ from maxitor.samples.inventory.entities.inv_facility_warehouse import FacilityWa
 
 @entity(description="Lot snapshot ledger tying facility and bin coordinates", domain=InventoryDomain)
 class LotSnapshotLedgerEntity(BaseEntity):
-    lifecycle: InvDenseLifecycle = Field(description="Snapshot ledger lifecycle")
     id: str = Field(description="Ledger id")
+    lifecycle: InvDenseLifecycle = Field(description="Snapshot ledger lifecycle")
 
     facility: Annotated[
         AssociationOne[FacilityWarehouseEntity],

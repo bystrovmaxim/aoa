@@ -11,8 +11,8 @@ from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingPipe
 
 @entity(description="Billing file ingest manifest", domain=BillingDomain)
 class BillingFileIngestManifestEntity(BaseEntity):
-    lifecycle: BillingPipelineLifecycle = Field(description="Ingest lifecycle")
     id: str = Field(description="Manifest id")
+    lifecycle: BillingPipelineLifecycle = Field(description="Ingest lifecycle")
     file_logical_name: str = Field(description="Declared file label before landing")
     content_sha256_hex: str = Field(description="Hex digest after virus scan checkpoint")
     approximate_row_count: int = Field(description="Parser-estimated ingest rows", ge=0)

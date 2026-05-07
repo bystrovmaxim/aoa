@@ -11,8 +11,8 @@ from maxitor.samples.catalog.entities.catalog_dense_lifecycle import CatalogDens
 
 @entity(description="Acquisition channel attribution ledger head", domain=CatalogDomain)
 class AcquisitionChannelLedgerEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Channel ledger lifecycle")
     id: str = Field(description="Ledger id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Channel ledger lifecycle")
 
 
 AcquisitionChannelLedgerEntity.model_rebuild()

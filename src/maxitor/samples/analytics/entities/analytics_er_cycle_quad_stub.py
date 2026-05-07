@@ -24,8 +24,8 @@ class _AnDirectedCycleSketchLifecycle(Lifecycle):
 
 @entity(description="Analytics quad vertex A (\u2192B / \u2190D reciprocal)", domain=AnalyticsDomain)
 class AnalyticsDirectedCycleQuadAEntity(BaseEntity):
-    lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
     id: str = Field(description="Vertex A id")
+    lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
     follow_b: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadBEntity],
@@ -40,8 +40,8 @@ class AnalyticsDirectedCycleQuadAEntity(BaseEntity):
 
 @entity(description="Analytics quad vertex B (\u2190A / \u2192C reciprocal)", domain=AnalyticsDomain)
 class AnalyticsDirectedCycleQuadBEntity(BaseEntity):
-    lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
     id: str = Field(description="Vertex B id")
+    lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
     back_from_a: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadAEntity],
@@ -61,8 +61,8 @@ class AnalyticsDirectedCycleQuadBEntity(BaseEntity):
 
 @entity(description="Analytics quad vertex C (\u2190B / \u2192D reciprocal)", domain=AnalyticsDomain)
 class AnalyticsDirectedCycleQuadCEntity(BaseEntity):
-    lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
     id: str = Field(description="Vertex C id")
+    lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
     back_from_b: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadBEntity],
@@ -77,8 +77,8 @@ class AnalyticsDirectedCycleQuadCEntity(BaseEntity):
 
 @entity(description="Analytics quad vertex D (\u2190C / \u2192A reciprocal)", domain=AnalyticsDomain)
 class AnalyticsDirectedCycleQuadDEntity(BaseEntity):
-    lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
     id: str = Field(description="Vertex D id")
+    lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
     back_from_c: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadCEntity],

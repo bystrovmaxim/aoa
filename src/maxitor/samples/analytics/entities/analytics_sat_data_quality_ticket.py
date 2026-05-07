@@ -14,8 +14,8 @@ from maxitor.samples.analytics.entities.analytics_sat_experiment_overlay import 
 
 @entity(description="DQ ticket continuing experiment-overlay chain segment", domain=AnalyticsDomain)
 class DataQualityTicketEntity(BaseEntity):
-    lifecycle: AnalyticsFactLifecycle = Field(description="DQ ticket lifecycle")
     id: str = Field(description="Ticket id")
+    lifecycle: AnalyticsFactLifecycle = Field(description="DQ ticket lifecycle")
 
     experiment_overlay: Annotated[
         AssociationOne[ExperimentOverlayEntity],

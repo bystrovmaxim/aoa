@@ -15,8 +15,8 @@ from maxitor.samples.analytics.entities.analytics_sat_privacy_budget_slice impor
 
 @entity(description="Associates heavyweight rollup egress with sovereign privacy budgeting island", domain=AnalyticsDomain)
 class AnalyticsRollupPrivacyCorrelateEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Correlator lifecycle")
     id: str = Field(description="Correlator id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Correlator lifecycle")
 
     rollup_staging: Annotated[
         AssociationOne[AnalyticsMetricRollupStagingEntity],

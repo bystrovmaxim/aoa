@@ -14,8 +14,8 @@ from maxitor.samples.messaging.entities.msg_hop_latency_sample import HopLatency
 
 @entity(description="Recipient device acknowledgement linked to latency hop", domain=MessagingDomain)
 class RecipientDeviceSeenEntity(BaseEntity):
-    lifecycle: MsgDenseLifecycle = Field(description="Device seen lifecycle")
     id: str = Field(description="Device row id")
+    lifecycle: MsgDenseLifecycle = Field(description="Device seen lifecycle")
 
     hop_sample: Annotated[
         AssociationOne[HopLatencySampleEntity],

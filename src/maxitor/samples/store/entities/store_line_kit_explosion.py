@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderLineEntity
 
 @entity(description="Kit explosion child line trace", domain=StoreDomain)
 class KitExplosionLineEntity(BaseEntity):
-    lifecycle: SalesOrderLineLifecycle = Field(description="KitExplosionLineEntity lifecycle")
     id: str = Field(description="KitExplosionLineEntity id")
+    lifecycle: SalesOrderLineLifecycle = Field(description="KitExplosionLineEntity lifecycle")
 
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],

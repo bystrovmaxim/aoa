@@ -14,8 +14,8 @@ from maxitor.samples.analytics.entities.analytics_sampling_policy import Analyti
 
 @entity(description="Sketch aggregate stub following sampling policy (two-node branch)", domain=AnalyticsDomain)
 class AnalyticsAggregateSketchStubEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Sketch stub lifecycle")
     id: str = Field(description="Sketch id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Sketch stub lifecycle")
 
     policy: Annotated[
         AssociationOne[AnalyticsSamplingPolicyEntity],
