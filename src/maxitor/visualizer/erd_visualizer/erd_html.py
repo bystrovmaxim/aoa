@@ -214,6 +214,10 @@ _ERD_BOOTSTRAP_JS = """
   const COPY_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
 
+  const MIN_SCALE = 0.2;
+  const MAX_SCALE = 2.5;
+  const WHEEL_ZOOM_SENSITIVITY = 0.0045;
+
   const container = document.getElementById('container');
   const graph = new Graph({
     container,
@@ -234,10 +238,9 @@ _ERD_BOOTSTRAP_JS = """
       },
     },
     mousewheel: {
-      enabled: true,
-      modifiers: ['ctrl', 'meta'],
-      minScale: 0.12,
-      maxScale: 2.5,
+      enabled: false,
+      minScale: MIN_SCALE,
+      maxScale: MAX_SCALE,
     },
     panning: true,
     background: {
@@ -377,32 +380,73 @@ _ERD_BOOTSTRAP_JS = """
   }
 
   const zoomPct = document.getElementById('zoom-pct');
+  function currentScale() {
+    return graph.transform?.getScale?.()?.sx ?? 1;
+  }
+  function clampScale(scale) {
+    return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
+  }
+  function setAbsoluteZoom(scale) {
+    const next = clampScale(scale);
+    if (typeof graph.zoomTo === 'function') {
+      graph.zoomTo(next);
+      return;
+    }
+    const curr = currentScale();
+    const ratio = next / (curr <= 0 ? 1 : curr);
+    graph.zoom(ratio);
+  }
   function syncZoom() {
     if (!zoomPct) return;
-    const sx = graph.transform?.getScale?.()?.sx ?? 1;
+    const sx = currentScale();
     zoomPct.textContent = Math.round(Number(sx) * 100) + '%';
   }
 
   graph.on('scale', () => {
     syncZoom();
-    const sx = graph.transform?.getScale?.()?.sx ?? 1;
+    const sx = currentScale();
     applyLodLevel(sx <= 0.65 ? 'overview' : 'detailed');
   });
 
   graph.on('translate', () => syncZoom());
 
-  document.getElementById('zoom-in')?.addEventListener('click', () => {
-    graph.zoom(1.22);
+  let wheelAccum = 0;
+  let wheelRaf = null;
+  const flushWheelZoom = () => {
+    wheelRaf = null;
+    // Clamp one frame impulse to avoid large jump spikes from trackpads.
+    const dy = Math.max(-120, Math.min(120, wheelAccum));
+    wheelAccum = 0;
+    const factor = Math.exp(-dy * WHEEL_ZOOM_SENSITIVITY);
+    setAbsoluteZoom(currentScale() * factor);
     syncZoom();
+  };
+  container.addEventListener(
+    'wheel',
+    (evt) => {
+      evt.preventDefault();
+      wheelAccum += evt.deltaY;
+      if (wheelRaf == null) wheelRaf = requestAnimationFrame(flushWheelZoom);
+    },
+    { passive: false },
+  );
+
+  const doZoom = (factor) => {
+    const cur = currentScale();
+    setAbsoluteZoom(cur * factor);
+    syncZoom();
+  };
+
+  document.getElementById('zoom-in')?.addEventListener('click', () => {
+    doZoom(1.25);
   });
   document.getElementById('zoom-out')?.addEventListener('click', () => {
-    graph.zoom(0.82);
-    syncZoom();
+    doZoom(0.8);
   });
   document.getElementById('zoom-fit')?.addEventListener('click', () => {
     graph.zoomToFit({ padding: 48, maxScale: 1.08 });
     syncZoom();
-    applyLodLevel(graph.transform?.getScale?.()?.sx <= 0.65 ? 'overview' : 'detailed');
+    applyLodLevel(currentScale() <= 0.65 ? 'overview' : 'detailed');
   });
 
   syncZoom();
@@ -412,7 +456,7 @@ _ERD_BOOTSTRAP_JS = """
     syncZoom();
   });
 
-  const sx0 = graph.transform?.getScale?.()?.sx ?? 1;
+  const sx0 = currentScale();
   applyLodLevel(sx0 <= 0.65 ? 'overview' : 'detailed');
 })();
 """
