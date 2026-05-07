@@ -27,8 +27,8 @@ from .erd_graph_data import (
     erd_payload_to_x6_document,
 )
 from .erd_html import (
-    DEFAULT_ERD_HTML_PATH,
     D2_MODULE_URL,
+    DEFAULT_ERD_HTML_PATH,
     ELK_MODULE_URL,
     GRAPHVIZ_MODULE_URL,
     MERMAID_MODULE_URL,
@@ -38,8 +38,8 @@ from .erd_html import (
 )
 
 __all__ = [
-    "DEFAULT_ERD_HTML_PATH",
     "D2_MODULE_URL",
+    "DEFAULT_ERD_HTML_PATH",
     "ELK_MODULE_URL",
     "GRAPHVIZ_MODULE_URL",
     "MERMAID_MODULE_URL",

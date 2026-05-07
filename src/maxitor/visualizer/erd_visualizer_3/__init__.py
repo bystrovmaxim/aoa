@@ -54,24 +54,20 @@ from .erd_html import (
 )
 
 __all__ = [
-    # ── paths / URLs ──────────────────────────────────────────────────────────
-    "DEFAULT_ERD_HTML_PATH",
     "D2_MODULE_URL",
     "DAGRE_MODULE_URL",
+    "DEFAULT_ERD_HTML_PATH",
     "ELK_MODULE_URL",
     "GRAPHVIZ_MODULE_URL",
     "MERMAID_MODULE_URL",
     "X6_MODULE_URL",
-    # ── data model ───────────────────────────────────────────────────────────
     "ErdEdgeSpec",
     "ErdEntitySpec",
     "ErdGraphPayload",
-    # ── graph data builders ───────────────────────────────────────────────────
     "build_demo_erd_payload",
     "erd_document_from_coordinator_graph",
     "erd_payload_from_coordinator_for_domain",
     "erd_payload_to_x6_document",
-    # ── HTML writers ─────────────────────────────────────────────────────────
     "write_erd_html",
     "write_erd_html_from_coordinator",
 ]

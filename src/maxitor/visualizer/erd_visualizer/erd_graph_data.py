@@ -1,4 +1,5 @@
 # src/maxitor/visualizer/erd_visualizer/erd_graph_data.py
+# pylint: disable=too-many-branches,too-many-statements
 """
 Pure data layer for normalized ERD-style graphs — no browser runtime.
 
@@ -168,7 +169,7 @@ def erd_payload_from_coordinator_for_domain(
     AI-CORE-END
     """
     domain_qual = TypeIntrospection.full_qualname(domain_cls)
-    by_id: dict[str, EntityGraphNode] = {}
+    by_id: dict[str, EntityGraphNode[BaseEntity]] = {}
 
     for node in coordinator.get_all_nodes():
         if not isinstance(node, EntityGraphNode):
@@ -213,7 +214,8 @@ def erd_payload_from_coordinator_for_domain(
             continue
 
         chosen = (src_id, tgt, field_name, props)
-        if inverse_key is not None and (inv := by_slot.get((inv_entity_id, inv_field))) is not None:
+        inverse_slot = (str(inv_entity_id), str(inv_field))
+        if inverse_key is not None and (inv := by_slot.get(inverse_slot)) is not None:
             this_card = str(props.get("cardinality", "") or "")
             inv_card = str(inv[3].get("cardinality", "") or "")
             if this_card == "many" and inv_card == "one":
@@ -373,7 +375,7 @@ def erd_payload_to_x6_document(payload: ErdGraphPayload) -> dict[str, list[dict[
             },
         })
 
-    for ix, rel in enumerate(payload.relationships):
+    for rel in payload.relationships:
         lp: list[dict[str, Any]] = []
         source_marker = _cardinality_marker(rel.source_cardinality)
         target_marker = _cardinality_marker(rel.target_cardinality)

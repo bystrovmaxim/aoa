@@ -1,10 +1,12 @@
 # src/maxitor/visualizer/erd_visualizer/__main__.py
+# pylint: disable=import-outside-toplevel
 """
 CLI for standalone ERD HTML from the live sample coordinator graph.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 
@@ -18,7 +20,7 @@ def _ensure_src_on_path() -> None:
         sys.path.insert(0, s)
 
 
-def _load_pkg():
+def _load_pkg() -> tuple[str | Path, Callable[..., Path]]:
     """Import package exports (supports ``python path/to/__main__.py`` invocation)."""
     if __package__:
         from .erd_html import DEFAULT_ERD_HTML_PATH, write_erd_html_from_coordinator
