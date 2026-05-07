@@ -1,6 +1,12 @@
 # src/maxitor/samples/store/entities/sales_core.py
 """
-Customer, order, and order line in one module (bidirectional ``Inverse`` between customer and order).
+Store sales core triangle — mutual ``Inverse`` on three ``BaseEntity`` classes.
+
+``CustomerAccountEntity``, ``SalesOrderEntity``, and ``SalesOrderLineEntity`` share this module because
+:class:`~action_machine.domain.relation_markers.Inverse` captures partner types at class-body time,
+and importing them from separate modules would circular-import before all three classes exist. Thin
+re-export modules (:file:`customer_account.py`, :file:`order_record.py`, :file:`line_item.py`) keep
+stable import paths without duplicating declarations.
 """
 
 from __future__ import annotations

@@ -1,0 +1,26 @@
+# src/maxitor/samples/billing/entities/billing_sat_regulatory_ptr.py
+from __future__ import annotations
+
+from typing import Annotated
+
+from pydantic import Field
+
+from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from action_machine.intents.entity import entity
+from maxitor.samples.billing.domain import BillingDomain
+from maxitor.samples.billing.entities.arbitration_brief_stub import ArbitrationBriefStubEntity
+from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
+
+
+@entity(description="Regulatory submission pointer chained from arbitration brief stub", domain=BillingDomain)
+class RegulatorySubmissionPointerEntity(BaseEntity):
+    lifecycle: BillingDenseLifecycle = Field(description="Regulatory pointer lifecycle")
+    id: str = Field(description="Pointer id")
+
+    brief: Annotated[
+        AssociationOne[ArbitrationBriefStubEntity],
+        NoInverse(),
+    ] = Rel(description="Upstream arbitration artefact")  # type: ignore[assignment]
+
+
+RegulatorySubmissionPointerEntity.model_rebuild()

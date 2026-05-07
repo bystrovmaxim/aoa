@@ -1,0 +1,26 @@
+# src/maxitor/samples/billing/entities/billing_sat_fx_residual.py
+from __future__ import annotations
+
+from typing import Annotated
+
+from pydantic import Field
+
+from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from action_machine.intents.entity import entity
+from maxitor.samples.billing.domain import BillingDomain
+from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
+from maxitor.samples.billing.entities.billing_sat_narrative_correction import NarrativeCorrectionEntity
+
+
+@entity(description="FX residual facet continuing ingest narrative spine", domain=BillingDomain)
+class FxResidualTagEntity(BaseEntity):
+    lifecycle: BillingDenseLifecycle = Field(description="FX residual lifecycle")
+    id: str = Field(description="Residual id")
+
+    narrative: Annotated[
+        AssociationOne[NarrativeCorrectionEntity],
+        NoInverse(),
+    ] = Rel(description="Upstream narrative correction")  # type: ignore[assignment]
+
+
+FxResidualTagEntity.model_rebuild()

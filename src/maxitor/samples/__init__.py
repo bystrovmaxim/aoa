@@ -2,10 +2,12 @@
 """
 Maxitor sample domains: a connected pseudo-product for the ActionMachine graph.
 
-Five bounded contexts (``store``, ``billing``, ``messaging``, ``catalog``, and
-``support``) plus :mod:`maxitor.samples.roles`. Each domain mirrors the
-structural depth of ``store``: dependencies, resources, plugins, entities, and
-actions that exercise the full graph surface.
+Eight bounded contexts (``store``, ``billing``, ``messaging``, ``catalog``,
+``identity``, ``inventory``, ``analytics``, and ``support``) plus :mod:`maxitor.samples.roles`.
+Most domains mirror the end-to-end contour of ``store`` (dependencies,
+resources, plugins, entities, actions). Synthetic contexts (``identity``,
+``inventory``, ``analytics``) are entity-only scaffolding focused on heterogeneous
+ERD / graph layouts.
 
 Load :data:`_MODULES` when import-time registrations are needed.
 """

@@ -1,7 +1,7 @@
 # src/maxitor/visualizer/erd_visualizer/erd_html.py
 """
 Standalone ERD HTML export — AntV **X6** ER-style nodes plus **ELK** layered auto-layout,
-orthogonal edge routing, and G6-style UX (zoom, properties panel, LOD).
+domain picker, orthogonal edge routing, and G6-style UX (zoom, properties panel, LOD).
 """
 
 from __future__ import annotations
@@ -256,10 +256,64 @@ _ERD_BOOTSTRAP_JS = """
     },
   });
 
-  graph.fromJSON(__CELL_DOCUMENT_JSON__);
-  const didLayout = await layoutElk(graph);
-  if (!didLayout) layoutFallback(graph);
-  graph.zoomToFit({ padding: 48, maxScale: 1.08 });
+  const erdDomainModel = __ERD_DOMAIN_MODEL_JSON__;
+  const domainPicker = document.getElementById('domain-picker');
+  const domainList = Array.isArray(erdDomainModel?.domains) ? erdDomainModel.domains : [];
+  const documentMap =
+    erdDomainModel && typeof erdDomainModel.documents === 'object'
+      ? erdDomainModel.documents
+      : {};
+  let activeDomainId =
+    typeof erdDomainModel?.initialDomainId === 'string'
+      ? erdDomainModel.initialDomainId
+      : domainList[0]?.id ?? 'default';
+
+  function activeDocument() {
+    const doc = documentMap[activeDomainId];
+    if (doc && Array.isArray(doc.cells)) return doc;
+    return { cells: [] };
+  }
+
+  async function renderActiveDomain() {
+    if (typeof graph.resetCells === 'function') graph.resetCells([]);
+    graph.fromJSON(activeDocument());
+    const didLayout = await layoutElk(graph);
+    if (!didLayout) layoutFallback(graph);
+    graph.zoomToFit({ padding: 48, maxScale: 1.08 });
+  }
+
+  function renderDomainPicker() {
+    if (!domainPicker) return;
+    if (!domainList.length || domainList.length <= 1) {
+      domainPicker.style.display = 'none';
+      return;
+    }
+    domainPicker.style.display = 'flex';
+    domainPicker.innerHTML =
+      '<div class="legend-title">Domains</div>' +
+      domainList
+        .map((dom) => {
+          const did = String(dom.id ?? '');
+          const label = String(dom.label ?? did);
+          const iconSrc = dom.iconSrc != null ? String(dom.iconSrc) : '';
+          const activeCls = did === activeDomainId ? ' is-active' : '';
+          const icon = iconSrc
+            ? '<img class="legend-icon" src="' + iconSrc + '" width="20" height="20" alt="" />'
+            : '';
+          return (
+            '<button type="button" class="domain-row' +
+            activeCls +
+            '" data-domain-id="' +
+            did +
+            '">' +
+            icon +
+            '<span>' +
+            esc(label) +
+            '</span></button>'
+          );
+        })
+        .join('');
+  }
 
   const detailShell = document.getElementById('node-detail-shell');
   const detailBody = document.getElementById('node-detail-body');
@@ -271,6 +325,19 @@ _ERD_BOOTSTRAP_JS = """
     }
     if (detailBody) detailBody.innerHTML = '';
   }
+
+  domainPicker?.addEventListener('click', async (evt) => {
+    const btn = evt.target.closest('.domain-row');
+    if (!btn || !domainPicker.contains(btn)) return;
+    const did = btn.getAttribute('data-domain-id');
+    if (!did || did === activeDomainId || !documentMap[did]) return;
+    activeDomainId = did;
+    closeDetail();
+    renderDomainPicker();
+    await renderActiveDomain();
+    syncZoom();
+    applyLodLevel(currentScale() <= 0.65 ? 'overview' : 'detailed');
+  });
 
   function showDetail(cell) {
     if (!detailShell || !detailBody || !cell) return;
@@ -453,6 +520,8 @@ _ERD_BOOTSTRAP_JS = """
     applyLodLevel(currentScale() <= 0.65 ? 'overview' : 'detailed');
   });
 
+  renderDomainPicker();
+  await renderActiveDomain();
   syncZoom();
 
   window.addEventListener('resize', () => {
@@ -460,8 +529,7 @@ _ERD_BOOTSTRAP_JS = """
     syncZoom();
   });
 
-  const sx0 = currentScale();
-  applyLodLevel(sx0 <= 0.65 ? 'overview' : 'detailed');
+  applyLodLevel(currentScale() <= 0.65 ? 'overview' : 'detailed');
 })();
 """
 
@@ -486,13 +554,20 @@ def write_erd_html(
         msg = "write_erd_html expects document with top-level \"cells\" (X6 fromJSON)"
         raise TypeError(msg)
 
-    cells_json = json.dumps(payload, ensure_ascii=False)
+    model_json = json.dumps(
+        {
+            "domains": [{"id": "default", "label": "Default", "iconSrc": ""}],
+            "documents": {"default": payload},
+            "initialDomainId": "default",
+        },
+        ensure_ascii=False,
+    )
     js_import = json.dumps(X6_MODULE_URL)
     elk_imp = json.dumps(ELK_MODULE_URL)
     bootstrap = (
         _ERD_BOOTSTRAP_JS.replace("__X6_MODULE_IMPORT__", js_import)
         .replace("__ELK_MODULE_IMPORT__", elk_imp)
-        .replace("__CELL_DOCUMENT_JSON__", cells_json)
+        .replace("__ERD_DOMAIN_MODEL_JSON__", model_json)
     )
     safe_title = html_escape(title)
     out = DEFAULT_ERD_HTML_PATH if output_path is None else Path(output_path)
@@ -511,7 +586,7 @@ def write_erd_html(
 
 def write_erd_html_from_coordinator(
     coordinator: Any,
-    domain_cls: type[Any],
+    domain_cls: type[Any] | None,
     *,
     output_path: str | Path | None = None,
     title: str = "Entity diagram",
@@ -523,8 +598,8 @@ def write_erd_html_from_coordinator(
 
     ``coordinator`` must be a :class:`~graph.node_graph_coordinator.NodeGraphCoordinator`
     produced the same way as production (typically ``create_node_graph_coordinator()`` after
-    application modules registering entities/actions are imported). ``domain_cls`` is e.g.
-    :class:`~maxitor.samples.store.domain.StoreDomain``.
+    application modules registering entities/actions are imported). When ``domain_cls`` is set,
+    it is used as initial selection in the right-side domain picker.
 
     AI-CORE-BEGIN
     PURPOSE: Convenience path from built interchange graph → X6 ER export without assembling payload manually.
@@ -533,19 +608,82 @@ def write_erd_html_from_coordinator(
     AI-CORE-END
     """
     from action_machine.domain.base_domain import BaseDomain
+    from action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
     from graph.node_graph_coordinator import NodeGraphCoordinator
     from maxitor.visualizer.erd_visualizer.erd_graph_data import (
         erd_payload_from_coordinator_for_domain,
         erd_payload_to_x6_document,
     )
+    from maxitor.visualizer.graph_visualizer.visualizer_icons import (
+        svg_data_uri_for_graph_node_icon,
+    )
 
     if not isinstance(coordinator, NodeGraphCoordinator):
         msg = "coordinator must be a built NodeGraphCoordinator"
         raise TypeError(msg)
-    if not isinstance(domain_cls, type) or not issubclass(domain_cls, BaseDomain):
+    if domain_cls is not None and (not isinstance(domain_cls, type) or not issubclass(domain_cls, BaseDomain)):
         msg = "domain_cls must be a BaseDomain subclass"
         raise TypeError(msg)
 
-    payload = erd_payload_from_coordinator_for_domain(coordinator, domain_cls)
-    doc = erd_payload_to_x6_document(payload)
-    return write_erd_html(doc, output_path=output_path, title=title, width=width, height=height)
+    domain_nodes = [
+        n
+        for n in coordinator.get_all_nodes()
+        if isinstance(n, DomainGraphNode) and isinstance(n.node_obj, type) and issubclass(n.node_obj, BaseDomain)
+    ]
+    domain_nodes = sorted(domain_nodes, key=lambda n: str(n.properties.get("name", n.label)).lower())
+    domain_documents: dict[str, dict[str, Any]] = {}
+    domain_items: list[dict[str, str]] = []
+    initial_domain_id: str | None = None
+    for dnode in domain_nodes:
+        dcls = dnode.node_obj
+        payload = erd_payload_from_coordinator_for_domain(coordinator, dcls)
+        doc = erd_payload_to_x6_document(payload)
+        domain_id = dnode.node_id
+        domain_documents[domain_id] = doc
+        domain_items.append(
+            {
+                "id": domain_id,
+                "label": str(dnode.properties.get("name", dnode.label)),
+                "iconSrc": svg_data_uri_for_graph_node_icon("#377EB8", DomainGraphNode.NODE_TYPE),
+            },
+        )
+        if domain_cls is not None and dcls is domain_cls:
+            initial_domain_id = domain_id
+
+    if not domain_items:
+        if domain_cls is None:
+            msg = "No Domain nodes found in coordinator graph."
+            raise LookupError(msg)
+        payload = erd_payload_from_coordinator_for_domain(coordinator, domain_cls)
+        doc = erd_payload_to_x6_document(payload)
+        return write_erd_html(doc, output_path=output_path, title=title, width=width, height=height)
+
+    if initial_domain_id is None:
+        initial_domain_id = domain_items[0]["id"]
+    model_json = json.dumps(
+        {
+            "domains": domain_items,
+            "documents": domain_documents,
+            "initialDomainId": initial_domain_id,
+        },
+        ensure_ascii=False,
+    )
+    js_import = json.dumps(X6_MODULE_URL)
+    elk_imp = json.dumps(ELK_MODULE_URL)
+    bootstrap = (
+        _ERD_BOOTSTRAP_JS.replace("__X6_MODULE_IMPORT__", js_import)
+        .replace("__ELK_MODULE_IMPORT__", elk_imp)
+        .replace("__ERD_DOMAIN_MODEL_JSON__", model_json)
+    )
+    safe_title = html_escape(title)
+    out = DEFAULT_ERD_HTML_PATH if output_path is None else Path(output_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    html = (
+        _template_raw()
+        .replace("@@HTML_ESCAPED_TITLE@@", safe_title)
+        .replace("@@CONTAINER_WIDTH@@", width)
+        .replace("@@CONTAINER_HEIGHT@@", height)
+        .replace("@@INLINE_ERD_SCRIPT@@", bootstrap.strip())
+    )
+    out.write_text(html, encoding="utf-8")
+    return out
