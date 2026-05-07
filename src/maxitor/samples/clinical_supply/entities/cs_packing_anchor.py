@@ -11,8 +11,8 @@ from maxitor.samples.clinical_supply.entities.cs_lifecycle import ClinicalSupply
 
 @entity(description="Sterile tray / carton profile for inbound lots", domain=ClinicalSupplyDomain)
 class ClinicalPackingAnchorEntity(BaseEntity):
-    lifecycle: ClinicalSupplyLifecycle = Field(description="Packing catalog lifecycle")
     id: str = Field(description="Packing profile id")
+    lifecycle: ClinicalSupplyLifecycle = Field(description="Packing catalog lifecycle")
 
 
 ClinicalPackingAnchorEntity.model_rebuild()

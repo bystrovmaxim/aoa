@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.chargeback_ticket import ChargebackTicketE
 
 @entity(description="Retrieval / representment bundle", domain=BillingDomain)
 class RetrievalEvidenceBundleEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Bundle lifecycle")
     id: str = Field(description="Bundle id")
+    lifecycle: BillingDenseLifecycle = Field(description="Bundle lifecycle")
 
     chargeback_ticket: Annotated[
         AssociationOne[ChargebackTicketEntity],

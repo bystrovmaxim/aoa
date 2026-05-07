@@ -14,8 +14,8 @@ from maxitor.samples.clinical_supply.entities.cs_lifecycle import ClinicalSupply
 
 @entity(description="Outbound dispatch header owned by ward / service desk", domain=ClinicalSupplyDomain)
 class ClinicalOutboundParcelWaveEntity(BaseEntity):
-    lifecycle: ClinicalSupplyLifecycle = Field(description="Outbound parcel lifecycle")
     id: str = Field(description="Parcel wave id")
+    lifecycle: ClinicalSupplyLifecycle = Field(description="Outbound parcel lifecycle")
 
     issuing_site: Annotated[
         AssociationOne[ClinicalCareSiteUnitEntity],

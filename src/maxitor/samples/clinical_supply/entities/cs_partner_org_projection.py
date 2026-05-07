@@ -18,8 +18,8 @@ from maxitor.samples.clinical_supply.entities.cs_partner_hub import ClinicalPart
     domain=ClinicalSupplyDomain,
 )
 class ClinicalPartnerOrgProjectionEntity(BaseEntity):
-    lifecycle: ClinicalSupplyLifecycle = Field(description="Org subtype lifecycle")
     id: str = Field(description="Org projection row id")
+    lifecycle: ClinicalSupplyLifecycle = Field(description="Org subtype lifecycle")
 
     partner_hub: Annotated[
         AssociationOne[ClinicalPartnerHubEntity],

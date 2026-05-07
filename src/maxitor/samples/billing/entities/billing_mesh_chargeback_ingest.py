@@ -15,8 +15,8 @@ from maxitor.samples.billing.entities.chargeback_ticket import ChargebackTicketE
 
 @entity(description="Correlate row wiring dispute artefacts to ingestion manifests", domain=BillingDomain)
 class BillingChargebackIngestCorrelateEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Correlate lifecycle")
     id: str = Field(description="Correlate id")
+    lifecycle: BillingDenseLifecycle = Field(description="Correlate lifecycle")
 
     dispute: Annotated[
         AssociationOne[ChargebackTicketEntity],

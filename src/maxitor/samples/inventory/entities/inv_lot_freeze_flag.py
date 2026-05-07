@@ -15,8 +15,8 @@ from maxitor.samples.inventory.entities.inv_facility_warehouse import FacilityWa
 
 @entity(description="Lot freeze flag anchored to bin and facility", domain=InventoryDomain)
 class LotFreezeFlagEntity(BaseEntity):
-    lifecycle: InvDenseLifecycle = Field(description="Freeze flag lifecycle")
     id: str = Field(description="Flag id")
+    lifecycle: InvDenseLifecycle = Field(description="Freeze flag lifecycle")
 
     bin_coordinate: Annotated[
         AssociationOne[BinCoordinateStubEntity],

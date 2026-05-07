@@ -14,8 +14,8 @@ from maxitor.samples.clinical_supply.entities.cs_lifecycle import ClinicalSupply
     domain=ClinicalSupplyDomain,
 )
 class ClinicalCareSiteUnitEntity(BaseEntity):
-    lifecycle: ClinicalSupplyLifecycle = Field(description="Care unit lifecycle")
     id: str = Field(description="Care unit id")
+    lifecycle: ClinicalSupplyLifecycle = Field(description="Care unit lifecycle")
 
 
 ClinicalCareSiteUnitEntity.model_rebuild()

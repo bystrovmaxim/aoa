@@ -14,8 +14,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_reference_axes import Assur
 
 @entity(description="Polymorphic-lite attachment header (fk_table analogue omitted deliberately)", domain=AssurancePortfolioDomain)
 class AssuranceEvidenceCarrierStubEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Evidence carrier lifecycle")
     id: str = Field(description="Evidence carrier row id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Evidence carrier lifecycle")
 
     evidence_kind_axis: Annotated[
         AssociationOne[AssuranceEvidenceKindAxisEntity],

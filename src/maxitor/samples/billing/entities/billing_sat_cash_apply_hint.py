@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.funding_window_hint import FundingWindowHi
 
 @entity(description="Cash application routing hint chained from liquidity funding window facet", domain=BillingDomain)
 class CashApplicationHintEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Cash hint lifecycle")
     id: str = Field(description="Hint id")
+    lifecycle: BillingDenseLifecycle = Field(description="Cash hint lifecycle")
 
     funding_window: Annotated[
         AssociationOne[FundingWindowHintEntity],

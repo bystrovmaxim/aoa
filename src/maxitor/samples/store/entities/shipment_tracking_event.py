@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.shipment_parcel import ShipmentParcelEntity
 
 @entity(description="Shipment tracking event row", domain=StoreDomain)
 class ShipmentTrackingEventEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Tracking event lifecycle")
     id: str = Field(description="Tracking event id")
+    lifecycle: SalesOrderLifecycle = Field(description="Tracking event lifecycle")
     status: str = Field(description="Carrier status")
     location: str = Field(description="Carrier location")
 

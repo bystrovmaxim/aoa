@@ -11,8 +11,8 @@ from maxitor.samples.inventory.entities.inv_dense_lifecycle import InvPipelineLi
 
 @entity(description="Warehouse / facility hub for inventory locations and cross-dock operations", domain=InventoryDomain)
 class FacilityWarehouseEntity(BaseEntity):
-    lifecycle: InvPipelineLifecycle = Field(description="Facility lifecycle")
     id: str = Field(description="Facility id")
+    lifecycle: InvPipelineLifecycle = Field(description="Facility lifecycle")
 
 
 FacilityWarehouseEntity.model_rebuild()

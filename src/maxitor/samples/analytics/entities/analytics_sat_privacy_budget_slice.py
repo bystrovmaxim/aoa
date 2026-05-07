@@ -11,8 +11,8 @@ from maxitor.samples.analytics.entities.an_dense_lifecycle import AnalyticsFactL
 
 @entity(description="Privacy budget ledger slice isolated as its own subgraph root", domain=AnalyticsDomain)
 class PrivacyBudgetSliceEntity(BaseEntity):
-    lifecycle: AnalyticsFactLifecycle = Field(description="Privacy slice lifecycle")
     id: str = Field(description="Slice id")
+    lifecycle: AnalyticsFactLifecycle = Field(description="Privacy slice lifecycle")
 
 
 PrivacyBudgetSliceEntity.model_rebuild()

@@ -14,8 +14,8 @@ from maxitor.samples.messaging.entities.msg_webhook_ingress_receipt import Webho
 
 @entity(description="Signature verification envelope chained from webhook receipt", domain=MessagingDomain)
 class WebhookSignatureEnvelopeEntity(BaseEntity):
-    lifecycle: MsgWebhookLifecycle = Field(description="Envelope lifecycle")
     id: str = Field(description="Envelope id")
+    lifecycle: MsgWebhookLifecycle = Field(description="Envelope lifecycle")
 
     receipt: Annotated[
         AssociationOne[WebhookIngressReceiptEntity],

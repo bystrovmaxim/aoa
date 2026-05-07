@@ -15,8 +15,8 @@ from maxitor.samples.billing.entities.billing_sat_interchange_slice import Inter
 
 @entity(description="Bridge joining parser lifecycle with interchange economics island", domain=BillingDomain)
 class BillingParseInterchangeBridgeEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Bridge lifecycle")
     id: str = Field(description="Bridge id")
+    lifecycle: BillingDenseLifecycle = Field(description="Bridge lifecycle")
 
     parse_pass: Annotated[
         AssociationOne[BillingParsePassEntity],

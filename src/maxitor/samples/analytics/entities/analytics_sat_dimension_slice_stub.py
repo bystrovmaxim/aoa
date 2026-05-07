@@ -14,8 +14,8 @@ from maxitor.samples.analytics.entities.analytics_ingress_batch import Analytics
 
 @entity(description="Dimension slice branching off ingress batches (parallel to dedup spine)", domain=AnalyticsDomain)
 class DimensionSliceStubEntity(BaseEntity):
-    lifecycle: AnalyticsFactLifecycle = Field(description="DimensionSliceStubEntity lifecycle")
     id: str = Field(description="Slice id")
+    lifecycle: AnalyticsFactLifecycle = Field(description="DimensionSliceStubEntity lifecycle")
 
     ingress_batch: Annotated[
         AssociationOne[AnalyticsIngressBatchEntity],

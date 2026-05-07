@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Payment capture row", domain=StoreDomain)
 class PaymentCaptureEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Capture lifecycle")
     id: str = Field(description="Capture id")
+    lifecycle: SalesOrderLifecycle = Field(description="Capture lifecycle")
     amount: float = Field(description="Captured amount", ge=0)
     captured_at: str = Field(description="Capture timestamp")
 

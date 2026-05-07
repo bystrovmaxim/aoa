@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Step-up fraud challenge", domain=StoreDomain)
 class FraudChallengeTicketEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="FraudChallengeTicketEntity lifecycle")
     id: str = Field(description="FraudChallengeTicketEntity id")
+    lifecycle: SalesOrderLifecycle = Field(description="FraudChallengeTicketEntity lifecycle")
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],

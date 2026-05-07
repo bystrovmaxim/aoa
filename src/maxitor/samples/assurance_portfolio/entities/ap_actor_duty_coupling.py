@@ -15,8 +15,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_reference_axes import Assur
 
 @entity(description="Join between actor and duty catalogue (user_has_role analogue)", domain=AssurancePortfolioDomain)
 class AssuranceActorDutyCouplingEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Coupling lifecycle")
     id: str = Field(description="Coupling id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Coupling lifecycle")
 
     actor: Annotated[
         AssociationOne[AssuranceFacilityActorEntity],

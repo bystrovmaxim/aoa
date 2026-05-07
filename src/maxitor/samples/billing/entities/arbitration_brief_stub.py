@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_sat_acquirer_integrity import Acqu
 
 @entity(description="Arbitration brief following acquirer integrity checkpoint", domain=BillingDomain)
 class ArbitrationBriefStubEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Brief lifecycle")
     id: str = Field(description="Brief id")
+    lifecycle: BillingDenseLifecycle = Field(description="Brief lifecycle")
 
     integrity_checkpoint: Annotated[
         AssociationOne[AcquirerIntegrityCheckEntity],

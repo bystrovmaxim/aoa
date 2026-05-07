@@ -18,8 +18,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
     domain=StoreDomain,
 )
 class StoreOrderInvoiceBridgeEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Bridge lifecycle")
     id: str = Field(description="Bridge id")
+    lifecycle: SalesOrderLifecycle = Field(description="Bridge lifecycle")
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],

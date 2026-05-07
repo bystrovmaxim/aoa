@@ -20,8 +20,8 @@ from maxitor.samples.clinical_supply.entities.cs_transport_anchor import Clinica
     domain=ClinicalSupplyDomain,
 )
 class ClinicalInboundTransportBindingEntity(BaseEntity):
-    lifecycle: ClinicalSupplyLifecycle = Field(description="Binding lifecycle")
     id: str = Field(description="Binding row id")
+    lifecycle: ClinicalSupplyLifecycle = Field(description="Binding lifecycle")
 
     inbound_ticket: Annotated[
         AssociationOne[ClinicalInboundShipmentTicketEntity],

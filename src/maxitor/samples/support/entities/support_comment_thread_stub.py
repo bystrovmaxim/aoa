@@ -14,8 +14,8 @@ from maxitor.samples.support.entities.support_sla_interval import SupportSlaInte
 
 @entity(description="Conversation stub tail on SLA segment (no fan-in back to ticket hub)", domain=SupportDomain)
 class SupportCommentThreadStubEntity(BaseEntity):
-    lifecycle: SupportSparseLifecycle = Field(description="Thread lifecycle")
     id: str = Field(description="Thread stub id")
+    lifecycle: SupportSparseLifecycle = Field(description="Thread lifecycle")
 
     sla_interval: Annotated[
         AssociationOne[SupportSlaIntervalEntity],

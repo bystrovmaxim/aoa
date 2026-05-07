@@ -17,8 +17,8 @@ from maxitor.samples.clinical_supply.entities.cs_material_anchor import Clinical
     domain=ClinicalSupplyDomain,
 )
 class ClinicalConsumableSkuEntity(BaseEntity):
-    lifecycle: ClinicalSupplyLifecycle = Field(description="SKU lifecycle")
     id: str = Field(description="SKU id")
+    lifecycle: ClinicalSupplyLifecycle = Field(description="SKU lifecycle")
 
     material_anchor: Annotated[
         AssociationOne[ClinicalMaterialAnchorEntity],

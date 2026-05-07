@@ -11,8 +11,8 @@ from maxitor.samples.billing.entities.payment_lifecycle import PaymentEventLifec
 
 @entity(description="Append-only payment event (sample)", domain=BillingDomain)
 class PaymentEventLogEntity(BaseEntity):
-    lifecycle: PaymentEventLifecycle = Field(description="Payment event lifecycle")
     id: str = Field(description="Event id")
+    lifecycle: PaymentEventLifecycle = Field(description="Payment event lifecycle")
     kind: str = Field(description="Event kind label")
     amount_minor_units: int = Field(description="Settlement amount in minor currency units", ge=0)
     currency_iso: str = Field(description="ISO-4217 currency code", min_length=3, max_length=3)

@@ -14,8 +14,8 @@ from maxitor.samples.analytics.entities.analytics_canonical_telemetry_row import
 
 @entity(description="Experiment overlay anchored on canonical telemetry spine (distinct from ingest branch)", domain=AnalyticsDomain)
 class ExperimentOverlayEntity(BaseEntity):
-    lifecycle: AnalyticsFactLifecycle = Field(description="Experiment overlay lifecycle")
     id: str = Field(description="Overlay id")
+    lifecycle: AnalyticsFactLifecycle = Field(description="Experiment overlay lifecycle")
 
     canonical_row: Annotated[
         AssociationOne[AnalyticsCanonicalTelemetryRowEntity],

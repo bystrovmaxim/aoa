@@ -15,8 +15,8 @@ from maxitor.samples.identity.entities.identity_person_hub import IdentityPerson
 
 @entity(description="Federated IdP linkage for a person and optional email credential factor", domain=IdentityDomain)
 class IdentityFederatedLinkageEntity(BaseEntity):
-    lifecycle: IdentityDenseLifecycle = Field(description="Federated linkage lifecycle")
     id: str = Field(description="Linkage id")
+    lifecycle: IdentityDenseLifecycle = Field(description="Federated linkage lifecycle")
 
     email_factor: Annotated[
         AssociationOne[IdentityEmailFactorEntity],

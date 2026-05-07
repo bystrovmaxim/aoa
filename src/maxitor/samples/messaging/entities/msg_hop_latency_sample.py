@@ -14,8 +14,8 @@ from maxitor.samples.messaging.entities.msg_dense_lifecycle import MsgDenseLifec
 
 @entity(description="Hop latency sample chained from courier ledger", domain=MessagingDomain)
 class HopLatencySampleEntity(BaseEntity):
-    lifecycle: MsgDenseLifecycle = Field(description="Sample lifecycle")
     id: str = Field(description="Sample id")
+    lifecycle: MsgDenseLifecycle = Field(description="Sample lifecycle")
 
     ledger: Annotated[
         AssociationOne[CourierAttemptLedgerEntity],

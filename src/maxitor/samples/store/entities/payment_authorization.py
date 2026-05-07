@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Payment authorization row", domain=StoreDomain)
 class PaymentAuthorizationEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Authorization lifecycle")
     id: str = Field(description="Authorization id")
+    lifecycle: SalesOrderLifecycle = Field(description="Authorization lifecycle")
     provider: str = Field(description="PSP name")
     approved_amount: float = Field(description="Approved amount", ge=0)
 

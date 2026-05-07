@@ -11,8 +11,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_lifecycle import AssuranceP
 
 @entity(description="Concrete execution instantiation (test run analogue)", domain=AssurancePortfolioDomain)
 class AssuranceExecutionAttemptTicketEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Execution lifecycle")
     id: str = Field(description="Execution attempt id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Execution lifecycle")
 
 
 AssuranceExecutionAttemptTicketEntity.model_rebuild()

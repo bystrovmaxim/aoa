@@ -14,8 +14,8 @@ from maxitor.samples.support.entities.support_ticket_aggregate import SupportTic
 
 @entity(description="Ticket participant row (linear chain head off ticket)", domain=SupportDomain)
 class SupportParticipantEntity(BaseEntity):
-    lifecycle: SupportSparseLifecycle = Field(description="Participant lifecycle")
     id: str = Field(description="Participant row id")
+    lifecycle: SupportSparseLifecycle = Field(description="Participant lifecycle")
 
     ticket: Annotated[
         AssociationOne[SupportTicketAggregateEntity],

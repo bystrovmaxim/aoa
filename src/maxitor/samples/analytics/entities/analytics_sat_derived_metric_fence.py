@@ -14,8 +14,8 @@ from maxitor.samples.analytics.entities.analytics_sat_dimension_slice_stub impor
 
 @entity(description="Derived metric concurrency fence stacking on dimension slice ingress branch", domain=AnalyticsDomain)
 class DerivedMetricFenceEntity(BaseEntity):
-    lifecycle: AnalyticsFactLifecycle = Field(description="DerivedMetricFenceEntity lifecycle")
     id: str = Field(description="Fence id")
+    lifecycle: AnalyticsFactLifecycle = Field(description="DerivedMetricFenceEntity lifecycle")
 
     slice_stub: Annotated[
         AssociationOne[DimensionSliceStubEntity],

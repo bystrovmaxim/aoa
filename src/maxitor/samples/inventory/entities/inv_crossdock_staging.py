@@ -14,8 +14,8 @@ from maxitor.samples.inventory.entities.inv_recall_signal import RecallSignalEnt
 
 @entity(description="Cross-dock latch following recall signalling chain", domain=InventoryDomain)
 class CrossDockStagingEntity(BaseEntity):
-    lifecycle: InvDenseLifecycle = Field(description="Cross-dock staging lifecycle")
     id: str = Field(description="Staging id")
+    lifecycle: InvDenseLifecycle = Field(description="Cross-dock staging lifecycle")
 
     recall_signal: Annotated[
         AssociationOne[RecallSignalEntity],

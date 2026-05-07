@@ -15,8 +15,8 @@ from maxitor.samples.store.entities.shipment_parcel import ShipmentParcelEntity
 
 @entity(description="Warehouse pick linkage between order lines and heterogeneous parcel batches", domain=StoreDomain)
 class StoreLineParcelPickEntity(BaseEntity):
-    lifecycle: SalesOrderLineLifecycle = Field(description="Pick lifecycle")
     id: str = Field(description="Pick id")
+    lifecycle: SalesOrderLineLifecycle = Field(description="Pick lifecycle")
 
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],

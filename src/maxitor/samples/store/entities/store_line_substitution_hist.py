@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderLineEntity
 
 @entity(description="Substitution decision history stub", domain=StoreDomain)
 class SubstitutionHistoryEntity(BaseEntity):
-    lifecycle: SalesOrderLineLifecycle = Field(description="SubstitutionHistoryEntity lifecycle")
     id: str = Field(description="SubstitutionHistoryEntity id")
+    lifecycle: SalesOrderLineLifecycle = Field(description="SubstitutionHistoryEntity lifecycle")
 
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],

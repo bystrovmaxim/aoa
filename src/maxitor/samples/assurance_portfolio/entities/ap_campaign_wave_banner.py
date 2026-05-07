@@ -11,8 +11,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_lifecycle import AssuranceP
 
 @entity(description="Execution wave façade (test_plan analogue)", domain=AssurancePortfolioDomain)
 class AssuranceCampaignWaveBannerEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Wave lifecycle")
     id: str = Field(description="Campaign wave id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Wave lifecycle")
 
 
 AssuranceCampaignWaveBannerEntity.model_rebuild()

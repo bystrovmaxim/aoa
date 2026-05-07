@@ -11,8 +11,8 @@ from maxitor.samples.analytics.entities.an_dense_lifecycle import AnalyticsPipel
 
 @entity(description="Ingress batch spine head", domain=AnalyticsDomain)
 class AnalyticsIngressBatchEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Batch lifecycle")
     id: str = Field(description="Batch id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Batch lifecycle")
 
 
 AnalyticsIngressBatchEntity.model_rebuild()

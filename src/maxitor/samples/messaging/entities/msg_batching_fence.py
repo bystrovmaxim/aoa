@@ -14,8 +14,8 @@ from maxitor.samples.messaging.entities.msg_throttle_lease import ThrottleLeaseE
 
 @entity(description="Batching fence tail on reconciliation filament", domain=MessagingDomain)
 class BatchingFenceEntity(BaseEntity):
-    lifecycle: MsgDenseLifecycle = Field(description="Batch fence lifecycle")
     id: str = Field(description="Fence id")
+    lifecycle: MsgDenseLifecycle = Field(description="Batch fence lifecycle")
 
     throttle_lease: Annotated[
         AssociationOne[ThrottleLeaseEntity],

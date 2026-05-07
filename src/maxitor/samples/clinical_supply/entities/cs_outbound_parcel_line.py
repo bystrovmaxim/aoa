@@ -18,8 +18,8 @@ from maxitor.samples.clinical_supply.entities.cs_outbound_parcel_wave import Cli
     domain=ClinicalSupplyDomain,
 )
 class ClinicalOutboundParcelLineEntity(BaseEntity):
-    lifecycle: ClinicalSupplyLifecycle = Field(description="Parcel line lifecycle")
     id: str = Field(description="Parcel line id")
+    lifecycle: ClinicalSupplyLifecycle = Field(description="Parcel line lifecycle")
 
     parcel_wave: Annotated[
         AssociationOne[ClinicalOutboundParcelWaveEntity],

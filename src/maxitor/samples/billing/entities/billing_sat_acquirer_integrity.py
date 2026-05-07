@@ -16,8 +16,8 @@ from maxitor.samples.billing.entities.retrieval_evidence_bundle import Retrieval
     description="Acquirer integrity checkpoint between retrieval artefact and arbitration brief", domain=BillingDomain
 )
 class AcquirerIntegrityCheckEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Integrity check lifecycle")
     id: str = Field(description="Checkpoint id")
+    lifecycle: BillingDenseLifecycle = Field(description="Integrity check lifecycle")
 
     evidence_bundle: Annotated[
         AssociationOne[RetrievalEvidenceBundleEntity],

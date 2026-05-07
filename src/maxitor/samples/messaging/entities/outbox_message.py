@@ -11,8 +11,8 @@ from maxitor.samples.messaging.entities.outbox_lifecycle import OutboxMessageLif
 
 @entity(description="Transactional outbox row (sample)", domain=MessagingDomain)
 class OutboxMessageEntity(BaseEntity):
-    lifecycle: OutboxMessageLifecycle = Field(description="Outbox message lifecycle")
     id: str = Field(description="Message id")
+    lifecycle: OutboxMessageLifecycle = Field(description="Outbox message lifecycle")
     topic: str = Field(description="Routing topic")
 
 

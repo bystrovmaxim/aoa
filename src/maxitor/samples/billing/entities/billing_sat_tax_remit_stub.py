@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_sat_cash_apply_hint import CashApp
 
 @entity(description="Tax remittance advice continuing cash-application liquidity chain", domain=BillingDomain)
 class TaxRemittanceAdviceEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Remittance lifecycle")
     id: str = Field(description="Advice stub id")
+    lifecycle: BillingDenseLifecycle = Field(description="Remittance lifecycle")
 
     cash_apply_hint: Annotated[
         AssociationOne[CashApplicationHintEntity],

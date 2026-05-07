@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Gift wrap add-on", domain=StoreDomain)
 class GiftWrapAddonEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="GiftWrapAddonEntity lifecycle")
     id: str = Field(description="GiftWrapAddonEntity id")
+    lifecycle: SalesOrderLifecycle = Field(description="GiftWrapAddonEntity lifecycle")
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],

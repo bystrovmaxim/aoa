@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import CustomerAccountEntity
 
 @entity(description="Cart merge diagnostics hanging off buyer profile graph", domain=StoreDomain)
 class CartMergeTraceEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Merge trace lifecycle")
     id: str = Field(description="Trace id")
+    lifecycle: SalesOrderLifecycle = Field(description="Merge trace lifecycle")
 
     customer: Annotated[
         AssociationOne[CustomerAccountEntity],

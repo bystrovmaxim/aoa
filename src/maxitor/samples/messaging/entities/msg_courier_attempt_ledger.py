@@ -14,8 +14,8 @@ from maxitor.samples.messaging.entities.msg_dense_lifecycle import MsgDenseLifec
 
 @entity(description="Courier ledger grafted onto reconciliation tail", domain=MessagingDomain)
 class CourierAttemptLedgerEntity(BaseEntity):
-    lifecycle: MsgDenseLifecycle = Field(description="Courier ledger lifecycle")
     id: str = Field(description="Ledger id")
+    lifecycle: MsgDenseLifecycle = Field(description="Courier ledger lifecycle")
 
     batching_fence: Annotated[
         AssociationOne[BatchingFenceEntity],

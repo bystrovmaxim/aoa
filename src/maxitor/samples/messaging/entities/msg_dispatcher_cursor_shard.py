@@ -14,8 +14,8 @@ from maxitor.samples.messaging.entities.outbox_message import OutboxMessageEntit
 
 @entity(description="Dispatcher shard tied to outbox", domain=MessagingDomain)
 class DispatcherCursorShardEntity(BaseEntity):
-    lifecycle: MsgDenseLifecycle = Field(description="Dispatcher cursor lifecycle")
     id: str = Field(description="Cursor id")
+    lifecycle: MsgDenseLifecycle = Field(description="Dispatcher cursor lifecycle")
 
     outbox_row: Annotated[
         AssociationOne[OutboxMessageEntity],

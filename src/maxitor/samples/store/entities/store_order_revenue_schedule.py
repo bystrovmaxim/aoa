@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Deferred revenue cadence stub", domain=StoreDomain)
 class RevenueDeferralScheduleEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="RevenueDeferralScheduleEntity lifecycle")
     id: str = Field(description="RevenueDeferralScheduleEntity id")
+    lifecycle: SalesOrderLifecycle = Field(description="RevenueDeferralScheduleEntity lifecycle")
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],

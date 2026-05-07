@@ -17,8 +17,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_reference_axes import (
 
 @entity(description="Join between duties and fine-grained privileges (role_has_right analogue)", domain=AssurancePortfolioDomain)
 class AssuranceDutyPrivilegeBridgeEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Bridge lifecycle")
     id: str = Field(description="Bridge id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Bridge lifecycle")
 
     duty_axis: Annotated[
         AssociationOne[AssuranceDutyTemplateAxisEntity],

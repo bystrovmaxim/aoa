@@ -14,8 +14,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_reference_axes import Assur
 
 @entity(description="Portfolio identity row (v_user analogue)", domain=AssurancePortfolioDomain)
 class AssuranceFacilityActorEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Actor lifecycle")
     id: str = Field(description="Actor id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Actor lifecycle")
 
     account_phase_axis: Annotated[
         AssociationOne[AssuranceAccountPhaseAxisEntity],

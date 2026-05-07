@@ -15,8 +15,8 @@ from maxitor.samples.inventory.entities.inv_storage_aisle_row import StorageAisl
 
 @entity(description="Concrete bin coordinate anchored to aisle and facility", domain=InventoryDomain)
 class BinCoordinateStubEntity(BaseEntity):
-    lifecycle: InvPipelineLifecycle = Field(description="Bin lifecycle")
     id: str = Field(description="Bin coordinate id")
+    lifecycle: InvPipelineLifecycle = Field(description="Bin lifecycle")
     label: str = Field(description="Coordinate label")
 
     aisle: Annotated[

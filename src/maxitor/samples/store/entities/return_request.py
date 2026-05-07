@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Return request row", domain=StoreDomain)
 class ReturnRequestEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Return lifecycle")
     id: str = Field(description="Return request id")
+    lifecycle: SalesOrderLifecycle = Field(description="Return lifecycle")
     reason: str = Field(description="Return reason")
     status: str = Field(description="Return status")
 

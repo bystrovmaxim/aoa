@@ -11,8 +11,8 @@ from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDens
 
 @entity(description="Payout plan rollup", domain=BillingDomain)
 class BillingPayoutPlanEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Payout lifecycle")
     id: str = Field(description="Plan id")
+    lifecycle: BillingDenseLifecycle = Field(description="Payout lifecycle")
     plan_vendor_code: str = Field(description="Internal plan mnemonic")
     settlement_currency_iso: str = Field(description="Payout denomination currency")
     planned_minor_units_total: int = Field(description="Planned disbursement ceiling in minor units", ge=0)

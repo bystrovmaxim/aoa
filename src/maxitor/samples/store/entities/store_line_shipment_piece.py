@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity, SalesOrd
 
 @entity(description="Shipment piece bridging line + header (dense mesh cue)", domain=StoreDomain)
 class LineShipmentPieceEntity(BaseEntity):
-    lifecycle: SalesOrderLineLifecycle = Field(description="Shipment piece lifecycle")
     id: str = Field(description="Piece id")
+    lifecycle: SalesOrderLineLifecycle = Field(description="Shipment piece lifecycle")
 
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],

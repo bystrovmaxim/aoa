@@ -14,8 +14,8 @@ from maxitor.samples.clinical_supply.entities.cs_lifecycle import ClinicalSupply
     domain=ClinicalSupplyDomain,
 )
 class ClinicalTransportAnchorEntity(BaseEntity):
-    lifecycle: ClinicalSupplyLifecycle = Field(description="Transport catalog lifecycle")
     id: str = Field(description="Transport modality id")
+    lifecycle: ClinicalSupplyLifecycle = Field(description="Transport catalog lifecycle")
 
 
 ClinicalTransportAnchorEntity.model_rebuild()

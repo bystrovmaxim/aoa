@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import CustomerAccountEntity
 
 @entity(description="Address verification keyed to customer profile subgraph", domain=StoreDomain)
 class AddressVerificationTrailEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="AV verification lifecycle")
     id: str = Field(description="Verification id")
+    lifecycle: SalesOrderLifecycle = Field(description="AV verification lifecycle")
 
     customer: Annotated[
         AssociationOne[CustomerAccountEntity],

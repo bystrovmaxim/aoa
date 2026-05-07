@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.shipment_parcel import ShipmentParcelEntity
 
 @entity(description="Packing slip facet tied directly to fulfilment parcels (supply spine)", domain=StoreDomain)
 class PackingSlipEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Packing slip lifecycle")
     id: str = Field(description="Slip id")
+    lifecycle: SalesOrderLifecycle = Field(description="Packing slip lifecycle")
 
     parcel: Annotated[
         AssociationOne[ShipmentParcelEntity],

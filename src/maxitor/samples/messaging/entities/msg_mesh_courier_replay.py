@@ -15,8 +15,8 @@ from maxitor.samples.messaging.entities.msg_replay_ticket import ReplayTicketEnt
 
 @entity(description="Short-circuit between courier delivery spine and replay coordination queue", domain=MessagingDomain)
 class MsgCourierReplayCorrelateEntity(BaseEntity):
-    lifecycle: MsgDenseLifecycle = Field(description="Correlator lifecycle")
     id: str = Field(description="Correlator id")
+    lifecycle: MsgDenseLifecycle = Field(description="Correlator lifecycle")
 
     courier_ledger: Annotated[
         AssociationOne[CourierAttemptLedgerEntity],

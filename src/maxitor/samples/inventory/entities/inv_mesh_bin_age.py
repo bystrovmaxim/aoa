@@ -15,8 +15,8 @@ from maxitor.samples.inventory.entities.inv_lot_age_bucket import LotAgeBucketEn
 
 @entity(description="Correlates physical bin coordinates with terminal aging buckets (facility mesh)", domain=InventoryDomain)
 class InvBinAgeCorrelateEntity(BaseEntity):
-    lifecycle: InvDenseLifecycle = Field(description="Correlator lifecycle")
     id: str = Field(description="Correlator id")
+    lifecycle: InvDenseLifecycle = Field(description="Correlator lifecycle")
 
     bin_coordinate: Annotated[
         AssociationOne[BinCoordinateStubEntity],

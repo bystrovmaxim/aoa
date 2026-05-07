@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Manual compliance review stub", domain=StoreDomain)
 class ComplianceReviewQueueEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="ComplianceReviewQueueEntity lifecycle")
     id: str = Field(description="ComplianceReviewQueueEntity id")
+    lifecycle: SalesOrderLifecycle = Field(description="ComplianceReviewQueueEntity lifecycle")
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],

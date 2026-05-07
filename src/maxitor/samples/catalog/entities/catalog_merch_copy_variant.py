@@ -14,8 +14,8 @@ from maxitor.samples.catalog.entities.catalog_shelf_placement_hint import ShelfP
 
 @entity(description="Merch copy chained from planogram hint spine", domain=CatalogDomain)
 class MerchCopyVariantEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Merch copy lifecycle")
     id: str = Field(description="Variant id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Merch copy lifecycle")
 
     shelf_hint: Annotated[
         AssociationOne[ShelfPlacementHintEntity],

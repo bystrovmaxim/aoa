@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDens
 
 @entity(description="Regulatory submission pointer chained from arbitration brief stub", domain=BillingDomain)
 class RegulatorySubmissionPointerEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Regulatory pointer lifecycle")
     id: str = Field(description="Pointer id")
+    lifecycle: BillingDenseLifecycle = Field(description="Regulatory pointer lifecycle")
 
     brief: Annotated[
         AssociationOne[ArbitrationBriefStubEntity],

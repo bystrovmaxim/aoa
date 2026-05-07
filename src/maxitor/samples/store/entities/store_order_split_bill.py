@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Split billing allocation", domain=StoreDomain)
 class SplitBillAllocationEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="SplitBillAllocationEntity lifecycle")
     id: str = Field(description="SplitBillAllocationEntity id")
+    lifecycle: SalesOrderLifecycle = Field(description="SplitBillAllocationEntity lifecycle")
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],

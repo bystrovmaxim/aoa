@@ -18,8 +18,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_reference_axes import (
 
 @entity(description="Dual-actor delegated assignment with intent + checkpoint hues", domain=AssurancePortfolioDomain)
 class AssuranceDelegatedWorkTicketEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Delegated ticket lifecycle")
     id: str = Field(description="Delegated ticket id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Delegated ticket lifecycle")
 
     assignee_actor: Annotated[
         AssociationOne[AssuranceFacilityActorEntity],

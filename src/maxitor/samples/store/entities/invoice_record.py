@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 
 @entity(description="Invoice row", domain=StoreDomain)
 class InvoiceRecordEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Invoice lifecycle")
     id: str = Field(description="Invoice id")
+    lifecycle: SalesOrderLifecycle = Field(description="Invoice lifecycle")
     subtotal: float = Field(description="Subtotal", ge=0)
     total: float = Field(description="Invoice total", ge=0)
 

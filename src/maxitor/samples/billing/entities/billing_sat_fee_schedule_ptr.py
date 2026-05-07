@@ -14,8 +14,8 @@ from maxitor.samples.billing.entities.billing_sat_interchange_slice import Inter
 
 @entity(description="Fee schedule facet following interchange slice spine", domain=BillingDomain)
 class MerchantFeeSchedulePointerEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Fee schedule lifecycle")
     id: str = Field(description="Pointer id")
+    lifecycle: BillingDenseLifecycle = Field(description="Fee schedule lifecycle")
 
     interchange_slice: Annotated[
         AssociationOne[InterchangeAssessmentSliceEntity],

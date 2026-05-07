@@ -14,8 +14,8 @@ from maxitor.samples.identity.entities.identity_person_hub import IdentityPerson
 
 @entity(description="Phone credential factor for a person identity", domain=IdentityDomain)
 class IdentityPhoneFactorEntity(BaseEntity):
-    lifecycle: IdentityDenseLifecycle = Field(description="Phone factor lifecycle")
     id: str = Field(description="Phone factor id")
+    lifecycle: IdentityDenseLifecycle = Field(description="Phone factor lifecycle")
 
     person: Annotated[
         AssociationOne[IdentityPersonHubEntity],

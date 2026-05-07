@@ -14,8 +14,8 @@ from maxitor.samples.analytics.entities.analytics_ingress_batch import Analytics
 
 @entity(description="Dedup bloom facet on ingress batch", domain=AnalyticsDomain)
 class AnalyticsDedupBloomRowEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Dedup lifecycle")
     id: str = Field(description="Bloom row id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Dedup lifecycle")
 
     batch: Annotated[
         AssociationOne[AnalyticsIngressBatchEntity],

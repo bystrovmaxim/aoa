@@ -14,8 +14,8 @@ from maxitor.samples.analytics.entities.analytics_metric_rollup_staging import A
 
 @entity(description="Replay watermark on rollup staging egress (orthogonal to DQ branch)", domain=AnalyticsDomain)
 class ReplayWatermarkStubEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Watermark lifecycle")
     id: str = Field(description="Watermark id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Watermark lifecycle")
 
     rollup_staging: Annotated[
         AssociationOne[AnalyticsMetricRollupStagingEntity],

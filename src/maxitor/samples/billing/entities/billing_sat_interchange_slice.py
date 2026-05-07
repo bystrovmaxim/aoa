@@ -15,8 +15,8 @@ from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDens
 
 @entity(description="Interchange economics slice", domain=BillingDomain)
 class InterchangeAssessmentSliceEntity(BaseEntity):
-    lifecycle: BillingDenseLifecycle = Field(description="Interchange slice lifecycle")
     id: str = Field(description="Slice id")
+    lifecycle: BillingDenseLifecycle = Field(description="Interchange slice lifecycle")
 
     scheme_code: str = Field(description="Interchange program / scheme code")
     assessor_build: str = Field(description="Tariff engine build id")

@@ -30,8 +30,8 @@ class _CatalogDirectedCycleSketchLifecycle(Lifecycle):
     domain=CatalogDomain,
 )
 class CatalogDirectedCycleTriangleAEntity(BaseEntity):
-    lifecycle: _CatalogDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
     id: str = Field(description="Vertex A id")
+    lifecycle: _CatalogDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
     follow_b: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleBEntity],
@@ -54,8 +54,8 @@ class CatalogDirectedCycleTriangleAEntity(BaseEntity):
     domain=CatalogDomain,
 )
 class CatalogDirectedCycleTriangleBEntity(BaseEntity):
-    lifecycle: _CatalogDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
     id: str = Field(description="Vertex B id")
+    lifecycle: _CatalogDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
     back_from_a: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleAEntity],
@@ -78,8 +78,8 @@ class CatalogDirectedCycleTriangleBEntity(BaseEntity):
     domain=CatalogDomain,
 )
 class CatalogDirectedCycleTriangleCEntity(BaseEntity):
-    lifecycle: _CatalogDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
     id: str = Field(description="Vertex C id")
+    lifecycle: _CatalogDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
 
     back_from_b: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleBEntity],

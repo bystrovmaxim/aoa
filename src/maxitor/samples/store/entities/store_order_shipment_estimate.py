@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.shipment_parcel import ShipmentParcelEntity
 
 @entity(description="Shipment ETA heuristic hanging off parcels instead of repeating order centroid", domain=StoreDomain)
 class ShipmentEstimateEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Estimate lifecycle")
     id: str = Field(description="Estimate id")
+    lifecycle: SalesOrderLifecycle = Field(description="Estimate lifecycle")
 
     parcel: Annotated[
         AssociationOne[ShipmentParcelEntity],

@@ -14,8 +14,8 @@ from maxitor.samples.inventory.entities.inv_facility_warehouse import FacilityWa
 
 @entity(description="Storage aisle row inside a warehouse facility", domain=InventoryDomain)
 class StorageAisleRowEntity(BaseEntity):
-    lifecycle: InvPipelineLifecycle = Field(description="Aisle lifecycle")
     id: str = Field(description="Aisle id")
+    lifecycle: InvPipelineLifecycle = Field(description="Aisle lifecycle")
 
     facility: Annotated[
         AssociationOne[FacilityWarehouseEntity],

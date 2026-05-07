@@ -14,8 +14,8 @@ from maxitor.samples.inventory.entities.inv_disposition_advice import Dispositio
 
 @entity(description="Recall signal extending disposition segment", domain=InventoryDomain)
 class RecallSignalEntity(BaseEntity):
-    lifecycle: InvDenseLifecycle = Field(description="Recall lifecycle")
     id: str = Field(description="Signal id")
+    lifecycle: InvDenseLifecycle = Field(description="Recall lifecycle")
 
     disposition: Annotated[
         AssociationOne[DispositionAdviceEntity],

@@ -14,8 +14,8 @@ from maxitor.samples.analytics.entities.analytics_dedup_bloom_row import Analyti
 
 @entity(description="Canonical telemetry facet on dedup spine (no shared fact hub)", domain=AnalyticsDomain)
 class AnalyticsCanonicalTelemetryRowEntity(BaseEntity):
-    lifecycle: AnalyticsPipelineLifecycle = Field(description="Canonical telemetry lifecycle")
     id: str = Field(description="Row id")
+    lifecycle: AnalyticsPipelineLifecycle = Field(description="Canonical telemetry lifecycle")
 
     dedup: Annotated[
         AssociationOne[AnalyticsDedupBloomRowEntity],

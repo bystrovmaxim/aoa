@@ -14,8 +14,8 @@ from maxitor.samples.inventory.entities.inv_dense_lifecycle import InvDenseLifec
 
 @entity(description="Quality hold chaining off cross-dock staging", domain=InventoryDomain)
 class LotQualityHoldEntity(BaseEntity):
-    lifecycle: InvDenseLifecycle = Field(description="Quality hold lifecycle")
     id: str = Field(description="Hold id")
+    lifecycle: InvDenseLifecycle = Field(description="Quality hold lifecycle")
 
     crossdock: Annotated[
         AssociationOne[CrossDockStagingEntity],

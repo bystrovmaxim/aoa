@@ -15,8 +15,8 @@ from maxitor.samples.identity.entities.identity_phone_factor import IdentityPhon
 
 @entity(description="Credential rotation bookkeeping for a person and phone factor", domain=IdentityDomain)
 class IdentityCredentialRotationStubEntity(BaseEntity):
-    lifecycle: IdentityDenseLifecycle = Field(description="Rotation stub lifecycle")
     id: str = Field(description="Stub id")
+    lifecycle: IdentityDenseLifecycle = Field(description="Rotation stub lifecycle")
 
     phone_factor: Annotated[
         AssociationOne[IdentityPhoneFactorEntity],

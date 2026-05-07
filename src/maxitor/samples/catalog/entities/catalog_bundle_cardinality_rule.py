@@ -11,8 +11,8 @@ from maxitor.samples.catalog.entities.catalog_dense_lifecycle import CatalogDens
 
 @entity(description="Bundle cardinality island root for cross-subgraph bridging only", domain=CatalogDomain)
 class BundleCardinalityRuleEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Bundle cardinality lifecycle")
     id: str = Field(description="Rule id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Bundle cardinality lifecycle")
 
 
 BundleCardinalityRuleEntity.model_rebuild()

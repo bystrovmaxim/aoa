@@ -14,8 +14,8 @@ from maxitor.samples.store.entities.lifecycle import SalesOrderLifecycle
 
 @entity(description="Loyalty earn projection keyed off invoicing artefacts (distinct from header mesh)", domain=StoreDomain)
 class LoyaltyEarnProjectionEntity(BaseEntity):
-    lifecycle: SalesOrderLifecycle = Field(description="Projection lifecycle")
     id: str = Field(description="Projection id")
+    lifecycle: SalesOrderLifecycle = Field(description="Projection lifecycle")
 
     invoice: Annotated[
         AssociationOne[InvoiceRecordEntity],

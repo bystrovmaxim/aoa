@@ -11,8 +11,8 @@ from maxitor.samples.catalog.entities.catalog_dense_lifecycle import CatalogDens
 
 @entity(description="Availability projection subgraph root independent of SKU FK", domain=CatalogDomain)
 class AvailabilityProjectionEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Availability projection lifecycle")
     id: str = Field(description="Projection id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Availability projection lifecycle")
 
 
 AvailabilityProjectionEntity.model_rebuild()

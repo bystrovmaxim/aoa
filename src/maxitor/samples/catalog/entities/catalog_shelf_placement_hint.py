@@ -11,8 +11,8 @@ from maxitor.samples.catalog.entities.catalog_dense_lifecycle import CatalogDens
 
 @entity(description="Planogram spine root — no SKU foreign key (merchant-only subtree)", domain=CatalogDomain)
 class ShelfPlacementHintEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Shelf placement lifecycle")
     id: str = Field(description="Hint id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Shelf placement lifecycle")
 
 
 ShelfPlacementHintEntity.model_rebuild()

@@ -19,8 +19,8 @@ from maxitor.samples.clinical_supply.entities.cs_partner_hub import ClinicalPart
     domain=ClinicalSupplyDomain,
 )
 class ClinicalInboundShipmentTicketEntity(BaseEntity):
-    lifecycle: ClinicalSupplyLifecycle = Field(description="Inbound ticket lifecycle")
     id: str = Field(description="Inbound ticket id")
+    lifecycle: ClinicalSupplyLifecycle = Field(description="Inbound ticket lifecycle")
 
     partner_hub: Annotated[
         AssociationOne[ClinicalPartnerHubEntity],

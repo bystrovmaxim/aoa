@@ -22,8 +22,8 @@ from maxitor.samples.assurance_portfolio.entities.ap_scenario_instruction_line i
     domain=AssurancePortfolioDomain,
 )
 class AssuranceInstructionExpectationAnchorEntity(BaseEntity):
-    lifecycle: AssurancePortfolioLifecycle = Field(description="Trace anchor lifecycle")
     id: str = Field(description="Trace anchor id")
+    lifecycle: AssurancePortfolioLifecycle = Field(description="Trace anchor lifecycle")
 
     instruction_line: Annotated[
         AssociationOne[AssuranceScenarioInstructionLineEntity],

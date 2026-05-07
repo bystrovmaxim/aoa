@@ -14,8 +14,8 @@ from maxitor.samples.catalog.entities.catalog_touch_moment import TouchMomentEnt
 
 @entity(description="Conversion attribution stub chained from touch moment", domain=CatalogDomain)
 class ConversionAttributionStubEntity(BaseEntity):
-    lifecycle: CatalogDenseLifecycle = Field(description="Conversion stub lifecycle")
     id: str = Field(description="Stub id")
+    lifecycle: CatalogDenseLifecycle = Field(description="Conversion stub lifecycle")
 
     touch: Annotated[
         AssociationOne[TouchMomentEntity],
