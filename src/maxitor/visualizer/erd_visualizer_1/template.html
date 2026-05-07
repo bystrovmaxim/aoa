@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@@HTML_ESCAPED_TITLE@@</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top bar ── */
+    #topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: #1e293b;
+      color: #f1f5f9;
+      font-size: 13px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      z-index: 100;
+      box-shadow: 0 1px 6px rgba(0,0,0,.35);
+    }
+    #topbar h1 { font-size: 14px; font-weight: 600; margin-right: 8px; white-space: nowrap; }
+
+    /* ── Pickers (domain / renderer / layout) ── */
+    .picker-group { display: flex; align-items: center; gap: 6px; }
+    .picker-label { font-size: 11px; color: #94a3b8; white-space: nowrap; }
+
+    .pill-bar {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      padding: 3px 10px;
+      border-radius: 99px;
+      border: 1px solid #475569;
+      background: transparent;
+      color: #cbd5e1;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .pill:hover  { background: #334155; color: #f1f5f9; }
+    .pill.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+    .pill.recommended::after { content: " ✦"; font-size: 9px; opacity: .8; }
+
+    /* ── Main canvas area ── */
+    #main {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #container {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── Alternative renderer containers ── */
+    .alt-container {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow: auto;
+      background: #fff;
+      padding: 24px;
+    }
+    .alt-container.active { display: block; }
+    #graphviz-container {
+      cursor: grab;
+      user-select: none;
+    }
+    #graphviz-container.is-panning {
+      cursor: grabbing;
+    }
+    #graphviz-container [data-gv-kind] {
+      cursor: pointer;
+    }
+
+    #mermaid-container svg,
+    #graphviz-container svg {
+      max-width: 100%;
+      height: auto;
+    }
+    #graphviz-container svg g.node,
+    #graphviz-container svg g.edge {
+      transition: opacity .12s ease, filter .12s ease;
+    }
+    #graphviz-container svg .gv-hover {
+      filter: drop-shadow(0 0 5px rgba(37, 99, 235, .7));
+    }
+    #graphviz-container svg .gv-related {
+      filter: drop-shadow(0 0 3px rgba(37, 99, 235, .45));
+    }
+    #graphviz-container svg .gv-dim {
+      opacity: .28;
+    }
+
+    #d2-container svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    #d2-source-container {
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      white-space: pre;
+      line-height: 1.6;
+      color: #334155;
+    }
+
+    /* ── Zoom toolbar ── */
+    #zoom-toolbar {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 50;
+    }
+    .zoom-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #475569;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
+      transition: background .15s;
+    }
+    .zoom-btn:hover { background: #f1f5f9; }
+
+    /* ── Node detail side panel ── */
+    #node-detail-shell {
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 320px;
+      background: #fff;
+      border-left: 1px solid #e2e8f0;
+      box-shadow: -2px 0 12px rgba(0,0,0,.08);
+      transform: translateX(100%);
+      transition: transform .25s ease;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #node-detail-shell.open { transform: translateX(0); }
+
+    #node-detail-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+    }
+    #node-detail-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    #node-detail-close {
+      width: 24px; height: 24px;
+      border: none; background: none;
+      cursor: pointer; font-size: 16px;
+      color: #64748b;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 4px;
+    }
+    #node-detail-close:hover { background: #f1f5f9; }
+
+    #node-detail-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .detail-section { margin-bottom: 16px; }
+    .detail-section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+
+    .field-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 12px;
+    }
+    .field-row:last-child { border-bottom: none; }
+
+    .field-icon { font-size: 10px; margin-top: 1px; flex-shrink: 0; }
+    .field-name { flex: 1; color: #334155; font-weight: 500; }
+    .field-type { color: #64748b; font-style: italic; }
+    .field-badges { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 2px; }
+    .badge {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 99px;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+    .badge-pk  { background: #fef3c7; color: #92400e; }
+    .badge-fk  { background: #dbeafe; color: #1e40af; }
+    .badge-uq  { background: #f3e8ff; color: #6b21a8; }
+    .badge-nn  { background: #dcfce7; color: #166534; }
+    .badge-idx { background: #f0f9ff; color: #0c4a6e; }
+
+    .rel-row {
+      font-size: 11px;
+      padding: 4px 0;
+      border-bottom: 1px solid #f1f5f9;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .rel-row:last-child { border-bottom: none; }
+    .rel-arrow { color: #94a3b8; flex-shrink: 0; }
+    .rel-target { font-weight: 500; color: #1e293b; }
+
+    /* ── Hover tip ── */
+    #erd-hover-tip {
+      position: fixed;
+      display: none;
+      pointer-events: none;
+      background: #1e293b;
+      color: #f1f5f9;
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.25);
+      z-index: 9999;
+      max-width: 260px;
+      line-height: 1.5;
+    }
+
+    /* ── Graph hover label overlay ── */
+    #graph-hover-labels {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 40;
+    }
+
+    /* ── Loading / error ── */
+    .erd-loading {
+      font-size: 13px;
+      color: #64748b;
+      padding: 32px;
+      font-family: system-ui, sans-serif;
+    }
+    .erd-error {
+      white-space: pre-wrap;
+      color: #991b1b;
+      background: #fff;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 11px;
+      line-height: 1.5;
+      font-family: ui-monospace, monospace;
+      max-width: 900px;
+      margin: 20px auto;
+    }
+
+    /* ── Scrollbar styling ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body>
+
+  <!-- ══ Top bar ══ -->
+  <div id="topbar">
+    <h1>@@HTML_ESCAPED_TITLE@@</h1>
+
+    <!-- Domain picker -->
+    <div class="picker-group" id="domain-picker" style="display:none">
+      <span class="picker-label">Domain:</span>
+      <div class="pill-bar" id="domain-pill-bar"></div>
+    </div>
+
+    <!-- Renderer picker -->
+    <div class="picker-group" id="renderer-picker">
+      <span class="picker-label">Renderer:</span>
+      <div class="pill-bar" id="renderer-pill-bar"></div>
+    </div>
+
+    <!-- Layout picker (X6 only) -->
+    <div class="picker-group" id="layout-picker">
+      <span class="picker-label">Layout:</span>
+      <div class="pill-bar" id="layout-pill-bar"></div>
+    </div>
+  </div>
+
+  <!-- ══ Main area ══ -->
+  <div id="main">
+
+    <!-- X6 interactive canvas -->
+    <div id="container"></div>
+
+    <!-- Mermaid SVG passthrough -->
+    <div class="alt-container" id="mermaid-container"></div>
+
+    <!-- Graphviz SVG passthrough -->
+    <div class="alt-container" id="graphviz-container"></div>
+
+    <!-- D2 SVG passthrough -->
+    <div class="alt-container" id="d2-container"></div>
+
+    <!-- D2 source text -->
+    <div class="alt-container" id="d2-source-container"></div>
+
+    <!-- Zoom controls (visible for X6) -->
+    <div id="zoom-toolbar">
+      <button class="zoom-btn" id="btn-zoom-in"  title="Zoom in">+</button>
+      <button class="zoom-btn" id="btn-zoom-fit" title="Fit to screen">⊡</button>
+      <button class="zoom-btn" id="btn-zoom-out" title="Zoom out">−</button>
+    </div>
+
+    <!-- Hover label overlay -->
+    <div id="graph-hover-labels"></div>
+
+  </div><!-- /#main -->
+
+  <!-- ══ Node detail side panel ══ -->
+  <div id="node-detail-shell">
+    <div id="node-detail-header">
+      <span id="node-detail-title">Entity</span>
+      <button id="node-detail-close" title="Close">✕</button>
+    </div>
+    <div id="node-detail-body"></div>
+  </div>
+
+  <!-- ══ Hover tooltip ══ -->
+  <div id="erd-hover-tip"></div>
+
+  <!-- ══ Bootstrap (injected by Python) ══ -->
+  <script type="module">
+@@INLINE_ERD_SCRIPT@@
+  </script>
+
+</body>
+</html>

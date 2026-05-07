@@ -1,0 +1,882 @@
+# src/maxitor/visualizer/erd_visualizer_2/erd_html.py
+
+from __future__ import annotations
+
+import html
+import json
+from pathlib import Path
+
+# ── Package layout ────────────────────────────────────────────────────────────
+_PACKAGE_DIR          = Path(__file__).resolve().parent
+_TEMPLATE_HTML        = _PACKAGE_DIR / "template.html"
+DEFAULT_ERD_HTML_PATH = "/Users/bystrovmaxim/PythonDev/aoa/archive/logs/erd.html"
+
+# ── CDN URLs ──────────────────────────────────────────────────────────────────
+X6_MODULE_URL       = "https://esm.sh/@antv/x6@2.19.2"
+ELK_MODULE_URL      = "https://esm.sh/elkjs@0.11.1"
+DAGRE_MODULE_URL    = "https://esm.sh/@dagrejs/dagre@1.1.4"
+MERMAID_MODULE_URL  = "https://esm.sh/mermaid@11.12.0"
+D2_MODULE_URL       = "https://esm.sh/@terrastruct/d2@0.1.33"
+GRAPHVIZ_MODULE_URL = "https://esm.sh/@hpcc-js/wasm-graphviz@1.21.5"
+
+# Cytoscape stack (UMD)
+_CYTOSCAPE_URL        = "https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"
+_CYTOSCAPE_DAGRE_URL  = "https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"
+_DAGRE_UMD_URL        = "https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"
+
+# ── Domain entity color palette ───────────────────────────────────────────────
+_ENTITY_COLORS = [
+    "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b",
+    "#ef4444", "#06b6d4", "#ec4899", "#64748b",
+]
+
+# ── Bootstrap JS (Python format-string; JS braces are doubled) ────────────────
+_ERD_BOOTSTRAP_TEMPLATE = """\
+// ════════════════════════════════════════════════════════════════════════════
+//  ERD Viewer Bootstrap  —  injected by erd_html.py
+// ════════════════════════════════════════════════════════════════════════════
+
+const __X6_URL__      = "{X6_URL}";
+const __DAGRE_URL__   = "{DAGRE_URL}";
+const __MERMAID_URL__ = "{MERMAID_URL}";
+const __D2_URL__      = "{D2_URL}";
+const __GRAPHVIZ_URL__ = "{GRAPHVIZ_URL}";
+
+const ERD_DATA = {ERD_DATA_JSON};
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+function escHtml(s) {{
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}}
+
+function loadScript(url, id) {{
+  return new Promise((resolve, reject) => {{
+    if (document.getElementById(id)) {{ resolve(); return; }}
+    const s = document.createElement('script');
+    s.id  = id;
+    s.src = url;
+    s.type = 'text/javascript';
+    s.onload  = resolve;
+    s.onerror = () => reject(new Error('Failed to load: ' + url));
+    document.head.appendChild(s);
+  }});
+}}
+
+// ── state ────────────────────────────────────────────────────────────────────
+let activeRenderer = 'd3gv';
+let activeLayout   = 'gv-dot-lr';
+let activeDomain   = null;
+let x6graph        = null;
+let cyInstance     = null;
+let currentNodes   = [];
+let currentEdges   = [];
+
+let gvApi = null;
+
+// ── domain data ──────────────────────────────────────────────────────────────
+function getDomainData() {{
+  const domains = ERD_DATA && ERD_DATA.domains;
+  if (!domains) return {{ nodes: [], edges: [] }};
+  if (activeDomain && domains[activeDomain]) return domains[activeDomain];
+  const keys = Object.keys(domains);
+  return keys.length ? domains[keys[0]] : {{ nodes: [], edges: [] }};
+}}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  Renderer 1 — X6 + Dagre
+// ════════════════════════════════════════════════════════════════════════════
+async function initX6() {{
+  const container = document.getElementById('container');
+  container.innerHTML = '<div class="erd-loading">&#x23F3; Loading X6\u2026</div>';
+
+  let X6mod, Dagre;
+  try {{
+    [X6mod, Dagre] = await Promise.all([
+      import(__X6_URL__),
+      import(__DAGRE_URL__),
+    ]);
+  }} catch(e) {{
+    container.innerHTML = '<div class="erd-error">X6/Dagre loading error:\\n' + e + '</div>';
+    return;
+  }}
+
+  const {{ Graph }} = X6mod;
+  const dagre = Dagre.default || Dagre;
+
+  if (x6graph) {{ try {{ x6graph.dispose(); }} catch(_){{}} }}
+
+  x6graph = new Graph({{
+    container,
+    autoResize: true,
+    panning:    {{ enabled: true, modifiers: null }},
+    mousewheel: {{ enabled: true, modifiers: null }},
+    background: {{ color: '#f8fafc' }},
+    grid: {{ visible: true, size: 20, type: 'dot', args: {{ color: '#e2e8f0' }} }},
+    connecting: {{
+      router:    'manhattan',
+      connector: {{ name: 'rounded', args: {{ radius: 6 }} }},
+    }},
+    interacting: {{ nodeMovable: true, edgeMovable: false }},
+  }});
+
+  const {{ nodes, edges }} = getDomainData();
+  currentNodes = nodes || [];
+  currentEdges = edges || [];
+
+  for (const nd of currentNodes) {{
+    const fields = nd.fields || [];
+    x6graph.addNode({{
+      id:     nd.id,
+      shape:  'html',
+      width:  240,
+      height: Math.max(60, 36 + fields.length * 24),
+      html: () => {{
+        const div = document.createElement('div');
+        div.style.cssText = 'width:100%;height:100%;';
+        div.innerHTML = buildTableHtml(nd);
+        return div;
+      }},
+    }});
+  }}
+
+  for (const ed of currentEdges) {{
+    try {{
+      x6graph.addEdge({{
+        source: ed.source,
+        target: ed.target,
+        attrs:  {{ line: {{ stroke: '#94a3b8', strokeWidth: 1.5,
+                            targetMarker: {{ name: 'block', size: 6 }} }} }},
+        labels: ed.label
+          ? [{{ attrs: {{ label: {{ text: ed.label, fontSize: 10, fill: '#64748b' }} }},
+               position: 0.5 }}]
+          : [],
+      }});
+    }} catch(_) {{}}
+  }}
+
+  applyDagreToX6(dagre);
+  setTimeout(() => {{ try {{ x6graph.zoomToFit({{ padding: 40 }}); }} catch(_){{}} }}, 150);
+
+  x6graph.on('node:click', ({{ node }}) => {{
+    const nd = currentNodes.find(n => n.id === node.id);
+    if (nd) showNodeDetail(nd);
+  }});
+
+  setupZoomButtons(
+    () => x6graph.zoom(0.1),
+    () => x6graph.zoom(-0.1),
+    () => x6graph.zoomToFit({{ padding: 40 }}),
+  );
+  container.querySelector('.erd-loading')?.remove();
+}}
+
+function applyDagreToX6(dagre) {{
+  const g = new dagre.graphlib.Graph();
+  const isLR = activeLayout === 'dagre-lr';
+  g.setGraph({{ rankdir: isLR ? 'LR' : 'TB',
+                nodesep: 60, ranksep: 80, marginx: 40, marginy: 40 }});
+  g.setDefaultEdgeLabel(() => ({{}}));
+  for (const nd of currentNodes) {{
+    const node = x6graph.getCellById(nd.id);
+    if (!node) continue;
+    const sz = node.getSize();
+    g.setNode(nd.id, {{ width: sz.width, height: sz.height }});
+  }}
+  for (const ed of currentEdges) {{
+    try {{ g.setEdge(ed.source, ed.target); }} catch(_){{}}
+  }}
+  dagre.layout(g);
+  g.nodes().forEach(id => {{
+    const pos = g.node(id);
+    if (!pos) return;
+    const node = x6graph.getCellById(id);
+    if (node) node.setPosition(pos.x - pos.width / 2, pos.y - pos.height / 2);
+  }});
+}}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  Renderer 2 — Graphviz SVG via @hpcc-js/wasm-graphviz
+// ════════════════════════════════════════════════════════════════════════════
+
+async function ensureGraphvizApi() {{
+  if (gvApi) return gvApi;
+  const mod = await import(__GRAPHVIZ_URL__);
+  const Cls = mod.Graphviz || mod.default?.Graphviz || mod.default;
+  if (!Cls || typeof Cls.load !== 'function') {{
+    throw new Error('Graphviz.load() was not found in @hpcc-js/wasm-graphviz');
+  }}
+  gvApi = await Cls.load();
+  return gvApi;
+}}
+
+async function initD3Graphviz() {{
+  const cont = document.getElementById('d3gv-container');
+  cont.innerHTML = '<div class="erd-loading">&#x23F3; Loading Graphviz\u2026</div>';
+
+  const {{ nodes, edges }} = getDomainData();
+  currentNodes = nodes || [];
+  currentEdges = edges || [];
+
+  const dot = buildDotSource();
+  const engine = getGvEngine();
+  try {{
+    const api = await ensureGraphvizApi();
+    const svg = api.layout(dot, 'svg', engine);
+    cont.innerHTML = svg;
+    const svgEl = cont.querySelector('svg');
+    if (svgEl) {{
+      svgEl.removeAttribute('width');
+      svgEl.removeAttribute('height');
+      svgEl.style.width = '100%';
+      svgEl.style.height = '100%';
+      svgEl.style.display = 'block';
+    }}
+    onGvRendered();
+  }} catch(e) {{
+    cont.innerHTML = '<div class="erd-error">Graphviz render error:\\n' + e + '</div>';
+  }}
+}}
+
+function onGvRendered() {{
+  const root = document.getElementById('d3gv-container');
+  if (!root) return;
+  const nodes = root.querySelectorAll('g.node');
+  const edges = root.querySelectorAll('g.edge');
+  nodes.forEach(el => {{
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => {{
+      const title = el.querySelector('title')?.textContent?.trim();
+      const nd = currentNodes.find(n => n.id === title || n.label === title);
+      if (nd) showNodeDetail(nd);
+    }});
+    el.addEventListener('mouseenter', () => {{
+      const title = el.querySelector('title')?.textContent?.trim() || '';
+      nodes.forEach(n => {{
+        n.style.opacity = n.querySelector('title')?.textContent?.trim() === title ? '1' : '0.35';
+      }});
+      edges.forEach(e => {{
+        const edgeTitle = e.querySelector('title')?.textContent?.trim() || '';
+        e.style.opacity = edgeTitle.includes(title) ? '1' : '0.2';
+      }});
+    }});
+    el.addEventListener('mouseleave', () => {{
+      nodes.forEach(n => n.style.opacity = '1');
+      edges.forEach(e => e.style.opacity = '1');
+    }});
+  }});
+}}
+
+function getGvEngine() {{
+  if (activeLayout === 'gv-dot-lr' || activeLayout === 'gv-dot-tb') return 'dot';
+  if (activeLayout === 'gv-neato')  return 'neato';
+  if (activeLayout === 'gv-fdp')    return 'fdp';
+  if (activeLayout === 'gv-circo')  return 'circo';
+  return 'dot';
+}}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  Renderer 3 — Cytoscape.js
+// ════════════════════════════════════════════════════════════════════════════
+async function initCytoscape() {{
+  const cont = document.getElementById('cy-container');
+  cont.innerHTML = '<div class="erd-loading">&#x23F3; Loading Cytoscape\u2026</div>';
+
+  try {{
+    await loadScript('{DAGRE_UMD_URL}',       'dagre-umd');
+    await loadScript('{CYTOSCAPE_URL}',       'cytoscape-script');
+    await loadScript('{CYTOSCAPE_DAGRE_URL}', 'cy-dagre');
+  }} catch(e) {{
+    cont.innerHTML = '<div class="erd-error">Cytoscape loading error:\\n' + e + '</div>';
+    return;
+  }}
+
+  cont.innerHTML = '<div id="cy-graph" style="width:100%;height:100%;background:#f8fafc;"></div>';
+
+  const {{ nodes, edges }} = getDomainData();
+  currentNodes = nodes || [];
+  currentEdges = edges || [];
+
+  const isLR = activeLayout === 'cy-dagre-lr';
+  const elements = [
+    ...currentNodes.map(nd => ({{
+      group: 'nodes',
+      data:  {{ id: nd.id, label: nd.label || nd.id,
+                fields: nd.fields || [], color: nd.color || '#3b82f6' }},
+    }})),
+    ...currentEdges.map(ed => ({{
+      group: 'edges',
+      data:  {{ id: 'e_' + ed.source + '_' + ed.target,
+                source: ed.source, target: ed.target, label: ed.label || '' }},
+    }})),
+  ];
+
+  if (cyInstance) {{ try {{ cyInstance.destroy(); }} catch(_){{}} }}
+
+  cyInstance = cytoscape({{
+    container: document.getElementById('cy-graph'),
+    elements,
+    style:  buildCytoscapeStyle(),
+    layout: {{ name: 'dagre', rankDir: isLR ? 'LR' : 'TB',
+               nodeSep: 60, rankSep: 100, padding: 40,
+               animate: true, animationDuration: 400 }},
+    minZoom: 0.05, maxZoom: 4, wheelSensitivity: 0.3,
+  }});
+
+  cyInstance.on('tap', 'node', evt => {{
+    const nd = currentNodes.find(n => n.id === evt.target.id());
+    if (nd) showNodeDetail(nd);
+  }});
+
+  setupZoomButtons(
+    () => cyInstance.zoom(cyInstance.zoom() * 1.2),
+    () => cyInstance.zoom(cyInstance.zoom() * 0.8),
+    () => cyInstance.fit(undefined, 40),
+  );
+}}
+
+function buildCytoscapeStyle() {{
+  return [
+    {{ selector: 'node', style: {{
+        shape: 'roundrectangle', 'background-color': 'data(color)',
+        label: 'data(label)', color: '#fff', 'font-size': '13px',
+        'font-weight': 'bold', 'text-valign': 'center', 'text-halign': 'center',
+        padding: '14px', 'text-wrap': 'wrap', 'text-max-width': '180px',
+        'min-width': '160px', 'border-width': 0,
+    }} }},
+    {{ selector: 'edge', style: {{
+        width: 1.5, 'line-color': '#94a3b8',
+        'target-arrow-color': '#94a3b8', 'target-arrow-shape': 'triangle',
+        'curve-style': 'bezier', label: 'data(label)',
+        'font-size': '10px', color: '#64748b',
+        'text-background-color': '#fff', 'text-background-opacity': 0.8,
+        'text-background-padding': '2px',
+    }} }},
+    {{ selector: 'node:selected', style: {{
+        'border-width': 3, 'border-color': '#1d4ed8', 'background-color': '#2563eb',
+    }} }},
+    {{ selector: 'edge:selected', style: {{
+        'line-color': '#2563eb', 'target-arrow-color': '#2563eb', width: 2.5,
+    }} }},
+  ];
+}}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  Renderer 4 — Mermaid
+// ════════════════════════════════════════════════════════════════════════════
+async function initMermaid() {{
+  const cont = document.getElementById('mermaid-container');
+  cont.innerHTML = '<div class="erd-loading">&#x23F3; Loading Mermaid\u2026</div>';
+  try {{
+    const m = await import(__MERMAID_URL__);
+    const mermaid = m.default || m;
+    mermaid.initialize({{ startOnLoad: false, theme: 'default',
+                          er: {{ useMaxWidth: false }} }});
+    const {{ svg }} = await mermaid.render('mermaid-erd-svg', buildMermaidSource());
+    cont.innerHTML = svg;
+  }} catch(e) {{
+    cont.innerHTML = '<div class="erd-error">Mermaid error:\\n' + e + '</div>';
+  }}
+}}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  Renderer 5 — D2
+// ════════════════════════════════════════════════════════════════════════════
+async function initD2() {{
+  const cont = document.getElementById('d2-container');
+  cont.innerHTML = '<div class="erd-loading">&#x23F3; Loading D2\u2026</div>';
+  try {{
+    const mod  = await import(__D2_URL__);
+    const D2cls = mod.D2 || mod.default?.D2 || mod.default;
+    const d2   = new D2cls();
+    const result = await d2.layout(buildD2Source());
+    cont.innerHTML = typeof result === 'string' ? result
+                   : result?.svg || JSON.stringify(result);
+  }} catch(e) {{
+    cont.innerHTML = '<div class="erd-error">D2 error:\\n' + e + '</div>';
+  }}
+}}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  DOT / Mermaid / D2 source builders
+// ════════════════════════════════════════════════════════════════════════════
+function buildDotSource() {{
+  const {{ nodes, edges }} = getDomainData();
+  const isLR = activeLayout === 'gv-dot-lr' || activeLayout === 'cy-dagre-lr' || activeLayout === 'dagre-lr';
+  const lines = [
+    'digraph ERD {{',
+    '  graph [rankdir=' + (isLR ? 'LR' : 'TB') +
+      ' fontname="Helvetica" bgcolor="#f8fafc" pad="0.5" nodesep="0.8" ranksep="1.2"]',
+    '  node  [shape=none fontname="Helvetica" fontsize=11 margin="0"]',
+    '  edge  [fontname="Helvetica" fontsize=9 color="#94a3b8" arrowsize=0.7]',
+    '',
+  ];
+
+  for (const nd of (nodes || [])) {{
+    const color = nd.color || '#3b82f6';
+    const rows  = (nd.fields || []).map(f => {{
+      const bg      = f.primary_key ? '#fef9c3' : f.foreign_key ? '#dbeafe' : '#ffffff';
+      const icon    = f.primary_key ? 'PK' : f.foreign_key ? 'FK' : '';
+      const iconTd  = icon
+        ? '<TD BGCOLOR="' + bg + '" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>' + icon + '</B></FONT></TD>'
+        : '<TD BGCOLOR="' + bg + '" WIDTH="28"></TD>';
+      return '<TR>' + iconTd +
+        '<TD BGCOLOR="' + bg + '" ALIGN="LEFT">' + escHtml(f.name) + '</TD>' +
+        '<TD BGCOLOR="' + bg + '" ALIGN="LEFT"><FONT COLOR="#64748b"><I>' +
+          escHtml(f.type || '') + '</I></FONT></TD>' +
+        '</TR>';
+    }}).join('\\n      ');
+
+    lines.push(
+      '  "' + nd.id + '" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" ' +
+      'CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="' + color + '">' +
+      '<TR><TD COLSPAN="3" BGCOLOR="' + color + '" ALIGN="CENTER">' +
+      '<FONT COLOR="white" POINT-SIZE="12"><B>' + escHtml(nd.label || nd.id) + '</B></FONT>' +
+      '</TD></TR>' + rows + '</TABLE>>]'
+    );
+  }}
+
+  lines.push('');
+  for (const ed of (edges || [])) {{
+    const lbl = ed.label ? ' [label="' + escHtml(ed.label) + '" fontsize=9]' : '';
+    lines.push('  "' + ed.source + '" -> "' + ed.target + '"' + lbl);
+  }}
+  lines.push('}}');
+  return lines.join('\\n');
+}}
+
+function buildMermaidSource() {{
+  const {{ nodes, edges }} = getDomainData();
+  const lines = ['erDiagram'];
+  for (const nd of (nodes || [])) {{
+    lines.push('  ' + nd.id.replace(/[^\\w]/g,'_') + ' {{');
+    for (const f of (nd.fields || [])) {{
+      lines.push('    ' + (f.type || 'string').replace(/[^\\w]/g, '_') +
+                 ' ' + f.name.replace(/[^\\w]/g, '_'));
+    }}
+    lines.push('  }}');
+  }}
+  for (const ed of (edges || [])) {{
+    lines.push('  ' + ed.source.replace(/[^\\w]/g,'_') + ' ||--o{{ ' +
+               ed.target.replace(/[^\\w]/g,'_') +
+               ' : "' + escHtml(ed.label || 'has') + '"');
+  }}
+  return lines.join('\\n');
+}}
+
+function buildD2Source() {{
+  const {{ nodes, edges }} = getDomainData();
+  const lines = [];
+  for (const nd of (nodes || [])) {{
+    lines.push(nd.id + ': {{');
+    lines.push('  shape: sql_table');
+    for (const f of (nd.fields || [])) {{
+      const kw = f.primary_key ? ' {{constraint: primary_key}}'
+               : f.foreign_key ? ' {{constraint: foreign_key}}' : '';
+      lines.push('  ' + f.name + ': ' + (f.type || 'text') + kw);
+    }}
+    lines.push('}}');
+  }}
+  for (const ed of (edges || [])) {{
+    lines.push(ed.source + ' -> ' + ed.target +
+               ': "' + escHtml(ed.label || '') + '"');
+  }}
+  return lines.join('\\n');
+}}
+
+function buildTableHtml(nd) {{
+  const color = nd.color || '#3b82f6';
+  const rows = (nd.fields || []).map(f => {{
+    const bg   = f.primary_key ? '#fef9c3' : f.foreign_key ? '#dbeafe' : '#fff';
+    const badge = f.primary_key
+      ? '<span style="font-size:9px;font-weight:700;color:#92400e;background:#fef3c7;padding:0 4px;border-radius:3px">PK</span>'
+      : f.foreign_key
+      ? '<span style="font-size:9px;font-weight:700;color:#1e40af;background:#dbeafe;padding:0 4px;border-radius:3px">FK</span>'
+      : '<span style="color:#cbd5e1;font-size:11px">&#183;</span>';
+    return '<div style="display:flex;align-items:center;gap:6px;padding:3px 8px;' +
+           'background:' + bg + ';border-bottom:1px solid #f1f5f9;font-size:11px;">' +
+           badge +
+           '<span style="flex:1;color:#334155;font-weight:500">' + escHtml(f.name) + '</span>' +
+           '<span style="color:#64748b;font-style:italic">' + escHtml(f.type || '') + '</span>' +
+           '</div>';
+  }}).join('');
+  return '<div style="border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.12);' +
+         'border:1.5px solid ' + color + ';font-family:system-ui,sans-serif;background:#fff;">' +
+         '<div style="background:' + color + ';padding:6px 12px;color:#fff;font-weight:700;' +
+         'font-size:13px;text-align:center;">' + escHtml(nd.label || nd.id) + '</div>' +
+         rows + '</div>';
+}}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  Node detail panel
+// ════════════════════════════════════════════════════════════════════════════
+function showNodeDetail(nd) {{
+  const shell = document.getElementById('node-detail-shell');
+  const title = document.getElementById('node-detail-title');
+  const body  = document.getElementById('node-detail-body');
+  if (!shell || !body) return;
+
+  title.textContent = nd.label || nd.id;
+  let h = '<div class="detail-section"><div class="detail-section-title">Fields</div>';
+  for (const f of (nd.fields || [])) {{
+    const badges = [
+      f.primary_key ? '<span class="badge badge-pk">PK</span>' : '',
+      f.foreign_key ? '<span class="badge badge-fk">FK</span>' : '',
+      f.unique      ? '<span class="badge badge-uq">UQ</span>' : '',
+      f.not_null    ? '<span class="badge badge-nn">NN</span>' : '',
+    ].join('');
+    h += '<div class="field-row">' +
+         '<span class="field-icon">' +
+           (f.primary_key ? '&#128273;' : f.foreign_key ? '&#128279;' : '&middot;') +
+         '</span>' +
+         '<div style="flex:1">' +
+           '<div style="display:flex;gap:4px;align-items:center">' +
+             '<span class="field-name">' + escHtml(f.name) + '</span>' +
+             '<span class="field-type">' + escHtml(f.type || '') + '</span>' +
+           '</div>' +
+           '<div class="field-badges">' + badges + '</div>' +
+         '</div></div>';
+  }}
+  h += '</div>';
+
+  const relOut = currentEdges.filter(e => e.source === nd.id);
+  const relIn  = currentEdges.filter(e => e.target === nd.id);
+  if (relOut.length || relIn.length) {{
+    h += '<div class="detail-section"><div class="detail-section-title">Relations</div>';
+    for (const e of relOut)
+      h += '<div class="rel-row">' +
+           '<span class="rel-arrow">→</span>' +
+           '<span class="rel-target">' + escHtml(e.target) + '</span>' +
+           '<span style="color:#94a3b8;font-size:10px">' + escHtml(e.label || '') + '</span>' +
+           '</div>';
+    for (const e of relIn)
+      h += '<div class="rel-row">' +
+           '<span class="rel-arrow">←</span>' +
+           '<span class="rel-target">' + escHtml(e.source) + '</span>' +
+           '<span style="color:#94a3b8;font-size:10px">' + escHtml(e.label || '') + '</span>' +
+           '</div>';
+    h += '</div>';
+  }}
+
+  body.innerHTML = h;
+  shell.classList.add('open');
+}}
+
+document.getElementById('node-detail-close')
+  ?.addEventListener('click', () =>
+    document.getElementById('node-detail-shell')?.classList.remove('open'));
+
+// ════════════════════════════════════════════════════════════════════════════
+//  Utilities
+// ════════════════════════════════════════════════════════════════════════════
+function setupZoomButtons(zIn, zOut, zFit) {{
+  [['btn-zoom-in', zIn], ['btn-zoom-out', zOut], ['btn-zoom-fit', zFit]]
+    .forEach(([id, fn]) => {{
+      const el = document.getElementById(id);
+      if (!el) return;
+      const clone = el.cloneNode(true);
+      el.parentNode.replaceChild(clone, el);
+      if (fn) clone.addEventListener('click', fn);
+    }});
+}}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  Renderer switching
+// ════════════════════════════════════════════════════════════════════════════
+const ALL_CONT_IDS = [
+  'container', 'd3gv-container', 'cy-container',
+  'mermaid-container', 'd2-container', 'd2-source-container',
+];
+const RENDERER_SHOWS = {{
+  x6:        ['container'],
+  d3gv:      ['d3gv-container'],
+  cytoscape: ['cy-container'],
+  mermaid:   ['mermaid-container'],
+  d2:        ['d2-container'],
+  d2src:     ['d2-source-container'],
+}};
+const HAS_LAYOUT = new Set(['x6', 'd3gv', 'cytoscape']);
+const LAYOUT_GROUPS = {{
+  x6: [
+    {{ id: 'dagre-lr', label: 'Dagre LR', recommended: true }},
+    {{ id: 'dagre-tb', label: 'Dagre TB' }},
+  ],
+  d3gv: [
+    {{ id: 'gv-dot-lr', label: 'Dot LR', recommended: true }},
+    {{ id: 'gv-dot-tb', label: 'Dot TB' }},
+    {{ id: 'gv-neato',  label: 'Neato' }},
+    {{ id: 'gv-fdp',    label: 'FDP' }},
+    {{ id: 'gv-circo',  label: 'Circo' }},
+  ],
+  cytoscape: [
+    {{ id: 'cy-dagre-lr', label: 'Dagre LR', recommended: true }},
+    {{ id: 'cy-dagre-tb', label: 'Dagre TB' }},
+  ],
+}};
+const RENDERERS = [
+  {{ id: 'd3gv',      label: 'Graphviz \u2756', recommended: true }},
+  {{ id: 'cytoscape', label: 'Cytoscape' }},
+  {{ id: 'x6',        label: 'X6 + Dagre' }},
+  {{ id: 'mermaid',   label: 'Mermaid' }},
+  {{ id: 'd2',        label: 'D2' }},
+  {{ id: 'd2src',     label: 'D2 Source' }},
+];
+
+function switchRenderer(name) {{
+  activeRenderer = name;
+  for (const id of ALL_CONT_IDS) {{
+    const el = document.getElementById(id);
+    if (el) {{ el.style.display = 'none'; el.classList.remove('active'); }}
+  }}
+  const zt = document.getElementById('zoom-toolbar');
+  if (zt) zt.style.display = 'none';
+
+  for (const id of (RENDERER_SHOWS[name] || [])) {{
+    const el = document.getElementById(id);
+    if (el) {{ el.style.display = ''; el.classList.add('active'); }}
+  }}
+  if (name === 'x6' || name === 'cytoscape') {{
+    if (zt) zt.style.display = '';
+  }}
+
+  const lp = document.getElementById('layout-picker');
+  if (lp) lp.style.display = HAS_LAYOUT.has(name) ? '' : 'none';
+  renderLayoutPills(name);
+
+  document.querySelectorAll('#renderer-pill-bar .pill').forEach(p =>
+    p.classList.toggle('active', p.dataset.renderer === name));
+
+  switch (name) {{
+    case 'x6':        initX6();         break;
+    case 'd3gv':      initD3Graphviz(); break;
+    case 'cytoscape': initCytoscape();  break;
+    case 'mermaid':   initMermaid();    break;
+    case 'd2':        initD2();         break;
+    case 'd2src': {{
+      const c = document.getElementById('d2-source-container');
+      if (c) c.textContent = buildD2Source();
+      break;
+    }}
+  }}
+}}
+
+function renderLayoutPills(renderer) {{
+  const bar = document.getElementById('layout-pill-bar');
+  if (!bar) return;
+  const group = LAYOUT_GROUPS[renderer] || [];
+  if (!group.length) {{ bar.innerHTML = ''; return; }}
+  if (!group.find(l => l.id === activeLayout)) activeLayout = group[0].id;
+  bar.innerHTML = group.map(l =>
+    '<button class="pill' + (l.recommended ? ' recommended' : '') +
+    (activeLayout === l.id ? ' active' : '') +
+    '" data-layout="' + l.id + '">' + l.label + '</button>'
+  ).join('');
+  bar.querySelectorAll('.pill').forEach(p => {{
+    p.addEventListener('click', () => {{
+      activeLayout = p.dataset.layout;
+      bar.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      switchRenderer(activeRenderer);
+    }});
+  }});
+}}
+
+function initRendererPills() {{
+  const bar = document.getElementById('renderer-pill-bar');
+  if (!bar) return;
+  bar.innerHTML = RENDERERS.map(r =>
+    '<button class="pill' + (r.recommended ? ' recommended' : '') +
+    (r.id === activeRenderer ? ' active' : '') +
+    '" data-renderer="' + r.id + '">' + r.label + '</button>'
+  ).join('');
+  bar.querySelectorAll('.pill').forEach(p =>
+    p.addEventListener('click', () => switchRenderer(p.dataset.renderer)));
+}}
+
+function initDomainPicker() {{
+  const domains = ERD_DATA?.domains || {{}};
+  const keys = Object.keys(domains);
+  const picker = document.getElementById('domain-picker');
+  if (!picker || keys.length <= 1) {{
+    if (keys.length === 1) activeDomain = keys[0];
+    return;
+  }}
+  activeDomain = keys[0];
+  picker.style.display = '';
+  const bar = document.getElementById('domain-pill-bar');
+  if (!bar) return;
+  bar.innerHTML = keys.map((k, i) =>
+    '<button class="pill' + (i === 0 ? ' active' : '') +
+    '" data-domain="' + k + '">' + k + '</button>'
+  ).join('');
+  bar.querySelectorAll('.pill').forEach(p => {{
+    p.addEventListener('click', () => {{
+      activeDomain = p.dataset.domain;
+      bar.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      switchRenderer(activeRenderer);
+    }});
+  }});
+}}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════════════════════
+(function boot() {{
+  initDomainPicker();
+  initRendererPills();
+  switchRenderer('d3gv');
+}})();
+"""
+
+# ── ErdGraphPayload serialization for the JS runtime ─────────────────────────
+
+def _role_to_flags(role: str) -> dict:
+    """Convert a field role string into boolean flags for JS."""
+    return {
+        "primary_key": role in ("pk", "pk_fk"),
+        "foreign_key": role in ("fk", "pk_fk"),
+    }
+
+
+def _serialize_entity(entity, color: str) -> dict:
+    """
+    Convert ErdEntitySpec into the JS node shape.
+    """
+    fields = []
+    for f in entity.fields:
+        flags = _role_to_flags(f.role)
+        fields.append({
+            "name":        f.name,
+            "type":        f.type or "",
+            "primary_key": flags["primary_key"],
+            "foreign_key": flags["foreign_key"],
+        })
+    # If there are no fields, keep the table visible with an id row and attributes.
+    if not fields:
+        fields.append({"name": "id", "type": "str", "primary_key": True, "foreign_key": False})
+        for k, v in (entity.attributes or {}).items():
+            if k == "id":
+                continue
+            fields.append({"name": k, "type": str(v), "primary_key": False, "foreign_key": False})
+    return {
+        "id":     entity.id,
+        "label":  entity.label,
+        "color":  color,
+        "fields": fields,
+    }
+
+
+def _serialize_edge(rel) -> dict:
+    """Convert ErdEdgeSpec into the JS edge shape."""
+    return {
+        "source": rel.source,
+        "target": rel.target,
+        "label":  rel.label or "",
+    }
+
+
+def _payload_to_domain_dict(payload) -> dict:
+    """
+    Convert ErdGraphPayload into the JSON-ready domain dictionary.
+    """
+    nodes = []
+    for i, entity in enumerate(payload.entities):
+        color = _ENTITY_COLORS[i % len(_ENTITY_COLORS)]
+        nodes.append(_serialize_entity(entity, color))
+
+    edges = [_serialize_edge(rel) for rel in payload.relationships]
+    return {"nodes": nodes, "edges": edges}
+
+
+# ── Python API ────────────────────────────────────────────────────────────────
+
+def _make_bootstrap(erd_data: dict) -> str:
+    return _ERD_BOOTSTRAP_TEMPLATE.format(
+        X6_URL              = X6_MODULE_URL,
+        DAGRE_URL           = DAGRE_MODULE_URL,
+        MERMAID_URL         = MERMAID_MODULE_URL,
+        D2_URL              = D2_MODULE_URL,
+        GRAPHVIZ_URL        = GRAPHVIZ_MODULE_URL,
+        DAGRE_UMD_URL       = _DAGRE_UMD_URL,
+        CYTOSCAPE_URL       = _CYTOSCAPE_URL,
+        CYTOSCAPE_DAGRE_URL = _CYTOSCAPE_DAGRE_URL,
+        ERD_DATA_JSON       = json.dumps(erd_data, ensure_ascii=False),
+    )
+
+
+def _template_raw() -> str:
+    return _TEMPLATE_HTML.read_text(encoding="utf-8")
+
+
+def _load_payload_builder():
+    """Load the sibling graph-data builder for package and direct directory execution."""
+    try:
+        from .erd_graph_data import erd_payload_from_coordinator_for_domain
+    except ImportError:
+        from erd_graph_data import erd_payload_from_coordinator_for_domain
+
+    return erd_payload_from_coordinator_for_domain
+
+
+def write_erd_html(
+    erd_data: dict,
+    output_path: str | Path,
+    title: str = "ERD Viewer",
+    width: int = 1400,
+    height: int = 900,
+) -> Path:
+    """Write a standalone ERD HTML viewer."""
+    out = Path(output_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    bootstrap = _make_bootstrap(erd_data)
+    tpl = _template_raw()
+
+    result = (
+        tpl
+        .replace("@@HTML_ESCAPED_TITLE@@", html.escape(title))
+        .replace("@@CONTAINER_WIDTH@@",    str(width))
+        .replace("@@CONTAINER_HEIGHT@@",   str(height))
+        .replace("@@INLINE_ERD_SCRIPT@@",  bootstrap)
+    )
+    out.write_text(result, encoding="utf-8")
+    return out
+
+
+def write_erd_html_from_coordinator(
+    coordinator,
+    domain_cls=None,
+    output_path: str | Path | None = None,
+    title: str = "ERD Viewer",
+    width: int = 1400,
+    height: int = 900,
+) -> Path:
+    """Generate an ERD HTML file from a NodeGraphCoordinator."""
+    erd_payload_from_coordinator_for_domain = _load_payload_builder()
+
+    if output_path is None:
+        output_path = DEFAULT_ERD_HTML_PATH
+
+    if domain_cls is None:
+        # Collect every registered domain when no explicit domain is requested.
+        domains_map: dict = {}
+        for dc in coordinator.get_registered_domains():
+            try:
+                payload = erd_payload_from_coordinator_for_domain(coordinator, dc)
+                domain_name = getattr(dc, "name", None) or dc.__name__
+                domains_map[domain_name] = _payload_to_domain_dict(payload)
+            except Exception:
+                continue
+        erd_data: dict = {"domains": domains_map}
+    else:
+        payload = erd_payload_from_coordinator_for_domain(coordinator, domain_cls)
+        domain_name = getattr(domain_cls, "name", None) or domain_cls.__name__
+        erd_data = {
+            "domains": {
+                domain_name: _payload_to_domain_dict(payload)
+            }
+        }
+
+    return write_erd_html(erd_data, output_path, title=title, width=width, height=height)
