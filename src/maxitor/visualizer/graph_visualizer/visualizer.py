@@ -26,7 +26,9 @@ forbidden DAG-cycle edges use the reserved violation red (**not** reused by any 
 fill). Nodes incident on those edges use the same red disk so endpoints read as hotspots. Action
 nodes use indigo (:data:`NODE_TYPE_FILL_COLORS`), not violation red. On node hover, floating labels
 use a flat rectangular panel; the **left stripe** uses each node’s ``data.fill`` (same hue as the
-on-canvas disk). G6 assigns ``hub`` / ``nb`` and incident edges ``active`` for the neighborhood.
+on-canvas disk). Canvas rendering uses G6 **circle** nodes (``fill`` + glyph ``iconSrc`` only). Hover
+``hub`` / ``nb`` add a **black** ``stroke`` ring (same ``lineWidth`` as the default grey outline). Legend
+and the details panel use full-chroma disk ``iconSrc``.
 Edge ``data`` still carries relationship fields for tests.
 """
 
@@ -78,6 +80,7 @@ from maxitor.visualizer.graph_visualizer.domain_propagation import (
     propagate_node_domains as _propagate_node_domains,
 )
 from maxitor.visualizer.graph_visualizer.visualizer_icons import (
+    svg_data_uri_for_graph_node_glyph_only,
     svg_data_uri_for_graph_node_icon,
 )
 
@@ -463,6 +466,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
                 "fill": fill,
                 "isDagCycleViolationIncident": is_dag_violation_incident,
                 "iconSrc": svg_data_uri_for_graph_node_icon(fill, node_type),
+                "glyphIconSrc": svg_data_uri_for_graph_node_glyph_only(node_type),
                 "payload_panel": payload_panel,
             },
         })
@@ -546,6 +550,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         const bubblePlugins = {bubble_plugins_json};
         const NODE_VISUAL_PX = {GRAPH_NODE_VISUAL_PX};
         const DAG_CYCLE_VIOLATION_COLOR = "{DAG_CYCLE_VIOLATION_COLOR}";
+        const NODE_BASE_RING_LINE_WIDTH = 0.75;
 
         const esc = (s) =>
           String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -605,25 +610,40 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           data: graphData,
 
           node: {{
-            type: 'image',
+            type: 'circle',
             style: {{
               label: false,
               size: NODE_VISUAL_PX,
-              src: (d) => d.data?.iconSrc || '',
+              fill: (d) => {{
+                const v = d.data?.fill;
+                if (v != null && String(v).trim() !== '') return String(v).trim();
+                return '{DEFAULT_COLOR}';
+              }},
+              iconSrc: (d) =>
+                d.data?.glyphIconSrc != null && String(d.data.glyphIconSrc).trim() !== ''
+                  ? String(d.data.glyphIconSrc)
+                  : d.data?.iconSrc || '',
+              stroke: 'rgba(15, 23, 42, 0.14)',
+              lineWidth: NODE_BASE_RING_LINE_WIDTH,
               opacity: 1,
-              filter: 'none',
               cursor: 'grab',
+              halo: false,
+              shadowBlur: 0,
             }},
             state: {{
               hub: {{
                 opacity: 1,
-                stroke: '#DC2626',
-                lineWidth: 3,
+                halo: false,
+                stroke: '#000000',
+                lineWidth: NODE_BASE_RING_LINE_WIDTH,
+                shadowBlur: 0,
               }},
               nb: {{
                 opacity: 1,
-                stroke: '#F87171',
-                lineWidth: 2,
+                halo: false,
+                stroke: '#000000',
+                lineWidth: NODE_BASE_RING_LINE_WIDTH,
+                shadowBlur: 0,
               }},
             }},
           }},
@@ -640,7 +660,9 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
               label: false,
             }},
             state: {{
-              active: {{}},
+              active: {{
+                lineWidth: 2.35,
+              }},
             }},
           }},
 
