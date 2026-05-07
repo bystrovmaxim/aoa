@@ -65,9 +65,9 @@ def main() -> None:
         choices=("all", "store"),
         default="all",
         help=(
-            "Domain data embedded in the HTML. "
-            '"all" exports every domain from the interchange graph and shows the Domain picker; '
-            '"store" embeds only the store bounded context.'
+            "Embedded domain graphs. "
+            '"all" includes every bounded context and opens the viewer with toggles to blend domains; '
+            '"store" embeds only StoreDomain.'
         ),
     )
     ap.add_argument(

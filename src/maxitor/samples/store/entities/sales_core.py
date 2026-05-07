@@ -15,7 +15,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from action_machine.domain import AssociationMany, AssociationOne, BaseEntity, CompositeMany, Inverse, Rel
+from action_machine.domain import (
+    AssociationMany,
+    AssociationOne,
+    BaseEntity,
+    CompositeMany,
+    Inverse,
+    NoInverse,
+    Rel,
+)
 from action_machine.intents.entity import entity
 from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.entities.lifecycle import (
@@ -31,6 +39,11 @@ class CustomerAccountEntity(BaseEntity):
     lifecycle: CustomerAccountLifecycle = Field(description="Account lifecycle")
     name: str = Field(description="Display name")
     email: str = Field(description="Email")
+
+    identity_party: Annotated[
+        AssociationOne["IdentityPersonHubEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Canonical person aggregate in the identity bounded context")  # type: ignore[assignment]
 
     orders: Annotated[
         AssociationMany[SalesOrderEntity],
@@ -55,6 +68,11 @@ class SalesOrderEntity(BaseEntity):
         Inverse(SalesOrderLineEntity, "order"),
     ] = Rel(description="Line items")  # type: ignore[assignment]
 
+    payment_capture_audit: Annotated[
+        AssociationOne["PaymentEventLogEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Settlement-side payment telemetry for this storefront order")  # type: ignore[assignment]
+
 
 @entity(description="Order line", domain=StoreDomain)
 class SalesOrderLineEntity(BaseEntity):
@@ -64,11 +82,20 @@ class SalesOrderLineEntity(BaseEntity):
     quantity: int = Field(description="Qty", ge=1)
     unit_price: float = Field(description="Unit price", ge=0)
 
+    catalog_product: Annotated[
+        AssociationOne["CatalogProductEntity"],  # noqa: UP037
+        NoInverse(),
+    ] = Rel(description="Anchored SKU row from the commerce catalog")  # type: ignore[assignment]
+
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         Inverse(SalesOrderEntity, "order_lines"),
     ] = Rel(description="Parent order")  # type: ignore[assignment]
 
+
+from maxitor.samples.billing.entities.payment_event_log import PaymentEventLogEntity  # noqa: E402
+from maxitor.samples.catalog.entities.product_row import CatalogProductEntity  # noqa: E402
+from maxitor.samples.identity.entities.identity_person_hub import IdentityPersonHubEntity  # noqa: E402
 
 CustomerAccountEntity.model_rebuild()
 SalesOrderEntity.model_rebuild()

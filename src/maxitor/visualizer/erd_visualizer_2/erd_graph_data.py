@@ -26,6 +26,29 @@ from graph.node_graph_coordinator import NodeGraphCoordinator
 LINE_HEIGHT = 24
 NODE_WIDTH = 190
 
+# Matches ``erd_html._ENTITY_COLORS`` order for consistent HTML / X6 demos.
+_DOMAIN_ACCENT_PALETTE: tuple[str, ...] = (
+    "#3b82f6",
+    "#8b5cf6",
+    "#10b981",
+    "#f59e0b",
+    "#ef4444",
+    "#06b6d4",
+    "#ec4899",
+    "#64748b",
+)
+
+
+def _domain_qual_to_accent(nodes: list[EntityGraphNode]) -> dict[str, str]:
+    """Stable accent colour per declared ``domain.target_node_id`` qualifier."""
+    quals = sorted({n.domain.target_node_id for n in nodes})
+    return {q: _DOMAIN_ACCENT_PALETTE[i % len(_DOMAIN_ACCENT_PALETTE)] for i, q in enumerate(quals)}
+
+
+def _entity_nodes_by_id(coordinator: NodeGraphCoordinator) -> dict[str, EntityGraphNode]:
+    return {node.node_id: node for node in coordinator.get_all_nodes() if isinstance(node, EntityGraphNode)}
+
+
 FieldRole = Literal["pk", "fk", "pk_fk", "field"]
 Cardinality = Literal["one", "zero_one", "one_many", "zero_many"]
 
@@ -62,6 +85,10 @@ class ErdEntitySpec:
     attributes: dict[str, Any] = field(default_factory=dict)
     fields: tuple[ErdFieldSpec, ...] = ()
     is_junction: bool = False
+    #: Header/table accent (hex). Empty → HTML export falls back to row-index palette.
+    accent_color: str = ""
+    #: Declared interchange domain qualifier (``TypeIntrospection.full_qualname(domain_cls)``).
+    declaring_domain_qual: str = ""
 
 
 @dataclass(frozen=True)
@@ -249,37 +276,60 @@ def erd_payload_from_coordinator_for_domain(
 
     AI-CORE-BEGIN
     ROLE: Read interchange ``Entity`` vertices and ``entity_relation`` associations into transient ERD rows.
-    CONTRACT: Runs after ``coordinator.build``; retains only entities declaring ``domain_cls`` via interchange domain edge target id matching ``TypeIntrospection.full_qualname(domain_cls)``.
-    Inverse pairs with **matching** cardinality (e.g. two ``AssociationOne`` / ``one``+``one``) emit **two** directed diagram edges so reciprocal FKs remain visible (cycles); classic many/one inverse pairs remain a single crow-foot edge.
-    INVARIANTS: Relationship rows exist only when both entity interchange ids belong to that entity set (internal associations only).
+    CONTRACT: Rows are anchored at ``domain_cls``; association edges whose far end lives in another declared domain appear as FK slots and stubs for that foreign entity (same Annotated semantics as intra-domain graphs).
+    INVERSE pairs with **matching** cardinality (``AssociationOne`` / ``one``+``one``) still collapse or dual-emit using inverse slot bookkeeping.
+    INVARIANTS: Every diagram vertex maps to an ``EntityGraphNode`` id on the built coordinator graph.
     AI-CORE-END
     """
     domain_qual = TypeIntrospection.full_qualname(domain_cls)
-    by_id: dict[str, EntityGraphNode] = {}
+    all_graph = _entity_nodes_by_id(coordinator)
+    accent_by_qual = _domain_qual_to_accent(list(all_graph.values()))
 
+    by_dom: dict[str, EntityGraphNode] = {}
     for node in coordinator.get_all_nodes():
         if not isinstance(node, EntityGraphNode):
             continue
         if node.domain.target_node_id != domain_qual:
             continue
-        by_id[node.node_id] = node
+        by_dom[node.node_id] = node
 
-    entity_ids = frozenset(by_id)
-    field_map: dict[str, dict[str, ErdFieldSpec]] = {}
-    for eid in sorted(entity_ids):
-        fields = entity_fields_from_class(by_id[eid].node_obj)
-        field_map[eid] = {f.name: f for f in fields}
+    entity_ids_dom = frozenset(by_dom)
 
     relation_rows: list[tuple[str, str, str, dict[str, Any]]] = []
-    for src_id in sorted(entity_ids):
-        ent_node = by_id[src_id]
+    for src_id in sorted(entity_ids_dom):
+        ent_node = by_dom[src_id]
         for assoc in ent_node.relations:
             tgt = assoc.target_node_id
-            if tgt not in entity_ids:
+            if tgt not in all_graph:
                 continue
             props = assoc.properties
             field_name = str(props.get("field_name", "") or "")
             relation_rows.append((src_id, tgt, field_name, props))
+
+    for src_id in sorted(all_graph.keys()):
+        if src_id in entity_ids_dom:
+            continue
+        ext_node = all_graph[src_id]
+        for assoc in ext_node.relations:
+            tgt = assoc.target_node_id
+            if tgt not in entity_ids_dom:
+                continue
+            props = assoc.properties
+            field_name = str(props.get("field_name", "") or "")
+            relation_rows.append((src_id, tgt, field_name, props))
+
+    display_ids: set[str] = set(entity_ids_dom)
+    for src, tgt, _, _ in relation_rows:
+        if src in all_graph:
+            display_ids.add(src)
+        if tgt in all_graph:
+            display_ids.add(tgt)
+
+    field_map: dict[str, dict[str, ErdFieldSpec]] = {}
+    for eid in sorted(display_ids):
+        node_row = all_graph[eid]
+        fields = entity_fields_from_class(node_row.node_obj)
+        field_map[eid] = {f.name: f for f in fields}
 
     relationships: list[ErdEdgeSpec] = []
     emitted_inverse_pairs: set[frozenset[tuple[str, str]]] = set()
@@ -308,21 +358,20 @@ def erd_payload_from_coordinator_for_domain(
                 _append_relationship_edge_from_row(
                     relationships=relationships,
                     field_map=field_map,
-                    by_id=by_id,
+                    by_id=all_graph,
                     row=inv,
                 )
             elif this_card == inv_card:
-                # Symmetric cardinality (typical mutually inverse ``AssociationOne``): keep both arrows.
                 _append_relationship_edge_from_row(
                     relationships=relationships,
                     field_map=field_map,
-                    by_id=by_id,
+                    by_id=all_graph,
                     row=row_self,
                 )
                 _append_relationship_edge_from_row(
                     relationships=relationships,
                     field_map=field_map,
-                    by_id=by_id,
+                    by_id=all_graph,
                     row=inv,
                 )
             else:
@@ -330,7 +379,7 @@ def erd_payload_from_coordinator_for_domain(
                 _append_relationship_edge_from_row(
                     relationships=relationships,
                     field_map=field_map,
-                    by_id=by_id,
+                    by_id=all_graph,
                     row=cand,
                 )
             continue
@@ -338,20 +387,22 @@ def erd_payload_from_coordinator_for_domain(
         _append_relationship_edge_from_row(
             relationships=relationships,
             field_map=field_map,
-            by_id=by_id,
+            by_id=all_graph,
             row=chosen,
         )
 
     entities = tuple(
         ErdEntitySpec(
             id=eid,
-            label=by_id[eid].node_obj.__name__,
-            attributes=entity_attributes_from_class(by_id[eid].node_obj),
+            label=all_graph[eid].node_obj.__name__,
+            attributes=entity_attributes_from_class(all_graph[eid].node_obj),
             fields=tuple(field_map[eid].values()),
             is_junction=sum(1 for f in field_map[eid].values() if "fk" in f.role) >= 2
             and sum(1 for f in field_map[eid].values() if f.role == "field") <= 3,
+            accent_color=accent_by_qual.get(all_graph[eid].domain.target_node_id, ""),
+            declaring_domain_qual=all_graph[eid].domain.target_node_id,
         )
-        for eid in sorted(entity_ids)
+        for eid in sorted(display_ids)
     )
     return ErdGraphPayload(entities=entities, relationships=tuple(relationships))
 
