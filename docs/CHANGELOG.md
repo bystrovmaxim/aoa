@@ -7,22 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
-## [Unreleased]
+## [1.2.5] – 2026-05-08
 
 ### Breaking changes
 
-- **Multiple PyPI packages and `aoa.*` layout.** Runtime code lives under `packages/aoa-*/src/aoa/{graph,action_machine,maxitor,examples}`. Public imports are **`aoa.graph`**, **`aoa.action_machine`**, **`aoa.maxitor`**, and **`aoa.examples`** only. Install **`aoa-graph`**, **`aoa-action-machine`**, **`aoa-maxitor`**, or **`aoa-examples`** as needed; there are no legacy top-level shims (`graph.*`, `action_machine.*`, …). **`aoa-examples`** does not pull **`aoa-maxitor`** as a dependency.
+- **Multiple PyPI packages and `aoa.*` layout.** Runtime code lives under `packages/aoa-*/src/aoa/{graph,action_machine,maxitor,examples}`. Public imports are `**aoa.graph`**, `**aoa.action_machine**`, `**aoa.maxitor**`, and `**aoa.examples**` only. Install `**aoa-graph**`, `**aoa-action-machine**`, `**aoa-maxitor**`, or `**aoa-examples**` as needed; there are no legacy top-level shims (`graph.*`, `action_machine.*`, …). `**aoa-examples**` does not pull `**aoa-maxitor**` as a dependency.
 
-### Documentation
-
-- **Packages and releases.** Added `docs/packages.md` (dependency matrix, namespace, version policy) and expanded root `README.md` with per-distribution install commands.
-- **Checks reference.** `docs/packages.md` also documents the full check stack and why `check_test_layer_imports` and `check_maxitor_samples_public_api` remain alongside package boundary checks (PR-10).
-
-## [1.0.0] – 2026-05-08
+## [1.1.5] – 2026-05-08
 
 ### Changed
 
-- **Interchange graph as the canonical topology.** Coordinators and tooling now pivot on `**NodeGraphCoordinator`** and typed interchange vertices (`**BaseGraphNode**`) and edges (`**BaseGraphEdge**`) — domains, lifecycle/entity meshes, declarative facets, propagated domain membership, and stable edge payloads (DAG flags, attachment / line-style metadata) replace ad-hoc graph sketches for visualization and serializers.
+- **Interchange graph as the canonical topology.** Coordinators and tooling now pivot on `**NodeGraphCoordinator`** and typed interchange vertices (`**BaseGraphNode`**) and edges (`**BaseGraphEdge**`) — domains, lifecycle/entity meshes, declarative facets, propagated domain membership, and stable edge payloads (DAG flags, attachment / line-style metadata) replace ad-hoc graph sketches for visualization and serializers.
 
 ### Added
 
@@ -31,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- **Legacy ERD package split.** Drops the old `**erd_visualizer_1`** / `**erd_visualizer_2**` layout; `**erd_visualizer**` is now the single graph-backed viewer entry point.
+- **Legacy ERD package split.** Drops the old `**erd_visualizer_1`** / `**erd_visualizer_2`** layout; `**erd_visualizer**` is now the single graph-backed viewer entry point.
 
 ## [1.0.0] – 2026-04-12
 
