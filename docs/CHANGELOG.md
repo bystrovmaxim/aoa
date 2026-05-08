@@ -7,27 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
-## Terminology
+## [1.0.0] – 2026-05-08
 
-Older entries below may use the legacy names **GateHost** / `*GateHostInspector` /
-`BaseGateHostInspector`. The current public API uses **Intent** mixins and
-**IntentInspector** classes (e.g. `RoleIntent`, `AspectIntent`, `BaseIntentInspector`).
-The coordinator class name `**GraphCoordinator`** is unchanged.
+### Changed
 
-## [Unreleased]
+- **Interchange graph as the canonical topology.** Coordinators and tooling now pivot on **`NodeGraphCoordinator`** and typed interchange vertices (**`BaseGraphNode`**) and edges (**`BaseGraphEdge`**) — domains, lifecycle/entity meshes, declarative facets, propagated domain membership, and stable edge payloads (DAG flags, attachment / line-style metadata) replace ad-hoc graph sketches for visualization and serializers.
 
-### Breaking changes
+### Added
 
-- **Graph module layout and names.** Removed `graph.logical` (types and builders now live directly under `graph`). `LogicalVertex` / `LogicalEdge` → `GraphVertex` / `GraphEdge`; `LogicalGraphBuilder` → `GraphBuilder`; `build_from_g0_input` → `build_from_synthetic_bundle`; `g0_builder` module → `synthetic_input_builder`; `logical_dag` → `dag`; facet→interchange lives in `graph.interchange_from_facets` (no separate `facet_graph` module; no payload-type filtering — stable sort by `(node_type, node_name)` only). Golden fixtures: `logical_minimal.json` → `synthetic_minimal.json`, `logical_test_domain.graph.json` → `test_domain.graph.json`. Tests moved from `tests/graph_logical_contract/` to `tests/graph_contract/`.
-- `**GraphCoordinator.get_graph()` default shape.** `logical_graph_public` now defaults to `True` on `GraphCoordinator` and `CoreActionMachine.create_coordinator()`. After `build()`, `get_graph()` returns the interchange `PyDiGraph`. Use `logical_graph_public=False` for the legacy facet skeleton on `get_graph()`.
+- **Interchange graph HTML visualizer.** **`maxitor.visualizer.graph_visualizer`** exports standalone **AntV G6** HTML from an already-built coordinator — forced layout seeded from domains, legends and hull overlays, interchange chrome (legend + tooling), hover affordances, **shared right-hand detail drawer** (`InterchangeDetailPanel`), and default artefact **`archive/logs/graph_node.html`**.
+- **ERD HTML visualizer from the coordinator graph.** **`maxitor.visualizer.erd_visualizer`** builds relational diagrams per bounded context from the live graph (`erd_graph_data` / `erd_html`): standalone HTML with **Graphviz** wasm, **Cytoscape** + dagre, and **Mermaid** `erDiagram`, plus blended domains and UX aligned with the graph viewer (**shared interchange chrome**, same detail-drawer semantics for entity keys).
 
-### Deprecated
+### Removed
 
-- `**GraphCoordinator.get_facet_graph()`.** Emits `DeprecationWarning` and is scheduled for removal after the next release. Prefer `logical_graph_public=False` and `get_graph()` for facet-shaped payloads, or consume the interchange graph. `McpAdapter._build_graph_json` suppresses the warning for the supported integration path.
-
-### Changed (PR11)
-
-- `**GraphCoordinator` single public `PyDiGraph`.** `get_graph()` reads the committed interchange graph (`_graph`). Facet skeleton topology lives in internal `_facet_graph`; use `**facet_topology_copy()`** for a facet-shaped copy (MCP, `hydrate_graph_node` inputs). Removed `**get_facet_graph()**` and the `**logical_graph_public**` constructor flag; `**CoreActionMachine.create_coordinator(_unbuilt)**` no longer accepts that keyword.
+- **Legacy ERD package split.** Drops the old **`erd_visualizer_1`** / **`erd_visualizer_2`** layout; **`erd_visualizer`** is now the single graph-backed viewer entry point.
 
 ## [1.0.0] – 2026-04-12
 
@@ -99,8 +92,8 @@ The coordinator class name `**GraphCoordinator`** is unchanged.
 
 ### Changed
 
-- **Intents package layout.** Declarative modules live only under `action_machine.intents.*` (`auth`, `aspects`, `checkers`, `compensate`, `context`, `logging`, `on_error`, `plugins`, `meta`, `described_fields`). Duplicate top-level packages (`auth/`, `aspects/`, … at repo root) and `core/meta_*.py` / `core/described_fields_intent.py` re-export stubs were removed. `DescribedFieldsIntent` is in `action_machine.intents.described_fields.marker` (re-exported from `action_machine.intents.described_fields`).
-- **Graph package.** `action_machine.metadata` → `graph` (`GraphCoordinator`, `FacetPayload`, `BaseIntentInspector`, facet snapshots, `graph_execution_adapters`, exceptions, cleanup). All `*IntentInspector` modules live under `graph.inspectors.*`; imports from `action_machine.metadata` are removed.
+- **Intents package layout.** Declarative modules live only under `action_machine.intents.`* (`auth`, `aspects`, `checkers`, `compensate`, `context`, `logging`, `on_error`, `plugins`, `meta`, `described_fields`). Duplicate top-level packages (`auth/`, `aspects/`, … at repo root) and `core/meta_*.py` / `core/described_fields_intent.py` re-export stubs were removed. `DescribedFieldsIntent` is in `action_machine.intents.described_fields.marker` (re-exported from `action_machine.intents.described_fields`).
+- **Graph package.** `action_machine.metadata` → `graph` (`GraphCoordinator`, `FacetPayload`, `BaseIntentInspector`, facet snapshots, `graph_execution_adapters`, exceptions, cleanup). All `*IntentInspector` modules live under `graph.inspectors.`*; imports from `action_machine.metadata` are removed.
 - **Runtime package.** `action_machine.core` removed. Machines live under `action_machine.runtime.machines` (`ActionProductMachine`, `SyncActionProductMachine`, `CoreActionMachine`); binding under `action_machine.runtime.binding` (`action_generic_params`, `action_result_binding`); shared runtime modules and execution components under `action_machine.runtime` and `action_machine.runtime.components`. Import `CoreActionMachine` from `action_machine.runtime` (lazy `__getattr__` so `runtime.navigation` does not eager-load the graph stack during `model` init) or from `action_machine.runtime.machines.core_action_machine`.
 - **Resources tests path.** Tests for connection managers live under `tests/resources/` (formerly `tests/resource_managers`).
 - `**DescribedFieldsIntentInspector`.** Follows `DescribedFieldsIntent`; walks `BaseParams` / `BaseResult` / `BaseEntity`; graph `node_meta` key `schema_fields`.
@@ -116,7 +109,7 @@ The coordinator class name `**GraphCoordinator`** is unchanged.
 ### Documentation
 
 - **Glossary** at the end of `README.md` and `README-2.md` (Intent, `IntentInspector`, `GraphCoordinator`, decorator, scratch).
-- **Repository check (2026-04-12):** no `GateHost` / `gate_host` / `*gate_host*` symbols or filenames under `src/**/*.py` and `tests/**/*.py`; historical names remain in this changelog only where noted.
+- **Repository check (2026-04-12):** no `GateHost` / `gate_host` / `*gate_host`* symbols or filenames under `src/**/*.py` and `tests/**/*.py`; historical names remain in this changelog only where noted.
 - **No deprecation aliases.** No `RoleGateHost = RoleIntent` shims and no `action_machine.compat` package; the public API uses Intent names only while the project is pre-`1.0.0`. Any future temporary aliases would ship in a dedicated release with an explicit removal timeline and `DeprecationWarning` on each alias.
 
 ## [0.8.0] – 2026-04-07
@@ -277,7 +270,7 @@ The coordinator class name `**GraphCoordinator`** is unchanged.
 - `**debug()` function for object introspection in log templates.** Returns a formatted multi-line string listing all public fields and properties of any object, including their types and values. For properties decorated with `@sensitive`, the masking configuration is shown. Output is non-recursive by default (`max_depth=1`) to avoid cluttering logs — to inspect nested objects, call `debug` on the nested attribute directly. Available inside `iif` expressions: `{iif(1==1; debug(obj); '')}`.
 - `**exists()` function for safe variable presence checks.** `exists('variable.name')` returns `True` if the variable is defined in the current evaluation context, `False` otherwise. Useful for conditional logging when a variable may not be present: `{iif(exists('var.user'); debug(var.user); 'No user')}`. Works both inside `iif` conditions and as a standalone expression evaluating to the string `"True"` or `"False"`.
 - **Color filters in log templates.** ANSI colors can be applied to any substituted value using pipe syntax outside `iif` (`{%var.amount|red}`) or color functions inside `iif` (`red('text')`). Supports foreground colors (`red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `grey`, `orange` and bright variants), background colors (prefixed with `bg_`), and combinations (`{%var.text|red_on_blue}`). The coordinator strips ANSI codes for loggers that declare `supports_colors=False`.
-- `**@sensitive` decorator for data masking in logs.** Applied to property getters, it causes the value to be partially masked when substituted in log templates. Configurable via `max_chars` (visible characters from start), `char` (replacement character), and `max_percent` (maximum visible percentage). Example: `@sensitive(max_chars=3)` on an email property makes `{%context.user.email}` output `max*`**** instead of the full address.
+- `**@sensitive` decorator for data masking in logs.** Applied to property getters, it causes the value to be partially masked when substituted in log templates. Configurable via `max_chars` (visible characters from start), `char` (replacement character), and `max_percent` (maximum visible percentage). Example: `@sensitive(max_chars=3)` on an email property makes `{%context.user.email}` output `max`***** instead of the full address.
 - **Strict underscore rule in log templates.** Any template variable whose last path segment starts with underscore raises `LogTemplateError` immediately. This prevents accidental logging of private or protected fields. Developers must expose data through public properties if it needs to appear in logs.
 - **Asynchronous plugin initialization.** `Plugin.get_initial_state()` is now an `async` method, allowing plugins to perform I/O operations (database queries, API calls) during state initialization without blocking the event loop. The `PluginCoordinator` awaits each plugin's initialization directly instead of using `run_in_executor`.
 - **Context as a per-request parameter.** `context` is now passed directly to `machine.run(context, action, params, connections)` instead of being stored in the machine constructor. This reflects the architectural reality that the machine is a long-lived singleton while each request carries its own context containing user identity, request metadata, and runtime information. All internal methods receive `context` as an explicit argument.
@@ -310,7 +303,7 @@ The coordinator class name `**GraphCoordinator`** is unchanged.
 
 ### Added
 
-- **Unified data access protocols (`ReadableDataProtocol`, `WritableDataProtocol`).** Runtime-checkable protocols defining dict-like interfaces for reading (`__getitem`__, `get`, `keys`, `values`, `items`, `__contains_`_) and writing (`__setitem__`). Any object implementing these methods can serve as `Params`, `Result`, or plugin state, enabling the use of TypedDict, Pydantic models, and custom classes without framework-specific base classes.
+- **Unified data access protocols (`ReadableDataProtocol`, `WritableDataProtocol`).** Runtime-checkable protocols defining dict-like interfaces for reading (`__getitem`_*, `get`, `keys`, `values`, `items`, `__contains_`*) and writing (`__setitem__`). Any object implementing these methods can serve as `Params`, `Result`, or plugin state, enabling the use of TypedDict, Pydantic models, and custom classes without framework-specific base classes.
 - `**ReadableMixin` and `WritableMixin`.** Mixins that automatically implement the data protocols via `getattr`/`setattr`/`vars()`. Adding `ReadableMixin` to any class gives it dict-like read access; adding `WritableMixin` gives write access with optional key validation via `write(key, value, allowed_keys)`. Used by `BaseParams`, `BaseResult`, `BaseState`, `Context`, `UserInfo`, `RequestInfo`, `RuntimeInfo`.
 - `**resolve()` method for dot-path navigation.** `ReadableMixin` provides `resolve("user.roles")` for traversing nested objects through a chain of keys separated by dots. Supports three navigation strategies: `ReadableMixin` objects (via `__getitem__`), plain dictionaries (via key access), and generic objects (via `getattr`). Results are cached lazily in `_resolve_cache`, compatible with frozen Pydantic models via `object.__setattr__`.
 - **Asynchronous authentication pipeline.** `CredentialExtractor`, `Authenticator`, `ContextAssembler`, and `AuthCoordinator` — all methods are `async def`, enabling I/O operations (token verification, database lookups) without blocking the event loop. `AuthCoordinator.process()` orchestrates the three-step pipeline: extract credentials, authenticate user, assemble request metadata into `Context`.
@@ -331,3 +324,4 @@ The coordinator class name `**GraphCoordinator`** is unchanged.
 - `**GraphCoordinator` — central metadata and graph registry.** Lazily builds and caches `ClassMetadata` for any class on first access. Recursively discovers dependencies and connections. Maintains a directed acyclic graph (rustworkx `PyDiGraph`) with nodes for actions, dependencies, connections, aspects, checkers, plugins, subscriptions, sensitive fields, roles, and domains. Detects cyclic dependencies via `is_directed_acyclic_graph()` after each edge addition.
 - **Logging subsystem.** `LogCoordinator` broadcasts messages to registered `BaseLogger` instances. `ConsoleLogger` outputs to stdout with configurable colors and indentation. `VariableSubstitutor` resolves five namespaces (`var`, `state`, `params`, `context`, `scope`) with dot-path traversal. `ExpressionEvaluator` handles `{iif(condition; true; false)}` via `simpleeval`. `@sensitive` decorator masks property values in logs. Strict error policy: invalid templates raise `LogTemplateError` immediately.
 - **Exception hierarchy.** `AuthorizationError` (role mismatch), `ValidationFieldError` (checker failure), `HandleError` (resource manager errors), `TransactionError` (base for connection errors), `ConnectionAlreadyOpenError`, `ConnectionNotOpenError`, `TransactionProhibitedError` (wrapper prevents nested transactions), `ConnectionValidationError` (key mismatch), `LogTemplateError` (invalid template syntax), `CyclicDependencyError` (graph cycle detected).
+
