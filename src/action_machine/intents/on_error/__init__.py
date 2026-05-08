@@ -15,14 +15,13 @@ COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``OnErrorIntent`` — marker mixin indicating support for ``@on_error``.
-  Included by ``BaseAction``. A class without ``OnErrorIntent`` in MRO cannot
-  declare ``@on_error`` methods; metadata build raises ``TypeError``.
+  Included by ``BaseAction``.
 
 - ``on_error`` — method-level decorator. Accepts one exception type or a tuple
   of types and required ``description``. Writes metadata to
-  ``method._on_error_meta``. Typed snapshot is built by
-  ``OnErrorIntentInspector``; snapshot access:
-  ``get_snapshot(cls, "error_handler")``.
+  ``method._on_error_meta``. :class:`~action_machine.intents.on_error.on_error_intent_resolver.OnErrorIntentResolver`
+  and :func:`~action_machine.intents.on_error.on_error_intent_resolver.hydrate_error_handler_row`
+  read the same shape where tests or tooling need typed rows.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -40,20 +39,6 @@ ARCHITECTURE / DATA FLOW
     7. If no handler matches, original exception propagates as unhandled.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Handlers are NOT inherited from parent Action classes.
-- Method name must end with ``"_on_error"``.
-- ``description`` is required (non-empty string).
-- Signature: ``(self, params, state, box, connections, error)``.
-- Handler must be ``async def``.
-- A later handler cannot catch the same/smaller subtype than an earlier one
-  (dead-code prevention).
-- ``state`` is not modified by handlers.
-- Rollup does not affect on-error handling.
-
-═══════════════════════════════════════════════════════════════════════════════
 HANDLER ORDER
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -64,54 +49,10 @@ Correct order: specific types first, then broad fallback.
         @on_error(ValueError, description="...")     <- specific
         @on_error(Exception, description="...")      <- broad fallback
 
-    Invalid (``TypeError`` during metadata build):
-        @on_error(Exception, description="...")      <- catches everything
-        @on_error(ValueError, description="...")     <- dead code
+    Problematic (broad handler first — specific handler never runs for that type):
+        @on_error(Exception, description="...")      <- catches everything first
+        @on_error(ValueError, description="...")     <- unreachable for ``ValueError``
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.intents.on_error import on_error
-
-    @meta(description="Create order", domain=OrdersDomain)
-    @check_roles(NoneRole)
-    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-
-        @regular_aspect("Validation")
-        async def validate_aspect(self, params, state, box, connections):
-            ...
-
-        @summary_aspect("Result")
-        async def build_result_summary(self, params, state, box, connections):
-            ...
-
-        @on_error(ValueError, description="Input validation error")
-        async def validation_on_error(self, params, state, box, connections, error):
-            return OrderResult(order_id="ERR", status="validation_error", total=0)
-
-        @on_error(Exception, description="Unexpected error")
-        async def fallback_on_error(self, params, state, box, connections, error):
-            return OrderResult(order_id="ERR", status="internal_error", total=0)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Invalid handler declarations fail metadata build with ``TypeError``.
-- Missing matching handler means original exception propagates.
-- Package exports contracts/decorator only; orchestration is runtime-side.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public API for aspect error-handler intent and decorator.
-CONTRACT: Export marker + decorator used by metadata inspectors and runtime.
-INVARIANTS: Handler signature/order constraints validated during metadata build.
-FLOW: decorated methods -> inspector snapshot -> runtime match/dispatch.
-FAILURES: Declaration errors at build; unhandled exceptions propagate at runtime.
-EXTENSION POINTS: Add new handler metadata fields via decorator+inspector pair.
-AI-CORE-END
 """
 
 from action_machine.intents.on_error.on_error_decorator import on_error

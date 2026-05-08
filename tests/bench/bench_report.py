@@ -14,21 +14,6 @@ a single dense log line.
 Output is printed inside ``capsys.disabled()`` so it appears with default pytest
 capture (no ``-s`` required).
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from tests.bench.bench_report import emit_benchmark_report, rows_throughput_budget
-
-    def test_foo(capsys):
-        ...
-        emit_benchmark_report(
-            capsys,
-            "My scenario",
-            rows_throughput_budget(n=10_000, elapsed_sec=0.02, budget_sec=0.1),
-        )
-
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations

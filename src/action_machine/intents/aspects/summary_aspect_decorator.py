@@ -35,48 +35,6 @@ If ``@context_requires`` is present, ``ContextView`` is passed as ``ctx``:
            v
     runtime final-step execution
 
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Applies only to callable methods.
-- Method must be ``async def``.
-- ``description`` must be a non-empty string.
-- Method name must end with ``_summary`` or be exactly ``summary``.
-- Signature must have 5 params without context, 6 with context.
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    @summary_aspect("Build result")
-    async def build_result_summary(self, params, state, box, connections):
-        return OrderResult(...)
-
-    @summary_aspect("Build result with context")
-    @context_requires(Ctx.User.user_id)
-    async def build_result_summary(self, params, state, box, connections, ctx):
-        return OrderResult(created_by=ctx.get(Ctx.User.user_id), ...)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-TypeError for wrong target type, non-async method, or wrong signature.
-ValueError for empty description.
-NamingSuffixError for invalid method name suffix.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Summary-aspect declaration module.
-CONTRACT: ``@summary_aspect`` marks the final async step that returns Result.
-INVARIANTS: non-empty string description, callable+async target, valid arity, ``_summary`` suffix or ``summary``.
-FLOW: validate declaration -> attach ``_new_aspect_meta`` -> inspector snapshot -> runtime final-step execution.
-FAILURES: TypeError/ValueError/NamingSuffixError on declaration contract violations.
-EXTENSION POINTS: context-aware signature via ``@context_requires``.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -86,7 +44,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.model.exceptions import NamingSuffixError
+from action_machine.exceptions.naming_suffix_error import NamingSuffixError
 
 # Parameter count without @context_requires.
 _BASE_PARAM_COUNT = 5

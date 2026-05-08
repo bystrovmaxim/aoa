@@ -12,13 +12,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.intents.context.context import Context
-from action_machine.intents.logging.channel import Channel, channel_mask_label
-from action_machine.intents.logging.level import Level, level_label
-from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.logging.log_scope import LogScope
-from action_machine.intents.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
-from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.context.context import Context
+from action_machine.logging.channel import Channel, channel_mask_label
+from action_machine.logging.level import Level, level_label
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
 
@@ -43,8 +43,6 @@ class TestAspectLogger:
         return ScopedLogger(
             coordinator=mock_coordinator,
             nest_level=2,
-            machine_name="TestMachine",
-            mode="test_mode",
             action_name="myapp.actions.TestAction",
             aspect_name="test_aspect",
             context=context,
@@ -125,13 +123,11 @@ class TestAspectLogger:
 
         scope = mock_coordinator.emit.call_args.kwargs["scope"]
         assert isinstance(scope, LogScope)
-        assert scope["machine"] == "TestMachine"
-        assert scope["mode"] == "test_mode"
         assert scope["action"] == "myapp.actions.TestAction"
         assert scope["aspect"] == "test_aspect"
         assert scope["nest_level"] == 2
         assert list(scope.keys()) == [
-            "machine", "mode", "action", "aspect", "nest_level",
+            "action", "aspect", "nest_level",
         ]
 
     @pytest.mark.anyio
@@ -186,8 +182,6 @@ class TestPluginLogger:
         return ScopedLogger(
             coordinator=mock_coordinator,
             nest_level=1,
-            machine_name="TestMachine",
-            mode="production",
             action_name="myapp.actions.CreateOrder",
             aspect_name="",
             context=context,
@@ -204,14 +198,12 @@ class TestPluginLogger:
 
         scope = mock_coordinator.emit.call_args.kwargs["scope"]
         assert isinstance(scope, LogScope)
-        assert scope["machine"] == "TestMachine"
-        assert scope["mode"] == "production"
         assert scope["plugin"] == "MetricsPlugin"
         assert scope["action"] == "myapp.actions.CreateOrder"
         assert scope["event"] == "global_finish"
         assert scope["nest_level"] == 1
         assert list(scope.keys()) == [
-            "machine", "mode", "plugin", "action", "event", "nest_level",
+            "plugin", "action", "event", "nest_level",
         ]
         assert "aspect" not in scope
 
@@ -223,10 +215,7 @@ class TestPluginLogger:
 
         scope = mock_coordinator.emit.call_args.kwargs["scope"]
         dotpath = scope.as_dotpath()
-        expected = (
-            "TestMachine.production.MetricsPlugin."
-            "myapp.actions.CreateOrder.global_finish.1"
-        )
+        expected = "MetricsPlugin.myapp.actions.CreateOrder.global_finish.1"
         assert dotpath == expected
 
     @pytest.mark.anyio
@@ -276,8 +265,6 @@ class TestWithStateAndParams:
         logger = ScopedLogger(
             coordinator=mock_coordinator,
             nest_level=0,
-            machine_name="Machine",
-            mode="test",
             action_name="Action",
             aspect_name="aspect",
             context=context,
@@ -302,8 +289,6 @@ class TestWithStateAndParams:
         logger = ScopedLogger(
             coordinator=mock_coordinator,
             nest_level=0,
-            machine_name="Machine",
-            mode="prod",
             action_name="RootAction",
             aspect_name="summary",
             context=context,

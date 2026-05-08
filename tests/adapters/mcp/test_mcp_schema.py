@@ -28,30 +28,6 @@ INVARIANTS
 
 - Uses the same Pydantic major version as the library under test.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/mcp/test_mcp_schema.py -q
-
-Edge case: empty ``Params`` → object schema with no required properties.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Schema keys and ``$ref`` layout can shift with Pydantic upgrades; tests encode
-  current stable expectations.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Contract tests for tool input JSON Schema from Params models.
-CONTRACT: ``model_json_schema`` parity with MCP adapter expectations.
-INVARIANTS: Scenario models ``PingAction``, ``SimpleAction``, ``FullAction``.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from pydantic import BaseModel, Field

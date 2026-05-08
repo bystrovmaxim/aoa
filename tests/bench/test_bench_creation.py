@@ -17,7 +17,7 @@ ARCHITECTURE / DATA FLOW
     TestBench(**kwargs)
               |
               v
-    GateCoordinator (default) + _prepare_all_mocks(mocks)
+    built ``NodeGraphCoordinator`` (default) + _prepare_all_mocks(mocks)
               |
               v
     _prepared_mocks  ready for ``box.resolve()`` during runs
@@ -30,40 +30,23 @@ INVARIANTS
 - ``unittest.mock.Mock`` / ``AsyncMock`` must not be wrapped solely for being
   callable.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_bench_creation.py -q
-
-Edge case: ``AsyncMock(spec=PaymentService)`` stays a raw mock in
-``_prepared_mocks``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Inspects private ``_prepared_mocks`` to verify preparation without running the
-  full machine.
-
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock
 
-from action_machine.graph.gate_coordinator import GateCoordinator
 from action_machine.testing import TestBench
-from tests.scenarios.domain_model import PaymentService
+from graph.node_graph_coordinator import NodeGraphCoordinator
+from tests.scenarios.domain_model.services import PaymentService, PaymentServiceResource
 
 
 class TestWithoutArguments:
     """``TestBench()`` yields usable defaults."""
 
-    def test_coordinator_is_gate_coordinator(self) -> None:
-        """Default ``coordinator`` is a built ``GateCoordinator``."""
+    def test_coordinator_is_node_graph_coordinator(self) -> None:
+        """Default ``coordinator`` is a built ``NodeGraphCoordinator``."""
         b = TestBench()
 
-        assert isinstance(b.coordinator, GateCoordinator)
+        assert isinstance(b.coordinator, NodeGraphCoordinator)
 
     def test_mocks_empty_by_default(self) -> None:
         """``mocks`` starts empty so dependency-free actions need no setup."""
@@ -82,17 +65,17 @@ class TestWithMocks:
     """User-supplied mocks are normalized once at construction."""
 
     def test_regular_object_stored_as_is(self) -> None:
-        """Plain ``PaymentService`` instance is stored unchanged for direct calls."""
-        payment = PaymentService()
+        """Plain ``PaymentServiceResource`` instance is stored unchanged for direct calls."""
+        payment = PaymentServiceResource(PaymentService())
 
-        b = TestBench(mocks={PaymentService: payment})
+        b = TestBench(mocks={PaymentServiceResource: payment})
 
-        assert b._prepared_mocks[PaymentService] is payment
+        assert b._prepared_mocks[PaymentServiceResource] is payment
 
     def test_async_mock_stored_as_is(self) -> None:
         """``AsyncMock`` is recognized as ``Mock`` before callable wrapping."""
         mock = AsyncMock(spec=PaymentService)
 
-        b = TestBench(mocks={PaymentService: mock})
+        b = TestBench(mocks={PaymentServiceResource: mock})
 
-        assert b._prepared_mocks[PaymentService] is mock
+        assert b._prepared_mocks[PaymentServiceResource] is mock

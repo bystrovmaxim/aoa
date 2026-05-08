@@ -25,54 +25,17 @@ Nested ``Params`` and ``Result`` live on the action class. Action description
 comes from ``@meta(description=...)``; aspect description from
 ``@summary_aspect("...")``.
 
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``order_id`` is a non-empty string (``min_length=1``).
-- This example returns a stub payload, not persisted data.
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    GET /api/v1/orders/ORD-user_123-001
-
-    Response:
-    {"order_id": "ORD-user_123-001", "status": "created", "total": 1500.0}
-
-    Edge case: invalid or empty ``order_id`` fails Pydantic validation at the
-    transport layer (e.g. FastAPI 422).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- In a real app, data would load from a database via ``connections``.
-- This sample always returns ``status="created"`` and ``total=1500.0``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Example read action for shared FastAPI/MCP transports.
-CONTRACT: Path-bound identifier in; structured order snapshot out.
-INVARIANTS: Summary-only pipeline; no regular aspects or state mutations.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from pydantic import Field
 
-from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.auth import NoneRole, check_roles
-from action_machine.intents.logging.channel import Channel
-from action_machine.intents.meta.meta_decorator import meta
-from action_machine.model.base_action import BaseAction
-from action_machine.model.base_params import BaseParams
-from action_machine.model.base_result import BaseResult
-from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.auth import NoneRole
+from action_machine.intents.aspects import summary_aspect
+from action_machine.intents.check_roles import check_roles
+from action_machine.intents.meta import meta
+from action_machine.logging import Channel
+from action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from action_machine.resources import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 
 from ..domains import OrdersDomain
@@ -116,7 +79,7 @@ class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"
         params: "GetOrderAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> "GetOrderAction.Result":
         """Return stub order data for the requested ``order_id``."""
         await box.info(

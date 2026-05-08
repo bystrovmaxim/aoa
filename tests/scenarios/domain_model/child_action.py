@@ -19,7 +19,7 @@ USAGE IN TESTS
 - Nesting: root Action calls ChildAction via
   box.run(ChildAction, ChildAction.Params(value="test")).
 - nest_level increases on nested runs.
-- WrapperSqlConnectionManager: connections passed into box.run() reach the child.
+- WrapperSqlResource: connections passed into box.run() reach the child.
 - Rollup: rollup propagates through box.run().
 
     async def some_aspect(self, params, state, box, connections):
@@ -39,16 +39,18 @@ USAGE IN TESTS
 
 from pydantic import Field
 
+from action_machine.context.ctx_constants import Ctx
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.auth import NoneRole, check_roles
+from action_machine.intents.check_roles import NoneRole, check_roles
 from action_machine.intents.checkers import result_string
+from action_machine.intents.context_requires.context_requires_decorator import context_requires
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 
 from .domains import SystemDomain
@@ -63,7 +65,7 @@ class ChildAction(BaseAction["ChildAction.Params", "ChildAction.Result"]):
     Pipeline:
     1. process_aspect (regular) — prefix "processed:" to value.
        Checker: result_string("processed_value", required=True).
-    2. build_result_summary (summary) — Result from state.
+    2. build_result_summary (summary) — Result from state (declares ``@context_requires`` for graph parity).
     """
 
     class Params(BaseParams):
@@ -84,7 +86,7 @@ class ChildAction(BaseAction["ChildAction.Params", "ChildAction.Result"]):
         params: "ChildAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict:
         """
         Prefix "processed:" to params.value.
@@ -95,15 +97,19 @@ class ChildAction(BaseAction["ChildAction.Params", "ChildAction.Result"]):
         return {"processed_value": f"processed:{params.value}"}
 
     @summary_aspect("Build result")
+    @context_requires(Ctx.Request.trace_id)
     async def build_result_summary(
         self,
         params: "ChildAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
+        _ctx: object,
     ) -> "ChildAction.Result":
         """
         Build Result from processed_value in state.
+
+        ``_ctx`` is unused here; declared so ``@summary_aspect`` matches ``@context_requires`` arity.
 
         Returns:
             ChildAction.Result with field processed.

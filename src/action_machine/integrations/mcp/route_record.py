@@ -10,17 +10,6 @@ Concrete ``BaseRouteRecord`` subtype for MCP transport metadata.
 Stores one MCP tool contract used by ``McpAdapter.build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Inherits all ``BaseRouteRecord`` invariants:
-  - ``action_class`` must be a ``BaseAction`` subtype.
-  - ``params_type`` / ``result_type`` are extracted from ``BaseAction[P, R]``.
-  - ``params_mapper`` is required when request model differs from params type.
-  - ``response_mapper`` is required when response model differs from result type.
-- ``tool_name`` must be non-empty after ``strip()``.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -47,43 +36,6 @@ Mapper naming convention:
     params_mapper   -> returns params   (request -> params)
     response_mapper -> returns response (result  -> response)
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # Minimal:
-    record = McpRouteRecord(
-        action_class=CreateOrderAction,
-        tool_name="orders.create",
-    )
-
-    # Full:
-    record = McpRouteRecord(
-        action_class=CreateOrderAction,
-        request_model=CreateOrderRequest,
-        response_model=CreateOrderResponse,
-        params_mapper=map_request_to_params,
-        response_mapper=map_result_to_response,
-        tool_name="orders.create",
-        description="Create a new order in the system",
-    )
-
-    # Edge case: invalid empty name.
-    # McpRouteRecord(action_class=CreateOrderAction, tool_name="  ") -> ValueError
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Raises ``ValueError`` when ``tool_name`` is empty or whitespace-only.
-- Propagates ``TypeError`` / ``ValueError`` from ``BaseRouteRecord`` if base
-  mapping and type extraction contracts are violated.
-
-AI-CORE-BEGIN
-ROLE: Immutable MCP route contract consumed by McpAdapter.
-CONTRACT: Binds one action mapping contract to one MCP tool descriptor.
-INVARIANTS: BaseRouteRecord invariants + non-empty tool_name.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -96,14 +48,12 @@ from action_machine.adapters.base_route_record import BaseRouteRecord
 @dataclass(frozen=True)
 class McpRouteRecord(BaseRouteRecord):
     """
-    Immutable MCP route descriptor used by ``McpAdapter``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Carries validated tool metadata and mapping contracts.
     CONTRACT: Extends BaseRouteRecord with MCP-specific fields.
     INVARIANTS: Frozen instance and non-empty tool_name.
     AI-CORE-END
-    """
+"""
 
     # ── MCP-specific fields ─────────────────────────────────────────────
 

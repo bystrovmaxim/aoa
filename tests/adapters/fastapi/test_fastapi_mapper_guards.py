@@ -30,27 +30,6 @@ INVARIANTS
 
 - ``ActionProductMachine.run`` is mocked to detect accidental invocations.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/fastapi/test_fastapi_mapper_guards.py -q
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Relies on FastAPI/Starlette error handling for unhandled exceptions in routes.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: End-to-end guard tests for mapper outputs via FastAPI.
-CONTRACT: Wrong mapped types do not produce successful action execution.
-INVARIANTS: AsyncMock auth; mocked ``machine.run`` where asserted.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -62,7 +41,7 @@ from fastapi.testclient import TestClient
 from pydantic import BaseModel, Field
 
 from action_machine.integrations.fastapi.adapter import FastApiAdapter
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import PingAction, SimpleAction
 
 
@@ -77,10 +56,13 @@ def test_params_mapper_wrong_type_does_not_call_machine_run(
     auth: AsyncMock,
 ) -> None:
     """params_mapper must return action Params; wrong type → TypeError, run skipped."""
-    machine = ActionProductMachine(mode="test")
+    machine = ActionProductMachine()
     machine.run = AsyncMock()
 
-    adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+    adapter = FastApiAdapter(
+        machine=machine,
+        auth_coordinator=auth,
+    )
     adapter.post(
         "/mapped",
         SimpleAction,
@@ -101,7 +83,7 @@ def test_response_mapper_wrong_type_after_run_returns_500(
     auth: AsyncMock,
 ) -> None:
     """response_mapper must return effective_response_model type."""
-    machine = ActionProductMachine(mode="test")
+    machine = ActionProductMachine()
     machine.run = AsyncMock(
         return_value=SimpleAction.Result(greeting="Hello"),
     )
@@ -109,7 +91,10 @@ def test_response_mapper_wrong_type_after_run_returns_500(
     class _WireOut(BaseModel):
         greeting: str = Field(default="", description="greeting")
 
-    adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+    adapter = FastApiAdapter(
+        machine=machine,
+        auth_coordinator=auth,
+    )
     adapter.post(
         "/out",
         SimpleAction,

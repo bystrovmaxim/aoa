@@ -6,16 +6,8 @@ Public entrypoint for meta intent contracts and decorator.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Exports the ``@meta`` decorator plus marker mixins used by inspectors and graph
-validation to identify classes carrying action/resource metadata.
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``meta`` is the canonical API for attaching metadata to target classes.
-- ``ActionMetaIntent`` and ``ResourceMetaIntent`` define marker-level contracts.
-- Public package surface is restricted to symbols listed in ``__all__``.
+Exports the ``@meta`` decorator plus the ``MetaIntent`` marker mixin used by
+inspectors and graph validation for classes carrying metadata.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -35,38 +27,11 @@ ARCHITECTURE / DATA FLOW
            v
     runtime graph assembly / adapters
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.intents.meta import meta
-
-    @meta(description="Create order", domain=OrdersDomain)
-    class CreateOrderAction(...):
-        ...
-
-    # Edge case: invalid meta args -> decorator raises validation error.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Validation behavior is implemented in ``meta_decorator`` and related validators.
-- This module is export-only; it does not perform runtime orchestration itself.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Stable import surface for meta contracts and decorator.
-CONTRACT: Re-export marker intents and decorator used across graph/runtime.
-INVARIANTS: API boundary controlled by __all__.
-FLOW: class definition -> @meta -> marker discovery by inspectors.
-FAILURES: decorator-level validation errors originate in meta_decorator.
-EXTENSION POINTS: add new public meta intents/decorators via explicit re-export.
-AI-CORE-END
 """
 
-from action_machine.intents.meta.meta_decorator import meta
-from action_machine.intents.meta.meta_intents import ActionMetaIntent, ResourceMetaIntent
+from __future__ import annotations
 
-__all__ = ["ActionMetaIntent", "ResourceMetaIntent", "meta"]
+from action_machine.intents.meta.meta_decorator import meta
+from action_machine.intents.meta.meta_intent import MetaIntent
+
+__all__ = ["MetaIntent", "meta"]

@@ -19,9 +19,9 @@ LOGGING (SCOPEDLOGGER)
 ═══════════════════════════════════════════════════════════════════════════════
 
 When TestBench creates ``ScopedLogger`` for ``run_aspect`` / ``run_summary`` /
-compensators, it passes ``domain=resolve_domain(action_cls)`` exactly like
-production ``ToolsBoxFactory``, so ``var`` payloads and subscriptions behave
-the same way.
+compensators, it passes ``domain=resolve_domain(action_cls)`` (aligned with
+``@meta``). Production builds ``ScopedLogger`` in ``ActionProductMachine._run_internal``
+and passes ``log`` into ``ToolsBox(...)`` alongside ``factory`` (``domain`` from the interchange ``domain`` edge target ``node_obj``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 MACHINE COLLECTION
@@ -31,9 +31,9 @@ By default TestBench creates two machines:
 - ``ActionProductMachine`` (async) with mocks via ``resources``.
 - ``SyncActionProductMachine`` (sync) with mocks via ``resources``.
 
-Both machines receive same coordinator, plugins, and log_coordinator.
-Terminal methods (``run``, ``run_aspect``, ``run_summary``) execute action on
-EACH machine and compare results through ``compare_results()``.
+Both machines receive the same plugins and log coordinator. Bench metadata reads
+use the stored ``NodeGraphCoordinator``. Terminal ``run`` executes action on EACH
+machine and compares results through ``compare_results()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 MOCK RESET BETWEEN RUNS
@@ -59,8 +59,9 @@ TestBench prepares mocks through ``_prepare_mock()`` using these rules
 2. ``BaseAction`` -> as is (real action instance).
 3. ``unittest.mock.Mock`` -> as is (mock object for ``box.resolve()``).
    Includes ``Mock``, ``MagicMock``, ``AsyncMock`` and subclasses.
-   Critical rule: ``AsyncMock(spec=PaymentService)`` is passed directly into
-   ``resources`` so ``box.resolve(PaymentService)`` returns the mock.
+   Critical rule: ``AsyncMock(spec=PaymentClient)`` is keyed by the declared
+   ``@depends`` resource class (e.g. ``PaymentServiceResource``) so
+   ``box.resolve(PaymentServiceResource)`` returns the mock or wrapper.
 4. ``BaseResult`` -> wrapped in ``MockAction(result=value)``.
 5. ``callable`` -> wrapped in ``MockAction(side_effect=value)``.
 6. anything else -> as is (for ``box.resolve()``).
@@ -124,98 +125,46 @@ Each fluent method returns a NEW ``TestBench`` instance:
 
     from action_machine.testing import StubTesterRole
 
-    bench = TestBench(mocks={PaymentService: mock})
+    bench = TestBench(mocks={PaymentServiceResource: mock})
     admin_bench = bench.with_user(user_id="admin", roles=(StubTesterRole,))
     # bench and admin_bench are different objects.
     # bench is unchanged after with_user call.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from unittest.mock import AsyncMock
-    from action_machine.testing import TestBench
-
-    mock_payment = AsyncMock(spec=PaymentService)
-    mock_payment.charge.return_value = "TXN-001"
-
-    from action_machine.testing import StubTesterRole
-
-    bench = TestBench(mocks={PaymentService: mock_payment})
-    admin_bench = bench.with_user(user_id="admin", roles=(StubTesterRole,))
-
-    result = await admin_bench.run(
-        CreateOrderAction(),
-        OrderParams(user_id="u1", amount=100.0),
-        rollup=False,
-    )
-
-    # assert_called_once_with works correctly:
-    # mocks are reset between async and sync runs,
-    # test sees state only from sync run.
-    mock_payment.charge.assert_called_once_with(100.0, "RUB")
-
-═══════════════════════════════════════════════════════════════════════════════
-COMPENSATOR TESTING EXAMPLE
-═══════════════════════════════════════════════════════════════════════════════
-
-    async def test_payment_compensator_calls_refund():
-        mock_payment = AsyncMock(spec=PaymentService)
-        bench = TestBench(mocks={PaymentService: mock_payment})
-
-        await bench.run_compensator(
-            action=CreateOrderAction(),
-            compensator_name="rollback_payment_compensate",
-            params=CreateOrderParams(user_id="u1", items=[...]),
-            state_before=CreateOrderState(),
-            state_after=CreateOrderState(txn_id="txn_123", amount=100),
-            error=InsufficientStockError("Out of stock"),
-        )
-
-        mock_payment.refund.assert_called_once_with("txn_123")
-
-    async def test_payment_compensator_handles_unavailable():
-        mock_payment = AsyncMock(spec=PaymentService)
-        mock_payment.refund.side_effect = PaymentServiceUnavailable()
-        bench = TestBench(mocks={PaymentService: mock_payment})
-
-        # Compensator handles internal error and does not raise
-        await bench.run_compensator(
-            action=CreateOrderAction(),
-            compensator_name="rollback_payment_compensate",
-            params=CreateOrderParams(user_id="u1", items=[...]),
-            state_before=CreateOrderState(),
-            state_after=CreateOrderState(txn_id="txn_456"),
-            error=ValueError("some error"),
-        )
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any, TypeVar, cast
 from unittest.mock import Mock
 
-from action_machine.dependencies.dependency_factory import cached_dependency_factory
-from action_machine.graph.gate_coordinator import GateCoordinator
-from action_machine.intents.auth.base_role import BaseRole
-from action_machine.intents.context.context import Context
-from action_machine.intents.context.context_view import ContextView
-from action_machine.intents.logging.domain_resolver import resolve_domain
-from action_machine.intents.logging.log_coordinator import LogCoordinator
-from action_machine.intents.logging.scoped_logger import ScopedLogger
-from action_machine.intents.plugins.plugin import Plugin
+from action_machine.auth.base_role import BaseRole
+from action_machine.context.context import Context
+from action_machine.context.context_view import ContextView
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
+from action_machine.logging.domain_resolver import resolve_domain
+from action_machine.logging.log_coordinator import LogCoordinator
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-from action_machine.runtime.machines.sync_action_product_machine import SyncActionProductMachine
+from action_machine.plugin.plugin import Plugin
+from action_machine.resources.base_resource import BaseResource
+from action_machine.runtime.action_product_machine import ActionProductMachine
+from action_machine.runtime.dependency_factory import DependencyFactory
+from action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
 from action_machine.runtime.tools_box import ToolsBox
+from action_machine.system_core.type_introspection import TypeIntrospection
+from action_machine.testing.checker_interchange_snapshot import CheckerInterchangeSnapshot
 from action_machine.testing.comparison import compare_results
 from action_machine.testing.mock_action import MockAction
 from action_machine.testing.state_validator import validate_state_for_aspect, validate_state_for_summary
 from action_machine.testing.stubs import RequestInfoStub, RuntimeInfoStub, UserInfoStub
+from graph.create_node_graph_coordinator import create_node_graph_coordinator
+from graph.node_graph_coordinator import NodeGraphCoordinator
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
@@ -238,30 +187,146 @@ Used by ``run_compensator()`` to decide whether ``ContextView`` is required.
 """
 
 
+@dataclass(frozen=True)
+class _BenchAspect:
+    """Aspect metadata row assembled from the node graph."""
+
+    method_name: str
+    aspect_type: str
+    description: str
+    method_ref: Callable[..., Any]
+    context_keys: frozenset[str]
+
+
+@dataclass(frozen=True)
+class _BenchChecker:
+    """Checker metadata row consumed by ``testing.state_validator``."""
+
+    method_name: str
+    checker_class: type
+    field_name: str
+    required: bool
+    extra_params: dict[str, Any]
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # Module-level helper functions
 # ═════════════════════════════════════════════════════════════════════════════
 
 
+def _action_node_from_coordinator(
+    coordinator: NodeGraphCoordinator,
+    action_cls: type,
+) -> ActionGraphNode[Any] | None:
+    node_id = TypeIntrospection.full_qualname(action_cls)
+    try:
+        return cast(
+            ActionGraphNode[Any],
+            coordinator.get_node_by_id(node_id, ActionGraphNode.NODE_TYPE),
+        )
+    except (LookupError, RuntimeError):
+        return None
+
+
 def _aspect_tuple_from_coordinator(
-    coordinator: GateCoordinator,
+    coordinator: NodeGraphCoordinator,
     action_cls: type,
 ) -> tuple[Any, ...]:
-    snap = coordinator.get_snapshot(action_cls, "aspect")
-    if snap is None or not hasattr(snap, "aspects"):
+    action_node = _action_node_from_coordinator(coordinator, action_cls)
+    if action_node is None:
         return ()
-    return tuple(snap.aspects)
+    aspects: list[_BenchAspect] = []
+    for regular_node in action_node.get_regular_aspect_graph_nodes():
+        aspects.append(
+            _BenchAspect(
+                method_name=regular_node.label,
+                aspect_type="regular",
+                description=str(regular_node.properties.get("description", "")),
+                method_ref=regular_node.node_obj,
+                context_keys=regular_node.get_required_context_keys(),
+            ),
+        )
+    for edge in action_node.summary_aspect:
+        summary_node = cast(SummaryAspectGraphNode, edge.target_node)
+        aspects.append(
+            _BenchAspect(
+                method_name=summary_node.label,
+                aspect_type="summary",
+                description=str(summary_node.properties.get("description", "")),
+                method_ref=summary_node.node_obj,
+                context_keys=summary_node.get_required_context_keys(),
+            ),
+        )
+    return tuple(aspects)
+
+
+def _dependency_factory_from_coordinator(
+    coordinator: NodeGraphCoordinator,
+    action_cls: type,
+) -> DependencyFactory:
+    if _action_node_from_coordinator(coordinator, action_cls) is None:
+        return DependencyFactory(())
+    return DependencyFactory(tuple(getattr(action_cls, "_depends_info", ()) or ()))
+
+
+def _checker_rows_from_action_class(
+    action_cls: type,
+) -> tuple[CheckerInterchangeSnapshot.Checker, ...]:
+    """Build checker interchange rows from ``_checker_meta`` on aspect methods."""
+    out: list[CheckerInterchangeSnapshot.Checker] = []
+    for attr_name, attr_value in vars(action_cls).items():
+        func = TypeIntrospection.unwrap_declaring_class_member(attr_value)
+        if not callable(func):
+            continue
+        checker_list = getattr(func, "_checker_meta", None)
+        if checker_list is None:
+            continue
+        for checker_dict in checker_list:
+            out.append(
+                CheckerInterchangeSnapshot.Checker(
+                    method_name=attr_name,
+                    checker_class=checker_dict.get("checker_class", type(None)),
+                    field_name=checker_dict.get("field_name", ""),
+                    required=checker_dict.get("required", False),
+                    extra_params={
+                        k: v
+                        for k, v in checker_dict.items()
+                        if k not in ("checker_class", "field_name", "required")
+                    },
+                ),
+            )
+    return tuple(out)
 
 
 def _checkers_for_aspect_name(
-    coordinator: GateCoordinator,
+    coordinator: NodeGraphCoordinator,
     action_cls: type,
     method_name: str,
 ) -> tuple[Any, ...]:
-    snap = coordinator.get_snapshot(action_cls, "checker")
-    if snap is None or not hasattr(snap, "checkers"):
+    action_node = _action_node_from_coordinator(coordinator, action_cls)
+    if action_node is None:
         return ()
-    return tuple(c for c in snap.checkers if c.method_name == method_name)
+    out: list[_BenchChecker] = []
+    for aspect_node in action_node.get_regular_aspect_graph_nodes():
+        if aspect_node.label != method_name:
+            continue
+        for checker_node in aspect_node.get_checker_graph_nodes():
+            payload = checker_node.node_obj
+            extra_params = dict(payload.properties)
+            extra_params.pop("TypeChecker", None)
+            extra_params.pop("required", None)
+            out.append(
+                _BenchChecker(
+                    method_name=payload.aspect_method_name,
+                    checker_class=payload.checker_class,
+                    field_name=payload.field_name,
+                    required=payload.required,
+                    extra_params=extra_params,
+                ),
+            )
+    if not out:
+        return _checker_rows_from_action_class(action_cls)
+    return tuple(out)
 
 
 def _prepare_mock(value: Any) -> Any:
@@ -291,13 +356,36 @@ def _prepare_all_mocks(mocks: dict[type, Any]) -> dict[type, Any]:
     return {cls: _prepare_mock(val) for cls, val in mocks.items()}
 
 
-def _reset_all_mocks(mocks: dict[type, Any]) -> None:
+def _reset_mock_tree(value: Any) -> None:
     """
-    Reset state of all ``Mock`` objects in mapping.
+    Clear call history on unittest mocks, including doubles held on resources.
+
+    Handles: bare ``Mock`` / ``AsyncMock``, ``ExternalServiceResource.service``,
+    and ``WrapperExternalServiceResource`` chains (``_inner``).
     """
+    if isinstance(value, Mock):
+        value.reset_mock()
+        return
+    service = getattr(value, "service", None)
+    if isinstance(service, Mock):
+        service.reset_mock()
+        return
+    inner = getattr(value, "_inner", None)
+    if inner is not None:
+        _reset_mock_tree(inner)
+
+
+def _reset_all_mocks(mocks: dict[type, Any] | None) -> None:
+    """
+    Reset state of all unittest mocks reachable from ``mocks`` values.
+
+    Used between async and sync ``TestBench.run()`` so assertions see only the
+    final machine's side effects.
+    """
+    if not mocks:
+        return
     for value in mocks.values():
-        if isinstance(value, Mock):
-            value.reset_mock()
+        _reset_mock_tree(value)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -314,7 +402,7 @@ class TestBench:
 
     def __init__(
         self,
-        coordinator: GateCoordinator | None = None,
+        coordinator: NodeGraphCoordinator | None = None,
         mocks: dict[type, Any] | None = None,
         plugins: list[Plugin] | None = None,
         log_coordinator: LogCoordinator | None = None,
@@ -325,7 +413,7 @@ class TestBench:
         """
         Initialize TestBench.
         """
-        self._coordinator = coordinator or GateCoordinator()
+        self._coordinator = coordinator or create_node_graph_coordinator()
         self._mocks = dict(mocks) if mocks else {}
         self._prepared_mocks = _prepare_all_mocks(self._mocks)
         self._plugins = list(plugins) if plugins else []
@@ -339,8 +427,8 @@ class TestBench:
     # ─────────────────────────────────────────────────────────────────────
 
     @property
-    def coordinator(self) -> GateCoordinator:
-        """Metadata/factory coordinator."""
+    def coordinator(self) -> NodeGraphCoordinator:
+        """Node graph coordinator."""
         return self._coordinator
 
     @property
@@ -368,7 +456,6 @@ class TestBench:
     def _build_async_machine(self) -> ActionProductMachine:
         """Build async production machine with current settings."""
         kwargs: dict[str, Any] = {
-            "mode": "test",
             "plugins": self._plugins,
         }
         if self._log_coordinator is not None:
@@ -378,7 +465,6 @@ class TestBench:
     def _build_sync_machine(self) -> SyncActionProductMachine:
         """Build sync production machine with current settings."""
         kwargs: dict[str, Any] = {
-            "mode": "test",
             "plugins": self._plugins,
         }
         if self._log_coordinator is not None:
@@ -459,7 +545,7 @@ class TestBench:
         action: BaseAction[P, R],
         params: P,
         rollup: bool,
-        connections: dict[str, BaseResourceManager] | None = None,
+        connections: dict[str, BaseResource] | None = None,
     ) -> R:
         """
         Full action run on async and sync machines with result comparison.
@@ -483,8 +569,10 @@ class TestBench:
             rollup=rollup,
         )
 
-        # Reset mocks between runs
+        # Reset mocks between runs (``_prepared_mocks`` is usually the same
+        # instances as ``_mocks``, but reset both maps for robustness).
         _reset_all_mocks(self._mocks)
+        _reset_all_mocks(self._prepared_mocks)
 
         # Run 2: sync machine
         sync_machine = self._build_sync_machine()
@@ -512,7 +600,7 @@ class TestBench:
         params: BaseParams,
         state: dict[str, Any],
         rollup: bool,
-        connections: dict[str, BaseResourceManager] | None = None,
+        connections: dict[str, BaseResource] | None = None,
     ) -> dict[str, Any]:
         """
         Execute one regular aspect with state validation.
@@ -542,13 +630,11 @@ class TestBench:
             )
 
         async_machine = self._build_async_machine()
-        factory = cached_dependency_factory(self._coordinator, action.__class__)
+        factory = _dependency_factory_from_coordinator(self._coordinator, action.__class__)
 
         log = ScopedLogger(
             coordinator=async_machine._log_coordinator,
             nest_level=1,
-            machine_name="TestBench",
-            mode="test",
             action_name=action.get_full_class_name(),
             aspect_name=aspect_name,
             context=context,
@@ -580,7 +666,7 @@ class TestBench:
         params: BaseParams,
         state: dict[str, Any],
         rollup: bool,
-        connections: dict[str, BaseResourceManager] | None = None,
+        connections: dict[str, BaseResource] | None = None,
     ) -> BaseResult:
         """
         Execute summary aspect only with full state validation.
@@ -604,13 +690,11 @@ class TestBench:
             )
 
         async_machine = self._build_async_machine()
-        factory = cached_dependency_factory(self._coordinator, action.__class__)
+        factory = _dependency_factory_from_coordinator(self._coordinator, action.__class__)
 
         log = ScopedLogger(
             coordinator=async_machine._log_coordinator,
             nest_level=1,
-            machine_name="TestBench",
-            mode="test",
             action_name=action.get_full_class_name(),
             aspect_name=summary_meta.method_name,
             context=context,
@@ -645,7 +729,7 @@ class TestBench:
         state_before: BaseState,
         state_after: BaseState | None,
         error: Exception,
-        connections: dict[str, BaseResourceManager] | None = None,
+        connections: dict[str, BaseResource] | None = None,
         context: dict[str, Any] | None = None,
     ) -> None:
         """
@@ -677,13 +761,11 @@ class TestBench:
         ctx = self._build_context()
 
         async_machine = self._build_async_machine()
-        factory = cached_dependency_factory(self._coordinator, action_class)
+        factory = _dependency_factory_from_coordinator(self._coordinator, action_class)
 
         log = ScopedLogger(
             coordinator=async_machine._log_coordinator,
             nest_level=1,
-            machine_name="TestBench",
-            mode="test",
             action_name=action.get_full_class_name(),
             aspect_name=compensator_name,
             context=ctx,
@@ -747,7 +829,7 @@ class TestBench:
         async def run_child(
             child_action: BaseAction[Any, Any],
             child_params: BaseParams,
-            child_connections: dict[str, BaseResourceManager] | None = None,
+            child_connections: dict[str, BaseResource] | None = None,
         ) -> BaseResult:
             if isinstance(child_action, MockAction):
                 return child_action.run(child_params)

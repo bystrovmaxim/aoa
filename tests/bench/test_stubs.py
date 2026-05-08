@@ -28,37 +28,13 @@ INVARIANTS
 - Default roles include ``StubTesterRole`` unless overridden.
 - Overrides on one stub component must not leak into unstated components.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_stubs.py -q
-
-Edge case: ``UserInfoStub(roles=())`` yields an empty role tuple.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Default string constants mirror stub implementation; update both if defaults
-  change.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Tests for test-time context stub builders.
-CONTRACT: Real domain types; composable defaults for bench/context tests.
-INVARIANTS: Uses ``AdminRole`` / ``ManagerRole`` only for override scenarios.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 
-from action_machine.intents.context.context import Context
-from action_machine.intents.context.request_info import RequestInfo
-from action_machine.intents.context.runtime_info import RuntimeInfo
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.context.context import Context
+from action_machine.context.request_info import RequestInfo
+from action_machine.context.runtime_info import RuntimeInfo
+from action_machine.context.user_info import UserInfo
 from action_machine.testing import StubTesterRole
 from action_machine.testing.stubs import (
     ContextStub,

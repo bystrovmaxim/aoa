@@ -11,8 +11,8 @@ definition time: required, `str`, non-empty after strip. Covers inheritance,
 overrides, and isolation between domain classes.
 
 Domains are referenced from decorators (e.g. `@meta(..., domain=SomeDomain)`)
-and entity metadata; the **GateCoordinator** consumes those types during
-`build()`.
+and entity metadata; **`NodeGraphCoordinator`** consumes those types during
+**`build()`**.
 
 ═══════════════════════════════════════════════════════════════════════════════
 TERMINOLOGY
@@ -21,7 +21,7 @@ TERMINOLOGY
 - **BaseDomain** — abstract marker class; subclasses supply `name` and
   `description` as class attributes.
 - **Coordinator** — metadata `build()` walks Actions and entities; domain types
-  appear as graph nodes / facet metadata, not as runtime instances in these
+  appear as graph nodes / interchange metadata, not as runtime instances in these
   tests.
 
 ═══════════════════════════════════════════════════════════════════════════════

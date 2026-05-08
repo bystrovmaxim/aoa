@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.intents.logging.sensitive_decorator import sensitive
+from action_machine.intents.sensitive import sensitive
 
 
 def test_sensitive_rejects_enabled_non_bool() -> None:

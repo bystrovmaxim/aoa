@@ -11,9 +11,8 @@ declared via the @depends decorator. Each resolve() call creates a new instance
 via a factory function or the default constructor.
 There is no instance cache — the factory behaves as a pure function.
 
-The factory is built with ``cached_dependency_factory(coordinator, cls)`` from
-the coordinator's ``depends`` snapshot and passed into ToolsBox; aspects then
-obtain dependencies via box.resolve(PaymentService).
+Integration tests build ``DependencyFactory`` from ``cls._depends_info`` — the same
+scratch tuple runtime uses alongside ``NodeGraphCoordinator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 SCENARIOS COVERED
@@ -37,8 +36,8 @@ resolve() for a missing dependency:
     - ValueError with an informative message.
 
 resolve() with rollup:
-    - rollup=True for BaseResourceManager → check_rollup_support().
-    - rollup=True for non-BaseResourceManager → no check.
+    - rollup=True for BaseResource → check_rollup_support().
+    - rollup=True for non-BaseResource → no check.
     - rollup=False → no check for any class.
     - RollupNotSupportedError for a manager without rollup support.
 
@@ -47,27 +46,34 @@ Inspection:
     - get_all_classes() — list of all registered classes.
 
 Integration with the domain model:
-    - Factory from the coordinator for FullAction includes PaymentService
-      and NotificationService.
+    - Factory built from FullAction scratch includes PaymentService and NotificationService.
 """
 
 import pytest
 
-from action_machine.dependencies.dependency_factory import (
-    DependencyFactory,
-    DependencyInfo,
-    cached_dependency_factory,
-)
+from action_machine.exceptions import RollupNotSupportedError
 from action_machine.intents.meta.meta_decorator import meta
-from action_machine.model.exceptions import RollupNotSupportedError
-from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-from tests.scenarios.domain_model import FullAction, NotificationService, PaymentService, PingAction
+from action_machine.resources.base_resource import BaseResource
+from action_machine.runtime.dependency_factory import DependencyFactory
+from action_machine.runtime.dependency_info import DependencyInfo
+from tests.scenarios.domain_model import (
+    FullAction,
+    NotificationServiceResource,
+    OrdersDbManager,
+    PaymentServiceResource,
+    PingAction,
+)
 from tests.scenarios.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Test helper classes
 # ═════════════════════════════════════════════════════════════════════════════
+
+
+def _dependency_factory_from_class(cls: type) -> DependencyFactory:
+    """Build ``DependencyFactory`` from ``cls._depends_info`` (production-equivalent)."""
+    deps = tuple(getattr(cls, "_depends_info", ()) or ())
+    return DependencyFactory(deps)
 
 
 class _SimpleService:
@@ -85,7 +91,7 @@ class _ConfigurableService:
 
 
 @meta(description="Mock manager for rollup tests", domain=TestDomain)
-class _MockResourceManager(BaseResourceManager):
+class _MockResourceManager(BaseResource):
     """Resource manager WITHOUT rollup support (default)."""
 
     def get_wrapper_class(self):
@@ -93,7 +99,7 @@ class _MockResourceManager(BaseResourceManager):
 
 
 @meta(description="Mock manager with rollup support", domain=TestDomain)
-class _RollupSupportedManager(BaseResourceManager):
+class _RollupSupportedManager(BaseResource):
     """Resource manager WITH rollup support."""
 
     def check_rollup_support(self) -> bool:
@@ -342,7 +348,7 @@ class TestResolveRollup:
         rollup=True for a manager WITHOUT rollup support → RollupNotSupportedError.
 
         _MockResourceManager does not override check_rollup_support(),
-        so the default from BaseResourceManager applies,
+        so the default from BaseResource applies,
         which raises RollupNotSupportedError.
         """
         # Arrange — factory with manager without rollup support
@@ -356,13 +362,13 @@ class TestResolveRollup:
 
     def test_rollup_true_for_non_resource_manager(self) -> None:
         """
-        rollup=True for a class that does not inherit BaseResourceManager →
+        rollup=True for a class that does not inherit BaseResource →
         rollup check is NOT performed.
 
-        check_rollup_support() applies only to BaseResourceManager instances.
+        check_rollup_support() applies only to BaseResource instances.
         Ordinary services resolve without that check.
         """
-        # Arrange — factory with ordinary service (not BaseResourceManager)
+        # Arrange — factory with ordinary service (not BaseResource)
         factory = DependencyFactory((
             DependencyInfo(cls=_SimpleService, description="Ordinary service"),
         ))
@@ -436,56 +442,46 @@ class TestInspection:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Integration with domain model via GateCoordinator
+# Integration with domain model (`_depends_info`)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestDomainIntegration:
-    """Factory from coordinator for domain actions."""
+    """Factory from domain action scratch attributes."""
 
     def test_full_action_factory_has_dependencies(self) -> None:
         """
-        ``cached_dependency_factory(coordinator, FullAction)`` includes PaymentService
-        and NotificationService.
+        Factory for FullAction includes PaymentService and NotificationService.
 
-        FullAction declares @depends(PaymentService) and
-        @depends(NotificationService). The coordinator collects metadata
-        and builds a DependencyFactory with both classes.
+        FullAction declares ``@depends`` on ``PaymentServiceResource``,
+        ``NotificationServiceResource``, and ``OrdersDbManager``.
         """
-        # Arrange — coordinator registering FullAction
-        coordinator = CoreActionMachine.create_coordinator()
-        factory = cached_dependency_factory(coordinator, FullAction)
+        factory = _dependency_factory_from_class(FullAction)
 
-        # Act & Assert — both services registered
-        assert factory.has(PaymentService)
-        assert factory.has(NotificationService)
+        # Act & Assert — services and resource manager type registered
+        assert factory.has(PaymentServiceResource)
+        assert factory.has(NotificationServiceResource)
+        assert factory.has(OrdersDbManager)
 
     def test_ping_action_factory_is_empty(self) -> None:
         """
-        ``cached_dependency_factory(coordinator, PingAction)`` is an empty factory.
-
-        PingAction does not declare @depends, so the factory
-        has no dependencies.
+        PingAction has no declared dependencies via ``_depends_info``.
         """
-        # Arrange — coordinator for PingAction without dependencies
-        coordinator = CoreActionMachine.create_coordinator()
-        factory = cached_dependency_factory(coordinator, PingAction)
+        factory = _dependency_factory_from_class(PingAction)
 
         # Act & Assert — factory is empty
         assert factory.get_all_classes() == []
 
     def test_factory_creates_payment_service(self) -> None:
         """
-        factory.resolve(PaymentService) creates a PaymentService instance.
+        factory.resolve(PaymentServiceResource) creates a PaymentServiceResource.
 
-        Real resolve via default constructor, no mocks.
+        Real resolve via default factory from ``@depends``, no mocks.
         """
-        # Arrange — factory from coordinator
-        coordinator = CoreActionMachine.create_coordinator()
-        factory = cached_dependency_factory(coordinator, FullAction)
+        factory = _dependency_factory_from_class(FullAction)
 
         # Act — resolve real service
-        service = factory.resolve(PaymentService)
+        service = factory.resolve(PaymentServiceResource)
 
         # Assert — instance created
-        assert isinstance(service, PaymentService)
+        assert isinstance(service, PaymentServiceResource)

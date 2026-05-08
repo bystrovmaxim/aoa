@@ -7,16 +7,11 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 This package exports the base model contracts used by actions:
-``BaseAction``, ``BaseParams``, ``BaseResult``, ``BaseSchema``, ``BaseState``,
-and shared model-level exceptions.
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Base model classes define stable framework contracts for action components.
-- Exception exports are re-exported from ``action_machine.model.exceptions``.
-- ``__all__`` is the canonical public surface of this package.
+``BaseAction``, ``BaseParams``, ``BaseResult``, ``ParamsStub``, ``ResultStub``,
+``BaseSchema``, ``BaseState``.
+Framework exceptions live in :mod:`action_machine.exceptions`.
+Graph model nodes/inspectors live under :mod:`action_machine.graph_model` and are
+imported from their leaf modules.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -44,36 +39,19 @@ Happy path:
     defines strongly typed params/state/result models for one action.
 
 Edge case:
-    A model validation or contract misuse raises an exception re-exported here
-    from ``action_machine.model.exceptions``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This module is an export surface; it does not contain model logic itself.
-- Wildcard re-export is intentional and controlled via ``exceptions.__all__``.
-- Backward compatibility depends on keeping exported names stable.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public model gateway for ActionMachine contracts.
-CONTRACT: Re-export base model classes and model exceptions consistently.
-INVARIANTS: __all__ defines API surface; exception list comes from submodule.
-FLOW: Import from model package -> consume Base* contracts -> runtime usage.
-FAILURES: Contract misuse is signaled through exported model exceptions.
-EXTENSION POINTS: Add new public model contract only via explicit __all__.
-AI-CORE-END
+    A model validation or contract misuse raises an exception from
+    :mod:`action_machine.exceptions`.
 """
 
-from action_machine.model import exceptions as _exceptions
+from __future__ import annotations
+
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.base_state import BaseState
-from action_machine.model.exceptions import *  # noqa: F403
+from action_machine.model.params_stub import ParamsStub
+from action_machine.model.result_stub import ResultStub
 
 __all__ = [
     "BaseAction",
@@ -81,5 +59,6 @@ __all__ = [
     "BaseResult",
     "BaseSchema",
     "BaseState",
-    *_exceptions.__all__,
+    "ParamsStub",
+    "ResultStub",
 ]

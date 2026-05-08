@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.intents.plugins.events import GlobalStartEvent
-from action_machine.intents.plugins.plugin import Plugin
-from action_machine.intents.plugins.plugin_run_context import PluginRunContext
-from action_machine.intents.plugins.subscription_info import SubscriptionInfo
+from action_machine.plugin.events import GlobalStartEvent
+from action_machine.plugin.plugin import Plugin
+from action_machine.plugin.plugin_run_context import PluginRunContext
+from action_machine.plugin.subscription_info import SubscriptionInfo
 
 
 class _P(Plugin):
@@ -22,8 +22,8 @@ class _CoordOk:
     def get(self, cls):
         return object()
 
-    def get_snapshot(self, cls, facet_key: str):
-        if facet_key != "meta":
+    def get_snapshot(self, cls, snapshot_key: str):
+        if snapshot_key != "meta":
             return None
 
         class _Snap:
@@ -36,7 +36,7 @@ class _CoordFail:
     def get(self, cls):
         raise RuntimeError("boom")
 
-    def get_snapshot(self, cls, facet_key: str):
+    def get_snapshot(self, cls, snapshot_key: str):
         raise RuntimeError("boom")
 
 
@@ -74,7 +74,7 @@ async def test_plugin_run_context_filter_and_run_branches() -> None:
     assert PluginRunContext._matches_all_filters(ev2, sub, _CoordOk())
 
     # parallel branch with empty tasks
-    await ctx._run_parallel([], ev2, None, "M", "test")  # pylint: disable=protected-access
+    await ctx._run_parallel([], ev2, None)  # pylint: disable=protected-access
 
 
 @pytest.mark.anyio
@@ -93,8 +93,8 @@ async def test_plugin_run_context_sequential_error_paths() -> None:
         raise ValueError("x")
 
     sub_ignore = SubscriptionInfo(event_class=GlobalStartEvent, method_name="on_x", ignore_exceptions=True)
-    await ctx._run_sequential([(p, _bad, sub_ignore)], ev, None, "M", "test")  # pylint: disable=protected-access
+    await ctx._run_sequential([(p, _bad, sub_ignore)], ev, None)  # pylint: disable=protected-access
 
     sub_critical = SubscriptionInfo(event_class=GlobalStartEvent, method_name="on_x", ignore_exceptions=False)
     with pytest.raises(ValueError):
-        await ctx._run_sequential([(p, _bad, sub_critical)], ev, None, "M", "test")  # pylint: disable=protected-access
+        await ctx._run_sequential([(p, _bad, sub_critical)], ev, None)  # pylint: disable=protected-access

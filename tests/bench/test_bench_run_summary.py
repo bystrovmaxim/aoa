@@ -20,7 +20,7 @@ ARCHITECTURE / DATA FLOW
     run_summary(action, params, state=..., rollup=..., connections=...)
               |
               v
-    State validator  ->  GateCoordinator checker metadata
+    State validator  ->  checker rows read from ``NodeGraphCoordinator``
               |
               v
     Summary ``build_result`` reads ``txn_id``, ``total`` from state (FullAction)
@@ -42,24 +42,6 @@ INVARIANTS
 - ``rollup`` must always be passed explicitly (no default) so tests choose mode
   deliberately.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_bench_run_summary.py -q
-
-Happy path: ``state`` includes ``txn_id`` and ``total`` -> ``FullAction.Result``.
-
-Edge case: ``PingAction`` with ``state={}`` still returns ``message=="pong"``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Assertions match ``StateValidationError`` substrings and fixture wiring
-  (``manager_bench``, ``mock_db``).
-
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock
@@ -138,7 +120,7 @@ class TestWrongTypeInState:
     async def test_total_wrong_type(
         self, manager_bench: TestBench, mock_db: AsyncMock,
     ) -> None:
-        """``total`` must be float; a string fails ``ResultFloatChecker``."""
+        """``total`` must be float; a string fails ``FieldFloatChecker``."""
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 

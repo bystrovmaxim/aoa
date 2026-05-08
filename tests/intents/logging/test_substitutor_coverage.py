@@ -35,12 +35,12 @@ ORGANIZATION
 
 import pytest
 
-from action_machine.intents.context.context import Context
-from action_machine.intents.logging.log_scope import LogScope
-from action_machine.intents.logging.variable_substitutor import VariableSubstitutor
+from action_machine.context.context import Context
+from action_machine.exceptions import LogTemplateError
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.variable_substitutor import VariableSubstitutor
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
-from action_machine.model.exceptions import LogTemplateError
 from action_machine.testing.stubs import ContextStub
 from tests.scenarios.domain_model import SimpleAction
 
@@ -57,7 +57,7 @@ def sub() -> VariableSubstitutor:
 @pytest.fixture()
 def scope() -> LogScope:
     """Minimum LogScope for substitution tests."""
-    return LogScope(machine="M", mode="test", action="A", aspect="a", nest_level=0)
+    return LogScope(action="A", aspect="a", nest_level=0)
 
 
 @pytest.fixture()
@@ -308,7 +308,7 @@ class TestNamespaceResolution:
     def test_scope_nested_variable(self, sub, ctx, state, params) -> None:
         """Namespace scope allows LogScope fields [3]."""
         #Arrange — LogScope contains action
-        sc = LogScope(machine="M", mode="test", action="MyAction", aspect="a", nest_level=0)
+        sc = LogScope(action="MyAction", aspect="a", nest_level=0)
 
         # Act
         result = sub.substitute("{%scope.action}", {}, sc, ctx, state, params)

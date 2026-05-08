@@ -6,82 +6,44 @@ Saga compensation stack frame.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Each regular aspect whose ``call()`` finished contributes one ``SagaFrame``
-once result validation has run: on success the frame holds merged
-``state_after``; on validation failure after ``call()`` the frame has
-``state_after=None``. Frames are unwound in reverse order when the pipeline
-fails.
+Each regular aspect with a compensator graph node contributes one ``SagaFrame``
+before its ``call()`` starts. The initial frame has ``state_after=None`` so a
+mid-call exception can still be compensated. Once the regular aspect step
+succeeds, the pipeline replaces the immutable frame with one carrying merged
+``state_after``. Frames are unwound in reverse order when the pipeline fails.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
+    optional SagaFrame(..., state_after=None) if compensator exists
+         |
+         v
     regular aspect call() returned dict
          |
-         v
-    validate result (checkers / declared fields)
-         |
-         +-- fail -> SagaFrame(..., state_after=None) -> raise
+         +-- raise -> unwind pre-call frame
          |
          v
-    merge state -> SagaFrame(..., state_after=merged)
+    merge state + validate result (checkers / declared fields)
          |
          v
-    append to local saga stack (for current _run_internal call)
+    replace frame with state_after=merged
+         |
+         v
+    success continues; later failure unwinds current stack
          |
          v
     failure path -> reverse stack unwind in SagaCoordinator
 
 Frame stores only aspect-unique rollback data:
 - ``state_before``: state before aspect call
-- ``state_after``: state after aspect call (or ``None`` when rejected)
-- ``compensator``: compensator metadata (or ``None``)
+- ``state_after``: state after aspect call (or ``None`` when the call did not finish)
+- ``compensator``: compensator graph node (required for pushed frames; stack holds only actionable undo)
 - ``aspect_name``: aspect identifier for diagnostics/events
 
 Pipeline-common values (params, connections, context, box) are passed to
 rollback executor as separate arguments and are not duplicated in each frame.
 
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Every ``_run_internal`` call owns its own independent local stack.
-- Nested child actions maintain isolated stacks.
-- Frames with ``compensator=None`` are skipped during unwind.
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    Aspect succeeds and checker passes -> frame keeps both ``state_before`` and
-    ``state_after`` for potential rollback.
-
-Edge case:
-    Aspect ``call()`` returned but checker rejects output -> frame has
-    ``state_after=None``; compensator still runs on unwind before earlier frames.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``SagaFrame`` is data-only; rollback policy/execution lives in coordinator.
-- Frame creation timing is owned by ``AspectExecutor.execute_regular``.
-- ``state_before/state_after`` are typed as ``object`` to avoid runtime coupling.
-- ``state_after is None`` does not imply “no external side effects”; it means the
-  pipeline did not adopt checker-passed state. External systems are not tracked
-  by the frame beyond what the app put in ``state_before`` / ``params`` / logs.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutable rollback metadata unit for one regular aspect step.
-CONTRACT: Capture compensator binding and pre/post state snapshots per aspect.
-INVARIANTS: Local per-run stack ownership and reverse-order unwind semantics.
-FLOW: call -> validate -> frame append -> failure path -> coordinator unwind.
-FAILURES: Missing compensator marks frame as skipped, not failed.
-EXTENSION POINTS: Extend metadata fields cautiously without duplicating globals.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -90,8 +52,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from action_machine.graph.inspectors.compensate_intent_inspector import (
-        CompensateIntentInspector,
+    from action_machine.graph_model.nodes.compensator_graph_node import (
+        CompensatorGraphNode,
     )
 
 
@@ -100,10 +62,11 @@ class SagaFrame:
     """
     One immutable compensation-stack frame.
 
-    Captures per-aspect rollback metadata needed by saga coordinator.
+    Appended only for regular aspects that have a compensator; rollback metadata
+    flows to saga coordinator.
     """
 
-    compensator: CompensateIntentInspector.Snapshot.Compensator | None
+    compensator: CompensatorGraphNode | None
     aspect_name: str
     state_before: object  # BaseState frozen instance
     state_after: object | None  # BaseState | None frozen instance

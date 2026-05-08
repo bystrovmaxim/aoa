@@ -18,9 +18,9 @@ Concrete adapters (FastApiAdapter, McpAdapter, etc.) inherit ``BaseAdapter``,
 implement protocol-specific registration methods (``post``, ``get``, ``tool``),
 and implement ``build()`` to produce a protocol application object.
 
-The adapter stores a machine reference, an authentication coordinator, an
-optional explicit ``GateCoordinator`` (defaults to ``machine.gate_coordinator``),
-and an optional connections factory. Registered routes are accumulated in
+The adapter stores a machine reference, an authentication coordinator, the
+machine's ``NodeGraphCoordinator``, and an optional connections factory.
+Registered routes are accumulated in
 ``_routes`` as concrete ``BaseRouteRecord`` subclasses.
 
 ::
@@ -30,8 +30,7 @@ and an optional connections factory. Registered routes are accumulated in
     │                                      │
     │  machine: ActionProductMachine       │
     │  auth_coordinator: Any (required)    │
-    │  gate_coordinator: GateCoordinator   │
-    │    (optional; defaults to machine)   │
+    │  graph_coordinator: NodeGraphCoordinator │
     │  connections_factory: Fn | None      │
     │  _routes: list[R]                    │
     │                                      │
@@ -45,21 +44,11 @@ and an optional connections factory. Registered routes are accumulated in
     └──────────────────────────────────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``auth_coordinator`` is required; passing ``None`` raises ``TypeError``.
-- ``machine`` must be an instance of ``ActionProductMachine``.
-- ``gate_coordinator`` defaults to ``machine.gate_coordinator`` when omitted.
-- Route records are stored in ``_routes`` in registration order.
-- The fluent API returns ``self``, enabling method chaining.
-
-═══════════════════════════════════════════════════════════════════════════════
 ADAPTER TESTING CONTRACT
 ═══════════════════════════════════════════════════════════════════════════════
 
 Integration-style adapter tests use production types: a real
-``ActionProductMachine`` and its ``GateCoordinator``. The adapter, route records,
+``ActionProductMachine`` and its ``NodeGraphCoordinator``. The adapter, route records,
 validation, and transport mapping run as shipped.
 
 When a test must fix outcomes or skip the full action pipeline, only
@@ -73,7 +62,7 @@ execution boundary, not a hand-written fake machine or duplicate adapter logic.
              v
     +-----------------------------+
     | Adapter (production)        |
-    | GateCoordinator (real)      |
+    | NodeGraphCoordinator (real)  |
     | ActionProductMachine (real) |
     +-----------------------------+
              |
@@ -87,42 +76,6 @@ execution boundary, not a hand-written fake machine or duplicate adapter logic.
 Prefer the real machine class plus a ``run`` stub for handler-level scenarios;
 replace ``ActionProductMachine`` only when testing constructor wiring itself.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    # With authentication
-    adapter = FastApiAdapter(
-        machine=machine,
-        auth_coordinator=AuthCoordinator(extractor, authenticator, assembler),
-    )
-
-    # Without authentication (explicit declaration)
-    adapter = FastApiAdapter(
-        machine=machine,
-        auth_coordinator=NoAuthCoordinator(),
-    )
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``TypeError`` if ``machine`` is not ``ActionProductMachine``.
-- ``TypeError`` if ``auth_coordinator`` is ``None``.
-- ``build()`` remains abstract here; concrete adapters own transport semantics.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Abstract base for all protocol adapters.
-CONTRACT: Subclasses must implement protocol methods and ``build()``; auth is required.
-INVARIANTS: ``_routes`` holds route records; ``gate_coordinator`` resolved at init;
-  fluent API returns ``self``.
-FLOW: route registration -> ``_add_route`` -> ``build()`` produces protocol app.
-FAILURES: Constructor raises ``TypeError`` on invalid machine or missing auth.
-EXTENSION POINTS: New adapters subclass ``BaseAdapter`` and define concrete ``RouteRecord``.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -132,32 +85,25 @@ from collections.abc import Callable
 from typing import Any, Self
 
 from action_machine.adapters.base_route_record import BaseRouteRecord
-from action_machine.graph.gate_coordinator import GateCoordinator
-from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.resources.base_resource import BaseResource
+from action_machine.runtime.action_product_machine import ActionProductMachine
+from graph.node_graph_coordinator import NodeGraphCoordinator
 
 
 class BaseAdapter[R: BaseRouteRecord](ABC):
     """
-    Abstract base class for all ActionMachine protocol adapters.
-
-    ``auth_coordinator`` is required. For open APIs, pass
-    ``NoAuthCoordinator()`` explicitly to make no-auth mode intentional.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Protocol-agnostic adapter contract and shared state holder.
     CONTRACT: Validates constructor dependencies, stores route records, and exposes abstract ``build()``.
     INVARIANTS: machine type is strict; auth coordinator is mandatory; route registration preserves order.
     AI-CORE-END
-    """
+"""
 
     def __init__(
         self,
         machine: ActionProductMachine,
         auth_coordinator: Any,
-        connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = None,
-        *,
-        gate_coordinator: GateCoordinator | None = None,
+        connections_factory: Callable[..., dict[str, BaseResource]] | None = None,
     ) -> None:
         """
         Initialize the adapter.
@@ -180,12 +126,8 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
 
         self._machine: ActionProductMachine = machine
         self._auth_coordinator: Any = auth_coordinator
-        self._gate_coordinator: GateCoordinator = (
-            gate_coordinator
-            if gate_coordinator is not None
-            else machine.gate_coordinator
-        )
-        self._connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = connections_factory
+        self._graph_coordinator: NodeGraphCoordinator = machine.graph_coordinator
+        self._connections_factory: Callable[..., dict[str, BaseResource]] | None = connections_factory
         self._routes: list[R] = []
 
     @property
@@ -199,12 +141,12 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
         return self._auth_coordinator
 
     @property
-    def gate_coordinator(self) -> GateCoordinator:
-        """Returns the gate graph coordinator (explicit or from ``machine``)."""
-        return self._gate_coordinator
+    def graph_coordinator(self) -> NodeGraphCoordinator:
+        """Returns the machine node graph coordinator."""
+        return self._graph_coordinator
 
     @property
-    def connections_factory(self) -> Callable[..., dict[str, BaseResourceManager]] | None:
+    def connections_factory(self) -> Callable[..., dict[str, BaseResource]] | None:
         """Returns the connections factory (or None)."""
         return self._connections_factory
 

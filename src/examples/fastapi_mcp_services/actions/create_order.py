@@ -25,58 +25,20 @@ ARCHITECTURE / DATA FLOW
       v
   build_result_summary -> Result(order_id, status, total)
 
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``user_id`` is a non-empty string.
-- ``amount`` is a float strictly greater than zero (``gt=0``).
-- ``currency`` matches ISO-like uppercase code pattern ``^[A-Z]{3}$``.
-- ``validated_user`` must be produced by regular aspect before summary phase.
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    Request body:
-    {"user_id": "user_123", "amount": 1500.0, "currency": "RUB"}
-
-    Response body:
-    {"order_id": "ORD-user_123-001", "status": "created", "total": 1500.0}
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- FastAPI returns 422 for payloads violating field constraints.
-- Example action is intentionally simple and uses static order-id suffix.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Example shared action for HTTP and MCP transports.
-CONTRACT: Validate input early and build deterministic result payload.
-INVARIANTS: Summary consumes state produced by regular aspect.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from typing import Any
 
 from pydantic import Field
 
-from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
-from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.auth import NoneRole, check_roles
+from action_machine.auth import NoneRole
+from action_machine.intents.aspects import regular_aspect, summary_aspect
+from action_machine.intents.check_roles import check_roles
 from action_machine.intents.checkers import result_string
-from action_machine.intents.logging.channel import Channel
-from action_machine.intents.meta.meta_decorator import meta
-from action_machine.model.base_action import BaseAction
-from action_machine.model.base_params import BaseParams
-from action_machine.model.base_result import BaseResult
-from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.intents.meta import meta
+from action_machine.logging import Channel
+from action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from action_machine.resources import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 
 from ..domains import OrdersDomain
@@ -130,7 +92,7 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         params: "CreateOrderAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         """
         Validate input and write user id into state.
@@ -149,7 +111,7 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         params: "CreateOrderAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> "CreateOrderAction.Result":
         """
         Build final result from params and pipeline state.

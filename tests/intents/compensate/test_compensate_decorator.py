@@ -26,7 +26,7 @@ from __future__ import annotations
 import pytest
 
 from action_machine.intents.compensate import compensate
-from action_machine.intents.context import context_requires
+from action_machine.intents.context_requires import context_requires
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TestCompensateDecoratorSuccess — valid cases

@@ -24,7 +24,7 @@ Method-level:
 - @sensitive(enabled, max_chars, char, max_percent) — masks sensitive data in logs.
   Writes _sensitive_config on the property getter.
 
-@check_roles is covered in tests/intents/auth/test_check_roles_class_roles.py.
+@check_roles is covered in tests/intents/check_roles/test_check_roles_class_roles.py.
 
 Each test module checks:
 1. Correct metadata for valid arguments.

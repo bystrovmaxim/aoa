@@ -1,5 +1,5 @@
 # src/examples/fastapi_mcp_services/infrastructure.py
-r"""
+"""
 Shared ActionMachine runtime wiring for the FastAPI and MCP example apps.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -10,10 +10,9 @@ PURPOSE
 imported by both transports so HTTP and MCP share the same runtime instance and
 auth policy.
 
-``ActionProductMachine`` creates a **built** ``GateCoordinator`` internally
-(see ``ActionProductMachine.create_default_coordinator()``) unless you pass a
-custom ``coordinator=`` at construction time. Adapters receive only ``machine``
-and ``auth``; they read ``machine.gate_coordinator`` when they need the graph.
+``ActionProductMachine`` creates its default ``NodeGraphCoordinator`` lazily.
+Adapters receive ``machine`` and ``auth``; they use ``machine.graph_coordinator``
+when they need the graph.
 
 ``NoAuthCoordinator`` states that this sample performs no real authentication.
 For production, supply an ``AuthCoordinator`` with ``CredentialExtractor``,
@@ -25,8 +24,8 @@ ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     infrastructure (this module)
-    +-- machine = ActionProductMachine(mode="production")
-    |       +-- built GateCoordinator (default factory inside machine)
+    +-- machine = ActionProductMachine()
+    |       +-- built NodeGraphCoordinator (lazy factory inside machine)
     +-- auth    = NoAuthCoordinator()
               |
               +------------------+------------------+
@@ -36,50 +35,13 @@ ARCHITECTURE / DATA FLOW
               |                                     |
               v                                     v
         HTTP routes                          MCP tools
-              \___________________________________/
+              \\___________________________________/
                     same machine + auth instances
 
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Do not construct a second ``ActionProductMachine`` per transport in this
-  pattern; reuse the module-level ``machine`` (and ``auth``).
-- ``mode="production"`` is an example choice, not a deployment guarantee.
-- Adapters require ``auth_coordinator`` even when it is ``NoAuthCoordinator``.
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from examples.fastapi_mcp_services.infrastructure import auth, machine
-
-    # app_fastapi_service / app_mcp_service pass these into adapters.
-
-    Edge case: custom ``GateCoordinator`` — pass
-    ``ActionProductMachine(..., coordinator=my_coordinator)`` here; it must
-    already be ``.build()`` complete.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Example-only bootstrap, not a full DI layer or multi-tenant configuration.
-- Unbuilt coordinators passed into ``ActionProductMachine`` raise at init.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Shared machine + auth singletons for dual-transport example.
-CONTRACT: Export ``machine`` and ``auth`` for adapter construction.
-INVARIANTS: Single machine instance; coordinator owned by machine unless injected.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
-from action_machine.intents.auth import NoAuthCoordinator
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.auth import NoAuthCoordinator
+from action_machine.runtime.action_product_machine import ActionProductMachine
 
-machine = ActionProductMachine(mode="production")
+machine = ActionProductMachine()
 auth = NoAuthCoordinator()

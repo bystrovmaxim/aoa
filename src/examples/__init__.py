@@ -30,41 +30,4 @@ ARCHITECTURE / DATA FLOW
     Consumers typically copy or study subpackages; the library does not depend
     on ``examples`` at runtime.
 
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Examples must not become a hard dependency of ``action_machine`` production code.
-- Subpackages are self-contained entrypoints (own README, apps, actions).
-- Optional extras (e.g. ``[fastapi]``, ``[mcp]``) apply when running specific demos.
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Start with the dual-transport demo::
-
-    # See src/examples/fastapi_mcp_services/README.md
-    # Run FastAPI: uvicorn examples.fastapi_mcp_services.app_fastapi_service:app
-    # Run MCP:     python -m examples.fastapi_mcp_services.app_mcp_service
-
-Edge case: importing ``examples`` alone does not start servers or register routes;
-open the subpackage README for commands and dependencies.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Example code is illustrative, not a supported production template by itself.
-- Missing optional dependencies cause failures when launching transport-specific apps.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Namespace marker for runnable and documented ActionMachine samples.
-CONTRACT: Keep examples isolated from core package imports.
-INVARIANTS: No core import-from-examples; document entrypoints per subpackage.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """

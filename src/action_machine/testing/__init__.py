@@ -41,8 +41,9 @@ Stubs:
 
 Validation:
 
-- **validate_state_for_aspect** / **validate_state_for_summary** -
-  accept aspect tuple and checker callback (same shape as ``GateCoordinator``).
+- **validate_state_for_aspect** / **validate_state_for_summary** —
+  accept aspect tuple and checker callback (same shape as helpers that read checker
+  metadata from a built ``NodeGraphCoordinator``).
 
 Comparison:
 
@@ -67,60 +68,6 @@ ARCHITECTURE / DATA FLOW
          v
     compare_results / assertions in test
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.testing import TestBench, MockAction
-    from action_machine.testing import StubTesterRole
-
-    # Create bench with mocks:
-    bench = TestBench(mocks={PaymentService: mock_payment})
-
-    # Fluent calls always create new immutable bench:
-    admin_bench = bench.with_user(user_id="admin", roles=(StubTesterRole,))
-
-    # Full run on async + sync machines with comparison:
-    result = admin_bench.run(
-        CreateOrderAction(),
-        OrderParams(user_id="u1", amount=100.0),
-        rollup=False,
-    )
-
-    # Single-aspect test with state validation:
-    result = bench.run_aspect(
-        CreateOrderAction(), "process_payment",
-        OrderParams(user_id="u1", amount=100.0),
-        state={"validated_user": "u1"},
-        rollup=False,
-    )
-
-    # Summary-only test with state completeness validation:
-    result = bench.run_summary(
-        CreateOrderAction(),
-        OrderParams(user_id="u1", amount=100.0),
-        state={"validated_user": "u1", "txn_id": "TXN-1"},
-        rollup=False,
-    )
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``TestBench`` terminal methods require explicit ``rollup`` argument.
-- Testing package focuses on harness/test doubles; production logic remains in runtime.
-- Result mismatch diagnostics come from comparison helpers and runtime exceptions.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public testing toolbox for ActionMachine validation scenarios.
-CONTRACT: Expose immutable bench, stubs, mocks, validators, and comparators.
-INVARIANTS: Fluent bench methods return new instances; no hidden shared mutation.
-FLOW: configure bench -> execute (full/aspect/summary) -> validate/compare.
-FAILURES: Runtime contract errors surface unchanged through test harness.
-EXTENSION POINTS: Add focused testing helpers without expanding into god-module.
-AI-CORE-END
 """
 
 from action_machine.testing.bench import TestBench

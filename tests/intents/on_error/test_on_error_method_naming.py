@@ -7,7 +7,7 @@ Method names must end with ``_on_error``. Description must be non-empty where re
 
 import pytest
 
-from action_machine.model.exceptions import NamingSuffixError
+from action_machine.exceptions import NamingSuffixError
 
 
 class TestOnErrorSuffix:

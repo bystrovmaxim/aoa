@@ -44,58 +44,16 @@ ARCHITECTURE / DATA FLOW
         │
         └── SyncActionProductMachine      (sync, production)
 
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-1. STATELESS BETWEEN RUNS: machine keeps no mutable cross-request state.
-   Every run is isolated.
-
-2. NO SILENT SUPPRESSION: runtime errors are propagated to caller.
-
-3. ``_run_internal`` CONTRACT: all concrete machines implement a consistent
-   signature including resources, connections, nested_level, and rollup.
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    Public ``run(...)`` delegates to machine-specific pipeline implementation
-    and returns typed ``BaseResult`` subclass ``R``.
-
-Edge case:
-    A concrete machine that does not implement ``_run_internal`` raises
-    ``NotImplementedError`` when execution reaches internal pipeline.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This class defines contracts only and does not perform execution itself.
-- Concrete machine behavior (async/sync orchestration) is implementation-specific.
-- Runtime validation/error semantics are delegated to concrete pipelines.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Shared abstract contract for runtime machine entry points.
-CONTRACT: Expose public run API and internal _run_internal pipeline hook.
-INVARIANTS: Stateless between runs; no silent error suppression.
-FLOW: caller invokes run -> concrete machine delegates to _run_internal.
-FAILURES: NotImplementedError until concrete runtime machine implements internals.
-EXTENSION POINTS: Async/sync implementations override run and _run_internal.
-AI-CORE-END
 """
 
 from abc import ABC, abstractmethod
 from typing import Any, TypeVar
 
-from action_machine.intents.context.context import Context
+from action_machine.context.context import Context
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
@@ -115,7 +73,7 @@ class BaseActionMachine(ABC):
         context: Context,
         action: BaseAction[P, R],
         params: P,
-        connections: dict[str, BaseResourceManager] | None = None,
+        connections: dict[str, BaseResource] | None = None,
     ) -> R:
         """
         Execute action and return typed result.
@@ -131,7 +89,7 @@ class BaseActionMachine(ABC):
         action: BaseAction[P, R],
         params: P,
         resources: dict[type[Any], Any] | None,
-        connections: dict[str, BaseResourceManager] | None,
+        connections: dict[str, BaseResource] | None,
         nested_level: int,
         rollup: bool,
     ) -> R:

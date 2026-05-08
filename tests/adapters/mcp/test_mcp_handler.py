@@ -17,7 +17,7 @@ failures for bad mapper outputs (generic ``INTERNAL_ERROR`` body without leaking
 guard text), ``__name__`` derivation from ``tool_name``, success ``data`` JSON
 round-trip without ``default=str``, ``INVALID_PARAMS`` items with ``type``/``loc``,
 ``model_dump(mode="json")`` for datetimes in results, and graph JSON topology
-(nodes, edges, hydrated meta).
+(nodes, edges, hydrated ``snapshot_rows``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -73,31 +73,6 @@ Tagline: production types and production paths; stub the ``run`` seam, not the
 stack. See ``BaseAdapter`` (ADAPTER TESTING CONTRACT) and ``mcp.adapter``
 (TESTING NOTE).
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/mcp/test_mcp_handler.py -q
-
-Edge case: wrong ``params_mapper`` return type yields ``INTERNAL_ERROR`` with a
-generic client message; the underlying guard reason appears only in server logs.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Line-number references to ``adapter.py`` in historical comments drift on edits;
-  behavior is what these tests lock, not exact source lines.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: MCP handler and graph JSON regression tests.
-CONTRACT: CallToolResult + JSON envelope; direct validation/execute-tool-call units; graph JSON.
-INVARIANTS: Real machine + coordinator; ``machine.run`` stubbed where noted; scenario actions + ``AdminRole``.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import json
@@ -109,6 +84,8 @@ import pytest
 from mcp.types import CallToolResult
 from pydantic import BaseModel, Field, field_validator
 
+from action_machine.context.user_info import UserInfo
+from action_machine.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.integrations.mcp.adapter import (
     _build_graph_json,
     _execute_tool_call,
@@ -117,10 +94,7 @@ from action_machine.integrations.mcp.adapter import (
     _validate_tool_request_kwargs,
 )
 from action_machine.integrations.mcp.route_record import McpRouteRecord
-from action_machine.intents.context.user_info import UserInfo
-from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import PingAction, SimpleAction
 from tests.scenarios.domain_model.roles import AdminRole
 
@@ -205,7 +179,7 @@ def _make_record(
 
 def _make_machine() -> ActionProductMachine:
     """Create a minimal machine for handler tests."""
-    return ActionProductMachine(mode="test")
+    return ActionProductMachine()
 
 
 def _make_auth(context=None) -> AsyncMock:
@@ -378,7 +352,7 @@ class TestHandlerSuccess:
         machine.run = AsyncMock(return_value=mock_result)
 
         handler = _make_tool_handler(
-            record, machine, auth, None, machine.gate_coordinator,
+            record, machine, auth, None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -398,7 +372,7 @@ class TestHandlerSuccess:
         machine.run = AsyncMock(return_value=PingAction.Result(message="pong"))
 
         handler = _make_tool_handler(
-            record, machine, auth, None, machine.gate_coordinator,
+            record, machine, auth, None, machine.graph_coordinator,
         )
         result = await handler()
         env = _tool_result_envelope(result)
@@ -412,7 +386,7 @@ class TestHandlerSuccess:
         record = _make_record(tool_name="orders.create")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
 
         assert handler.__name__ == "orders_create"
@@ -424,7 +398,7 @@ class TestHandlerSuccess:
         record = _make_record(tool_name="my-tool-name")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
 
         assert handler.__name__ == "my_tool_name"
@@ -446,7 +420,7 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -468,7 +442,7 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -486,7 +460,7 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -504,7 +478,7 @@ class TestHandlerErrors:
         record = _make_record(action_class=SimpleAction, tool_name="simple.run")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -529,7 +503,7 @@ class TestHandlerErrors:
         record = _make_record(action_class=SimpleAction, tool_name="simple.run")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler(name=[])
 
@@ -549,7 +523,7 @@ class TestHandlerErrors:
         record = _make_record(action_class=SimpleAction, tool_name="simple.run")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler(name="")
 
@@ -573,7 +547,7 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -612,7 +586,7 @@ class TestHandlerWithMappers:
         )
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         await handler()
 
@@ -632,7 +606,7 @@ class TestHandlerWithMappers:
         )
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -652,7 +626,7 @@ class TestHandlerWithMappers:
             params_mapper=lambda _p: PingAction.Params(),  # not SimpleAction.Params
         )
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler(name="Alice")
 
@@ -678,7 +652,7 @@ class TestHandlerWithMappers:
             response_mapper=lambda _r: "not-alt-response",  # type: ignore[return-value]
         )
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.gate_coordinator,
+            record, machine, _make_auth(), None, machine.graph_coordinator,
         )
         result = await handler(name="Bob")
 
@@ -710,7 +684,7 @@ class TestHandlerWithConnections:
 
         record = _make_record()
         handler = _make_tool_handler(
-            record, machine, _make_auth(), factory, machine.gate_coordinator,
+            record, machine, _make_auth(), factory, machine.graph_coordinator,
         )
         await handler()
 
@@ -730,10 +704,9 @@ class TestBuildGraphJson:
 
     def test_returns_valid_json(self) -> None:
         """_build_graph_json returns a parseable JSON string."""
-        coordinator = CoreActionMachine.create_coordinator()
-        machine = ActionProductMachine(mode="test", coordinator=coordinator)
+        machine = ActionProductMachine()
 
-        json_str = _build_graph_json(machine.gate_coordinator)
+        json_str = _build_graph_json(machine.graph_coordinator)
         parsed = json.loads(json_str)
 
         assert "nodes" in parsed
@@ -743,39 +716,36 @@ class TestBuildGraphJson:
 
     def test_contains_action_node(self) -> None:
         """Graph contains a node for the registered action."""
-        coordinator = CoreActionMachine.create_coordinator()
-        machine = ActionProductMachine(mode="test", coordinator=coordinator)
+        machine = ActionProductMachine()
 
-        json_str = _build_graph_json(machine.gate_coordinator)
+        json_str = _build_graph_json(machine.graph_coordinator)
         parsed = json.loads(json_str)
 
         node_ids = [n.get("id", "") for n in parsed["nodes"]]
         has_ping = any("Ping" in nid for nid in node_ids)
         assert has_ping, f"No PingAction node found in: {node_ids}"
 
-    def test_meta_node_has_description_and_domain_from_snapshots(self) -> None:
-        """After skeleton nodes, graph JSON carries description/domain from hydration."""
-        coordinator = CoreActionMachine.create_coordinator()
-        machine = ActionProductMachine(mode="test", coordinator=coordinator)
+    def test_ping_action_node_has_description_and_domain_from_meta_snapshot(self) -> None:
+        """Primary-host ``@meta`` folds into the ``action`` node; hydration exposes it in JSON."""
+        machine = ActionProductMachine()
 
-        json_str = _build_graph_json(machine.gate_coordinator)
+        json_str = _build_graph_json(machine.graph_coordinator)
         parsed = json.loads(json_str)
 
-        meta_nodes = [n for n in parsed["nodes"] if n.get("type") == "meta"]
-        ping_meta = next(
-            (n for n in meta_nodes if "PingAction" in n.get("id", "")),
+        action_nodes = [n for n in parsed["nodes"] if n.get("type") == "Action"]
+        ping_action = next(
+            (n for n in action_nodes if "PingAction" in n.get("id", "")),
             None,
         )
-        assert ping_meta is not None
-        assert ping_meta.get("description") == "Service health check"
-        assert ping_meta.get("domain") == "tests.scenarios.domain_model.domains.SystemDomain"
+        assert ping_action is not None
+        assert ping_action.get("description") == "Service health check"
+        assert ping_action.get("domain") == "tests.scenarios.domain_model.domains.SystemDomain"
 
     def test_edges_include_source_and_target_keys_and_string_type(self) -> None:
         """Edges expose ``source_key`` / ``target_key`` and a string ``type`` (not a dict repr)."""
-        coordinator = CoreActionMachine.create_coordinator()
-        machine = ActionProductMachine(mode="test", coordinator=coordinator)
+        machine = ActionProductMachine()
 
-        json_str = _build_graph_json(machine.gate_coordinator)
+        json_str = _build_graph_json(machine.graph_coordinator)
         parsed = json.loads(json_str)
 
         assert parsed["edges"]

@@ -14,22 +14,19 @@ queries, transaction handling, and proxy wrappers for nested actions.
 COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-SqlConnectionManager
+SqlResource
     Base class for SQL connection managers with transactions.
     Contract: open(), begin(), commit(), rollback(), execute().
 
-PostgresConnectionManager
-    SqlConnectionManager implementation for PostgreSQL using asyncpg.
+PostgresResource
+    SqlResource implementation for PostgreSQL using asyncpg.
     Supports rollup mode: with rollup=True, commit() runs ROLLBACK instead of COMMIT
     for safe testing against production-like databases.
 
-WrapperSqlConnectionManager
+WrapperSqlResource
     Proxy that forbids transaction control at nested levels but allows queries.
     Created automatically when connections are passed to child actions via ToolsBox.run().
-
-Connections
-    Base TypedDict for the connections dict. Includes the standard key 'connection'
-    covering most use cases.
+    Concrete modules: ``action_machine.resources.sql``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 TEST LAYOUT
@@ -37,8 +34,9 @@ TEST LAYOUT
 
     tests/resources/
     ├── __init__.py                             — this file
-    ├── test_postgres_connection_manager.py     — open/begin/execute/commit/rollback, rollup
-    ├── test_sql_connection_manager.py          — SqlConnectionManager, rollup, abstract API
-    ├── test_wrapper_sql_connection_manager.py  — transaction prohibition, execute delegation
-    └── test_connections_typed_dict.py          — TypedDict Connections
+    ├── test_sql_resource.py          — SqlResource, rollup, abstract API
+    ├── test_wrapper_sql_resource.py  — transaction prohibition, execute delegation
+    ├── test_external_service_resource.py        — ExternalServiceResource, rollup flag
+    ├── test_wrapper_external_service_resource.py — nested proxy for external clients
+    └── test_connections_dict.py                — connections dict typing
 """

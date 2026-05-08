@@ -19,10 +19,10 @@ SCOPE FIELDS
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
 
 For action aspects:
-    machine, mode, action, aspect, nest_level
+    machine, action, aspect, nest_level
 
 For plugins:
-    machine, mode, plugin, action, event, nest_level
+    machine, plugin, action, event, nest_level
 
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
 SCENARIOS COVERED
@@ -36,7 +36,7 @@ SCENARIOS COVERED
 
 import pytest
 
-from action_machine.intents.logging.log_scope import LogScope
+from action_machine.logging.log_scope import LogScope
 
 # ======================================================================
 #TESTS: as_dotpath()
@@ -272,24 +272,19 @@ class TestDifferentScopes:
         """Scope for the action aspect."""
         # Arrange & Act
         scope = LogScope(
-            machine="ActionProductMachine",
-            mode="production",
             action="module.CreateOrderAction",
             aspect="process_payment",
             nest_level=0,
         )
 
         # Assert
-        assert scope.as_dotpath() == "ActionProductMachine.production.module.CreateOrderAction.process_payment.0"
-        assert scope["machine"] == "ActionProductMachine"
+        assert scope.as_dotpath() == "module.CreateOrderAction.process_payment.0"
         assert scope["aspect"] == "process_payment"
 
     def test_plugin_scope(self) -> None:
         """Scope for the plugin handler."""
         # Arrange & Act
         scope = LogScope(
-            machine="ActionProductMachine",
-            mode="production",
             plugin="MetricsPlugin",
             action="module.CreateOrderAction",
             event="global_finish",
@@ -297,7 +292,7 @@ class TestDifferentScopes:
         )
 
         # Assert
-        assert scope.as_dotpath() == "ActionProductMachine.production.MetricsPlugin.module.CreateOrderAction.global_finish.1"
+        assert scope.as_dotpath() == "MetricsPlugin.module.CreateOrderAction.global_finish.1"
         assert "plugin" in scope
         assert "event" in scope
         assert "aspect" not in scope

@@ -7,8 +7,9 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 The richest Action in the test domain: two regular aspects with checkers,
-one summary aspect, two dependencies (PaymentService, NotificationService),
-and one connection ("db"). Requires role "manager".
+one summary aspect, two service dependencies (``PaymentServiceResource``, ``NotificationServiceResource``),
+``@depends(OrdersDbManager)`` and ``@connection(OrdersDbManager)`` — **class references**, same
+pattern as ``@depends(PaymentServiceResource, factory=...)``; graph merges to one ``resource_manager`` node. Role "manager".
 
 Exercises role checks, connection validation, dependency resolution via
 box.resolve(), per-aspect checkers, and building the result from state.
@@ -18,7 +19,7 @@ ASPECT PIPELINE
 ═══════════════════════════════════════════════════════════════════════════════
 
     1. process_payment (regular)
-       - Resolves PaymentService via box.resolve().
+       - Resolves ``PaymentServiceResource`` via ``box.resolve()`` (``.service`` for the client).
        - Calls payment.charge(amount, currency).
        - Writes txn_id to state.
        - Checker: result_string("txn_id", required=True, min_length=1).
@@ -48,10 +49,13 @@ USAGE IN TESTS
     mock_payment = AsyncMock(spec=PaymentService)
     mock_payment.charge.return_value = "TXN-001"
     mock_notification = AsyncMock(spec=NotificationService)
-    mock_db = AsyncMock(spec=TestDbManager)
+    mock_db = AsyncMock(spec=OrdersDbManager)
 
     bench = TestBench(
-        mocks={PaymentService: mock_payment, NotificationService: mock_notification},
+        mocks={
+            PaymentServiceResource: PaymentServiceResource(mock_payment),
+            NotificationServiceResource: NotificationServiceResource(mock_notification),
+        },
     ).with_user(user_id="mgr_1", roles=(ManagerRole,))
 
     result = await bench.run(
@@ -66,41 +70,56 @@ USAGE IN TESTS
 
 from pydantic import Field
 
-from action_machine.dependencies.depends_decorator import depends
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.auth import check_roles
+from action_machine.intents.check_roles import check_roles
 from action_machine.intents.checkers import result_float, result_string
+from action_machine.intents.connection import connection
+from action_machine.intents.depends import depends
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.resources.connection_decorator import connection
+from action_machine.resources.base_resource import BaseResource
 from action_machine.runtime.tools_box import ToolsBox
 
 from .domains import OrdersDomain
 from .roles import ManagerRole
-from .services import NotificationService, PaymentService
-from .test_db_manager import TestDbManager
+from .services import (
+    NotificationServiceResource,
+    PaymentServiceResource,
+    default_notification_service_resource,
+    default_payment_service_resource,
+)
+from .test_db_manager import OrdersDbManager
 
 
 @meta(description="Create order with payment and notification", domain=OrdersDomain)
 @check_roles(ManagerRole)
-@depends(PaymentService, description="Payment processing service")
-@depends(NotificationService, description="Notification service")
-@connection(TestDbManager, key="db", description="Primary database")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payment processing service",
+)
+@depends(
+    NotificationServiceResource,
+    factory=default_notification_service_resource,
+    description="Notification service",
+)
+@depends(OrdersDbManager, description="DB resource (class — same graph node as @connection)")
+@connection(OrdersDbManager, key="db", description="Primary database")
 class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
     """
     Full-featured Action: two regular + summary, depends, connection.
 
-    Requires role "manager". Dependencies: PaymentService, NotificationService.
-    Connection: "db" (TestDbManager).
+    Requires role "manager". ``@depends`` lists classes (services + ``OrdersDbManager``);
+    ``@connection(OrdersDbManager, key="db")`` shares the same resource_manager node.
     """
 
     class Params(BaseParams):
         """Order creation parameters."""
+
         user_id: str = Field(
             description="User identifier",
             min_length=1,
@@ -120,6 +139,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
 
     class Result(BaseResult):
         """Order creation result."""
+
         order_id: str = Field(description="Created order identifier")
         txn_id: str = Field(description="Payment transaction identifier")
         total: float = Field(description="Order total amount")
@@ -132,7 +152,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         params: "FullAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict:
         """
         Charge funds via PaymentService.
@@ -143,7 +163,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         Returns:
             dict with key txn_id — transaction identifier.
         """
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         txn_id = await payment.charge(params.amount, params.currency)
         return {"txn_id": txn_id}
 
@@ -154,7 +174,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         params: "FullAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> dict:
         """
         Compute order total.
@@ -173,7 +193,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         params: "FullAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResourceManager],
+        connections: dict[str, BaseResource],
     ) -> "FullAction.Result":
         """
         Build the final Result from state.
@@ -185,7 +205,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         Returns:
             FullAction.Result with order_id, txn_id, total, status.
         """
-        notification = box.resolve(NotificationService)
+        notification = box.resolve(NotificationServiceResource).service
         await notification.send(params.user_id, f"Order created: {state['txn_id']}")
 
         return FullAction.Result(

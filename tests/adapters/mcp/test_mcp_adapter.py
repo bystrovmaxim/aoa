@@ -15,7 +15,7 @@ by the coordinator graph, ``_class_name_to_snake_case``, and mapper fields on
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    CoreActionMachine.create_coordinator() + ActionProductMachine
+    ActionProductMachine
               |
               v
     McpAdapter(BaseAdapter[McpRouteRecord])
@@ -32,29 +32,6 @@ INVARIANTS
 - Tests use a real built coordinator when ``register_all`` must discover actions.
 - ``auth_coordinator`` is always an ``AsyncMock`` with ``process`` stubbed.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/mcp/test_mcp_adapter.py -q
-
-Edge case: empty explicit description falls back to ``@meta`` text when present.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- MCP SDK types (e.g. ``FastMCP``) couple tests to the installed ``mcp`` version.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: MCP adapter registration and server construction tests.
-CONTRACT: Fluent API; coordinator-driven bulk registration; snake_case naming.
-INVARIANTS: Scenario actions; optional ``FullAction`` for multi-tool cases.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock
@@ -64,8 +41,7 @@ from mcp.server.fastmcp import FastMCP
 
 from action_machine.integrations.mcp.adapter import McpAdapter, _class_name_to_snake_case
 from action_machine.integrations.mcp.route_record import McpRouteRecord
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -75,8 +51,7 @@ from tests.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 def _make_adapter(**kwargs) -> McpAdapter:
     """Create an McpAdapter with sensible test defaults."""
-    coordinator = CoreActionMachine.create_coordinator()
-    machine = ActionProductMachine(mode="test", coordinator=coordinator)
+    machine = ActionProductMachine()
     auth = AsyncMock()
     auth.process.return_value = None
     return McpAdapter(

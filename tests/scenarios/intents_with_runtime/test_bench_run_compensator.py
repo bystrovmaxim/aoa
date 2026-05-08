@@ -26,19 +26,18 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import Field
 
-from action_machine.dependencies.depends_decorator import depends
 from action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from action_machine.intents.auth import NoneRole, check_roles
+from action_machine.intents.check_roles import NoneRole, check_roles
 from action_machine.intents.checkers import result_string
 from action_machine.intents.compensate import compensate
-from action_machine.intents.context import Ctx, context_requires
+from action_machine.intents.context_requires import Ctx, context_requires
+from action_machine.intents.depends import depends
 from action_machine.intents.meta.meta_decorator import meta
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
 from action_machine.model.base_state import BaseState
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from action_machine.testing import StubTesterRole, TestBench
 from tests.scenarios.domain_model.compensate_actions import (
     CompensatedOrderAction,
@@ -46,7 +45,12 @@ from tests.scenarios.domain_model.compensate_actions import (
     CompensateWithContextAction,
 )
 from tests.scenarios.domain_model.domains import TestDomain
-from tests.scenarios.domain_model.services import InventoryService, PaymentService
+from tests.scenarios.domain_model.services import (
+    InventoryServiceResource,
+    PaymentService,
+    PaymentServiceResource,
+    default_payment_service_resource,
+)
 
 # ═════════════════════════════════════════════════════════════════════════════
 #Helper function to create a BaseState with data
@@ -82,7 +86,11 @@ class CtxCheckResult(BaseResult):
 
 @meta(description="Action to check the context in the compensator", domain=TestDomain)
 @check_roles(NoneRole)
-@depends(PaymentService, description="Payments")
+@depends(
+    PaymentServiceResource,
+    factory=default_payment_service_resource,
+    description="Payments",
+)
 class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
     """Action whose compensator uses ctx.get(Ctx.User.user_id)
     and passes user_id to the refund argument to check that
@@ -99,7 +107,7 @@ class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
         self, params, state_before, state_after, box, connections, error, ctx,
     ):
         user_id = ctx.get(Ctx.User.user_id)
-        payment = box.resolve(PaymentService)
+        payment = box.resolve(PaymentServiceResource).service
         await payment.refund(f"refund_for_{user_id}")
 
     @summary_aspect("Summary")
@@ -128,10 +136,9 @@ class TestRunCompensatorBasic:
         mock_payment.refund.reset_mock()
 
         bench = TestBench(
-            coordinator=CoreActionMachine.create_coordinator(),
             mocks={
-                PaymentService: mock_payment,
-                InventoryService: mock_inventory,
+                PaymentServiceResource: PaymentServiceResource(mock_payment),
+                InventoryServiceResource: InventoryServiceResource(mock_inventory),
             },
             log_coordinator=AsyncMock(),
         )
@@ -170,10 +177,9 @@ class TestRunCompensatorBasic:
         mock_payment.refund.side_effect = RuntimeError("Gateway unavailable")
 
         bench = TestBench(
-            coordinator=CoreActionMachine.create_coordinator(),
             mocks={
-                PaymentService: mock_payment,
-                InventoryService: mock_inventory,
+                PaymentServiceResource: PaymentServiceResource(mock_payment),
+                InventoryServiceResource: InventoryServiceResource(mock_inventory),
             },
             log_coordinator=AsyncMock(),
         )
@@ -211,10 +217,9 @@ class TestRunCompensatorBasic:
         mock_payment.refund.reset_mock()
 
         bench = TestBench(
-            coordinator=CoreActionMachine.create_coordinator(),
             mocks={
-                PaymentService: mock_payment,
-                InventoryService: mock_inventory,
+                PaymentServiceResource: PaymentServiceResource(mock_payment),
+                InventoryServiceResource: InventoryServiceResource(mock_inventory),
             },
             log_coordinator=AsyncMock(),
         )
@@ -254,7 +259,6 @@ class TestRunCompensatorValidation:
         """Non-existent method → ​​ValueError with a clear message."""
         # ── Arrange ──
         bench = TestBench(
-            coordinator=CoreActionMachine.create_coordinator(),
             log_coordinator=AsyncMock(),
         )
 
@@ -279,7 +283,6 @@ class TestRunCompensatorValidation:
         charge_aspect is a regular aspect, not a compensator."""
         # ── Arrange ──
         bench = TestBench(
-            coordinator=CoreActionMachine.create_coordinator(),
             log_coordinator=AsyncMock(),
         )
 
@@ -309,8 +312,7 @@ class TestRunCompensatorValidation:
         # ── Arrange ──
         mock_payment = AsyncMock(spec=PaymentService)
         bench = TestBench(
-            coordinator=CoreActionMachine.create_coordinator(),
-            mocks={PaymentService: mock_payment},
+            mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
             log_coordinator=AsyncMock(),
         )
 
@@ -349,8 +351,7 @@ class TestRunCompensatorContext:
         mock_payment.refund.reset_mock()
 
         bench = TestBench(
-            coordinator=CoreActionMachine.create_coordinator(),
-            mocks={PaymentService: mock_payment},
+            mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
             log_coordinator=AsyncMock(),
         ).with_user(user_id="ctx_user_99", roles=(StubTesterRole,))
 
@@ -389,8 +390,7 @@ class TestRunCompensatorContext:
         #run_compensator() uses this context to create
         #ContextView, not the context= argument.
         bench = TestBench(
-            coordinator=CoreActionMachine.create_coordinator(),
-            mocks={PaymentService: mock_payment},
+            mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
             log_coordinator=AsyncMock(),
         ).with_user(user_id="verified_user_42", roles=(StubTesterRole,))
 

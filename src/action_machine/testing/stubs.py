@@ -47,72 +47,15 @@ INVARIANTS:
 - Defaults are valid for typical role/context validation.
 - Stubs expose only explicitly declared fields of underlying models.
 
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.testing import (
-        ContextStub,
-        UserInfoStub,
-        RequestInfoStub,
-        RuntimeInfoStub,
-    )
-
-    # Minimal test setup:
-    result = await machine.run(
-        context=ContextStub(),
-        action=PingAction(),
-        params=PingAction.Params(),
-        rollup=False,
-    )
-
-    # Test with specific user:
-    admin_ctx = ContextStub(
-        user=UserInfoStub(user_id="admin_1", roles=(AdminRole, ManagerRole)),
-    )
-
-    # Test with specific trace_id:
-    traced_ctx = ContextStub(
-        request=RequestInfoStub(trace_id="trace-abc-123"),
-    )
-
-    # Individual stubs:
-    user = UserInfoStub(roles=(AdminRole,))
-    runtime = RuntimeInfoStub(hostname="prod-server-01")
-    request = RequestInfoStub(request_path="/api/v1/orders", protocol="https")
-
-    # Extension via UserInfo subclass:
-    class TenantUserInfo(UserInfo):
-        tenant_id: str = "default"
-
-    tenant_user = TenantUserInfo(
-        user_id="admin",
-        roles=(AdminRole,),
-        tenant_id="acme",
-    )
-    ctx = ContextStub(user=tenant_user)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Stubs do not bypass validation of underlying pydantic/domain models.
-- Invalid override values still raise model-level validation errors.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE
-═══════════════════════════════════════════════════════════════════════════════
-
-Use these factories to build deterministic test contexts quickly while keeping
-runtime behavior close to production object shapes.
 """
 
-from action_machine.intents.auth.application_role import ApplicationRole
-from action_machine.intents.auth.base_role import BaseRole
-from action_machine.intents.auth.role_mode_decorator import RoleMode, role_mode
-from action_machine.intents.context.context import Context
-from action_machine.intents.context.request_info import RequestInfo
-from action_machine.intents.context.runtime_info import RuntimeInfo
-from action_machine.intents.context.user_info import UserInfo
+from action_machine.auth.application_role import ApplicationRole
+from action_machine.auth.base_role import BaseRole
+from action_machine.context.context import Context
+from action_machine.context.request_info import RequestInfo
+from action_machine.context.runtime_info import RuntimeInfo
+from action_machine.context.user_info import UserInfo
+from action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 
 
 @role_mode(RoleMode.ALIVE)

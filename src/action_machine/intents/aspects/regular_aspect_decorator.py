@@ -35,48 +35,6 @@ If ``@context_requires`` is present, ``ContextView`` is passed as ``ctx``:
            v
     runtime state merge
 
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Applies only to callable methods.
-- Method must be ``async def``.
-- ``description`` must be a non-empty string.
-- Method name must end with ``_aspect``.
-- Signature must have 5 params without context, 6 with context.
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    @regular_aspect("Process payment")
-    async def process_payment_aspect(self, params, state, box, connections):
-        return {"txn_id": "TXN-001"}
-
-    @regular_aspect("Audit")
-    @context_requires(Ctx.User.user_id)
-    async def audit_aspect(self, params, state, box, connections, ctx):
-        return {"actor": ctx.get(Ctx.User.user_id)}
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-TypeError for wrong target type, non-async method, or wrong signature.
-ValueError for empty description.
-NamingSuffixError for invalid method name suffix.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Regular-aspect declaration module.
-CONTRACT: ``@regular_aspect`` marks async methods that return state patch ``dict``.
-INVARIANTS: string non-empty description, callable+async target, valid parameter count, ``_aspect`` suffix.
-FLOW: validate declaration -> attach ``_new_aspect_meta`` -> inspector snapshot -> runtime state merge.
-FAILURES: TypeError/ValueError/NamingSuffixError on declaration contract violations.
-EXTENSION POINTS: works with ``@context_requires`` and downstream intent inspector/coordinator.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -86,7 +44,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.model.exceptions import NamingSuffixError
+from action_machine.exceptions.naming_suffix_error import NamingSuffixError
 
 # Parameter count without @context_requires.
 _BASE_PARAM_COUNT = 5

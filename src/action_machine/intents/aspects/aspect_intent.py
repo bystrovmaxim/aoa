@@ -17,7 +17,7 @@ ARCHITECTURE / DATA FLOW
     @regular_aspect / @summary_aspect
                  |
                  v
-     AspectIntentInspector collects own-class aspects (``vars(cls)``)
+     Interchange aspect nodes (graph model collectors) derive from own-class declarations
                  |
                  v
     require_aspect_intent_marker(...)
@@ -28,66 +28,6 @@ ARCHITECTURE / DATA FLOW
                  v
       coordinator-ready aspect snapshot
 
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- If aspects are declared, class must inherit ``AspectIntent``.
-- Structural checks apply to the aspect tuple produced for **that** class from its
-  own namespace (see ``AspectIntentInspector``): inherited base methods are not
-  merged into the child’s facet list—subclasses re-declare aspects and use
-  ``super()`` inside overrides when extending parent behavior.
-- At most one ``summary`` aspect may exist.
-- If ``regular`` aspects exist, a ``summary`` aspect is required.
-- ``summary`` aspect must be the last declared aspect method **on that class
-  body** (declaration order in ``vars``).
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-
-    class CreateOrderAction(BaseAction, AspectIntent):
-        @regular_aspect("Validate")
-        async def validate_aspect(self, params, state, box, connections):
-            return {"ok": True}
-
-        @summary_aspect("Build result")
-        async def build_result_summary(self, params, state, box, connections):
-            return OrderResult(...)
-
-Edge case:
-
-    class BrokenAction(BaseAction, AspectIntent):
-        @regular_aspect("Only regular")
-        async def only_regular_aspect(self, params, state, box, connections):
-            return {"x": 1}
-
-    # validate_aspects(BrokenAction, aspects) -> ValueError
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-The module only validates structural contracts. It does not execute aspects and
-does not validate business-level semantics inside aspect methods.
-Validators can raise:
-- ``TypeError`` for missing ``AspectIntent`` marker when aspects are declared.
-- ``ValueError`` for invalid aspect structure (summary count/order requirements).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Aspect intent validation module.
-CONTRACT: Enforce structural aspect pipeline contract at metadata-build time.
-INVARIANTS: marker inheritance; own-class aspect list; one summary max; regular
-  requires summary; summary last in declaring class order.
-FLOW: decorator metadata -> inspector list (vars-only) -> validators -> snapshot.
-FAILURES: TypeError for undeclared aspect intent, ValueError for invalid aspect structure.
-EXTENSION POINTS: New aspect types must preserve validator assumptions or extend checks.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from __future__ import annotations
@@ -97,8 +37,6 @@ from typing import Any
 
 class AspectIntent:
     """
-    Marker mixin declaring that an action owns an aspect pipeline.
-
     AI-CORE-BEGIN
     ROLE: Public aspect intent marker.
     CONTRACT: Classes with aspect decorators must include this marker in MRO.

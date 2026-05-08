@@ -29,7 +29,7 @@ This prevents accidental auth omission: ``auth_coordinator=None`` fails fast
 with ``TypeError`` instead of becoming a silent production bug. For open APIs,
 use ``NoAuthCoordinator`` explicitly:
 
-    from action_machine.intents.auth import NoAuthCoordinator
+    from action_machine.intents.check_roles import NoAuthCoordinator
 
     adapter = FastApiAdapter(
         machine=machine,
@@ -78,9 +78,8 @@ try/except and returning HTTP 500 for any error not handled above.
 TESTING NOTE (HTTP routes)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Route and handler tests should use a real ``ActionProductMachine`` (and real
-coordinator metadata) so OpenAPI-related wiring and ``gate_coordinator`` match
-production.
+Route and handler tests should use a real ``ActionProductMachine`` so
+OpenAPI-related wiring and graph metadata match production.
 
 To control results or speed, stub ``machine.run`` only — not the whole stack.
 
@@ -108,25 +107,6 @@ HEALTH CHECK
 Endpoint ``GET /health`` is added automatically during ``build()``.
 Returns ``{"status": "ok"}``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.intents.auth import NoAuthCoordinator
-    from action_machine.integrations.fastapi import FastApiAdapter
-
-    adapter = FastApiAdapter(
-        machine=machine,
-        auth_coordinator=NoAuthCoordinator(),
-        title="Orders API",
-        version="0.1.0",
-    )
-
-    app = adapter \\
-        .post("/api/v1/orders", CreateOrderAction, tags=["orders"]) \\
-        .get("/api/v1/orders/{order_id}", GetOrderAction, tags=["orders"]) \\
-        .get("/api/v1/ping", PingAction, tags=["system"]) \\
-        .build()
 """
 
 # Ruff/isort lists first-party ``action_machine`` before FastAPI (known-first-party).
@@ -148,15 +128,18 @@ from action_machine.adapters.base_route_record import (
     ensure_machine_params,
     ensure_protocol_response,
 )
-from action_machine.graph.gate_coordinator import GateCoordinator
+from action_machine.context.context import Context
+from action_machine.exceptions.authorization_error import AuthorizationError
+from action_machine.exceptions.validation_field_error import ValidationFieldError
+from action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from action_machine.integrations.fastapi.route_record import FastApiRouteRecord
-from action_machine.intents.context.context import Context
 from action_machine.model.base_action import BaseAction
-from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
-from action_machine.resources.base_resource_manager import BaseResourceManager
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.resources.base_resource import BaseResource
+from action_machine.runtime.action_product_machine import ActionProductMachine
+from action_machine.system_core.type_introspection import TypeIntrospection
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from graph.node_graph_coordinator import NodeGraphCoordinator
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Module-level helper functions
@@ -169,7 +152,11 @@ def _fastapi_route_label(record: FastApiRouteRecord) -> str:
     return f"{record.method} {record.path}"
 
 
-def _get_meta_description(action_class: type) -> str:
+def _get_action_class_description(
+    action_class: type,
+    *,
+    coordinator: NodeGraphCoordinator | None = None,
+) -> str:
     """
     Extract description from action ``@meta`` declaration.
 
@@ -180,8 +167,19 @@ def _get_meta_description(action_class: type) -> str:
         action_class: action class.
 
     Returns:
-        Description string from ``@meta`` or empty string.
+        Description string from the node graph, ``@meta`` scratch, or empty string.
     """
+    if coordinator is not None:
+        try:
+            node = coordinator.get_node_by_id(
+                TypeIntrospection.full_qualname(action_class),
+                ActionGraphNode.NODE_TYPE,
+            )
+        except (LookupError, RuntimeError):
+            node = None
+        if node is not None:
+            return str(node.properties.get("description", "") or "")
+
     meta_info = getattr(action_class, "_meta_info", None)
     if meta_info and isinstance(meta_info, dict):
         return str(meta_info.get("description", ""))
@@ -244,7 +242,7 @@ def _make_endpoint_with_body(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
+    connections_factory: Callable[..., dict[str, BaseResource]] | None,
 ) -> Callable[..., Any]:
     """
     Create endpoint for methods with JSON body (POST, PUT, PATCH).
@@ -313,7 +311,7 @@ def _make_endpoint_with_query(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
+    connections_factory: Callable[..., dict[str, BaseResource]] | None,
 ) -> Callable[..., Any]:
     """
     Create endpoint for GET/DELETE with query/path parameters.
@@ -408,7 +406,7 @@ def _make_endpoint_no_params(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
+    connections_factory: Callable[..., dict[str, BaseResource]] | None,
 ) -> Callable[..., Any]:
     """
     Create endpoint for actions with empty Params (no fields).
@@ -473,7 +471,7 @@ def _make_endpoint(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResourceManager]] | None,
+    connections_factory: Callable[..., dict[str, BaseResource]] | None,
 ) -> Callable[..., Any]:
     """
     Endpoint factory for FastAPI.
@@ -561,9 +559,8 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         self,
         machine: ActionProductMachine,
         auth_coordinator: Any,
-        connections_factory: Callable[..., dict[str, BaseResourceManager]] | None = None,
+        connections_factory: Callable[..., dict[str, BaseResource]] | None = None,
         *,
-        gate_coordinator: GateCoordinator | None = None,
         title: str = "ActionMachine API",
         version: str = "0.1.0",
         description: str = "",
@@ -577,8 +574,6 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 For open APIs use ``NoAuthCoordinator()``. ``None`` is invalid.
             connections_factory: connections factory; if ``None``, connections
                 are not passed.
-            gate_coordinator: explicit ``GateCoordinator``; defaults to
-                ``machine.gate_coordinator``.
             title: API title for OpenAPI/Swagger UI.
             version: API version for OpenAPI.
             description: API description for OpenAPI (Markdown supported).
@@ -587,7 +582,6 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             machine=machine,
             auth_coordinator=auth_coordinator,
             connections_factory=connections_factory,
-            gate_coordinator=gate_coordinator,
         )
         self._title: str = title
         self._version: str = version
@@ -636,7 +630,10 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
         If ``summary`` is empty, fill it from action ``@meta`` description.
         """
-        effective_summary = summary or _get_meta_description(action_class)
+        effective_summary = summary or _get_action_class_description(
+            action_class,
+            coordinator=self.graph_coordinator,
+        )
 
         record = FastApiRouteRecord(
             action_class=action_class,

@@ -29,25 +29,4 @@ INVARIANTS
 - Tool names must stay non-empty and normalized per ``McpRouteRecord`` rules.
 - Graph JSON tests assert stable keys (``nodes``, ``edges``, ``source_key``, …).
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/mcp/ -q
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Handler tests rely on MCP SDK types; version bumps may require fixture tweaks.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: MCP adapter test subpackage.
-CONTRACT: Tools, records, schemas, and graph resource behavior.
-INVARIANTS: Shared scenario actions; mocks for protocol surfaces.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
