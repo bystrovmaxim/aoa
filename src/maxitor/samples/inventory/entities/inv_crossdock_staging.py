@@ -7,6 +7,7 @@ from pydantic import Field
 
 from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
+from maxitor.samples.catalog.entities.product_row import CatalogProductEntity
 from maxitor.samples.inventory.domain import InventoryDomain
 from maxitor.samples.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
 from maxitor.samples.inventory.entities.inv_recall_signal import RecallSignalEntity
@@ -29,11 +30,8 @@ class CrossDockStagingEntity(BaseEntity):
     ] = Rel(description="Upstream recall signal")  # type: ignore[assignment]
 
     catalog_product_anchor: Annotated[
-        AssociationOne["CatalogProductEntity"],  # noqa: UP037
+        AssociationOne[CatalogProductEntity],
         NoInverse(),
     ] = Rel(description="Catalog SKU keyed when diverting stock through cross-dock")  # type: ignore[assignment]
-
-
-from maxitor.samples.catalog.entities.product_row import CatalogProductEntity  # noqa: E402
 
 CrossDockStagingEntity.model_rebuild()

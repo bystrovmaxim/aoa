@@ -1,7 +1,7 @@
 # src/maxitor/samples/billing/entities/billing_sat_cash_apply_hint.py
 from __future__ import annotations
 
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import Field
 
@@ -10,6 +10,9 @@ from action_machine.intents.entity import entity
 from maxitor.samples.billing.domain import BillingDomain
 from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from maxitor.samples.billing.entities.funding_window_hint import FundingWindowHintEntity
+
+if TYPE_CHECKING:
+    from maxitor.samples.billing.entities.arbitration_brief_stub import ArbitrationBriefStubEntity
 
 
 @entity(description="Cash application routing hint chained from liquidity funding window facet", domain=BillingDomain)
@@ -25,7 +28,7 @@ class CashApplicationHintEntity(BaseEntity):
     ] = Rel(description="Upstream funding guidance row")  # type: ignore[assignment]
 
     arbitration_brief: Annotated[
-        AssociationOne["ArbitrationBriefStubEntity"],  # noqa: F821, UP037
+        AssociationOne[ArbitrationBriefStubEntity],
         NoInverse(),
     ] = Rel(description="Arbitration brief context for disputed cash-application routing")  # type: ignore[assignment]
 

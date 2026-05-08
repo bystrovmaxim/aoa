@@ -7,6 +7,7 @@ from pydantic import Field
 
 from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
+from maxitor.samples.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerEntity
 from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.entities.lifecycle import SalesOrderLifecycle
 from maxitor.samples.store.entities.sales_core import SalesOrderEntity
@@ -29,11 +30,8 @@ class DiscountApplicationEntity(BaseEntity):
     ] = Rel(description="Discounted order")  # type: ignore[assignment]
 
     acquisition_attribution_head: Annotated[
-        AssociationOne["AcquisitionChannelLedgerEntity"],  # noqa: UP037
+        AssociationOne[AcquisitionChannelLedgerEntity],
         NoInverse(),
     ] = Rel(description="Catalog acquisition ledger head for attributed demand")  # type: ignore[assignment]
-
-
-from maxitor.samples.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerEntity  # noqa: E402, I001
 
 DiscountApplicationEntity.model_rebuild()

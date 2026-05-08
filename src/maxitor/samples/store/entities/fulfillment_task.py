@@ -7,6 +7,7 @@ from pydantic import Field
 
 from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
+from maxitor.samples.inventory.entities.inv_lot_snapshot_ledger import LotSnapshotLedgerEntity
 from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.entities.lifecycle import SalesOrderLineLifecycle
 from maxitor.samples.store.entities.sales_core import SalesOrderLineEntity
@@ -29,11 +30,8 @@ class FulfillmentTaskEntity(BaseEntity):
     ] = Rel(description="Target order line")  # type: ignore[assignment]
 
     lot_inventory_slice: Annotated[
-        AssociationOne["LotSnapshotLedgerEntity"],  # noqa: UP037
+        AssociationOne[LotSnapshotLedgerEntity],
         NoInverse(),
     ] = Rel(description="Inventory lot snapshot consulted for allocation")  # type: ignore[assignment]
-
-
-from maxitor.samples.inventory.entities.inv_lot_snapshot_ledger import LotSnapshotLedgerEntity  # noqa: E402
 
 FulfillmentTaskEntity.model_rebuild()

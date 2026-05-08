@@ -7,6 +7,7 @@ from pydantic import Field
 
 from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
+from maxitor.samples.analytics.entities.analytics_ingress_batch import AnalyticsIngressBatchEntity
 from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.entities.lifecycle import SalesOrderLifecycle
 from maxitor.samples.store.entities.sales_core import SalesOrderEntity
@@ -29,11 +30,8 @@ class ReturnRequestEntity(BaseEntity):
     ] = Rel(description="Returned order")  # type: ignore[assignment]
 
     reverse_logistics_metrics_batch: Annotated[
-        AssociationOne["AnalyticsIngressBatchEntity"],  # noqa: UP037
+        AssociationOne[AnalyticsIngressBatchEntity],
         NoInverse(),
     ] = Rel(description="Analytics ingress shard for reverse-logistics telemetry")  # type: ignore[assignment]
-
-
-from maxitor.samples.analytics.entities.analytics_ingress_batch import AnalyticsIngressBatchEntity  # noqa: E402
 
 ReturnRequestEntity.model_rebuild()

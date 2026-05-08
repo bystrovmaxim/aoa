@@ -1,7 +1,7 @@
 # src/maxitor/samples/billing/entities/billing_parse_pass.py
 from __future__ import annotations
 
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import Field
 
@@ -10,6 +10,10 @@ from action_machine.intents.entity import entity
 from maxitor.samples.billing.domain import BillingDomain
 from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingPipelineLifecycle
 from maxitor.samples.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestEntity
+
+if TYPE_CHECKING:
+    from maxitor.samples.billing.entities.billing_sat_fx_residual import FxResidualTagEntity
+    from maxitor.samples.billing.entities.retrieval_evidence_bundle import RetrievalEvidenceBundleEntity
 
 
 @entity(description="Parse pass artifact on ingest manifest", domain=BillingDomain)
@@ -23,12 +27,12 @@ class BillingParsePassEntity(BaseEntity):
     ] = Rel(description="Source manifest")  # type: ignore[assignment]
 
     fx_residual_tag: Annotated[
-        AssociationOne["FxResidualTagEntity"],  # noqa: F821, UP037
+        AssociationOne[FxResidualTagEntity],
         NoInverse(),
     ] = Rel(description="FX residual tag linked to this parse pass")  # type: ignore[assignment]
 
     retrieval_evidence_bundle: Annotated[
-        AssociationOne["RetrievalEvidenceBundleEntity"],  # noqa: F821, UP037
+        AssociationOne[RetrievalEvidenceBundleEntity],
         NoInverse(),
     ] = Rel(description="Retrieval evidence bundle associated with parse outcome")  # type: ignore[assignment]
 

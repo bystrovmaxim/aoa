@@ -7,6 +7,7 @@ from pydantic import Field
 
 from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
+from maxitor.samples.messaging.entities.outbox_message import OutboxMessageEntity
 from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.entities.lifecycle import SalesOrderLifecycle
 from maxitor.samples.store.entities.sales_core import SalesOrderEntity
@@ -29,11 +30,8 @@ class InvoiceRecordEntity(BaseEntity):
     ] = Rel(description="Invoiced order")  # type: ignore[assignment]
 
     invoice_outbox_row: Annotated[
-        AssociationOne["OutboxMessageEntity"],  # noqa: UP037
+        AssociationOne[OutboxMessageEntity],
         NoInverse(),
     ] = Rel(description="Transactional outbox publish for invoice side-effects")  # type: ignore[assignment]
-
-
-from maxitor.samples.messaging.entities.outbox_message import OutboxMessageEntity  # noqa: E402
 
 InvoiceRecordEntity.model_rebuild()

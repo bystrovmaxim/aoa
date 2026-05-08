@@ -25,6 +25,9 @@ from action_machine.domain import (
     Rel,
 )
 from action_machine.intents.entity import entity
+from maxitor.samples.billing.entities.payment_event_log import PaymentEventLogEntity
+from maxitor.samples.catalog.entities.product_row import CatalogProductEntity
+from maxitor.samples.identity.entities.identity_person_hub import IdentityPersonHubEntity
 from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.entities.lifecycle import (
     CustomerAccountLifecycle,
@@ -45,7 +48,7 @@ class CustomerAccountEntity(BaseEntity):
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     identity_party: Annotated[
-        AssociationOne["IdentityPersonHubEntity"],  # noqa: UP037
+        AssociationOne[IdentityPersonHubEntity],
         NoInverse(),
     ] = Rel(description="Canonical person aggregate in the identity bounded context")  # type: ignore[assignment]
 
@@ -77,7 +80,7 @@ class SalesOrderEntity(BaseEntity):
     ] = Rel(description="Line items")  # type: ignore[assignment]
 
     payment_capture_audit: Annotated[
-        AssociationOne["PaymentEventLogEntity"],  # noqa: UP037
+        AssociationOne[PaymentEventLogEntity],
         NoInverse(),
     ] = Rel(description="Settlement-side payment telemetry for this storefront order")  # type: ignore[assignment]
 
@@ -94,7 +97,7 @@ class SalesOrderLineEntity(BaseEntity):
     compliance_rating: str = Field(description="Fraud / AML posture snapshot")
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     catalog_product: Annotated[
-        AssociationOne["CatalogProductEntity"],  # noqa: UP037
+        AssociationOne[CatalogProductEntity],
         NoInverse(),
     ] = Rel(description="Anchored SKU row from the commerce catalog")  # type: ignore[assignment]
 
@@ -103,10 +106,6 @@ class SalesOrderLineEntity(BaseEntity):
         Inverse(SalesOrderEntity, "order_lines"),
     ] = Rel(description="Parent order")  # type: ignore[assignment]
 
-
-from maxitor.samples.billing.entities.payment_event_log import PaymentEventLogEntity  # noqa: E402
-from maxitor.samples.catalog.entities.product_row import CatalogProductEntity  # noqa: E402
-from maxitor.samples.identity.entities.identity_person_hub import IdentityPersonHubEntity  # noqa: E402
 
 CustomerAccountEntity.model_rebuild()
 SalesOrderEntity.model_rebuild()
