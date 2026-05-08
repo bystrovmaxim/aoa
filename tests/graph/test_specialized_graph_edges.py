@@ -1,7 +1,7 @@
-from graph.aggregation_graph_edge import AggregationGraphEdge
-from graph.association_graph_edge import AssociationGraphEdge
-from graph.composition_graph_edge import CompositionGraphEdge
-from graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
+from aoa.graph.aggregation_graph_edge import AggregationGraphEdge
+from aoa.graph.association_graph_edge import AssociationGraphEdge
+from aoa.graph.composition_graph_edge import CompositionGraphEdge
+from aoa.graph.edge_relationship import AGGREGATION, ASSOCIATION, COMPOSITION
 
 
 def test_composition_graph_edge_uses_composition_relationship() -> None:

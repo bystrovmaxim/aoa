@@ -1,3 +1,7 @@
-# Exceptions for ``scripts/check_test_layer_imports.py`` (PR-T5, plan 008).
-# PR-T6 cleared prior rows by moving cross-layer tests to ``tests/scenarios/`` and
-# fixing narrow-layer tests. Add [[allow_prefix]] only with a short justification.
+# Optional overrides for ``scripts/check_test_layer_imports.py`` (action_machine internal layers).
+#
+# Add [[allow_prefix]] rows with:
+#   path: repo-relative POSIX path to a single test file
+#   prefix: must start with ``aoa.action_machine`` (allowed import prefix for that file)
+#
+# Prefer fixing tests or moving them under ``tests/action_machine/scenarios/`` instead of growing this list.

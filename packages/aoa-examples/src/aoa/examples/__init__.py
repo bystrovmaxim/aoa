@@ -1,0 +1,33 @@
+# packages/aoa-examples/src/aoa/examples/__init__.py
+"""
+Usage examples for ActionMachine.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Demonstrate end-to-end wiring (e.g. FastAPI + MCP with shared actions) without
+shipping example code inside the core ``action_machine`` package. Actions use
+standard **Intent** mixins on ``BaseAction`` and decorators for metadata and
+pipeline behavior. See the repository root ``README.md`` (Intent / architecture
+sections) and ``docs/CHANGELOG.md`` for naming and API notes.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    action_machine (library)
+              ^
+              | imports only from here as a separate namespace
+              |
+    examples/  (this package)
+              |
+              +-- fastapi_mcp_services/
+              |       dual-transport app + shared actions
+              |
+              +-- (future example packages)
+
+    Consumers typically copy or study subpackages; the library does not depend
+    on ``examples`` at runtime.
+
+"""

@@ -2,6 +2,15 @@ version = 1
 revision = 3
 requires-python = ">=3.12"
 
+[manifest]
+members = [
+    "aoa-action-machine",
+    "aoa-examples",
+    "aoa-graph",
+    "aoa-maxitor",
+    "aoa-run",
+]
+
 [[package]]
 name = "annotated-doc"
 version = "0.0.4"
@@ -34,23 +43,113 @@ wheels = [
 ]
 
 [[package]]
-name = "aoa-run"
+name = "aoa-action-machine"
 version = "1.0.0"
-source = { editable = "." }
+source = { editable = "packages/aoa-action-machine" }
 dependencies = [
+    { name = "aoa-graph" },
     { name = "pydantic" },
-    { name = "rustworkx" },
     { name = "simpleeval" },
 ]
 
 [package.optional-dependencies]
-all = [
-    { name = "asyncpg" },
-    { name = "black" },
+fastapi = [
     { name = "fastapi" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+mcp = [
+    { name = "mcp" },
+]
+postgres = [
+    { name = "asyncpg" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aoa-graph", editable = "packages/aoa-graph" },
+    { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29,<1.0" },
+    { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.100,<1.0" },
+    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.0,<2.0" },
+    { name = "pydantic", specifier = ">=2.0,<3.0" },
+    { name = "simpleeval", specifier = ">=1.0,<2.0" },
+    { name = "uvicorn", extras = ["standard"], marker = "extra == 'fastapi'", specifier = ">=0.20,<1.0" },
+]
+provides-extras = ["fastapi", "mcp", "postgres"]
+
+[[package]]
+name = "aoa-examples"
+version = "1.0.0"
+source = { editable = "packages/aoa-examples" }
+dependencies = [
+    { name = "aoa-action-machine" },
+    { name = "aoa-graph" },
+    { name = "pydantic" },
+]
+
+[package.optional-dependencies]
+fastapi = [
+    { name = "fastapi" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+mcp = [
+    { name = "mcp" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
+    { name = "aoa-graph", editable = "packages/aoa-graph" },
+    { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.100,<1.0" },
+    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.0,<2.0" },
+    { name = "pydantic", specifier = ">=2.0,<3.0" },
+    { name = "uvicorn", extras = ["standard"], marker = "extra == 'fastapi'", specifier = ">=0.20,<1.0" },
+]
+provides-extras = ["fastapi", "mcp"]
+
+[[package]]
+name = "aoa-graph"
+version = "1.0.0"
+source = { editable = "packages/aoa-graph" }
+dependencies = [
+    { name = "rustworkx" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "rustworkx", specifier = ">=0.14,<1.0" }]
+
+[[package]]
+name = "aoa-maxitor"
+version = "1.0.0"
+source = { editable = "packages/aoa-maxitor" }
+dependencies = [
+    { name = "aoa-action-machine" },
+    { name = "aoa-graph" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
+    { name = "aoa-graph", editable = "packages/aoa-graph" },
+]
+
+[[package]]
+name = "aoa-run"
+version = "1.0.0"
+source = { editable = "." }
+dependencies = [
+    { name = "aoa-action-machine" },
+    { name = "aoa-examples" },
+    { name = "aoa-graph" },
+    { name = "aoa-maxitor" },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "aoa-action-machine", extra = ["fastapi", "mcp", "postgres"] },
+    { name = "aoa-examples", extra = ["fastapi", "mcp"] },
+    { name = "black" },
     { name = "httpx" },
     { name = "isort" },
-    { name = "mcp" },
     { name = "mypy" },
     { name = "pylint" },
     { name = "pytest" },
@@ -59,10 +158,11 @@ all = [
     { name = "radon" },
     { name = "ruff" },
     { name = "taskipy" },
-    { name = "uvicorn", extra = ["standard"] },
     { name = "vulture" },
 ]
 dev = [
+    { name = "aoa-action-machine", extra = ["fastapi", "mcp", "postgres"] },
+    { name = "aoa-examples", extra = ["fastapi", "mcp"] },
     { name = "black" },
     { name = "httpx" },
     { name = "isort" },
@@ -77,14 +177,15 @@ dev = [
     { name = "vulture" },
 ]
 fastapi = [
-    { name = "fastapi" },
-    { name = "uvicorn", extra = ["standard"] },
+    { name = "aoa-action-machine", extra = ["fastapi"] },
+    { name = "aoa-examples", extra = ["fastapi"] },
 ]
 mcp = [
-    { name = "mcp" },
+    { name = "aoa-action-machine", extra = ["mcp"] },
+    { name = "aoa-examples", extra = ["mcp"] },
 ]
 postgres = [
-    { name = "asyncpg" },
+    { name = "aoa-action-machine", extra = ["postgres"] },
 ]
 
 [package.dev-dependencies]
@@ -95,25 +196,29 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
+    { name = "aoa-action-machine", extras = ["fastapi"], marker = "extra == 'fastapi'", editable = "packages/aoa-action-machine" },
+    { name = "aoa-action-machine", extras = ["fastapi", "mcp", "postgres"], marker = "extra == 'dev'", editable = "packages/aoa-action-machine" },
+    { name = "aoa-action-machine", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/aoa-action-machine" },
+    { name = "aoa-action-machine", extras = ["postgres"], marker = "extra == 'postgres'", editable = "packages/aoa-action-machine" },
+    { name = "aoa-examples", editable = "packages/aoa-examples" },
+    { name = "aoa-examples", extras = ["fastapi"], marker = "extra == 'fastapi'", editable = "packages/aoa-examples" },
+    { name = "aoa-examples", extras = ["fastapi", "mcp"], marker = "extra == 'dev'", editable = "packages/aoa-examples" },
+    { name = "aoa-examples", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/aoa-examples" },
+    { name = "aoa-graph", editable = "packages/aoa-graph" },
+    { name = "aoa-maxitor", editable = "packages/aoa-maxitor" },
     { name = "aoa-run", extras = ["fastapi", "mcp", "postgres", "dev"], marker = "extra == 'all'" },
-    { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29,<1.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=24.0,<25.0" },
-    { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.100,<1.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27,<1.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13,<6.0" },
-    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.0,<2.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10,<2.0" },
-    { name = "pydantic", specifier = ">=2.0,<3.0" },
     { name = "pylint", marker = "extra == 'dev'", specifier = ">=3.0,<4.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0,<10.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24,<2.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0,<8.0" },
     { name = "radon", marker = "extra == 'dev'", specifier = ">=6.0,<7.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4,<1.0" },
-    { name = "rustworkx", specifier = ">=0.14,<1.0" },
-    { name = "simpleeval", specifier = ">=1.0,<2.0" },
     { name = "taskipy", marker = "extra == 'dev'", specifier = ">=1.12,<2.0" },
-    { name = "uvicorn", extras = ["standard"], marker = "extra == 'fastapi'", specifier = ">=0.20,<1.0" },
     { name = "vulture", marker = "extra == 'dev'", specifier = ">=2.11,<3.0" },
 ]
 provides-extras = ["fastapi", "mcp", "postgres", "dev", "all"]

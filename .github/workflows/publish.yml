@@ -23,10 +23,19 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
-        run: uv sync --extra all
+        run: uv sync --extra all --group dev
 
-      - name: Build package
-        run: uv build
+      - name: Build publishable packages
+        run: |
+          uv build --package aoa-graph
+          uv build --package aoa-action-machine
+          uv build --package aoa-maxitor
+          uv build --package aoa-examples
 
       - name: Publish to PyPI
-        run: uv publish --token ${{ secrets.PYPI_API_TOKEN }}
+        run: >-
+          uv publish --token ${{ secrets.PYPI_API_TOKEN }}
+          packages/aoa-graph/dist/*
+          packages/aoa-action-machine/dist/*
+          packages/aoa-maxitor/dist/*
+          packages/aoa-examples/dist/*

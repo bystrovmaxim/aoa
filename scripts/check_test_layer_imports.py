@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Enforce test-directory ↔ action_machine import boundaries (plan 008 / PR-T5).
+"""Enforce internal layer imports for ``tests/action_machine/<layer>/``.
 
-Walks ``tests/<layer>/**/*.py`` and flags ``import`` / ``from`` of ``action_machine.*``
+Walks ``tests/action_machine/<layer>/**/*.py`` and flags ``import`` / ``from`` of ``aoa.action_machine.*``
 whose first subpackage after ``action_machine`` is forbidden for that layer.
 
-Exemptions: ``scripts/test_layer_import_allowlist.toml`` — ``[[allow_prefix]]`` rows
-with ``path`` (repo-relative) and ``prefix`` (e.g. ``action_machine.runtime``).
+This is **orthogonal** to ``check_package_boundaries.py`` (cross-package ``aoa.graph`` / ``aoa.maxitor`` rules).
+
+Exemptions: ``scripts/test_layer_import_allowlist.toml`` - ``[[allow_prefix]]`` rows
+with ``path`` (repo-relative) and ``prefix`` (e.g. ``aoa.action_machine.runtime``).
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 TESTS = REPO_ROOT / "tests"
 ALLOWLIST_PATH = REPO_ROOT / "scripts" / "test_layer_import_allowlist.toml"
 
-# Layer name (first path segment under tests/) → forbidden first subpackages under action_machine.*
+# Second path segment under ``tests/action_machine/`` maps to forbidden first subpackages under aoa.action_machine.*
 LAYER_FORBIDDEN: dict[str, frozenset[str]] = {
     "model": frozenset({"graph", "runtime", "integrations", "testing"}),
     "resources": frozenset({"graph", "runtime", "intents"}),
@@ -32,16 +34,17 @@ LAYER_FORBIDDEN: dict[str, frozenset[str]] = {
     "domain": frozenset({"graph", "runtime", "integrations", "testing", "adapters"}),
 }
 
-# Top-level dirs under tests/ that are not subject to layered rules.
-SKIP_TOP_LEVEL = frozenset(
+# Second-level dirs under ``tests/action_machine/`` not subject to layered rules.
+SKIP_SECOND_LEVEL = frozenset(
     {
         "scenarios",
         "smoke",
         "bench",
-        "architecture",
         "adapters",
-        "integrations",
-        "testing",
+        "graph_host",
+        "application",
+        "introspection",
+        "system_core",
         "__pycache__",
     }
 )
@@ -65,36 +68,37 @@ def _layer_for_file(path: Path) -> str | None:
     except ValueError:
         return None
     parts = rel.parts
-    if not parts:
+    if len(parts) < 2 or parts[0] != "action_machine":
         return None
-    top = parts[0]
-    if top in SKIP_TOP_LEVEL:
+    second = parts[1]
+    if second in SKIP_SECOND_LEVEL:
         return None
-    return top if top in LAYER_FORBIDDEN else None
+    return second if second in LAYER_FORBIDDEN else None
 
 
 def _action_machine_modules(tree: ast.AST) -> list[tuple[int, str]]:
-    """Return (lineno, full_module_string) for action_machine imports."""
+    """Return (lineno, full_module_string) for ``aoa.action_machine`` imports."""
     found: list[tuple[int, str]] = []
+    prefix = "aoa.action_machine"
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
                 name = alias.name
-                if name == "action_machine" or name.startswith("action_machine."):
+                if name == prefix or name.startswith(prefix + "."):
                     found.append((node.lineno, name))
         elif isinstance(node, ast.ImportFrom) and node.module:
             mod = node.module
-            if mod == "action_machine" or mod.startswith("action_machine."):
+            if mod == prefix or mod.startswith(prefix + "."):
                 found.append((node.lineno, mod))
     return found
 
 
 def _first_subpackage(module: str) -> str | None:
     parts = module.split(".")
-    if len(parts) < 2 or parts[0] != "action_machine":
+    if len(parts) < 3 or parts[0] != "aoa" or parts[1] != "action_machine":
         return None
-    return parts[1]
+    return parts[2]
 
 
 def _load_allow_prefixes() -> list[tuple[str, str]]:
@@ -106,8 +110,8 @@ def _load_allow_prefixes() -> list[tuple[str, str]]:
     for row in rows:
         path = row["path"].replace("\\", "/")
         prefix = row["prefix"]
-        if not prefix.startswith("action_machine"):
-            raise ValueError(f"allow_prefix.prefix must start with action_machine: {prefix!r}")
+        if not prefix.startswith("aoa.action_machine"):
+            raise ValueError(f"allow_prefix.prefix must start with aoa.action_machine: {prefix!r}")
         out.append((path, prefix))
     return out
 
@@ -126,7 +130,7 @@ def collect_violations() -> list[Violation]:
     violations: list[Violation] = []
 
     for path in sorted(TESTS.rglob("*.py")):
-        if path.name == "conftest.py" and path.parent == TESTS:
+        if path.name == "conftest.py" and path.parent in (TESTS, TESTS / "action_machine"):
             continue
         layer = _layer_for_file(path)
         if layer is None:
