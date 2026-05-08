@@ -21,9 +21,10 @@ from __future__ import annotations
 import pytest
 from pydantic import Field
 
-from action_machine.domain import BaseEntity, Lifecycle, entity
+from action_machine.domain import BaseEntity, Lifecycle
 from action_machine.domain.base_domain import BaseDomain
 from action_machine.domain.testing import make
+from action_machine.intents.entity import entity
 from tests.scenarios.domain_model.entities import SampleEntity
 
 

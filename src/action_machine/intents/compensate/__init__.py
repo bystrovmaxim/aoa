@@ -24,29 +24,16 @@ ARCHITECTURE / DATA FLOW
     method._compensate_meta declaration
                 |
                 v
-    CompensateIntentInspector at build()
+    CompensatorGraphNode interchange materialization
                 |
                 v
-    compensator facet snapshot
+    compensator interchange snapshot
                 |
                 v
     runtime SagaFrame stack
                 |
                 v
     ActionProductMachine._rollback_saga() invokes compensators in reverse order
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Compensators are declared only for regular aspects (not summary aspects).
-- At most one compensator may target one aspect.
-- Compensators are not inherited; collection uses ``vars(cls)``.
-- Compensator errors are swallowed and must not interrupt rollback unwinding.
-- When ``rollup=True``, compensators are not executed.
-- Compensator method names end with ``"_compensate"``.
-- Compensators must be ``async def``.
-- Compensator return values are ignored.
 
 ═══════════════════════════════════════════════════════════════════════════════
 COMPENSATOR SIGNATURE
@@ -78,13 +65,13 @@ EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     from action_machine.intents.compensate import compensate
-    from action_machine.intents.logging.channel import Channel
+    from action_machine.logging.channel import Channel
 
     class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
 
         @regular_aspect("Charge payment")
         async def process_payment_aspect(self, params, state, box, connections):
-            payment = box.resolve(PaymentService)
+            payment = box.resolve(PaymentServiceResource).service
             txn_id = await payment.charge(params.user_id, state.amount)
             return {"txn_id": txn_id}
 
@@ -94,7 +81,7 @@ EXAMPLE
             if state_after is None:
                 return  # checker rejected output; txn_id is unknown
             try:
-                payment = box.resolve(PaymentService)
+                payment = box.resolve(PaymentServiceResource).service
                 await payment.refund(state_after.txn_id)
             except Exception as e:
                 await box.critical(
@@ -103,25 +90,6 @@ EXAMPLE
                     txn=state_after.txn_id,
                     err=str(e),
                 )
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Declaration-time violations raise ``TypeError``/``ValueError`` from decorator
-  and intent validators.
-- Runtime rollback swallows compensator failures by design.
-- Compensator graph metadata is built once; runtime rollback uses cached frames.
-
-AI-CORE-BEGIN
-ROLE: Public package facade for saga compensation.
-CONTRACT: Export ``compensate`` decorator and ``CompensateIntent`` marker.
-INVARIANTS: Build-time metadata validation and reverse-order rollback semantics.
-FLOW: declaration -> compensator facet snapshot -> runtime rollback execution.
-FAILURES: declaration errors; runtime compensator errors swallowed; ``state_after``
-  ``None`` after failed result validation.
-EXTENSION POINTS: custom compensator methods and context-aware signatures.
-AI-CORE-END
 """
 
 from action_machine.intents.compensate.compensate_decorator import compensate

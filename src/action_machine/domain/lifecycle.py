@@ -4,7 +4,7 @@ Declarative finite-state **lifecycle** templates and typed **runtime** state for
 
 `Lifecycle` serves two roles: a **template** built with a fluent import-time API
 (state graph), and a **specialized subclass** whose instances hold the current
-state key on each entity. ``GateCoordinator`` validates graph rules at
+state key on each entity. ``NodeGraphCoordinator`` validates graph rules at
 **build** time; instances enforce valid keys and transitions at **runtime**.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -28,7 +28,7 @@ SCOPE (IN / OUT)
 
 **Out of scope**
     The eight global integrity rules (exactly one initial set semantics, reachability,
-    etc.) — enforced by **inspectors** when ``GateCoordinator`` **builds**, not in
+    etc.) — enforced by **inspectors** when ``NodeGraphCoordinator`` **builds**, not in
     this module’s fluent builder alone.
     Persistence, timers, and side effects on transition — application code.
     Automatic persistence when transitioning — callers use `model_copy` on the entity.
@@ -53,18 +53,6 @@ ARCHITECTURE / DATA FLOW
                                 entity.model_copy(update={"lifecycle": new_lc})
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Every state in a template is **finished** with exactly one of `.initial()`,
-  `.intermediate()`, or `.final()` before another `.state(...)` begins.
-- **Final** states have **no** outgoing transitions (enforced in `.final()`).
-- Instance construction: `current_state` must exist in the subclass `_template`
-  graph keys.
-- `transition(target)` only succeeds if `target` is in the current state’s
-  `transitions` set.
-
-═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -83,68 +71,6 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 - **Coordinator `build()`**: structural validation of lifecycles on entities.
 - **Runtime**: constructing `OrderLifecycle("new")`, `can_transition`, `transition`.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Specialized subclass with `_template`::
-
-    class OrderLifecycle(Lifecycle):
-        _template = (
-            Lifecycle()
-            .state("new", "New").to("confirmed", "cancelled").initial()
-            .state("confirmed", "Confirmed").to("shipped").intermediate()
-            .state("shipped", "Shipped").to("delivered").intermediate()
-            .state("delivered", "Delivered").final()
-            .state("cancelled", "Cancelled").final()
-        )
-
-    order_lc = OrderLifecycle("new")
-    order_lc.can_transition("confirmed")  # True
-    new_lc = order_lc.transition("confirmed")
-
-Edge — invalid transition::
-
-    order_lc.transition("delivered")  # InvalidTransitionError
-
-Edge — partial entity without lifecycle field::
-
-    # FieldNotLoadedError from BaseEntity.partial / __getattr__, not from Lifecycle
-
-═══════════════════════════════════════════════════════════════════════════════
-FLUENT API (REFERENCE)
-═══════════════════════════════════════════════════════════════════════════════
-
-::
-
-    Lifecycle()
-        .state(key, display_name)   → _StateBuilder
-            .to(*target_keys)       → _StateBuilder
-            .initial() | .intermediate() | .final()  → Lifecycle
-
-State declaration order does not matter; forward references in `.to()` are allowed.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- `InvalidStateError`: instance `current_state` not in template keys.
-- `InvalidTransitionError`: `transition` to a non-adjacent state.
-- `TypeError` / `ValueError`: bad keys or display names while building template.
-- `RuntimeError`: incomplete previous state when calling `.state()`; or reading
-  `current_state` on a bare template instance.
-- This module does **not** perform I/O or async workflows.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Domain lifecycle DSL and runtime state wrapper.
-CONTRACT: Build immutable lifecycle templates fluently and expose safe runtime transition API.
-INVARIANTS: Final states have no outgoing edges; runtime instances must use declared state keys.
-FLOW: fluent template declaration -> optional coordinator validation -> runtime instance transition checks.
-FAILURES: InvalidStateError/InvalidTransitionError plus builder-time TypeError/ValueError/RuntimeError.
-EXTENSION POINTS: Applications define specialized subclasses with ``_template``.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -396,42 +322,12 @@ class _StateBuilder:
 
 class Lifecycle:
     """
-    Finite-state lifecycle: **template** builder and **instance** value.
-
-    **Template mode**
-        Call ``Lifecycle()`` then ``.state(...).to(...).initial()`` (etc.) to
-        build a graph. Store the result as ``_template`` on a subclass.
-
-    **Instance mode**
-        Call ``Subclass("state_key")`` to bind the current state for an entity
-        field. Instances are immutable; ``transition`` returns a new instance.
-
-    Example subclass::
-
-        class OrderLifecycle(Lifecycle):
-            _template = (
-                Lifecycle()
-                .state("new", "New").to("confirmed").initial()
-                .state("confirmed", "Confirmed").final()
-            )
-
-    Example instance::
-
-        lc = OrderLifecycle("new")
-        lc.current_state
-        new_lc = lc.transition("confirmed")
-
-    Attributes (internal):
-        _states: Map of state key → ``StateInfo`` (template graph).
-        _current_state: Current key for an instance; ``None`` on a bare template.
-        _current_builder: Open ``_StateBuilder`` while a state is unfinished.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Unified template/instance lifecycle object.
     CONTRACT: Template mode defines graph; instance mode enforces legal transitions.
     INVARIANTS: ``transition()`` returns a new object and never mutates current instance.
     AI-CORE-END
-    """
+"""
 
     _template: Lifecycle | None = None
 

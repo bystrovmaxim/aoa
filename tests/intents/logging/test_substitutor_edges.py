@@ -9,13 +9,13 @@ Scenarios covered:
 
 import pytest
 
-from action_machine.intents.context.context import Context
-from action_machine.intents.logging.expression_evaluator import ExpressionEvaluator
-from action_machine.intents.logging.log_scope import LogScope
-from action_machine.intents.logging.variable_substitutor import VariableSubstitutor
+from action_machine.context.context import Context
+from action_machine.exceptions import LogTemplateError
+from action_machine.logging.expression_evaluator import ExpressionEvaluator
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.variable_substitutor import VariableSubstitutor
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
-from action_machine.model.exceptions import LogTemplateError
 
 
 @pytest.fixture()
@@ -31,8 +31,6 @@ def evaluator() -> ExpressionEvaluator:
 @pytest.fixture()
 def scope() -> LogScope:
     return LogScope(
-        machine="TestMachine",
-        mode="test",
         action="TestAction",
         aspect="test_aspect",
         nest_level=0,
@@ -91,8 +89,8 @@ class TestSubstitutorSuccess:
         assert "42" in result
 
     def test_scope_variable(self, substitutor, scope, ctx, state, params) -> None:
-        result = substitutor.substitute("{%scope.machine}", {}, scope, ctx, state, params)
-        assert "TestMachine" in result
+        result = substitutor.substitute("{%scope.action}", {}, scope, ctx, state, params)
+        assert "TestAction" in result
 
     def test_debug_filter_on_none(self, substitutor, scope, ctx, state, params) -> None:
         result = substitutor.substitute("{%var.val|debug}", {"val": None}, scope, ctx, state, params)

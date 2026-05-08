@@ -17,8 +17,10 @@ ARCHITECTURE / DATA FLOW
 
     class BaseAction[P, R](
         ABC,
-        RoleIntent,
-        DependencyIntent[object],
+        MetaIntent,
+        CheckRolesIntent,
+        DependsEligible,
+        DependsIntent[DependsEligible],
         CheckerIntent,                ← marker: allows checkers on methods
         AspectIntent,
         ConnectionIntent,
@@ -38,37 +40,14 @@ ARCHITECTURE / DATA FLOW
     method._checker_meta entries
             |
             v
-    CheckerIntentInspector collection
+    graph / interchange rows from ``_checker_meta``
             |
             v
     require_checker_intent_marker(...)
     validate_checkers_belong_to_aspects(...)
             |
             v
-    checker facet snapshot -> runtime checker execution
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- If checkers are declared, target class must inherit ``CheckerIntent``.
-- Each checker must point to an existing aspect method.
-- ``CheckerIntent`` is a pure marker (no runtime behavior by itself).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``TypeError`` when checkers are declared on classes without ``CheckerIntent``.
-- ``ValueError`` when a checker is attached to a non-aspect method.
-- This module validates structure only; value validation is handled by checker classes.
-
-AI-CORE-BEGIN
-ROLE: Checker declaration marker + validator module.
-CONTRACT: Enforce marker presence and checker-to-aspect binding integrity.
-INVARIANTS: Deterministic metadata shape for inspector/coordinator consumption.
-FLOW: decorator metadata -> validators -> snapshot -> runtime checker application.
-AI-CORE-END
+    checker interchange snapshot -> runtime checker execution
 """
 
 from __future__ import annotations

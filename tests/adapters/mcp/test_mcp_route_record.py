@@ -29,29 +29,6 @@ INVARIANTS
 - ``tool_name`` must contain at least one non-space character after stripping.
 - ``BaseRouteRecord`` rules for ``action_class`` and mappers still apply.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/mcp/test_mcp_route_record.py -q
-
-Edge case: ``orders.create``-style dotted tool names are accepted.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Assertion messages mirror ``McpRouteRecord`` validation strings.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: MCP route record field and invariant tests.
-CONTRACT: Tool naming; frozen record; mapper pairing with alt models.
-INVARIANTS: Local Pydantic helpers only for mapper divergence cases.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import pytest

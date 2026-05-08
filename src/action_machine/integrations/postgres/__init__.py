@@ -10,22 +10,13 @@ This package root provides the public import surface for PostgreSQL connection
 lifecycle management used by ActionMachine runtime components.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Optional dependency ``asyncpg`` must be available at import time.
-- ``PostgresConnectionManager`` is the only public symbol exported here.
-- Runtime behavior is implemented in the manager module; package root acts as
-  dependency guard + stable API namespace.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     App bootstrap
          |
          v
-    PostgresConnectionManager
+    PostgresResource
          |
          v
     asyncpg pool / connections
@@ -43,27 +34,7 @@ INSTALLATION
 COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``PostgresConnectionManager``: resource manager for PostgreSQL connections.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Importing this package without ``asyncpg`` raises ``ImportError`` with
-  installation guidance.
-- This module exposes integration contracts only; SQL behavior belongs to the
-  manager implementation.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public namespace for PostgreSQL integration.
-CONTRACT: Export PostgresConnectionManager and fail fast when asyncpg is missing.
-INVARIANTS: Stable single-symbol export and explicit optional dependency guard.
-FLOW: import package -> validate asyncpg -> use connection manager in runtime.
-FAILURES: Missing asyncpg dependency.
-EXTENSION POINTS: Manager-level configuration and lifecycle hooks.
-AI-CORE-END
+- ``PostgresResource``: resource manager for PostgreSQL connections.
 """
 try:
     import asyncpg  # noqa: F401
@@ -73,6 +44,6 @@ except ImportError:
         "pip install aoa-run[postgres]"
     ) from None
 
-from action_machine.integrations.postgres.postgres_connection_manager import PostgresConnectionManager
+from action_machine.integrations.postgres.postgres_resource import PostgresResource
 
-__all__ = ["PostgresConnectionManager"]
+__all__ = ["PostgresResource"]

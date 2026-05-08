@@ -7,7 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Exercise the frozen route-record contract: ``action_class`` validation, generic
-``P``/``R`` extraction from ``BaseAction[P, R]`` (including ``ForwardRef`` paths),
+``P``/``R`` extraction via ``extract_action_types`` (including ``ForwardRef`` paths;
+non-actions surface :exc:`ValueError` from schema resolution),
 ``effective_*_model`` fallbacks, mapper invariants, immutability, and the
 ``ensure_machine_params`` / ``ensure_protocol_response`` guards used at adapter
 boundaries.
@@ -37,31 +38,6 @@ INVARIANTS
 - ``action_class`` must be a ``BaseAction`` subclass before type extraction.
 - Diverging ``request_model`` / ``response_model`` requires matching mappers.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/test_base_route_record.py -q
-
-Edge case: local ``_NotAnAction`` and string ``action_class`` inputs must raise
-``TypeError`` without touching the shared domain package.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``ValueError`` / ``TypeError`` assertions depend on message substrings from
-  production code; wording changes need synchronized test updates.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Core route-record and type-extraction regression tests.
-CONTRACT: Frozen record; mapper pairing; ``extract_action_types`` MRO walk.
-INVARIANTS: ``_TestRouteRecord`` is the minimal concrete record used here.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from dataclasses import dataclass
@@ -175,9 +151,9 @@ class TestTypeExtraction:
         assert p_type is SimpleAction.Params
         assert r_type is SimpleAction.Result
 
-    def test_non_action_raises(self) -> None:
-        """``extract_action_types`` on a non-action raises ``TypeError``."""
-        with pytest.raises(TypeError, match="generic"):
+    def test_non_action_extract_raises_value_error(self) -> None:
+        """``extract_action_types`` on a plain class triggers resolver ``ValueError``."""
+        with pytest.raises(ValueError, match="Failed to resolve params type"):
             extract_action_types(_NotAnAction)
 
 

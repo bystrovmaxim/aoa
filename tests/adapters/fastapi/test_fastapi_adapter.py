@@ -32,29 +32,6 @@ INVARIANTS
 - ``auth_coordinator`` is always provided in tests (``AsyncMock``).
 - Each protocol method appends a ``FastApiRouteRecord`` and returns ``self``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/fastapi/test_fastapi_adapter.py -q
-
-Edge case: auto-summary from ``@meta`` when explicit summary is omitted.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Does not load real ASGI servers; ``TestClient`` exercises the built app only.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: FastAPI adapter registration and ``build()`` smoke tests.
-CONTRACT: Fluent API; route list matches registrations; health + handlers present.
-INVARIANTS: Scenario actions from ``tests.scenarios.domain_model``.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock
@@ -64,7 +41,7 @@ from fastapi.testclient import TestClient
 
 from action_machine.integrations.fastapi.adapter import FastApiAdapter
 from action_machine.integrations.fastapi.route_record import FastApiRouteRecord
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -74,7 +51,7 @@ from tests.scenarios.domain_model import PingAction, SimpleAction
 
 def _make_adapter(**kwargs) -> FastApiAdapter:
     """Create a FastApiAdapter with sensible test defaults."""
-    machine = ActionProductMachine(mode="test")
+    machine = ActionProductMachine()
     auth = AsyncMock()
     auth.process.return_value = None
     return FastApiAdapter(

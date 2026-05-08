@@ -30,16 +30,6 @@ ARCHITECTURE / DATA FLOW
         └─ automatic /health endpoint
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``FastApiAdapter`` is the protocol-specific adapter over
-  ``BaseAdapter[FastApiRouteRecord]``.
-- ``build()`` materializes a FastAPI application from registered routes.
-- If ``request_model`` differs from action ``Params``, ``params_mapper`` is required.
-- If ``response_model`` differs from action ``Result``, ``response_mapper`` is required.
-
-═══════════════════════════════════════════════════════════════════════════════
 INSTALLATION
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -57,15 +47,15 @@ COMPONENTS
 QUICK START
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from action_machine.runtime.machines.action_product_machine import ActionProductMachine
-    from action_machine.graph.gate_coordinator import GateCoordinator
+    from action_machine.intents.check_roles import NoAuthCoordinator
+    from action_machine.runtime.action_product_machine import ActionProductMachine
     from action_machine.integrations.fastapi import FastApiAdapter
 
-    coordinator = GateCoordinator()
-    machine = ActionProductMachine(mode="production")
+    machine = ActionProductMachine()
 
     adapter = FastApiAdapter(
         machine=machine,
+        auth_coordinator=NoAuthCoordinator(),
         title="Orders API",
         version="0.1.0",
     )
@@ -120,24 +110,6 @@ HEALTH CHECK
 
 Endpoint ``GET /health`` is added automatically at ``build()``.
 Returns ``{"status": "ok"}`` for liveness probes, monitoring, and load-balancer checks.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Requires optional FastAPI dependency group.
-- Protocol-specific behavior belongs to adapter internals; this package root exports public integration contracts.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Public FastAPI integration namespace for ActionMachine.
-CONTRACT: Export FastApiAdapter/FastApiRouteRecord and provide dependency guard for optional installation.
-INVARIANTS: FastAPI app is built from typed route records and adapter-managed protocol handlers.
-FLOW: register actions -> build FastAPI app -> serve validated endpoints + docs + health route.
-FAILURES: Missing optional dependency raises ImportError with installation guidance.
-EXTENSION POINTS: Route configuration and mapping hooks are provided via FastApiAdapter API.
-AI-CORE-END
 """
 
 try:

@@ -10,8 +10,8 @@ PURPOSE
 - Run child actions: ``run(action_class, params, connections)``.
 - Log: ``info`` / ``warning`` / ``critical`` with mandatory ``Channel`` first.
 
-The embedded ``ScopedLogger`` is created by ``ToolsBoxFactory`` (or test bench)
-with ``domain=resolve_domain(action_cls)`` so ``var`` carries domain metadata.
+Callers pass a ``ScopedLogger`` and a ``DependencyFactory`` (for example built from the
+wired ``action_node`` interchange ``@depends`` edges via ``resolved_dependency_infos()``).
 
 ═══════════════════════════════════════════════════════════════════════════════
 CONTEXT PRIVACY — KEY INVARIANT
@@ -54,42 +54,34 @@ ARCHITECTURE / DATA FLOW
 
     ActionProductMachine._run_internal(...)
         │
-        │  Builds ToolsBox with:
-        │  - run_child: nested-run closure (captures Context)
-        │  - factory: DependencyFactory for current action
-        │  - resources: external deps (mocks in tests)
-        │  - log: ScopedLogger(domain=resolve_domain(...), …)
-        │  - nested_level, rollup
-        ▼
-    ToolsBox
+        ├── ScopedLogger(..., action_node, context, params, …)
+        └── ToolsBox(
+                run_child=partial(_run_internal, …),
+                resources=…, log=…,
+                nested_level=…, rollup=…,
+                factory=DependencyFactory(action_node.resolved_dependency_infos()))
+                │
+                ▼
+            ToolsBox instance
         │
-        ├── resolve(cls, *args, **kwargs) → resources then factory
-        ├── run(action, params)           → instantiate, wrap connections
-        ├── info / warning / critical     → delegate to ScopedLogger
+        ├── resolve(cls, *args, **kwargs)
+        ├── run(action_class, params)
+        └── info / warning / critical → ScopedLogger
 
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Per-aspect frozen API surface (resolve, run, log).
-CONTRACT: no Context on instance; log methods require Channel.
-INVARIANTS: rollup propagation; ScopedLogger owns context for templates only.
-FLOW: machine builds ToolsBox → aspect uses box.* → logger emits via coordinator.
-FAILURES: dependency / run errors propagate; logging uses same coordinator rules.
-EXTENSION POINTS: none on box shape; custom factories build different loggers.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
+
+from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar, cast
 
-from action_machine.dependencies.dependency_factory import DependencyFactory
-from action_machine.intents.logging.channel import Channel
-from action_machine.intents.logging.scoped_logger import ScopedLogger
+from action_machine.logging.channel import Channel
+from action_machine.logging.scoped_logger import ScopedLogger
 from action_machine.model.base_action import BaseAction
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_result import BaseResult
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.resources.base_resource import BaseResource
+from action_machine.runtime.dependency_factory import DependencyFactory
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
@@ -122,22 +114,23 @@ class ToolsBox:
     def __init__(
         self,
         run_child: Callable[..., Awaitable[BaseResult]],
-        factory: DependencyFactory,
         resources: dict[type[Any], Any] | None,
         log: ScopedLogger,
         nested_level: int,
         rollup: bool = False,
+        *,
+        factory: DependencyFactory,
     ) -> None:
         """
         Initialize ToolsBox.
 
         Args:
             run_child: callback that runs child action (closure).
-            factory: stateless dependency factory.
             resources: external resource map (for example test mocks).
             log: aspect-scoped logger (context is internal for templates).
             nested_level: current execution nesting level.
             rollup: transaction auto-rollback mode flag.
+            factory: stateless dependency factory (from interchange snapshot or cloned for aspects).
         """
         object.__setattr__(self, "_ToolsBox__run_child", run_child)
         object.__setattr__(self, "_ToolsBox__factory", factory)
@@ -189,14 +182,14 @@ class ToolsBox:
         return self.__factory.resolve(cls, *args, rollup=self.__rollup, **kwargs)
 
     def _wrap_connections(
-        self, connections: dict[str, BaseResourceManager] | None,
-    ) -> dict[str, BaseResourceManager] | None:
+        self, connections: dict[str, BaseResource] | None,
+    ) -> dict[str, BaseResource] | None:
         """
         Wrap each resource with its wrapper class for child-action propagation.
         """
         if connections is None:
             return None
-        wrapped: dict[str, BaseResourceManager] = {}
+        wrapped: dict[str, BaseResource] = {}
         for key, connection in connections.items():
             wrapper_class = connection.get_wrapper_class()
             if wrapper_class is not None:
@@ -209,7 +202,7 @@ class ToolsBox:
         self,
         action_class: type[BaseAction[P, R]],
         params: P,
-        connections: dict[str, BaseResourceManager] | None = None,
+        connections: dict[str, BaseResource] | None = None,
     ) -> R:
         """
         Run child action; ``Context`` is propagated by ``run_child`` closure.

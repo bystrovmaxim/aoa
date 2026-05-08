@@ -41,41 +41,6 @@ INVARIANTS:
 - Missing required fields fail before type/constraint checks.
 - Error payload carries ``field`` and ``source_aspect`` when available.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.testing import validate_state_for_aspect
-
-    # Validate state before second aspect
-    validate_state_for_aspect(aspects, get_checkers_for_aspect, "process_payment", state)
-    # If required field 'validated_user' is missing:
-    # StateValidationError: "Aspect 'process_payment' expects field
-    #   'validated_user' (ResultStringChecker, required) from aspect
-    #   'validate', but it is missing in state."
-
-    # Validate state before summary
-    validate_state_for_summary(aspects, get_checkers_for_aspect, state)
-    # If field 'txn_id' has wrong type:
-    # StateValidationError: "Summary expects field 'txn_id'
-    #   (ResultStringChecker, required) from aspect 'process_payment':
-    #   Parameter 'txn_id' must be a string, got int"
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-``StateValidationError`` is raised when:
-- required field is missing in state,
-- field value fails checker validation,
-- target aspect is missing in aspect metadata.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE
-═══════════════════════════════════════════════════════════════════════════════
-
-Use this validator to make isolated aspect/summary tests deterministic and
-behaviorally aligned with full pipeline requirements.
 """
 
 from __future__ import annotations

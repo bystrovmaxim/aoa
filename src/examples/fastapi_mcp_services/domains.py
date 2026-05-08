@@ -23,7 +23,7 @@ ARCHITECTURE / DATA FLOW
     @meta(..., domain=OrdersDomain | SystemDomain)
               |
               v
-         GateCoordinator graph
+         ``NodeGraphCoordinator`` interchange graph
               |
               +-- domain nodes (class_ref -> OrdersDomain / SystemDomain)
               |
@@ -32,58 +32,20 @@ ARCHITECTURE / DATA FLOW
     Example actions using these domains live under ``actions/`` and are wired
     by FastAPI and MCP adapters without duplicating domain definitions.
 
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``OrdersDomain.name`` and ``SystemDomain.name`` stay stable; they are used as
-  domain labels in graphs and logging filters.
-- Domains carry no runtime behavior; they are markers only.
-- New business areas should get new ``BaseDomain`` subclasses, not stringly-typed
-  flags on actions.
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from examples.fastapi_mcp_services.domains import OrdersDomain
-    from action_machine.intents.meta.meta_decorator import meta
-
-    @meta(description="Example", domain=OrdersDomain)
-    class MyAction: ...
-
-    Edge case: two domains with the same ``name`` would confuse graph consumers;
-    keep names unique across the example (and the wider app).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Example scope only; production apps typically define richer domain taxonomies.
-- Misconfigured ``@meta(domain=...)`` references are caught by framework
-  validation at coordinator build time, not in this module.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Example domain markers for dual-transport Order + system actions.
-CONTRACT: Subclass ``BaseDomain``; expose unique ``name`` per domain class.
-INVARIANTS: Marker-only; no I/O or auth in domain classes.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
-from action_machine.domain.base_domain import BaseDomain
+from action_machine.domain import BaseDomain
 
 
 class OrdersDomain(BaseDomain):
     """Order lifecycle actions (create, fetch, etc.)."""
 
     name = "orders"
+    description = "Order lifecycle and lookup."
 
 
 class SystemDomain(BaseDomain):
     """System-level utilities (e.g. liveness ping)."""
 
     name = "system"
+    description = "Cross-cutting system utilities."

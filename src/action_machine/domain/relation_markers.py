@@ -1,6 +1,6 @@
 # src/action_machine/domain/relation_markers.py
 """
-**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, and ``Rel``.
+**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, ``NoGraphEdge``, and ``Rel``.
 
 These types sit beside relation **container** types (``AssociationOne``, …) in
 ``typing.Annotated`` and in field defaults. They tell the gate **coordinator**
@@ -23,11 +23,12 @@ SCOPE (IN / OUT)
 **In scope**
     Constructing immutable marker objects and validating their constructor inputs.
     Pairing with ``Annotated[..., Inverse(...)]`` or ``NoInverse()`` plus
-    ``= Rel(description=...)`` on entity model fields.
+    ``= Rel(description=...)`` on entity model fields. Optional ``NoGraphEdge()``
+    suppresses interchange edges for that field while keeping it in graph node metadata.
 
 **Out of scope**
     Proving the inverse field exists, types match, or ownership is compatible —
-    **inspectors** and ``GateCoordinator.build()`` do that.
+    **inspectors** and ``NodeGraphCoordinator.build()`` do that.
     Loading related rows from storage.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -42,25 +43,12 @@ ARCHITECTURE / DATA FLOW
         v
     = Rel(description="…")
         │
-        │  GateCoordinator.build() + EntityIntentInspector
+        │  ``NodeGraphCoordinator.build()`` / ``EntityIntentResolver``
         v
     validated entity–entity edges (composition / aggregation / association)
 
 Coordinator checks (conceptually): inverse field present and typed, both ends
 carry ``Rel``, ownership matrix, etc.
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Every relation field must carry **either** ``Inverse`` **or** ``NoInverse`` in
-  its annotation (validated at **build** time, not in this module).
-- Every relation field must use ``Rel(description=...)`` as the declared default
-  (also build time).
-- ``Inverse.target_entity`` is a ``type``; ``Inverse.field_name`` is a non-empty
-  stripped string.
-- ``Rel.description`` is a non-empty stripped string.
-- All three public classes are **frozen** after ``__init__``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
@@ -83,57 +71,6 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
   remains only as the class-level default unless the constructor still sees it
   (e.g. optional relation omitted in ``build()``).
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Bidirectional::
-
-    customer: Annotated[
-        AssociationOne[CustomerEntity],
-        Inverse(CustomerEntity, "orders"),
-    ] = Rel(description="Customer who placed the order")
-
-    orders: Annotated[
-        AssociationMany[OrderEntity],
-        Inverse(OrderEntity, "customer"),
-    ] = Rel(description="Orders for this customer")
-
-One-way::
-
-    target: Annotated[
-        AssociationOne[OrderEntity],
-        NoInverse(),
-    ] = Rel(description="Object under audit")
-
-Edge — invalid ``Inverse``::
-
-    Inverse("not_a_type", "field")  # TypeError
-
-Edge — empty ``Rel``::
-
-    Rel(description="   ")  # ValueError
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``TypeError`` / ``ValueError``: invalid ``Inverse`` or ``Rel`` constructor
-  arguments (this module).
-- ``AttributeError``: mutation of frozen marker instances.
-- Missing ``Inverse``/``NoInverse`` or ``Rel`` on a relation field — reported
-  during coordinator **build**, not here.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Relation marker primitives for Annotated entity fields.
-CONTRACT: Encode inverse linkage intent and mandatory per-edge description metadata.
-INVARIANTS: Marker objects are frozen and validate constructor inputs eagerly.
-FLOW: field annotation/default -> marker parsing by inspector -> coordinator relation edge validation.
-FAILURES: TypeError/ValueError for invalid marker inputs; build-time errors for missing/invalid marker combinations.
-EXTENSION POINTS: Custom marker-style metadata objects can follow the same immutable pattern.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -143,32 +80,12 @@ from typing import Any, cast
 
 class Inverse:
     """
-    **Inverse-side marker** inside ``Annotated[..., ...]`` for a relation field.
-
-    **Role**
-        Name the **target entity class** and the **field name** on that class
-        that completes the edge, so the coordinator can validate a consistent pair.
-
-    **Invariants**
-        ``target_entity`` is a ``type``. ``field_name`` is a non-empty ``str``
-        after stripping. Instance is frozen.
-
-    **Neighbors**
-        Works with relation **containers** and ``Rel``. Validated against the
-        peer field at ``GateCoordinator.build()``.
-
-    **Attributes**
-        ``target_entity``
-            Related entity **type** (subclass of ``BaseEntity`` in practice).
-        ``field_name``
-            Attribute name on ``target_entity`` that points back (or across).
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Explicit inverse relation pointer.
     CONTRACT: Bind current relation field to a concrete target entity field.
     INVARIANTS: target entity must be a type; field name must be non-empty string.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ("_field_name", "_target_entity")
 
@@ -242,25 +159,12 @@ class Inverse:
 
 class NoInverse:
     """
-    Explicit **no back-reference** marker in ``Annotated[..., ...]``.
-
-    **Role**
-        State that the target side has **no** paired field in the model (audit
-        log → subject, etc.). This is not implicit omission: the coordinator
-        expects **either** ``Inverse`` **or** ``NoInverse``.
-
-    **Invariants**
-        Singleton-like immutable instance (no attributes, frozen).
-
-    **Neighbors**
-        Combined with a relation container and ``Rel(description=...)``.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Explicit marker for one-way relation edges.
     CONTRACT: Signals intentional absence of reverse field mapping.
     INVARIANTS: Stateless frozen marker object.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ()
 
@@ -282,32 +186,43 @@ class NoInverse:
         return hash("NoInverse")
 
 
+class NoGraphEdge:
+    """
+AI-CORE-BEGIN
+    ROLE: Explicit opt-out of graph materialization for one relation field.
+    CONTRACT: Stateless frozen marker; combinable with ``Inverse`` or ``NoInverse``.
+    INVARIANTS: No attributes; singleton semantics via ``__eq__`` / ``__hash__``.
+    AI-CORE-END
+"""
+
+    __slots__ = ()
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        raise AttributeError("NoGraphEdge is frozen; assigning to attributes is not allowed.")
+
+    def __delattr__(self, name: str) -> None:
+        raise AttributeError("NoGraphEdge is frozen; deleting attributes is not allowed.")
+
+    def __repr__(self) -> str:
+        return "NoGraphEdge()"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, NoGraphEdge):
+            return NotImplemented
+        return True
+
+    def __hash__(self) -> int:
+        return hash("NoGraphEdge")
+
+
 class Rel:
     """
-    **Relation description** object used as the field **default** for relations.
-
-    **Role**
-        Carry a mandatory, non-empty ``description`` string for documentation and
-        graph exports. Pydantic uses it as the declared default; hydrated
-        instances usually replace the field with a **container** value.
-
-    **Invariants**
-        ``description`` is a non-empty ``str`` after strip. Instance is frozen.
-
-    **Neighbors**
-        Appears with ``Inverse`` or ``NoInverse`` on the same field. Validated
-        together at coordinator **build**.
-
-    **Attributes**
-        ``description``
-            Human-readable text for **this** direction of the edge.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Mandatory relation description carrier.
     CONTRACT: Provide non-empty documentation text for one direction of an entity relation edge.
     INVARIANTS: Description is validated and immutable after construction.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ("_description",)
 

@@ -72,16 +72,16 @@ _reset_all_mocks() between them. Plugins are not reset — collected_events
 contains events from BOTH runs. Tests must account for duplication or call
 observer.reset() before run().
 """
-from action_machine.intents.logging.scoped_logger import ScopedLogger
-from action_machine.intents.plugins.events import (
+from action_machine.intents.on.on_decorator import on
+from action_machine.logging.scoped_logger import ScopedLogger
+from action_machine.plugin.events import (
     AfterCompensateAspectEvent,
     BeforeCompensateAspectEvent,
     CompensateFailedEvent,
     SagaRollbackCompletedEvent,
     SagaRollbackStartedEvent,
 )
-from action_machine.intents.plugins.on_decorator import on
-from action_machine.intents.plugins.plugin import Plugin
+from action_machine.plugin.plugin import Plugin
 
 
 class SagaObserverPlugin(Plugin):
@@ -167,8 +167,8 @@ class SagaObserverPlugin(Plugin):
         """
         Record the moment before one compensator runs.
 
-        BeforeCompensateAspectEvent fires per frame that has a compensator
-        (frames without compensators are skipped). Useful to assert reverse order.
+        BeforeCompensateAspectEvent fires once per saga frame (each has a compensator).
+        Useful to assert reverse order.
         """
         entry = {
             "event_type": "BeforeCompensateAspectEvent",

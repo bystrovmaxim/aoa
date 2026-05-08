@@ -7,19 +7,13 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 This package exposes runtime machine APIs, binding helpers, and execution
-components used to run ActionMachine actions in production.
+components used to run ActionMachine actions in production using
+``NodeGraphCoordinator`` metadata inside ``ActionProductMachine`` and adapters.
 
-Canonical coordinator assembly lives in ``CoreActionMachine``: it creates a
-``GateCoordinator``, registers default inspectors, and builds the graph/facets.
-Production machines consume a built coordinator as a fail-fast contract.
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``ActionProductMachine`` reads pipeline metadata from coordinator snapshots only.
-- ``CoreActionMachine`` is exported lazily through ``__getattr__``.
-- Public runtime interfaces remain stable while internal composition can evolve.
+Import concrete types from their modules (for example
+``from action_machine.runtime.action_product_machine import ActionProductMachine``)
+rather than from this ``__init__`` so the package root stays free of eager imports
+that would create cycles with context / model / intents.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -27,61 +21,13 @@ ARCHITECTURE / DATA FLOW
 
     Runtime package import
            |
-           +--> lightweight modules (navigation, bindings, components)
-           |
-           +--> lazy CoreActionMachine access via __getattr__
-                         |
-                         v
-                create/build GateCoordinator
+           +--> submodules (components, coordinators, ...)
                          |
                          v
                 runtime machine execution pipeline
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    Runtime consumers import and use machine classes while coordinator assembly
-    is provided by ``CoreActionMachine`` when needed.
-
-Edge case:
-    Lazy export avoids graph-stack imports during early module initialization,
-    preventing circular/lifecycle issues around model bootstrap.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Accessing unknown attributes through package ``__getattr__`` raises ``AttributeError``.
-- This module does not implement runtime execution logic directly.
-- Coordinator validity/build errors are surfaced by machine/factory modules.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Runtime package-level API and lazy export gateway.
-CONTRACT: Expose CoreActionMachine lazily; preserve runtime import safety.
-INVARIANTS: Snapshot-driven runtime semantics and fail-fast coordinator build.
-FLOW: package import -> lazy core access -> coordinator build -> machine run.
-FAILURES: Unknown attribute access errors and downstream coordinator/runtime errors.
-EXTENSION POINTS: Add exports without breaking lazy-import safety guarantees.
-AI-CORE-END
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from action_machine.runtime.machines.core_action_machine import CoreActionMachine
-
-__all__ = ["CoreActionMachine"]
-
-
-def __getattr__(name: str) -> object:
-    if name == "CoreActionMachine":
-        from action_machine.runtime.machines.core_action_machine import CoreActionMachine  # pylint: disable=import-outside-toplevel
-
-        return CoreActionMachine
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+__all__: list[str] = []

@@ -37,34 +37,6 @@ INVARIANTS:
 - BaseModel values are compared by ``model_dump()`` output, not object identity.
 - Missing dict keys are represented as ``"<missing>"`` in difference payloads.
 
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``ResultMismatchError`` is raised when compared results do not match.
-- ``differences`` is populated for dict-level BaseModel mismatches and empty for
-  type mismatch / plain ``==`` mismatch branches.
-
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from action_machine.testing.comparison import compare_results
-
-    # Matching results -> no exception
-    compare_results(result_async, "AsyncMachine", result_sync, "SyncMachine")
-
-    # Mismatching results -> ResultMismatchError:
-    # "Machine results diverged:
-    #   AsyncMachine.order_id='ORD-1' vs SyncMachine.order_id='ORD-2'
-    #   AsyncMachine.total=1500.0 vs SyncMachine.total=999.0"
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE
-═══════════════════════════════════════════════════════════════════════════════
-
-Use this module in tests to enforce runtime parity between async and sync
-machines and get deterministic, field-level mismatch diagnostics.
 """
 
 from __future__ import annotations

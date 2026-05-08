@@ -36,12 +36,12 @@ ORGANIZATION
 
 import pytest
 
-from action_machine.intents.context.context import Context
-from action_machine.intents.logging.log_scope import LogScope
-from action_machine.intents.logging.variable_substitutor import VariableSubstitutor
+from action_machine.context.context import Context
+from action_machine.exceptions import LogTemplateError
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.variable_substitutor import VariableSubstitutor
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_state import BaseState
-from action_machine.model.exceptions import LogTemplateError
 from action_machine.testing.stubs import ContextStub
 from tests.scenarios.domain_model import SimpleAction
 
@@ -99,7 +99,7 @@ def sub() -> VariableSubstitutor:
 @pytest.fixture()
 def scope() -> LogScope:
     """Minimum LogScope for substitution tests."""
-    return LogScope(machine="TestMachine", mode="test", action="TestAction", aspect="test_aspect", nest_level=0)
+    return LogScope(action="TestAction", aspect="test_aspect", nest_level=0)
 
 
 @pytest.fixture()
@@ -224,7 +224,7 @@ class TestNamespaceResolution:
 
     def test_scope_variable(self, sub, ctx, state, params) -> None:
         """Namespace scope - field from LogScope [3]."""
-        sc = LogScope(machine="M", mode="test", action="MyAction", aspect="a", nest_level=0)
+        sc = LogScope(action="MyAction", aspect="a", nest_level=0)
         result = sub.substitute("{%scope.action}", {}, sc, ctx, state, params)
         assert "MyAction" in result
 
@@ -505,7 +505,7 @@ class TestSubstitutePublicAPI:
     def test_multiple_variables(self, sub, scope, ctx, state, params) -> None:
         """Several variables from different namespaces."""
         st = BaseState(txn="TXN-1")
-        sc = LogScope(machine="M", mode="test", action="Act", aspect="a", nest_level=0)
+        sc = LogScope(action="Act", aspect="a", nest_level=0)
         result = sub.substitute(
             "var={%var.x} state={%state.txn} scope={%scope.action}",
             {"x": 42}, sc, ctx, st, params,

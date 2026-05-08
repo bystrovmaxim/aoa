@@ -75,7 +75,7 @@ class TestCreation:
     def test_create_empty(self) -> None:
         """
         Empty state — before the first regular aspect.
-        Machine creates BaseState() at the start of _execute_regular_aspects().
+        Machine creates BaseState() before iterating regular aspects.
         """
         # Arrange & Act — initial empty state
         state = BaseState()

@@ -18,13 +18,13 @@ ERRORS / LIMITATIONS
 - **ValueError** — empty `Inverse.field_name`.
 - **AttributeError** — mutation on frozen marker instances.
 
-Does not cover GateCoordinator or entity graph assembly — only the marker
+Does not cover ``NodeGraphCoordinator`` or entity graph assembly — only the marker
 types themselves.
 """
 
 import pytest
 
-from action_machine.domain.relation_markers import Inverse, NoInverse, Rel
+from action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
 
 
 class _Entity:
@@ -48,6 +48,11 @@ def test_inverse_field_name_not_str() -> None:
         Inverse(_Entity, 123)  # type: ignore[arg-type]
 
 
+def test_inverse_field_name_none_rejected() -> None:
+    with pytest.raises(TypeError, match="Inverse: field_name must be str"):
+        Inverse(_Entity, None)  # type: ignore[arg-type]
+
+
 def test_inverse_field_name_empty() -> None:
     with pytest.raises(ValueError, match="Inverse: field_name cannot be empty"):
         Inverse(_Entity, "   ")
@@ -62,12 +67,32 @@ def test_inverse_frozen() -> None:
 def test_no_inverse_singleton_repr() -> None:
     assert repr(NoInverse()) == "NoInverse()"
     assert NoInverse() == NoInverse()
+    assert NoInverse() != object()
+    assert hash(NoInverse()) == hash(NoInverse())
 
 
 def test_no_inverse_frozen() -> None:
     n = NoInverse()
     with pytest.raises(AttributeError, match="NoInverse is frozen"):
         n.x = 1  # type: ignore[misc]
+    with pytest.raises(AttributeError, match="NoInverse is frozen"):
+        del n.x  # type: ignore[attr-defined]
+
+
+def test_no_graph_edge_degenerate_semantics() -> None:
+    marker = NoGraphEdge()
+    assert repr(marker) == "NoGraphEdge()"
+    assert marker == NoGraphEdge()
+    assert marker != object()
+    assert hash(marker) == hash(NoGraphEdge())
+
+
+def test_no_graph_edge_frozen() -> None:
+    marker = NoGraphEdge()
+    with pytest.raises(AttributeError, match="NoGraphEdge is frozen"):
+        marker.x = 1  # type: ignore[misc]
+    with pytest.raises(AttributeError, match="NoGraphEdge is frozen"):
+        del marker.x  # type: ignore[attr-defined]
 
 
 def test_rel_ok() -> None:

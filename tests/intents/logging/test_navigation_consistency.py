@@ -48,13 +48,13 @@ from typing import Any
 import pytest
 from pydantic import ConfigDict, Field
 
-from action_machine.intents.context.context import Context
-from action_machine.intents.logging.log_scope import LogScope
-from action_machine.intents.logging.variable_substitutor import VariableSubstitutor
+from action_machine.context.context import Context
+from action_machine.exceptions import LogTemplateError
+from action_machine.logging.log_scope import LogScope
+from action_machine.logging.variable_substitutor import VariableSubstitutor
 from action_machine.model.base_params import BaseParams
 from action_machine.model.base_schema import BaseSchema
 from action_machine.model.base_state import BaseState
-from action_machine.model.exceptions import LogTemplateError
 from action_machine.testing.stubs import ContextStub
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ def sub() -> VariableSubstitutor:
 @pytest.fixture()
 def scope() -> LogScope:
     """Minimum LogScope."""
-    return LogScope(machine="M", mode="test", action="A", aspect="a", nest_level=0)
+    return LogScope(action="A", aspect="a", nest_level=0)
 
 
 @pytest.fixture()
@@ -355,7 +355,6 @@ class TestLogScopeConsistency:
         """The scope field is accessible via {%scope.action}."""
         # Arrange
         sc = LogScope(
-            machine="TestMachine", mode="test",
             action="MyAction", aspect="my_aspect", nest_level=0,
         )
 

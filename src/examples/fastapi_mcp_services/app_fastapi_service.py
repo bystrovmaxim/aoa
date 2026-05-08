@@ -34,18 +34,17 @@ ARCHITECTURE / DATA FLOW
     auth_coordinator  <- same as MCP example (infrastructure.auth)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Routes must reference action classes from ``actions``, not duplicate handlers.
-- ``app`` is the ASGI callable expected by ``uvicorn ...:app``.
-- Extra dependency: ``aoa-run[fastapi]`` (see package README).
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
     uvicorn examples.fastapi_mcp_services.app_fastapi_service:app --reload
+
+    Same module starts uvicorn when run as a file::
+
+        python …/src/examples/fastapi_mcp_services/app_fastapi_service.py
+        python …/app_fastapi_service.py --host 0.0.0.0 --port 8080
+
+    …/ ``src`` is prepended to ``sys.path`` so absolute ``examples.*`` imports resolve.
 
     Swagger UI: http://localhost:8000/docs
     ReDoc:      http://localhost:8000/redoc
@@ -53,29 +52,31 @@ EXAMPLES
 
     Edge case: wrong optional extras — import or startup may fail; install
     ``aoa-run[fastapi]``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Example-only; not a hardened production deployment template.
-- Behavior depends on ``FastApiAdapter`` defaults (tags, operation IDs, health).
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: HTTP entrypoint for dual-transport example; thin adapter over shared machine.
-CONTRACT: Export ``app``; register three example actions on stable URL prefixes.
-INVARIANTS: No business logic in this module — only wiring.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
-from action_machine.integrations.fastapi import FastApiAdapter
+import argparse
+import sys
+from pathlib import Path
 
-from .actions import CreateOrderAction, GetOrderAction, PingAction
-from .infrastructure import auth, machine
+
+def _ensure_examples_package_src_on_path() -> None:
+    """When this file runs as ``python …/app_fastapi_service.py``, add ``src`` to ``sys.path``."""
+    if __package__:
+        return
+    src_root = Path(__file__).resolve().parent.parent.parent
+    s = str(src_root)
+    if s not in sys.path:
+        sys.path.insert(0, s)
+
+
+_ensure_examples_package_src_on_path()
+
+# pylint: disable=wrong-import-position
+from action_machine.integrations.fastapi import FastApiAdapter
+from examples.fastapi_mcp_services.actions import CreateOrderAction, GetOrderAction, PingAction
+from examples.fastapi_mcp_services.infrastructure import auth, machine
+
+# pylint: enable=wrong-import-position
 
 app = (
     FastApiAdapter(
@@ -95,3 +96,26 @@ app = (
     .get("/api/v1/orders/{order_id}", GetOrderAction, tags=["orders"])
     .build()
 )
+
+
+def main() -> None:
+    """Run the ASGI app with uvicorn when this file is executed directly."""
+    try:
+        # Optional ``aoa-run[fastapi]`` dependency.
+        import uvicorn  # pylint: disable=import-outside-toplevel
+    except ImportError as exc:
+        msg = (
+            "uvicorn is required to run this example. Install with: "
+            "pip install 'aoa-run[fastapi]'"
+        )
+        raise SystemExit(msg) from exc
+
+    parser = argparse.ArgumentParser(description="Orders API example (FastAPI)")
+    parser.add_argument("--host", default="127.0.0.1", help="Bind host")
+    parser.add_argument("--port", type=int, default=8000, help="Bind port")
+    args = parser.parse_args()
+    uvicorn.run(app, host=args.host, port=args.port)
+
+
+if __name__ == "__main__":
+    main()

@@ -32,24 +32,6 @@ INHERITANCE HIERARCHY
         └── Context                 — frozen=True, extra="forbid"
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-1. Everything is frozen. Concrete schema instances are immutable; updates are
-   performed via creating new instances.
-
-2. Everything is forbid (except ``BaseState``). Unknown fields are rejected.
-   Structural extension goes through explicit inheritance; ``BaseState`` uses
-   ``extra="allow"`` for dynamic pipeline fields.
-
-3. Unified interface. Dict-like access and dot-path navigation are available on
-   every schema through one base class.
-
-4. Pydantic-native behavior. Type validation at creation, JSON Schema via
-   ``model_json_schema()``, serialization via ``model_dump()``, and FastAPI
-   compatibility are available out of the box.
-
-═══════════════════════════════════════════════════════════════════════════════
 DICT-LIKE INTERFACE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -106,58 +88,17 @@ ARCHITECTURE / DATA FLOW
          v
     model_dump()/model_json_schema() for runtime adapters and tooling
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from pydantic import Field
-    from action_machine.model.base_schema import BaseSchema
-
-    class Address(BaseSchema):
-        city: str = Field(description="City")
-        zip_code: str = Field(description="ZIP code")
-
-    class OrderParams(BaseSchema):
-        user_id: str = Field(description="User identifier")
-        address: Address = Field(description="Shipping address")
-
-    params = OrderParams(
-        user_id="user_123",
-        address=Address(city="Moscow", zip_code="101000"),
-    )
-
-    params["user_id"]                    # -> "user_123"
-    params.resolve("address.city")       # -> "Moscow"
-    list(params.keys())                  # -> ["user_id", "address"]
-    params.model_dump()                  # -> {"user_id": "user_123", "address": {...}}
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``resolve()`` returns ``default`` for missing path segments instead of raising.
-- Exact mutability/extra policy is defined by descendants via ``model_config``.
-- Dot-path traversal behavior depends on ``DotPathNavigator`` strategy ordering.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Universal schema contract used across ActionMachine boundaries.
-CONTRACT: Provide dict-like access and stable dot-path navigation.
-INVARIANTS: Pydantic model semantics + unified read/navigation interface.
-FLOW: typed model construction -> optional key/path reads -> serialization/schema.
-FAILURES: Missing path values degrade to default via sentinel-based resolution.
-EXTENSION POINTS: Descendants tune frozen/extra policy and declare typed fields.
-AI-CORE-END
 """
 
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
-from action_machine.runtime.navigation import _SENTINEL, DotPathNavigator
+from action_machine.system_core.dot_path_navigator import _SENTINEL, DotPathNavigator
+from graph.exclude_graph_model import exclude_graph_model
 
 
+@exclude_graph_model
 class BaseSchema(BaseModel):
     """
     Base Pydantic schema with dict-like reads and dot-path navigation.

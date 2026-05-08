@@ -29,16 +29,6 @@ ARCHITECTURE / DATA FLOW
     auth_coordinator  <- infrastructure.auth (NoAuthCoordinator in this sample)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Tools must map to action classes from ``actions``, not duplicate handlers.
-- ``auth_coordinator`` is required for all adapters; this example uses
-  ``NoAuthCoordinator`` as an explicit no-auth setup (replace in production).
-- Extra dependency: ``aoa-run[mcp]``.
-- ``main()`` defaults transport to ``stdio``; ``--transport <name>`` overrides.
-
-═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -52,6 +42,9 @@ Install and run::
     # streamable-http (e.g. MCP Inspector):
     python -m examples.fastapi_mcp_services.app_mcp_service --transport streamable-http
 
+Running the script by path works too::
+
+    python /path/to/aoa/src/examples/fastapi_mcp_services/app_mcp_service.py
 Claude Desktop ``claude_desktop_config.json``::
 
     {
@@ -65,31 +58,31 @@ Claude Desktop ``claude_desktop_config.json``::
 
 Edge case: invalid or missing value after ``--transport`` leaves transport as
 ``stdio`` (see ``main()`` parsing).
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Example-only; not a hardened production MCP deployment.
-- Transport parsing is minimal CLI glue, not a full argument parser.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: MCP entrypoint for dual-transport example; thin adapter over shared machine.
-CONTRACT: Export built ``server``; ``main()`` runs with configurable transport.
-INVARIANTS: No business logic — registration and startup only.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import sys
+from pathlib import Path
 
+
+def _ensure_examples_package_src_on_path() -> None:
+    """When this file runs as ``python …/app_mcp_service.py``, add ``src`` to ``sys.path``."""
+    if __package__:
+        return
+
+    src_root = Path(__file__).resolve().parent.parent.parent
+    s = str(src_root)
+    if s not in sys.path:
+        sys.path.insert(0, s)
+
+
+_ensure_examples_package_src_on_path()
+
+# pylint: disable=wrong-import-position
 from action_machine.integrations.mcp import McpAdapter
+from examples.fastapi_mcp_services.actions import CreateOrderAction, GetOrderAction, PingAction
+from examples.fastapi_mcp_services.infrastructure import auth, machine
 
-from .actions import CreateOrderAction, GetOrderAction, PingAction
-from .infrastructure import auth, machine
+# pylint: enable=wrong-import-position
 
 server = (
     McpAdapter(

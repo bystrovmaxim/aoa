@@ -3,7 +3,8 @@
 Relation **containers** for entity fields: ids always, full objects optional.
 
 Six generic types cover **ownership** (composition, aggregation, association)
-times **cardinality** (one vs many). They mirror ArchiMate-style structure,
+times **cardinality** (one vs many). They mirror classic composition / aggregation /
+association structure,
 stay **frozen** like `BaseEntity`, and raise `RelationNotLoadedError` when code
 reaches through a container for related data that was never hydrated.
 
@@ -29,7 +30,7 @@ SCOPE (IN / OUT)
 **Out of scope**
     Lazy loading or automatic fetches — see `RelationNotLoadedError` in
     `exceptions.py`.
-    Enforcing the inverse-side **compatibility matrix** — ``GateCoordinator``
+    Enforcing the inverse-side **compatibility matrix** — ``NodeGraphCoordinator``
     validates `Inverse` / `Rel` pairings at **build** time, not inside these
     containers.
     Choosing id types (``str``, ``int``, ``UUID``, …) — whatever the target
@@ -86,15 +87,6 @@ aggregate on one side pairs with **association** on the other; composite↔compo
 aggregate↔aggregate, composite↔aggregate are rejected.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- **One:** `id` is never `None` at construction.
-- All containers are **frozen**: no `__setattr__` / `__delattr__` on instances.
-- Proxy / index / iteration paths require hydrated payloads or they raise
-  `RelationNotLoadedError` (message format lives in `exceptions.py`).
-
-═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -114,62 +106,6 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 - **Runtime**: adapters construct containers; domain code reads ids or pays
   the hydration cost before drilling into related fields.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Hydrated One container::
-
-    ref = AssociationOne(id="CUST-001", entity=customer)
-    ref.id
-    ref.name   # proxies to customer.name
-
-Ids-only One (edge)::
-
-    ref = AssociationOne(id="CUST-001")
-    ref.id
-    ref.name   # RelationNotLoadedError (see exceptions.py wording)
-
-Many with entities::
-
-    bag = CompositeMany(ids=("A", "B"), entities=(e1, e2))
-    len(bag)
-    bag[0]
-
-Many ids only (edge)::
-
-    bag = CompositeMany(ids=("A", "B"))
-    bag[0]     # RelationNotLoadedError
-
-Loaded but zero rows::
-
-    bag = CompositeMany(ids=(), entities=(), entities_loaded=True)
-    list(bag)  # []
-    bag.is_loaded  # True
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- `ValueError`: One container constructed with `id=None`; Many with
-  ``entities_loaded=False`` and a non-empty ``entities`` tuple.
-- `RelationNotLoadedError`: proxy/index/iter without `entity` / `entities`.
-- `AttributeError`: mutation attempted on a frozen container; or proxy target
-  missing attribute when `entity` is loaded.
-- Message text for `RelationNotLoadedError` is centralized in
-  `action_machine.domain.exceptions` — keep docs aligned there, not duplicated
-  verbatim here.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Runtime relation container primitives for domain entity fields.
-CONTRACT: Keep relation identity always available (id/ids) and enforce explicit hydration for object access.
-INVARIANTS: Containers are frozen; unloaded relation object access fails fast via RelationNotLoadedError.
-FLOW: adapter/repository builds container -> domain code reads id(s) or hydrated entity payload -> coordinator uses annotations for topology semantics.
-FAILURES: ValueError on invalid constructor combinations, RelationNotLoadedError on unloaded access, AttributeError on mutation.
-EXTENSION POINTS: New relation flavors can subclass BaseRelationOne/BaseRelationMany with custom relation_type semantics.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -187,7 +123,7 @@ class RelationType(Enum):
     """
     Ownership flavour for a relation field.
 
-    Maps to ArchiMate structural relationships:
+    Maps to structural relationship flavours (composition, aggregation, association):
 
     COMPOSITION
         Strong ownership; children do not exist without the parent; parent
@@ -213,33 +149,12 @@ class RelationType(Enum):
 
 class BaseRelationOne[T]:
     """
-    Base **to-one** relation container.
-
-    **Role**
-        Hold a related **id** and optionally the full **entity**. Unknown
-        attribute names delegate to `entity` when hydrated.
-
-    **Invariants**
-        `id` is mandatory and non-None. Instance is immutable.
-
-    **Neighbors**
-        Subclasses only override `relation_type`. Errors for unloaded graphs use
-        `RelationNotLoadedError` from `exceptions.py`.
-
-    **Attributes**
-        ``id``
-            Related primary key (any type the model uses).
-        ``entity``
-            Hydrated row or ``None`` when only the id was loaded.
-        ``relation_type``
-            Set on concrete subclasses for coordinator / diagram metadata.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Base immutable to-one relation wrapper.
     CONTRACT: Always store id; optionally hold hydrated entity and proxy attributes to it.
     INVARIANTS: id is mandatory; missing hydrated entity triggers RelationNotLoadedError for proxied access.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ("_entity", "_id")
 
@@ -331,28 +246,12 @@ class BaseRelationOne[T]:
 
 class BaseRelationMany[T]:
     """
-    Base **to-many** relation container.
-
-    **Role**
-        Hold ``ids`` and optionally parallel ``entities``; support ``len``,
-        indexing, slicing, and iteration over loaded rows.
-
-    **Invariants**
-        Immutable instance. Indexing and iteration require
-        ``entities_loaded`` (hydration completed). If not loaded, they raise
-        `RelationNotLoadedError`. If loaded with zero entities, iteration is
-        empty and out-of-range index raises `IndexError`.
-
-    **Neighbors**
-        Concrete classes set `relation_type`. Coordinator validates pairing with
-        inverse side at build time.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Base immutable to-many relation wrapper.
     CONTRACT: Track ids plus optional hydrated entities with explicit loaded-state semantics.
     INVARIANTS: Index/iteration require loaded entities; unloaded access fails fast.
     AI-CORE-END
-    """
+"""
 
     __slots__ = ("_entities", "_entities_loaded", "_ids")
 

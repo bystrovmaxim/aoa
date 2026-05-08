@@ -39,24 +39,6 @@ INVARIANTS
 - Core types (``Params``, ``Result``, merged state) remain immutable in the
   runtime; tests assert on returned dict slices or machine outputs.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_bench_run_aspect.py -q
-
-Happy path: ``process_payment_aspect`` with ``state={}`` yields ``txn_id``.
-
-Edge case: ``calc_total_aspect`` with ``txn_id`` wrong type -> validation error.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Depends on coordinator-discovered aspect/checker metadata matching
-  ``FullAction`` definitions.
-
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock
@@ -134,7 +116,7 @@ class TestInvalidState:
     async def test_wrong_type_in_state(
         self, manager_bench: TestBench, mock_db: AsyncMock,
     ) -> None:
-        """``txn_id`` must be a string; ``int`` fails ``ResultStringChecker``."""
+        """``txn_id`` must be a string; ``int`` fails ``FieldStringChecker``."""
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 

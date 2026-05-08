@@ -6,8 +6,8 @@ Shared fixtures for the whole ``tests/`` package.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Provides ready-made fixtures for common needs: metadata coordinator, service
-mocks, and ``TestBench`` variants. Everything is built on the shared domain under
+Provides ready-made fixtures for common needs: service mocks and ``TestBench``
+variants. Everything is built on the shared domain under
 ``tests/scenarios/domain_model/``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -44,14 +44,12 @@ mock_inventory.unreserve() -> True
 FIXTURES
 ═══════════════════════════════════════════════════════════════════════════════
 
-coordinator        — fresh ``GateCoordinator`` per test.
-
 mock_payment       — ``AsyncMock(spec=PaymentService)``, charge -> "TXN-TEST-001",
                      refund -> True.
 mock_notification  — ``AsyncMock(spec=NotificationService)``, send -> True.
 mock_inventory     — ``AsyncMock(spec=InventoryService)``, reserve -> "RES-TEST-001",
                      unreserve -> True.
-mock_db            — ``AsyncMock(spec=TestDbManager)``.
+mock_db            — ``AsyncMock(spec=OrdersDbManager)``.
 
 clean_bench        — ``TestBench`` without mocks; logging silenced.
 bench              — ``TestBench`` with Payment + Notification mocks.
@@ -64,18 +62,18 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from action_machine.graph.gate_coordinator import GateCoordinator
-from action_machine.runtime.machines.core_action_machine import CoreActionMachine
 from action_machine.testing import TestBench
 
-from .scenarios.domain_model import InventoryService, NotificationService, PaymentService, TestDbManager
+from .scenarios.domain_model import OrdersDbManager
 from .scenarios.domain_model.roles import AdminRole, ManagerRole
-
-
-@pytest.fixture
-def coordinator() -> GateCoordinator:
-    """Built coordinator with default inspector graph."""
-    return CoreActionMachine.create_coordinator()
+from .scenarios.domain_model.services import (
+    InventoryService,
+    InventoryServiceResource,
+    NotificationService,
+    NotificationServiceResource,
+    PaymentService,
+    PaymentServiceResource,
+)
 
 
 @pytest.fixture
@@ -126,26 +124,25 @@ def mock_inventory() -> AsyncMock:
 @pytest.fixture
 def mock_db() -> AsyncMock:
     """
-    ``TestDbManager`` mock for ``connections={"db": mock_db}``.
+    ``OrdersDbManager`` mock for ``connections={"db": mock_db}``.
 
-    Used with ``FullAction``, which declares ``@connection(TestDbManager, key="db")``.
+    Used with ``FullAction``, which declares ``@connection(OrdersDbManager, key="db")``.
     """
-    return AsyncMock(spec=TestDbManager)
+    return AsyncMock(spec=OrdersDbManager)
 
 
 @pytest.fixture
-def clean_bench(coordinator: GateCoordinator) -> TestBench:
+def clean_bench() -> TestBench:
     """
     ``TestBench`` without mocks — for actions without injected dependencies.
 
     Logging is silenced via ``AsyncMock`` so ``ConsoleLogger`` does not flood output.
     """
-    return TestBench(coordinator=coordinator, log_coordinator=AsyncMock())
+    return TestBench(log_coordinator=AsyncMock())
 
 
 @pytest.fixture
 def bench(
-    coordinator: GateCoordinator,
     mock_payment: AsyncMock,
     mock_notification: AsyncMock,
 ) -> TestBench:
@@ -156,10 +153,9 @@ def bench(
     For role-specific actions use ``manager_bench`` or ``admin_bench``.
     """
     return TestBench(
-        coordinator=coordinator,
         mocks={
-            PaymentService: mock_payment,
-            NotificationService: mock_notification,
+            PaymentServiceResource: PaymentServiceResource(mock_payment),
+            NotificationServiceResource: NotificationServiceResource(mock_notification),
         },
         log_coordinator=AsyncMock(),
     )
@@ -167,7 +163,6 @@ def bench(
 
 @pytest.fixture
 def compensate_bench(
-    coordinator: GateCoordinator,
     mock_payment: AsyncMock,
     mock_inventory: AsyncMock,
 ) -> TestBench:
@@ -182,10 +177,9 @@ def compensate_bench(
     Compensating actions use ``NoneRole``, so the default user is sufficient.
     """
     return TestBench(
-        coordinator=coordinator,
         mocks={
-            PaymentService: mock_payment,
-            InventoryService: mock_inventory,
+            PaymentServiceResource: PaymentServiceResource(mock_payment),
+            InventoryServiceResource: InventoryServiceResource(mock_inventory),
         },
         log_coordinator=AsyncMock(),
     )

@@ -53,30 +53,4 @@ LAYOUT
 ``FullAction``, ``ChildAction``, ``AdminAction``. Shared fixtures
 (``bench``, ``clean_bench``, ``manager_bench``, mocks) live in ``tests/conftest.py``.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path: ``bench.run(ctx, action, params)`` succeeds when both machines agree.
-
-Edge case: intentionally diverging mock machines trigger ``ResultMismatchError``.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Bench tests assume coordinator-backed machines built like production defaults unless
-a test overrides wiring.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Test package documentation for TestBench.
-CONTRACT: No exports; documents file map and shared fixtures.
-INVARIANTS: Immutability of bench instances across fluent calls.
-FLOW: bench holds machines → run → compare results.
-FAILURES: ResultMismatchError encodes comparison failures.
-EXTENSION POINTS: new bench methods get dedicated test modules.
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """

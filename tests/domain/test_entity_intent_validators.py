@@ -6,13 +6,12 @@ from __future__ import annotations
 import pytest
 
 from action_machine.domain.base_domain import BaseDomain
-from action_machine.domain.entity_intent import (
-    EntityIntent,
+from action_machine.domain.exceptions import EntityDecoratorError
+from action_machine.intents.entity.entity_decorator import (
     validate_entity_decorator_target,
     validate_entity_description,
     validate_entity_domain,
 )
-from action_machine.domain.exceptions import EntityDecoratorError
 
 
 class _ShopDomain(BaseDomain):
@@ -56,16 +55,8 @@ def test_validate_entity_decorator_target_rejects_non_class() -> None:
         validate_entity_decorator_target(object())
 
 
-def test_validate_entity_decorator_target_rejects_without_entity_intent() -> None:
+def test_validate_entity_decorator_target_accepts_plain_class() -> None:
     class Plain:
         pass
 
-    with pytest.raises(EntityDecoratorError, match="EntityIntent"):
-        validate_entity_decorator_target(Plain)
-
-
-def test_validate_entity_decorator_target_accepts_entity_intent_subclass() -> None:
-    class OrderEntity(EntityIntent):
-        pass
-
-    validate_entity_decorator_target(OrderEntity)
+    validate_entity_decorator_target(Plain)

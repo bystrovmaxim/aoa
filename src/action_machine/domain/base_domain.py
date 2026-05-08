@@ -3,7 +3,7 @@
 Abstract base for all domain marker types in ActionMachine.
 
 A domain is a typed class-level tag that groups actions, entities, and other
-facets under one business area. It carries no runtime behavior and no instance
+interchange graph participants under one business area. It carries no runtime behavior and no instance
 state, only validated ``ClassVar`` metadata consumed by inspectors and tooling.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -27,9 +27,10 @@ SCOPE (IN / OUT)
     Domain logic, workflows, or persistence.
     Uniqueness of ``name`` across the whole program (multiple classes may
     legally share the same string until a higher layer forbids it).
-    Registering domains in ``GateCoordinator``—that happens at **build** time
-    via inspectors, not in this module.
+    Domain registration enters the interchange graph **at build time** when inspectors
+    emit graph nodes; that wiring is not declared in this module.
 
+═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -46,18 +47,6 @@ Conceptual use (declarations only)::
 
     @meta(..., domain=OrdersDomain)
     @entity(..., domain=OrdersDomain)
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Every subclass name **must** end with ``"Domain"`` → else ``NamingSuffixError``
-  at **class definition** time (including intermediate abstract subclasses).
-- Leaf domains must expose non-empty ``str`` values for ``name`` and
-  ``description`` (after ``strip()``), either on the class or on an intermediate
-  base **below** ``BaseDomain`` in the MRO.
-- ``BaseDomain`` itself is not validated as a subclass body; rules apply when
-  **subclasses** are defined.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
@@ -78,135 +67,40 @@ LIFECYCLE (IMPORT VS BUILD)
 - **Coordinator ``build()``**: reads domain types from scratch elsewhere; no
   extra validation in this file.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Valid — concrete domain::
-
-    class OrdersDomain(BaseDomain):
-        name = "orders"
-        description = "Order capture, payment, and fulfillment"
-
-Valid — intermediate base without ``name`` / ``description``, then concrete::
-
-    class ExternalServiceDomain(BaseDomain):
-        is_external = True
-
-    class StripeDomain(ExternalServiceDomain):
-        name = "stripe"
-        description = "Card payments via Stripe"
-
-Edge — bad class name::
-
-    class Orders(BaseDomain):
-        name = "orders"
-        description = "Orders"
-    # NamingSuffixError
-
-Edge — missing ``description``::
-
-    class OnlyNameDomain(BaseDomain):
-        name = "only"
-    # ValueError: missing 'description'
-
-═══════════════════════════════════════════════════════════════════════════════
-ERROR EXAMPLES (MESSAGE SHAPES)
-═══════════════════════════════════════════════════════════════════════════════
-
-Naming suffix::
-
-    class Orders(BaseDomain):
-        name = "orders"
-        description = "Orders"
-    # NamingSuffixError: ... inherits from BaseDomain ... suffix 'Domain' ...
-
-Missing attribute::
-
-    class BadDomain(BaseDomain):
-        description = "Has description but no name"
-    # ValueError: ... does not define ... 'name' ...
-
-Empty string::
-
-    class EmptyDomain(BaseDomain):
-        name = ""
-        description = "Has description"
-    # ValueError: ... cannot be empty or whitespace-only ...
-
-Wrong type::
-
-    class IntDomain(BaseDomain):
-        name = 42
-        description = "text"
-    # TypeError: ... must be str, got int ...
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``NamingSuffixError``: class name does not end with ``"Domain"``.
-- ``ValueError``: missing ``name`` / ``description``, or empty after ``strip()``.
-- ``TypeError``: ``name`` or ``description`` is not a ``str``.
-
-This module does **not** deduplicate ``name`` strings or enforce global registry
-uniqueness.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Domain marker base contract.
-CONTRACT: Subclasses define validated ``name`` and ``description`` class metadata.
-INVARIANTS: ``*Domain`` suffix and non-empty string metadata are enforced at class definition time.
-FLOW: subclass declaration -> ``__init_subclass__`` validation -> decorators reference domain type.
-FAILURES: NamingSuffixError / ValueError / TypeError on invalid subclass declarations.
-EXTENSION POINTS: Applications define custom domain hierarchies via subclassing.
-AI-CORE-END
 """
+
 from __future__ import annotations
 
-from abc import ABC
-from typing import Any, ClassVar
+from abc import ABC, abstractmethod
+from typing import Any
 
-from action_machine.model.exceptions import NamingSuffixError
+from action_machine.exceptions.naming_suffix_error import NamingSuffixError
+from graph.exclude_graph_model import exclude_graph_model
 
 # Suffix required for every class that inherits BaseDomain (directly or indirectly).
 _REQUIRED_SUFFIX = "Domain"
 
-
+@exclude_graph_model
 class BaseDomain(ABC):
     """
-    Abstract base for all domain marker classes.
-
-    **Role**
-        Supply ``name`` and ``description`` as ``ClassVar[str]`` metadata for a
-        business area. Subclasses are never instantiated for domain identity;
-        the **type** is the handle.
-
-    **Invariants**
-        - Subclass names end with the suffix ``Domain`` (``__init_subclass__``).
-        - Concrete branches define non-empty string ``name`` and ``description``
-          (possibly inherited from an intermediate base above ``BaseDomain``).
-
-    **Neighbors**
-        - Referenced from decorators such as ``@entity`` and ``@meta``.
-        - Consumed by metadata inspectors when building the ``GateCoordinator`` graph.
-
-    **Class attributes**
-        ``name``
-            Short stable identifier (e.g. ``"orders"``).
-        ``description``
-            Human-readable specification text for docs and diagrams.
-
     AI-CORE-BEGIN
-    ROLE: Typed domain identity marker.
-    CONTRACT: Exposes validated class metadata used by decorators and inspectors.
-    INVARIANTS: No instances required; class definition enforces suffix and metadata quality.
-    AI-CORE-END
+        ROLE: Typed domain identity marker.
+        CONTRACT: Exposes validated class metadata used by decorators and inspectors.
+        INVARIANTS: No instances required; class definition enforces suffix and metadata quality.
+        AI-CORE-END
     """
 
-    name: ClassVar[str]
-    description: ClassVar[str]
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Domain machine-readable name supplied as a class attribute by subclasses."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def description(self) -> str:
+        """Domain human-readable description supplied as a class attribute by subclasses."""
+        raise NotImplementedError
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """
@@ -269,7 +163,7 @@ def _validate_class_attr(cls: type, attr_name: str) -> None:
         raise ValueError(
             f"Class '{cls.__name__}' inherits from BaseDomain but does not define "
             f"the class attribute '{attr_name}'. "
-            f"Set e.g. {attr_name} = \"...\" in the class body."
+            f'Set e.g. {attr_name} = "..." in the class body.'
         )
 
     raw_value = cls.__dict__[attr_name]
@@ -283,5 +177,5 @@ def _validate_class_attr(cls: type, attr_name: str) -> None:
     if not raw_value.strip():
         raise ValueError(
             f"Class attribute '{attr_name}' on '{cls.__name__}' cannot be empty "
-            f"or whitespace-only. Set a non-empty string, e.g. {attr_name} = \"...\"."
+            f'or whitespace-only. Set a non-empty string, e.g. {attr_name} = "...".'
         )

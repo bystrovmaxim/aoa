@@ -3,8 +3,8 @@
 
 import pytest
 
-from action_machine.dependencies.dependency_intent import DependencyIntent
-from action_machine.dependencies.depends_decorator import depends
+from action_machine.intents.depends import depends
+from action_machine.intents.depends.depends_intent import DependsIntent
 
 
 class _Svc:
@@ -27,13 +27,13 @@ def test_depends_inner_rejects_non_class_target() -> None:
         dec(42)  # type: ignore[arg-type]
 
 
-def test_depends_inner_rejects_without_dependency_intent() -> None:
+def test_depends_accepts_class_without_depends_intent_uses_object_bound() -> None:
     class Plain:
         pass
 
     dec = depends(_Svc, description="d")
-    with pytest.raises(TypeError, match="DependencyIntent"):
-        dec(Plain)
+    dec(Plain)
+    assert Plain._depends_info[0].cls is _Svc
 
 
 def test_depends_rejects_service_outside_bound() -> None:
@@ -43,11 +43,50 @@ def test_depends_rejects_service_outside_bound() -> None:
     class Other:
         pass
 
-    class _Host(DependencyIntent[Bound]):
+    class _Host(DependsIntent[Bound]):
         pass
 
     dec = depends(Other, description="x")
-    with pytest.raises(TypeError, match="is not a subclass of"):
+    with pytest.raises(TypeError, match="not a subclass of any allowed"):
+        dec(_Host)
+
+
+def test_depends_accepts_service_matching_union_branch() -> None:
+    class BranchA:
+        pass
+
+    class BranchB:
+        pass
+
+    class ServiceA(BranchA):
+        pass
+
+    class ServiceB(BranchB):
+        pass
+
+    class _Host(DependsIntent[BranchA | BranchB]):
+        pass
+
+    depends(ServiceA, description="a")(_Host)
+    depends(ServiceB, description="b")(_Host)
+    assert {info.cls for info in _Host._depends_info} == {ServiceA, ServiceB}
+
+
+def test_depends_rejects_service_outside_union_bound() -> None:
+    class BranchA:
+        pass
+
+    class BranchB:
+        pass
+
+    class Other:
+        pass
+
+    class _Host(DependsIntent[BranchA | BranchB]):
+        pass
+
+    dec = depends(Other, description="x")
+    with pytest.raises(TypeError, match="not a subclass of any allowed"):
         dec(_Host)
 
 
@@ -56,5 +95,5 @@ def test_depends_rejects_duplicate_registration() -> None:
 
         @depends(_Svc, description="a")
         @depends(_Svc, description="b")
-        class _DupAction(DependencyIntent[object]):
+        class _DupAction(DependsIntent[object]):
             pass

@@ -11,9 +11,9 @@ from action_machine.intents.meta.meta_decorator import (
     meta,
 )
 from action_machine.model.base_action import BaseAction
-from action_machine.model.base_params import BaseParams
-from action_machine.model.base_result import BaseResult
-from action_machine.resources.base_resource_manager import BaseResourceManager
+from action_machine.model.params_stub import ParamsStub
+from action_machine.model.result_stub import ResultStub
+from action_machine.resources.base_resource import BaseResource
 
 
 class _OrdersDomain(BaseDomain):
@@ -55,23 +55,22 @@ def test_validate_meta_target_rejects_non_class() -> None:
 
 
 def test_validate_meta_target_accepts_base_action_subclass() -> None:
-    class SomeAction(BaseAction[BaseParams, BaseResult]):
+    class SomeAction(BaseAction[ParamsStub, ResultStub]):
         pass
 
     _validate_meta_target(SomeAction)
 
 
-def test_validate_meta_target_rejects_plain_class() -> None:
+def test_validate_meta_target_accepts_plain_class() -> None:
     class Plain:
         pass
 
-    with pytest.raises(TypeError, match="does not declare"):
-        _validate_meta_target(Plain)
+    _validate_meta_target(Plain)
 
 
 def test_meta_decorator_attaches_meta_info_on_resource_manager() -> None:
     @meta(description="resource meta", domain=_OrdersDomain)
-    class _MetaResourceManager(BaseResourceManager):
+    class _MetaResourceManager(BaseResource):
         def get_wrapper_class(self):
             return None
 

@@ -39,37 +39,15 @@ INVARIANTS
 - Error payloads surfaced to the client must match the strings raised inside
   ``machine.run`` for assertion stability.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/fastapi/test_fastapi_endpoints.py -q
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Line references to ``adapter.py`` in older comments drift on refactors; treat
-  them as approximate coverage maps.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Cover HTTP binding strategies and FastAPI exception mapping.
-CONTRACT: Query vs body vs empty Params; 403/422 from domain errors.
-INVARIANTS: Mocked ``machine.run``; no real network.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
+from action_machine.exceptions import AuthorizationError, ValidationFieldError
 from action_machine.integrations.fastapi.adapter import FastApiAdapter
-from action_machine.model.exceptions import AuthorizationError, ValidationFieldError
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -88,7 +66,7 @@ def _make_app(
     Returns ``(adapter, machine)`` for extra assertions. By default
     ``machine.run`` returns ``PingAction.Result(message="pong")``.
     """
-    machine = ActionProductMachine(mode="test")
+    machine = ActionProductMachine()
 
     auth = AsyncMock()
     auth.process.return_value = None
@@ -273,3 +251,21 @@ class TestExceptionHandlers:
 
         # Assert
         assert response.status_code == 422
+        assert response.json()["detail"] == "field is invalid"
+
+    def test_unhandled_error_returns_500_from_catch_all_middleware(self) -> None:
+        """Unhandled exceptions are converted to a generic HTTP 500 payload."""
+        # Arrange
+        adapter, _ = _make_app(
+            run_side_effect=RuntimeError("unexpected boom"),
+        )
+        adapter.post("/ping", PingAction)
+        app = adapter.build()
+        client = TestClient(app, raise_server_exceptions=False)
+
+        # Act
+        response = client.post("/ping", json={})
+
+        # Assert
+        assert response.status_code == 500
+        assert response.json() == {"detail": "Internal server error"}

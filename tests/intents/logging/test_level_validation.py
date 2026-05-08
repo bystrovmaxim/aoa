@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from action_machine.intents.logging.level import Level, validate_level
+from action_machine.logging.level import Level, validate_level
 
 
 def test_validate_level_accepts_single_bits() -> None:

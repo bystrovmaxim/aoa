@@ -11,14 +11,6 @@ Current helper bridges synchronous callables into async contexts without
 blocking the event loop.
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- ``run_in_thread`` requires an active running event loop.
-- Callable execution is delegated to thread-pool executor.
-- Return value and exceptions are propagated unchanged.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -33,34 +25,6 @@ ARCHITECTURE / DATA FLOW
         v
     await result or re-raise callable exception
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-Happy path:
-    ``await CoreHelper.run_in_thread(cpu_bound_fn, a, b)`` returns callable result.
-
-Edge case:
-    If callable raises, the same exception is surfaced to async caller.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Uses default executor from current event loop (no custom pool here).
-- Not intended for long-lived orchestration logic; utility helper only.
-- Requires async context with running loop.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Small runtime utility adapter for blocking call offloading.
-CONTRACT: run_in_thread(func, *args) -> awaitable result of sync callable.
-INVARIANTS: preserves callable return/exception semantics.
-FLOW: running loop -> executor offload -> await completion.
-FAILURES: callable errors propagate; missing loop raises runtime loop errors.
-EXTENSION POINTS: add focused helpers only; avoid turning into god-module.
-AI-CORE-END
 """
 
 import asyncio

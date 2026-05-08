@@ -42,15 +42,6 @@ If additional fields are needed, define them explicitly in a subclass:
         priority: int = Field(description="Order priority")
 
 ═══════════════════════════════════════════════════════════════════════════════
-FIELD DESCRIPTIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-Each field should use ``Field(description="...")``. Description completeness is
-validated by ``validate_described_schema`` /
-``validate_described_schemas_for_action`` (see described-fields intent).
-Descriptions are used for OpenAPI (FastAPI), JSON Schema (MCP), and introspection.
-
-═══════════════════════════════════════════════════════════════════════════════
 PYDANTIC CAPABILITIES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -83,72 +74,21 @@ ARCHITECTURE / DATA FLOW
     BaseParams subclass (Pydantic validation, frozen/forbid)
          |
          +--> Action/aspect pipeline reads immutable values
-         +--> Introspection/OpenAPI/MCP reads field descriptions
+         +--> introspection/OpenAPI/MCP reads field descriptions
          |
          v
     model_dump()/model_json_schema() for adapters and tooling
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    from pydantic import Field
-    from action_machine.model.base_params import BaseParams
-
-    class OrderParams(BaseParams):
-        user_id: str = Field(description="User identifier", examples=["user_123"])
-        amount: float = Field(description="Order amount", gt=0)
-        currency: str = Field(default="USD", description="ISO 4217 currency code")
-
-    params = OrderParams(user_id="user_123", amount=1500.0)
-
-    params["user_id"]           # -> "user_123"
-    params.resolve("currency")  # -> "USD"
-    params.keys()               # -> ["user_id", "amount", "currency"]
-
-    # Writes are forbidden (frozen):
-    params.amount = 0           # -> ValidationError
-
-    # Unknown fields are forbidden (extra="forbid"):
-    OrderParams(user_id="x", amount=1, unknown="y")  # -> ValidationError
-
-    # JSON Schema for FastAPI and MCP:
-    OrderParams.model_json_schema()
-    # {"properties": {"user_id": {"description": "User identifier", ...}, ...}}
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Field assignment after construction is rejected by frozen model config.
-- Unknown fields are rejected because ``extra="forbid"``.
-- This base class defines generic constraints; domain-specific rules belong in
-  concrete subclasses.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Immutable input contract for action execution.
-CONTRACT: Subclasses declare typed fields; runtime treats params as read-only.
-INVARIANTS: frozen=True; extra="forbid"; schema descriptions expected.
-FLOW: validate payload -> pass through pipeline -> serialize/introspect.
-FAILURES: ValidationError on unknown/invalid fields or forbidden assignment.
-EXTENSION POINTS: Extend via subclasses with explicit typed field definitions.
-AI-CORE-END
 """
 
 from pydantic import ConfigDict
 
-from action_machine.intents.described_fields.marker import DescribedFieldsIntent
 from action_machine.model.base_schema import BaseSchema
+from graph.exclude_graph_model import exclude_graph_model
 
 
-class BaseParams(BaseSchema, DescribedFieldsIntent):
-    """
-    Immutable action parameters (frozen + forbid).
-
-    Inherits dict-like and dot-path access from ``BaseSchema`` plus described
-    field validation contract from ``DescribedFieldsIntent``.
-    """
+@exclude_graph_model
+class BaseParams(BaseSchema):
+    """Immutable action parameters (frozen + forbid)."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")

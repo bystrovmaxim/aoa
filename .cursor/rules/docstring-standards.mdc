@@ -1,0 +1,84 @@
+---
+description: Module/class documentation, AI-CORE blocks, first-line path — English only.
+alwaysApply: true
+---
+
+# Documentation (English only)
+
+All docstrings, comments, AI-CORE blocks, and examples are **English**. No Russian in code-facing docs.
+
+## Principle
+
+Docs answer questions a reader has. If a block answers nothing, omit it.
+
+**Two layers:** (1) **Human** module docstring — for developers only (no AI-CORE). (2) **AI-CORE** — for agents; only on **public classes** and **module-level functions** (not on the module file docstring, not on methods).
+
+## Every file
+
+**Line 1:** full path from `src/` as a comment, before imports and module docstring.
+
+```python
+# src/package/module.py
+```
+
+## Module docstring (human)
+
+Fixed section order; separate sections with full-width `═` lines. Use the sections that fit the module; omit empty shells.
+
+Typical sections:
+
+1. **Title** — one line: `Name — purpose`.
+2. **PURPOSE** — why the module exists.
+3. **ARCHITECTURE / DATA FLOW** — ASCII diagram when useful.
+4. Further sections (examples, philosophy, terminology) as needed.
+
+**Do not** put `AI-CORE-BEGIN` / `AI-CORE-END` in the module docstring. Machine-readable blocks belong on classes or top-level functions.
+
+## Classes (public)
+
+Docstring may combine:
+
+- Short human summary when it helps (above the block), and
+- One `AI-CORE-BEGIN` … `AI-CORE-END` block with **only** structured keys (`ROLE`, `CONTRACT`, `INVARIANTS`, …). No narrative prose **inside** the AI-CORE markers.
+
+Or AI-CORE-only when the type is self-explanatory.
+
+## Module-level functions
+
+May include the same `AI-CORE-BEGIN` … `AI-CORE-END` pattern as classes when the function is part of the public API.
+
+## Methods (instance/class/static) and nested functions
+
+Use a **single short** docstring (one line preferred), or a brief `#` comment above the `def`. No AI-CORE. Describe intent or non-obvious side effects only.
+
+## Properties / fields
+
+One line each when documented.
+
+## Package `__init__.py`
+
+Same idea as a module docstring: human sections, diagram of exports if useful; **no** AI-CORE in the package docstring itself.
+
+## AI-CORE block (machine-readable)
+
+Wrap with `AI-CORE-BEGIN` / `AI-CORE-END`. **Only** on public classes and module-level functions. **One to two sentences per key**; omit keys that do not apply.
+
+**Class:**
+
+```text
+ROLE: …
+CONTRACT: …
+INVARIANTS: …
+```
+
+**Decorator / factory:** `PURPOSE`, `INPUT/OUTPUT`, `SIDE EFFECTS`, `FAILURES`, `ORDER`.
+
+**Inspector:** `ROLE`, `TRAVERSAL`, `READS`, `EMITS`, `EDGES`.
+
+## Diagram hints (module ARCHITECTURE)
+
+Use ASCII: pipelines, phased flows, trees.
+
+## When editing
+
+Match surrounding file style. Do not add redundant prose. Do not put AI-CORE in module docstrings or method docstrings.

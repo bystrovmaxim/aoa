@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from action_machine.intents.logging.masking import mask_value
+from action_machine.logging.masking import mask_value
 
 
 def test_mask_value_returns_original_when_keep_covers_full_string() -> None:

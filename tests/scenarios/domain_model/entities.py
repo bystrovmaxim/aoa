@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Defines test entities used to exercise domain features:
-BaseEntity, the @entity decorator, Lifecycle, relations, and GateCoordinator.
+BaseEntity, the @entity decorator, Lifecycle, relations, and ``NodeGraphCoordinator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ENTITIES
@@ -26,8 +26,8 @@ DraftLifecycle — three-state machine: draft → active → archived.
 Used by LifecycleEntity and ComplexEntity.
 
 _template is defined at class definition time (import-time).
-At startup, GateCoordinator finds DraftLifecycle in model_fields,
-reads _template, and validates eight lifecycle integrity rules.
+When ``NodeGraphCoordinator.build()`` runs, lifecycle inspectors find ``DraftLifecycle``
+in ``model_fields``, read ``_template``, and validate eight lifecycle integrity rules.
 
 Each entity instance holds its own current state:
     entity.lifecycle.current_state       → "draft"
@@ -45,7 +45,7 @@ USAGE IN TESTS
 These entities are used in unit tests to verify:
 
 - Correct construction via @entity
-- Metadata assembly via ``GateCoordinator.build()`` and ``get_snapshot``
+- Metadata assembly via ``NodeGraphCoordinator.build()`` and interchange snapshots / ``get_snapshot``
 - Lifecycle validation (eight integrity rules)
 - Relations (Annotated + Inverse/NoInverse + Rel)
 - build() and make() behavior
@@ -65,9 +65,10 @@ from action_machine.domain import (
     Lifecycle,
     NoInverse,
     Rel,
-    entity,
 )
 from action_machine.domain.base_domain import BaseDomain
+from action_machine.intents.entity import entity
+from action_machine.intents.meta.meta_decorator import meta
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DOMAIN
@@ -90,8 +91,8 @@ class DraftLifecycle(Lifecycle):
     """
     Three-state machine: draft → active → archived.
 
-    _template is created at import-time. GateCoordinator validates
-    eight integrity rules at application startup.
+    _template is created at import-time. Lifecycle inspectors enforce eight integrity rules
+    when ``NodeGraphCoordinator.build()`` examines entity classes.
     """
 
     _template = (
@@ -107,6 +108,7 @@ class DraftLifecycle(Lifecycle):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+@meta(description="Simple test entity", domain=TestDomain)
 @entity(description="Simple test entity", domain=TestDomain)
 class SampleEntity(BaseEntity):
     """Minimal entity for basic tests. No relations or lifecycle."""

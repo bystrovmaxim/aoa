@@ -33,7 +33,7 @@ SCENARIOS COVERED
 - A plugin with multiple handlers for different events returns
   the right amount for each type of event.
 - The coordinator without plugins works correctly."""
-from action_machine.intents.plugins.plugin_coordinator import PluginCoordinator
+from action_machine.plugin.plugin_coordinator import PluginCoordinator
 
 from .conftest import (
     AlphaPlugin,
@@ -197,8 +197,8 @@ class TestPluginGetHandlers:
         _handler_func, sub = handlers[0]
 
         #Assert — SubscriptionInfo contains correct data
-        from action_machine.intents.plugins.events import GlobalFinishEvent
-        from action_machine.intents.plugins.subscription_info import SubscriptionInfo
+        from action_machine.plugin.events import GlobalFinishEvent
+        from action_machine.plugin.subscription_info import SubscriptionInfo
 
         assert isinstance(sub, SubscriptionInfo)
         assert sub.event_class is GlobalFinishEvent

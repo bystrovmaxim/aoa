@@ -29,29 +29,6 @@ INVARIANTS
 
 - ``ResultMismatchError`` subclasses ``AssertionError`` for pytest ergonomics.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/bench/test_comparison.py -q
-
-Edge case: pydantic vs plain dict -> treated as type mismatch.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Local ``_OrderResult`` / ``_PingResult`` models exist only for these tests.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Unit tests for bench result comparison utilities.
-CONTRACT: Silent match or ``ResultMismatchError`` with diagnostic detail.
-INVARIANTS: Minimal pydantic models defined inside this module.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 import pytest

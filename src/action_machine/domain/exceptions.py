@@ -21,16 +21,9 @@ ARCHITECTURE / DATA FLOW
             │                           │                             │                          │
             ▼                           ▼                             ▼                          ▼
     FieldNotLoadedError         RelationNotLoadedError        EntityDecoratorError      LifecycleValidationError
+                                                                                       LifecycleGraphError
             │                           │                             │                          │
             └────────────── domain-layer fail-fast semantics (no hidden lazy I/O) ─────────────┘
-
-═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Field/relation load failures subclass ``AttributeError`` to preserve attribute-access semantics.
-- ``EntityDecoratorError`` subclasses ``TypeError`` because failures are declaration-time developer errors.
-- ``LifecycleValidationError`` carries explicit entity/field/details context for coordinator build diagnostics.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXCEPTION TYPES
@@ -51,27 +44,12 @@ EntityDecoratorError
 
 LifecycleValidationError
     A `Lifecycle` template attached to an entity fails one of the eight
-    structural integrity rules when validated during `GateCoordinator.build()`
-    (via `EntityIntentInspector` / entity lifecycle validation).
+    structural integrity rules when validated during graph assembly
+    (lifecycle intent resolvers / ``EntityIntentResolver``).
 
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- This module defines error types only; it does not perform validation by itself.
-- Error raising points live in entity models, relation containers, decorators, and inspectors.
-- Message text is intentionally explicit for debugging and test assertions.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Domain-specific exception taxonomy.
-CONTRACT: Provide precise failures for entity access, relation hydration, decorator contracts, and lifecycle integrity.
-INVARIANTS: Exception inheritance reflects failure semantics (attribute access vs declaration vs structural validation).
-FLOW: domain operation/declaration -> targeted exception with diagnostic context.
-FAILURES: Raised by domain entities/decorators/inspectors, not by this module directly.
-EXTENSION POINTS: Additional domain error classes can follow the same semantic layering.
-AI-CORE-END
+LifecycleGraphError
+    Lifecycle graph-node construction cannot classify a state from template
+    metadata. Subclasses `ValueError`.
 """
 
 from __future__ import annotations
@@ -81,33 +59,12 @@ from typing import Any
 
 class FieldNotLoadedError(AttributeError):
     """
-    Access to a field that was not loaded on a **partial** entity instance.
-
-    Raised when code reads an attribute that was **not** passed to
-    `BaseEntity.partial()`. Subclassing `AttributeError` keeps semantics
-    aligned with attribute access: the field exists on the **model**, but
-    not in this **instance**’s loaded subset.
-
-    `hasattr(entity, "status")` returns `False` for a non-loaded model field
-    in the partial case, which matches “attribute not available on this object.”
-
-    This is **not** lazy loading: there is no hidden I/O. Either the field was
-    supplied at construction time or access fails immediately with a clear error.
-
-    Attributes:
-        field_name:
-            Name of the field that was accessed.
-        entity_class_name:
-            Entity class name (for messages).
-        loaded_fields:
-            Frozen set of field names that *were* loaded.
-
-    AI-CORE-BEGIN
+AI-CORE-BEGIN
     ROLE: Fail-fast signal for missing fields on partial entities.
     CONTRACT: Raised only when model field exists but is absent from loaded subset.
     INVARIANTS: Inherits ``AttributeError`` to align with Python attribute access behavior.
     AI-CORE-END
-    """
+"""
 
     def __init__(
         self,
@@ -188,7 +145,7 @@ class LifecycleValidationError(Exception):
     """
     A `Lifecycle` template failed structural validation.
 
-    Raised while the coordinator graph is built (entity facet inspection), when
+    Raised while the coordinator graph is built (entity graph-node inspection), when
     a lifecycle field’s `_template` violates the eight integrity rules:
 
     1. Every state is tagged with `.initial()`, `.intermediate()`, or `.final()`.
@@ -222,3 +179,15 @@ class LifecycleValidationError(Exception):
         super().__init__(
             f"Lifecycle '{field_name}' on entity '{entity_name}' is invalid: {details}"
         )
+
+
+class LifecycleGraphError(ValueError):
+    """
+    AI-CORE-BEGIN
+    ROLE: Lifecycle graph construction failed while deriving graph-node metadata from a lifecycle template.
+    CONTRACT: ``ValueError`` subclass for lifecycle-template state metadata inconsistencies that are not tied to one entity field validation report.
+    INVARIANTS: Raised for developer/template wiring mistakes discovered while materializing graph nodes.
+    AI-CORE-END
+    """
+
+    pass

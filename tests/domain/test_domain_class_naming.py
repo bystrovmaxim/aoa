@@ -7,7 +7,7 @@ Enforced in ``__init_subclass__``. Violations raise ``NamingSuffixError``.
 
 import pytest
 
-from action_machine.model.exceptions import NamingSuffixError
+from action_machine.exceptions import NamingSuffixError
 
 
 class TestDomainSuffix:

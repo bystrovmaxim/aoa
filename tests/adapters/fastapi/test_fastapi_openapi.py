@@ -28,30 +28,6 @@ INVARIANTS
 
 - Uses ``TestClient`` only; no external HTTP server.
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    uv run pytest tests/adapters/fastapi/test_fastapi_openapi.py -q
-
-Edge case: multiple routes each retain distinct path keys in the OpenAPI map.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- OpenAPI structure follows FastAPI/Starlette defaults; framework upgrades may
-  require expectation tweaks.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: OpenAPI integration tests for the FastAPI adapter package.
-CONTRACT: Schema matches registrations and adapter metadata.
-INVARIANTS: AsyncMock auth; ``ActionProductMachine`` in test mode.
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-END
-═══════════════════════════════════════════════════════════════════════════════
 """
 
 from unittest.mock import AsyncMock
@@ -59,7 +35,7 @@ from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 
 from action_machine.integrations.fastapi.adapter import FastApiAdapter
-from action_machine.runtime.machines.action_product_machine import ActionProductMachine
+from action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.scenarios.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -69,7 +45,7 @@ from tests.scenarios.domain_model import PingAction, SimpleAction
 
 def _build_app_with_routes(**adapter_kwargs) -> TestClient:
     """Build a FastAPI app with standard test routes and return a TestClient."""
-    machine = ActionProductMachine(mode="test")
+    machine = ActionProductMachine()
     auth = AsyncMock()
     auth.process.return_value = None
 
@@ -245,11 +221,14 @@ class TestDeprecatedFlag:
 
     def test_deprecated_in_schema(self) -> None:
         """A route registered with deprecated=True shows deprecated in schema."""
-        machine = ActionProductMachine(mode="test")
+        machine = ActionProductMachine()
         auth = AsyncMock()
         auth.process.return_value = None
 
-        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+        adapter = FastApiAdapter(
+            machine=machine,
+            auth_coordinator=auth,
+        )
         adapter.post("/old-ping", PingAction, deprecated=True)
         app = adapter.build()
 

@@ -8,7 +8,7 @@ Empty descriptions are rejected.
 
 import pytest
 
-from action_machine.model.exceptions import NamingSuffixError
+from action_machine.exceptions import NamingSuffixError
 
 
 class TestRegularAspectSuffix:

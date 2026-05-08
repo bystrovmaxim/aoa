@@ -59,21 +59,6 @@ Examples:
         return MyResult(status="validation_error", user_id=user_id)
 
 ═══════════════════════════════════════════════════════════════════════════════
-INVARIANTS
-═══════════════════════════════════════════════════════════════════════════════
-
-- Applies only to methods (callables), not classes/properties.
-- Method must be async (``async def``).
-- Signature: 6 params without ``@context_requires``, 7 with it.
-- Method name must end with ``"_on_error"``.
-- ``description`` is required and non-empty.
-- ``exception_types`` is one Exception type or tuple of Exception types.
-- Each element in ``exception_types`` must be an Exception subclass.
-- Handlers are NOT inherited from parent Action classes.
-- Type-overlap validation (later handler cannot catch same/narrower type) is
-  enforced in metadata builder.
-
-═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -82,11 +67,8 @@ ARCHITECTURE / DATA FLOW
         ▼  Decorator writes method._on_error_meta
     {"exception_types": (ValueError,), "description": "..."}
         │
-        ▼  OnErrorIntentInspector._collect_error_handlers(cls)
-    ErrorHandler(..., context_keys=frozenset(...))
-        │
-        ▼  on_error_intent.validate_error_handlers(cls, error_handlers)
-    Validates type overlaps.
+        ▼  OnErrorIntentResolver + :func:`hydrate_error_handler_row`
+    Handler metadata for tests / interchange codecs
         │
         ▼  ActionProductMachine._handle_aspect_error(...)
     If context_keys non-empty -> creates ContextView and passes as ctx.
@@ -103,59 +85,10 @@ Valid: specific first, broad fallback second:
     @on_error(ValueError, ...)      <- specific
     @on_error(Exception, ...)       <- fallback
 
-Invalid: broad first, specific second:
-    @on_error(Exception, ...)       <- catches everything
-    @on_error(ValueError, ...)      <- dead code -> TypeError at metadata build
+Invalid (later handler never runs for overlapping types):
+    @on_error(Exception, ...)       <- catches everything first
+    @on_error(ValueError, ...)      <- never reached for ``ValueError``
 
-═══════════════════════════════════════════════════════════════════════════════
-EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
-
-    @meta(description="Create order", domain=OrdersDomain)
-    @check_roles(NoneRole)
-    class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
-
-        @regular_aspect("Data validation")
-        async def validate_aspect(self, params, state, box, connections):
-            if not params.user_id:
-                raise ValueError("user_id is required")
-            return {"validated_user": params.user_id}
-
-        @summary_aspect("Build result")
-        async def build_result_summary(self, params, state, box, connections):
-            return OrderResult(order_id="ORD-1", status="created", total=params.amount)
-
-        @on_error(ValueError, description="Validation error")
-        async def handle_validation_on_error(self, params, state, box, connections, error):
-            return OrderResult(order_id="ERR", status="validation_error", total=0)
-
-        # With context:
-        @on_error((ConnectionError, TimeoutError), description="Network error")
-        @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
-        async def handle_network_on_error(self, params, state, box, connections, error, ctx):
-            user_id = ctx.get(Ctx.User.user_id)
-            trace = ctx.get(Ctx.Request.trace_id)
-            return OrderResult(order_id="ERR", status="network_error", total=0)
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-    TypeError: non-callable target, non-async method, wrong parameter count,
-        invalid exception_types, non-Exception element, non-string description.
-    ValueError: empty/blank description.
-    NamingSuffixError: method name does not end with ``"_on_error"``.
-
-═══════════════════════════════════════════════════════════════════════════════
-AI-CORE-BEGIN
-═══════════════════════════════════════════════════════════════════════════════
-ROLE: Method decorator that declares aspect-error handlers.
-CONTRACT: Validate handler contract and attach ``_on_error_meta`` metadata.
-INVARIANTS: Async method + required suffix + exact parameter contract.
-FLOW: decorator validation -> metadata write -> inspector/runtime consumption.
-FAILURES: TypeError/ValueError/NamingSuffixError at declaration time.
-EXTENSION POINTS: Additional metadata fields via decorator+inspector updates.
-AI-CORE-END
 """
 
 from __future__ import annotations
@@ -165,7 +98,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
-from action_machine.model.exceptions import NamingSuffixError
+from action_machine.exceptions.naming_suffix_error import NamingSuffixError
 
 # Parameter count without @context_requires.
 _BASE_PARAM_COUNT = 6
@@ -306,7 +239,7 @@ def on_error(
     """
     Method-level decorator declaring aspect error handler contract.
 
-    Writes metadata to ``method._on_error_meta`` for inspector/runtime use.
+    Writes metadata to ``method._on_error_meta`` for runtime resolvers / interchange codecs.
     """
     # Validate decorator arguments before method application.
     normalized_types = _exception_types_invariant(exception_types)

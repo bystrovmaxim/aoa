@@ -1,2 +1,2 @@
 # tests/scenarios/dependencies/__init__.py
-"""Cross-layer scenarios: dependency factory with ``CoreActionMachine``."""
+"""Cross-layer scenarios: ``DependencyFactory`` unit tests and graph integration."""
