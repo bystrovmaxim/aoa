@@ -235,53 +235,6 @@
       margin: 0;
     }
 
-    /* ── Node detail: ERD field / relation rows (body content; shell in shared chrome) ── */
-    .detail-section-title {
-      font-weight: 600;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: #5c6370;
-      margin-bottom: 6px;
-    }
-    .field-row {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 4px 6px;
-      margin: 0 -6px;
-      border-radius: 6px;
-      border-bottom: none;
-      font-size: 11px;
-    }
-    .field-row:hover { background: #eef0f3; }
-    .field-icon { font-size: 10px; margin-top: 1px; flex-shrink: 0; color: #5c6370; }
-    .field-name { flex: 1; color: #2c3e50; font-weight: 500; }
-    .field-type { color: #5c6370; font-style: italic; }
-    .field-badges { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 2px; }
-    .badge {
-      font-size: 9px; padding: 1px 5px;
-      border-radius: 99px; font-weight: 600; letter-spacing: .03em;
-    }
-    .badge-pk  { background: #fef3c7; color: #92400e; }
-    .badge-fk  { background: #dbeafe; color: #1e40af; }
-    .badge-uq  { background: #f3e8ff; color: #6b21a8; }
-    .badge-nn  { background: #dcfce7; color: #166534; }
-
-    .rel-row {
-      font-size: 11px;
-      padding: 4px 6px;
-      margin: 0 -6px;
-      border-radius: 6px;
-      color: #2c3e50;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .rel-row:hover { background: #eef0f3; }
-    .rel-arrow { color: #5c6370; flex-shrink: 0; }
-    .rel-target { font-weight: 500; color: #2c3e50; }
-
     /* ── Hover tip ── */
     #erd-hover-tip {
       position: fixed; display: none; pointer-events: none;
@@ -354,12 +307,11 @@
   </div>
 
   <!-- ══ Node detail panel ══ -->
-  <div id="node-detail-shell" class="ix-node-detail-shell">
-    <div id="node-detail-header">
-      <span id="node-detail-title">Entity</span>
-      <button type="button" id="node-detail-close" title="Close" aria-label="Close properties">×</button>
+  <div id="node-detail-shell" class="node-detail-shell ix-node-detail-shell" aria-hidden="true">
+    <div class="node-detail-panel">
+      <button type="button" class="node-detail-close" id="node-detail-close" title="Close" aria-label="Close properties">×</button>
+      <div id="node-detail-body"></div>
     </div>
-    <div id="node-detail-body"></div>
   </div>
 
   <!-- ══ Hover tooltip ══ -->
@@ -367,6 +319,8 @@
 
   <!-- ══ Bootstrap ══ -->
   <script type="module">
+@@DETAIL_PANEL_SCRIPT@@
+
 @@INLINE_ERD_SCRIPT@@
   </script>
 

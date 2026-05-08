@@ -2,7 +2,7 @@
 
 /*
  * Shared “Interchange” UI chrome for graph_visualizer and erd_visualizer_2:
- * left floating legend (node types / domains) and right detail drawer.
+ * left floating legend (node types / domains), right detail drawer, and bottom toolbar.
  * Left legend typography matches classic ``erd_visualizer`` ``.domain-picker`` (11px slate,
  * 10px section title). Right drawer: frosted panel shell.
  */
@@ -142,6 +142,124 @@
   border: 1px solid rgba(0, 0, 0, 0.12);
 }
 
+/* ── Bottom toolbar (zoom + optional renderer/layout modes) ────────────── */
+#zoom-toolbar.zoom-toolbar {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  z-index: 100000;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  backdrop-filter: none;
+  border: none;
+  border-radius: 0;
+  padding: 2px 0;
+  box-shadow: none;
+}
+
+#zoom-toolbar .zoom-cluster {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+#zoom-toolbar .toolbar-sep {
+  width: 1px;
+  height: 22px;
+  background: rgba(15, 23, 42, 0.12);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+#zoom-toolbar .zoom-btn {
+  min-width: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+#zoom-toolbar .zoom-btn:hover {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+#zoom-toolbar .zoom-pct {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: #64748b;
+  user-select: none;
+  padding: 0 6px 0 4px;
+  min-width: 3.1em;
+}
+
+#zoom-toolbar .mode-dock {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+#zoom-toolbar .mode-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+#zoom-toolbar .mode-btn:hover {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+#zoom-toolbar .mode-btn svg {
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+#zoom-toolbar .mode-btn.mode-btn--gv.active {
+  color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.4);
+}
+
+#zoom-toolbar .mode-btn.mode-btn--cy.active {
+  color: #7c3aed;
+  background: rgba(168, 85, 247, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(168, 85, 247, 0.45);
+}
+
+#zoom-toolbar .mode-btn.mode-btn--mm.active {
+  color: #db2777;
+  background: rgba(236, 72, 153, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(236, 72, 153, 0.45);
+}
+
 /* ── Right detail drawer shell ──────────────────────────────────────────── */
 .node-detail-shell.ix-node-detail-shell,
 #node-detail-shell.ix-node-detail-shell {
@@ -235,4 +353,146 @@ aside.node-detail-shell.ix-node-detail-shell {
   font-size: 11px;
   line-height: 1.45;
   color: var(--ix-text);
+}
+
+/* ── Shared detail body templates ──────────────────────────────────────── */
+.node-detail-shell.ix-node-detail-shell .node-detail-panel {
+  padding: 22px 22px 28px;
+}
+
+.node-detail-shell.ix-node-detail-shell .node-detail-panel .node-detail-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.node-detail-shell.ix-node-detail-shell .node-detail-panel #node-detail-body {
+  padding: 0;
+}
+
+.properties-entity-name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #111;
+  margin: 0 0 18px;
+  padding-right: 40px;
+  line-height: 1.2;
+}
+
+.properties-entity-name.is-graph-node-kind {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #222;
+}
+
+.prop-block {
+  margin-bottom: 18px;
+}
+
+.prop-block-type {
+  margin-bottom: 14px;
+}
+
+.prop-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #757575;
+  margin-bottom: 4px;
+}
+
+.prop-label-type {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9e9e9e;
+  margin-bottom: 3px;
+}
+
+.prop-value {
+  font-size: 13px;
+  color: #111;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.prop-value-empty-none {
+  font-size: 13px;
+  color: #ef5b54;
+}
+
+.prop-type-value {
+  font-size: 11px;
+  font-weight: 400;
+  color: #333;
+  line-height: 1.35;
+}
+
+.prop-short-label-value {
+  font-size: 11px;
+  color: #424242;
+}
+
+.prop-value-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.prop-value-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.prop-value-row .prop-mono {
+  flex: 1;
+  min-width: 0;
+}
+
+
+.prop-value-multiline {
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  word-break: break-word;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: #f0f0f0;
+  color: #757575;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.copy-btn:hover {
+  background: #e8e8e8;
+  color: #424242;
+}
+
+.type-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.type-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  object-fit: cover;
+  display: block;
 }

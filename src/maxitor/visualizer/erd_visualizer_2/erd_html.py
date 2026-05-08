@@ -8,11 +8,18 @@ import html
 import json
 from pathlib import Path
 
+from action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
 from action_machine.system_core.type_introspection import TypeIntrospection
+from maxitor.visualizer.graph_visualizer.visualizer import (
+    DEFAULT_COLOR,
+    NODE_TYPE_FILL_COLORS,
+    _serialize_graph_value,
+)
 from maxitor.visualizer.graph_visualizer.visualizer_icons import (
+    svg_data_uri_for_graph_node_icon,
     svg_data_uri_for_interchange_domain_legend,
 )
-from maxitor.visualizer.shared.chrome import read_interchange_chrome_css
+from maxitor.visualizer.shared.chrome import read_detail_panel_js, read_interchange_chrome_css
 
 # ── Package layout ────────────────────────────────────────────────────────────
 _PACKAGE_DIR = Path(__file__).resolve().parent
@@ -108,6 +115,7 @@ let enabledDomains = new Set();
 let cyInstance     = null;
 let currentNodes   = [];
 let currentEdges   = [];
+let currentDetailNodes = [];
 
 let gvApi = null;
 let nhFilterWired = false;
@@ -391,6 +399,40 @@ function getDomainData() {{
   return applyNeighborhoodScope(mergeSelectedDomainPayloads());
 }}
 
+function syncDetailPanelData() {{
+  currentDetailNodes = (currentNodes || []).map(nd => {{
+    const g = nd.detail_graph_node;
+    const basePayload = g && typeof g.payload_panel === 'object' ? g.payload_panel : {{}};
+    const pp = Object.assign({{}}, basePayload);
+    const outEdges = (currentEdges || [])
+      .filter(e => e.source === nd.id)
+      .map(e => ({{ counterpart: e.target, label: e.label || '' }}));
+    const inEdges = (currentEdges || [])
+      .filter(e => e.target === nd.id)
+      .map(e => ({{ counterpart: e.source, label: e.label || '' }}));
+    pp.outgoing_edges = JSON.stringify(outEdges);
+    pp.incoming_edges = JSON.stringify(inEdges);
+    const data = {{
+      ...(g || {{}}),
+      payload_panel: pp,
+    }};
+    return {{
+      id: nd.id,
+      data,
+      label: nd.label,
+      color: nd.color,
+      fields: nd.fields,
+      domain_qualifier: nd.domain_qualifier,
+      detail_graph_node: nd.detail_graph_node,
+    }};
+  }});
+  window.InterchangeDetailPanel?.replaceData(
+    'graph-node',
+    currentDetailNodes,
+    {{ template: 'graph-node' }},
+  );
+}}
+
 // ════════════════════════════════════════════════════════════════════════════
 //  Renderer 1 — Graphviz SVG via @hpcc-js/wasm-graphviz
 // ════════════════════════════════════════════════════════════════════════════
@@ -413,6 +455,7 @@ async function initD3Graphviz() {{
   const {{ nodes, edges }} = getDomainData();
   currentNodes = nodes || [];
   currentEdges = edges || [];
+  syncDetailPanelData();
 
   const dot = buildDotSource();
   const engine = getGvEngine();
@@ -458,8 +501,7 @@ function onGvRendered() {{
     el.style.cursor = 'pointer';
     el.addEventListener('click', () => {{
       const title = el.querySelector('title')?.textContent?.trim();
-      const nd = currentNodes.find(n => n.id === title || n.label === title);
-      if (nd) showNodeDetail(nd);
+      if (title) window.InterchangeDetailPanel?.open(title);
     }});
     el.addEventListener('mouseenter', () => {{
       const title = el.querySelector('title')?.textContent?.trim() || '';
@@ -511,6 +553,7 @@ async function initCytoscape() {{
   const {{ nodes, edges }} = getDomainData();
   currentNodes = nodes || [];
   currentEdges = edges || [];
+  syncDetailPanelData();
 
   const isLR = activeLayout === 'cy-dagre-lr';
   const elements = [
@@ -556,8 +599,7 @@ async function initCytoscape() {{
   );
 
   cyInstance.on('tap', 'node', evt => {{
-    const nd = currentNodes.find(n => n.id === evt.target.id());
-    if (nd) showNodeDetail(nd);
+    window.InterchangeDetailPanel?.open(evt.target.id());
   }});
 
   syncZoomPct();
@@ -700,65 +742,6 @@ function buildMermaidSource() {{
   }}
   return lines.join('\\n');
 }}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  Node detail panel
-// ════════════════════════════════════════════════════════════════════════════
-function showNodeDetail(nd) {{
-  const shell = document.getElementById('node-detail-shell');
-  const title = document.getElementById('node-detail-title');
-  const body  = document.getElementById('node-detail-body');
-  if (!shell || !body) return;
-
-  title.textContent = nd.label || nd.id;
-  let h = '<div class="detail-section"><div class="detail-section-title">Fields</div>';
-  for (const f of (nd.fields || [])) {{
-    const badges = [
-      f.primary_key ? '<span class="badge badge-pk">PK</span>' : '',
-      f.foreign_key ? '<span class="badge badge-fk">FK</span>' : '',
-      f.unique      ? '<span class="badge badge-uq">UQ</span>' : '',
-      f.not_null    ? '<span class="badge badge-nn">NN</span>' : '',
-    ].join('');
-    h += '<div class="field-row">' +
-         '<span class="field-icon">' +
-           (f.primary_key ? '&#128273;' : f.foreign_key ? '&#128279;' : '&middot;') +
-         '</span>' +
-         '<div style="flex:1">' +
-           '<div style="display:flex;gap:4px;align-items:center">' +
-             '<span class="field-name">' + escHtml(f.name) + '</span>' +
-             '<span class="field-type">' + escHtml(f.type || '') + '</span>' +
-           '</div>' +
-           '<div class="field-badges">' + badges + '</div>' +
-         '</div></div>';
-  }}
-  h += '</div>';
-
-  const relOut = currentEdges.filter(e => e.source === nd.id);
-  const relIn  = currentEdges.filter(e => e.target === nd.id);
-  if (relOut.length || relIn.length) {{
-    h += '<div class="detail-section"><div class="detail-section-title">Relations</div>';
-    for (const e of relOut)
-      h += '<div class="rel-row">' +
-           '<span class="rel-arrow">→</span>' +
-           '<span class="rel-target">' + escHtml(e.target) + '</span>' +
-           '<span style="color:#5c6370;font-size:10px">' + escHtml(e.label || '') + '</span>' +
-           '</div>';
-    for (const e of relIn)
-      h += '<div class="rel-row">' +
-           '<span class="rel-arrow">←</span>' +
-           '<span class="rel-target">' + escHtml(e.source) + '</span>' +
-           '<span style="color:#5c6370;font-size:10px">' + escHtml(e.label || '') + '</span>' +
-           '</div>';
-    h += '</div>';
-  }}
-
-  body.innerHTML = h;
-  shell.classList.add('is-open');
-}}
-
-document.getElementById('node-detail-close')
-  ?.addEventListener('click', () =>
-    document.getElementById('node-detail-shell')?.classList.remove('is-open'));
 
 // ════════════════════════════════════════════════════════════════════════════
 //  Renderer switching
@@ -1042,6 +1025,90 @@ def _role_to_flags(role: str) -> dict:
     }
 
 
+def _erd_entity_property_cell(fields_serial: list[dict[str, object]]) -> dict[str, str]:
+    """Map ERD columns to interchange-style ``properties`` string values."""
+    props: dict[str, str] = {}
+    for f in fields_serial:
+        name_o = f.get("name")
+        name = str(name_o).strip() if name_o is not None else ""
+        if not name:
+            continue
+        type_part = str(f.get("type") or "").strip()
+        badges = []
+        if f.get("primary_key"):
+            badges.append("pk")
+        if f.get("foreign_key"):
+            badges.append("fk")
+        if badges:
+            suffix = "[" + ";".join(badges) + "]"
+            cell = f"{type_part} {suffix}".strip() if type_part else suffix
+        else:
+            cell = type_part
+        props[name] = cell
+    return props
+
+
+def _detail_graph_node_data_for_erd_entity(
+    entity,
+    *,
+    fields_serial: list[dict[str, object]],
+    domain_qualifier: str,
+) -> dict[str, object]:
+    """
+    Payload for ``InterchangeDetailPanel`` matching :mod:`graph_visualizer` Entity nodes.
+
+    Canonical keys mirror ``generate_interchange_g6_html`` node ``data`` (label, title,
+    graph_key, interchange ``payload_panel`` rows, Lucide Entity icon URI).
+    """
+    eid = str(entity.id).strip()
+    label = str(entity.label or "").strip()
+    qualified = eid
+    graph_key = eid
+
+    # Match :func:`~maxitor.visualizer.graph_visualizer.visualizer._element_short_name` / ``_graph_node_title``:
+    # ``id`` wins over ``label`` for the short dotted-path tail.
+    raw = str(entity.id or label or "").strip()
+    if not raw:
+        short = "?"
+    elif "." in raw:
+        short = raw.rsplit(".", maxsplit=1)[-1].strip() or "?"
+    else:
+        short = raw
+    title = label if label else short
+
+    nt = EntityGraphNode.NODE_TYPE
+    base_fill = NODE_TYPE_FILL_COLORS.get(nt, DEFAULT_COLOR)
+
+    interchange_payload: dict[str, object] = {
+        "id": eid,
+        "node_type": nt,
+        "label": label or short,
+        "properties": _erd_entity_property_cell(fields_serial),
+        "node_obj": "erd.ErdEntitySpec",
+    }
+    if domain_qualifier:
+        interchange_payload["domain_qualifier"] = domain_qualifier
+
+    payload_panel = {str(k): _serialize_graph_value(v) for k, v in interchange_payload.items()}
+
+    subtitle = f"{nt}\n{short}"
+    icon_src = svg_data_uri_for_graph_node_icon(base_fill, nt)
+
+    return {
+        "label": short,
+        "title": title,
+        "graph_node_subtitle": subtitle,
+        "graph_key": graph_key,
+        "qualified": qualified,
+        "node_type": nt,
+        "typeFill": base_fill,
+        "fill": base_fill,
+        "isDagCycleViolationIncident": False,
+        "iconSrc": icon_src,
+        "payload_panel": payload_panel,
+    }
+
+
 def _serialize_entity(entity, color: str) -> dict:
     """
     Convert ErdEntitySpec into the JS node shape.
@@ -1073,6 +1140,12 @@ def _serialize_entity(entity, color: str) -> dict:
     }
     if qual:
         out["domain_qualifier"] = qual
+
+    out["detail_graph_node"] = _detail_graph_node_data_for_erd_entity(
+        entity,
+        fields_serial=fields,
+        domain_qualifier=qual,
+    )
     return out
 
 
@@ -1190,6 +1263,7 @@ def write_erd_html(
         tpl.replace("@@HTML_ESCAPED_TITLE@@", html.escape(title))
         .replace("@@CONTAINER_WIDTH@@", str(width))
         .replace("@@CONTAINER_HEIGHT@@", str(height))
+        .replace("@@DETAIL_PANEL_SCRIPT@@", read_detail_panel_js())
         .replace("@@INLINE_ERD_SCRIPT@@", bootstrap)
     )
     out.write_text(result, encoding="utf-8")

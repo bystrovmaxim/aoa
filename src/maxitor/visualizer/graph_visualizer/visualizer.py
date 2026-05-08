@@ -83,7 +83,7 @@ from maxitor.visualizer.graph_visualizer.visualizer_icons import (
     svg_data_uri_for_graph_node_glyph_only,
     svg_data_uri_for_graph_node_icon,
 )
-from maxitor.visualizer.shared.chrome import read_interchange_chrome_css
+from maxitor.visualizer.shared.chrome import read_detail_panel_js, read_interchange_chrome_css
 
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 
@@ -562,9 +562,6 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
 
-        const COPY_SVG =
-          '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
-
         // Legend
         const legendEl = document.getElementById('color-legend');
         if (legendEl && legendItems.length) {{
@@ -901,210 +898,14 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           }});
         }}
 
-        const detailShell = document.getElementById('node-detail-shell');
-        const detailBody = document.getElementById('node-detail-body');
-
-        function closeNodeDetailPanel() {{
-          if (detailShell) {{
-            detailShell.classList.remove('is-open');
-            detailShell.setAttribute('aria-hidden', 'true');
-          }}
-          if (detailBody) detailBody.innerHTML = '';
-        }}
-
-        function typeDisplayName(nt) {{
-          if (!nt || String(nt).trim() === '') return '';
-          const s = String(nt);
-          return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ');
-        }}
-
-        function showNodeDetailPanel(nodeIdStr) {{
-          if (!detailShell || !detailBody) return;
-          const n = graphData.nodes.find((x) => String(x.id) === String(nodeIdStr));
-          if (!n) {{
-            closeNodeDetailPanel();
-            return;
-          }}
-          const d = n.data || {{}};
-          const shortName = d.label != null && String(d.label).trim() !== ''
-            ? String(d.label)
-            : String(nodeIdStr);
-          const nt = d.node_type != null ? String(d.node_type) : '';
-          const ntNorm = nt.trim().toLowerCase();
-          const useKindHeading =
-            ntNorm !== '' && ntNorm !== 'unknown';
-          const title = d.title != null ? String(d.title) : '';
-          const titleTrim = title.trim();
-          const useTitleHeading = titleTrim !== '';
-          const useHumanHeadingStyle = useTitleHeading || useKindHeading;
-          const entityHeading = useTitleHeading
-            ? titleTrim
-            : useKindHeading
-              ? typeDisplayName(nt)
-              : shortName.toUpperCase();
-          const payloadPanel = d.payload_panel && typeof d.payload_panel === 'object' && !Array.isArray(d.payload_panel) ? d.payload_panel : {{}};
-          const payloadPanelKeys = Object.keys(payloadPanel).sort((a, b) => a.localeCompare(b));
-
-          const copyKey = new Set(['graph_key', 'qualified', 'id', 'name']);
-
-          let html = '';
-          html +=
-            '<h2 class="properties-entity-name' +
-            (useHumanHeadingStyle ? ' is-graph-node-kind' : '') +
-            '">' +
-            esc(entityHeading) +
-            '</h2>';
-
-          const fill = d.fill != null ? String(d.fill) : '';
-          const typeSwatchFill =
-            d.isDagCycleViolationIncident === true &&
-            d.typeFill != null &&
-            String(d.typeFill).trim() !== ''
-              ? String(d.typeFill)
-              : fill;
-          const iconSrc =
-            d.iconSrc != null && String(d.iconSrc).trim() !== ''
-              ? String(d.iconSrc)
-              : '';
-          const typePretty = nt ? typeDisplayName(nt) : '';
-          const headingDuplicatesType =
-            typePretty !== '' && entityHeading === typePretty;
-          if (nt && !headingDuplicatesType) {{
-            html += '<div class="prop-block prop-block-type">';
-            html += '<div class="type-row">';
-            if (iconSrc) {{
-              html +=
-                '<img class="type-icon" src="' +
-                escAttr(iconSrc) +
-                '" width="22" height="22" alt="" />';
-            }} else {{
-              html +=
-                '<span class="type-dot" style="background:' +
-                esc(typeSwatchFill || '#95a5a6') +
-                '"></span>';
-            }}
-            html += '<span class="prop-type-value">' + esc(typePretty) + '</span>';
-            html += '</div></div>';
-          }}
-
-          const propsRaw = payloadPanel['properties'];
-          let propsObj = null;
-          if (propsRaw != null && String(propsRaw).trim() !== '') {{
-            try {{
-              const parsed = JSON.parse(String(propsRaw));
-              if (
-                parsed !== null &&
-                typeof parsed === 'object' &&
-                !Array.isArray(parsed)
-              ) {{
-                propsObj = parsed;
-              }}
-            }} catch (_) {{}}
-          }}
-
-          const payloadSkipTop = new Set([
-            'properties',
-            'label',
-            'node_obj',
-            'node_type',
-          ]);
-          const payloadKeysNoProps = payloadPanelKeys.filter(
-            (k) => !payloadSkipTop.has(k),
-          );
-
-          function appendPropBlock(k, rawVal) {{
-            const v =
-              rawVal == null
-                ? ''
-                : typeof rawVal === 'object'
-                  ? JSON.stringify(rawVal, null, 0)
-                  : String(rawVal);
-            const emptyVal = v.trim() === '';
-            const displayHtml = emptyVal
-              ? '<span class="prop-value-empty-none">none</span>'
-              : esc(v).replace(/\\n/g, '<br/>');
-            const multiline =
-              !emptyVal &&
-              (v.length > 160 ||
-                v.indexOf('\\n') >= 0 ||
-                v.startsWith('{{') ||
-                v.startsWith('['));
-            html += '<div class="prop-block"><div class="prop-label">' + esc(k) + '</div>';
-            if (copyKey.has(k) && v !== '') {{
-              html += '<div class="prop-value prop-value-row">';
-              html +=
-                '<span class="prop-value-mono prop-mono' +
-                (multiline ? ' prop-value-multiline' : '') +
-                '">' +
-                displayHtml +
-                '</span>';
-              html +=
-                '<button type="button" class="copy-btn" data-copy="' +
-                encodeURIComponent(v) +
-                '" title="Copy">' +
-                COPY_SVG +
-                '</button>';
-              html += '</div>';
-            }} else {{
-              html +=
-                '<div class="' +
-                (multiline ? 'prop-value prop-value-multiline' : 'prop-value') +
-                '">' +
-                displayHtml +
-                '</div>';
-            }}
-            html += '</div>';
-          }}
-
-          for (const k of payloadKeysNoProps) {{
-            appendPropBlock(k, payloadPanel[k]);
-          }}
-
-          if (propsObj != null && Object.keys(propsObj).length > 0) {{
-            for (const pk of Object.keys(propsObj).sort((a, b) =>
-              a.localeCompare(b),
-            )) {{
-              appendPropBlock(pk, propsObj[pk]);
-            }}
-          }} else if (
-            propsObj === null &&
-            payloadPanelKeys.includes('properties')
-          ) {{
-            appendPropBlock('properties', payloadPanel['properties']);
-          }}
-
-          detailBody.innerHTML = html;
-          detailShell.classList.add('is-open');
-          detailShell.setAttribute('aria-hidden', 'false');
-        }}
-
-        if (detailShell) {{
-          detailShell.addEventListener('click', (e) => {{
-            const btn = e.target.closest('.copy-btn');
-            if (!btn || !detailShell.contains(btn)) return;
-            const enc = btn.getAttribute('data-copy');
-            if (enc == null) return;
-            try {{
-              const text = decodeURIComponent(enc);
-              if (navigator.clipboard && navigator.clipboard.writeText)
-                navigator.clipboard.writeText(text);
-            }} catch (_) {{}}
-          }});
-        }}
-        const detailCloseBtn = document.getElementById('node-detail-close');
-        if (detailCloseBtn) {{
-          detailCloseBtn.addEventListener('click', (e) => {{
-            e.stopPropagation();
-            closeNodeDetailPanel();
-          }});
-        }}
-        closeNodeDetailPanel();
+        const detailPanel = window.InterchangeDetailPanel;
+        detailPanel.replaceData('graph-node', graphData.nodes, {{ template: 'graph-node' }});
 
         graph.on('node:click', (evt) => {{
           let id = evt.target?.id;
           if (id == null && evt.itemId != null) id = evt.itemId;
           if (id == null && Array.isArray(evt.items) && evt.items[0]?.id != null) id = evt.items[0].id;
-          if (id != null) showNodeDetailPanel(String(id));
+          if (id != null) detailPanel.open(String(id));
         }});
 
         graph.on('node:pointerover', (evt) => {{
@@ -1139,7 +940,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           clearNeighborGlow();
           hoverLabelNodeId = null;
           scheduleHoverOverlaySync();
-          closeNodeDetailPanel();
+          detailPanel.close();
         }});
 
         graph.on('canvas:mouseleave', () => {{
@@ -1161,8 +962,16 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           const z = graph.getZoom();
           zoomPct.textContent = Math.round(z * 100) + '%';
         }};
+        let zoomSyncRaf = null;
+        const scheduleZoomSync = () => {{
+          if (zoomSyncRaf != null) return;
+          zoomSyncRaf = requestAnimationFrame(() => {{
+            zoomSyncRaf = null;
+            syncZoom();
+          }});
+        }};
         graph.on('viewportchange', () => {{
-          syncZoom();
+          scheduleZoomSync();
           scheduleHoverOverlaySync();
           if (hoverPointerOutPending && glowClearTimer != null) {{
             clearTimeout(glowClearTimer);
@@ -1179,6 +988,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         container.addEventListener(
           'wheel',
           () => {{
+            scheduleZoomSync();
             scheduleHoverOverlaySync();
             if (hoverPointerOutPending && glowClearTimer != null) {{
               clearTimeout(glowClearTimer);
@@ -1198,14 +1008,14 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           const cur = graph.getZoom();
           const next = Math.min(4, Math.max(0.15, cur * factor));
           await graph.zoomTo(next, false);
-          syncZoom();
+          scheduleZoomSync();
         }};
 
-        document.getElementById('zoom-in').addEventListener('click', () => doZoom(1.25));
-        document.getElementById('zoom-out').addEventListener('click', () => doZoom(0.8));
-        document.getElementById('zoom-fit').addEventListener('click', async () => {{
+        document.getElementById('btn-zoom-in').addEventListener('click', () => doZoom(1.25));
+        document.getElementById('btn-zoom-out').addEventListener('click', () => doZoom(0.8));
+        document.getElementById('btn-zoom-fit').addEventListener('click', async () => {{
           await graph.fitView();
-          syncZoom();
+          scheduleZoomSync();
         }});
 
         graph.on('element:dragend', () => {{
@@ -1214,14 +1024,16 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
 
         window.addEventListener('resize', () => {{
           graph.resize(container.clientWidth, container.clientHeight);
-          syncZoom();
+          scheduleZoomSync();
           scheduleHoverOverlaySync();
         }});
+        syncZoom();
     """
 
     html_document = (
         _interchange_g6_shell_html_raw()
         .replace("@@INTERCHANGE_CHROME_CSS@@", read_interchange_chrome_css())
+        .replace("@@DETAIL_PANEL_SCRIPT@@", read_detail_panel_js())
         .replace("@@HTML_ESCAPED_TITLE@@", safe_title)
         .replace("@@G6_CDN_URL@@", G6_CDN_URL)
         .replace("@@CONTAINER_WIDTH@@", width)

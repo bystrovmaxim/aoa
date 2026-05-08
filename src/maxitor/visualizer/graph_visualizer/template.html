@@ -52,102 +52,6 @@
             border-left: 3px solid var(--ix-neutral-stripe);
             box-shadow: var(--ix-shadow);
         }
-        /* Graph inspector: panel padding + absolute close (drawer chrome is shared). */
-        .node-detail-shell.ix-node-detail-shell .node-detail-panel {
-            padding: 22px 22px 28px;
-        }
-        .node-detail-shell.ix-node-detail-shell .node-detail-panel .node-detail-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-        }
-        .node-detail-shell.ix-node-detail-shell .node-detail-panel #node-detail-body {
-            padding: 0;
-        }
-        .properties-entity-name {
-            font-size: 16px; font-weight: 700; letter-spacing: 0.04em;
-            text-transform: uppercase; color: #111; margin: 0 0 18px;
-            padding-right: 40px; line-height: 1.2;
-        }
-        .properties-entity-name.is-graph-node-kind {
-            font-size: 14px; font-weight: 600; letter-spacing: 0.02em;
-            text-transform: none; color: #222;
-        }
-        .prop-block { margin-bottom: 18px; }
-        .prop-block-type { margin-bottom: 14px; }
-        .prop-label {
-            font-size: 11px; font-weight: 500; color: #757575; margin-bottom: 4px;
-        }
-        .prop-label-type {
-            font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
-            text-transform: uppercase; color: #9e9e9e; margin-bottom: 3px;
-        }
-        .prop-value {
-            font-size: 13px; color: #111; line-height: 1.5; word-break: break-word;
-        }
-        .prop-value-empty-none {
-            font-size: 13px; color: #ef5b54;
-        }
-        .prop-type-value {
-            font-size: 11px; font-weight: 400; color: #333; line-height: 1.35;
-        }
-        .prop-short-label-value {
-            font-size: 11px; color: #424242;
-        }
-        .prop-value-mono {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size: 12px; word-break: break-all;
-        }
-        .prop-value-row {
-            display: flex; align-items: flex-start; gap: 8px;
-        }
-        .prop-value-row .prop-mono {
-            flex: 1; min-width: 0;
-        }
-        .properties-section-title {
-            font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
-            text-transform: uppercase; color: #9e9e9e; margin: 4px 0 12px;
-        }
-        .prop-value-multiline {
-            font-size: 11px; line-height: 1.45; white-space: pre-wrap;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            word-break: break-word;
-        }
-        .copy-btn {
-            flex-shrink: 0; width: 30px; height: 30px; border: none;
-            border-radius: 6px; background: #f0f0f0; color: #757575;
-            cursor: pointer; font-size: 14px; line-height: 1;
-        }
-        .copy-btn:hover { background: #e8e8e8; color: #424242; }
-        .type-row { display: flex; align-items: center; gap: 7px; }
-        .type-icon {
-            width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
-            border: 1px solid rgba(0,0,0,0.12); object-fit: cover; display: block;
-        }
-        .type-dot {
-            width: 7px; height: 7px; border-radius: 50%;
-            border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0;
-        }
-        .zoom-toolbar {
-            position: fixed; bottom: 10px; left: 10px; z-index: 100000;
-            display: flex; flex-direction: row; flex-wrap: wrap; align-items: center;
-            gap: 3px;
-            background: var(--ix-frost); backdrop-filter: blur(6px);
-            border: 1px solid var(--ix-border); border-radius: 6px;
-            padding: 3px 5px; box-shadow: var(--ix-shadow);
-        }
-        .zoom-toolbar button {
-            min-width: 0; width: 26px; height: 26px; padding: 0; font-size: 13px; line-height: 1;
-            cursor: pointer; border: 1px solid #c5cad3; border-radius: 4px;
-            background: #fff; color: var(--ix-text); box-shadow: none;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .zoom-toolbar button:hover { background: #eef0f3; }
-        .zoom-toolbar .zoom-label {
-            font-size: 10px; font-variant-numeric: tabular-nums;
-            text-align: center; color: var(--ix-muted); user-select: none;
-            padding: 0 4px; min-width: 2.5em;
-        }
     </style>
 </head>
 <body>
@@ -159,13 +63,17 @@
         <div id="node-detail-body"></div>
       </div>
     </aside>
-    <div class="zoom-toolbar" aria-label="Zoom">
-        <button type="button" id="zoom-in" title="Zoom in">+</button>
-        <button type="button" id="zoom-out" title="Zoom out">−</button>
-        <button type="button" id="zoom-fit" title="Fit to window">⊡</button>
-        <span class="zoom-label" id="zoom-pct">100%</span>
+    <div id="zoom-toolbar" class="zoom-toolbar" aria-label="View controls">
+        <div class="zoom-cluster">
+            <button type="button" class="zoom-btn" id="btn-zoom-in" title="Zoom in">+</button>
+            <button type="button" class="zoom-btn" id="btn-zoom-out" title="Zoom out">−</button>
+            <button type="button" class="zoom-btn" id="btn-zoom-fit" title="Fit to window">⊡</button>
+            <span class="zoom-pct" id="zoom-pct">100%</span>
+        </div>
     </div>
     <script>
+@@DETAIL_PANEL_SCRIPT@@
+
 @@INLINE_G6_SCRIPT@@
     </script>
 </body>
