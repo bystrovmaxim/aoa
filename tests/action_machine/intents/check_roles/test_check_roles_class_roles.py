@@ -1,0 +1,144 @@
+# tests/intents/check_roles/test_check_roles_class_roles.py
+"""
+Golden tests for ``BaseRole``, ``@role_mode``, and ``@check_roles``.
+
+Covers import-time validation, decorator guards, and normalization of typed
+role specs for the coordinator snapshot.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from aoa.action_machine.auth.base_role import BaseRole
+from aoa.action_machine.context.user_info import UserInfo
+from aoa.action_machine.exceptions import MissingCheckRolesError
+from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from aoa.action_machine.intents.check_roles.check_roles_decorator import check_roles
+from aoa.action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
+from aoa.action_machine.intents.check_roles.check_roles_intent_resolver import (
+    CheckRolesIntentResolver,
+)
+from aoa.action_machine.intents.meta.meta_decorator import meta
+from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
+from aoa.action_machine.model.base_action import BaseAction
+from aoa.action_machine.model.base_params import BaseParams
+from aoa.action_machine.model.base_result import BaseResult
+from tests.action_machine.scenarios.domain_model.domains import TestDomain
+
+
+class TestRoleModeDecorator:
+    def test_role_mode_accepts_plain_class(self) -> None:
+        class Plain:
+            pass
+
+        role_mode(RoleMode.ALIVE)(Plain)  # type: ignore[arg-type]
+        assert Plain._role_mode_info["mode"] is RoleMode.ALIVE
+
+
+class TestBaseRoleValidation:
+    def test_child_may_inherit_name_from_intermediate_role(self) -> None:
+        @role_mode(RoleMode.ALIVE)
+        class MiddleRole(BaseRole):
+            name = "mid"
+            description = "mid"
+
+        @role_mode(RoleMode.ALIVE)
+        class LeafRole(MiddleRole):
+            description = "leaf"
+
+        assert LeafRole.name == "mid"
+        assert LeafRole.description == "leaf"
+
+
+@role_mode(RoleMode.ALIVE)
+class _ViewerRole(BaseRole):
+    name = "viewer"
+    description = "View access."
+
+
+@role_mode(RoleMode.ALIVE)
+class _EditorRole(_ViewerRole):
+    name = "hand_editor"
+    description = "Edit access."
+
+
+class TestUserInfoRoles:
+    def test_roles_must_be_base_role_types(self) -> None:
+        with pytest.raises(TypeError, match=r"UserInfo\.roles\[0\]"):
+            UserInfo(user_id="u1", roles=["admin"])  # type: ignore[arg-type]
+
+    def test_roles_accepts_list_of_role_classes(self) -> None:
+        u = UserInfo(user_id="u1", roles=[_ViewerRole])
+        assert u.roles == (_ViewerRole,)
+
+
+class TestCheckRolesNormalization:
+    def test_string_spec_raises(self) -> None:
+        with pytest.raises(TypeError, match="does not accept role name strings"):
+            check_roles("admin")
+
+    def test_list_of_strings_raises(self) -> None:
+        with pytest.raises(TypeError, match="does not accept list\\[str\\]"):
+            check_roles(["manager", "editor"])
+
+    def test_single_role_type_stored(self) -> None:
+        class _P(BaseParams):
+            pass
+
+        class _R(BaseResult):
+            pass
+
+        @meta(description="norm type", domain=TestDomain)
+        @check_roles(_EditorRole)
+        class _NormTypeAction(BaseAction[_P, _R]):
+            @summary_aspect("s")
+            async def build_summary(self, params, state, box, connections):
+                return _R()
+
+        assert _NormTypeAction._role_info["spec"] is _EditorRole
+        assert issubclass(_NormTypeAction, CheckRolesIntent)
+
+    def test_list_of_role_types_becomes_tuple(self) -> None:
+        class _P(BaseParams):
+            pass
+
+        class _R(BaseResult):
+            pass
+
+        @meta(description="multi role", domain=TestDomain)
+        @check_roles([_EditorRole, _ViewerRole])
+        class _MultiRolesAction(BaseAction[_P, _R]):
+            @summary_aspect("s")
+            async def build_summary(self, params, state, box, connections):
+                return _R()
+
+        spec = _MultiRolesAction._role_info["spec"]
+        assert isinstance(spec, tuple)
+        assert len(spec) == 2
+        assert spec[0] is _EditorRole
+        assert spec[1] is _ViewerRole
+
+    def test_mixed_list_raises(self) -> None:
+        with pytest.raises(TypeError, match="list\\[str\\]"):
+            check_roles(["admin", _ViewerRole])  # type: ignore[list-item]
+
+    def test_non_base_role_type_raises(self) -> None:
+        class NotRole:
+            pass
+
+        with pytest.raises(TypeError, match="BaseRole"):
+            check_roles(NotRole)  # type: ignore[arg-type]
+
+
+class TestCheckRolesIntentResolver:
+    def test_resolve_check_roles_raises_when_no_scratch(self) -> None:
+        class _NoDecorator(CheckRolesIntent):
+            """Marker-only; never got ``@check_roles``."""
+
+            pass
+
+        with pytest.raises(MissingCheckRolesError) as excinfo:
+            CheckRolesIntentResolver.resolve_check_roles(_NoDecorator)
+        assert excinfo.value.host_cls is _NoDecorator
+
