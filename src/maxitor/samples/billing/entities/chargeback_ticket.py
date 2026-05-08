@@ -10,6 +10,7 @@ from action_machine.intents.entity import entity
 from maxitor.samples.billing.domain import BillingDomain
 from maxitor.samples.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from maxitor.samples.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceEntity
+from maxitor.samples.billing.entities.billing_sat_tax_remit_stub import TaxRemittanceAdviceEntity
 from maxitor.samples.billing.entities.payment_event_log import PaymentEventLogEntity
 
 
@@ -29,7 +30,7 @@ class ChargebackTicketEntity(BaseEntity):
     ] = Rel(description="Associated interchange assessment economics slice")  # type: ignore[assignment]
 
     tax_remit_advice: Annotated[
-        AssociationOne["TaxRemittanceAdviceEntity"],  # noqa: UP037
+        AssociationOne[TaxRemittanceAdviceEntity],
         NoInverse(),
     ] = Rel(description="Associated tax remittance advice stub row")  # type: ignore[assignment]
 
@@ -43,8 +44,5 @@ class ChargebackTicketEntity(BaseEntity):
     representment_deadline_iso: str = Field(description="Last date to assemble counter-evidence")
     disputed_amount_minor: int = Field(description="Disputed amount in minor transactional currency", ge=0)
     cardholder_contact_locale: str = Field(description="Locale hint for outbound comms")
-
-
-from maxitor.samples.billing.entities.billing_sat_tax_remit_stub import TaxRemittanceAdviceEntity  # noqa: E402
 
 ChargebackTicketEntity.model_rebuild()

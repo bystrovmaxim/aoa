@@ -7,6 +7,7 @@ from pydantic import Field
 
 from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
+from maxitor.samples.billing.entities.billing_parse_pass import BillingParsePassEntity
 from maxitor.samples.messaging.domain import MessagingDomain
 from maxitor.samples.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 from maxitor.samples.messaging.entities.msg_downstream_watermark import DownstreamWatermarkEntity
@@ -29,13 +30,8 @@ class ReplayTicketEntity(BaseEntity):
     ] = Rel(description="Parent watermark row")  # type: ignore[assignment]
 
     billing_parse_pass: Annotated[
-        AssociationOne["BillingParsePassEntity"],  # noqa: UP037
+        AssociationOne[BillingParsePassEntity],
         NoInverse(),
     ] = Rel(description="Billing parse artifact correlated with replay bookkeeping")  # type: ignore[assignment]
-
-
-from maxitor.samples.billing.entities.billing_parse_pass import (  # noqa: E402
-    BillingParsePassEntity,
-)
 
 ReplayTicketEntity.model_rebuild()

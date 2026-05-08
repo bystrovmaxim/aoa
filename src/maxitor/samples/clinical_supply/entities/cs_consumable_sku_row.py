@@ -10,6 +10,7 @@ from action_machine.intents.entity import entity
 from maxitor.samples.clinical_supply.domain import ClinicalSupplyDomain
 from maxitor.samples.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 from maxitor.samples.clinical_supply.entities.cs_material_anchor import ClinicalMaterialAnchorEntity
+from maxitor.samples.inventory.entities.inv_lot_snapshot_ledger import LotSnapshotLedgerEntity
 
 
 @entity(
@@ -32,13 +33,8 @@ class ClinicalConsumableSkuEntity(BaseEntity):
     ] = Rel(description="Compound / sterility anchor")  # type: ignore[assignment]
 
     inventory_lot_mirror: Annotated[
-        AssociationOne["LotSnapshotLedgerEntity"],  # noqa: UP037
+        AssociationOne[LotSnapshotLedgerEntity],
         NoInverse(),
     ] = Rel(description="Inventory lot snapshot keyed for sterile consumable traceability")  # type: ignore[assignment]
-
-
-from maxitor.samples.inventory.entities.inv_lot_snapshot_ledger import (  # noqa: E402
-    LotSnapshotLedgerEntity,
-)
 
 ClinicalConsumableSkuEntity.model_rebuild()

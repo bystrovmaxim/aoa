@@ -7,6 +7,7 @@ from pydantic import Field
 
 from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
+from maxitor.samples.inventory.entities.inv_facility_warehouse import FacilityWarehouseEntity
 from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.entities.lifecycle import SalesOrderLifecycle
 from maxitor.samples.store.entities.sales_core import SalesOrderEntity
@@ -29,11 +30,8 @@ class ShipmentParcelEntity(BaseEntity):
     ] = Rel(description="Shipped order")  # type: ignore[assignment]
 
     origin_facility: Annotated[
-        AssociationOne["FacilityWarehouseEntity"],  # noqa: UP037
+        AssociationOne[FacilityWarehouseEntity],
         NoInverse(),
     ] = Rel(description="Inventory facility staging this shipment")  # type: ignore[assignment]
-
-
-from maxitor.samples.inventory.entities.inv_facility_warehouse import FacilityWarehouseEntity  # noqa: E402
 
 ShipmentParcelEntity.model_rebuild()

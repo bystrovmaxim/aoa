@@ -10,6 +10,7 @@ from action_machine.intents.entity import entity
 from maxitor.samples.catalog.domain import CatalogDomain
 from maxitor.samples.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerEntity
 from maxitor.samples.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
+from maxitor.samples.messaging.entities.msg_replay_ticket import ReplayTicketEntity
 
 
 @entity(description="Attributed touch moment", domain=CatalogDomain)
@@ -29,13 +30,8 @@ class TouchMomentEntity(BaseEntity):
     ] = Rel(description="Acquisition ledger segment")  # type: ignore[assignment]
 
     replay_ticket: Annotated[
-        AssociationOne["ReplayTicketEntity"],  # noqa: UP037
+        AssociationOne[ReplayTicketEntity],
         NoInverse(),
     ] = Rel(description="Messaging replay ticket for deterministic touch lineage")  # type: ignore[assignment]
-
-
-from maxitor.samples.messaging.entities.msg_replay_ticket import (  # noqa: E402
-    ReplayTicketEntity,
-)
 
 TouchMomentEntity.model_rebuild()

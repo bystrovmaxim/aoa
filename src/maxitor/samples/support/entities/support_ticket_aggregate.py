@@ -7,6 +7,7 @@ from pydantic import Field
 
 from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
+from maxitor.samples.store.entities.sales_core import SalesOrderEntity
 from maxitor.samples.support.domain import SupportDomain
 from maxitor.samples.support.entities.support_simple_lifecycle import SupportSparseLifecycle
 
@@ -23,11 +24,8 @@ class SupportTicketAggregateEntity(BaseEntity):
     language_locale: str = Field(description="Preferred conversational language tag")
     deflection_attempts: int = Field(description="Self-serve resolutions before escalation", ge=0)
     related_commerce_order: Annotated[
-        AssociationOne["SalesOrderEntity"],  # noqa: UP037
+        AssociationOne[SalesOrderEntity],
         NoInverse(),
     ] = Rel(description="Linked storefront sales order motivating the ticket")  # type: ignore[assignment]
-
-
-from maxitor.samples.store.entities.sales_core import SalesOrderEntity  # noqa: E402
 
 SupportTicketAggregateEntity.model_rebuild()

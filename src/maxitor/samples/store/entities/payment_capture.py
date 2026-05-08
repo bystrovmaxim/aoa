@@ -7,6 +7,7 @@ from pydantic import Field
 
 from action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from action_machine.intents.entity import entity
+from maxitor.samples.messaging.entities.msg_webhook_ingress_receipt import WebhookIngressReceiptEntity
 from maxitor.samples.store.domain import StoreDomain
 from maxitor.samples.store.entities.lifecycle import SalesOrderLifecycle
 from maxitor.samples.store.entities.sales_core import SalesOrderEntity
@@ -29,11 +30,8 @@ class PaymentCaptureEntity(BaseEntity):
     ] = Rel(description="Captured order")  # type: ignore[assignment]
 
     processor_webhook_receipt: Annotated[
-        AssociationOne["WebhookIngressReceiptEntity"],  # noqa: UP037
+        AssociationOne[WebhookIngressReceiptEntity],
         NoInverse(),
     ] = Rel(description="Ingress receipt for PSP / acquirer callback correlation")  # type: ignore[assignment]
-
-
-from maxitor.samples.messaging.entities.msg_webhook_ingress_receipt import WebhookIngressReceiptEntity  # noqa: E402
 
 PaymentCaptureEntity.model_rebuild()
