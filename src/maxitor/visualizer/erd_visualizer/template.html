@@ -1,309 +1,328 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <title>@@HTML_ESCAPED_TITLE@@</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; }
-        #container {
-            position: relative;
-            width: @@CONTAINER_WIDTH@@;
-            height: @@CONTAINER_HEIGHT@@;
-            background-color: #f4f5f7;
-            background-image: radial-gradient(rgba(160,168,180,0.42) 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-        #mermaid-container,
-        #graphviz-container {
-            position: fixed;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
-            overflow: auto;
-            background: #f4f5f7;
-            z-index: 5;
-            display: none;
-        }
-        #mermaid-container {
-            padding: 72px 280px 80px 310px;
-        }
-        #graphviz-container {
-            padding: 72px 280px 80px 310px;
-        }
-        #mermaid-container svg {
-            display: block;
-            max-width: none;
-            height: auto;
-            margin: 0 auto;
-        }
-        #graphviz-container svg {
-            display: block;
-            max-width: none;
-            height: auto;
-            margin: 0 auto;
-        }
-        #graph-hover-labels {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 20;
-            overflow: visible;
-        }
-        .graph-hover-label {
-            position: absolute;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            color: #0f172a;
-            font-size: 10px;
-            font-weight: 500;
-            max-width: 200px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.2;
-            transform: translate(-50%, 0);
-        }
-        .domain-picker {
-            position: fixed; top: 12px; left: 12px; z-index: 100000;
-            background: rgba(255,255,255,0.88); backdrop-filter: blur(8px);
-            border: 1px solid rgba(0,0,0,0.08); border-radius: 8px;
-            padding: 8px 10px; min-width: 180px; max-width: 260px;
-            max-height: 56vh; overflow-y: auto; font-size: 11px;
-            color: #2c3e50; box-shadow: 0 2px 10px rgba(0,0,0,0.07);
-            display: none;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .domain-picker .legend-title {
-            font-weight: 600; font-size: 10px; text-transform: uppercase;
-            letter-spacing: 0.04em; color: #5c6370; margin-bottom: 2px;
-        }
-        .domain-picker .domain-row {
-            display: flex; align-items: center; gap: 8px;
-            width: 100%; border: none; background: transparent;
-            border-radius: 6px; padding: 4px 6px; cursor: pointer;
-            text-align: left; color: #2c3e50;
-        }
-        .domain-picker .domain-row:hover { background: #eef0f3; }
-        .domain-picker .domain-row.is-active {
-            background: #e7efff;
-            color: #1d4ed8;
-        }
-        .domain-picker .legend-icon {
-            width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
-            border: 1px solid rgba(0,0,0,0.12); object-fit: cover;
-            display: block;
-        }
-        .layout-picker {
-            position: fixed; top: 156px; right: 12px; z-index: 100000;
-            background: rgba(255,255,255,0.9); backdrop-filter: blur(8px);
-            border: 1px solid rgba(0,0,0,0.08); border-radius: 8px;
-            padding: 8px 10px; min-width: 160px; max-width: 220px;
-            font-size: 11px; color: #2c3e50; box-shadow: 0 2px 10px rgba(0,0,0,0.07);
-            display: none; flex-direction: column; gap: 6px;
-        }
-        .renderer-picker {
-            position: fixed; top: 12px; right: 12px; z-index: 100000;
-            background: rgba(255,255,255,0.9); backdrop-filter: blur(8px);
-            border: 1px solid rgba(0,0,0,0.08); border-radius: 8px;
-            padding: 8px 10px; min-width: 160px; max-width: 220px;
-            font-size: 11px; color: #2c3e50; box-shadow: 0 2px 10px rgba(0,0,0,0.07);
-            display: none; flex-direction: column; gap: 6px;
-        }
-        .layout-picker .legend-title,
-        .renderer-picker .legend-title {
-            font-weight: 600; font-size: 10px; text-transform: uppercase;
-            letter-spacing: 0.04em; color: #5c6370; margin-bottom: 2px;
-        }
-        .layout-picker .layout-row,
-        .renderer-picker .renderer-row {
-            display: flex; align-items: center; justify-content: space-between; gap: 8px;
-            width: 100%; border: none; background: transparent;
-            border-radius: 6px; padding: 4px 6px; cursor: pointer;
-            text-align: left; color: #2c3e50;
-        }
-        .layout-picker .layout-row:hover,
-        .renderer-picker .renderer-row:hover { background: #eef0f3; }
-        .layout-picker .layout-row.is-active,
-        .renderer-picker .renderer-row.is-active {
-            background: #e7efff;
-            color: #1d4ed8;
-        }
-        .node-detail-shell {
-            position: fixed; top: 0; right: 0; height: 100vh; z-index: 100001;
-            width: min(306px, calc(92vw * 0.85)); max-width: 306px;
-            transform: translateX(100%);
-            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
-            box-shadow: -4px 0 28px rgba(0,0,0,0.07);
-        }
-        .node-detail-shell.is-open {
-            transform: translateX(0);
-            pointer-events: auto;
-        }
-        .node-detail-panel {
-            height: 100%;
-            background: #fff;
-            border-left: 1px solid #eee;
-            padding: 22px 22px 28px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            position: relative;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        }
-        .node-detail-close {
-            position: absolute; top: 10px; right: 10px;
-            width: 34px; height: 34px; border: none; border-radius: 8px;
-            background: transparent; color: #757575;
-            font-size: 22px; line-height: 1; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .node-detail-close:hover { background: #f5f5f5; color: #333; }
-        .properties-entity-name {
-            font-size: 16px; font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            color: #111;
-            margin: 0 0 18px;
-            padding-right: 40px;
-            line-height: 1.2;
-        }
-        .properties-entity-name.is-kind {
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: 0.02em;
-            text-transform: none;
-            color: #222;
-        }
-        .prop-block { margin-bottom: 18px; }
-        .prop-label {
-            font-size: 11px;
-            font-weight: 500;
-            color: #757575;
-            margin-bottom: 4px;
-        }
-        .prop-value {
-            font-size: 13px;
-            color: #111;
-            line-height: 1.5;
-            word-break: break-word;
-        }
-        .prop-value-multiline {
-            font-size: 11px;
-            line-height: 1.45;
-            white-space: pre-wrap;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            word-break: break-word;
-        }
-        .copy-btn {
-            flex-shrink: 0;
-            width: 30px;
-            height: 30px;
-            border: none;
-            border-radius: 6px;
-            background: #f0f0f0;
-            color: #757575;
-            cursor: pointer;
-            font-size: 14px;
-            line-height: 1;
-        }
-        .copy-btn:hover { background: #e8e8e8; color: #424242; }
-        .prop-value-row {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-        }
-        .zoom-toolbar {
-            position: fixed; bottom: 10px; left: 10px; z-index: 100000;
-            display: flex;
-            flex-direction: row;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 3px;
-            background: rgba(255,255,255,0.9);
-            backdrop-filter: blur(6px);
-            border: 1px solid rgba(0,0,0,0.08);
-            border-radius: 6px;
-            padding: 3px 5px;
-            box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-        }
-        .zoom-toolbar button {
-            min-width: 0;
-            width: 26px;
-            height: 26px;
-            padding: 0;
-            font-size: 13px;
-            line-height: 1;
-            cursor: pointer;
-            border: 1px solid #c5cad3;
-            border-radius: 4px;
-            background: #fff;
-            color: #2c3e50;
-            box-shadow: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .zoom-toolbar button:hover { background: #eef0f3; }
-        .zoom-toolbar .zoom-label {
-            font-size: 10px;
-            font-variant-numeric: tabular-nums;
-            text-align: center;
-            color: #5c6370;
-            user-select: none;
-            padding: 0 4px;
-            min-width: 2.5em;
-        }
-        /* ERD truncation—full strings on hover (X6 SVG has no reliable native title for our ports). */
-        #erd-hover-tip {
-            position: fixed;
-            z-index: 100002;
-            display: none;
-            max-width: min(420px, 92vw);
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 11px;
-            line-height: 1.35;
-            color: #0f172a;
-            background: rgba(255, 255, 255, 0.97);
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-            pointer-events: none;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@@HTML_ESCAPED_TITLE@@</title>
+  <style>
+    @@INTERCHANGE_CHROME_CSS@@
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f4f5f7;
+      color: #1e293b;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .domain-picker .domain-row img.legend-icon {
+      pointer-events: none;
+    }
+
+    /* ── Main canvas area ── */
+    #main {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    /* Fixed dot backdrop (does not zoom / pan with diagram content) */
+    #main::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-color: #f4f5f7;
+      background-image: radial-gradient(rgba(160, 168, 180, 0.42) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    /* Stacking: dot layer is ::before; do NOT use #main > * or it overrides
+       .alt-container / absolute canvas children (ID beats class — content “disappeared”). */
+    #d3gv-container,
+    #cy-container,
+    #mermaid-container,
+    #graph-hover-labels {
+      z-index: 1;
+    }
+    .alt-container {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow: hidden;
+      background: transparent;
+      padding: 0;
+    }
+    .alt-container.active { display: block; }
+
+    /* Graphviz SVG container */
+    #d3gv-container {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow: hidden;
+      background: transparent;
+    }
+    #d3gv-container.active { display: block; }
+
+    /* Cytoscape container */
+    #cy-container {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow: hidden;
+      background: transparent;
+    }
+    #cy-container.active { display: block; }
+
+    /* SVG pan / zoom layers (content scales; backdrop stays fixed via #main::before) */
+    .erd-svg-viewport {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+      background: transparent;
+    }
+    .erd-svg-viewport.erd-panning { cursor: grabbing; }
+    .erd-svg-panner {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+    .erd-svg-panner > svg {
+      display: block;
+      max-width: none;
+      height: auto;
+    }
+
+    /* ── Bottom toolbar: zoom + 8 mode icons + neighbor flag (no card chrome) ── */
+    #zoom-toolbar.zoom-toolbar {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      z-index: 100000;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      backdrop-filter: none;
+      border: none;
+      border-radius: 0;
+      padding: 2px 0;
+      box-shadow: none;
+    }
+    #zoom-toolbar .zoom-cluster {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    #zoom-toolbar .toolbar-sep {
+      width: 1px;
+      height: 22px;
+      background: rgba(15, 23, 42, 0.12);
+      flex-shrink: 0;
+      margin: 0 2px;
+    }
+    #zoom-toolbar .zoom-btn {
+      min-width: 0;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: #64748b;
+      box-shadow: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s, background 0.15s;
+    }
+    #zoom-toolbar .zoom-btn:hover {
+      color: #0f172a;
+      background: rgba(15, 23, 42, 0.06);
+    }
+    #zoom-toolbar .zoom-pct {
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      color: #64748b;
+      user-select: none;
+      padding: 0 6px 0 4px;
+      min-width: 3.1em;
+    }
+
+    /* Mode dock: 8 presets (5 GV + 2 CY + 1 Mermaid) */
+    #zoom-toolbar .mode-dock {
+      display: flex;
+      align-items: center;
+      gap: 1px;
+    }
+    #zoom-toolbar .mode-btn {
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: #64748b;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    #zoom-toolbar .mode-btn:hover {
+      color: #0f172a;
+      background: rgba(15, 23, 42, 0.06);
+    }
+    #zoom-toolbar .mode-btn svg {
+      display: block;
+      flex-shrink: 0;
+      pointer-events: none;
+    }
+    #zoom-toolbar .mode-btn.mode-btn--gv.active {
+      color: #1d4ed8;
+      background: rgba(59, 130, 246, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.4);
+    }
+    #zoom-toolbar .mode-btn.mode-btn--cy.active {
+      color: #7c3aed;
+      background: rgba(168, 85, 247, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(168, 85, 247, 0.45);
+    }
+    #zoom-toolbar .mode-btn.mode-btn--mm.active {
+      color: #db2777;
+      background: rgba(236, 72, 153, 0.1);
+      box-shadow: inset 0 0 0 1px rgba(236, 72, 153, 0.45);
+    }
+
+    /* 1-hop neighbor checkbox — same strip */
+    #zoom-toolbar #neighborhood-filter.dock-neighbor {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      margin-left: 10px;
+      padding: 0 4px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 10px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #64748b;
+      transition: color 0.15s;
+    }
+    #zoom-toolbar #neighborhood-filter.dock-neighbor:hover {
+      color: #334155;
+    }
+    #zoom-toolbar #neighborhood-filter input {
+      width: 14px;
+      height: 14px;
+      accent-color: #3b82f6;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    /* ── Hover tip ── */
+    #erd-hover-tip {
+      position: fixed; display: none; pointer-events: none;
+      background: #1e293b; color: #f1f5f9;
+      font-size: 11px; padding: 6px 10px;
+      border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.25);
+      z-index: 9999; max-width: 260px; line-height: 1.5;
+    }
+
+    #graph-hover-labels {
+      position: absolute; inset: 0;
+      pointer-events: none; z-index: 40;
+    }
+
+    /* ── Loading / error ── */
+    .erd-loading {
+      font-size: 13px; color: #64748b;
+      padding: 32px; font-family: system-ui, sans-serif;
+    }
+    .erd-error {
+      white-space: pre-wrap; color: #991b1b;
+      background: #fff; border: 1px solid #fecaca;
+      border-radius: 8px; padding: 16px;
+      font-size: 11px; line-height: 1.5;
+      font-family: ui-monospace, monospace;
+      max-width: 900px; margin: 20px auto;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
 </head>
 <body>
-    <div id="container"></div>
-    <div id="mermaid-container" aria-label="Mermaid ERD renderer"></div>
-    <div id="graphviz-container" aria-label="Graphviz ERD renderer"></div>
-    <div id="erd-hover-tip" role="tooltip" aria-hidden="true"></div>
-    <div id="graph-hover-labels" aria-hidden="true"></div>
-    <aside id="domain-picker" class="domain-picker" aria-label="Domains"></aside>
-    <aside id="renderer-picker" class="renderer-picker" aria-label="Renderer variants"></aside>
-    <aside id="layout-picker" class="layout-picker" aria-label="Layout variants"></aside>
-    <aside id="node-detail-shell" class="node-detail-shell" aria-hidden="true">
-      <div class="node-detail-panel">
-        <button type="button" class="node-detail-close" id="node-detail-close" aria-label="Close properties">×</button>
-        <div id="node-detail-body"></div>
+
+  <aside id="domain-picker" class="domain-picker ix-legend-panel" aria-label="Domains" style="display: none"></aside>
+
+  <!-- ══ Main area ══ -->
+  <div id="main">
+
+    <!-- Graphviz SVG renderer -->
+    <div id="d3gv-container"></div>
+
+    <!-- Cytoscape graph renderer -->
+    <div id="cy-container"></div>
+
+    <!-- Mermaid -->
+    <div class="alt-container" id="mermaid-container"></div>
+
+    <!-- Zoom + 8 layout modes + neighbor flag -->
+    <div id="zoom-toolbar" class="zoom-toolbar" aria-label="View controls">
+      <div class="zoom-cluster">
+        <button type="button" class="zoom-btn" id="btn-zoom-in" title="Zoom in">+</button>
+        <button type="button" class="zoom-btn" id="btn-zoom-out" title="Zoom out">−</button>
+        <button type="button" class="zoom-btn" id="btn-zoom-fit" title="Fit to window">⊡</button>
+        <span class="zoom-pct" id="zoom-pct">100%</span>
       </div>
-    </aside>
-    <div class="zoom-toolbar" aria-label="Zoom">
-        <button type="button" id="zoom-in" title="Zoom in">+</button>
-        <button type="button" id="zoom-out" title="Zoom out">−</button>
-        <button type="button" id="zoom-fit" title="Fit to window">⊡</button>
-        <span class="zoom-label" id="zoom-pct">100%</span>
+      <span class="toolbar-sep" aria-hidden="true"></span>
+      <div class="mode-dock" id="mode-dock" role="toolbar" aria-label="Diagram mode"></div>
+      <label id="neighborhood-filter" class="dock-neighbor"
+        title="When on, include entities exactly one interchange relation away from the selected domain(s).">
+        <input type="checkbox" id="neighborhood-expand" checked />
+        <span>1‑hop</span>
+      </label>
     </div>
-    <script type="module">
+
+    <div id="graph-hover-labels"></div>
+  </div>
+
+  <!-- ══ Node detail panel ══ -->
+  <div id="node-detail-shell" class="node-detail-shell ix-node-detail-shell" aria-hidden="true">
+    <div class="node-detail-panel">
+      <button type="button" class="node-detail-close" id="node-detail-close" title="Close" aria-label="Close properties">×</button>
+      <div id="node-detail-body"></div>
+    </div>
+  </div>
+
+  <!-- ══ Hover tooltip ══ -->
+  <div id="erd-hover-tip"></div>
+
+  <!-- ══ Bootstrap ══ -->
+  <script type="module">
+@@DETAIL_PANEL_SCRIPT@@
+
 @@INLINE_ERD_SCRIPT@@
-    </script>
+  </script>
+
 </body>
 </html>

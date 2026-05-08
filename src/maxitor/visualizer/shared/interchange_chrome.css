@@ -1,7 +1,7 @@
 /* src/maxitor/visualizer/shared/interchange_chrome.css */
 
 /*
- * Shared “Interchange” UI chrome for graph_visualizer and erd_visualizer_2:
+ * Shared “Interchange” UI chrome for graph_visualizer and erd_visualizer:
  * left floating legend (node types / domains), right detail drawer, and bottom toolbar.
  * Left legend typography matches classic ``erd_visualizer`` ``.domain-picker`` (11px slate,
  * 10px section title). Right drawer: frosted panel shell.
