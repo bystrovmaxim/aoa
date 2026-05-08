@@ -83,6 +83,7 @@ from maxitor.visualizer.graph_visualizer.visualizer_icons import (
     svg_data_uri_for_graph_node_glyph_only,
     svg_data_uri_for_graph_node_icon,
 )
+from maxitor.visualizer.shared.chrome import read_interchange_chrome_css
 
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 
@@ -1220,6 +1221,7 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
 
     html_document = (
         _interchange_g6_shell_html_raw()
+        .replace("@@INTERCHANGE_CHROME_CSS@@", read_interchange_chrome_css())
         .replace("@@HTML_ESCAPED_TITLE@@", safe_title)
         .replace("@@G6_CDN_URL@@", G6_CDN_URL)
         .replace("@@CONTAINER_WIDTH@@", width)

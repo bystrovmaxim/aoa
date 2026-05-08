@@ -209,3 +209,12 @@ def svg_data_uri_for_graph_node_icon(fill_hex: str, node_type: str) -> str:
         f"{g_open}{inner}</g></svg>"
     )
     return "data:image/svg+xml," + quote(svg)
+
+
+def svg_data_uri_for_interchange_domain_legend(fill_hex: str) -> str:
+    """
+    Colored 24×24 disk with the Domain interchange glyph (Lucide rules as for G6 nodes).
+
+    Used for ERD domain picker rows so legend icons match graph “Domain” styling.
+    """
+    return svg_data_uri_for_graph_node_icon(fill_hex, DomainGraphNode.NODE_TYPE)
