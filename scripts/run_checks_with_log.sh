@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run_checks_with_log.sh — run project checks and append output to archive/logs/ (repo root).
+# run_checks_with_log.sh - run project checks and append output to archive/logs/ (repo root).
 # Usage: bash /path/to/repo/scripts/run_checks_with_log.sh
 #        or from any directory: bash ~/.../run_checks_with_log.sh
 
@@ -44,7 +44,7 @@ run_and_log() {
   local cmd="$1"
   local name="$2"
 
-  echo -e "${YELLOW}▶ ${name}${NC}"
+  echo -e "${YELLOW}> ${name}${NC}"
 
   {
     echo "=== $name ==="
@@ -74,7 +74,7 @@ check_no_lazy_init_getattr() {
   matches="$(
     while IFS= read -r -d '' file; do
       grep -nH -E '^[[:space:]]*def[[:space:]]+__getattr__[[:space:]]*\(' "$file" || true
-    done < <(git ls-files -z 'src/**/__init__.py' 'tests/**/__init__.py')
+    done < <(git ls-files -z 'packages/**/__init__.py' 'tests/**/__init__.py')
   )"
   if [[ -n "$matches" ]]; then
     echo "Forbidden package-level lazy export found: __getattr__ in __init__.py"
@@ -91,14 +91,36 @@ fi
 echo -e "${YELLOW}Full check run (cwd=$REPO_ROOT)...${NC}"
 echo ""
 
-run_and_log "check_no_lazy_init_getattr" "Ban __getattr__ in package __init__.py"
+step_name="Ban __getattr__ in package __init__.py"
+echo -e "${YELLOW}> ${step_name}${NC}"
+{
+  echo "=== ${step_name} ==="
+  echo "\$ check_no_lazy_init_getattr (shell function)"
+  echo ""
+} >>"$LOG_FILE"
+if check_no_lazy_init_getattr >>"$LOG_FILE" 2>&1; then
+  echo -e "${GREEN}OK ${step_name} (exit 0)${NC}"
+  echo "OK ${step_name} (exit 0)" >>"$LOG_FILE"
+else
+  echo -e "${RED}FAIL ${step_name} (non-zero exit)${NC}"
+  echo "FAIL ${step_name} (non-zero exit)" >>"$LOG_FILE"
+  FAILED=1
+fi
+echo "" >>"$LOG_FILE"
+
 run_and_log "uv run ruff check --fix ." "Ruff auto-fix"
 run_and_log "uv run task lint" "Ruff lint"
 run_and_log "uv run task typecheck" "Mypy typecheck"
 run_and_log "uv run task pylint" "Pylint"
-run_and_log "uv run python scripts/check_package_boundaries.py" "Package import boundaries"
+run_and_log "uv run python scripts/check_package_boundaries.py" "Package import boundaries (production)"
+run_and_log "uv run python scripts/check_package_boundaries.py --tests" "Package import boundaries (tests/)"
+run_and_log "uv run python scripts/check_package_metadata.py" "Package metadata (pyproject dependency matrix)"
+for pkg_dir in packages/aoa-graph packages/aoa-action-machine packages/aoa-maxitor packages/aoa-examples; do
+  run_and_log "uv run --group dev python -m build \"${REPO_ROOT}/${pkg_dir}\"" "Build wheel/sdist (${pkg_dir})"
+done
+run_and_log "uv run pytest tests/packaging -v" "Packaging wheel install smoke"
 run_and_log "uv run task dead" "Vulture dead code"
-run_and_log "uv run task test-layer-imports" "Test import boundaries (tests/ ↔ action_machine)"
+run_and_log "uv run task test-layer-imports" "Test import boundaries (tests/ vs action_machine)"
 run_and_log "uv run task samples-public-api" "Maxitor samples: action_machine public API"
 run_and_log "uv run task test" "Pytest"
 run_and_log "uv run task cc" "Radon cyclomatic complexity"

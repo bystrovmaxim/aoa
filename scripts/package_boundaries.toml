@@ -1,34 +1,56 @@
-# Package import boundaries for production code under src/.
+# Package import boundaries for production code under packages/*/src/aoa/.
 # Keys graph | action_machine | maxitor | examples are canonical internal names.
 # may_import lists which other internal packages a package may import (not including itself).
 
 [packages.graph]
-current_roots = ["src/graph"]
+current_roots = ["packages/aoa-graph/src/aoa/graph"]
 future_roots = ["packages/aoa-graph/src/aoa/graph"]
 import_prefixes = ["graph", "aoa.graph"]
 may_import = []
 
 [packages.action_machine]
-current_roots = ["src/action_machine"]
+current_roots = ["packages/aoa-action-machine/src/aoa/action_machine"]
 future_roots = ["packages/aoa-action-machine/src/aoa/action_machine"]
 import_prefixes = ["action_machine", "aoa.action_machine"]
 may_import = ["graph"]
 
 [packages.maxitor]
-current_roots = ["src/maxitor"]
+current_roots = ["packages/aoa-maxitor/src/aoa/maxitor"]
 future_roots = ["packages/aoa-maxitor/src/aoa/maxitor"]
 import_prefixes = ["maxitor", "aoa.maxitor"]
 may_import = ["graph", "action_machine"]
 
 [packages.examples]
-current_roots = ["src/examples"]
+current_roots = ["packages/aoa-examples/src/aoa/examples"]
 future_roots = ["packages/aoa-examples/src/aoa/examples"]
 import_prefixes = ["examples", "aoa.examples"]
 may_import = ["graph", "action_machine"]
 
-# Temporary exemptions (each row must include reason + expires).
-[[allow]]
-path = "src/graph/create_node_graph_coordinator.py"
-imports = ["action_machine"]
-reason = "Graph coordinator wires action_machine graph_model inspectors; decouple in PR-03."
-expires = "PR-03"
+# --- Test zones: repo-relative roots; may_import lists other internal packages (not self).
+
+[tests.zones.graph]
+roots = ["tests/graph"]
+may_import = ["graph"]
+
+[tests.zones.action_machine]
+roots = ["tests/action_machine"]
+may_import = ["graph", "action_machine"]
+
+[tests.zones.maxitor]
+roots = ["tests/maxitor"]
+may_import = ["graph", "action_machine", "maxitor"]
+
+[tests.zones.examples]
+roots = ["tests/examples"]
+may_import = ["graph", "action_machine", "examples"]
+
+[tests.zones.integration]
+roots = ["tests/integration"]
+may_import = ["graph", "action_machine", "maxitor", "examples"]
+
+[tests.zones.packaging]
+roots = ["tests/packaging"]
+may_import = ["graph", "action_machine", "maxitor", "examples"]
+
+# Production-only import exceptions (rare). Each row must include path, imports, reason, expires.
+allow = []

@@ -23,21 +23,23 @@ authors = [
 ]
 
 dependencies = [
-    "pydantic>=2.0,<3.0",
-    "simpleeval>=1.0,<2.0",
-    "rustworkx>=0.14,<1.0",
+    "aoa-graph",
+    "aoa-action-machine",
+    "aoa-maxitor",
+    "aoa-examples",
 ]
 
 [project.optional-dependencies]
 fastapi = [
-    "fastapi>=0.100,<1.0",
-    "uvicorn[standard]>=0.20,<1.0",
+    "aoa-action-machine[fastapi]",
+    "aoa-examples[fastapi]",
 ]
 mcp = [
-    "mcp>=1.0,<2.0",
+    "aoa-action-machine[mcp]",
+    "aoa-examples[mcp]",
 ]
 postgres = [
-    "asyncpg>=0.29,<1.0",
+    "aoa-action-machine[postgres]",
 ]
 dev = [
     "pytest>=8.0,<10.0",
@@ -52,6 +54,8 @@ dev = [
     "radon>=6.0,<7.0",
     "taskipy>=1.12,<2.0",
     "httpx>=0.27,<1.0",
+    "aoa-action-machine[fastapi,mcp,postgres]",
+    "aoa-examples[fastapi,mcp]",
 ]
 all = [
     "aoa-run[fastapi,mcp,postgres,dev]",
@@ -63,17 +67,28 @@ Documentation = "https://action-machine.readthedocs.io"
 Repository = "https://github.com/action-machine/action-machine"
 
 # ============================================================================
-# HATCHLING — СБОРКА
+# UV WORKSPACE — publishable members under ``packages/``
 # ============================================================================
-# Дистрибутив PyPI `aoa-run` (в имени wheel/sdist: `aoa_run-…`); код — `src/action_machine/` и `src/graph/`.
-# Несколько pip-дистрибутивов с общим неймспейсом `action_machine.*` не используются.
-[tool.hatch.build.targets.wheel]
-packages = ["src/action_machine", "src/graph", "src/maxitor"]
+[tool.uv.workspace]
+members = [
+    "packages/aoa-graph",
+    "packages/aoa-action-machine",
+    "packages/aoa-maxitor",
+    "packages/aoa-examples",
+]
 
-# В sdist кладём тесты и примеры — удобно для проверки из исходников (sdist, --no-binary).
-[tool.hatch.build.targets.sdist.force-include]
-"tests" = "tests"
-"src/examples" = "src/examples"
+# Map distribution names used in member ``dependencies`` to workspace paths.
+[tool.uv.sources]
+aoa-graph = { workspace = true }
+aoa-action-machine = { workspace = true }
+aoa-maxitor = { workspace = true }
+aoa-examples = { workspace = true }
+
+# ============================================================================
+# HATCHLING — meta wheel ``aoa-run`` (workspace root; ``aoa.*`` live in member packages)
+# ============================================================================
+[tool.hatch.build.targets.wheel]
+packages = ["aoa_run"]
 
 # ============================================================================
 # PYTEST
@@ -81,8 +96,14 @@ packages = ["src/action_machine", "src/graph", "src/maxitor"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-# `src` — импорт `action_machine.*`; `.` — корень репо при необходимости conftest/fixtures.
-pythonpath = ["src", "."]
+# Четыре `…/src` на PYTHONPATH для неймспейса `aoa.*`; `.` — корень репо (conftest/fixtures).
+pythonpath = [
+    "packages/aoa-graph/src",
+    "packages/aoa-action-machine/src",
+    "packages/aoa-maxitor/src",
+    "packages/aoa-examples/src",
+    ".",
+]
 addopts = [
     "-ra",
     "--strict-markers",
@@ -113,7 +134,7 @@ warn_unused_ignores = true
 show_error_codes = true
 namespace_packages = true
 explicit_package_bases = true
-mypy_path = "src"
+mypy_path = "packages/aoa-graph/src:packages/aoa-action-machine/src:packages/aoa-maxitor/src:packages/aoa-examples/src"
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -142,14 +163,14 @@ ignore_missing_imports = true
 
 # examples — ослабленные проверки
 [[tool.mypy.overrides]]
-module = "examples.*"
+module = "aoa.examples.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 disallow_untyped_decorators = false
 
 # maxitor samples — stacked decorators без py.typed на декораторах
 [[tool.mypy.overrides]]
-module = "maxitor.samples.*"
+module = "aoa.maxitor.samples.*"
 disallow_untyped_decorators = false
 
 [[tool.mypy.overrides]]
@@ -161,7 +182,7 @@ disable_error_code = ["type-arg", "arg-type"]
 # COVERAGE
 # ============================================================================
 [tool.coverage.run]
-source = ["src/action_machine"]
+source = ["packages/aoa-action-machine/src/aoa/action_machine"]
 branch = true
 omit = [
     "*/testing/*",
@@ -247,8 +268,8 @@ ignored-modules = ["asyncpg"]
 [tool.ruff]
 target-version = "py312"
 line-length = 120
-# `src`: библиотека (`action_machine`) и примеры (`examples`); плюс тесты.
-src = ["src", "tests", "scripts"]
+# `packages/` — исходники `aoa.*`; плюс тесты, скрипты и meta-package ``aoa_run``.
+src = ["packages", "tests", "scripts", "aoa_run"]
 
 [tool.ruff.lint]
 select = [
@@ -280,16 +301,16 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"src/action_machine/testing/stubs.py" = ["N802"]
-"src/action_machine/intents/checkers/__init__.py" = ["RUF022"]
+"packages/aoa-action-machine/src/aoa/action_machine/testing/stubs.py" = ["N802"]
+"packages/aoa-action-machine/src/aoa/action_machine/intents/checkers/__init__.py" = ["RUF022"]
 # ``runtime/__init__.py`` — stdlib import block only; isort order is intentional.
 # Отложенные импорты после ``BaseAction`` — отдельный блок (см. комментарий в файле).
-"src/action_machine/model/base_action.py" = ["I001"]
-"src/examples/fastapi_mcp_services/app_fastapi_service.py" = ["E402"]
-"src/examples/fastapi_mcp_services/app_mcp_service.py" = ["E402"]
+"packages/aoa-action-machine/src/aoa/action_machine/model/base_action.py" = ["I001"]
+"packages/aoa-examples/src/aoa/examples/fastapi_mcp_services/app_fastapi_service.py" = ["E402"]
+"packages/aoa-examples/src/aoa/examples/fastapi_mcp_services/app_mcp_service.py" = ["E402"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["action_machine", "examples"]
+known-first-party = ["aoa"]
 
 # ============================================================================
 # BLACK
@@ -304,15 +325,15 @@ target-version = ["py312"]
 [tool.isort]
 profile = "black"
 line_length = 120
-known_first_party = ["action_machine"]
-# Единый корень `src`: библиотека и примеры переживают git mv без смены этого списка.
-src_paths = ["src", "tests"]
+known_first_party = ["aoa"]
+# Единый корень `packages/`: исходники `aoa.*`, meta ``aoa_run``, тесты.
+src_paths = ["packages", "aoa_run", "tests"]
 
 # ============================================================================
 # VULTURE
 # ============================================================================
 [tool.vulture]
-paths = ["src/action_machine"]
+paths = ["packages/aoa-action-machine/src/aoa/action_machine"]
 min_confidence = 80
 exclude = ["tests/"]
 
@@ -320,22 +341,26 @@ exclude = ["tests/"]
 # TASKIPY — УДОБНЫЕ КОМАНДЫ
 # ============================================================================
 [tool.taskipy.tasks]
-test = "pytest tests/ -v"
-cov = "pytest tests/ --cov=src/action_machine --cov-report=term-missing"
-# Линт по `src/` (библиотека и примеры) и `tests/`.
-lint = "ruff check src/ tests/ scripts/"
-fmt = "black src/ tests/ && isort src/ tests/"
-# Строгая проверка пакета; полное дерево `src/` — `task typecheck`.
-types = "mypy src/action_machine"
+test = "pytest tests/ --ignore=tests/packaging -v"
+packaging-smoke = "pytest tests/packaging -v"
+build-packages = "uv run --group dev python -m build packages/aoa-graph && uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-maxitor && uv run --group dev python -m build packages/aoa-examples"
+cov = "pytest tests/ --ignore=tests/packaging --cov=packages/aoa-action-machine/src/aoa/action_machine --cov-report=term-missing"
+# Lint sources under packages/, tests/, scripts/, and the root meta package ``aoa_run``.
+lint = "ruff check packages/ tests/ scripts/ aoa_run/"
+fmt = "black packages/ tests/ aoa_run/ && isort packages/ tests/ aoa_run/"
+# Narrow mypy pass on action_machine; full tree: ``task typecheck``.
+types = "mypy packages/aoa-action-machine/src"
 test-layer-imports = "python scripts/check_test_layer_imports.py"
 samples-public-api = "python scripts/check_maxitor_samples_public_api.py"
 package-boundaries = "python scripts/check_package_boundaries.py"
-check = "task lint && task types && task package-boundaries && task test-layer-imports && task samples-public-api && task test"
-dead = "vulture src/action_machine"
-typecheck = "mypy src/"
-pylint = "pylint src/"
-cc = "radon cc src/ -a -nb"
-mi = "radon mi src/ -nb"
+package-boundaries-tests = "python scripts/check_package_boundaries.py --tests"
+package-metadata = "python scripts/check_package_metadata.py"
+check = "task lint && task types && task package-boundaries && task package-boundaries-tests && task package-metadata && task build-packages && task packaging-smoke && task test-layer-imports && task samples-public-api && task test"
+dead = "vulture packages/aoa-action-machine/src/aoa/action_machine"
+typecheck = "mypy packages/"
+pylint = "pylint packages/"
+cc = "radon cc packages/ -a -nb"
+mi = "radon mi packages/ -nb"
 
 [dependency-groups]
 dev = [

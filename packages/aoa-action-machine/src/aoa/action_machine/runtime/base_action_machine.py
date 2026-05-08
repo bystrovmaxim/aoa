@@ -1,0 +1,101 @@
+# packages/aoa-action-machine/src/aoa/action_machine/runtime/base_action_machine.py
+"""
+Abstract base class for all ActionMachine runtime machines.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+``BaseActionMachine`` defines the contract shared by all runtime machines.
+A machine is the central executor that accepts action instance, input params,
+execution context, and resource connections, then runs the action pipeline with
+role checks, validations, and plugin notifications.
+
+═══════════════════════════════════════════════════════════════════════════════
+MACHINE HIERARCHY
+═══════════════════════════════════════════════════════════════════════════════
+
+``BaseActionMachine`` exposes two API layers:
+
+1. PUBLIC: abstract ``run()`` entry point for callers.
+   Concrete machines define whether it is async (``ActionProductMachine``)
+   or sync (``SyncActionProductMachine``).
+
+2. INTERNAL: ``_run_internal()`` pipeline implementation with support for
+   nesting, resources, and rollup flag. Called from ``run()`` and recursively
+   from ``ToolsBox.run()`` for child actions.
+
+═══════════════════════════════════════════════════════════════════════════════
+ROLLUP PARAMETER
+═══════════════════════════════════════════════════════════════════════════════
+
+``rollup: bool`` in ``_run_internal()`` controls transaction rollback mode.
+Production machines (``ActionProductMachine``, ``SyncActionProductMachine``)
+always pass ``rollup=False``. TestBench-style runners pass rollup explicitly
+through terminal methods so tester chooses mode intentionally.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    BaseActionMachine (ABC)
+        │
+        ├── ActionProductMachine          (async, production)
+        │
+        └── SyncActionProductMachine      (sync, production)
+
+"""
+
+from abc import ABC, abstractmethod
+from typing import Any, TypeVar
+
+from aoa.action_machine.context.context import Context
+from aoa.action_machine.model.base_action import BaseAction
+from aoa.action_machine.model.base_params import BaseParams
+from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.resources.base_resource import BaseResource
+
+P = TypeVar("P", bound=BaseParams)
+R = TypeVar("R", bound=BaseResult)
+
+
+class BaseActionMachine(ABC):
+    """
+    Abstract base class for all runtime machines.
+
+    Defines public ``run()`` contract and internal ``_run_internal()`` hook.
+    Concrete machines provide async/sync entry behavior and full pipeline logic.
+    """
+
+    @abstractmethod
+    async def run(
+        self,
+        context: Context,
+        action: BaseAction[P, R],
+        params: P,
+        connections: dict[str, BaseResource] | None = None,
+    ) -> R:
+        """
+        Execute action and return typed result.
+
+        Public entry point. Async machines expose coroutine semantics; sync
+        machines provide regular call semantics.
+        """
+        pass
+
+    async def _run_internal(
+        self,
+        context: Context,
+        action: BaseAction[P, R],
+        params: P,
+        resources: dict[type[Any], Any] | None,
+        connections: dict[str, BaseResource] | None,
+        nested_level: int,
+        rollup: bool,
+    ) -> R:
+        """
+        Internal pipeline execution hook with nesting and rollup support.
+
+        Called from ``run()`` at root level and recursively for child actions.
+        """
+        raise NotImplementedError

@@ -1,7 +1,7 @@
 # tests/graph/__init__.py
 """
-Tests for ``graph``: builders, validation, ``NodeGraphCoordinator``, and domain helpers.
+Tests for ``aoa.graph`` only (pure graph zone).
 
-Most intent inspectors have dedicated tests under ``tests/intents/`` or
-``tests/scenarios/``; this package holds graph-contract and coordinator coverage.
+Graph tests that need ``aoa.action_machine`` live under ``tests/action_machine/graph_host/``.
+ActionMachine layer tests live under ``tests/action_machine/``.
 """

@@ -1,0 +1,25 @@
+# packages/aoa-maxitor/pyproject.toml — publishable distribution for ``aoa.maxitor``.
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aoa-maxitor"
+version = "1.0.0"
+description = "Visualization and sample domains built on ActionMachine."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+authors = [{ name = "@Bystrov.Maxim" }]
+dependencies = [
+    "aoa-graph==1.0.0",
+    "aoa-action-machine==1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/action-machine/action-machine"
+Documentation = "https://action-machine.readthedocs.io"
+Repository = "https://github.com/action-machine/action-machine"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aoa"]
