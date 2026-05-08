@@ -999,7 +999,8 @@ function initDomainPicker() {{
     return;
   }}
 
-  enabledDomains = new Set();
+  // Multiple bounded contexts: start with every domain visible (merged diagram).
+  enabledDomains = new Set(keys);
   renderDomainPanel();
   initNeighborhoodFilter();
 }}

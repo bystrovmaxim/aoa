@@ -21,5 +21,14 @@ Homepage = "https://github.com/action-machine/action-machine"
 Documentation = "https://action-machine.readthedocs.io"
 Repository = "https://github.com/action-machine/action-machine"
 
+[project.optional-dependencies]
+flet = [
+    "flet>=0.84,<1.0",
+    "flet-webview>=0.1.0,<1.0",
+]
+
+[project.scripts]
+maxitor-flet = "aoa.maxitor.flet_shell.__main__:run"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/aoa"]
