@@ -9,24 +9,10 @@
     <title>@@HTML_ESCAPED_TITLE@@</title>
     <script src="@@G6_CDN_URL@@"></script>
     <style>
+        @@INTERCHANGE_CHROME_CSS@@
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        /* Interchange graph shell — shared tokens with ERD (frost panels, slate type, indigo accent). */
-        :root {
-            --ix-surface: #f4f5f7;
-            --ix-grid-dot: rgba(160, 168, 180, 0.42);
-            --ix-frost: rgba(255, 255, 255, 0.88);
-            --ix-frost-solid: rgba(255, 255, 255, 0.96);
-            --ix-border: rgba(0, 0, 0, 0.08);
-            --ix-text: #2c3e50;
-            --ix-text-strong: #0f172a;
-            --ix-muted: #5c6370;
-            --ix-accent: #1d4ed8;
-            --ix-accent-soft: #e7efff;
-            --ix-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
-            --ix-neutral-stripe: #95a5a6;
-        }
         html, body { width: 100%; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; }
-        /* Default chrome. G6 paints nodes on canvas; hover labels stack above via #graph-hover-labels. */
+        /* G6 canvas shell; hover labels stack above via #graph-hover-labels. */
         #container {
             position: relative;
             width: @@CONTAINER_WIDTH@@;
@@ -66,59 +52,18 @@
             border-left: 3px solid var(--ix-neutral-stripe);
             box-shadow: var(--ix-shadow);
         }
-        .color-legend {
-            position: fixed; top: 12px; left: 12px; z-index: 100000;
-            background: var(--ix-frost); backdrop-filter: blur(8px);
-            border: 1px solid var(--ix-border); border-radius: 8px;
-            padding: 8px 10px; min-width: 132px; max-width: 240px;
-            max-height: 80vh; overflow-y: auto; font-size: 11px;
-            color: var(--ix-text); box-shadow: var(--ix-shadow);
-            display: flex; flex-direction: column; gap: 5px;
-        }
-        .color-legend .legend-title {
-            font-weight: 600; font-size: 10px; text-transform: uppercase;
-            letter-spacing: 0.04em; color: var(--ix-muted); margin-bottom: 2px;
-        }
-        .color-legend .row { display: flex; align-items: center; gap: 8px; }
-        .color-legend .legend-icon {
-            width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
-            border: 1px solid rgba(0,0,0,0.12); object-fit: cover;
-            display: block;
-        }
-        .color-legend .swatch {
-            width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
-            border: 1px solid rgba(0,0,0,0.12);
-        }
-        .node-detail-shell {
-            position: fixed; top: 0; right: 0; height: 100vh; z-index: 100001;
-            width: min(306px, calc(92vw * 0.85)); max-width: 306px;
-            transform: translateX(100%);
-            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
-            box-shadow: -4px 0 28px rgba(0,0,0,0.07);
-        }
-        .node-detail-shell.is-open {
-            transform: translateX(0);
-            pointer-events: auto;
-        }
-        .node-detail-panel {
-            height: 100%;
-            background: #fff;
-            border-left: 1px solid #eee;
+        /* Graph inspector: panel padding + absolute close (drawer chrome is shared). */
+        .node-detail-shell.ix-node-detail-shell .node-detail-panel {
             padding: 22px 22px 28px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            position: relative;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
         }
-        .node-detail-close {
-            position: absolute; top: 10px; right: 10px;
-            width: 34px; height: 34px; border: none; border-radius: 8px;
-            background: transparent; color: #757575;
-            font-size: 22px; line-height: 1; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
+        .node-detail-shell.ix-node-detail-shell .node-detail-panel .node-detail-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
         }
-        .node-detail-close:hover { background: #f5f5f5; color: #333; }
+        .node-detail-shell.ix-node-detail-shell .node-detail-panel #node-detail-body {
+            padding: 0;
+        }
         .properties-entity-name {
             font-size: 16px; font-weight: 700; letter-spacing: 0.04em;
             text-transform: uppercase; color: #111; margin: 0 0 18px;
@@ -207,8 +152,8 @@
 </head>
 <body>
     <div id="container"></div>
-    <div id="color-legend" class="color-legend"></div>
-    <aside id="node-detail-shell" class="node-detail-shell" aria-hidden="true">
+    <div id="color-legend" class="color-legend ix-legend-panel"></div>
+    <aside id="node-detail-shell" class="node-detail-shell ix-node-detail-shell" aria-hidden="true">
       <div class="node-detail-panel">
         <button type="button" class="node-detail-close" id="node-detail-close" aria-label="Close properties">×</button>
         <div id="node-detail-body"></div>

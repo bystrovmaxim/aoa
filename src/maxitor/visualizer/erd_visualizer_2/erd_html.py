@@ -9,6 +9,10 @@ import json
 from pathlib import Path
 
 from action_machine.system_core.type_introspection import TypeIntrospection
+from maxitor.visualizer.graph_visualizer.visualizer_icons import (
+    svg_data_uri_for_interchange_domain_legend,
+)
+from maxitor.visualizer.shared.chrome import read_interchange_chrome_css
 
 # ── Package layout ────────────────────────────────────────────────────────────
 _PACKAGE_DIR = Path(__file__).resolve().parent
@@ -749,12 +753,12 @@ function showNodeDetail(nd) {{
   }}
 
   body.innerHTML = h;
-  shell.classList.add('open');
+  shell.classList.add('is-open');
 }}
 
 document.getElementById('node-detail-close')
   ?.addEventListener('click', () =>
-    document.getElementById('node-detail-shell')?.classList.remove('open'));
+    document.getElementById('node-detail-shell')?.classList.remove('is-open'));
 
 // ════════════════════════════════════════════════════════════════════════════
 //  Renderer switching
@@ -938,18 +942,25 @@ function renderDomainPanel() {{
     return;
   }}
   const accents = ERD_DATA.domain_accent_colors || {{}};
+  const legendIcons = ERD_DATA.domain_legend_icons || {{}};
   picker.style.display = 'flex';
   picker.innerHTML =
     '<div class="legend-title">Domains</div>' +
     keys.map((k) => {{
       const isOn = enabledDomains.has(k);
       const color = accents[k] || '#3b82f6';
+      const iconSrc = legendIcons[k] || '';
       const rowCls = 'domain-row' + (isOn ? ' is-on' : ' is-off');
+      const lead = iconSrc
+        ? '<img class="legend-icon" src="' + escAttr(iconSrc) + '" width="20" height="20" alt="" />'
+        : '<span class="legend-icon legend-icon--fallback" style="background-color:' +
+          escAttr(color) +
+          '"></span>';
       return (
         '<button type="button" class="' + rowCls + '" data-domain="' + escAttr(k) + '"' +
         ' role="switch" aria-pressed="' + isOn + '"' +
         ' title="Toggle domain visibility in the diagram">' +
-        '<span class="legend-icon legend-icon--accent" style="background-color:' + escAttr(color) + '"></span>' +
+        lead +
         '<span class="domain-row-label">' + escHtml(k) + '</span>' +
         '</button>'
       );
@@ -1109,6 +1120,18 @@ def _with_domain_accent_colors(erd_data: dict) -> dict:
     return erd_data
 
 
+def _with_domain_legend_icons(erd_data: dict) -> dict:
+    """Attach ``domain_legend_icons`` (data: URLs, Lucide Domain glyph per accent color)."""
+    accents = erd_data.get("domain_accent_colors")
+    if not isinstance(accents, dict) or not accents:
+        erd_data["domain_legend_icons"] = {}
+        return erd_data
+    erd_data["domain_legend_icons"] = {
+        str(k): svg_data_uri_for_interchange_domain_legend(str(v)) for k, v in accents.items()
+    }
+    return erd_data
+
+
 # ── Python API ────────────────────────────────────────────────────────────────
 
 
@@ -1124,7 +1147,11 @@ def _make_bootstrap(erd_data: dict) -> str:
 
 
 def _template_raw() -> str:
-    return _TEMPLATE_HTML.read_text(encoding="utf-8")
+    css = read_interchange_chrome_css()
+    return _TEMPLATE_HTML.read_text(encoding="utf-8").replace(
+        "@@INTERCHANGE_CHROME_CSS@@",
+        css,
+    )
 
 
 def _load_coord_export_helpers():
@@ -1155,6 +1182,7 @@ def write_erd_html(
     out.parent.mkdir(parents=True, exist_ok=True)
 
     _with_domain_accent_colors(erd_data)
+    _with_domain_legend_icons(erd_data)
     bootstrap = _make_bootstrap(erd_data)
     tpl = _template_raw()
 
