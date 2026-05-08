@@ -100,7 +100,7 @@ def _default_archive_logs_dir() -> Path:
 
 
 # Default write target for :func:`export_interchange_axes_graph_html`.
-HTML_PATH: Path = _default_archive_logs_dir() / "graph_node_2.html"
+HTML_PATH: Path = _default_archive_logs_dir() / "graph_node.html"
 
 # Okabe–Ito ``#E41A1C`` is reserved for debug DAG-cycle violations (edges + incident nodes only).
 DAG_CYCLE_VIOLATION_COLOR = "#E41A1C"
