@@ -168,6 +168,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         return {"txn_id": txn_id}
 
     @regular_aspect("Calculate total")
+    @result_string("txn_id", required=True, min_length=1)
     @result_float("total", required=True, min_value=0.0)
     async def calc_total_aspect(
         self,
@@ -183,9 +184,9 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         A real system might apply discounts, tax, etc.
 
         Returns:
-            dict with key total — final amount.
+            dict with previous txn_id and key total — final amount.
         """
-        return {"total": params.amount}
+        return {"txn_id": state["txn_id"], "total": params.amount}
 
     @summary_aspect("Build order result")
     async def build_result_summary(

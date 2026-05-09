@@ -335,7 +335,7 @@ class AfterRegularAspectEvent(RegularAspectEvent):
     Emitted via ``PluginCoordinator.emit_after_regular_aspect``.
 
     Attributes:
-        aspect_result: Dict merged into state after checker validation (e.g.
+        aspect_result: Dict that became the next state after checker validation (e.g.
             ``{"txn_id": "TXN-001", "charged_amount": 500.0}``).
         duration_ms: Wall time for the aspect call plus checker work, in milliseconds.
     """

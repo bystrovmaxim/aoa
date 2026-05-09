@@ -8,7 +8,7 @@ PURPOSE
 
 Provide a dedicated component for aspect execution in machine orchestration.
 This component owns regular/summary execution paths, including
-``context_requires`` handling, checker validation, and immutable state merge.
+``context_requires`` handling, checker validation, and immutable state replacement.
 ``execute_regular`` and ``execute_summary`` share ``call_aspect`` as the sole
 aspect-method dispatcher for regular pipeline aspects (not compensators or saga rollback).
 
@@ -27,7 +27,7 @@ ARCHITECTURE / DATA FLOW
         │
         ├── execute_regular(...)
         │       ├── call_aspect(...)
-        │       ├── state merge
+        │       ├── state replacement
         │       └── checker application
         │
         └── execute_summary(...)
@@ -145,7 +145,7 @@ class AspectExecutor:
         connections: dict[str, BaseResource],
         context: Any,
     ) -> tuple[BaseState, dict[str, Any], float]:
-        """Execute one regular aspect with checker validation and state merge."""
+        """Execute one regular aspect with checker validation and state replacement."""
         aspect_start = time.time()
 
         new_state_dict = await self.call_aspect(
@@ -164,7 +164,6 @@ class AspectExecutor:
             )
 
         checker_nodes = aspect_node.get_checker_graph_nodes()
-        merged_state = BaseState(**{**state.to_dict(), **new_state_dict})
 
         if not checker_nodes and new_state_dict:
             raise ValidationFieldError(
@@ -183,7 +182,7 @@ class AspectExecutor:
             self._apply_checker_graph_nodes(checker_nodes, new_state_dict)
 
         duration_s = time.time() - aspect_start
-        return merged_state, new_state_dict, duration_s
+        return BaseState(**new_state_dict), new_state_dict, duration_s
 
     async def execute_summary(
         self,

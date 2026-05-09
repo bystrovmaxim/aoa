@@ -14,6 +14,7 @@ authors = [{ name = "@Bystrov.Maxim" }]
 dependencies = [
     "aoa-graph==1.0.0",
     "aoa-action-machine==1.0.0",
+    "networkx>=3.2,<4",
 ]
 
 [project.urls]

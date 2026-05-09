@@ -50,11 +50,11 @@ With ``@context_requires`` (8 parameters):
 Parameters:
     params       — action input params (frozen BaseParams).
     state_before — state before aspect execution (frozen BaseState).
-    state_after  — merged pipeline state after the aspect (frozen ``BaseState``)
+    state_after  — state returned by the aspect (frozen ``BaseState``)
                    when validation passed, or ``None`` when validation failed
                    after ``call()`` returned. A frame is still pushed and the
                    compensator runs on unwind with ``None``; values the aspect
-                   tried to publish never reached merged state.
+                   tried to publish never became pipeline state.
     box          — ToolsBox (same instance used by aspects).
     connections  — resource-manager dictionary.
     error        — exception that triggered rollback.
