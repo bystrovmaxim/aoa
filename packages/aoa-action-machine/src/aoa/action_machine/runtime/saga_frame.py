@@ -9,8 +9,8 @@ PURPOSE
 Each regular aspect with a compensator graph node contributes one ``SagaFrame``
 before its ``call()`` starts. The initial frame has ``state_after=None`` so a
 mid-call exception can still be compensated. Once the regular aspect step
-succeeds, the pipeline replaces the immutable frame with one carrying merged
-``state_after``. Frames are unwound in reverse order when the pipeline fails.
+succeeds, the pipeline replaces the immutable frame with one carrying the
+returned ``state_after``. Frames are unwound in reverse order when the pipeline fails.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -24,10 +24,10 @@ ARCHITECTURE / DATA FLOW
          +-- raise -> unwind pre-call frame
          |
          v
-    merge state + validate result (checkers / declared fields)
+    validate result + replace state (checkers / declared fields)
          |
          v
-    replace frame with state_after=merged
+    replace frame with state_after=returned state
          |
          v
     success continues; later failure unwinds current stack

@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Marks an action method as a regular aspect. The method must return a ``dict``
-of fields that are merged into state.
+containing the complete next state.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -15,7 +15,7 @@ ARCHITECTURE / DATA FLOW
 
 The decorator writes ``_new_aspect_meta`` on the method. The inspector reads
 that metadata into aspect snapshot entries. At runtime, the machine executes
-regular aspects in declaration order and merges returned fields into state.
+regular aspects in declaration order and replaces state with the returned dict.
 
 If ``@context_requires`` is present, ``ContextView`` is passed as ``ctx``:
 - without context: ``(self, params, state, box, connections)``
@@ -33,7 +33,7 @@ If ``@context_requires`` is present, ``ContextView`` is passed as ``ctx``:
     inspector snapshot
            |
            v
-    runtime state merge
+    runtime state replacement
 
 """
 

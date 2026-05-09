@@ -6,10 +6,10 @@ Frozen aspect-pipeline state with dynamic fields.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``BaseState`` is an immutable container for accumulated values between aspect
-pipeline steps. Each regular aspect returns a plain ``dict`` with new fields.
-The machine validates that dict with checkers and creates a NEW ``BaseState``
-by merging previous data with returned fields. Aspects receive state as
+``BaseState`` is an immutable container for values explicitly passed between
+aspect pipeline steps. Each regular aspect returns a plain ``dict`` that becomes
+the full next state. The machine validates that dict with checkers and creates a
+NEW ``BaseState`` from only the returned fields. Aspects receive state as
 read-only input; mutation is impossible after construction.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -29,9 +29,10 @@ FROZEN SEMANTICS
     state.total = 0           # -> ValidationError
     state["total"] = 0        # -> TypeError (no __setitem__)
 
-The only way to "change" state is to create a new instance:
+The only way to "change" state is to return a new dict from an aspect and let
+the machine create a new instance:
 
-    new_state = BaseState(**{**old_state.to_dict(), "discount": 10})
+    new_state = BaseState(total=old_state.total, discount=10)
 
 This ensures aspects cannot write into state directly and bypass checkers.
 The machine controls every added field through validation of aspect output.
@@ -51,9 +52,9 @@ ARCHITECTURE / DATA FLOW
     1. Machine creates empty state: state = BaseState()
     2. For each regular aspect:
        a. Call aspect with current frozen state.
-       b. Aspect returns dict with new fields.
+       b. Aspect returns dict with the complete next state.
        c. Machine validates returned dict with checkers.
-       d. Machine creates new state: BaseState(**{**state.to_dict(), **new_dict})
+       d. Machine creates new state: BaseState(**new_dict)
     3. Summary aspect receives final frozen state and builds Result.
 
 At each step, state is a new object. Previous state is never modified.
@@ -63,8 +64,7 @@ SERIALIZATION
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``to_dict()`` returns all fields via ``model_dump()``.
-It is used by the machine for merge operations, and for passing state to
-plugins (``PluginEvent.state_aspect``) and loggers.
+It is used for passing state to plugins (``PluginEvent.state_aspect``) and loggers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 DIFFERENCE FROM BaseParams AND BaseResult
@@ -96,8 +96,7 @@ class BaseState(BaseSchema):
         """
         Return a dictionary view of all state fields.
 
-        Used by runtime to merge state with aspect output and to pass payloads
-        to plugins/loggers.
+        Used by runtime to pass payloads to plugins/loggers.
         """
         return self.model_dump()
 

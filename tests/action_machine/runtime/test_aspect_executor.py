@@ -170,7 +170,7 @@ async def test_execute_regular_rejects_extra_fields_not_backed_by_checkers() -> 
 
 
 @pytest.mark.asyncio
-async def test_execute_regular_merges_state_when_checkers_accept() -> None:
+async def test_execute_regular_replaces_state_when_checkers_accept() -> None:
     executor = AspectExecutor(LogCoordinator(loggers=[]))
     executor.call_aspect = AsyncMock(return_value={"allowed": "ok"})  # type: ignore[method-assign]
     aspect_node = MagicMock()
@@ -189,7 +189,7 @@ async def test_execute_regular_merges_state_when_checkers_accept() -> None:
         context=MagicMock(),
     )
 
-    assert merged.to_dict() == {"existing": "yes", "allowed": "ok"}
+    assert merged.to_dict() == {"allowed": "ok"}
     assert patch == {"allowed": "ok"}
     assert duration >= 0
 
