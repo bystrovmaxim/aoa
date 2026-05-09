@@ -23,7 +23,9 @@ from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.root.app_view.app_view_domen_domain import AppViewDomenDomain
 from aoa.maxitor.root.app_view.entities.node_entity import NodeEntity
 
@@ -69,9 +71,9 @@ class GetLeftMenuSidebarDataAction(
     async def prepare_level1_aspect(
         self,
         params: GetLeftMenuSidebarDataAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         rows = [
             {"id": s[0], "parent_id": None, "label": s[1], "type": s[2]}
@@ -85,9 +87,9 @@ class GetLeftMenuSidebarDataAction(
     async def prepare_level2_diagrams_aspect(
         self,
         params: GetLeftMenuSidebarDataAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         rows = [
             {"id": "application_interchange_graph", "parent_id": "applications_root", "label": "Interchange graph", "type": "graph"},
@@ -106,9 +108,9 @@ class GetLeftMenuSidebarDataAction(
     async def prepare_level2_nodes_aspect(
         self,
         params: GetLeftMenuSidebarDataAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         root_by_node_type = {str(row["type"]): str(row["id"]) for row in state["level1_rows"]}
         fallback_root = str(state["level1_rows"][-1]["id"])
@@ -133,9 +135,9 @@ class GetLeftMenuSidebarDataAction(
     async def prepare_level3_diagrams_aspect(
         self,
         params: GetLeftMenuSidebarDataAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         rows: list[dict[str, Any]] = []
         for node_id, data in params.nx_graph.nodes(data=True):
@@ -158,17 +160,13 @@ class GetLeftMenuSidebarDataAction(
     async def build_result_summary(
         self,
         params: GetLeftMenuSidebarDataAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> GetLeftMenuSidebarDataAction.Result:
-        def _entities(key: str) -> list[NodeEntity]:
-            raw = list(state[key])
-            return [NodeEntity.model_validate(r) for r in raw]
-
         return GetLeftMenuSidebarDataAction.Result(
-            level1_nodes=_entities("level1_rows"),
-            level2_diagrams=_entities("level2_diagram_rows"),
-            level2_nodes=_entities("level2_node_rows"),
-            level3_diagrams=_entities("level3_diagram_rows"),
+            level1_nodes=[NodeEntity.model_validate(r) for r in state["level1_rows"]],
+            level2_diagrams=[NodeEntity.model_validate(r) for r in state["level2_diagram_rows"]],
+            level2_nodes=[NodeEntity.model_validate(r) for r in state["level2_node_rows"]],
+            level3_diagrams=[NodeEntity.model_validate(r) for r in state["level3_diagram_rows"]],
         )
