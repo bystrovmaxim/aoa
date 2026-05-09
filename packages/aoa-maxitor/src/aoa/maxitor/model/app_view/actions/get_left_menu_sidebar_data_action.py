@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/root/app_view/actions/get_left_menu_sidebar_data_action.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/actions/get_left_menu_sidebar_data_action.py
 """
 GetLeftMenuSidebarDataAction — left menu rows for app-view from a NetworkX graph.
 
@@ -26,8 +26,8 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.root.app_view.app_view_domen_domain import AppViewDomenDomain
-from aoa.maxitor.root.app_view.entities.node_entity import NodeEntity
+from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
+from aoa.maxitor.model.app_view.entities.node_entity import NodeEntity
 
 _ROOT_SECTIONS: tuple[tuple[str, str, str], ...] = (
     ("applications_root", "Applications", "Application"),

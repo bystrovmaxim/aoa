@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/visualizer/graph_visualizer/domain_propagation.py
+# packages/aoa-maxitor/src/aoa/maxitor/diagrams/graph_visualizer/domain_propagation.py
 """
 InterchangeGraphDomainPropagation — domain bubble membership for G6 payloads.
 
@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Compute ``node_domains`` and ``bubble-sets`` plugin payloads used by
-:mod:`~aoa.maxitor.visualizer.graph_visualizer.visualizer` so the large HTML exporter stays within
+:mod:`~aoa.maxitor.diagrams.graph_visualizer.visualizer` so the large HTML exporter stays within
 maintainability limits (line count). Logic is deterministic dict graph only.
 """
 

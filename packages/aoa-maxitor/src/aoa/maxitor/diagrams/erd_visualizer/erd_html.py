@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/visualizer/erd_visualizer/erd_html.py
+# packages/aoa-maxitor/src/aoa/maxitor/diagrams/erd_visualizer/erd_html.py
 # mypy: ignore-errors
 # pylint: disable=import-outside-toplevel
 
@@ -10,17 +10,17 @@ from pathlib import Path
 
 from aoa.action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from aoa.maxitor.visualizer.graph_visualizer.visualizer import (
+from aoa.maxitor.diagrams.graph_visualizer.visualizer import (
     DEFAULT_COLOR,
     NODE_TYPE_FILL_COLORS,
     _serialize_graph_value,
 )
-from aoa.maxitor.visualizer.graph_visualizer.visualizer_icons import (
+from aoa.maxitor.diagrams.graph_visualizer.visualizer_icons import (
     svg_data_uri_for_graph_node_icon,
     svg_data_uri_for_interchange_domain_legend,
 )
-from aoa.maxitor.visualizer.shared.chrome import read_detail_panel_js, read_interchange_chrome_css
-from aoa.maxitor.visualizer.shared.workspace_logs import archive_logs_dir
+from aoa.maxitor.diagrams.shared.chrome import read_detail_panel_js, read_interchange_chrome_css
+from aoa.maxitor.diagrams.shared.workspace_logs import archive_logs_dir
 
 # ── Package layout ────────────────────────────────────────────────────────────
 _PACKAGE_DIR = Path(__file__).resolve().parent
@@ -1067,7 +1067,7 @@ def _detail_graph_node_data_for_erd_entity(
     qualified = eid
     graph_key = eid
 
-    # Match :func:`~aoa.maxitor.visualizer.graph_visualizer.visualizer._element_short_name` / ``_graph_node_title``:
+    # Match :func:`~aoa.maxitor.diagrams.graph_visualizer.visualizer._element_short_name` / ``_graph_node_title``:
     # ``id`` wins over ``label`` for the short dotted-path tail.
     raw = str(entity.id or label or "").strip()
     if not raw:

@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/visualizer/graph_visualizer/visualizer.py
+# packages/aoa-maxitor/src/aoa/maxitor/diagrams/graph_visualizer/visualizer.py
 """
 HTML export for :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` graphs.
 
@@ -19,7 +19,7 @@ Layout, legend, domain bubbles, and the inspector panel keep the existing G6
 behaviour while staying on the interchange-node pipeline only.
 
 Domain hull membership propagation is implemented in
-:mod:`~aoa.maxitor.visualizer.graph_visualizer.domain_propagation` so this module stays maintainable.
+:mod:`~aoa.maxitor.diagrams.graph_visualizer.domain_propagation` so this module stays maintainable.
 
 Edges use G6 ``line`` with default style; all edges are slate by default. Debug-collected
 forbidden DAG-cycle edges use the reserved violation red (**not** reused by any stable node-type
@@ -70,21 +70,21 @@ from aoa.graph.base_graph_edge import BaseGraphEdge
 from aoa.graph.base_graph_node import BaseGraphNode
 from aoa.graph.edge_relationship import Composition
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.visualizer.graph_visualizer.domain_propagation import (
+from aoa.maxitor.diagrams.graph_visualizer.domain_propagation import (
     bubble_sets_plugins_for_domains as _bubble_sets_plugins_for_domains,
 )
-from aoa.maxitor.visualizer.graph_visualizer.domain_propagation import (
+from aoa.maxitor.diagrams.graph_visualizer.domain_propagation import (
     domain_sort_key_for_id as _domain_sort_key_for_id,
 )
-from aoa.maxitor.visualizer.graph_visualizer.domain_propagation import (
+from aoa.maxitor.diagrams.graph_visualizer.domain_propagation import (
     propagate_node_domains as _propagate_node_domains,
 )
-from aoa.maxitor.visualizer.graph_visualizer.visualizer_icons import (
+from aoa.maxitor.diagrams.graph_visualizer.visualizer_icons import (
     svg_data_uri_for_graph_node_glyph_only,
     svg_data_uri_for_graph_node_icon,
 )
-from aoa.maxitor.visualizer.shared.chrome import read_detail_panel_js, read_interchange_chrome_css
-from aoa.maxitor.visualizer.shared.workspace_logs import archive_logs_dir
+from aoa.maxitor.diagrams.shared.chrome import read_detail_panel_js, read_interchange_chrome_css
+from aoa.maxitor.diagrams.shared.workspace_logs import archive_logs_dir
 
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 

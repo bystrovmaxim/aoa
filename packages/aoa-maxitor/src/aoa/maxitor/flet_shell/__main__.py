@@ -12,8 +12,8 @@ async def build_sidebar_data() -> object:
     """Load coordinator graph → NetworkX → ``GetLeftMenuSidebarDataAction`` result (``NodeEntity`` lists)."""
     from aoa.action_machine.context.context import Context
     from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-    from aoa.maxitor.root.app_view.actions.get_left_menu_sidebar_data_action import GetLeftMenuSidebarDataAction
-    from aoa.maxitor.root.app_view.actions.load_graph_action import LoadGraphAction
+    from aoa.maxitor.model.app_view.actions.get_left_menu_sidebar_data_action import GetLeftMenuSidebarDataAction
+    from aoa.maxitor.model.app_view.actions.load_graph_action import LoadGraphAction
 
     machine = ActionProductMachine()
 

@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/visualizer/erd_visualizer/erd_graph_data.py
+# packages/aoa-maxitor/src/aoa/maxitor/diagrams/erd_visualizer/erd_graph_data.py
 # mypy: ignore-errors
 # pylint: disable=too-many-branches,too-many-statements
 """

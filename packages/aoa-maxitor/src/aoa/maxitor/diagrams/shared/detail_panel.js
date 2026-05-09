@@ -1,4 +1,4 @@
-// src/maxitor/visualizer/shared/detail_panel.js
+// src/maxitor/diagrams/shared/detail_panel.js
 //
 // Shared right-side detail drawer runtime.
 // Renderers pass only a selected key to open(); this module owns data lookup,

@@ -1,9 +1,9 @@
-# packages/aoa-maxitor/src/aoa/maxitor/visualizer/graph_visualizer/__init__.py
+# packages/aoa-maxitor/src/aoa/maxitor/diagrams/graph_visualizer/__init__.py
 """
 Graph visualizer — :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` **BaseGraphNode** G6 HTML.
 
-Self-contained under :mod:`aoa.maxitor.visualizer.graph_visualizer`.
-Use :mod:`aoa.maxitor.visualizer.graph_visualizer.visualizer`.
+Self-contained under :mod:`aoa.maxitor.diagrams.graph_visualizer`.
+Use :mod:`aoa.maxitor.diagrams.graph_visualizer.visualizer`.
 """
 
 from __future__ import annotations

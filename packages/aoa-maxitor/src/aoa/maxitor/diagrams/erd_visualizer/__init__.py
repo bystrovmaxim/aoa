@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/visualizer/erd_visualizer/__init__.py
+# packages/aoa-maxitor/src/aoa/maxitor/diagrams/erd_visualizer/__init__.py
 """
 ERD viewer — graph-backed ERD export with Graphviz SVG, Cytoscape, and Mermaid
 renderers.

@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/visualizer/shared/chrome.py
+# packages/aoa-maxitor/src/aoa/maxitor/diagrams/shared/chrome.py
 
 """
 Interchange viewer chrome — CSS / JS injection for HTML exports.

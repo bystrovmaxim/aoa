@@ -18,7 +18,7 @@ from typing import Any, NamedTuple
 import flet as ft
 from flet.controls.control_event import Event
 
-from aoa.maxitor.root.app_view.entities.node_entity import NodeEntity
+from aoa.maxitor.model.app_view.entities.node_entity import NodeEntity
 
 _SIDEBAR_WIDTH = 228
 _ELEMENTS_CAP = 100

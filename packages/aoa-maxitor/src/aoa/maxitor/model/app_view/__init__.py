@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/root/app_view/__init__.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/__init__.py
 """App view actions for assembling sidebar-friendly data."""
 
 from .actions import GetLeftMenuSidebarDataAction

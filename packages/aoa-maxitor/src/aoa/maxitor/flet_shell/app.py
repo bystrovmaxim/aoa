@@ -42,14 +42,14 @@ from flet.controls.types import PagePlatform
 
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
+from aoa.maxitor.diagrams.erd_visualizer import write_erd_html_from_coordinator
+from aoa.maxitor.diagrams.graph_visualizer import generate_interchange_g6_html
 from aoa.maxitor.flet_shell.components import LeftSidebar
-from aoa.maxitor.root.app_view.entities.node_entity import NodeEntity
+from aoa.maxitor.model.app_view.entities.node_entity import NodeEntity
 from aoa.maxitor.samples.interchange_demo_coordinator import (
     build_registered_interchange_coordinator,
     import_sample_registration_modules,
 )
-from aoa.maxitor.visualizer.erd_visualizer import write_erd_html_from_coordinator
-from aoa.maxitor.visualizer.graph_visualizer import generate_interchange_g6_html
 
 _AUTO_BROWSER_ENV = "MAXITOR_FLET_AUTO_BROWSER"
 

@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/root/app_view/app_view_domen_domain.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/app_view_domen_domain.py
 """Bounded-context marker for root app-view orchestration."""
 
 from aoa.action_machine.domain import BaseDomain
