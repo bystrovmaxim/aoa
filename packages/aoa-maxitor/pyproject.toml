@@ -29,7 +29,7 @@ flet = [
 ]
 
 [project.scripts]
-maxitor-flet = "aoa.maxitor.flet_shell.__main__:run"
+maxitor-flet = "aoa.maxitor.main:run"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aoa"]

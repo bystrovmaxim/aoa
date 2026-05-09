@@ -9,6 +9,13 @@ PURPOSE
 Provide a minimal harness around :mod:`aoa.maxitor.samples`: one import path to the
 primary domain marker and the graph visualizer HTML export path built on
 ``NodeGraphCoordinator``.
+
+═══════════════════════════════════════════════════════════════════════════════
+FLET DESKTOP (OPTIONAL)
+═══════════════════════════════════════════════════════════════════════════════
+
+With ``aoa-maxitor[flet]``, run ``python -m aoa.maxitor.main`` (or the ``maxitor-flet`` console script)
+for the navigation + WebView workspace around interchange HTML exports.
 """
 
 from __future__ import annotations

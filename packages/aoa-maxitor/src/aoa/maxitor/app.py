@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/flet_shell/app.py
+# packages/aoa-maxitor/src/aoa/maxitor/app.py
 """
 Flet shell — six root domain buckets + custom model tree + WebView workspace.
 
@@ -17,7 +17,7 @@ Other roots: coordinator nodes only.
 Right: ``WebView(expand=True)`` or placeholder. Do not use ``set_javascript_mode()``
 on macOS (flet-webview issue #13).
 
-Run: ``python -m aoa.maxitor.flet_shell``.
+Run: ``python -m aoa.maxitor.main``.
 """
 
 from __future__ import annotations
@@ -42,9 +42,9 @@ from flet.controls.types import PagePlatform
 
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
+from aoa.maxitor.components import LeftSidebar
 from aoa.maxitor.diagrams.erd_visualizer import write_erd_html_from_coordinator
 from aoa.maxitor.diagrams.graph_visualizer import generate_interchange_g6_html
-from aoa.maxitor.flet_shell.components import LeftSidebar
 from aoa.maxitor.model.app_view.entities.node_entity import NodeEntity
 from aoa.maxitor.samples.interchange_demo_coordinator import (
     build_registered_interchange_coordinator,
@@ -176,7 +176,7 @@ async def main(page: ft.Page, sidebar_data: Any) -> None:
     page.theme = ft.Theme(use_material3=True, color_scheme_seed="#5c6370")
 
     if page.web:
-        page.add(ft.Text("Desktop only: python -m aoa.maxitor.flet_shell", selectable=True))
+        page.add(ft.Text("Desktop only: python -m aoa.maxitor.main", selectable=True))
         return
 
     if page.platform is not None and page.platform not in (
