@@ -1,5 +1,5 @@
-# packages/aoa-maxitor/src/aoa/maxitor/flet_shell/__main__.py
-"""CLI entry for ``python -m aoa.maxitor.flet_shell`` and the ``maxitor-flet`` script."""
+# packages/aoa-maxitor/src/aoa/maxitor/main.py
+"""CLI entry for ``python -m aoa.maxitor.main`` and the ``maxitor-flet`` script."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ async def build_sidebar_data() -> object:
 
 def run() -> None:
     """Start the Flet desktop shell (requires ``aoa-maxitor[flet]``)."""
-    from aoa.maxitor.flet_shell.app import main
+    from aoa.maxitor.app import main
 
     sidebar_data = asyncio.run(build_sidebar_data())
 

@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Maxitor Flet (module)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "aoa.maxitor.main",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true
+    },
+    {
+      "name": "Maxitor sample graph (module)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "aoa.maxitor",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true
+    }
+  ]
+}
