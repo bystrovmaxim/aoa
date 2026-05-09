@@ -1,9 +1,9 @@
-# packages/aoa-maxitor/src/aoa/maxitor/visualizer/graph_visualizer/visualizer_icons.py
+# packages/aoa-maxitor/src/aoa/maxitor/diagrams/graph_visualizer/visualizer_icons.py
 """
 Lucide icon markup (inner SVG children only) per ``node_type``.
 
 Icons are from `lucide-static` (ISC, https://github.com/lucide-icons/lucide).
-Rendered as white strokes on the colored node disk in :mod:`aoa.maxitor.visualizer.graph_visualizer.visualizer`
+Rendered as white strokes on the colored node disk in :mod:`aoa.maxitor.diagrams.graph_visualizer.visualizer`
 (G6 ``circle`` ``fill`` plus transparent glyph ``data:`` URLs).
 
 Interchange axis kinds share ``NODE_TYPE`` from :class:`~aoa.action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`,

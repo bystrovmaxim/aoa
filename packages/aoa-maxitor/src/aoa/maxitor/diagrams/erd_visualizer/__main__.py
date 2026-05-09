@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/visualizer/erd_visualizer/__main__.py
+# packages/aoa-maxitor/src/aoa/maxitor/diagrams/erd_visualizer/__main__.py
 # mypy: ignore-errors
 # pylint: disable=import-outside-toplevel
 """
@@ -6,9 +6,9 @@ CLI for standalone ERD HTML from the live sample coordinator graph.
 
 Usage
 -----
-    python -m aoa.maxitor.visualizer.erd_visualizer
-    python -m aoa.maxitor.visualizer.erd_visualizer --domain store
-    python -m aoa.maxitor.visualizer.erd_visualizer -o /tmp/my_erd.html
+    python -m aoa.maxitor.diagrams.erd_visualizer
+    python -m aoa.maxitor.diagrams.erd_visualizer --domain store
+    python -m aoa.maxitor.diagrams.erd_visualizer -o /tmp/my_erd.html
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ def _load_pkg():
     try:
         from erd_html import DEFAULT_ERD_HTML_PATH, write_erd_html_from_coordinator
     except ImportError:
-        from aoa.maxitor.visualizer.erd_visualizer.erd_html import (
+        from aoa.maxitor.diagrams.erd_visualizer.erd_html import (
             DEFAULT_ERD_HTML_PATH,
             write_erd_html_from_coordinator,
         )

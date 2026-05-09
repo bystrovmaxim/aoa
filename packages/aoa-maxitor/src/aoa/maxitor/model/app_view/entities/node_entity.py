@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/root/app_view/entities/node_entity.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/entities/node_entity.py
 """
 NodeEntity — sidebar / tree row record for app-view.
 
@@ -16,7 +16,7 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.maxitor.root.app_view.app_view_domen_domain import AppViewDomenDomain
+from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
 
 
 @entity(

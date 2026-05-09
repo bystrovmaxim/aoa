@@ -1,5 +1,5 @@
 # packages/aoa-maxitor/src/aoa/maxitor/tests/test_interchange_graph_visualizer.py
-"""Second-path G6 export for :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`aoa.maxitor.visualizer.graph_visualizer.visualizer`."""
+"""Second-path G6 export for :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`aoa.maxitor.diagrams.graph_visualizer.visualizer`."""
 
 from __future__ import annotations
 
@@ -26,11 +26,11 @@ from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
 from aoa.graph.composition_graph_edge import CompositionGraphEdge
 from aoa.graph.exceptions import InvalidGraphError
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.visualizer.graph_visualizer.domain_propagation import (
+from aoa.maxitor.diagrams.graph_visualizer.domain_propagation import (
     g6_edge_propagates_domain_from_host_to_child,
     propagate_node_domains,
 )
-from aoa.maxitor.visualizer.graph_visualizer.visualizer import (
+from aoa.maxitor.diagrams.graph_visualizer.visualizer import (
     G6_CDN_URL,
     generate_interchange_g6_html,
     interchange_edge_to_visual_dict,

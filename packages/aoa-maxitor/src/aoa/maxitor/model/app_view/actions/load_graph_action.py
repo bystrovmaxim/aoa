@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/root/app_view/actions/load_graph_action.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/actions/load_graph_action.py
 """
 LoadGraphAction — materialize a NetworkX view of a coordinator graph.
 
@@ -38,7 +38,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.graph.base_graph_node import BaseGraphNode
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.root.app_view.app_view_domen_domain import AppViewDomenDomain
+from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
 
 
 @meta(description="Load interchange graph into a NetworkX DiGraph (app-view)", domain=AppViewDomenDomain)

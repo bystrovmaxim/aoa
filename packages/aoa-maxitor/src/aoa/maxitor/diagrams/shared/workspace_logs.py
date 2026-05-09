@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/visualizer/shared/workspace_logs.py
+# packages/aoa-maxitor/src/aoa/maxitor/diagrams/shared/workspace_logs.py
 """
 workspace_logs — resolve ``archive/logs`` under the AOA workspace root.
 
