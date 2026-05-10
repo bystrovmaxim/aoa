@@ -1,14 +1,15 @@
-# packages/aoa-maxitor/src/aoa/maxitor/api/resources/maxitor_interchange_nx_resource.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/core/resources/service_graph_resource.py
 """
-MaxitorInterchangeNxResource — ActionMachine connection for the live interchange nx graph.
+ServiceGraphResource — ActionMachine connection for a NetworkX interchange graph.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Wrap the single ``networkx.DiGraph`` produced by ``LoadGraphAction`` so diagram
-actions declare ``@connection(..., key="interchange_nx")`` instead of carrying
-``nx_graph`` on every ``Params`` model.
+actions declare ``@connection(..., key=SERVICE_GRAPH_CONNECTION_KEY)`` instead of carrying
+the graph on every ``Params`` model. Callers read the graph via ``.service``
+(:class:`~aoa.action_machine.resources.external_service.external_service_resource.ExternalServiceResource`).
 """
 
 from __future__ import annotations
@@ -19,15 +20,17 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
+SERVICE_GRAPH_CONNECTION_KEY = "ServiceGraph"
+
 
 @meta(
     description="Interchange NetworkX graph view (LoadGraphAction nx_graph)",
     domain=DiagramsDomain,
 )
-class MaxitorInterchangeNxResource(ExternalServiceResource[Any]):
-    """Holds one ``DiGraph`` reference; aspects read ``nx_graph``."""
-
-    @property
-    def nx_graph(self) -> Any:
-        """Same graph object stored on ``MaxitorApiSession.nx_graph``."""
-        return self.service
+class ServiceGraphResource(ExternalServiceResource[Any]):
+    """
+    AI-CORE-BEGIN
+    ROLE: Expose one interchange ``DiGraph`` as ``ExternalServiceResource.service`` for ``@connection`` wiring.
+    CONTRACT: ``service`` is the live graph from ``LoadGraphAction``; connection key is :data:`SERVICE_GRAPH_CONNECTION_KEY`.
+    AI-CORE-END
+    """

@@ -16,7 +16,7 @@ derived from the graph; there is no request filter on this action. The wire
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ``connections[\"interchange_nx\"].nx_graph``
+    ``connections["ServiceGraph"].service`` (NetworkX ``DiGraph``)
           |
           v
     @regular_aspect — collect ``[label, qualname]`` rows (``erd_domain_label_rows``)
@@ -44,7 +44,10 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, JsonSchemaValue, ParamsStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.api.resources.maxitor_interchange_nx_resource import MaxitorInterchangeNxResource
+from aoa.maxitor.model.core.resources.service_graph_resource import (
+    SERVICE_GRAPH_CONNECTION_KEY,
+    ServiceGraphResource,
+)
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
 
@@ -53,15 +56,15 @@ from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
     domain=DiagramsDomain,
 )
 @check_roles(NoneRole)
-@connection(MaxitorInterchangeNxResource, key="interchange_nx", description="Interchange nx graph from LoadGraphAction")
+@connection(ServiceGraphResource, key=SERVICE_GRAPH_CONNECTION_KEY, description="Interchange nx graph from LoadGraphAction")
 class ListErdDomainQualnamesAction(
     BaseAction[ParamsStub, "ListErdDomainQualnamesAction.Result"],
 ):
     """
     AI-CORE-BEGIN
     ROLE: Emit ``domain_qualnames`` for ERD tab discovery on the client.
-    CONTRACT: ``domain_qualnames`` are computed only from ``connections[\"interchange_nx\"].nx_graph``.
-    INVARIANTS: Reads ``nx_graph`` only via ``connections[\"interchange_nx\"]``; pipeline uses ``@regular_aspect`` state keys then ``@summary_aspect``.
+    CONTRACT: ``domain_qualnames`` are computed only from ``connections["ServiceGraph"].service``.
+    INVARIANTS: Reads the graph only via ``connections["ServiceGraph"].service``; pipeline uses ``@regular_aspect`` state keys then ``@summary_aspect``.
     AI-CORE-END
     """
 
@@ -88,10 +91,9 @@ class ListErdDomainQualnamesAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        nx_resource = cast(MaxitorInterchangeNxResource, connections["interchange_nx"])
-        nx_graph = nx_resource.nx_graph
+        nx_resource = cast(ServiceGraphResource, connections[SERVICE_GRAPH_CONNECTION_KEY])
         rows: list[list[str]] = []
-        for nid, data in nx_graph.nodes(data=True):
+        for nid, data in nx_resource.service.nodes(data=True):
             if str(data.get("node_type", "")) != DomainGraphNode.NODE_TYPE:
                 continue
             nid_s = str(nid)
