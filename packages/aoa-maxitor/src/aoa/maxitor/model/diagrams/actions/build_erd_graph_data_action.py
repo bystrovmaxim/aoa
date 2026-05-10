@@ -9,7 +9,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Pure helpers read :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator`
-and build normalized ERD rows (:class:`ErdGraphPayload`, cells JSON, demo payload).
+and build normalized ERD rows (:class:`ErdGraphPayload`) and ``nodes`` / ``edges`` JSON.
 
 HTTP-facing flows use small actions (``ListErdDomainQualnamesAction``,
 ``GetErdDomainPayloadAction``) with ``@connection`` on :class:`~aoa.maxitor.api.resources.maxitor_interchange_nx_resource.MaxitorInterchangeNxResource`;
@@ -23,15 +23,11 @@ from typing import Annotated, Any, Literal, get_args, get_origin
 
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.entity import BaseEntity
-from aoa.action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 from aoa.action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 from aoa.maxitor.model.core.actions.load_graph_action import MAXITOR_NX_GRAPH_COORDINATOR_KEY
-
-LINE_HEIGHT = 24
-NODE_WIDTH = 190
 
 # Matches the React ERD viewer entity disk palette order for consistent demos.
 _DOMAIN_ACCENT_PALETTE: tuple[str, ...] = (
@@ -58,11 +54,6 @@ def _entity_nodes_by_id(coordinator: NodeGraphCoordinator) -> dict[str, EntityGr
 
 FieldRole = Literal["pk", "fk", "pk_fk", "field"]
 Cardinality = Literal["one", "zero_one", "one_many", "zero_many"]
-
-
-def _port_slug(entity_id: str, field_key: str) -> str:
-    stem = f"{entity_id}_{field_key}".replace(".", "_").replace(" ", "_")
-    return f"p_{stem}"
 
 
 @dataclass(frozen=True)
@@ -189,35 +180,6 @@ def _merge_field_role(existing: FieldRole, incoming: FieldRole) -> FieldRole:
     if existing == "pk_fk" or incoming == "pk_fk":
         return "pk_fk"
     return incoming if incoming != "field" else existing
-
-
-def domain_classes_from_coordinator(
-    coordinator: NodeGraphCoordinator,
-) -> tuple[type[BaseDomain], ...]:
-    """
-    Distinct :class:`~aoa.action_machine.domain.base_domain.BaseDomain` classes from interchange graph rows.
-
-    AI-CORE-BEGIN
-    ROLE: Enumerate bounded contexts present as ``DomainGraphNode`` payloads after coordinator build.
-    CONTRACT: Stable sort by lowercase ``domain.name``, then ``__name__``; one entry per class.
-    AI-CORE-END
-    """
-    domains: list[type[BaseDomain]] = []
-    seen: set[type[BaseDomain]] = set()
-    for node in coordinator.get_all_nodes():
-        if not isinstance(node, DomainGraphNode):
-            continue
-        dc = node.node_obj
-        if not isinstance(dc, type) or not issubclass(dc, BaseDomain):
-            continue
-        if dc in seen:
-            continue
-        seen.add(dc)
-        domains.append(dc)
-    domains.sort(
-        key=lambda c: (str(getattr(c, "name", None) or c.__name__).lower(), c.__qualname__),
-    )
-    return tuple(domains)
 
 
 def _append_relationship_edge_from_row(
@@ -414,151 +376,6 @@ def erd_payload_from_coordinator_for_domain(
     return ErdGraphPayload(entities=entities, relationships=tuple(relationships))
 
 
-def erd_document_from_coordinator_graph(
-    coordinator: NodeGraphCoordinator,
-    domain_cls: type[BaseDomain],
-) -> dict[str, list[dict[str, Any]]]:
-    """
-    Read the current coordinator graph and immediately return a cells-based ERD document.
-
-    AI-CORE-BEGIN
-    ROLE: Public graph-backed ERD serializer; it reads only the live coordinator graph.
-    CONTRACT: Uses ``coordinator.get_all_nodes()`` at call time and serializes only the requested domain.
-    OUTPUT: JSON with ``{"cells": [...]}`` in AntV-style table-node form. The SPA ERD viewer
-    uses a separate ``nodes``/``edges`` build from the same coordinator payload.
-    AI-CORE-END
-    """
-    return erd_payload_to_x6_document(
-        erd_payload_from_coordinator_for_domain(coordinator, domain_cls),
-    )
-
-
-def erd_payload_to_x6_document(payload: ErdGraphPayload) -> dict[str, list[dict[str, Any]]]:
-    """
-    Build an AntV-style ``fromJSON`` cell document (table ER nodes).
-
-    Top-level shape is ``{"cells": [ ... ]}``. Entity nodes use ``er-rect``-style
-    table markup with ``list`` ports for field rows; relationships attach to table
-    boundaries. Node ``x/y`` are placeholders; callers may run layout externally.
-
-    LOD keeps ``lod_port_names`` / ``lod_port_types`` aligned with ``list`` port order (tooltip + labels).
-    """
-    cells: list[dict[str, Any]] = []
-    entities = list(payload.entities)
-    for ent in entities:
-        fields = list(ent.fields)
-        if not fields:
-            attrs_dict = dict(ent.attributes)
-            if "id" not in attrs_dict:
-                fields.append(ErdFieldSpec(name="id", type="str", role="pk"))
-            for pk, pv in attrs_dict.items():
-                fields.append(ErdFieldSpec(name=str(pk), type=str(pv), role="pk" if pk == "id" else "field"))
-        if not fields:
-            fields = [ErdFieldSpec(name="—", type="—")]
-        lod_names: list[str] = []
-        lod_types: list[str] = []
-        lod_roles: list[str] = []
-        port_items: list[dict[str, Any]] = []
-        field_lines: list[str] = []
-        for fld in fields:
-            typ = str(fld.type)
-            role_label = {"pk": "PK", "fk": "FK", "pk_fk": "PK,FK", "field": ""}[fld.role]
-            lod_names.append(str(fld.name))
-            lod_types.append(typ)
-            lod_roles.append(role_label)
-            western = _port_slug(ent.id, fld.name)
-            role_font_weight = "bold" if fld.role in {"pk", "pk_fk"} else "normal"
-            port_items.append(
-                {
-                    "id": western,
-                    "group": "list",
-                    "attrs": {
-                        "portRoleLabel": {"text": role_label},
-                        "portNameLabel": {"text": str(fld.name), "fontWeight": role_font_weight},
-                        "portTypeLabel": {"text": typ},
-                    },
-                }
-            )
-            ref = f" -> {fld.references}" if fld.references else ""
-            field_lines.append(f"{role_label:5} {fld.name}: {typ}{ref}".strip())
-
-        n_ports = len(fields)
-        body_h = LINE_HEIGHT * (1 + n_ports)
-        cells.append(
-            {
-                "shape": "er-rect",
-                "id": ent.id,
-                "x": 12.0,
-                "y": 12.0,
-                "width": NODE_WIDTH,
-                "height": float(body_h),
-                "attrs": {"label": {"text": ent.label, "fontWeight": "bold"}},
-                "ports": {"items": port_items},
-                "data": {
-                    "lod_port_names": lod_names,
-                    "lod_port_types": lod_types,
-                    "lod_port_roles": lod_roles,
-                    "erd_entity_kind": "junction" if ent.is_junction else "entity",
-                },
-            }
-        )
-
-    for rel in payload.relationships:
-        lp: list[dict[str, Any]] = []
-        source_marker = _cardinality_marker(rel.source_cardinality)
-        target_marker = _cardinality_marker(rel.target_cardinality)
-        lp.append(
-            {
-                "attrs": {"label": {"text": source_marker, "fontSize": 12, "fontWeight": "bold", "fill": "#111827"}},
-                "position": {"distance": 0.08, "offset": {"y": -10}},
-            }
-        )
-        lp.append(
-            {
-                "attrs": {"label": {"text": target_marker, "fontSize": 12, "fontWeight": "bold", "fill": "#111827"}},
-                "position": {"distance": 0.92, "offset": {"y": -10}},
-            }
-        )
-        if rel.source == rel.target:
-            source_spec = {"cell": rel.source, "anchor": {"name": "right"}}
-            target_spec = {"cell": rel.target, "anchor": {"name": "right"}}
-        else:
-            source_spec = {"cell": rel.source, "anchor": {"name": "right"}}
-            target_spec = {"cell": rel.target, "anchor": {"name": "left"}}
-
-        cells.append(
-            {
-                "shape": "edge",
-                "id": rel.id,
-                "source": source_spec,
-                "target": target_spec,
-                "router": {"name": "orth"},
-                "connector": {"name": "rounded", "args": {"radius": 4}},
-                "attrs": {
-                    "line": {
-                        "stroke": "#374151",
-                        "strokeWidth": 1.4,
-                        "targetMarker": None,
-                        "sourceMarker": None,
-                    }
-                },
-                "labels": lp,
-                "data": {"erd_source_field": rel.source_field},
-            }
-        )
-
-    return {"cells": cells}
-
-
-def _cardinality_marker(cardinality: str) -> str:
-    return {
-        "one": "||",
-        "zero_one": "o|",
-        "one_many": "|<",
-        "zero_many": "o<",
-    }.get(cardinality, "")
-
-
 ERD_DEFAULT_ENTITY_COLORS: tuple[str, ...] = _DOMAIN_ACCENT_PALETTE
 
 
@@ -637,42 +454,3 @@ def node_graph_coordinator_from_interchange_nx(nx_graph: Any) -> NodeGraphCoordi
         )
         raise ValueError(msg)
     return coordinator
-
-
-def build_demo_erd_payload() -> ErdGraphPayload:
-    """Small sample diagram (customer / order / line) for smoke runs and ``__main__``."""
-    return ErdGraphPayload(
-        entities=(
-            ErdEntitySpec(
-                id="entity.customer",
-                label="Customer",
-                attributes={"email": "string", "status": "enum"},
-            ),
-            ErdEntitySpec(
-                id="entity.order",
-                label="Order",
-                attributes={"placed_at": "datetime", "total": "decimal"},
-            ),
-            ErdEntitySpec(
-                id="entity.order_line",
-                label="OrderLine",
-                attributes={"sku": "string", "qty": "int"},
-            ),
-        ),
-        relationships=(
-            ErdEdgeSpec(
-                id="rel.cust_orders",
-                source="entity.customer",
-                target="entity.order",
-                label="1 — * orders",
-                source_field="orders",
-            ),
-            ErdEdgeSpec(
-                id="rel.order_lines",
-                source="entity.order",
-                target="entity.order_line",
-                label="1 — * order_lines",
-                source_field="order_lines",
-            ),
-        ),
-    )
