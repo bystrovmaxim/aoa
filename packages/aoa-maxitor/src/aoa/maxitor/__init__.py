@@ -14,7 +14,7 @@ primary domain marker and the graph visualizer HTML export path built on
 FLET DESKTOP (OPTIONAL)
 ═══════════════════════════════════════════════════════════════════════════════
 
-With ``aoa-maxitor[flet]``, run ``python -m aoa.maxitor.main`` (or the ``maxitor-flet`` console script)
+With ``aoa-maxitor[flet]``, run ``python -m aoa.maxitor.app.main`` (or the ``maxitor-flet`` console script)
 for the navigation + WebView workspace around interchange HTML exports.
 """
 

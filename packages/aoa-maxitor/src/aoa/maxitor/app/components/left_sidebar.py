@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/components/left_sidebar.py
+# packages/aoa-maxitor/src/aoa/maxitor/app/components/left_sidebar.py
 """
 LeftSidebar — reusable Flet navigation component for the Maxitor shell.
 
@@ -6,7 +6,7 @@ LeftSidebar — reusable Flet navigation component for the Maxitor shell.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Own sidebar chrome and tree rendering so :mod:`aoa.maxitor.app` can focus on
+Own sidebar chrome and tree rendering so :mod:`aoa.maxitor.app.shell` can focus on
 workspace orchestration and viewer actions.
 """
 

@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/diagrams/graph_visualizer/visualizer.py
+# packages/aoa-maxitor/src/aoa/maxitor/app/diagrams/graph/component.py
 """
 HTML export for :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` graphs.
 
@@ -15,11 +15,11 @@ It does **not** call :meth:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinat
 :meth:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator.get_all_nodes` plus each node's ``edges``
 (no extra nodes, no ``rustworkx`` in this module's public API).
 
-Layout, legend, domain bubbles, and the inspector panel keep the existing G6
+Layout, legend, domain bubbles, and hover labels keep the existing G6
 behaviour while staying on the interchange-node pipeline only.
 
 Domain hull membership propagation is implemented in
-:mod:`~aoa.maxitor.diagrams.graph_visualizer.domain_propagation` so this module stays maintainable.
+:mod:`~aoa.maxitor.app.diagrams.graph.domain_propagation` so this module stays maintainable.
 
 Edges use G6 ``line`` with default style; all edges are slate by default. Debug-collected
 forbidden DAG-cycle edges use the reserved violation red (**not** reused by any stable node-type
@@ -28,7 +28,7 @@ nodes use indigo (:data:`NODE_TYPE_FILL_COLORS`), not violation red. On node hov
 use a flat rectangular panel; the **left stripe** uses each node’s ``data.fill`` (same hue as the
 on-canvas disk). Canvas rendering uses G6 **circle** nodes (``fill`` + glyph ``iconSrc`` only). Hover
 ``hub`` / ``nb`` add a **black** ``stroke`` ring (same ``lineWidth`` as the default grey outline). Legend
-and the details panel use full-chroma disk ``iconSrc``.
+rows use full-chroma disk ``iconSrc``.
 Edge ``data`` still carries relationship fields for tests.
 """
 
@@ -70,21 +70,21 @@ from aoa.graph.base_graph_edge import BaseGraphEdge
 from aoa.graph.base_graph_node import BaseGraphNode
 from aoa.graph.edge_relationship import Composition
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.diagrams.graph_visualizer.domain_propagation import (
+from aoa.maxitor.app.diagrams.graph.domain_propagation import (
     bubble_sets_plugins_for_domains as _bubble_sets_plugins_for_domains,
 )
-from aoa.maxitor.diagrams.graph_visualizer.domain_propagation import (
+from aoa.maxitor.app.diagrams.graph.domain_propagation import (
     domain_sort_key_for_id as _domain_sort_key_for_id,
 )
-from aoa.maxitor.diagrams.graph_visualizer.domain_propagation import (
+from aoa.maxitor.app.diagrams.graph.domain_propagation import (
     propagate_node_domains as _propagate_node_domains,
 )
-from aoa.maxitor.diagrams.graph_visualizer.visualizer_icons import (
+from aoa.maxitor.app.diagrams.shared.chrome import read_interchange_chrome_css
+from aoa.maxitor.app.diagrams.shared.workspace_logs import archive_logs_dir
+from aoa.maxitor.app.resources.icons import (
     svg_data_uri_for_graph_node_glyph_only,
     svg_data_uri_for_graph_node_icon,
 )
-from aoa.maxitor.diagrams.shared.chrome import read_detail_panel_js, read_interchange_chrome_css
-from aoa.maxitor.diagrams.shared.workspace_logs import archive_logs_dir
 
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 
@@ -130,7 +130,7 @@ NODE_TYPE_FILL_COLORS: dict[str, str] = {
     SensitiveGraphNode.NODE_TYPE: "#A855F7",
     ParamsGraphNode.NODE_TYPE: "#CAB2D6",
     ResultGraphNode.NODE_TYPE: "#B2DF8A",
-    # Field and PropertyField share one hue; glyphs in `visualizer_icons` distinguish them.
+    # Field and PropertyField share one hue; glyphs in `icons` distinguish them.
     FieldGraphNode.NODE_TYPE: "#6B5B95",
     PropertyFieldGraphNode.NODE_TYPE: "#6B5B95",
 }
@@ -213,22 +213,6 @@ def _color_map_for_graph_node_types(node_types: Iterable[str]) -> dict[str, str]
     """Map each distinct ``node_type`` present in the graph to its fill color."""
     unique = sorted({str(t) for t in node_types if str(t)})
     return {t: _fill_color_for_graph_node_type(t) for t in unique}
-
-
-def _serialize_graph_value(value: Any) -> str:
-    if isinstance(value, type):
-        return f"{value.__module__}.{value.__qualname__}"
-    if value is None:
-        return ""
-    if isinstance(value, (dict, list, tuple)):
-        try:
-            return json.dumps(value, ensure_ascii=False, default=str)[:8000]
-        except (TypeError, ValueError):
-            return str(value)[:8000]
-    s = str(value)
-    return s[:8000] if len(s) > 8000 else s
-
-
 
 
 def _d3_seed_xy_for_nodes(  # pylint: disable=too-many-branches
@@ -447,10 +431,6 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
         graph_node_subtitle = _graph_node_subtitle(node)
         graph_key = _graph_node_key(node)
         qualified = _element_qualified_name(node)
-        # Serialized interchange node fields only; derived labels for the canvas live on ``data``.
-        payload_panel: dict[str, str] = {}
-        for k, v in node.items():
-            payload_panel[str(k)] = _serialize_graph_value(v)
         base_fill = colors.get(node_type, DEFAULT_COLOR)
         interchange_nid = str(node.get("id", ""))
         is_dag_violation_incident = interchange_nid in dag_cycle_violation_incident_ids
@@ -469,7 +449,6 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
                 "isDagCycleViolationIncident": is_dag_violation_incident,
                 "iconSrc": svg_data_uri_for_graph_node_icon(fill, node_type),
                 "glyphIconSrc": svg_data_uri_for_graph_node_glyph_only(node_type),
-                "payload_panel": payload_panel,
             },
         })
 
@@ -899,16 +878,6 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           }});
         }}
 
-        const detailPanel = window.InterchangeDetailPanel;
-        detailPanel.replaceData('graph-node', graphData.nodes, {{ template: 'graph-node' }});
-
-        graph.on('node:click', (evt) => {{
-          let id = evt.target?.id;
-          if (id == null && evt.itemId != null) id = evt.itemId;
-          if (id == null && Array.isArray(evt.items) && evt.items[0]?.id != null) id = evt.items[0].id;
-          if (id != null) detailPanel.open(String(id));
-        }});
-
         graph.on('node:pointerover', (evt) => {{
           hoverPointerOutPending = false;
           clearViewportQuietTimer();
@@ -941,7 +910,6 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
           clearNeighborGlow();
           hoverLabelNodeId = null;
           scheduleHoverOverlaySync();
-          detailPanel.close();
         }});
 
         graph.on('canvas:mouseleave', () => {{
@@ -1034,7 +1002,6 @@ def generate_interchange_g6_html(  # pylint: disable=too-many-statements
     html_document = (
         _interchange_g6_shell_html_raw()
         .replace("@@INTERCHANGE_CHROME_CSS@@", read_interchange_chrome_css())
-        .replace("@@DETAIL_PANEL_SCRIPT@@", read_detail_panel_js())
         .replace("@@HTML_ESCAPED_TITLE@@", safe_title)
         .replace("@@G6_CDN_URL@@", G6_CDN_URL)
         .replace("@@CONTAINER_WIDTH@@", width)

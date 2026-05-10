@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/diagrams/erd_visualizer/__init__.py
+# packages/aoa-maxitor/src/aoa/maxitor/app/diagrams/erd/__init__.py
 """
 ERD viewer — graph-backed ERD export with Graphviz SVG, Cytoscape, and Mermaid
 renderers.
@@ -9,7 +9,7 @@ PURPOSE
 
 :func:`.erd_document_from_coordinator_graph` reads the current coordinator
 graph and returns a graph document (cells) for one domain.
-:mod:`.erd_html` injects CSS + an ES-module bootstrap and
+:mod:`.component` injects CSS + an ES-module bootstrap and
 :func:`.write_erd_html_from_coordinator` takes a production
 :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` and an optional
 :class:`~aoa.action_machine.domain.base_domain.BaseDomain`, reads graph vertices
@@ -24,7 +24,14 @@ Renderers available in the generated HTML
 
 from __future__ import annotations
 
-from .erd_graph_data import (
+from .component import (
+    DEFAULT_ERD_HTML_PATH,
+    GRAPHVIZ_MODULE_URL,
+    MERMAID_MODULE_URL,
+    write_erd_html,
+    write_erd_html_from_coordinator,
+)
+from .graph_data import (
     ErdEdgeSpec,
     ErdEntitySpec,
     ErdGraphPayload,
@@ -33,13 +40,6 @@ from .erd_graph_data import (
     erd_document_from_coordinator_graph,
     erd_payload_from_coordinator_for_domain,
     erd_payload_to_x6_document,
-)
-from .erd_html import (
-    DEFAULT_ERD_HTML_PATH,
-    GRAPHVIZ_MODULE_URL,
-    MERMAID_MODULE_URL,
-    write_erd_html,
-    write_erd_html_from_coordinator,
 )
 
 __all__ = [

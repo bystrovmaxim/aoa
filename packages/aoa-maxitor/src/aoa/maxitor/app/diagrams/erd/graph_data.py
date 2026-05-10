@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/diagrams/erd_visualizer/erd_graph_data.py
+# packages/aoa-maxitor/src/aoa/maxitor/app/diagrams/erd/graph_data.py
 # mypy: ignore-errors
 # pylint: disable=too-many-branches,too-many-statements
 """
@@ -6,7 +6,7 @@ Pure data layer for normalized ERD-style graphs — no browser runtime.
 
 Builds a **cells** JSON document (``{"cells": [...]}``) from the current
 :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` graph at export time.
-The standalone :mod:`erd_html` viewer consumes a parallel nodes/edges projection;
+The standalone :mod:`component` viewer consumes a parallel nodes/edges projection;
 these cells remain available for tooling and compatibility. Sample entities stay
 one class per file; ERD rows come from their live graph metadata and declared
 relation fields.
@@ -28,7 +28,7 @@ from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 LINE_HEIGHT = 24
 NODE_WIDTH = 190
 
-# Matches ``erd_html._ENTITY_COLORS`` order for consistent HTML viewer demos.
+# Matches ``component._ENTITY_COLORS`` order for consistent HTML viewer demos.
 _DOMAIN_ACCENT_PALETTE: tuple[str, ...] = (
     "#3b82f6",
     "#8b5cf6",
@@ -419,7 +419,7 @@ def erd_document_from_coordinator_graph(
     AI-CORE-BEGIN
     ROLE: Public graph-backed ERD serializer; it reads only the live coordinator graph.
     CONTRACT: Uses ``coordinator.get_all_nodes()`` at call time and serializes only the requested domain.
-    OUTPUT: JSON with ``{"cells": [...]}`` in AntV-style table-node form. The :mod:`erd_html`
+    OUTPUT: JSON with ``{"cells": [...]}`` in AntV-style table-node form. The :mod:`component`
     HTML writer uses a separate nodes/edges build from the same coordinator payload.
     AI-CORE-END
     """
@@ -479,13 +479,6 @@ def erd_payload_to_x6_document(payload: ErdGraphPayload) -> dict[str, list[dict[
 
         n_ports = len(fields)
         body_h = LINE_HEIGHT * (1 + n_ports)
-        panel = {
-            "kind": "entity",
-            "id": ent.id,
-            "label": ent.label,
-            "attributes": "\n".join(field_lines),
-            "junction": str(bool(ent.is_junction)),
-        }
         cells.append(
             {
                 "shape": "er-rect",
@@ -497,9 +490,6 @@ def erd_payload_to_x6_document(payload: ErdGraphPayload) -> dict[str, list[dict[
                 "attrs": {"label": {"text": ent.label, "fontWeight": "bold"}},
                 "ports": {"items": port_items},
                 "data": {
-                    "payload_panel": {
-                        k: _serialize_panel_value(v) if isinstance(v, dict) else str(v) for k, v in panel.items()
-                    },
                     "lod_port_names": lod_names,
                     "lod_port_types": lod_types,
                     "lod_port_roles": lod_roles,
@@ -531,18 +521,6 @@ def erd_payload_to_x6_document(payload: ErdGraphPayload) -> dict[str, list[dict[
             source_spec = {"cell": rel.source, "anchor": {"name": "right"}}
             target_spec = {"cell": rel.target, "anchor": {"name": "left"}}
 
-        epanel = {
-            "kind": "relationship",
-            "id": rel.id,
-            "source": rel.source,
-            "target": rel.target,
-            "label": rel.label,
-            "source_field": rel.source_field,
-            "target_field": rel.target_field,
-            "source_cardinality": rel.source_cardinality,
-            "target_cardinality": rel.target_cardinality,
-            "relationship_kind": rel.relationship_kind,
-        }
         cells.append(
             {
                 "shape": "edge",
@@ -560,18 +538,11 @@ def erd_payload_to_x6_document(payload: ErdGraphPayload) -> dict[str, list[dict[
                     }
                 },
                 "labels": lp,
-                "data": {"payload_panel": {k: str(v) for k, v in epanel.items()}, "erd_source_field": rel.source_field},
+                "data": {"erd_source_field": rel.source_field},
             }
         )
 
     return {"cells": cells}
-
-
-def _serialize_panel_value(value: Any) -> str:
-    if isinstance(value, dict):
-        parts = [f"{k}: {v}" for k, v in sorted(value.items())]
-        return "\n".join(parts) if parts else ""
-    return str(value)
 
 
 def _cardinality_marker(cardinality: str) -> str:

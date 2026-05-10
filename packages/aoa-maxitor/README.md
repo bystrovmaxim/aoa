@@ -6,4 +6,4 @@ See the [repository README](https://github.com/action-machine/action-machine/blo
 
 ## Flet desktop shell
 
-With `aoa-maxitor[flet]` installed, run `python -m aoa.maxitor.main` (or the `maxitor-flet` console script from the same extra).
+With `aoa-maxitor[flet]` installed, run `python -m aoa.maxitor.app.main` (or the `maxitor-flet` console script from the same extra).
