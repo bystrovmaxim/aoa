@@ -8,18 +8,24 @@ import ListItemText from "@mui/material/ListItemText";
 import ListSubheader from "@mui/material/ListSubheader";
 import Typography from "@mui/material/Typography";
 import { DiagramListIcon } from "./DiagramListIcon";
-import { diagramRouteForRow, sortNodes } from "./model";
+import type { DiagramSelection } from "../diagram-viewer";
+import { diagramSelectionForRow, sortNodes } from "./model";
 import type { SidebarGroupedMaps, SidebarPayload } from "./types";
 
 type SidebarNavProps = {
   sidebar: SidebarPayload | null;
   group: SidebarGroupedMaps | null;
   error: string | null;
-  diagramUrl: string | null;
-  onSelectDiagram: (url: string) => void;
+  diagram: DiagramSelection | null;
+  onSelectDiagram: (sel: DiagramSelection) => void;
 };
 
-export function SidebarNav({ sidebar, group, error, diagramUrl, onSelectDiagram }: SidebarNavProps) {
+function selectionKey(sel: DiagramSelection): string {
+  if (sel.kind === "iframe") return `iframe:${sel.url}`;
+  return `erd:${sel.qualifier ?? "all"}`;
+}
+
+export function SidebarNav({ sidebar, group, error, diagram, onSelectDiagram }: SidebarNavProps) {
   return (
     <Box sx={{ overflow: "auto", px: 0.5, pt: 1, pb: 2 }}>
       {error && (
@@ -49,13 +55,13 @@ export function SidebarNav({ sidebar, group, error, diagramUrl, onSelectDiagram 
               }
             >
               {directDiagrams.map((node) => {
-                const dp = diagramRouteForRow(node);
+                const sel = diagramSelectionForRow(node);
                 return (
                   <ListItemButton
                     key={node.id}
-                    disabled={!dp}
-                    selected={dp !== null && diagramUrl === dp}
-                    onClick={() => dp && onSelectDiagram(dp)}
+                    disabled={!sel}
+                    selected={sel !== null && diagram !== null && selectionKey(diagram) === selectionKey(sel)}
+                    onClick={() => sel && onSelectDiagram(sel)}
                     sx={{ pl: 2, py: 0.5 }}
                   >
                     <ListItemIcon sx={{ minWidth: 36 }}>
@@ -83,13 +89,13 @@ export function SidebarNav({ sidebar, group, error, diagramUrl, onSelectDiagram 
                     </ListItemButton>
                     <List dense disablePadding sx={{ pl: 3, borderLeft: 1, borderColor: "divider", ml: 2, mr: 0.5 }}>
                       {erdRows.map((e) => {
-                        const dp = diagramRouteForRow(e);
+                        const sel = diagramSelectionForRow(e);
                         return (
                           <ListItemButton
                             key={e.id}
-                            disabled={!dp}
-                            selected={dp !== null && diagramUrl === dp}
-                            onClick={() => dp && onSelectDiagram(dp)}
+                            disabled={!sel}
+                            selected={sel !== null && diagram !== null && selectionKey(diagram) === selectionKey(sel)}
+                            onClick={() => sel && onSelectDiagram(sel)}
                             sx={{ pl: 1, py: 0.25 }}
                           >
                             <ListItemIcon sx={{ minWidth: 32 }}>

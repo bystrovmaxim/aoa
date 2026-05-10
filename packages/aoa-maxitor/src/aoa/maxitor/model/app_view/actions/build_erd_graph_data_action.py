@@ -2,7 +2,7 @@
 # mypy: ignore-errors
 # pylint: disable=too-many-branches,too-many-statements
 """
-ERD graph materialization for app-view — NetworkX interchange view + ``BuildErdGraphDataAction``.
+ERD graph materialization — pure helpers for coordinator → JSON payloads.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -11,48 +11,29 @@ PURPOSE
 Pure helpers read :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator`
 and build normalized ERD rows (:class:`ErdGraphPayload`, cells JSON, demo payload).
 
-:class:`BuildErdGraphDataAction` mirrors :class:`~aoa.maxitor.model.app_view.actions.load_graph_action.LoadGraphAction`
-/ :class:`~aoa.maxitor.model.app_view.actions.get_left_menu_sidebar_data_action.GetLeftMenuSidebarDataAction`
-style: params carry ``networkx.DiGraph`` from ``LoadGraphAction`` (same object the sidebar uses); the
-coordinator is read from ``nx_graph.graph[MAXITOR_NX_GRAPH_COORDINATOR_KEY]`` set when the graph was loaded.
-A regular aspect emits JSON-safe ``domain_qualnames`` on ``BaseState``; the summary
-aspect resolves each qualifier to a :class:`~aoa.action_machine.domain.base_domain.BaseDomain`
-class, calls :func:`erd_payload_from_coordinator_for_domain`, and returns ``domains_map`` /
-``domain_qualifiers`` plus flat :class:`~aoa.maxitor.model.app_view.entities.node_entity.NodeEntity` tab rows
-ready for :func:`aoa.maxitor.diagrams.erd.html_page.erd_html_string`.
+HTTP-facing flows use small actions (``ListErdDomainQualnamesAction``,
+``GetErdDomainPayloadAction``) with ``@connection`` on :class:`~aoa.maxitor.api.resources.maxitor_interchange_nx_resource.MaxitorInterchangeNxResource`;
+this module keeps serializers shared with the Maxitor React ERD viewer (``nodes`` / ``edges`` JSON).
 """
 
 from __future__ import annotations
 
-import importlib
 from dataclasses import dataclass, field
-from typing import Annotated, Any, Literal, cast, get_args, get_origin
+from typing import Annotated, Any, Literal, get_args, get_origin
 
-from pydantic import ConfigDict, Field
-
-from aoa.action_machine.auth import NoneRole
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 from aoa.action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
-from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
-from aoa.action_machine.intents.check_roles import check_roles
-from aoa.action_machine.intents.checkers import result_instance
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
-from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 from aoa.maxitor.model.app_view.actions.load_graph_action import MAXITOR_NX_GRAPH_COORDINATOR_KEY
-from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
-from aoa.maxitor.model.app_view.entities.node_entity import NodeEntity
 
 LINE_HEIGHT = 24
 NODE_WIDTH = 190
 
-# Matches ``html_page`` entity disk palette order for consistent HTML viewer demos.
+# Matches the React ERD viewer entity disk palette order for consistent demos.
 _DOMAIN_ACCENT_PALETTE: tuple[str, ...] = (
     "#3b82f6",
     "#8b5cf6",
@@ -443,8 +424,8 @@ def erd_document_from_coordinator_graph(
     AI-CORE-BEGIN
     ROLE: Public graph-backed ERD serializer; it reads only the live coordinator graph.
     CONTRACT: Uses ``coordinator.get_all_nodes()`` at call time and serializes only the requested domain.
-    OUTPUT: JSON with ``{"cells": [...]}`` in AntV-style table-node form. The
-    :mod:`aoa.maxitor.diagrams.erd.html_page` module uses a separate nodes/edges build from the same coordinator payload.
+    OUTPUT: JSON with ``{"cells": [...]}`` in AntV-style table-node form. The SPA ERD viewer
+    uses a separate ``nodes``/``edges`` build from the same coordinator payload.
     AI-CORE-END
     """
     return erd_payload_to_x6_document(
@@ -578,31 +559,6 @@ def _cardinality_marker(cardinality: str) -> str:
     }.get(cardinality, "")
 
 
-def _import_domain_type(qualname: str) -> type[BaseDomain]:
-    """Resolve a domain class from its interchange ``node_id`` (module-qualified name)."""
-    if "." not in qualname:
-        msg = f"Invalid domain type qualname: {qualname!r}"
-        raise ValueError(msg)
-    parts = qualname.split(".")
-    for mod_len in range(len(parts) - 1, 0, -1):
-        mod_name = ".".join(parts[:mod_len])
-        attr_path = parts[mod_len:]
-        try:
-            module = importlib.import_module(mod_name)
-        except ModuleNotFoundError:
-            continue
-        obj: Any = module
-        try:
-            for attr in attr_path:
-                obj = getattr(obj, attr)
-        except AttributeError:
-            continue
-        if isinstance(obj, type) and issubclass(obj, BaseDomain):
-            return cast(type[BaseDomain], obj)
-    msg = f"Not a BaseDomain subclass or not importable: {qualname!r}"
-    raise TypeError(msg)
-
-
 ERD_DEFAULT_ENTITY_COLORS: tuple[str, ...] = _DOMAIN_ACCENT_PALETTE
 
 
@@ -615,7 +571,7 @@ def _role_to_flags(role: str) -> dict[str, bool]:
 
 
 def _serialize_entity(entity: ErdEntitySpec, color: str) -> dict[str, Any]:
-    """Convert ErdEntitySpec into the JS node shape (shared with ``html_page`` ERD_DATA)."""
+    """Convert ErdEntitySpec into the JS node shape (shared with the React ERD viewer ``ERD_DATA`` JSON)."""
     fields: list[dict[str, Any]] = []
     for f in entity.fields:
         flags = _role_to_flags(f.role)
@@ -704,102 +660,6 @@ def node_graph_coordinator_from_interchange_nx(nx_graph: Any) -> NodeGraphCoordi
         )
         raise ValueError(msg)
     return coordinator
-
-
-@meta(
-    description="Build ERD domain maps and qualifiers from LoadGraphAction NetworkX view (app-view)",
-    domain=AppViewDomenDomain,
-)
-@check_roles(NoneRole)
-class BuildErdGraphDataAction(
-    BaseAction["BuildErdGraphDataAction.Params", "BuildErdGraphDataAction.Result"],
-):
-    """
-    AI-CORE-BEGIN
-    ROLE: Emit ``domains_map`` / ``domain_qualifiers`` / ``domain_tab_entities`` for the ERD HTML runtime.
-    CONTRACT: Params carry ``nx_graph`` from ``LoadGraphAction``; optional ``domain_qualname`` limits export to one bounded context.
-    INVARIANTS: Regular aspect leaves ``domain_qualnames`` on ``BaseState``; summary reads the embedded coordinator, resolves types, skips domains that fail payload build.
-    AI-CORE-END
-    """
-
-    class Params(BaseParams):
-        nx_graph: Any = Field(
-            description="networkx.DiGraph from LoadGraphAction (node = node_id, attrs node_type/label); embeds coordinator on graph dict",
-        )
-        domain_qualname: str | None = Field(
-            default=None,
-            description="Optional full qualname of one BaseDomain; when unset, all bounded contexts are exported",
-        )
-
-        model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    class Result(BaseResult):
-        domains_map: dict[str, dict[str, Any]] = Field(
-            default_factory=dict,
-            description="Per-tab domain label → {nodes, edges} for ERD_DATA.domains (nested graph JSON, not NodeEntity)",
-        )
-        domain_qualifiers: dict[str, str] = Field(
-            default_factory=dict,
-            description="Per-tab domain label → declaring domain type qualname",
-        )
-        domain_tab_entities: list[NodeEntity] = Field(
-            default_factory=list,
-            description="One flat NodeEntity per domains_map key (type erd_domain_tab) for UI lists; graph payload stays in domains_map",
-        )
-
-        model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    @result_instance("domain_qualnames", list, required=True)  # type: ignore[untyped-decorator]
-    @regular_aspect("List domain type qualifiers for ERD export")
-    async def list_domain_qualnames_aspect(
-        self,
-        params: BuildErdGraphDataAction.Params,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-    ) -> dict[str, Any]:
-        qn = (params.domain_qualname or "").strip()
-        if qn:
-            return {"domain_qualnames": [qn]}
-        return {"domain_qualnames": domain_qualnames_from_interchange_nx(params.nx_graph)}
-
-    @summary_aspect("Build merged ERD domain maps for HTML runtime")
-    async def build_domains_summary(
-        self,
-        params: BuildErdGraphDataAction.Params,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-    ) -> BuildErdGraphDataAction.Result:
-        coordinator = node_graph_coordinator_from_interchange_nx(params.nx_graph)
-        qualnames = list(state["domain_qualnames"])
-        domains_map: dict[str, dict[str, Any]] = {}
-        domain_qualifiers: dict[str, str] = {}
-        for qual in qualnames:
-            try:
-                dc = _import_domain_type(qual)
-                payload = erd_payload_from_coordinator_for_domain(coordinator, dc)
-            except Exception:
-                continue
-            base = getattr(dc, "name", None) or dc.__name__
-            domain_key = base
-            n = 2
-            while domain_key in domains_map:
-                domain_key = f"{base} ({n})"
-                n += 1
-            domains_map[domain_key] = payload_to_domain_dict(payload)
-            domain_qualifiers[domain_key] = qual
-        if not domains_map:
-            msg = "No domain ERD payloads could be built from the coordinator graph."
-            raise LookupError(msg)
-        domain_tab_entities = [
-            NodeEntity(id=key, parent_id=None, label=key, type="erd_domain_tab") for key in domains_map
-        ]
-        return BuildErdGraphDataAction.Result(
-            domains_map=domains_map,
-            domain_qualifiers=domain_qualifiers,
-            domain_tab_entities=domain_tab_entities,
-        )
 
 
 def build_demo_erd_payload() -> ErdGraphPayload:

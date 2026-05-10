@@ -8,6 +8,11 @@ PURPOSE
 
 Expose API endpoints for a separately hosted Vite React SPA. This module does
 not serve React assets or Python-rendered shell HTML.
+
+ERD data is exposed as JSON via :class:`aoa.action_machine.integrations.fastapi.FastApiAdapter`
+routes mounted under ``/api/v1``; the interchange graph diagram remains a
+standalone HTML page under ``/api/diagrams/graph``. The ERD viewer is a React feature
+that calls those JSON routes and bundles its HTML shell under ``client/src/features/diagram-viewer/erd/shell``.
 """
 
 from __future__ import annotations
@@ -18,16 +23,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from aoa.action_machine.auth import NoAuthCoordinator
+from aoa.action_machine.integrations.fastapi import FastApiAdapter
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.maxitor.api.maxitor_connection_holder import MaxitorConnectionHolder
 from aoa.maxitor.api.routes.diagrams import router as diagrams_router
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.api.session import build_maxitor_api_session
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Build Maxitor runtime state once per ASGI application lifecycle."""
-    app.state.maxitor_session = await build_maxitor_api_session()
-    yield
+from aoa.maxitor.model.app_view.actions.get_erd_domain_payload_action import GetErdDomainPayloadAction
+from aoa.maxitor.model.app_view.actions.list_erd_domain_qualnames_action import ListErdDomainQualnamesAction
 
 
 def create_app() -> FastAPI:
@@ -36,9 +40,38 @@ def create_app() -> FastAPI:
 
     AI-CORE-BEGIN
     ROLE: Build the ASGI app consumed by uvicorn, tests, and production hosting.
-    CONTRACT: React assets are hosted separately; this app only exposes API and diagram HTML endpoints.
+    CONTRACT: React assets are hosted separately; diagram JSON uses FastApiAdapter + shared machine.
     AI-CORE-END
     """
+    machine = ActionProductMachine()
+    connections_holder = MaxitorConnectionHolder()
+    auth = NoAuthCoordinator()
+
+    action_subapp = (
+        FastApiAdapter(
+            machine=machine,
+            auth_coordinator=auth,
+            connections_factory=connections_holder,
+            title="Maxitor ActionMachine API",
+            version="1.0.0",
+            description=(
+                "JSON endpoints generated from app-view actions. "
+                "The interchange nx graph is injected per request via ``connections_factory``."
+            ),
+        )
+        .get("/erd/domain-qualnames", ListErdDomainQualnamesAction, tags=["erd"])
+        .get("/erd/domains/{domain_qualname:path}", GetErdDomainPayloadAction, tags=["erd"])
+        .build()
+    )
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        """Build Maxitor runtime state once per ASGI application lifecycle."""
+        session = await build_maxitor_api_session(machine=machine)
+        app.state.maxitor_session = session
+        connections_holder.set_session(session)
+        yield
+
     fastapi_app = FastAPI(title="Maxitor API", lifespan=lifespan)
     fastapi_app.add_middleware(
         CORSMiddleware,
@@ -48,6 +81,7 @@ def create_app() -> FastAPI:
     )
     fastapi_app.include_router(sidebar_router)
     fastapi_app.include_router(diagrams_router)
+    fastapi_app.mount("/api/v1", action_subapp)
 
     @fastapi_app.get("/api/health", tags=["health"])
     async def health() -> dict[str, str]:
