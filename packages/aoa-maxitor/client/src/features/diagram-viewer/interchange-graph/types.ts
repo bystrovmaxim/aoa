@@ -14,7 +14,7 @@ export type InterchangeGraphG6Payload = {
     target: string;
     data?: Record<string, unknown>;
   }>;
-  legend_items: Array<{ type: string; color: string; iconSrc: string }>;
+  legend_items: Array<{ type: string; color: string }>;
   node_type_map: Record<string, string>;
   bubble_plugins: Array<Record<string, unknown>>;
   constants: {

@@ -5,6 +5,7 @@ import Typography from "@mui/material/Typography";
 import type { EdgeData, Graph as G6Graph, GraphData, NodeData } from "@antv/g6";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import interchangeChromeCss from "../erd/shell/interchange_chrome.css?raw";
+import { svgDataUriForGraphNodeGlyphOnly, svgDataUriForGraphNodeIcon } from "../icons";
 import { fetchInterchangeGraphPayload } from "./fetchInterchangeGraphPayload";
 import type { InterchangeGraphG6Payload } from "./types";
 
@@ -117,10 +118,12 @@ function buildGraph(
         const fillRaw = d.fill;
         const fill =
           fillRaw != null && String(fillRaw).trim() !== "" ? String(fillRaw).trim() : defaultColor;
-        const glyph =
-          d.glyphIconSrc != null && String(d.glyphIconSrc).trim() !== ""
-            ? String(d.glyphIconSrc)
-            : String(d.iconSrc ?? "");
+        const nodeTypeRaw = d.node_type;
+        const nodeType =
+          nodeTypeRaw != null && String(nodeTypeRaw).trim() !== ""
+            ? String(nodeTypeRaw).trim()
+            : "unknown";
+        const glyph = svgDataUriForGraphNodeGlyphOnly(nodeType);
         return {
           label: false,
           size: px,
@@ -676,11 +679,13 @@ export function InterchangeGraphViewer() {
         <div className="legend-title">Node types</div>
         {payload.legend_items.map((it) => (
           <div className="row" key={it.type} title={it.type}>
-            {it.iconSrc ? (
-              <img className="legend-icon" src={it.iconSrc} width={20} height={20} alt="" />
-            ) : (
-              <span className="swatch" style={{ background: it.color }} />
-            )}
+            <img
+              className="legend-icon"
+              src={svgDataUriForGraphNodeIcon(it.color, it.type)}
+              width={20}
+              height={20}
+              alt=""
+            />
             <span>{it.type}</span>
           </div>
         ))}
