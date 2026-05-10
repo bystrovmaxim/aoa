@@ -44,7 +44,9 @@ VITE_MAXITOR_API_BASE_URL=https://api.example.com npm run build
 
 ### React source layout (`client/src`)
 
-- `app/` — root shell (`App.tsx`), MUI providers, and `layout/` (banner + drawer frame).
-- `features/sidebar` — `/api/sidebar` types, grouping, and navigation list.
-- `features/diagram-viewer` — interchange graph (G6), ERD viewer (JSON + bundled shell).
+- `app/` — root shell (`app.tsx`), `app_providers.tsx`, and `layout/main_layout.tsx` (drawer frame).
+- `features/model/` — shared Maxitor types (`DiagramSelection`, ERD payloads).
+- `features/diagrams/` — interchange graph (`interchange_graph/`), ERD (`erd/`), `main_diagram_view.tsx` (central pane).
+- `features/sidebar/` — `/api/sidebar` payload, grouping, navigation list.
+- `features/index.ts` — barrel re-export for app composition (diagrams, sidebar, model).
 - `shared/` — theme, API config, and layout constants.

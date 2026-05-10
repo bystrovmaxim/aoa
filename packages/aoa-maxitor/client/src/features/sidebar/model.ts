@@ -1,5 +1,5 @@
 // packages/aoa-maxitor/client/src/features/sidebar/model.ts
-import type { DiagramSelection } from "../diagram-viewer";
+import type { DiagramSelection } from "../model/types";
 import type { NodeRow, SidebarGroupedMaps, SidebarPayload } from "./types";
 
 /** ERD uses JSON from ``/api/v1/erd/*``; interchange graph uses ``GET /api/v1/graph/interchange`` + G6 in the SPA. */
