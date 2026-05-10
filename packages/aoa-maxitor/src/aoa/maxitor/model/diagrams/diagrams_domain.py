@@ -28,4 +28,3 @@ class DiagramsDomain(BaseDomain):
     description = (
         "Diagrams surface: sidebar menu, interchange graph, ERD rows, and related composition"
     )
-
