@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Carry a stable id, optional parent link, display label, and a coarse category string
-for hierarchical UI lists. Declared as an ActionMachine entity under ``AppViewDomenDomain``.
+for hierarchical UI lists. Declared as an ActionMachine entity under ``AppViewDomain``.
 """
 
 from __future__ import annotations
@@ -16,12 +16,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
+from aoa.maxitor.model.app_view.app_view_domain import AppViewDomain
 
 
 @entity(
     description="Hierarchical UI node row (id, optional parent, label, coarse type)",
-    domain=AppViewDomenDomain,
+    domain=AppViewDomain,
 )
 class NodeEntity(BaseEntity):
     """

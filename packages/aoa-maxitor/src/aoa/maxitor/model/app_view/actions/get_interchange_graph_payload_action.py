@@ -32,12 +32,12 @@ from aoa.maxitor.model.app_view.actions.build_interchange_graph_data_action impo
     dag_cycle_violation_keys_from_coordinator,
     interchange_g6_payload_from_nx,
 )
-from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
+from aoa.maxitor.model.app_view.app_view_domain import AppViewDomain
 
 
 @meta(
     description="Get interchange graph JSON for the Maxitor React G6 viewer (app-view)",
-    domain=AppViewDomenDomain,
+    domain=AppViewDomain,
 )
 @check_roles(NoneRole)
 @connection(MaxitorInterchangeNxResource, key="interchange_nx", description="Interchange nx graph from LoadGraphAction")

@@ -28,7 +28,7 @@ from aoa.action_machine.graph_model.nodes.entity_graph_node import EntityGraphNo
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.model.app_view.actions.load_graph_action import MAXITOR_NX_GRAPH_COORDINATOR_KEY
+from aoa.maxitor.model.core.actions.load_graph_action import MAXITOR_NX_GRAPH_COORDINATOR_KEY
 
 LINE_HEIGHT = 24
 NODE_WIDTH = 190
@@ -647,7 +647,7 @@ def domain_qualnames_from_interchange_nx(nx_graph: Any) -> list[str]:
 
 
 def node_graph_coordinator_from_interchange_nx(nx_graph: Any) -> NodeGraphCoordinator:
-    """Recover the coordinator embedded by :class:`~aoa.maxitor.model.app_view.actions.load_graph_action.LoadGraphAction`."""
+    """Recover the coordinator embedded by :class:`~aoa.maxitor.model.core.actions.load_graph_action.LoadGraphAction`."""
     gdict = getattr(nx_graph, "graph", None)
     if not isinstance(gdict, dict):
         msg = "nx_graph must be a NetworkX graph with a mapping ``graph`` attribute."
