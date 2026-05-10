@@ -52,12 +52,10 @@ async def test_mcp_tool_input_schema_unchanged() -> None:
 def test_mcp_serialize_result_raw_graph_dict() -> None:
     """``_serialize_result`` emits a plain dict for ``graph`` (no wrapper type)."""
     record = McpRouteRecord(action_class=AdapterTestAction, tool_name="adapter_test")
-    result = AdapterTestAction.Result(
-        domain="Billing",
-        graph={"nodes": [{"id": "1"}], "edges": []},
-    )
+    graph = {"nodes": [], "edges": []}
+    result = AdapterTestAction.Result(domain="Billing", graph=graph)
     payload = _serialize_result(result, record, has_response_mapper=False)
-    assert payload["graph"] == {"nodes": [{"id": "1"}], "edges": []}
+    assert payload["graph"] == graph
     assert isinstance(payload["graph"], dict)
     json.dumps(payload)
 

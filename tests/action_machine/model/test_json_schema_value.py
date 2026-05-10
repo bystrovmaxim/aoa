@@ -160,6 +160,34 @@ def test_define_validates_schema_itself() -> None:
         JsonSchemaValue.define(name="Bad", schema={"type": "notavalidtype"})
 
 
+def test_define_rejects_object_without_additional_properties_false() -> None:
+    loose = {
+        "type": "object",
+        "properties": {"k": {"type": "string"}},
+        "required": ["k"],
+    }
+    with pytest.raises(ValueError, match="additionalProperties"):
+        JsonSchemaValue.define(name="OpenRoot", schema=loose)
+
+
+def test_define_rejects_nested_object_items_without_properties() -> None:
+    loose = {
+        "type": "object",
+        "properties": {
+            "nodes": {"type": "array", "items": {"type": "object"}},
+        },
+        "required": ["nodes"],
+        "additionalProperties": False,
+    }
+    with pytest.raises(ValueError, match="properties"):
+        JsonSchemaValue.define(name="LooseItems", schema=loose)
+
+
+def test_define_rejects_array_without_items() -> None:
+    with pytest.raises(ValueError, match="items"):
+        JsonSchemaValue.define(name="BareArray", schema={"type": "array"})
+
+
 LIST_SCHEMA: dict[str, Any] = {"type": "array", "items": {"type": "string"}}
 TagsJson = JsonSchemaValue.define(name="TagsJson", schema=LIST_SCHEMA)
 

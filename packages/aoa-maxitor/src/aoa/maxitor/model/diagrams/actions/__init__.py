@@ -4,11 +4,11 @@
 from ...core.actions.load_graph_action import LoadGraphAction
 from .get_erd_domain_payload_action import GetErdDomainPayloadAction
 from .get_interchange_graph_payload_action import GetInterchangeGraphPayloadAction
-from .list_erd_domain_qualnames_action import ListErdDomainQualnamesAction
+from .list_domains_action import ListDomainsAction
 
 __all__ = [
     "GetErdDomainPayloadAction",
     "GetInterchangeGraphPayloadAction",
-    "ListErdDomainQualnamesAction",
+    "ListDomainsAction",
     "LoadGraphAction",
 ]

@@ -17,7 +17,10 @@ from aoa.maxitor.samples.support.domain import SupportDomain
 _SAMPLE_AUDIT_SCHEMA: dict[str, object] = {
     "type": "object",
     "properties": {
-        "events": {"type": "array", "items": {"type": "object"}},
+        "events": {
+            "type": "array",
+            "items": {"type": "object", "properties": {}, "additionalProperties": False},
+        },
         "source": {"type": "string"},
     },
     "required": ["events", "source"],
