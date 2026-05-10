@@ -106,7 +106,8 @@ class GetErdDomainPayloadAction(
             except AttributeError:
                 continue
             if isinstance(obj, type) and issubclass(obj, BaseDomain):
-                return {"erd_domain_class": cast(type[BaseDomain], obj)}
+                domain_cls: type[BaseDomain] = obj
+                return {"erd_domain_class": domain_cls}
         msg = f"Not a BaseDomain subclass or not importable: {qual!r}"
         raise TypeError(msg)
 
@@ -121,7 +122,7 @@ class GetErdDomainPayloadAction(
         nx_resource = cast(MaxitorInterchangeNxResource, connections["interchange_nx"])
         coordinator = node_graph_coordinator_from_interchange_nx(nx_resource.nx_graph)
         qual = params.domain_qualname.strip()
-        dc = cast(type[BaseDomain], getattr(state, "erd_domain_class"))
+        dc = cast(type[BaseDomain], state["erd_domain_class"])
         payload = erd_payload_from_coordinator_for_domain(coordinator, dc)
         base = getattr(dc, "name", None) or dc.__name__
         return GetErdDomainPayloadAction.Result(

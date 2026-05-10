@@ -8,7 +8,14 @@ PURPOSE
 
 This package exports the base model contracts used by actions:
 ``BaseAction``, ``BaseParams``, ``BaseResult``, ``ParamsStub``, ``ResultStub``,
-``BaseSchema``, ``BaseState``.
+``BaseSchema``, ``BaseState``, ``JsonSchemaValue``, ``JsonValue``,
+``get_json_schema_value_metadata``, ``is_json_schema_value_type``.
+
+``JsonSchemaValue`` (with ``JsonValue`` and the graph helpers above) is the supported way to put
+**schema-validated JSON** on a single field of ``BaseResult`` or ``BaseParams`` while keeping
+co-located scalar and structured Pydantic fields unchanged. Adapters and the interchange graph
+read the resulting models through normal Pydantic APIs (``model_dump``, ``model_json_schema``,
+``FieldGraphNode`` metadata).
 Framework exceptions live in :mod:`aoa.action_machine.exceptions`.
 Graph model nodes/inspectors live under :mod:`aoa.action_machine.graph_model` and are
 imported from their leaf modules.
@@ -29,6 +36,8 @@ ARCHITECTURE / DATA FLOW
           |
           v
     Runtime / adapters consume typed model interfaces
+          |
+          +--> JsonSchemaValue / get_json_schema_value_metadata  (optional JSON Schema fields + graph metadata)
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -50,6 +59,12 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_schema import BaseSchema
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.model.json_schema_value import (
+    JsonSchemaValue,
+    JsonValue,
+    get_json_schema_value_metadata,
+    is_json_schema_value_type,
+)
 from aoa.action_machine.model.params_stub import ParamsStub
 from aoa.action_machine.model.result_stub import ResultStub
 
@@ -59,6 +74,10 @@ __all__ = [
     "BaseResult",
     "BaseSchema",
     "BaseState",
+    "JsonSchemaValue",
+    "JsonValue",
     "ParamsStub",
     "ResultStub",
+    "get_json_schema_value_metadata",
+    "is_json_schema_value_type",
 ]

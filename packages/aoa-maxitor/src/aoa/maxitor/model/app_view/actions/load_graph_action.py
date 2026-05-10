@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import networkx as nx  # type: ignore[import-untyped]
+import networkx as nx
 from pydantic import ConfigDict, Field
 
 from aoa.action_machine.auth import NoneRole
@@ -108,7 +108,7 @@ class LoadGraphAction(BaseAction["LoadGraphAction.Params", "LoadGraphAction.Resu
     ) -> LoadGraphAction.Result:
         topology_nodes = list(getattr(state, "topology_nodes", []))
         topology_edges = list(getattr(state, "topology_edges", []))
-        digraph = nx.DiGraph()
+        digraph: nx.DiGraph[Any] = nx.DiGraph()
         for row in topology_nodes:
             digraph.add_node(
                 row["node_id"],

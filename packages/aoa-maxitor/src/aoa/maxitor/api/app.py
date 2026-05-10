@@ -25,12 +25,12 @@ from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.integrations.fastapi import FastApiAdapter
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.maxitor.api.maxitor_connection_holder import MaxitorConnectionHolder
-from aoa.maxitor.model.app_view.actions.get_interchange_graph_payload_action import (
-    GetInterchangeGraphPayloadAction,
-)
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.api.session import build_maxitor_api_session
 from aoa.maxitor.model.app_view.actions.get_erd_domain_payload_action import GetErdDomainPayloadAction
+from aoa.maxitor.model.app_view.actions.get_interchange_graph_payload_action import (
+    GetInterchangeGraphPayloadAction,
+)
 from aoa.maxitor.model.app_view.actions.list_erd_domain_qualnames_action import ListErdDomainQualnamesAction
 
 
@@ -66,10 +66,10 @@ def create_app() -> FastAPI:
     )
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         """Build Maxitor runtime state once per ASGI application lifecycle."""
         session = await build_maxitor_api_session(machine=machine)
-        app.state.maxitor_session = session
+        application.state.maxitor_session = session
         connections_holder.set_session(session)
         yield
 

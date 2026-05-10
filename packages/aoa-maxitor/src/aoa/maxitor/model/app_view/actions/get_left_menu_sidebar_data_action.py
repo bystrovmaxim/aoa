@@ -14,7 +14,7 @@ per-domain ERD rows using ``parent_id`` links only. Only level-1 order is fixed
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from pydantic import ConfigDict, Field
 
@@ -29,6 +29,12 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
 from aoa.maxitor.model.app_view.entities.node_entity import NodeEntity
 
+
+def _sidebar_row_dicts(state: BaseState, key: str) -> list[dict[str, Any]]:
+    """Narrow ``state[key]`` to row dicts (pipeline values are typed as ``object``)."""
+    return cast(list[dict[str, Any]], state[key])
+
+
 _ROOT_SECTIONS: tuple[tuple[str, str, str], ...] = (
     ("applications_root", "Applications", "Application"),
     ("domains_root", "Domains", "Domain"),
@@ -37,6 +43,7 @@ _ROOT_SECTIONS: tuple[tuple[str, str, str], ...] = (
     ("entities_root", "Entities", "Entity"),
     ("resources_root", "Resources", "Resource"),
 )
+
 
 @meta(description="Build left-menu sidebar NodeEntity lists from NetworkX graph view", domain=AppViewDomenDomain)
 @check_roles(NoneRole)
@@ -97,7 +104,7 @@ class GetLeftMenuSidebarDataAction(
         ]
         rows.sort(key=lambda r: (r["label"].lower(), r["id"]))
         return {
-            "level1_rows": list(state["level1_rows"]),
+            "level1_rows": _sidebar_row_dicts(state, "level1_rows"),
             "level2_diagram_rows": rows,
         }
 
@@ -112,8 +119,9 @@ class GetLeftMenuSidebarDataAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        root_by_node_type = {str(row["type"]): str(row["id"]) for row in state["level1_rows"]}
-        fallback_root = str(state["level1_rows"][-1]["id"])
+        level1 = _sidebar_row_dicts(state, "level1_rows")
+        root_by_node_type = {str(row["type"]): str(row["id"]) for row in level1}
+        fallback_root = str(level1[-1]["id"])
         rows: list[dict[str, Any]] = []
         for node_id, data in params.nx_graph.nodes(data=True):
             node_type = str(data.get("node_type", ""))
@@ -122,8 +130,8 @@ class GetLeftMenuSidebarDataAction(
             rows.append({"id": str(node_id), "parent_id": root_key, "label": label, "type": node_type})
         rows.sort(key=lambda r: (r["label"].lower(), r["id"]))
         return {
-            "level1_rows": state["level1_rows"],
-            "level2_diagram_rows": list(state["level2_diagram_rows"]),
+            "level1_rows": level1,
+            "level2_diagram_rows": _sidebar_row_dicts(state, "level2_diagram_rows"),
             "level2_node_rows": rows,
         }
 
@@ -150,9 +158,9 @@ class GetLeftMenuSidebarDataAction(
             )
         rows.sort(key=lambda r: (r["label"].lower(), r["id"]))
         return {
-            "level1_rows": list(state["level1_rows"]),
-            "level2_diagram_rows": list(state["level2_diagram_rows"]),
-            "level2_node_rows": list(state["level2_node_rows"]),
+            "level1_rows": _sidebar_row_dicts(state, "level1_rows"),
+            "level2_diagram_rows": _sidebar_row_dicts(state, "level2_diagram_rows"),
+            "level2_node_rows": _sidebar_row_dicts(state, "level2_node_rows"),
             "level3_diagram_rows": rows,
         }
 
@@ -165,8 +173,8 @@ class GetLeftMenuSidebarDataAction(
         connections: dict[str, BaseResource],
     ) -> GetLeftMenuSidebarDataAction.Result:
         return GetLeftMenuSidebarDataAction.Result(
-            level1_nodes=[NodeEntity.model_validate(r) for r in state["level1_rows"]],
-            level2_diagrams=[NodeEntity.model_validate(r) for r in state["level2_diagram_rows"]],
-            level2_nodes=[NodeEntity.model_validate(r) for r in state["level2_node_rows"]],
-            level3_diagrams=[NodeEntity.model_validate(r) for r in state["level3_diagram_rows"]],
+            level1_nodes=[NodeEntity.model_validate(r) for r in _sidebar_row_dicts(state, "level1_rows")],
+            level2_diagrams=[NodeEntity.model_validate(r) for r in _sidebar_row_dicts(state, "level2_diagram_rows")],
+            level2_nodes=[NodeEntity.model_validate(r) for r in _sidebar_row_dicts(state, "level2_node_rows")],
+            level3_diagrams=[NodeEntity.model_validate(r) for r in _sidebar_row_dicts(state, "level3_diagram_rows")],
         )

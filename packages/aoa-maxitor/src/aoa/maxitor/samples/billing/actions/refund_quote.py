@@ -9,8 +9,22 @@ from aoa.action_machine.auth import NoneRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, JsonSchemaValue
 from aoa.maxitor.samples.billing.domain import BillingDomain
+
+_SAMPLE_AUDIT_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "events": {"type": "array", "items": {"type": "object"}},
+        "source": {"type": "string"},
+    },
+    "required": ["events", "source"],
+    "additionalProperties": False,
+}
+_BillingRefundQuoteSampleAuditJson = JsonSchemaValue.define(
+    name="BillingRefundQuoteSampleAuditJson",
+    schema=_SAMPLE_AUDIT_SCHEMA,
+)
 
 
 @meta(description="Quote refundable amount (billing sample stub)", domain=BillingDomain)
@@ -21,6 +35,9 @@ class RefundQuoteAction(BaseAction["RefundQuoteAction.Params", "RefundQuoteActio
 
     class Result(BaseResult):
         quote_cents: int = Field(description="Stub refundable cents", ge=0)
+        sample_audit: _BillingRefundQuoteSampleAuditJson = Field(
+            description="Sample JSON payload for JsonSchemaValue graph metadata",
+        )
 
     @summary_aspect("Quote")
     async def quote_summary(
@@ -30,4 +47,7 @@ class RefundQuoteAction(BaseAction["RefundQuoteAction.Params", "RefundQuoteActio
         box: Any,
         connections: Any,
     ) -> RefundQuoteAction.Result:
-        return RefundQuoteAction.Result(quote_cents=len(params.capture_txn) * 10)
+        return RefundQuoteAction.Result(
+            quote_cents=len(params.capture_txn) * 10,
+            sample_audit={"events": [], "source": "billing_refund_quote"},
+        )

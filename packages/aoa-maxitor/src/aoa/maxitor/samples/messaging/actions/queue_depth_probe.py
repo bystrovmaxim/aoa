@@ -9,8 +9,22 @@ from aoa.action_machine.auth import NoneRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, JsonSchemaValue
 from aoa.maxitor.samples.messaging.domain import MessagingDomain
+
+_SAMPLE_AUDIT_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "events": {"type": "array", "items": {"type": "object"}},
+        "source": {"type": "string"},
+    },
+    "required": ["events", "source"],
+    "additionalProperties": False,
+}
+_MessagingQueueDepthSampleAuditJson = JsonSchemaValue.define(
+    name="MessagingQueueDepthSampleAuditJson",
+    schema=_SAMPLE_AUDIT_SCHEMA,
+)
 
 
 @meta(description="Probe queue depth (messaging sample stub)", domain=MessagingDomain)
@@ -21,6 +35,9 @@ class QueueDepthProbeAction(BaseAction["QueueDepthProbeAction.Params", "QueueDep
 
     class Result(BaseResult):
         depth: int = Field(description="Stub depth", ge=0)
+        sample_audit: _MessagingQueueDepthSampleAuditJson = Field(
+            description="Sample JSON payload for JsonSchemaValue graph metadata",
+        )
 
     @summary_aspect("Probe")
     async def probe_summary(
@@ -30,4 +47,7 @@ class QueueDepthProbeAction(BaseAction["QueueDepthProbeAction.Params", "QueueDep
         box: Any,
         connections: Any,
     ) -> QueueDepthProbeAction.Result:
-        return QueueDepthProbeAction.Result(depth=len(params.queue_name) % 5)
+        return QueueDepthProbeAction.Result(
+            depth=len(params.queue_name) % 5,
+            sample_audit={"events": [], "source": "messaging_queue_depth_probe"},
+        )

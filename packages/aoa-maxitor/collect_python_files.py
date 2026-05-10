@@ -14,6 +14,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import TextIO
 
 
 def _script_parent_dir() -> str:
@@ -134,7 +135,7 @@ class PythonFileCollector:
         result.sort()
         return result
 
-    def _write_header(self, out, root_dir: str, file_count: int) -> None:
+    def _write_header(self, out: TextIO, root_dir: str, file_count: int) -> None:
         """Write metadata header to the output file."""
         separator = "#" * 80
         ext_list = ", ".join(sorted(self.extensions))
@@ -153,7 +154,7 @@ class PythonFileCollector:
         ]
         out.write("\n".join(lines) + "\n")
 
-    def _write_files(self, out, paths: list[str]) -> None:
+    def _write_files(self, out: TextIO, paths: list[str]) -> None:
         """Write each file body with separators."""
         separator = "#" * 80
         last_index = len(paths) - 1

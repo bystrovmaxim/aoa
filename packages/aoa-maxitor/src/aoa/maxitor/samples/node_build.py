@@ -14,14 +14,16 @@ coordinator.
 
 from __future__ import annotations
 
-import json
 import importlib
+import json
 from pathlib import Path
 
 from aoa.action_machine.graph_model.node_graph_coordinator_factory import all_axis_graph_node_inspectors
 from aoa.graph.debug_node_graph_coordinator import DebugNodeGraphCoordinator
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.model.app_view.actions.build_interchange_graph_data_action import interchange_g6_payload_from_coordinator
+from aoa.maxitor.model.app_view.actions.build_interchange_graph_data_action import (
+    interchange_g6_payload_from_coordinator,
+)
 from aoa.maxitor.samples.build import _MODULES
 
 

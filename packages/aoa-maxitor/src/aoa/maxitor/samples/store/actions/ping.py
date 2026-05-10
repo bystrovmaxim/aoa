@@ -11,8 +11,22 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, JsonSchemaValue
 from aoa.maxitor.samples.store.domain import StoreDomain
+
+_SAMPLE_AUDIT_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "events": {"type": "array", "items": {"type": "object"}},
+        "source": {"type": "string"},
+    },
+    "required": ["events", "source"],
+    "additionalProperties": False,
+}
+_StoreOpsPingSampleAuditJson = JsonSchemaValue.define(
+    name="StoreOpsPingSampleAuditJson",
+    schema=_SAMPLE_AUDIT_SCHEMA,
+)
 
 
 @meta(description="Health ping for the storefront slice", domain=StoreDomain)
@@ -23,6 +37,9 @@ class OpsPingAction(BaseAction["OpsPingAction.Params", "OpsPingAction.Result"]):
 
     class Result(BaseResult):
         message: str = Field(description="Pong message")
+        sample_audit: _StoreOpsPingSampleAuditJson = Field(
+            description="Sample JSON payload for JsonSchemaValue graph metadata",
+        )
 
     @summary_aspect("Pong")
     @context_requires(Ctx.Request.trace_id)
@@ -34,4 +51,7 @@ class OpsPingAction(BaseAction["OpsPingAction.Params", "OpsPingAction.Result"]):
         connections: Any,
         _ctx: object,
     ) -> OpsPingAction.Result:
-        return OpsPingAction.Result(message="pong")
+        return OpsPingAction.Result(
+            message="pong",
+            sample_audit={"events": [], "source": "store_ops_ping"},
+        )

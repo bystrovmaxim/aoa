@@ -737,7 +737,7 @@ def interchange_g6_payload_from_coordinator(  # pylint: disable=too-many-stateme
 
 
 def interchange_g6_payload_from_nx(  # pylint: disable=too-many-statements
-    nx_graph: nx.DiGraph,
+    nx_graph: nx.DiGraph[Any],
     *,
     title: str = "ActionMachine Graph",
     node_colors: dict[str, str] | None = None,
@@ -766,7 +766,7 @@ def interchange_g6_payload_from_nx(  # pylint: disable=too-many-statements
         }
 
     colors = _color_map_for_graph_node_types(
-        str(idx_to_node[k].get("node_type", "unknown")) for k in idx_to_node
+        str(node.get("node_type", "unknown")) for node in idx_to_node.values()
     )
     if node_colors:
         colors = {**colors, **node_colors}
@@ -847,7 +847,7 @@ def interchange_g6_payload_from_nx(  # pylint: disable=too-many-statements
             },
         ]
 
-    node_type_map = {k: idx_to_node[k].get("node_type", "unknown") for k in idx_to_node}
+    node_type_map = {k: node.get("node_type", "unknown") for k, node in idx_to_node.items()}
 
     return build_interchange_g6_visual_payload(
         g6_nodes,
