@@ -1,10 +1,10 @@
-// packages/aoa-maxitor/client/src/features/diagrams/main_diagram_view.tsx
+// packages/aoa-maxitor/client/src/app/views/main_diagram_view.tsx
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { ErdViewer } from "./erd";
-import { InterchangeGraphViewer } from "./interchange_graph";
-import type { DiagramSelection } from "../model/types";
+import { ErdViewer } from "../../features/diagrams/erd";
+import { InterchangeGraphViewer } from "../../features/diagrams/interchange_graph";
+import type { DiagramSelection } from "../../features/diagram_selection/types";
 
 type MainDiagramViewProps = {
   diagram: DiagramSelection | null;

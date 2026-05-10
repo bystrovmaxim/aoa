@@ -1,4 +1,4 @@
-// packages/aoa-maxitor/client/src/features/sidebar/types.ts
+// packages/aoa-maxitor/client/src/features/maxitor_navigation/model/types.ts
 export type NodeRow = {
   id: string;
   parent_id: string | null;

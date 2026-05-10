@@ -1,6 +1,6 @@
 // packages/aoa-maxitor/client/src/features/diagrams/erd/hooks/use_erd_viewer_blob_url.ts
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DiagramSelection } from "../../../model/types";
+import type { DiagramSelection } from "../../../diagram_selection/types";
 import { fetchErdDomainPayload, fetchErdDomainQualnames } from "../api/erd_api";
 import { buildErdHtmlDocument } from "../lib/build_erd_html_document";
 import { allocateDomainTabKey } from "../lib/domain_tab_keys";
