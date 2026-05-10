@@ -2,12 +2,12 @@
 import { useMemo, useState } from "react";
 import {
   buildSidebarGroupedMaps,
-  MainDiagramView,
   SidebarNav,
   useSidebarPayload,
   type DiagramSelection,
 } from "../features";
 import { MainLayout } from "./layout/main_layout";
+import { MainDiagramView } from "./views/main_diagram_view";
 
 export function App() {
   const { sidebar, error } = useSidebarPayload();

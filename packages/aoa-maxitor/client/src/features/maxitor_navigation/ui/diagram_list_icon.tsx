@@ -1,9 +1,9 @@
-// packages/aoa-maxitor/client/src/features/sidebar/diagram_list_icon.tsx
+// packages/aoa-maxitor/client/src/features/maxitor_navigation/ui/diagram_list_icon.tsx
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import SchemaOutlinedIcon from "@mui/icons-material/SchemaOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import type { ReactElement } from "react";
-import type { NodeRow } from "./types";
+import type { NodeRow } from "../model";
 
 export function DiagramListIcon({ row }: { row: NodeRow }): ReactElement {
   if (row.type === "graph") {

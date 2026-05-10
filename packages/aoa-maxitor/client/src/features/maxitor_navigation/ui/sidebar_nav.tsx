@@ -1,4 +1,4 @@
-// packages/aoa-maxitor/client/src/features/sidebar/sidebar_nav.tsx
+// packages/aoa-maxitor/client/src/features/maxitor_navigation/ui/sidebar_nav.tsx
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import List from "@mui/material/List";
@@ -8,9 +8,8 @@ import ListItemText from "@mui/material/ListItemText";
 import ListSubheader from "@mui/material/ListSubheader";
 import Typography from "@mui/material/Typography";
 import { DiagramListIcon } from "./diagram_list_icon";
-import type { DiagramSelection } from "../model/types";
-import { diagramSelectionForRow, sortNodes } from "./model";
-import type { SidebarGroupedMaps, SidebarPayload } from "./types";
+import type { DiagramSelection } from "../../diagram_selection/types";
+import { diagramSelectionForRow, sortNodes, type SidebarGroupedMaps, type SidebarPayload } from "../model";
 
 type SidebarNavProps = {
   sidebar: SidebarPayload | null;
