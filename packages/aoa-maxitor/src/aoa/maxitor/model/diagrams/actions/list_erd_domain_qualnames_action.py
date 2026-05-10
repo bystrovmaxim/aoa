@@ -7,7 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Return ordered ``BaseDomain`` interchange node ids from the embedded nx graph so
-the React shell can fetch per-domain payloads separately.
+the React shell can fetch per-domain payloads separately. The list is always
+derived from the graph; there is no request filter on this action.
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.api.resources.maxitor_interchange_nx_resource import MaxitorInterchangeNxResource
@@ -36,23 +37,15 @@ from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 @check_roles(NoneRole)
 @connection(MaxitorInterchangeNxResource, key="interchange_nx", description="Interchange nx graph from LoadGraphAction")
 class ListErdDomainQualnamesAction(
-    BaseAction["ListErdDomainQualnamesAction.Params", "ListErdDomainQualnamesAction.Result"],
+    BaseAction[ParamsStub, "ListErdDomainQualnamesAction.Result"],
 ):
     """
     AI-CORE-BEGIN
     ROLE: Emit ``domain_qualnames`` for ERD tab discovery on the client.
-    CONTRACT: Optional ``domain_qualname`` limits the list to one qualifier string.
+    CONTRACT: ``domain_qualnames`` are computed only from ``connections[\"interchange_nx\"].nx_graph``.
     INVARIANTS: Reads ``nx_graph`` only via ``connections[\"interchange_nx\"]``.
     AI-CORE-END
     """
-
-    class Params(BaseParams):
-        domain_qualname: str | None = Field(
-            default=None,
-            description="When set, return only this full BaseDomain interchange node id",
-        )
-
-        model_config = ConfigDict(arbitrary_types_allowed=True)
 
     class Result(BaseResult):
         domain_qualnames: list[str] = Field(
@@ -65,14 +58,13 @@ class ListErdDomainQualnamesAction(
     @summary_aspect("Resolve domain qualifier list from nx graph")
     async def list_qualnames_summary(
         self,
-        params: ListErdDomainQualnamesAction.Params,
+        _params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> ListErdDomainQualnamesAction.Result:
         nx_resource = cast(MaxitorInterchangeNxResource, connections["interchange_nx"])
         nx_graph = nx_resource.nx_graph
-        qn = (params.domain_qualname or "").strip()
-        if qn:
-            return ListErdDomainQualnamesAction.Result(domain_qualnames=[qn])
-        return ListErdDomainQualnamesAction.Result(domain_qualnames=domain_qualnames_from_interchange_nx(nx_graph))
+        return ListErdDomainQualnamesAction.Result(
+            domain_qualnames=domain_qualnames_from_interchange_nx(nx_graph),
+        )
