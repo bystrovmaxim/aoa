@@ -20,7 +20,7 @@ from pathlib import Path
 from aoa.action_machine.graph_model.node_graph_coordinator_factory import all_axis_graph_node_inspectors
 from aoa.graph.debug_node_graph_coordinator import DebugNodeGraphCoordinator
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.diagrams.graph_visualizer.visualizer import export_interchange_axes_graph_html
+from aoa.maxitor.app.diagrams.graph.component import export_interchange_axes_graph_html
 from aoa.maxitor.samples.build import _MODULES
 
 

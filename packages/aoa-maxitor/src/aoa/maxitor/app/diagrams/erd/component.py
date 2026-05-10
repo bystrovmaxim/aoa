@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/diagrams/erd_visualizer/erd_html.py
+# packages/aoa-maxitor/src/aoa/maxitor/app/diagrams/erd/component.py
 # mypy: ignore-errors
 # pylint: disable=import-outside-toplevel
 
@@ -7,20 +7,12 @@ from __future__ import annotations
 import html
 import json
 from pathlib import Path
+from typing import Any
 
-from aoa.action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from aoa.maxitor.diagrams.graph_visualizer.visualizer import (
-    DEFAULT_COLOR,
-    NODE_TYPE_FILL_COLORS,
-    _serialize_graph_value,
-)
-from aoa.maxitor.diagrams.graph_visualizer.visualizer_icons import (
-    svg_data_uri_for_graph_node_icon,
-    svg_data_uri_for_interchange_domain_legend,
-)
-from aoa.maxitor.diagrams.shared.chrome import read_detail_panel_js, read_interchange_chrome_css
-from aoa.maxitor.diagrams.shared.workspace_logs import archive_logs_dir
+from aoa.maxitor.app.diagrams.shared.chrome import read_interchange_chrome_css
+from aoa.maxitor.app.diagrams.shared.workspace_logs import archive_logs_dir
+from aoa.maxitor.app.resources.icons import svg_data_uri_for_interchange_domain_legend
 
 # ── Package layout ────────────────────────────────────────────────────────────
 _PACKAGE_DIR = Path(__file__).resolve().parent
@@ -51,7 +43,7 @@ _ENTITY_COLORS = [
 # ── Bootstrap JS (Python format-string; JS braces are doubled) ────────────────
 _ERD_BOOTSTRAP_TEMPLATE = """\
 // ════════════════════════════════════════════════════════════════════════════
-//  ERD Viewer Bootstrap  —  injected by erd_html.py
+//  ERD Viewer Bootstrap  —  injected by component.py
 // ════════════════════════════════════════════════════════════════════════════
 
 const __MERMAID_URL__ = "{MERMAID_URL}";
@@ -116,13 +108,12 @@ let enabledDomains = new Set();
 let cyInstance     = null;
 let currentNodes   = [];
 let currentEdges   = [];
-let currentDetailNodes = [];
 
 let gvApi = null;
 let nhFilterWired = false;
 let domainPickerWired = false;
 
-// ── Zoom / pan (same mechanics as erd_visualizer: rAF wheel + exp factor, 1.25 / 0.8, clamp)
+// ── Zoom / pan (same mechanics as erd: rAF wheel + exp factor, 1.25 / 0.8, clamp)
 const MIN_SCALE = 0.2;
 const MAX_SCALE = 2.5;
 const WHEEL_ZOOM_SENSITIVITY = 0.0045;
@@ -400,40 +391,6 @@ function getDomainData() {{
   return applyNeighborhoodScope(mergeSelectedDomainPayloads());
 }}
 
-function syncDetailPanelData() {{
-  currentDetailNodes = (currentNodes || []).map(nd => {{
-    const g = nd.detail_graph_node;
-    const basePayload = g && typeof g.payload_panel === 'object' ? g.payload_panel : {{}};
-    const pp = Object.assign({{}}, basePayload);
-    const outEdges = (currentEdges || [])
-      .filter(e => e.source === nd.id)
-      .map(e => ({{ counterpart: e.target, label: e.label || '' }}));
-    const inEdges = (currentEdges || [])
-      .filter(e => e.target === nd.id)
-      .map(e => ({{ counterpart: e.source, label: e.label || '' }}));
-    pp.outgoing_edges = JSON.stringify(outEdges);
-    pp.incoming_edges = JSON.stringify(inEdges);
-    const data = {{
-      ...(g || {{}}),
-      payload_panel: pp,
-    }};
-    return {{
-      id: nd.id,
-      data,
-      label: nd.label,
-      color: nd.color,
-      fields: nd.fields,
-      domain_qualifier: nd.domain_qualifier,
-      detail_graph_node: nd.detail_graph_node,
-    }};
-  }});
-  window.InterchangeDetailPanel?.replaceData(
-    'graph-node',
-    currentDetailNodes,
-    {{ template: 'graph-node' }},
-  );
-}}
-
 // ════════════════════════════════════════════════════════════════════════════
 //  Renderer 1 — Graphviz SVG via @hpcc-js/wasm-graphviz
 // ════════════════════════════════════════════════════════════════════════════
@@ -456,7 +413,6 @@ async function initD3Graphviz() {{
   const {{ nodes, edges }} = getDomainData();
   currentNodes = nodes || [];
   currentEdges = edges || [];
-  syncDetailPanelData();
 
   const dot = buildDotSource();
   const engine = getGvEngine();
@@ -500,10 +456,6 @@ function onGvRendered() {{
   const edges = root.querySelectorAll('g.edge');
   nodes.forEach(el => {{
     el.style.cursor = 'pointer';
-    el.addEventListener('click', () => {{
-      const title = el.querySelector('title')?.textContent?.trim();
-      if (title) window.InterchangeDetailPanel?.open(title);
-    }});
     el.addEventListener('mouseenter', () => {{
       const title = el.querySelector('title')?.textContent?.trim() || '';
       nodes.forEach(n => {{
@@ -554,7 +506,6 @@ async function initCytoscape() {{
   const {{ nodes, edges }} = getDomainData();
   currentNodes = nodes || [];
   currentEdges = edges || [];
-  syncDetailPanelData();
 
   const isLR = activeLayout === 'cy-dagre-lr';
   const elements = [
@@ -598,10 +549,6 @@ async function initCytoscape() {{
     }},
     {{ passive: false, signal: cySig }},
   );
-
-  cyInstance.on('tap', 'node', evt => {{
-    window.InterchangeDetailPanel?.open(evt.target.id());
-  }});
 
   syncZoomPct();
 }}
@@ -1027,90 +974,6 @@ def _role_to_flags(role: str) -> dict:
     }
 
 
-def _erd_entity_property_cell(fields_serial: list[dict[str, object]]) -> dict[str, str]:
-    """Map ERD columns to interchange-style ``properties`` string values."""
-    props: dict[str, str] = {}
-    for f in fields_serial:
-        name_o = f.get("name")
-        name = str(name_o).strip() if name_o is not None else ""
-        if not name:
-            continue
-        type_part = str(f.get("type") or "").strip()
-        badges = []
-        if f.get("primary_key"):
-            badges.append("pk")
-        if f.get("foreign_key"):
-            badges.append("fk")
-        if badges:
-            suffix = "[" + ";".join(badges) + "]"
-            cell = f"{type_part} {suffix}".strip() if type_part else suffix
-        else:
-            cell = type_part
-        props[name] = cell
-    return props
-
-
-def _detail_graph_node_data_for_erd_entity(
-    entity,
-    *,
-    fields_serial: list[dict[str, object]],
-    domain_qualifier: str,
-) -> dict[str, object]:
-    """
-    Payload for ``InterchangeDetailPanel`` matching :mod:`graph_visualizer` Entity nodes.
-
-    Canonical keys mirror ``generate_interchange_g6_html`` node ``data`` (label, title,
-    graph_key, interchange ``payload_panel`` rows, Lucide Entity icon URI).
-    """
-    eid = str(entity.id).strip()
-    label = str(entity.label or "").strip()
-    qualified = eid
-    graph_key = eid
-
-    # Match :func:`~aoa.maxitor.diagrams.graph_visualizer.visualizer._element_short_name` / ``_graph_node_title``:
-    # ``id`` wins over ``label`` for the short dotted-path tail.
-    raw = str(entity.id or label or "").strip()
-    if not raw:
-        short = "?"
-    elif "." in raw:
-        short = raw.rsplit(".", maxsplit=1)[-1].strip() or "?"
-    else:
-        short = raw
-    title = label if label else short
-
-    nt = EntityGraphNode.NODE_TYPE
-    base_fill = NODE_TYPE_FILL_COLORS.get(nt, DEFAULT_COLOR)
-
-    interchange_payload: dict[str, object] = {
-        "id": eid,
-        "node_type": nt,
-        "label": label or short,
-        "properties": _erd_entity_property_cell(fields_serial),
-        "node_obj": "erd.ErdEntitySpec",
-    }
-    if domain_qualifier:
-        interchange_payload["domain_qualifier"] = domain_qualifier
-
-    payload_panel = {str(k): _serialize_graph_value(v) for k, v in interchange_payload.items()}
-
-    subtitle = f"{nt}\n{short}"
-    icon_src = svg_data_uri_for_graph_node_icon(base_fill, nt)
-
-    return {
-        "label": short,
-        "title": title,
-        "graph_node_subtitle": subtitle,
-        "graph_key": graph_key,
-        "qualified": qualified,
-        "node_type": nt,
-        "typeFill": base_fill,
-        "fill": base_fill,
-        "isDagCycleViolationIncident": False,
-        "iconSrc": icon_src,
-        "payload_panel": payload_panel,
-    }
-
-
 def _serialize_entity(entity, color: str) -> dict:
     """
     Convert ErdEntitySpec into the JS node shape.
@@ -1143,11 +1006,6 @@ def _serialize_entity(entity, color: str) -> dict:
     if qual:
         out["domain_qualifier"] = qual
 
-    out["detail_graph_node"] = _detail_graph_node_data_for_erd_entity(
-        entity,
-        fields_serial=fields,
-        domain_qualifier=qual,
-    )
     return out
 
 
@@ -1232,12 +1090,12 @@ def _template_raw() -> str:
 def _load_coord_export_helpers():
     """Load graph-data helpers for package and direct directory execution."""
     try:
-        from .erd_graph_data import (
+        from .graph_data import (
             domain_classes_from_coordinator,
             erd_payload_from_coordinator_for_domain,
         )
     except ImportError:
-        from erd_graph_data import (
+        from graph_data import (
             domain_classes_from_coordinator,
             erd_payload_from_coordinator_for_domain,
         )
@@ -1246,7 +1104,7 @@ def _load_coord_export_helpers():
 
 
 def write_erd_html(
-    erd_data: dict,
+    erd_data: dict[str, Any],
     output_path: str | Path,
     title: str = "ERD Viewer",
     width: int = 1400,
@@ -1265,7 +1123,6 @@ def write_erd_html(
         tpl.replace("@@HTML_ESCAPED_TITLE@@", html.escape(title))
         .replace("@@CONTAINER_WIDTH@@", str(width))
         .replace("@@CONTAINER_HEIGHT@@", str(height))
-        .replace("@@DETAIL_PANEL_SCRIPT@@", read_detail_panel_js())
         .replace("@@INLINE_ERD_SCRIPT@@", bootstrap)
     )
     out.write_text(result, encoding="utf-8")

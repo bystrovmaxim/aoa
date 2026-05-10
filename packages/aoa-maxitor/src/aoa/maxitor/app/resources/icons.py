@@ -1,10 +1,11 @@
-# packages/aoa-maxitor/src/aoa/maxitor/diagrams/graph_visualizer/visualizer_icons.py
+# packages/aoa-maxitor/src/aoa/maxitor/app/resources/icons.py
 """
-Lucide icon markup (inner SVG children only) per ``node_type``.
+Lucide icon markup (inner SVG children only) per ``node_type`` — shared app resources.
 
 Icons are from `lucide-static` (ISC, https://github.com/lucide-icons/lucide).
-Rendered as white strokes on the colored node disk in :mod:`aoa.maxitor.diagrams.graph_visualizer.visualizer`
-(G6 ``circle`` ``fill`` plus transparent glyph ``data:`` URLs).
+Used by interchange G6 (:mod:`aoa.maxitor.app.diagrams.graph.component`) as white strokes
+on colored node disks, and by the ERD shell (:mod:`aoa.maxitor.app.diagrams.erd.component`)
+for domain legend glyphs (`data:` URLs).
 
 Interchange axis kinds share ``NODE_TYPE`` from :class:`~aoa.action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`,
 :class:`~aoa.action_machine.graph_model.nodes.checker_graph_node.CheckerGraphNode`,

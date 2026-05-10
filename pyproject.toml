@@ -164,19 +164,19 @@ ignore_missing_imports = true
 module = "mcp.*"
 ignore_missing_imports = true
 
-# Optional Flet UI (``aoa.maxitor.app`` / ``aoa.maxitor.main``) — third-party deps without stubs.
+# Optional Flet UI (``aoa.maxitor.app.shell`` / ``aoa.maxitor.app.main``) — third-party deps without stubs.
 [[tool.mypy.overrides]]
-module = "aoa.maxitor.app"
+module = "aoa.maxitor.app.shell"
 disable_error_code = ["import-untyped"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "aoa.maxitor.components.*"
+module = "aoa.maxitor.app.components.*"
 disable_error_code = ["import-untyped"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "aoa.maxitor.main"
+module = "aoa.maxitor.app.main"
 disable_error_code = ["import-untyped"]
 ignore_missing_imports = true
 
@@ -360,7 +360,7 @@ exclude = ["tests/"]
 # TASKIPY — УДОБНЫЕ КОМАНДЫ
 # ============================================================================
 [tool.taskipy.tasks]
-maxitor-flet = "uv run --extra maxitor-flet python -m aoa.maxitor.main"
+maxitor-flet = "uv run --extra maxitor-flet python -m aoa.maxitor.app.main"
 test = "pytest tests/ --ignore=tests/packaging -v"
 packaging-smoke = "pytest tests/packaging -v"
 build-packages = "uv run --group dev python -m build packages/aoa-graph && uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-maxitor && uv run --group dev python -m build packages/aoa-examples"

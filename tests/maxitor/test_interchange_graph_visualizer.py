@@ -1,5 +1,5 @@
-# packages/aoa-maxitor/src/aoa/maxitor/tests/test_interchange_graph_visualizer.py
-"""Second-path G6 export for :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`aoa.maxitor.diagrams.graph_visualizer.visualizer`."""
+# packages/aoa-maxitor/src/aoa/maxitor/tests/test_interchange_graph.py
+"""Second-path G6 export for :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`aoa.maxitor.app.diagrams.graph.component`."""
 
 from __future__ import annotations
 
@@ -26,16 +26,16 @@ from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
 from aoa.graph.composition_graph_edge import CompositionGraphEdge
 from aoa.graph.exceptions import InvalidGraphError
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.diagrams.graph_visualizer.domain_propagation import (
-    g6_edge_propagates_domain_from_host_to_child,
-    propagate_node_domains,
-)
-from aoa.maxitor.diagrams.graph_visualizer.visualizer import (
+from aoa.maxitor.app.diagrams.graph.component import (
     G6_CDN_URL,
     generate_interchange_g6_html,
     interchange_edge_to_visual_dict,
     interchange_node_to_visual_dict,
     interchange_pygraph_for_g6,
+)
+from aoa.maxitor.app.diagrams.graph.domain_propagation import (
+    g6_edge_propagates_domain_from_host_to_child,
+    propagate_node_domains,
 )
 
 
@@ -258,14 +258,14 @@ class _BadRefInspector(BaseGraphNodeInspector[_BadRefAxis]):
         if cls is not _BadRefLeaf:
             return None
         dom = _TestGraphNode(
-            node_id="tests.graph_visualizer.bad_domain",
+            node_id="tests.graph.bad_domain",
             node_type="Domain",
             label="BadDomain",
             edges=[
                 AssociationGraphEdge(
                     edge_name="belongs_to",
                     is_dag=False,
-                    target_node_id="tests.graph_visualizer.MISSING_APPLICATION_TARGET",
+                    target_node_id="tests.graph.MISSING_APPLICATION_TARGET",
                 ),
             ],
             node_obj=object(),
