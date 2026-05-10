@@ -23,11 +23,15 @@ export function MainLayout({ sidebar, children }: MainLayoutProps) {
       >
         <Toolbar variant="dense" sx={{ gap: 1, minHeight: 44 }}>
           <Typography variant="body2" color="text.secondary" component="div">
-            Maxitor shell (React + MUI). Diagrams load in an iframe from{" "}
+            Maxitor shell (React + MUI). Interchange graph loads as iframe HTML from{" "}
             <Box component="code" sx={{ fontSize: "0.85em" }}>
-              /api/diagrams/*
+              /api/diagrams/graph
             </Box>
-            ; sidebar from{" "}
+            ; ERD uses JSON from{" "}
+            <Box component="code" sx={{ fontSize: "0.85em" }}>
+              /api/v1/erd/*
+            </Box>{" "}
+            and the viewer shell bundled in the SPA. Sidebar from{" "}
             <Box component="code" sx={{ fontSize: "0.85em" }}>
               GET /api/sidebar
             </Box>
@@ -36,7 +40,7 @@ export function MainLayout({ sidebar, children }: MainLayoutProps) {
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ flex: 1, minHeight: 0, display: "flex" }}>
+      <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, display: "flex" }}>
         <Drawer
           variant="permanent"
           sx={{
@@ -52,7 +56,19 @@ export function MainLayout({ sidebar, children }: MainLayoutProps) {
         >
           {sidebar}
         </Drawer>
-        {children}
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          {children}
+        </Box>
       </Box>
     </Box>
   );

@@ -23,6 +23,11 @@ def test_health(client: TestClient) -> None:
     assert client.get("/api/health").json() == {"status": "ok"}
 
 
+def test_action_adapter_health(client: TestClient) -> None:
+    """Mounted FastApiAdapter exposes its own health route."""
+    assert client.get("/api/v1/health").json() == {"status": "ok"}
+
+
 def test_sidebar(client: TestClient) -> None:
     response = client.get("/api/sidebar")
 
@@ -40,25 +45,24 @@ def test_graph_diagram_html(client: TestClient) -> None:
     assert "Interchange graph" in response.text
 
 
-def test_erd_diagram_html_all_domains(client: TestClient) -> None:
-    response = client.get("/api/diagrams/erd")
+def test_erd_domain_qualnames_json(client: TestClient) -> None:
+    response = client.get("/api/v1/erd/domain-qualnames")
 
     assert response.status_code == 200
-    assert response.headers["content-type"].startswith("text/html")
-    assert "Interchange ERD" in response.text or "ERD" in response.text
+    data = response.json()
+    assert "domain_qualnames" in data
+    assert isinstance(data["domain_qualnames"], list)
+    assert data["domain_qualnames"]
 
 
-def test_erd_diagram_html_one_domain(client: TestClient) -> None:
-    sidebar = client.get("/api/sidebar").json()
-    domain_qual: str | None = None
-    for row in sidebar["level3_diagrams"]:
-        if row.get("type") == "erd_domain" and row.get("parent_id"):
-            domain_qual = str(row["parent_id"])
-            break
-    assert domain_qual is not None
-
-    path = quote(domain_qual, safe="")
-    response = client.get(f"/api/diagrams/erd/{path}")
+def test_erd_domain_payload_json(client: TestClient) -> None:
+    listing = client.get("/api/v1/erd/domain-qualnames").json()
+    qual = listing["domain_qualnames"][0]
+    path = quote(qual, safe="")
+    response = client.get(f"/api/v1/erd/domains/{path}")
 
     assert response.status_code == 200
-    assert response.headers["content-type"].startswith("text/html")
+    body = response.json()
+    assert set(body) == {"domain_label", "domain_qualifier", "graph"}
+    assert body["domain_qualifier"] == qual
+    assert "nodes" in body["graph"] and "edges" in body["graph"]

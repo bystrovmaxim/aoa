@@ -1,6 +1,6 @@
 # packages/aoa-maxitor/src/aoa/maxitor/diagrams/__init__.py
 """
-Maxitor diagrams — interchange graph + ERD standalone HTML for the FastAPI backend.
+Maxitor diagrams — interchange graph HTML for the FastAPI backend and ERD data helpers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE

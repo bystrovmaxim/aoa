@@ -37,7 +37,7 @@ class MaxitorApiSession:
     action_machine: ActionProductMachine
 
 
-async def build_maxitor_api_session() -> MaxitorApiSession:
+async def build_maxitor_api_session(*, machine: ActionProductMachine) -> MaxitorApiSession:
     """
     Load coordinator graph -> NetworkX + sidebar rows for the FastAPI app.
 
@@ -54,7 +54,6 @@ async def build_maxitor_api_session() -> MaxitorApiSession:
         import_sample_registration_modules,
     )
 
-    machine = ActionProductMachine()
     import_sample_registration_modules()
     graph = build_registered_interchange_coordinator()
     nx_result = await machine.run(

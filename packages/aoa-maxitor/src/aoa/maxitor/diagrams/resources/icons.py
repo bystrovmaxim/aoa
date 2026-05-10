@@ -4,8 +4,7 @@ Lucide icon markup (inner SVG children only) per ``node_type`` — shared diagra
 
 Icons are from `lucide-static` (ISC, https://github.com/lucide-icons/lucide).
 Used by interchange G6 (:mod:`aoa.maxitor.diagrams.graph.html_page`) as white strokes
-on colored node disks, and by the ERD HTML builder (:mod:`aoa.maxitor.diagrams.erd.html_page`)
-for domain legend glyphs (`data:` URLs).
+on colored node disks, and by the Maxitor React ERD viewer for domain legend glyphs (`data:` URLs).
 
 Interchange axis kinds share ``NODE_TYPE`` from :class:`~aoa.action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`,
 :class:`~aoa.action_machine.graph_model.nodes.checker_graph_node.CheckerGraphNode`,
