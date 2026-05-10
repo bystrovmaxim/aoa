@@ -623,29 +623,6 @@ def payload_to_domain_dict(payload: ErdGraphPayload) -> dict[str, Any]:
     return {"nodes": nodes, "edges": edges}
 
 
-def domain_qualnames_from_interchange_nx(nx_graph: Any) -> list[str]:
-    """
-    Domain interchange node ids (full ``BaseDomain`` qualnames), sidebar-stable order.
-
-    Skips ``tests.*`` and qualnames containing ``<locals>`` so pytest-registered
-    transient domains do not break ERD export when the full test suite has run.
-
-    Sorts by lowercase ``label`` then qualname so ordering matches :func:`domain_classes_from_coordinator`
-    when the graph was produced from the same coordinator.
-    """
-    rows: list[tuple[str, str]] = []
-    for nid, data in nx_graph.nodes(data=True):
-        if str(data.get("node_type", "")) != DomainGraphNode.NODE_TYPE:
-            continue
-        nid_s = str(nid)
-        if nid_s.startswith("tests.") or "<locals>" in nid_s:
-            continue
-        label = str(data.get("label", ""))
-        rows.append((label, str(nid)))
-    rows.sort(key=lambda lr: (lr[0].lower(), lr[1]))
-    return [r[1] for r in rows]
-
-
 def node_graph_coordinator_from_interchange_nx(nx_graph: Any) -> NodeGraphCoordinator:
     """Recover the coordinator embedded by :class:`~aoa.maxitor.model.core.actions.load_graph_action.LoadGraphAction`."""
     gdict = getattr(nx_graph, "graph", None)

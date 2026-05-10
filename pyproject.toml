@@ -175,6 +175,11 @@ module = "aoa.maxitor.samples.*"
 disallow_untyped_decorators = false
 disable_error_code = ["valid-type"]
 
+# JsonSchemaValue.define() types used as annotations (mypy sees a variable, not a static alias)
+[[tool.mypy.overrides]]
+module = "aoa.maxitor.model.diagrams.*"
+disable_error_code = ["valid-type"]
+
 [[tool.mypy.overrides]]
 module = "tests.scenarios.domain_model.*"
 disallow_untyped_decorators = false
