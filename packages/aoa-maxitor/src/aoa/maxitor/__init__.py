@@ -11,11 +11,12 @@ primary domain marker and the graph visualizer HTML export path built on
 ``NodeGraphCoordinator``.
 
 ═══════════════════════════════════════════════════════════════════════════════
-FLET DESKTOP (OPTIONAL)
+REACT SPA + FASTAPI
 ═══════════════════════════════════════════════════════════════════════════════
 
-With ``aoa-maxitor[flet]``, run ``python -m aoa.maxitor.app.main`` (or the ``maxitor-flet`` console script)
-for the navigation + WebView workspace around interchange HTML exports.
+Run the backend with ``uv run task maxitor-api`` and the frontend with ``npm run dev``
+from ``packages/aoa-maxitor/client``. HTML diagram exporters live under
+:mod:`aoa.maxitor.diagrams`.
 """
 
 from __future__ import annotations

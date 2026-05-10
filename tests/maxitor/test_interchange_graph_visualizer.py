@@ -1,11 +1,9 @@
 # packages/aoa-maxitor/src/aoa/maxitor/tests/test_interchange_graph.py
-"""Second-path G6 export for :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`aoa.maxitor.app.diagrams.graph.component`."""
+"""Second-path G6 export for :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`aoa.maxitor.diagrams.graph.html_page`."""
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 import rustworkx as rx
@@ -26,16 +24,16 @@ from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
 from aoa.graph.composition_graph_edge import CompositionGraphEdge
 from aoa.graph.exceptions import InvalidGraphError
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.app.diagrams.graph.component import (
-    G6_CDN_URL,
-    generate_interchange_g6_html,
-    interchange_edge_to_visual_dict,
-    interchange_node_to_visual_dict,
-    interchange_pygraph_for_g6,
-)
-from aoa.maxitor.app.diagrams.graph.domain_propagation import (
+from aoa.maxitor.diagrams.graph.domain_propagation import (
     g6_edge_propagates_domain_from_host_to_child,
     propagate_node_domains,
+)
+from aoa.maxitor.diagrams.graph.html_page import (
+    G6_CDN_URL,
+    interchange_edge_to_visual_dict,
+    interchange_g6_html_string_from_coordinator,
+    interchange_node_to_visual_dict,
+    interchange_pygraph_for_g6,
 )
 
 
@@ -222,21 +220,11 @@ def test_interchange_pygraph_for_g6_round_trip_topology() -> None:
     assert ew["line_style"] == "solid"
 
 
-def test_generate_interchange_g6_html_accepts_native_base_graph_nodes(tmp_path: Path) -> None:
+def test_interchange_g6_html_string_from_coordinator_accepts_native_base_graph_nodes() -> None:
     coord = NodeGraphCoordinator()
     coord.build([_SingleActionHtmlInspector()])
-    html_path = tmp_path / "anchor.html"
-    captured: list[str] = []
-
-    def fake_write_text(_self: Path, data: str, *_args: object, **_kwargs: object) -> int:
-        captured.append(data)
-        return len(data)
-
-    with patch.object(Path, "write_text", fake_write_text):
-        written = generate_interchange_g6_html(coord, html_path, title="anchor only")
-    assert written == html_path
-    assert len(captured) == 1
-    assert G6_CDN_URL in captured[0]
+    html = interchange_g6_html_string_from_coordinator(coord, title="anchor only")
+    assert G6_CDN_URL in html
 
 
 def test_all_axis_inspectors_count() -> None:
@@ -280,14 +268,14 @@ def test_coordinator_build_fails_on_dangling_edge_target() -> None:
         coord.build([_BadRefInspector()])
 
 
-def test_generate_interchange_g6_html_rejects_non_base_graph_node(tmp_path: Path) -> None:
+def test_interchange_g6_html_string_from_coordinator_rejects_non_base_graph_node() -> None:
     coord = NodeGraphCoordinator()
     coord.build([_SingleActionHtmlInspector()])
     bad = rx.PyDiGraph()
     bad.add_node({"node_type": "Action", "id": "x", "label": "X"})
     object.__setattr__(coord, "_rx_graph", bad)
     with pytest.raises(TypeError, match="BaseGraphNode"):
-        generate_interchange_g6_html(coord, tmp_path / "bad.html")
+        interchange_g6_html_string_from_coordinator(coord)
 
 
 def test_g6_edge_propagates_domain_containment_only() -> None:

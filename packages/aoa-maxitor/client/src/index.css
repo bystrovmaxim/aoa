@@ -1,0 +1,6 @@
+/* Layout and baseline come from MUI CssBaseline + theme; keep only root height if needed. */
+html,
+body,
+#root {
+  height: 100%;
+}

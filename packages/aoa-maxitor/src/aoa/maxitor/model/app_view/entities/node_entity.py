@@ -28,7 +28,7 @@ class NodeEntity(BaseEntity):
     AI-CORE-BEGIN
     ROLE: App-view entity for a single navigable tree row.
     CONTRACT: ``id``, ``label``, and ``type`` are required; ``parent_id`` is optional for root rows.
-    INVARIANTS: Immutable; no coordinator or graph handles; not yet wired into actions or Flet.
+    INVARIANTS: Immutable; no coordinator or graph handles on the instance; used by sidebar and ERD tab list actions.
     AI-CORE-END
     """
 

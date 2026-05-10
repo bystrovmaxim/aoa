@@ -4,6 +4,50 @@ Publishable distribution for the `aoa.maxitor` namespace (samples and visualizat
 
 See the [repository README](https://github.com/action-machine/action-machine/blob/main/README.md) for the full project.
 
-## Flet desktop shell
+## React SPA + FastAPI API
 
-With `aoa-maxitor[flet]` installed, run `python -m aoa.maxitor.app.main` (or the `maxitor-flet` console script from the same extra).
+Maxitor is split into a standard Vite React frontend and a FastAPI backend.
+
+### Backend API
+
+```bash
+uv run task maxitor-api
+```
+
+This starts `aoa.maxitor.api.app:app` on `http://127.0.0.1:8000`.
+
+**Local dev (two processes):** terminal A — `uv run task maxitor-api` (or `uv run maxitor-api` from the package); terminal B — `cd packages/aoa-maxitor/client && npm run dev`, then open `http://127.0.0.1:5173`.
+
+Environment for the `maxitor-api` console script: `MAXITOR_API_HOST` (default `127.0.0.1`), `MAXITOR_API_PORT` (default `8000`). The repo `task maxitor-api` uses uvicorn with `--reload` on port 8000.
+
+- `GET /api/health` returns API health.
+- `GET /api/sidebar` returns navigation rows for the sidebar.
+- `GET /api/diagrams/graph` returns the Python-generated graph HTML for the iframe viewer.
+- `GET /api/diagrams/erd` and `GET /api/diagrams/erd/<domain_qualname>` return ERD HTML.
+
+### React frontend
+
+Local development:
+
+```bash
+cd packages/aoa-maxitor/client
+npm install
+npm run dev
+```
+
+Vite proxies `/api` to `http://127.0.0.1:8000` by default. For production hosting,
+build the SPA and point it at the deployed API:
+
+```bash
+VITE_MAXITOR_API_BASE_URL=https://api.example.com npm run build
+```
+
+### React source layout (`client/src`)
+
+- `app/` — root shell (`App.tsx`), MUI providers, and `layout/` (banner + drawer frame).
+- `features/sidebar` — `/api/sidebar` types, grouping, and navigation list.
+- `features/diagram-viewer` — iframe vs empty state for Python-rendered diagram routes.
+- `shared/` — theme, API config, and layout constants.
+
+Python builds standalone diagram pages under `aoa.maxitor.diagrams`; FastAPI serves
+them under `/api/diagrams/*`.
