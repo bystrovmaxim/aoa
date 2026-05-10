@@ -23,7 +23,7 @@ Environment for the `maxitor-api` console script: `MAXITOR_API_HOST` (default `1
 - `GET /api/health` returns API health.
 - `GET /api/sidebar` returns navigation rows for the sidebar.
 - `GET /api/diagrams/graph` returns the Python-generated graph HTML for the iframe viewer.
-- `GET /api/diagrams/erd` and `GET /api/diagrams/erd/<domain_qualname>` return ERD HTML.
+- `GET /api/v1/erd/domain-qualnames` and `GET /api/v1/erd/domains/{qualname}` return ERD graph JSON for the React viewer.
 
 ### React frontend
 
@@ -46,7 +46,7 @@ VITE_MAXITOR_API_BASE_URL=https://api.example.com npm run build
 
 - `app/` — root shell (`App.tsx`), MUI providers, and `layout/` (banner + drawer frame).
 - `features/sidebar` — `/api/sidebar` types, grouping, and navigation list.
-- `features/diagram-viewer` — iframe vs empty state for Python-rendered diagram routes.
+- `features/diagram-viewer` — interchange graph iframe, ERD viewer (JSON + bundled shell).
 - `shared/` — theme, API config, and layout constants.
 
 Python builds standalone diagram pages under `aoa.maxitor.diagrams`; FastAPI serves

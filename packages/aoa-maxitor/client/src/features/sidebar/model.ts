@@ -1,12 +1,11 @@
 // packages/aoa-maxitor/client/src/features/sidebar/model.ts
-import { apiUrl } from "../../shared/config/api";
 import type { DiagramSelection } from "../diagram-viewer";
 import type { NodeRow, SidebarGroupedMaps, SidebarPayload } from "./types";
 
-/** Client-side ERD uses JSON from ``/api/v1/erd/*``; interchange graph stays iframe HTML. */
+/** ERD uses JSON from ``/api/v1/erd/*``; interchange graph uses ``GET /api/v1/graph/interchange`` + G6 in the SPA. */
 export function diagramSelectionForRow(row: NodeRow): DiagramSelection | null {
   if (row.type === "graph") {
-    return { kind: "iframe", url: apiUrl("/api/diagrams/graph") };
+    return { kind: "interchange_graph" };
   }
   if (row.type === "erd_all") {
     return { kind: "erd", qualifier: null };

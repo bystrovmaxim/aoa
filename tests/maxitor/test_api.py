@@ -37,12 +37,15 @@ def test_sidebar(client: TestClient) -> None:
     assert payload["level1_nodes"]
 
 
-def test_graph_diagram_html(client: TestClient) -> None:
-    response = client.get("/api/diagrams/graph")
+def test_interchange_graph_payload_json(client: TestClient) -> None:
+    response = client.get("/api/v1/graph/interchange")
 
     assert response.status_code == 200
-    assert response.headers["content-type"].startswith("text/html")
-    assert "Interchange graph" in response.text
+    body = response.json()
+    assert "payload" in body
+    p = body["payload"]
+    assert "nodes" in p and "edges" in p
+    assert isinstance(p["nodes"], list) and isinstance(p["edges"], list)
 
 
 def test_erd_domain_qualnames_json(client: TestClient) -> None:

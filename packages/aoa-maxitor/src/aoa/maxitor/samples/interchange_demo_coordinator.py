@@ -6,8 +6,8 @@ Interchange coordinator for HTML demos — one graph build for all visualizers.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-ERD JSON (:mod:`aoa.maxitor.diagrams.erd`) and the interchange graph visualizer
-(:mod:`aoa.maxitor.diagrams.graph`) both consume a built
+ERD graph JSON (app-view serializers in :mod:`aoa.maxitor.model.app_view.actions.build_erd_graph_data_action`)
+and the interchange graph visualizer via app-view interchange graph helpers both consume a built
 :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator`. This module is the single
 construction path for demos so both exports see identical topology after sample registration.
 

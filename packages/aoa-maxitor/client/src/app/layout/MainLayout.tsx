@@ -23,11 +23,11 @@ export function MainLayout({ sidebar, children }: MainLayoutProps) {
       >
         <Toolbar variant="dense" sx={{ gap: 1, minHeight: 44 }}>
           <Typography variant="body2" color="text.secondary" component="div">
-            Maxitor shell (React + MUI). Interchange graph loads as iframe HTML from{" "}
+            Maxitor shell (React + MUI). Interchange graph loads JSON from{" "}
             <Box component="code" sx={{ fontSize: "0.85em" }}>
-              /api/diagrams/graph
-            </Box>
-            ; ERD uses JSON from{" "}
+              /api/v1/graph/interchange
+            </Box>{" "}
+            and renders with AntV G6; ERD uses JSON from{" "}
             <Box component="code" sx={{ fontSize: "0.85em" }}>
               /api/v1/erd/*
             </Box>{" "}

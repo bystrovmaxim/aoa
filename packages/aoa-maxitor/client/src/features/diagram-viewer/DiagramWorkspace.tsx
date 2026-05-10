@@ -3,13 +3,14 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { ErdViewer } from "./erd";
+import { InterchangeGraphViewer } from "./interchange-graph";
 import type { DiagramSelection } from "./model/types";
 
 type DiagramWorkspaceProps = {
   diagram: DiagramSelection | null;
 };
 
-/** Main diagram area: interchange graph iframe, or ERD viewer sub-feature. */
+/** Main diagram area: interchange graph (G6) or ERD viewer sub-feature. */
 export function DiagramWorkspace({ diagram }: DiagramWorkspaceProps) {
   return (
     <Box
@@ -23,14 +24,8 @@ export function DiagramWorkspace({ diagram }: DiagramWorkspaceProps) {
         overflow: "hidden",
       }}
     >
-      {diagram?.kind === "iframe" ? (
-        <Box
-          component="iframe"
-          key={diagram.url}
-          title="Diagram viewer"
-          src={diagram.url}
-          sx={{ border: 0, flex: 1, width: "100%", minHeight: 0 }}
-        />
+      {diagram?.kind === "interchange_graph" ? (
+        <InterchangeGraphViewer key="interchange-graph" />
       ) : diagram?.kind === "erd" ? (
         <ErdViewer key={diagram.qualifier ?? "all"} selection={diagram} />
       ) : (
@@ -40,11 +35,11 @@ export function DiagramWorkspace({ diagram }: DiagramWorkspaceProps) {
               Diagram workspace
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Open the interchange graph (iframe) or an ERD. The graph loads HTML from{" "}
+              Open the interchange graph or an ERD. The graph loads JSON from{" "}
               <Box component="code" sx={{ fontSize: "0.85em" }}>
-                /api/diagrams/graph
-              </Box>
-              ; ERD uses JSON from{" "}
+                /api/v1/graph/interchange
+              </Box>{" "}
+              and renders with AntV G6 in the SPA; ERD uses{" "}
               <Box component="code" sx={{ fontSize: "0.85em" }}>
                 /api/v1/erd/*
               </Box>{" "}

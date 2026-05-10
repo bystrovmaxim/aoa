@@ -1,5 +1,5 @@
 # packages/aoa-maxitor/src/aoa/maxitor/tests/test_interchange_graph.py
-"""Second-path G6 export for :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`aoa.maxitor.diagrams.graph.html_page`."""
+"""G6 interchange graph serialization for :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`aoa.maxitor.model.app_view.actions.build_interchange_graph_data_action`."""
 
 from __future__ import annotations
 
@@ -24,16 +24,14 @@ from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
 from aoa.graph.composition_graph_edge import CompositionGraphEdge
 from aoa.graph.exceptions import InvalidGraphError
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.diagrams.graph.domain_propagation import (
-    g6_edge_propagates_domain_from_host_to_child,
-    propagate_node_domains,
-)
-from aoa.maxitor.diagrams.graph.html_page import (
+from aoa.maxitor.model.app_view.actions.build_interchange_graph_data_action import (
     G6_CDN_URL,
+    g6_edge_propagates_domain_from_host_to_child,
     interchange_edge_to_visual_dict,
-    interchange_g6_html_string_from_coordinator,
+    interchange_g6_payload_from_coordinator,
     interchange_node_to_visual_dict,
     interchange_pygraph_for_g6,
+    propagate_node_domains,
 )
 
 
@@ -220,11 +218,11 @@ def test_interchange_pygraph_for_g6_round_trip_topology() -> None:
     assert ew["line_style"] == "solid"
 
 
-def test_interchange_g6_html_string_from_coordinator_accepts_native_base_graph_nodes() -> None:
+def test_interchange_g6_payload_from_coordinator_accepts_native_base_graph_nodes() -> None:
     coord = NodeGraphCoordinator()
     coord.build([_SingleActionHtmlInspector()])
-    html = interchange_g6_html_string_from_coordinator(coord, title="anchor only")
-    assert G6_CDN_URL in html
+    payload = interchange_g6_payload_from_coordinator(coord, title="anchor only")
+    assert payload["constants"]["g6_cdn_url"] == G6_CDN_URL
 
 
 def test_all_axis_inspectors_count() -> None:
@@ -268,14 +266,14 @@ def test_coordinator_build_fails_on_dangling_edge_target() -> None:
         coord.build([_BadRefInspector()])
 
 
-def test_interchange_g6_html_string_from_coordinator_rejects_non_base_graph_node() -> None:
+def test_interchange_g6_payload_from_coordinator_rejects_non_base_graph_node() -> None:
     coord = NodeGraphCoordinator()
     coord.build([_SingleActionHtmlInspector()])
     bad = rx.PyDiGraph()
     bad.add_node({"node_type": "Action", "id": "x", "label": "X"})
     object.__setattr__(coord, "_rx_graph", bad)
     with pytest.raises(TypeError, match="BaseGraphNode"):
-        interchange_g6_html_string_from_coordinator(coord)
+        interchange_g6_payload_from_coordinator(coord)
 
 
 def test_g6_edge_propagates_domain_containment_only() -> None:
