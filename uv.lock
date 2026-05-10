@@ -48,6 +48,7 @@ version = "1.0.0"
 source = { editable = "packages/aoa-action-machine" }
 dependencies = [
     { name = "aoa-graph" },
+    { name = "jsonschema" },
     { name = "pydantic" },
     { name = "simpleeval" },
 ]
@@ -69,6 +70,7 @@ requires-dist = [
     { name = "aoa-graph", editable = "packages/aoa-graph" },
     { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29,<1.0" },
     { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.100,<1.0" },
+    { name = "jsonschema", specifier = ">=4.17" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.0,<2.0" },
     { name = "pydantic", specifier = ">=2.0,<3.0" },
     { name = "simpleeval", specifier = ">=1.0,<2.0" },
@@ -164,6 +166,8 @@ all = [
     { name = "radon" },
     { name = "ruff" },
     { name = "taskipy" },
+    { name = "types-jsonschema" },
+    { name = "types-networkx" },
     { name = "vulture" },
 ]
 dev = [
@@ -180,6 +184,8 @@ dev = [
     { name = "radon" },
     { name = "ruff" },
     { name = "taskipy" },
+    { name = "types-jsonschema" },
+    { name = "types-networkx" },
     { name = "vulture" },
 ]
 fastapi = [
@@ -198,6 +204,8 @@ postgres = [
 dev = [
     { name = "build" },
     { name = "twine" },
+    { name = "types-jsonschema" },
+    { name = "types-networkx" },
 ]
 
 [package.metadata]
@@ -225,6 +233,8 @@ requires-dist = [
     { name = "radon", marker = "extra == 'dev'", specifier = ">=6.0,<7.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4,<1.0" },
     { name = "taskipy", marker = "extra == 'dev'", specifier = ">=1.12,<2.0" },
+    { name = "types-jsonschema", marker = "extra == 'dev'", specifier = ">=4.19,<5" },
+    { name = "types-networkx", marker = "extra == 'dev'", specifier = ">=3.2,<4" },
     { name = "vulture", marker = "extra == 'dev'", specifier = ">=2.11,<3.0" },
 ]
 provides-extras = ["fastapi", "mcp", "postgres", "dev", "all"]
@@ -233,6 +243,8 @@ provides-extras = ["fastapi", "mcp", "postgres", "dev", "all"]
 dev = [
     { name = "build", specifier = ">=1.4.3" },
     { name = "twine", specifier = ">=6.2.0" },
+    { name = "types-jsonschema", specifier = ">=4.19,<5" },
+    { name = "types-networkx", specifier = ">=3.2,<4" },
 ]
 
 [[package]]
@@ -1855,6 +1867,30 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e0/a8/949edebe3a82774c1ec34f637f5dd82d1cf22c25e963b7d63771083bbee5/twine-6.2.0.tar.gz", hash = "sha256:e5ed0d2fd70c9959770dce51c8f39c8945c574e18173a7b81802dab51b4b75cf", size = 172262, upload-time = "2025-09-04T15:43:17.255Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3a/7a/882d99539b19b1490cac5d77c67338d126e4122c8276bf640e411650c830/twine-6.2.0-py3-none-any.whl", hash = "sha256:418ebf08ccda9a8caaebe414433b0ba5e25eb5e4a927667122fbe8f829f985d8", size = 42727, upload-time = "2025-09-04T15:43:15.994Z" },
+]
+
+[[package]]
+name = "types-jsonschema"
+version = "4.26.0.20260508"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "referencing" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/11/d8/7ba8007c48e0de93d82268e0447312c9c28d90ac7a8f73e034356bb40921/types_jsonschema-4.26.0.20260508.tar.gz", hash = "sha256:ae0be85ac6ec0cb94a98f75f876b0620cf2afa3e37fdf8460203f4d05f745acb", size = 16602, upload-time = "2026-05-08T04:51:45.26Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a3/55/4f25833c410426b1f359dd579f3b3d1ee0f43f5674b23a815f396d3ea63c/types_jsonschema-4.26.0.20260508-py3-none-any.whl", hash = "sha256:4ec1dea0a757c8c2e2aa7bc085612fb54e1ae9562428d5da6f26dd7a0f24dbc2", size = 16062, upload-time = "2026-05-08T04:51:44.437Z" },
+]
+
+[[package]]
+name = "types-networkx"
+version = "3.6.1.20260508"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/76/eb/ea1e2f403bb0ea555a484f7528d5ab92f51c344e3b7890f11504b14d90b4/types_networkx-3.6.1.20260508.tar.gz", hash = "sha256:af0066938b3fa9d1e16307af3ac748b79a794ac69e3217096b8fdb00fdc8dac8", size = 73574, upload-time = "2026-05-08T04:50:45.714Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/29/a7/fccd7bcd3427886f86cb6f68d2e137450882711249335ab6b7a9fd6f94dd/types_networkx-3.6.1.20260508-py3-none-any.whl", hash = "sha256:6172444c01f68c295dcd3f6313d9e723343cb1c94d02064e5f1c07d282d527a4", size = 162072, upload-time = "2026-05-08T04:50:44.245Z" },
 ]
 
 [[package]]

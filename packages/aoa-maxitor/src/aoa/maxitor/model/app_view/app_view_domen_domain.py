@@ -7,4 +7,3 @@ from aoa.action_machine.domain import BaseDomain
 class AppViewDomenDomain(BaseDomain):
     name = "app_view"
     description = "Root app-view composition: sidebar menu, diagrams, entities, and ERD rows"
-

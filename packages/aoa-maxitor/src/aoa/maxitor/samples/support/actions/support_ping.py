@@ -11,8 +11,22 @@ from aoa.action_machine.auth import NoneRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, JsonSchemaValue
 from aoa.maxitor.samples.support.domain import SupportDomain
+
+_SAMPLE_AUDIT_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "events": {"type": "array", "items": {"type": "object"}},
+        "source": {"type": "string"},
+    },
+    "required": ["events", "source"],
+    "additionalProperties": False,
+}
+_SupportPingSampleAuditJson = JsonSchemaValue.define(
+    name="SupportPingSampleAuditJson",
+    schema=_SAMPLE_AUDIT_SCHEMA,
+)
 
 
 @meta(description="Support slice ping (dependency target for same-domain @depends)", domain=SupportDomain)
@@ -23,6 +37,9 @@ class SupportPingAction(BaseAction["SupportPingAction.Params", "SupportPingActio
 
     class Result(BaseResult):
         ok: bool = Field(description="Stub ok flag")
+        sample_audit: _SupportPingSampleAuditJson = Field(
+            description="Sample JSON payload for JsonSchemaValue graph metadata",
+        )
 
     @summary_aspect("Ack")
     async def ack_summary(
@@ -32,4 +49,7 @@ class SupportPingAction(BaseAction["SupportPingAction.Params", "SupportPingActio
         box: Any,
         connections: Any,
     ) -> SupportPingAction.Result:
-        return SupportPingAction.Result(ok=True)
+        return SupportPingAction.Result(
+            ok=True,
+            sample_audit={"events": [], "source": "support_ping"},
+        )

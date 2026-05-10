@@ -25,12 +25,12 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.api.resources.maxitor_interchange_nx_resource import MaxitorInterchangeNxResource
+from aoa.maxitor.model.app_view.actions.build_erd_graph_data_action import (
+    node_graph_coordinator_from_interchange_nx,
+)
 from aoa.maxitor.model.app_view.actions.build_interchange_graph_data_action import (
     dag_cycle_violation_keys_from_coordinator,
     interchange_g6_payload_from_nx,
-)
-from aoa.maxitor.model.app_view.actions.build_erd_graph_data_action import (
-    node_graph_coordinator_from_interchange_nx,
 )
 from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
 

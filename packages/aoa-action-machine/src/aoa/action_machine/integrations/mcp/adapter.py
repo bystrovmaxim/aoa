@@ -120,6 +120,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import uuid
 from collections.abc import Callable
 from typing import Any, Self
 
@@ -559,8 +560,12 @@ AI-CORE-BEGIN
                 f"to be a Pydantic BaseModel subclass; got {req!r}."
             )
         safe_tool = "".join(ch if ch.isalnum() else "_" for ch in record.tool_name)
+        # Unique typename: repeated ``type()`` calls used the same ``__qualname__``/``__module__``
+        # (``abc.Params_<req>_<tool>McpArgs``), so ``TypeIntrospection.full_qualname`` collided across
+        # tools/builds and broke ``NodeGraphCoordinator`` Params discovery.
+        unique = uuid.uuid4().hex[:10]
         return type(
-            f"{req.__name__}_{safe_tool}McpArgs",
+            f"{req.__name__}_{safe_tool}_{unique}McpArgs",
             (req, ArgModelBase),
             {},
         )

@@ -18,12 +18,25 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+import types
+import typing
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, get_args, get_origin, get_type_hints
 
 from aoa.action_machine.graph_model.nodes.field_graph_node import FieldGraphNode
+from aoa.action_machine.model.json_schema_value import get_json_schema_value_metadata
 from aoa.graph.base_graph_node import BaseGraphNode
 from aoa.graph.composition_graph_edge import CompositionGraphEdge
+
+
+def _unwrap_optional(annotation: Any) -> Any:
+    """Return ``X`` from ``Optional[X]`` / ``X | None``, or ``annotation`` unchanged."""
+    origin = get_origin(annotation)
+    if origin is types.UnionType or origin is typing.Union:
+        args = [a for a in get_args(annotation) if a is not type(None)]
+        if len(args) == 1:
+            return args[0]
+    return annotation
 
 
 class FieldGraphEdge(CompositionGraphEdge):
@@ -59,14 +72,24 @@ class FieldGraphEdge(CompositionGraphEdge):
         model_fields = getattr(host_cls, "model_fields", None)
         if not isinstance(model_fields, Mapping):
             return []
+        try:
+            hints = get_type_hints(host_cls, include_extras=True)
+        except Exception:
+            hints = {}
         out: list[FieldGraphNode] = []
         for field_name, finfo in model_fields.items():
+            annotation = hints.get(field_name, finfo.annotation)
+            actual_type = _unwrap_optional(annotation)
+            jsv_meta = get_json_schema_value_metadata(actual_type)
             out.append(
                 FieldGraphNode(
                     host_cls,
                     field_name,
                     description=finfo.description,
                     required=bool(finfo.is_required()),
+                    json_schema_value=jsv_meta is not None,
+                    json_schema_name=jsv_meta["name"] if jsv_meta else None,
+                    json_schema=jsv_meta["schema"] if jsv_meta else None,
                 ),
             )
         return out

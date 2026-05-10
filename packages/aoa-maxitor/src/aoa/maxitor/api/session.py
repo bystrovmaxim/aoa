@@ -17,8 +17,15 @@ from typing import Any
 
 import networkx as nx
 
+from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
+from aoa.maxitor.model.app_view.actions.get_left_menu_sidebar_data_action import GetLeftMenuSidebarDataAction
+from aoa.maxitor.model.app_view.actions.load_graph_action import LoadGraphAction
+from aoa.maxitor.samples.interchange_demo_coordinator import (
+    build_registered_interchange_coordinator,
+    import_sample_registration_modules,
+)
 
 
 @dataclass(frozen=True)
@@ -32,7 +39,7 @@ class MaxitorApiSession:
     """
 
     sidebar_data: Any
-    nx_graph: nx.DiGraph
+    nx_graph: nx.DiGraph[Any]
     coordinator: NodeGraphCoordinator
     action_machine: ActionProductMachine
 
@@ -46,14 +53,6 @@ async def build_maxitor_api_session(*, machine: ActionProductMachine) -> Maxitor
     SIDE EFFECTS: Imports sample registration modules so the demo graph can be inspected.
     AI-CORE-END
     """
-    from aoa.action_machine.context.context import Context
-    from aoa.maxitor.model.app_view.actions.get_left_menu_sidebar_data_action import GetLeftMenuSidebarDataAction
-    from aoa.maxitor.model.app_view.actions.load_graph_action import LoadGraphAction
-    from aoa.maxitor.samples.interchange_demo_coordinator import (
-        build_registered_interchange_coordinator,
-        import_sample_registration_modules,
-    )
-
     import_sample_registration_modules()
     graph = build_registered_interchange_coordinator()
     nx_result = await machine.run(
