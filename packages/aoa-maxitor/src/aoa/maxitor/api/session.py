@@ -20,8 +20,8 @@ import networkx as nx
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.model.app_view.actions.get_left_menu_sidebar_data_action import GetLeftMenuSidebarDataAction
 from aoa.maxitor.model.core.actions.load_graph_action import LoadGraphAction
+from aoa.maxitor.model.diagrams.actions.get_left_menu_sidebar_data_action import GetLeftMenuSidebarDataAction
 from aoa.maxitor.samples.interchange_demo_coordinator import (
     build_registered_interchange_coordinator,
     import_sample_registration_modules,

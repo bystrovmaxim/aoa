@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/actions/build_interchange_graph_data_action.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/build_interchange_graph_data_action.py
 # pylint: disable=too-many-branches,too-many-statements
 """
 Interchange graph materialization — pure helpers for coordinator / nx graph → G6 JSON.
@@ -8,12 +8,12 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Pure helpers read :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator`
-or the app-view ``networkx`` graph and build the JSON consumed by the React G6
+or the diagrams ``networkx`` graph and build the JSON consumed by the React G6
 viewer: ``nodes``, ``edges``, ``legend_items`` (``type`` + ``color`` only; glyphs
 are rendered client-side), ``node_type_map``, ``bubble_plugins``, and ``constants``.
 
 HTTP-facing flow stays in ``GetInterchangeGraphPayloadAction`` with the same
-app-view action pattern as ERD.
+diagrams action pattern as ERD.
 """
 
 from __future__ import annotations

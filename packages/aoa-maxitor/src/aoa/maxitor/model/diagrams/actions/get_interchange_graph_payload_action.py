@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/actions/get_interchange_graph_payload_action.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/get_interchange_graph_payload_action.py
 """
 GetInterchangeGraphPayloadAction — interchange graph as JSON for the React G6 viewer.
 
@@ -25,19 +25,19 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.api.resources.maxitor_interchange_nx_resource import MaxitorInterchangeNxResource
-from aoa.maxitor.model.app_view.actions.build_erd_graph_data_action import (
+from aoa.maxitor.model.diagrams.actions.build_erd_graph_data_action import (
     node_graph_coordinator_from_interchange_nx,
 )
-from aoa.maxitor.model.app_view.actions.build_interchange_graph_data_action import (
+from aoa.maxitor.model.diagrams.actions.build_interchange_graph_data_action import (
     dag_cycle_violation_keys_from_coordinator,
     interchange_g6_payload_from_nx,
 )
-from aoa.maxitor.model.app_view.app_view_domain import AppViewDomain
+from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
 
 @meta(
-    description="Get interchange graph JSON for the Maxitor React G6 viewer (app-view)",
-    domain=AppViewDomain,
+    description="Get interchange graph JSON for the Maxitor React G6 viewer (diagrams)",
+    domain=DiagramsDomain,
 )
 @check_roles(NoneRole)
 @connection(MaxitorInterchangeNxResource, key="interchange_nx", description="Interchange nx graph from LoadGraphAction")

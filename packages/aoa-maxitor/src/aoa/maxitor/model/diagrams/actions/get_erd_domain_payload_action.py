@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/actions/get_erd_domain_payload_action.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/get_erd_domain_payload_action.py
 """
 GetErdDomainPayloadAction — one bounded-context ERD graph as JSON for the client.
 
@@ -36,17 +36,17 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.api.resources.maxitor_interchange_nx_resource import MaxitorInterchangeNxResource
-from aoa.maxitor.model.app_view.actions.build_erd_graph_data_action import (
+from aoa.maxitor.model.diagrams.actions.build_erd_graph_data_action import (
     erd_payload_from_coordinator_for_domain,
     node_graph_coordinator_from_interchange_nx,
     payload_to_domain_dict,
 )
-from aoa.maxitor.model.app_view.app_view_domain import AppViewDomain
+from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
 
 @meta(
-    description="Get ERD nodes/edges JSON for one interchange domain qualname (app-view)",
-    domain=AppViewDomain,
+    description="Get ERD nodes/edges JSON for one interchange domain qualname (diagrams)",
+    domain=DiagramsDomain,
 )
 @check_roles(NoneRole)
 @connection(MaxitorInterchangeNxResource, key="interchange_nx", description="Interchange nx graph from LoadGraphAction")

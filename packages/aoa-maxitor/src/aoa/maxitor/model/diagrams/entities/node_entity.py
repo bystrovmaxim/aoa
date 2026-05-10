@@ -1,13 +1,13 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/entities/node_entity.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/entities/node_entity.py
 """
-NodeEntity — sidebar / tree row record for app-view.
+NodeEntity — sidebar / tree row record for diagrams.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Carry a stable id, optional parent link, display label, and a coarse category string
-for hierarchical UI lists. Declared as an ActionMachine entity under ``AppViewDomain``.
+for hierarchical UI lists. Declared as an ActionMachine entity under ``DiagramsDomain``.
 """
 
 from __future__ import annotations
@@ -16,17 +16,17 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.maxitor.model.app_view.app_view_domain import AppViewDomain
+from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
 
 @entity(
     description="Hierarchical UI node row (id, optional parent, label, coarse type)",
-    domain=AppViewDomain,
+    domain=DiagramsDomain,
 )
 class NodeEntity(BaseEntity):
     """
     AI-CORE-BEGIN
-    ROLE: App-view entity for a single navigable tree row.
+    ROLE: Diagrams entity for a single navigable tree row.
     CONTRACT: ``id``, ``label``, and ``type`` are required; ``parent_id`` is optional for root rows.
     INVARIANTS: Immutable; no coordinator or graph handles on the instance; used by sidebar and ERD tab list actions.
     AI-CORE-END

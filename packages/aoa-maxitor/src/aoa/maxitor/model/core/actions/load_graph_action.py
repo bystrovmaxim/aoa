@@ -38,14 +38,14 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.graph.base_graph_node import BaseGraphNode
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.model.core.core_domain import CoreDomain
+from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
 # Populated on each ``LoadGraphAction`` result graph so downstream actions (e.g. ERD) can recover
 # the built :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` while accepting ``nx_graph`` only.
 MAXITOR_NX_GRAPH_COORDINATOR_KEY = "_maxitor_node_graph_coordinator"
 
 
-@meta(description="Load interchange graph into a NetworkX DiGraph (app-view)", domain=CoreDomain)
+@meta(description="Load interchange graph into a NetworkX DiGraph (diagrams)", domain=DiagramsDomain)
 @check_roles(NoneRole)
 class LoadGraphAction(BaseAction["LoadGraphAction.Params", "LoadGraphAction.Result"]):
     """
