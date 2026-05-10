@@ -26,7 +26,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
+from aoa.maxitor.model.app_view.app_view_domain import AppViewDomain
 from aoa.maxitor.model.app_view.entities.node_entity import NodeEntity
 
 
@@ -45,7 +45,7 @@ _ROOT_SECTIONS: tuple[tuple[str, str, str], ...] = (
 )
 
 
-@meta(description="Build left-menu sidebar NodeEntity lists from NetworkX graph view", domain=AppViewDomenDomain)
+@meta(description="Build left-menu sidebar NodeEntity lists from NetworkX graph view", domain=AppViewDomain)
 @check_roles(NoneRole)
 class GetLeftMenuSidebarDataAction(
     BaseAction["GetLeftMenuSidebarDataAction.Params", "GetLeftMenuSidebarDataAction.Result"],

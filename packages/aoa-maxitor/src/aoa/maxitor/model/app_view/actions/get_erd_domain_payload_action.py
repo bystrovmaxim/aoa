@@ -41,12 +41,12 @@ from aoa.maxitor.model.app_view.actions.build_erd_graph_data_action import (
     node_graph_coordinator_from_interchange_nx,
     payload_to_domain_dict,
 )
-from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
+from aoa.maxitor.model.app_view.app_view_domain import AppViewDomain
 
 
 @meta(
     description="Get ERD nodes/edges JSON for one interchange domain qualname (app-view)",
-    domain=AppViewDomenDomain,
+    domain=AppViewDomain,
 )
 @check_roles(NoneRole)
 @connection(MaxitorInterchangeNxResource, key="interchange_nx", description="Interchange nx graph from LoadGraphAction")

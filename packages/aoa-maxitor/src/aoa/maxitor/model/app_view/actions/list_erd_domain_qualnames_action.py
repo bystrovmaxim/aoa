@@ -26,12 +26,12 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.api.resources.maxitor_interchange_nx_resource import MaxitorInterchangeNxResource
 from aoa.maxitor.model.app_view.actions.build_erd_graph_data_action import domain_qualnames_from_interchange_nx
-from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
+from aoa.maxitor.model.app_view.app_view_domain import AppViewDomain
 
 
 @meta(
     description="List interchange domain type qualnames for ERD client (app-view)",
-    domain=AppViewDomenDomain,
+    domain=AppViewDomain,
 )
 @check_roles(NoneRole)
 @connection(MaxitorInterchangeNxResource, key="interchange_nx", description="Interchange nx graph from LoadGraphAction")

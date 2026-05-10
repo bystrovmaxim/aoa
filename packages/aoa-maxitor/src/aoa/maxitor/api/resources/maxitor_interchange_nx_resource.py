@@ -17,12 +17,12 @@ from typing import Any
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
-from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
+from aoa.maxitor.model.app_view.app_view_domain import AppViewDomain
 
 
 @meta(
     description="Interchange NetworkX graph view (LoadGraphAction nx_graph)",
-    domain=AppViewDomenDomain,
+    domain=AppViewDomain,
 )
 class MaxitorInterchangeNxResource(ExternalServiceResource[Any]):
     """Holds one ``DiGraph`` reference; aspects read ``nx_graph``."""
