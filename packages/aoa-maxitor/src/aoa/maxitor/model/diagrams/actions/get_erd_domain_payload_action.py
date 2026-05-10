@@ -35,7 +35,10 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.api.resources.maxitor_interchange_nx_resource import MaxitorInterchangeNxResource
+from aoa.maxitor.model.core.resources.service_graph_resource import (
+    SERVICE_GRAPH_CONNECTION_KEY,
+    ServiceGraphResource,
+)
 from aoa.maxitor.model.diagrams.actions.build_erd_graph_data_action import (
     erd_payload_from_coordinator_for_domain,
     node_graph_coordinator_from_interchange_nx,
@@ -49,7 +52,7 @@ from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
     domain=DiagramsDomain,
 )
 @check_roles(NoneRole)
-@connection(MaxitorInterchangeNxResource, key="interchange_nx", description="Interchange nx graph from LoadGraphAction")
+@connection(ServiceGraphResource, key=SERVICE_GRAPH_CONNECTION_KEY, description="Interchange nx graph from LoadGraphAction")
 class GetErdDomainPayloadAction(
     BaseAction["GetErdDomainPayloadAction.Params", "GetErdDomainPayloadAction.Result"],
 ):
@@ -57,7 +60,7 @@ class GetErdDomainPayloadAction(
     AI-CORE-BEGIN
     ROLE: Emit one domain slice of ``ERD_DATA``-shaped JSON for client rendering.
     CONTRACT: ``domain_qualname`` is the full interchange node id for a ``BaseDomain`` class.
-    INVARIANTS: Reads ``nx_graph`` only via ``connections[\"interchange_nx\"]``; resolves the domain class in a regular aspect before building the graph.
+    INVARIANTS: Reads the graph only via ``connections["ServiceGraph"].service``; resolves the domain class in a regular aspect before building the graph.
     AI-CORE-END
     """
 
@@ -119,8 +122,8 @@ class GetErdDomainPayloadAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> GetErdDomainPayloadAction.Result:
-        nx_resource = cast(MaxitorInterchangeNxResource, connections["interchange_nx"])
-        coordinator = node_graph_coordinator_from_interchange_nx(nx_resource.nx_graph)
+        nx_resource = cast(ServiceGraphResource, connections[SERVICE_GRAPH_CONNECTION_KEY])
+        coordinator = node_graph_coordinator_from_interchange_nx(nx_resource.service)
         qual = params.domain_qualname.strip()
         dc = cast(type[BaseDomain], state["erd_domain_class"])
         payload = erd_payload_from_coordinator_for_domain(coordinator, dc)

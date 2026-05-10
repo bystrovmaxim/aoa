@@ -15,8 +15,11 @@ resource instance.
 from __future__ import annotations
 
 from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.maxitor.api.resources.maxitor_interchange_nx_resource import MaxitorInterchangeNxResource
 from aoa.maxitor.api.session import MaxitorApiSession
+from aoa.maxitor.model.core.resources.service_graph_resource import (
+    SERVICE_GRAPH_CONNECTION_KEY,
+    ServiceGraphResource,
+)
 
 
 class MaxitorConnectionHolder:
@@ -34,4 +37,4 @@ class MaxitorConnectionHolder:
         if self._session is None:
             msg = "MaxitorConnectionHolder has no session; lifespan did not run."
             raise RuntimeError(msg)
-        return {"interchange_nx": MaxitorInterchangeNxResource(self._session.nx_graph)}
+        return {SERVICE_GRAPH_CONNECTION_KEY: ServiceGraphResource(self._session.nx_graph)}
