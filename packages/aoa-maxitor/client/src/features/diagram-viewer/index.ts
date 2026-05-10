@@ -6,4 +6,5 @@
 export { DiagramWorkspace } from "./DiagramWorkspace";
 export type { DiagramSelection, DomainQualnamesPayload, ErdDomainPayload } from "./model/types";
 export * from "./erd";
+export * from "./icons";
 export * from "./interchange-graph";

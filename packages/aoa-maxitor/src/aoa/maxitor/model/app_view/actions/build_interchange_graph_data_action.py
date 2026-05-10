@@ -9,8 +9,8 @@ PURPOSE
 
 Pure helpers read :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator`
 or the app-view ``networkx`` graph and build the JSON consumed by the React G6
-viewer: ``nodes``, ``edges``, ``legend_items``, ``node_type_map``,
-``bubble_plugins``, and ``constants``.
+viewer: ``nodes``, ``edges``, ``legend_items`` (``type`` + ``color`` only; glyphs
+are rendered client-side), ``node_type_map``, ``bubble_plugins``, and ``constants``.
 
 HTTP-facing flow stays in ``GetInterchangeGraphPayloadAction`` with the same
 app-view action pattern as ERD.
@@ -50,10 +50,6 @@ from aoa.graph.base_graph_edge import BaseGraphEdge
 from aoa.graph.base_graph_node import BaseGraphNode
 from aoa.graph.edge_relationship import Composition, EdgeRelationship
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.diagrams.resources.icons import (
-    svg_data_uri_for_graph_node_glyph_only,
-    svg_data_uri_for_graph_node_icon,
-)
 
 _INTERNAL_INTERCHANGE_EDGES: frozenset[str] = frozenset({"CHECKS_ASPECT", "COMPENSATES_ASPECT"})
 
@@ -680,8 +676,6 @@ def interchange_g6_payload_from_coordinator(  # pylint: disable=too-many-stateme
                 "typeFill": base_fill,
                 "fill": fill,
                 "isDagCycleViolationIncident": is_dag_violation_incident,
-                "iconSrc": svg_data_uri_for_graph_node_icon(fill, node_type),
-                "glyphIconSrc": svg_data_uri_for_graph_node_glyph_only(node_type),
             },
         })
 
@@ -716,7 +710,6 @@ def interchange_g6_payload_from_coordinator(  # pylint: disable=too-many-stateme
         {
             "type": nt,
             "color": colors.get(nt, DEFAULT_COLOR),
-            "iconSrc": svg_data_uri_for_graph_node_icon(colors.get(nt, DEFAULT_COLOR), nt),
         }
         for nt in used_types
         if nt != "unknown"
@@ -726,7 +719,6 @@ def interchange_g6_payload_from_coordinator(  # pylint: disable=too-many-stateme
             {
                 "type": "unknown",
                 "color": DEFAULT_COLOR,
-                "iconSrc": svg_data_uri_for_graph_node_icon(DEFAULT_COLOR, "unknown"),
             },
         ]
 
@@ -807,8 +799,6 @@ def interchange_g6_payload_from_nx(  # pylint: disable=too-many-statements
                 "typeFill": base_fill,
                 "fill": fill,
                 "isDagCycleViolationIncident": is_dag_violation_incident,
-                "iconSrc": svg_data_uri_for_graph_node_icon(fill, node_type),
-                "glyphIconSrc": svg_data_uri_for_graph_node_glyph_only(node_type),
             },
         })
 
@@ -845,7 +835,6 @@ def interchange_g6_payload_from_nx(  # pylint: disable=too-many-statements
         {
             "type": nt,
             "color": colors.get(nt, DEFAULT_COLOR),
-            "iconSrc": svg_data_uri_for_graph_node_icon(colors.get(nt, DEFAULT_COLOR), nt),
         }
         for nt in used_types
         if nt != "unknown"
@@ -855,7 +844,6 @@ def interchange_g6_payload_from_nx(  # pylint: disable=too-many-statements
             {
                 "type": "unknown",
                 "color": DEFAULT_COLOR,
-                "iconSrc": svg_data_uri_for_graph_node_icon(DEFAULT_COLOR, "unknown"),
             },
         ]
 

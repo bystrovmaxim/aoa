@@ -15,8 +15,8 @@ REACT SPA + FASTAPI
 ═══════════════════════════════════════════════════════════════════════════════
 
 Run the backend with ``uv run task maxitor-api`` and the frontend with ``npm run dev``
-from ``packages/aoa-maxitor/client``. HTML diagram exporters live under
-:mod:`aoa.maxitor.diagrams`.
+from ``packages/aoa-maxitor/client``. Interchange and ERD viewers render in the SPA
+from JSON under ``/api/v1`` (see ``aoa.maxitor.api.app``).
 """
 
 from __future__ import annotations
