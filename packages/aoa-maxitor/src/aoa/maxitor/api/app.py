@@ -31,7 +31,7 @@ from aoa.maxitor.model.diagrams.actions.get_erd_domain_payload_action import Get
 from aoa.maxitor.model.diagrams.actions.get_interchange_graph_payload_action import (
     GetInterchangeGraphPayloadAction,
 )
-from aoa.maxitor.model.diagrams.actions.list_erd_domain_qualnames_action import ListErdDomainQualnamesAction
+from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
 
 
 def create_app() -> FastAPI:
@@ -59,7 +59,7 @@ def create_app() -> FastAPI:
                 "The interchange nx graph is injected per request via ``connections_factory``."
             ),
         )
-        .get("/erd/domain-qualnames", ListErdDomainQualnamesAction, tags=["erd"])
+        .get("/erd/domain-qualnames", ListDomainsAction, tags=["erd"])
         .get("/erd/domains/{domain_qualname:path}", GetErdDomainPayloadAction, tags=["erd"])
         .get("/graph/interchange", GetInterchangeGraphPayloadAction, tags=["graph"])
         .build()

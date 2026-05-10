@@ -11,7 +11,7 @@ PURPOSE
 Pure helpers read :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator`
 and build normalized ERD rows (:class:`ErdGraphPayload`) and ``nodes`` / ``edges`` JSON.
 
-HTTP-facing flows use small actions (``ListErdDomainQualnamesAction``,
+HTTP-facing flows use small actions (``ListDomainsAction``,
 ``GetErdDomainPayloadAction``) with ``@connection`` on :class:`~aoa.maxitor.model.core.resources.service_graph_resource.ServiceGraphResource`;
 this module keeps serializers shared with the Maxitor React ERD viewer (``nodes`` / ``edges`` JSON).
 """

@@ -1,6 +1,6 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_erd_domain_qualnames_action.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_domains_action.py
 """
-ListErdDomainQualnamesAction — domain interchange qualnames for client-side ERD.
+ListDomainsAction — domain interchange qualnames for client-side ERD.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -57,8 +57,8 @@ from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 )
 @check_roles(NoneRole)
 @connection(ServiceGraphResource, key=SERVICE_GRAPH_CONNECTION_KEY, description="Interchange nx graph from LoadGraphAction")
-class ListErdDomainQualnamesAction(
-    BaseAction[ParamsStub, "ListErdDomainQualnamesAction.Result"],
+class ListDomainsAction(
+    BaseAction[ParamsStub, "ListDomainsAction.Result"],
 ):
     """
     AI-CORE-BEGIN
@@ -127,6 +127,6 @@ class ListErdDomainQualnamesAction(
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> ListErdDomainQualnamesAction.Result:
+    ) -> ListDomainsAction.Result:
         qualnames = list(cast(list[Any], state["erd_domain_qualnames"]))
-        return ListErdDomainQualnamesAction.Result(domain_qualnames=qualnames)
+        return ListDomainsAction.Result(domain_qualnames=qualnames)

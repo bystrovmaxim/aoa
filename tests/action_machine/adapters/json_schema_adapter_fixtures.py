@@ -29,11 +29,12 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from tests.action_machine.scenarios.domain_model.domains import TestDomain
 
+_EMPTY_GRAPH_VERTEX: dict[str, Any] = {"type": "object", "properties": {}, "additionalProperties": False}
 GRAPH_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
-        "nodes": {"type": "array", "items": {"type": "object"}},
-        "edges": {"type": "array", "items": {"type": "object"}},
+        "nodes": {"type": "array", "items": _EMPTY_GRAPH_VERTEX},
+        "edges": {"type": "array", "items": _EMPTY_GRAPH_VERTEX},
     },
     "required": ["nodes", "edges"],
     "additionalProperties": False,
