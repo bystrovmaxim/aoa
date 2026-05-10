@@ -7,4 +7,4 @@ export {
   svgDataUriForGraphNodeGlyphOnly,
   svgDataUriForGraphNodeIcon,
   svgDataUriForInterchangeDomainLegend,
-} from "./graphNodeDiskIcons";
+} from "./graph_node_disk_icons";
