@@ -1,5 +1,5 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/actions/__init__.py
-"""Action exports for app-view composition."""
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/__init__.py
+"""Action exports for diagrams composition (sidebar, interchange, ERD)."""
 
 from ...core.actions.load_graph_action import LoadGraphAction
 from .get_erd_domain_payload_action import GetErdDomainPayloadAction

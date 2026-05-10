@@ -1,6 +1,6 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/actions/get_left_menu_sidebar_data_action.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/get_left_menu_sidebar_data_action.py
 """
-GetLeftMenuSidebarDataAction — left menu rows for app-view from a NetworkX graph.
+GetLeftMenuSidebarDataAction — left menu rows for diagrams from a NetworkX graph.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -26,8 +26,8 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.model.app_view.app_view_domain import AppViewDomain
-from aoa.maxitor.model.app_view.entities.node_entity import NodeEntity
+from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
+from aoa.maxitor.model.diagrams.entities.node_entity import NodeEntity
 
 
 def _sidebar_row_dicts(state: BaseState, key: str) -> list[dict[str, Any]]:
@@ -45,7 +45,7 @@ _ROOT_SECTIONS: tuple[tuple[str, str, str], ...] = (
 )
 
 
-@meta(description="Build left-menu sidebar NodeEntity lists from NetworkX graph view", domain=AppViewDomain)
+@meta(description="Build left-menu sidebar NodeEntity lists from NetworkX graph view", domain=DiagramsDomain)
 @check_roles(NoneRole)
 class GetLeftMenuSidebarDataAction(
     BaseAction["GetLeftMenuSidebarDataAction.Params", "GetLeftMenuSidebarDataAction.Result"],

@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/actions/build_erd_graph_data_action.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/build_erd_graph_data_action.py
 # mypy: ignore-errors
 # pylint: disable=too-many-branches,too-many-statements
 """

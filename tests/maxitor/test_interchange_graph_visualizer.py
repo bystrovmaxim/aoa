@@ -1,5 +1,5 @@
-# packages/aoa-maxitor/src/aoa/maxitor/tests/test_interchange_graph.py
-"""G6 interchange graph serialization for :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`aoa.maxitor.model.app_view.actions.build_interchange_graph_data_action`."""
+# tests/maxitor/test_interchange_graph_visualizer.py
+"""G6 interchange graph serialization for :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` via :mod:`aoa.maxitor.model.diagrams.actions.build_interchange_graph_data_action`."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
 from aoa.graph.composition_graph_edge import CompositionGraphEdge
 from aoa.graph.exceptions import InvalidGraphError
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.model.app_view.actions.build_interchange_graph_data_action import (
+from aoa.maxitor.model.diagrams.actions.build_interchange_graph_data_action import (
     G6_CDN_URL,
     g6_edge_propagates_domain_from_host_to_child,
     interchange_edge_to_visual_dict,

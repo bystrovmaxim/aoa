@@ -27,11 +27,11 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.maxitor.api.maxitor_connection_holder import MaxitorConnectionHolder
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.api.session import build_maxitor_api_session
-from aoa.maxitor.model.app_view.actions.get_erd_domain_payload_action import GetErdDomainPayloadAction
-from aoa.maxitor.model.app_view.actions.get_interchange_graph_payload_action import (
+from aoa.maxitor.model.diagrams.actions.get_erd_domain_payload_action import GetErdDomainPayloadAction
+from aoa.maxitor.model.diagrams.actions.get_interchange_graph_payload_action import (
     GetInterchangeGraphPayloadAction,
 )
-from aoa.maxitor.model.app_view.actions.list_erd_domain_qualnames_action import ListErdDomainQualnamesAction
+from aoa.maxitor.model.diagrams.actions.list_erd_domain_qualnames_action import ListErdDomainQualnamesAction
 
 
 def create_app() -> FastAPI:
@@ -55,7 +55,7 @@ def create_app() -> FastAPI:
             title="Maxitor ActionMachine API",
             version="1.0.0",
             description=(
-                "JSON endpoints generated from app-view actions. "
+                "JSON endpoints generated from diagrams actions. "
                 "The interchange nx graph is injected per request via ``connections_factory``."
             ),
         )

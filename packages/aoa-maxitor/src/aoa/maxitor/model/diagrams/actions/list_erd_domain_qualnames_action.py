@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/app_view/actions/list_erd_domain_qualnames_action.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_erd_domain_qualnames_action.py
 """
 ListErdDomainQualnamesAction — domain interchange qualnames for client-side ERD.
 
@@ -25,13 +25,13 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.api.resources.maxitor_interchange_nx_resource import MaxitorInterchangeNxResource
-from aoa.maxitor.model.app_view.actions.build_erd_graph_data_action import domain_qualnames_from_interchange_nx
-from aoa.maxitor.model.app_view.app_view_domain import AppViewDomain
+from aoa.maxitor.model.diagrams.actions.build_erd_graph_data_action import domain_qualnames_from_interchange_nx
+from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
 
 @meta(
-    description="List interchange domain type qualnames for ERD client (app-view)",
-    domain=AppViewDomain,
+    description="List interchange domain type qualnames for ERD client (diagrams)",
+    domain=DiagramsDomain,
 )
 @check_roles(NoneRole)
 @connection(MaxitorInterchangeNxResource, key="interchange_nx", description="Interchange nx graph from LoadGraphAction")
