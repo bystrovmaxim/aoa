@@ -14,13 +14,14 @@ coordinator.
 
 from __future__ import annotations
 
+import json
 import importlib
 from pathlib import Path
 
 from aoa.action_machine.graph_model.node_graph_coordinator_factory import all_axis_graph_node_inspectors
 from aoa.graph.debug_node_graph_coordinator import DebugNodeGraphCoordinator
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.diagrams.graph.html_page import interchange_g6_html_string_from_coordinator
+from aoa.maxitor.model.app_view.actions.build_interchange_graph_data_action import interchange_g6_payload_from_coordinator
 from aoa.maxitor.samples.build import _MODULES
 
 
@@ -37,11 +38,9 @@ def export_samples_graph_html(
     *,
     title: str = "ActionMachine · interchange axes",
 ) -> Path:
-    """Build the sample node graph and write the graph visualizer HTML export."""
-    out = Path.cwd() / "archive" / "logs" / "samples_graph.html"
+    """Build the sample node graph and write the interchange graph JSON export."""
+    out = Path.cwd() / "archive" / "logs" / "samples_graph.json"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(
-        interchange_g6_html_string_from_coordinator(build_sample_node_graph_coordinator(), title=title),
-        encoding="utf-8",
-    )
+    payload = interchange_g6_payload_from_coordinator(build_sample_node_graph_coordinator(), title=title)
+    out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return out

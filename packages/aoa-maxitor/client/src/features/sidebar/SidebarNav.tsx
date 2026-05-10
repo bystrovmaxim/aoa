@@ -21,7 +21,7 @@ type SidebarNavProps = {
 };
 
 function selectionKey(sel: DiagramSelection): string {
-  if (sel.kind === "iframe") return `iframe:${sel.url}`;
+  if (sel.kind === "interchange_graph") return "interchange_graph";
   return `erd:${sel.qualifier ?? "all"}`;
 }
 

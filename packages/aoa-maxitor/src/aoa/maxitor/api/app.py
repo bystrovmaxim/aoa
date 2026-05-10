@@ -9,10 +9,8 @@ PURPOSE
 Expose API endpoints for a separately hosted Vite React SPA. This module does
 not serve React assets or Python-rendered shell HTML.
 
-ERD data is exposed as JSON via :class:`aoa.action_machine.integrations.fastapi.FastApiAdapter`
-routes mounted under ``/api/v1``; the interchange graph diagram remains a
-standalone HTML page under ``/api/diagrams/graph``. The ERD viewer is a React feature
-that calls those JSON routes and bundles its HTML shell under ``client/src/features/diagram-viewer/erd/shell``.
+ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.action_machine.integrations.fastapi.FastApiAdapter`
+routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
 """
 
 from __future__ import annotations
@@ -27,7 +25,9 @@ from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.integrations.fastapi import FastApiAdapter
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.maxitor.api.maxitor_connection_holder import MaxitorConnectionHolder
-from aoa.maxitor.api.routes.diagrams import router as diagrams_router
+from aoa.maxitor.model.app_view.actions.get_interchange_graph_payload_action import (
+    GetInterchangeGraphPayloadAction,
+)
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.api.session import build_maxitor_api_session
 from aoa.maxitor.model.app_view.actions.get_erd_domain_payload_action import GetErdDomainPayloadAction
@@ -61,6 +61,7 @@ def create_app() -> FastAPI:
         )
         .get("/erd/domain-qualnames", ListErdDomainQualnamesAction, tags=["erd"])
         .get("/erd/domains/{domain_qualname:path}", GetErdDomainPayloadAction, tags=["erd"])
+        .get("/graph/interchange", GetInterchangeGraphPayloadAction, tags=["graph"])
         .build()
     )
 
@@ -80,7 +81,6 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     fastapi_app.include_router(sidebar_router)
-    fastapi_app.include_router(diagrams_router)
     fastapi_app.mount("/api/v1", action_subapp)
 
     @fastapi_app.get("/api/health", tags=["health"])

@@ -1,7 +1,7 @@
 // packages/aoa-maxitor/client/src/features/diagram-viewer/model/types.ts
 /** How the main workspace renders the selected sidebar diagram target. */
 export type DiagramSelection =
-  | { kind: "iframe"; url: string }
+  | { kind: "interchange_graph" }
   | { kind: "erd"; qualifier: string | null };
 
 export type DomainQualnamesPayload = {

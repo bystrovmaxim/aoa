@@ -5,7 +5,7 @@
       "name": "Maxitor Flet (module)",
       "type": "debugpy",
       "request": "launch",
-      "module": "aoa.maxitor.main",
+      "module": "aoa.maxitor.ui.main",
       "cwd": "${workspaceFolder}",
       "justMyCode": true
     },
