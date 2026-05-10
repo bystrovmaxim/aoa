@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/entities/node_entity.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/core/entities/node_entity.py
 """
 NodeEntity — sidebar / tree row record for diagrams.
 
