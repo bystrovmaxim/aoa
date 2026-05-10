@@ -1,7 +1,7 @@
-// packages/aoa-maxitor/client/src/features/diagram-viewer/icons/interchangeGraphNodeIcons.ts
+// packages/aoa-maxitor/client/src/shared/icons/graphNodeDiskIcons.ts
 /**
- * Lucide-derived inner SVG paths per graph ``node_type`` — single client source for interchange
- * G6 glyphs and legend disks.
+ * App-wide Lucide-derived SVG ``data:`` URLs for Action Machine graph node types (colored
+ * disk + glyph, or transparent glyph for stacked canvas layers such as G6).
  *
  * Paths match ``lucide-static`` (ISC, https://github.com/lucide-icons/lucide).
  */
@@ -24,7 +24,7 @@ const LUCIDE_PROPERTY_FIELD_BRACES_INNER =
   LUCIDE_BRACES_OUTLINE +
   '<path d="M9.5 8.5V17M9.5 8.5h3.8a2.1 2.1 0 0 1 0 4.2H9.5" />';
 
-/** Inner elements only (no ``<svg>`` wrapper), keyed by interchange ``node_type`` strings. */
+/** Inner elements only (no ``<svg>`` wrapper), keyed by graph ``node_type`` strings. */
 const GRAPH_NODE_TYPE_LUCIDE_INNER_SVG: Record<string, string> = {
   Application:
     '<rect width="7" height="9" x="3" y="3" rx="1" /> ' +
@@ -144,7 +144,7 @@ export function svgDataUriForGraphNodeIcon(fillHex: string, nodeType: string): s
   return svgDataUri(svg);
 }
 
-/** Domain disk for pickers / legends that must match interchange Domain nodes. */
+/** Domain node disk for pickers and legends (same glyph as graph ``Domain`` rows). */
 export function svgDataUriForInterchangeDomainLegend(fillHex: string): string {
   return svgDataUriForGraphNodeIcon(fillHex, "Domain");
 }

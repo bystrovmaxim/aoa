@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography";
 import type { EdgeData, Graph as G6Graph, GraphData, NodeData } from "@antv/g6";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import interchangeChromeCss from "../erd/shell/interchange_chrome.css?raw";
-import { svgDataUriForGraphNodeGlyphOnly, svgDataUriForGraphNodeIcon } from "../icons";
+import { svgDataUriForGraphNodeGlyphOnly, svgDataUriForGraphNodeIcon } from "../../../shared/icons";
 import { fetchInterchangeGraphPayload } from "./fetchInterchangeGraphPayload";
 import type { InterchangeGraphG6Payload } from "./types";
 
