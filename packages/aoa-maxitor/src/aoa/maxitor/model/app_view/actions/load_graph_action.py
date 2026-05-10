@@ -20,7 +20,7 @@ ARCHITECTURE / DATA FLOW
     regular aspect  ->  topology_nodes / topology_edges  (plain dicts, BaseState-safe)
           |
           v
-    summary aspect  ->  Result.nx_graph (DiGraph) + counts
+    summary aspect  ->  Result.nx_graph (DiGraph) + counts; ``nx_graph.graph[MAXITOR_NX_GRAPH_COORDINATOR_KEY]`` holds Params.graph for ERD actions
 """
 
 from __future__ import annotations
@@ -39,6 +39,10 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.graph.base_graph_node import BaseGraphNode
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 from aoa.maxitor.model.app_view.app_view_domen_domain import AppViewDomenDomain
+
+# Populated on each ``LoadGraphAction`` result graph so downstream actions (e.g. ERD) can recover
+# the built :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` while accepting ``nx_graph`` only.
+MAXITOR_NX_GRAPH_COORDINATOR_KEY = "_maxitor_node_graph_coordinator"
 
 
 @meta(description="Load interchange graph into a NetworkX DiGraph (app-view)", domain=AppViewDomenDomain)
@@ -118,6 +122,7 @@ class LoadGraphAction(BaseAction["LoadGraphAction.Params", "LoadGraphAction.Resu
                 edge_name=row["edge_name"],
                 is_dag=row["is_dag"],
             )
+        digraph.graph[MAXITOR_NX_GRAPH_COORDINATOR_KEY] = params.graph
         return LoadGraphAction.Result(
             nx_graph=digraph,
             node_count=digraph.number_of_nodes(),

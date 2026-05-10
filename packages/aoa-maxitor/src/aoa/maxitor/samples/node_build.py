@@ -20,7 +20,7 @@ from pathlib import Path
 from aoa.action_machine.graph_model.node_graph_coordinator_factory import all_axis_graph_node_inspectors
 from aoa.graph.debug_node_graph_coordinator import DebugNodeGraphCoordinator
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.app.diagrams.graph.component import export_interchange_axes_graph_html
+from aoa.maxitor.diagrams.graph.html_page import interchange_g6_html_string_from_coordinator
 from aoa.maxitor.samples.build import _MODULES
 
 
@@ -38,7 +38,10 @@ def export_samples_graph_html(
     title: str = "ActionMachine · interchange axes",
 ) -> Path:
     """Build the sample node graph and write the graph visualizer HTML export."""
-    return export_interchange_axes_graph_html(
-        build_sample_node_graph_coordinator(),
-        title=title,
+    out = Path.cwd() / "archive" / "logs" / "samples_graph.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        interchange_g6_html_string_from_coordinator(build_sample_node_graph_coordinator(), title=title),
+        encoding="utf-8",
     )
+    return out
