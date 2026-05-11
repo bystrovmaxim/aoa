@@ -13,8 +13,8 @@ a concrete params **class** object. Interchange data lives in ``id``, ``node_typ
 For each declared Pydantic field on the params class, emits a :class:`FieldGraphNode` as
 :attr:`~aoa.graph.base_graph_node.BaseGraphNode.companion_nodes` and a ``COMPOSITION`` edge from this
 params graph node for that field (same pattern as :class:`RegularAspectGraphNode` and checkers).
-Fields annotated with ``BaseEntity.schema(...)`` additionally emit an ``entity_view`` aggregation edge
-to the corresponding :class:`~aoa.action_machine.graph_model.nodes.entity_graph_node.EntityGraphNode`.
+Fields annotated with ``BaseEntity.schema(...)`` additionally emit an ``entity_schema`` aggregation edge
+from the concrete :class:`FieldGraphNode` to the corresponding :class:`~aoa.action_machine.graph_model.nodes.entity_graph_node.EntityGraphNode`.
 For each entry in ``model_computed_fields`` (``@computed_field``) and each public plain ``property`` on the class
 (``__dict__`` over MRO, excluding names that clash with ``model_fields`` or already emitted from computed fields), emits a
 :class:`PropertyFieldGraphNode` companion and a
@@ -28,7 +28,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, ClassVar, TypeVar
 
-from aoa.action_machine.graph_model.edges.entity_view_graph_edge import EntityViewGraphEdge
 from aoa.action_machine.graph_model.edges.field_graph_edge import FieldGraphEdge
 from aoa.action_machine.graph_model.edges.property_graph_edge import PropertyGraphEdge
 from aoa.action_machine.model.base_params import BaseParams
@@ -46,14 +45,13 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
     ROLE: Interchange node for a ``BaseParams`` params host class.
     CONTRACT: Built from ``type[TParams]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label;
     empty ``properties`` (interchange dict); composition lists :attr:`fields` and :attr:`props`
-    from ``FieldGraphEdge.get_field_edges`` / ``PropertyGraphEdge.get_property_edges`` wired to ``self`` host; :attr:`entity_views` from ``EntityViewGraphEdge.get_entity_view_edges``; :attr:`companion_nodes` from field and property edges only.
+    from ``FieldGraphEdge.get_field_edges`` / ``PropertyGraphEdge.get_property_edges`` wired to ``self`` host; :attr:`companion_nodes` from field and property edges.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Params"
     fields: list[FieldGraphEdge]
     props: list[PropertyGraphEdge]
-    entity_views: list[EntityViewGraphEdge]
 
     def __init__(self, params_cls: type[TParams]) -> None:
         params_node_id = TypeIntrospection.full_qualname(params_cls)
@@ -66,15 +64,10 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
         )
         object.__setattr__(self, "fields", FieldGraphEdge.get_field_edges(params_cls, self))
         object.__setattr__(self, "props", PropertyGraphEdge.get_property_edges(params_cls, self))
-        object.__setattr__(
-            self,
-            "entity_views",
-            EntityViewGraphEdge.get_entity_view_edges(params_cls, self),
-        )
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return field/property composition edges plus ``entity_view`` aggregation edges."""
-        return [*self.fields, *self.props, *self.entity_views]
+        """Return outgoing field/property composition edges from the params host."""
+        return [*self.fields, *self.props]
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Return field and property nodes carried as targets by explicit composition edges."""

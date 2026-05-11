@@ -1,13 +1,13 @@
-# tests/action_machine/graph_model/test_entity_view_graph_edge.py
+# tests/action_machine/graph_model/test_entity_schema_graph_edge.py
 """
-``EntityViewGraphEdge`` / ``entity_view`` links for ``BaseEntity.schema(...)`` fields.
+``EntitySchemaGraphEdge`` / ``entity_schema`` links for ``BaseEntity.schema(...)`` fields.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-PR-4: Result/Params graph nodes emit ``entity_view`` aggregation edges to the
-declared entity class; coordinator referential integrity and JSON-safe properties.
+PR-4: concrete Field/PropertyField graph nodes emit ``entity_schema`` aggregation edges
+to the declared entity class; coordinator referential integrity and JSON-safe properties.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import json
 from typing import Any
 
 import pytest
-from pydantic import Field
+from pydantic import Field, computed_field
 from tests.action_machine.adapters.entity_projection_adapter_fixtures import (
     EntityProjectionAdapterTestAction,
     EntityProjectionParamsMcpTestAction,
@@ -68,51 +68,77 @@ class OrphanWireProjectionResult(BaseResult):
     )
 
 
-class _MissingEntityViewRoot:
+class PropertyWireProjectionResult(BaseResult):
+    label: str = Field(description="Label")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def order_projection(self) -> SampleEntity.schema(schema=_ORPHAN_WIRE):  # type: ignore[valid-type]
+        """Computed property that returns an entity wire projection."""
+        return {"id": self.label, "name": "sample"}
+
+
+class _MissingEntitySchemaRoot:
     """Isolated inspector axis with no subclasses (single synthetic graph row)."""
 
 
-class _OrphanResultOnlyInspector(BaseGraphNodeInspector[_MissingEntityViewRoot]):
+class _OrphanResultOnlyInspector(BaseGraphNodeInspector[_MissingEntitySchemaRoot]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        if cls is not _MissingEntityViewRoot:
+        if cls is not _MissingEntitySchemaRoot:
             return None
         return ResultGraphNode(OrphanWireProjectionResult)
 
 
-def test_result_graph_node_emits_entity_view_for_projection_field() -> None:
+def _field_node_for(host_node: ResultGraphNode | ParamsGraphNode, field_name: str) -> BaseGraphNode[Any]:
+    return next(n for n in host_node.get_companion_nodes() if n.node_id.endswith(f":{field_name}"))
+
+
+def test_field_graph_node_emits_entity_schema_for_projection_field() -> None:
     node = ResultGraphNode(EntityProjectionAdapterTestAction.Result)
-    views = [e for e in node.get_all_edges() if e.edge_name == "entity_view"]
+    field_node = _field_node_for(node, "order")
+    views = [e for e in field_node.get_all_edges() if e.edge_name == "entity_schema"]
     assert len(views) == 1
     edge = views[0]
     assert edge.is_dag is True
     assert edge.target_node_id == TypeIntrospection.full_qualname(SampleEntity)
-    assert edge.properties == {"field_name": "order"}
+    assert edge.properties == {}
 
 
-def test_result_graph_node_domain_field_has_no_entity_view() -> None:
+def test_regular_result_field_has_no_entity_schema() -> None:
     node = ResultGraphNode(EntityProjectionAdapterTestAction.Result)
-    names = {e.properties.get("field_name") for e in node.entity_views}
-    assert names == {"order"}
+    field_node = _field_node_for(node, "domain")
+    assert [e for e in field_node.get_all_edges() if e.edge_name == "entity_schema"] == []
 
 
-def test_entity_view_targets_sample_entity_graph_node() -> None:
+def test_entity_schema_targets_sample_entity_graph_node() -> None:
     result_node = ResultGraphNode(EntityProjectionAdapterTestAction.Result)
     entity_node = EntityGraphNode(SampleEntity)
-    edge = next(e for e in result_node.entity_views if e.properties["field_name"] == "order")
+    field_node = _field_node_for(result_node, "order")
+    edge = next(e for e in field_node.get_all_edges() if e.edge_name == "entity_schema")
     assert edge.target_node_id == entity_node.node_id
 
 
-def test_entity_view_properties_json_serializable() -> None:
+def test_entity_schema_properties_json_serializable() -> None:
     node = ResultGraphNode(EntityProjectionAdapterTestAction.Result)
-    for e in node.entity_views:
+    field_node = _field_node_for(node, "order")
+    for e in field_node.get_all_edges():
         json.dumps(e.properties)
 
 
-def test_params_graph_node_emits_entity_view() -> None:
+def test_params_graph_node_field_emits_entity_schema() -> None:
     node = ParamsGraphNode(EntityProjectionParamsMcpTestAction.Params)
-    assert len(node.entity_views) == 1
-    assert node.entity_views[0].properties["field_name"] == "order"
-    assert node.entity_views[0].target_node_id == TypeIntrospection.full_qualname(SampleEntity)
+    field_node = _field_node_for(node, "order")
+    views = [e for e in field_node.get_all_edges() if e.edge_name == "entity_schema"]
+    assert len(views) == 1
+    assert views[0].target_node_id == TypeIntrospection.full_qualname(SampleEntity)
+
+
+def test_property_graph_node_emits_entity_schema() -> None:
+    node = ResultGraphNode(PropertyWireProjectionResult)
+    prop_node = next(n for n in node.get_companion_nodes() if n.node_id.endswith(":order_projection"))
+    views = [e for e in prop_node.get_all_edges() if e.edge_name == "entity_schema"]
+    assert len(views) == 1
+    assert views[0].target_node_id == TypeIntrospection.full_qualname(SampleEntity)
 
 
 def test_default_coordinator_build_with_entity_projection_actions() -> None:
@@ -122,6 +148,6 @@ def test_default_coordinator_build_with_entity_projection_actions() -> None:
     assert len(coordinator.get_all_nodes()) > 0
 
 
-def test_coordinator_fails_when_entity_view_target_absent_from_graph() -> None:
+def test_coordinator_fails_when_entity_schema_target_absent_from_graph() -> None:
     with pytest.raises(InvalidGraphError, match="missing target_node_id"):
         NodeGraphCoordinator().build([_OrphanResultOnlyInspector()])

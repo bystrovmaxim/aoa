@@ -6,7 +6,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Validates registration, Pydantic wire validation, ``NodeGraphCoordinator`` topology
-(including ``entity_view``), and keeps sample graph builds healthy.
+(including ``entity_schema``), and keeps sample graph builds healthy.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from __future__ import annotations
 import pytest
 
 from aoa.action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
-from aoa.action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
+from aoa.action_machine.graph_model.nodes.field_graph_node import FieldGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.maxitor.samples.entity_projection_demo.actions.order_wire_preview import (
     ProjectionDemoOrderWirePreviewAction,
@@ -81,7 +81,7 @@ def test_coordinator_contains_demo_action_and_entities() -> None:
     assert TypeIntrospection.full_qualname(ProjectionDemoOrderEntity) in entity_ids
 
 
-def test_result_schema_node_has_entity_view_to_order_entity() -> None:
+def test_result_schema_field_has_entity_schema_to_order_entity() -> None:
     coord = _coordinator_after_samples()
     result_id = TypeIntrospection.full_qualname(ProjectionDemoOrderWirePreviewAction.Result)
     order_entity_id = TypeIntrospection.full_qualname(ProjectionDemoOrderEntity)
@@ -89,9 +89,13 @@ def test_result_schema_node_has_entity_view_to_order_entity() -> None:
     result_nodes = [n for n in coord.get_all_nodes() if n.node_id == result_id]
     assert len(result_nodes) == 1
     result_node = result_nodes[0]
-    assert isinstance(result_node, ResultGraphNode)
+    order_field_nodes = [
+        n
+        for n in result_node.get_companion_nodes()
+        if isinstance(n, FieldGraphNode) and n.node_obj.field_name == "order"
+    ]
+    assert len(order_field_nodes) == 1
 
-    views = [e for e in result_node.entity_views if e.edge_name == "entity_view"]
+    views = [e for e in order_field_nodes[0].get_all_edges() if e.edge_name == "entity_schema"]
     assert len(views) == 1
     assert views[0].target_node_id == order_entity_id
-    assert views[0].properties.get("field_name") == "order"
