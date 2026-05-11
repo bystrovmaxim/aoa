@@ -17,7 +17,7 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-/** Full standalone HTML document for ``ERD_DATA``-shaped ``domains`` / ``domain_qualifiers``. */
+/** Full standalone HTML document for ``ERD_DATA`` (``domains``, ``domain_qualifiers``, optional ``domain_qualifier_colors``). */
 export function buildErdHtmlDocument(erdData: Record<string, unknown>, title: string): string {
   const enriched = enrichErdDataForViewer(erdData);
   /** Avoid closing ``</script>`` inside string literals when the parser reads the inline module. */
