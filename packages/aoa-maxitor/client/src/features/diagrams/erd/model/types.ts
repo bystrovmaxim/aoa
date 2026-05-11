@@ -11,7 +11,7 @@ export type DomainQualnamesPayload = {
 
 export type ErdDomainPayload = {
   domain_label: string;
-  domain_qualifier: string;
+  domain_qualname: string;
   list_entities: {
     entities: Array<Record<string, unknown>>;
     relations: Array<Record<string, unknown>>;

@@ -70,6 +70,6 @@ def test_erd_domain_payload_json(client: TestClient) -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert set(body) == {"domain_label", "domain_qualifier", "list_entities"}
-    assert body["domain_qualifier"] == qual
+    assert set(body) == {"domain_label", "domain_qualname", "list_entities"}
+    assert body["domain_qualname"] == qual
     assert "entities" in body["list_entities"] and "relations" in body["list_entities"]

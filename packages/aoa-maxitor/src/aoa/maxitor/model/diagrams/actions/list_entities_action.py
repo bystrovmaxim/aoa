@@ -142,7 +142,7 @@ class ListEntitiesAction(
 
     class Result(BaseResult):
         domain_label: str = Field(min_length=1, description="Human tab label (domain name or class name)")
-        domain_qualifier: str = Field(min_length=1, description="Same as request interchange qualname")
+        domain_qualname: str = Field(min_length=1, description="Same interchange qualname as in Params (echoed on the wire).")
         # {
         #   "entities": [
         #     {
@@ -222,6 +222,6 @@ class ListEntitiesAction(
         base = getattr(dc, "name", None) or dc.__name__
         return ListEntitiesAction.Result(
             domain_label=str(base),
-            domain_qualifier=qual,
+            domain_qualname=qual,
             list_entities=payload_to_domain_dict(payload),
         )
