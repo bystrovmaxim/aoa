@@ -81,6 +81,16 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
         )
         object.__setattr__(self, "states", LifeCycleStateGraphEdge.get_state_edges(lifecycle_cls, self.node_id))
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "field_name": str(self.properties["field_name"]),
+            },
+        }
+
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Template state interchange rows (:attr:`states`)."""
         return cast("list[BaseGraphNode[Any]]", self.states)

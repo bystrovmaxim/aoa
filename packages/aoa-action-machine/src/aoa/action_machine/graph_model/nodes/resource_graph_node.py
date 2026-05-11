@@ -28,7 +28,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from aoa.action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
 from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
@@ -62,6 +62,16 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
             node_obj=resource_cls,
         )
         object.__setattr__(self, "domain", DomainGraphEdge.from_meta_declared_host(resource_cls, self))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "description": str(self.properties["description"]),
+            },
+        }
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return resource relationship edges materialized in the explicit edge field."""

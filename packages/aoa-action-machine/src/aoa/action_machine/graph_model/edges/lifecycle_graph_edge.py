@@ -60,6 +60,18 @@ class LifeCycleGraphEdge(CompositionGraphEdge):
             properties={"field_name": needle},
         )
 
+    def to_dict(self, *, source_node_id: str) -> dict[str, Any]:
+        return {
+            "source_node_id": source_node_id,
+            "target_node_id": self.target_node_id,
+            "type": self.edge_name,
+            "relationship": self.edge_relationship.archimate_name,
+            "is_dag": self.is_dag,
+            "properties": {
+                "field_name": str(self.properties["field_name"]),
+            },
+        }
+
     @staticmethod
     @cache  # keyed by ``entity_cls`` so repeated entity nodes share lifecycle target instances
     def get_lifecycle_edges(entity_cls: type[BaseEntity]) -> list[LifeCycleGraphEdge]:

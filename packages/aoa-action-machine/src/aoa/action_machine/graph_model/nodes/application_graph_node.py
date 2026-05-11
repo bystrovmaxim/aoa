@@ -35,7 +35,7 @@ Happy path::
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from aoa.action_machine.application.application import Application
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
@@ -66,3 +66,14 @@ class ApplicationGraphNode(BaseGraphNode[type[TApplication]]):
             },
             node_obj=application_cls,
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "name": str(self.properties["name"]),
+                "description": str(self.properties["description"]),
+            },
+        }

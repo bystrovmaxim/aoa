@@ -39,7 +39,7 @@ Edge case: same interchange shape for any concrete ``BaseDomain`` subclass type 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from aoa.action_machine.application.application import Application
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -75,6 +75,17 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
             node_obj=domain_cls,
         )
         object.__setattr__(self, "application", ApplicationGraphEdge(Application))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "name": str(self.properties["name"]),
+                "description": str(self.properties["description"]),
+            },
+        }
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return the outgoing application aggregation edge."""

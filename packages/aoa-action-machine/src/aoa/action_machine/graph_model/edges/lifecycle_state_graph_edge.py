@@ -9,7 +9,7 @@ including initial states that have no incoming ``lifecycle_transition``.
 
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from aoa.action_machine.domain.lifecycle import Lifecycle
 from aoa.action_machine.graph_model.nodes.state_graph_node import StateGraphNode
@@ -37,6 +37,18 @@ class LifeCycleStateGraphEdge(CompositionGraphEdge):
                 "state_key": state_node.node_obj.state_key,
             },
         )
+
+    def to_dict(self, *, source_node_id: str) -> dict[str, Any]:
+        return {
+            "source_node_id": source_node_id,
+            "target_node_id": self.target_node_id,
+            "type": self.edge_name,
+            "relationship": self.edge_relationship.archimate_name,
+            "is_dag": self.is_dag,
+            "properties": {
+                "state_key": str(self.properties["state_key"]),
+            },
+        }
 
     @staticmethod
     def get_state_edges(

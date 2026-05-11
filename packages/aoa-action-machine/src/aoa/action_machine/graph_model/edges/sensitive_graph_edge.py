@@ -66,6 +66,16 @@ class SensitiveGraphEdge(CompositionGraphEdge):
                 target_node=None,
             )
 
+    def to_dict(self, *, source_node_id: str) -> dict[str, Any]:
+        return {
+            "source_node_id": source_node_id,
+            "target_node_id": self.target_node_id,
+            "type": self.edge_name,
+            "relationship": self.edge_relationship.archimate_name,
+            "is_dag": self.is_dag,
+            "properties": {},
+        }
+
     @staticmethod
     def get_sensitive_edge(host_cls: type, property_name: str) -> SensitiveGraphEdge | None:
         """Return a stub composition edge toward :class:`SensitiveGraphNode` when ``property_name`` is ``@sensitive`` on ``host_cls``."""

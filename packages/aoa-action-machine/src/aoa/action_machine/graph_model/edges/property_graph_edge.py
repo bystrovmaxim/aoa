@@ -52,6 +52,16 @@ class PropertyGraphEdge(CompositionGraphEdge):
             target_node=property_node,
         )
 
+    def to_dict(self, *, source_node_id: str) -> dict[str, Any]:
+        return {
+            "source_node_id": source_node_id,
+            "target_node_id": self.target_node_id,
+            "type": self.edge_name,
+            "relationship": self.edge_relationship.archimate_name,
+            "is_dag": self.is_dag,
+            "properties": {},
+        }
+
     @classmethod
     def get_property_edges(cls, schema_cls: type, _source_host: BaseGraphNode[Any]) -> list[PropertyGraphEdge]:
         """Build composition edges from params or result host to computed/plain property nodes."""

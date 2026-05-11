@@ -99,6 +99,16 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         object.__setattr__(self, "compensators", CompensatorGraphEdge.get_compensator_edges(action_cls))
         object.__setattr__(self, "on_error_handlers", ErrorHandlerGraphEdge.get_on_error_handlers_edges(action_cls))
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "description": str(self.properties["description"]),
+            },
+        }
+
     def connection_keys(self) -> frozenset[str]:
         """Declared ``@connection`` slot keys (non-empty stripped ``properties[\"key\"]`` on connection edges)."""
         keys: set[str] = set()

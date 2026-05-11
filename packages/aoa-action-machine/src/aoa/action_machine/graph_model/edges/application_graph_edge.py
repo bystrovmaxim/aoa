@@ -22,7 +22,7 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from aoa.action_machine.application.application import Application
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
@@ -50,3 +50,13 @@ class ApplicationGraphEdge(AggregationGraphEdge):
             target_node_id=TypeIntrospection.full_qualname(application_cls),
             target_node=None,
         )
+
+    def to_dict(self, *, source_node_id: str) -> dict[str, Any]:
+        return {
+            "source_node_id": source_node_id,
+            "target_node_id": self.target_node_id,
+            "type": self.edge_name,
+            "relationship": self.edge_relationship.archimate_name,
+            "is_dag": self.is_dag,
+            "properties": {},
+        }

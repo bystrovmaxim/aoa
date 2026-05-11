@@ -18,7 +18,10 @@ import importlib
 import json
 from pathlib import Path
 
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import all_axis_graph_node_inspectors
+from aoa.action_machine.graph_model.node_graph_coordinator_factory import (
+    GRAPH_JSON_SCHEMA,
+    all_axis_graph_node_inspectors,
+)
 from aoa.graph.debug_node_graph_coordinator import DebugNodeGraphCoordinator
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 from aoa.maxitor.model.diagrams.actions.build_interchange_graph_data_action import (
@@ -32,7 +35,7 @@ def build_sample_node_graph_coordinator() -> NodeGraphCoordinator:
     for name in _MODULES:
         importlib.import_module(name)
     coordinator = DebugNodeGraphCoordinator()
-    coordinator.build(all_axis_graph_node_inspectors())
+    coordinator.build(all_axis_graph_node_inspectors(), export_json_schema=GRAPH_JSON_SCHEMA)
     return coordinator
 
 

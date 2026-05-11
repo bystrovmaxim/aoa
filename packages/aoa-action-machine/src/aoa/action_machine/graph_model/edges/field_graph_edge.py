@@ -63,6 +63,16 @@ class FieldGraphEdge(CompositionGraphEdge):
             target_node=field_node,
         )
 
+    def to_dict(self, *, source_node_id: str) -> dict[str, Any]:
+        return {
+            "source_node_id": source_node_id,
+            "target_node_id": self.target_node_id,
+            "type": self.edge_name,
+            "relationship": self.edge_relationship.archimate_name,
+            "is_dag": self.is_dag,
+            "properties": {},
+        }
+
     @classmethod
     def get_field_edges(cls, schema_cls: type, _source_host: BaseGraphNode[Any]) -> list[FieldGraphEdge]:
         """Build composition edges from params or result host to declared Pydantic field nodes."""

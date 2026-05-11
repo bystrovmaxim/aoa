@@ -72,6 +72,33 @@ class EntityGraphEdge(AssociationGraphEdge):
             properties=_entity_relation_properties(relation),
         )
 
+    def to_dict(self, *, source_node_id: str) -> dict[str, Any]:
+        return {
+            "source_node_id": source_node_id,
+            "target_node_id": self.target_node_id,
+            "type": self.edge_name,
+            "relationship": self.edge_relationship.archimate_name,
+            "is_dag": self.is_dag,
+            "properties": {
+                "field_name": str(self.properties["field_name"]),
+                "relation_type": str(self.properties["relation_type"]),
+                "cardinality": str(self.properties["cardinality"]),
+                "description": str(self.properties["description"]),
+                "has_inverse": bool(self.properties["has_inverse"]),
+                "deprecated": bool(self.properties["deprecated"]),
+                **(
+                    {"inverse_entity_id": str(self.properties["inverse_entity_id"])}
+                    if "inverse_entity_id" in self.properties
+                    else {}
+                ),
+                **(
+                    {"inverse_field": str(self.properties["inverse_field"])}
+                    if "inverse_field" in self.properties
+                    else {}
+                ),
+            },
+        }
+
     @staticmethod
     def get_entity_relation_edges(
         entity_cls: type[BaseEntity],

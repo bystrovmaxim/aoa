@@ -26,6 +26,14 @@ before validating and materializing the graph.
 The merged graph reflects **everything inspectors emitted for the loaded process**.
 Unexpected rows (duplicate ids, dangling targets, forbidden ``is_dag`` cycles, stray action types) indicate import or wiring issues to fix—not something to silently drop during inspection.
 
+**JSON export:** :meth:`NodeGraphCoordinator.to_json` assembles a JSON object with
+``schema_version``, ``nodes``, and ``edges`` (each node includes ``id``, ``type``,
+``label``, ``properties``; each edge includes ``source_node_id``, ``target_node_id``,
+``type``, ``relationship``, ``is_dag``, ``properties``) suitable for rebuilding a
+``networkx.DiGraph`` keyed by node ``id``. If callers passed ``export_json_schema`` to
+:meth:`build`, the dict is validated with :class:`jsonschema.Draft202012Validator` before
+:func:`json.dumps`; otherwise validation is skipped (generic graphs carry no domain schema).
+
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
@@ -53,17 +61,19 @@ EXAMPLES
 ::
 
     coord = NodeGraphCoordinator()
-    coord.build([adapter])
+    coord.build([adapter], export_json_schema=None)
 
 Edge case: empty inspector list completes without error.
 """
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from typing import Any, cast
 
 import rustworkx as rx
+from jsonschema import Draft202012Validator
 
 from aoa.graph.base_graph_node import BaseGraphNode
 from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
@@ -76,21 +86,35 @@ class NodeGraphCoordinator:
     ROLE: Build rustworkx graph from ``BaseGraphNode`` contributions.
     CONTRACT: ``build`` with :class:`~aoa.graph.base_graph_node_inspector.BaseGraphNodeInspector` instances; each ``get_graph_nodes()``;
         then expose the assembled ``PyDiGraph`` as :attr:`rx_graph` and interchange nodes via :meth:`get_all_nodes`; graph shape is authoritative for loaded scope—validation failures cue import/packaging fixes rather than shrinking inspector emission.
+        Optional ``export_json_schema`` at :meth:`build` enables JSON Schema validation in :meth:`to_json` for domain-specific interchange contracts (owned outside ``aoa-graph``).
     INVARIANTS: Duplicate id / missing target / DAG cycle raise during build; :attr:`rx_graph` / :meth:`get_all_nodes` unavailable until ``build`` succeeds.
     AI-CORE-END
     """
 
-    __slots__ = ("_built", "_node_index", "_rx_graph")
+    __slots__ = ("_built", "_export_json_schema", "_node_index", "_rx_graph")
 
     def __init__(self) -> None:
         self._built: bool = False
         self._node_index: dict[str, int] = {}
         self._rx_graph: rx.PyDiGraph | None = None
+        self._export_json_schema: dict[str, Any] | None = None
 
-    def build(self, inspectors: Sequence[BaseGraphNodeInspector[Any]]) -> None:
+    def build(
+        self,
+        inspectors: Sequence[BaseGraphNodeInspector[Any]],
+        *,
+        export_json_schema: dict[str, Any] | None = None,
+    ) -> None:
         """
         Collect nodes from each inspector instance via :meth:`BaseGraphNodeInspector.get_graph_nodes`,
         validate, construct the ``rustworkx`` graph, and store it on :attr:`rx_graph`.
+
+        Args:
+            inspectors: Inspector instances contributing interchange nodes.
+            export_json_schema: Optional JSON Schema (Draft 2020-12) for validating :meth:`to_json`
+                payloads. Callers that own interchange contracts (for example ``aoa-action-machine``)
+                pass their schema here; omit for domain-agnostic graphs where :meth:`to_json` skips
+                schema validation.
 
         Raises:
             DuplicateNodeError: two sources contributed the same ``node.node_id``.
@@ -108,6 +132,7 @@ class NodeGraphCoordinator:
         self._validate_referential_integrity(nodes)
         self._validate_dag_acyclicity(nodes)
         self._materialize_rustworkx_graph(nodes)
+        self._export_json_schema = export_json_schema
         self._built = True
 
     @property
@@ -155,6 +180,37 @@ class NodeGraphCoordinator:
             msg = f"Node {node_id!r} is not {article} {node_type} node; got {node.node_type!r}."
             raise InvalidGraphError(msg)
         return node
+
+    def to_json(self) -> str:
+        """
+        Serialize the built interchange graph to JSON.
+
+        When :meth:`build` was called with ``export_json_schema``, validates the payload
+        against that schema before encoding. Otherwise skips JSON Schema validation.
+
+        Raises:
+            RuntimeError: :meth:`build` has not completed successfully on this coordinator.
+        """
+        if not self._built or self._rx_graph is None:
+            msg = "NodeGraphCoordinator.to_json() is only available after a successful build()."
+            raise RuntimeError(msg)
+        nodes = sorted(self.get_all_nodes(), key=lambda n: n.node_id)
+        edge_dicts: list[dict[str, Any]] = []
+        for node in nodes:
+            for edge in node.get_all_edges():
+                edge_dicts.append(edge.to_dict(source_node_id=node.node_id))
+        payload: dict[str, Any] = {
+            "schema_version": "1.0",
+            "nodes": [node.to_dict() for node in nodes],
+            "edges": sorted(
+                edge_dicts,
+                key=lambda e: (e["source_node_id"], e["type"], e["target_node_id"]),
+            ),
+        }
+        export_json_schema = self._export_json_schema
+        if export_json_schema is not None:
+            Draft202012Validator(export_json_schema).validate(payload)
+        return json.dumps(payload, ensure_ascii=False, sort_keys=True)
 
     def _inspector_label(self, inspector: BaseGraphNodeInspector[Any]) -> str:
         return type(inspector).__qualname__

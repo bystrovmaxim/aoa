@@ -113,11 +113,15 @@ name = "aoa-graph"
 version = "1.0.0"
 source = { editable = "packages/aoa-graph" }
 dependencies = [
+    { name = "jsonschema" },
     { name = "rustworkx" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "rustworkx", specifier = ">=0.14,<1.0" }]
+requires-dist = [
+    { name = "jsonschema", specifier = ">=4.17,<5" },
+    { name = "rustworkx", specifier = ">=0.14,<1.0" },
+]
 
 [[package]]
 name = "aoa-maxitor"

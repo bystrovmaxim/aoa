@@ -26,6 +26,7 @@ from __future__ import annotations
 import importlib
 
 from aoa.action_machine.graph_model.node_graph_coordinator_factory import (
+    GRAPH_JSON_SCHEMA,
     all_axis_graph_node_inspectors,
     create_node_graph_coordinator,
 )
@@ -56,5 +57,5 @@ def build_registered_interchange_coordinator() -> NodeGraphCoordinator:
         return create_node_graph_coordinator()
     except InvalidGraphError:
         coord = DebugNodeGraphCoordinator()
-        coord.build(all_axis_graph_node_inspectors())
+        coord.build(all_axis_graph_node_inspectors(), export_json_schema=GRAPH_JSON_SCHEMA)
         return coord

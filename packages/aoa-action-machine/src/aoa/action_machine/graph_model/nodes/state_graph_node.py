@@ -118,6 +118,17 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
         )
         object.__setattr__(self, "lifecycle_transitions", StateGraphEdge.get_lifecycle_transition_edges(self))
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "lifecycle_class_id": str(self.properties["lifecycle_class_id"]),
+                "state_key": str(self.properties["state_key"]),
+            },
+        }
+
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """State rows attach via ``LifeCycleGraphEdge``, not standalone companion registrations."""
         return []
