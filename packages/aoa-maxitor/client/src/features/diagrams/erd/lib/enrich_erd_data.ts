@@ -1,7 +1,7 @@
 // packages/aoa-maxitor/client/src/features/diagrams/erd/lib/enrich_erd_data.ts
 /**
  * Client-side ``ERD_DATA`` enrichment: inject per-entity ``color`` for renderers from
- * ``domain_qualifier_colors`` (from ``ListDomainsAction`` / ``domain_info``) and per-tab
+ * ``domain_qualifier_colors`` (from ``ListDomainsAction`` / ``list_domains``) and per-tab
  * ``domain_qualifiers`` on ``ERD_DATA``, then derive
  * ``domain_accent_colors`` for the domain legend.
  */

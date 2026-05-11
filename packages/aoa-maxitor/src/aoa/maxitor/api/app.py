@@ -27,11 +27,11 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.maxitor.api.maxitor_connection_holder import MaxitorConnectionHolder
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.api.session import build_maxitor_api_session
-from aoa.maxitor.model.diagrams.actions.get_erd_domain_payload_action import GetErdDomainPayloadAction
 from aoa.maxitor.model.diagrams.actions.get_interchange_graph_payload_action import (
     GetInterchangeGraphPayloadAction,
 )
 from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
+from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
 
 
 def create_app() -> FastAPI:
@@ -60,7 +60,7 @@ def create_app() -> FastAPI:
             ),
         )
         .get("/erd/domain-qualnames", ListDomainsAction, tags=["erd"])
-        .get("/erd/domains/{domain_qualname:path}", GetErdDomainPayloadAction, tags=["erd"])
+        .get("/erd/domains/{domain_qualname:path}", ListEntitiesAction, tags=["erd"])
         .get("/graph/interchange", GetInterchangeGraphPayloadAction, tags=["graph"])
         .build()
     )

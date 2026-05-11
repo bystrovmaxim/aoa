@@ -6,13 +6,13 @@ export type DomainInfoRow = {
 };
 
 export type DomainQualnamesPayload = {
-  domain_info: DomainInfoRow[];
+  list_domains: DomainInfoRow[];
 };
 
 export type ErdDomainPayload = {
   domain_label: string;
   domain_qualifier: string;
-  graph: {
+  list_entities: {
     entities: Array<Record<string, unknown>>;
     relations: Array<Record<string, unknown>>;
   };

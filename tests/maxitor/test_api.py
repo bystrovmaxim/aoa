@@ -53,10 +53,10 @@ def test_erd_domain_qualnames_json(client: TestClient) -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert "domain_info" in data
-    assert isinstance(data["domain_info"], list)
-    assert data["domain_info"]
-    row0 = data["domain_info"][0]
+    assert "list_domains" in data
+    assert isinstance(data["list_domains"], list)
+    assert data["list_domains"]
+    row0 = data["list_domains"][0]
     assert set(row0) == {"qualname", "color"}
     assert isinstance(row0["qualname"], str) and row0["qualname"]
     assert isinstance(row0["color"], str) and row0["color"].startswith("#")
@@ -64,12 +64,12 @@ def test_erd_domain_qualnames_json(client: TestClient) -> None:
 
 def test_erd_domain_payload_json(client: TestClient) -> None:
     listing = client.get("/api/v1/erd/domain-qualnames").json()
-    qual = listing["domain_info"][0]["qualname"]
+    qual = listing["list_domains"][0]["qualname"]
     path = quote(qual, safe="")
     response = client.get(f"/api/v1/erd/domains/{path}")
 
     assert response.status_code == 200
     body = response.json()
-    assert set(body) == {"domain_label", "domain_qualifier", "graph"}
+    assert set(body) == {"domain_label", "domain_qualifier", "list_entities"}
     assert body["domain_qualifier"] == qual
-    assert "entities" in body["graph"] and "relations" in body["graph"]
+    assert "entities" in body["list_entities"] and "relations" in body["list_entities"]
