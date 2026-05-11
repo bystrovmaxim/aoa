@@ -30,16 +30,18 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 from tests.action_machine.scenarios.domain_model.domains import TestDomain
 
 _EMPTY_GRAPH_VERTEX: dict[str, Any] = {"type": "object", "properties": {}, "additionalProperties": False}
-GRAPH_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "nodes": {"type": "array", "items": _EMPTY_GRAPH_VERTEX},
-        "edges": {"type": "array", "items": _EMPTY_GRAPH_VERTEX},
+GraphJson = JsonSchemaValue.define(
+    name="GraphJson",
+    schema={
+        "type": "object",
+        "properties": {
+            "nodes": {"type": "array", "items": _EMPTY_GRAPH_VERTEX},
+            "edges": {"type": "array", "items": _EMPTY_GRAPH_VERTEX},
+        },
+        "required": ["nodes", "edges"],
+        "additionalProperties": False,
     },
-    "required": ["nodes", "edges"],
-    "additionalProperties": False,
-}
-GraphJson = JsonSchemaValue.define(name="GraphJson", schema=GRAPH_SCHEMA)
+)
 
 
 @meta(description="Adapter test action for JsonSchemaValue transport checks", domain=TestDomain)
@@ -57,7 +59,7 @@ class AdapterTestAction(BaseAction["AdapterTestAction.Params", "AdapterTestActio
     @summary_aspect("Build result")
     async def build_result_summary(
         self,
-        params: Params,
+        params: AdapterTestAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],

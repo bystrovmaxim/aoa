@@ -12,6 +12,7 @@ Covers validation, serialization, JSON Schema emission, optional fields,
 
 from __future__ import annotations
 
+import copy
 import json
 from datetime import datetime
 from typing import Any
@@ -20,19 +21,21 @@ import jsonschema
 import pytest
 from pydantic import Field, ValidationError
 
-from aoa.action_machine.model import JsonSchemaValue
+from aoa.action_machine.model import JsonSchemaValue, get_json_schema_value_metadata
 from aoa.action_machine.model.base_result import BaseResult
 
-PERSON_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string"},
-        "age": {"type": "integer"},
+PersonJson = JsonSchemaValue.define(
+    name="PersonJson",
+    schema={
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "age": {"type": "integer"},
+        },
+        "required": ["name"],
+        "additionalProperties": False,
     },
-    "required": ["name"],
-    "additionalProperties": False,
-}
-PersonJson = JsonSchemaValue.define(name="PersonJson", schema=PERSON_SCHEMA)
+)
 
 
 class PersonResult(BaseResult):
@@ -117,11 +120,14 @@ def test_no_arbitrary_types_allowed_needed() -> None:
 
 
 def test_input_schema_not_mutated() -> None:
-    schema_copy = dict(PERSON_SCHEMA)
+    meta = get_json_schema_value_metadata(PersonJson)
+    assert meta is not None
+    canonical = meta["schema"]
+    schema_copy = copy.deepcopy(canonical)
     _ = JsonSchemaValue.define(name="PersonJsonCopy", schema=schema_copy)
     PersonResult.model_json_schema()
-    assert schema_copy == PERSON_SCHEMA
-    assert PERSON_SCHEMA["properties"]["name"] == {"type": "string"}
+    assert schema_copy == canonical
+    assert schema_copy["properties"]["name"] == {"type": "string"}
 
 
 def test_two_types_have_independent_schemas() -> None:
@@ -188,8 +194,10 @@ def test_define_rejects_array_without_items() -> None:
         JsonSchemaValue.define(name="BareArray", schema={"type": "array"})
 
 
-LIST_SCHEMA: dict[str, Any] = {"type": "array", "items": {"type": "string"}}
-TagsJson = JsonSchemaValue.define(name="TagsJson", schema=LIST_SCHEMA)
+TagsJson = JsonSchemaValue.define(
+    name="TagsJson",
+    schema={"type": "array", "items": {"type": "string"}},
+)
 
 
 class TagsResult(BaseResult):

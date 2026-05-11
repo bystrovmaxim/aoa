@@ -1,15 +1,16 @@
 # packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_domains_action.py
 """
-ListDomainsAction — domain interchange qualnames for client-side ERD.
+ListDomainsAction — domain interchange rows (qualname + colour) for client-side ERD.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Return ordered ``BaseDomain`` interchange node ids from the embedded nx graph so
-the React shell can fetch per-domain payloads separately. The list is always
-derived from the graph; there is no request filter on this action. The wire
-``domain_qualnames`` field is validated by a static JSON Schema via
+Return ordered domain rows (interchange qualname + accent colour) from the embedded
+nx graph so the React shell can fetch per-domain payloads separately. The list is always
+derived from the graph; there is no request filter on this action. Accent colours match
+``ERD_DEFAULT_ENTITY_COLORS`` in ``build_erd_graph_data_action``. The wire ``domain_info``
+field is validated by a static JSON Schema on ``Result`` via
 :class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue`.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -22,10 +23,10 @@ ARCHITECTURE / DATA FLOW
     @regular_aspect — collect ``[label, qualname]`` rows (``erd_domain_label_rows``)
           |
           v
-    @regular_aspect — sort and emit ``erd_domain_qualnames``
+    @regular_aspect — sort and emit ``erd_domain_infos`` (qualname + color)
           |
           v
-    @summary_aspect — ``Result(domain_qualnames=...)``
+    @summary_aspect — ``Result(domain_info=...)``
 """
 
 from __future__ import annotations
@@ -48,6 +49,7 @@ from aoa.maxitor.model.core.resources.service_graph_resource import (
     SERVICE_GRAPH_CONNECTION_KEY,
     ServiceGraphResource,
 )
+from aoa.maxitor.model.diagrams.actions.build_erd_graph_data_action import ERD_DEFAULT_ENTITY_COLORS
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
 
@@ -62,24 +64,42 @@ class ListDomainsAction(
 ):
     """
     AI-CORE-BEGIN
-    ROLE: Emit ``domain_qualnames`` for ERD tab discovery on the client.
-    CONTRACT: ``domain_qualnames`` are computed only from ``connections["ServiceGraph"].service``.
+    ROLE: Emit ``domain_info`` rows (qualname + color) for ERD tab discovery on the client.
+    CONTRACT: Domain rows are computed only from ``connections["ServiceGraph"].service``; colours use ``ERD_DEFAULT_ENTITY_COLORS`` by sorted index.
     INVARIANTS: Reads the graph only via ``connections["ServiceGraph"].service``; pipeline uses ``@regular_aspect`` state keys then ``@summary_aspect``.
     AI-CORE-END
     """
 
     class Result(BaseResult):
-        json_schema: ClassVar = JsonSchemaValue.define(
-            name="ErdDomainQualnamesListJson",
+        """HTTP/JSON body is ``model_dump(mode="json")`` of this result (single key ``domain_info``)."""
+
+        ListDomainsJson: ClassVar = JsonSchemaValue.define(
+            name="ListDomainsJson",
             schema={
                 "type": "array",
-                "items": {"type": "string"},
                 "minItems": 0,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "qualname": {"type": "string"},
+                        "color": {"type": "string"},
+                    },
+                    "required": ["qualname", "color"],
+                    "additionalProperties": False,
+                },
             },
         )
 
-        domain_qualnames: json_schema = Field(
-            description="Ordered interchange node ids (BaseDomain full qualnames)",
+        # Valid JSON value examples:
+        # [
+        #   {"qualname": "aoa.orders.domain.OrdersDomain", "color": "#3b82f6"},
+        #   {"qualname": "aoa.billing.domain.BillingDomain", "color": "#8b5cf6"}
+        # ]
+        #
+        # Each array item is exactly:
+        # {"qualname": "<BaseDomain full qualname>", "color": "<ERD accent hex colour>"}
+        domain_info: ListDomainsJson = Field(
+            description="Ordered interchange qualname rows with ERD accent hex colour per row.",
         )
 
     @regular_aspect("Collect domain interchange label rows from nx graph")
@@ -103,9 +123,9 @@ class ListDomainsAction(
             rows.append([label, nid_s])
         return {"erd_domain_label_rows": rows}
 
-    @regular_aspect("Sort domain rows and derive ordered interchange qualnames")
-    @result_instance("erd_domain_qualnames", list, required=True)  # type: ignore[untyped-decorator]
-    async def sort_domain_qualnames_aspect(
+    @regular_aspect("Sort domain rows and attach ERD accent colours from the shared palette")
+    @result_instance("erd_domain_infos", list, required=True)  # type: ignore[untyped-decorator]
+    async def sort_domain_infos_aspect(
         self,
         _params: ParamsStub,
         state: BaseState,
@@ -117,8 +137,12 @@ class ListDomainsAction(
         for pair in raw_rows:
             pairs.append((str(pair[0]), str(pair[1])))
         pairs.sort(key=lambda lr: (lr[0].lower(), lr[1]))
-        qualnames = [p[1] for p in pairs]
-        return {"erd_domain_qualnames": qualnames}
+        palette = ERD_DEFAULT_ENTITY_COLORS
+        infos = [
+            {"qualname": qual, "color": palette[i % len(palette)]}
+            for i, (_label, qual) in enumerate(pairs)
+        ]
+        return {"erd_domain_infos": infos}
 
     @summary_aspect("Resolve domain qualifier list from nx graph")
     async def list_qualnames_summary(
@@ -128,5 +152,5 @@ class ListDomainsAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> ListDomainsAction.Result:
-        qualnames = list(cast(list[Any], state["erd_domain_qualnames"]))
-        return ListDomainsAction.Result(domain_qualnames=qualnames)
+        infos = list(cast(list[Any], state["erd_domain_infos"]))
+        return ListDomainsAction.Result(domain_info=infos)
