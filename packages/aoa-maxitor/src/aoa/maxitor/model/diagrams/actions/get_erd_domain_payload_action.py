@@ -7,8 +7,9 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Materialize ``{nodes, edges}`` for a single ``domain_qualname`` so the SPA can
-render ERD without server-generated HTML. The ``graph`` field on ``Result`` uses
-:class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue` for wire JSON Schema.
+render ERD without server-generated HTML. The ``graph`` field on ``Result`` uses the
+module-level ``ErdDomainGraphJson`` type from ``JsonSchemaValue.define`` (see
+:class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue`).
 
     Params.domain_qualname
           |
@@ -22,7 +23,7 @@ render ERD without server-generated HTML. The ``graph`` field on ``Result`` uses
 from __future__ import annotations
 
 import importlib
-from typing import Any, ClassVar, cast
+from typing import Any, cast
 
 from pydantic import Field
 
@@ -47,6 +48,63 @@ from aoa.maxitor.model.diagrams.actions.build_erd_graph_data_action import (
 )
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
+ErdDomainGraphJson = JsonSchemaValue.define(
+    name="ErdDomainGraphJson",
+    schema={
+        "type": "object",
+        "properties": {
+            "nodes": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string"},
+                        "label": {"type": "string"},
+                        "color": {"type": "string"},
+                        "fields": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "type": {"type": "string"},
+                                    "primary_key": {"type": "boolean"},
+                                    "foreign_key": {"type": "boolean"},
+                                },
+                                "required": [
+                                    "name",
+                                    "type",
+                                    "primary_key",
+                                    "foreign_key",
+                                ],
+                                "additionalProperties": False,
+                            },
+                        },
+                        "domain_qualifier": {"type": "string"},
+                    },
+                    "required": ["id", "label", "color", "fields"],
+                    "additionalProperties": False,
+                },
+            },
+            "edges": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "source": {"type": "string"},
+                        "target": {"type": "string"},
+                        "label": {"type": "string"},
+                    },
+                    "required": ["source", "target", "label"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "required": ["nodes", "edges"],
+        "additionalProperties": False,
+    },
+)
+
 
 @meta(
     description="Get ERD nodes/edges JSON for one interchange domain qualname (diagrams)",
@@ -69,66 +127,9 @@ class GetErdDomainPayloadAction(
         domain_qualname: str = Field(min_length=1, description="Full qualname of the BaseDomain interchange node id")
 
     class Result(BaseResult):
-        json_schema: ClassVar = JsonSchemaValue.define(
-            name="ErdDomainGraphJson",
-            schema={
-                "type": "object",
-                "properties": {
-                    "nodes": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "id": {"type": "string"},
-                                "label": {"type": "string"},
-                                "color": {"type": "string"},
-                                "fields": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "name": {"type": "string"},
-                                            "type": {"type": "string"},
-                                            "primary_key": {"type": "boolean"},
-                                            "foreign_key": {"type": "boolean"},
-                                        },
-                                        "required": [
-                                            "name",
-                                            "type",
-                                            "primary_key",
-                                            "foreign_key",
-                                        ],
-                                        "additionalProperties": False,
-                                    },
-                                },
-                                "domain_qualifier": {"type": "string"},
-                            },
-                            "required": ["id", "label", "color", "fields"],
-                            "additionalProperties": False,
-                        },
-                    },
-                    "edges": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "source": {"type": "string"},
-                                "target": {"type": "string"},
-                                "label": {"type": "string"},
-                            },
-                            "required": ["source", "target", "label"],
-                            "additionalProperties": False,
-                        },
-                    },
-                },
-                "required": ["nodes", "edges"],
-                "additionalProperties": False,
-            },
-        )
-
         domain_label: str = Field(min_length=1, description="Human tab label (domain name or class name)")
         domain_qualifier: str = Field(min_length=1, description="Same as request interchange qualname")
-        graph: json_schema = Field(description="ERD_DATA-style object: {nodes: [...], edges: [...]}")
+        graph: ErdDomainGraphJson = Field(description="ERD_DATA-style object: {nodes: [...], edges: [...]}")
 
     @regular_aspect("Resolve interchange BaseDomain class from qualname")
     @result_instance("erd_domain_class", type, required=True)  # type: ignore[untyped-decorator]

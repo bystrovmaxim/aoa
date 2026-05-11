@@ -1,7 +1,12 @@
 // packages/aoa-maxitor/client/src/features/diagrams/erd/model/types.ts
 /** ERD API response contracts consumed by the browser-side ERD viewer. */
+export type DomainInfoRow = {
+  qualname: string;
+  color: string;
+};
+
 export type DomainQualnamesPayload = {
-  domain_qualnames: string[];
+  domain_info: DomainInfoRow[];
 };
 
 export type ErdDomainPayload = {

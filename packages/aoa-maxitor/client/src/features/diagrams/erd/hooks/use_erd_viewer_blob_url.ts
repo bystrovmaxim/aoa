@@ -39,7 +39,7 @@ export function useErdViewerBlobUrl(selection: ErdViewerSelection): {
         const quals: string[] =
           selection.qualifier !== null
             ? [selection.qualifier]
-            : (await fetchErdDomainQualnames()).domain_qualnames;
+            : (await fetchErdDomainQualnames()).domain_info.map((r) => r.qualname);
 
         if (!quals.length) throw new Error("No domain qualnames");
 

@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/core/actions/get_left_menu_sidebar_data_action.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/core/actions/left_sidebar_action.py
 """
 GetLeftMenuSidebarDataAction — left menu rows for diagrams from a NetworkX graph.
 
