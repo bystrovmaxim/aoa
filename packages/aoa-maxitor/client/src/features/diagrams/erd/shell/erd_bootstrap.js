@@ -30,18 +30,18 @@ function mergeDomainPayloads(parts) {
     String(e.target) +
     '\u001f' +
     String(e.label || '');
-  const seenEdges = new Set();
-  const edgesOut = [];
+  const seenRelations = new Set();
+  const relationsOut = [];
   for (const part of parts) {
-    for (const n of (part.nodes || [])) nodeById.set(n.id, n);
-    for (const e of (part.edges || [])) {
+    for (const n of (part.entities || [])) nodeById.set(n.id, n);
+    for (const e of (part.relations || [])) {
       const sig = edgeSig(e);
-      if (seenEdges.has(sig)) continue;
-      seenEdges.add(sig);
-      edgesOut.push(e);
+      if (seenRelations.has(sig)) continue;
+      seenRelations.add(sig);
+      relationsOut.push(e);
     }
   }
-  return { nodes: [...nodeById.values()], edges: edgesOut };
+  return { entities: [...nodeById.values()], relations: relationsOut };
 }
 
 function loadScript(url, id) {
@@ -63,8 +63,8 @@ let activeLayout   = 'gv-dot-lr';
 /** @type {Set<string>} Domain keys toggled on (subset of ``ERD_DATA.domains``). */
 let enabledDomains = new Set();
 let cyInstance     = null;
-let currentNodes   = [];
-let currentEdges   = [];
+let currentEntities = [];
+let currentRelations = [];
 
 let gvApi = null;
 let nhFilterWired = false;
@@ -281,67 +281,21 @@ function installZoomChrome() {
 // ── domain data ──────────────────────────────────────────────────────────────
 function mergeSelectedDomainPayloads() {
   const domains = ERD_DATA && ERD_DATA.domains;
-  if (!domains) return { nodes: [], edges: [] };
+  if (!domains) return { entities: [], relations: [] };
   const keys = Object.keys(domains);
-  if (!keys.length) return { nodes: [], edges: [] };
+  if (!keys.length) return { entities: [], relations: [] };
   const on = keys.filter(k => enabledDomains.has(k));
-  if (!on.length) return { nodes: [], edges: [] };
+  if (!on.length) return { entities: [], relations: [] };
   if (on.length === 1) return domains[on[0]];
   return mergeDomainPayloads(on.map(k => domains[k]));
 }
 
-function scopeFilterDisabled() {
-  const dq = ERD_DATA && ERD_DATA.domain_qualifiers;
-  if (!dq || typeof dq !== 'object') return true;
-  if (!Object.keys(dq).length) return true;
-  return false;
-}
-
-function selectedDomainQualifiers() {
-  const dq = ERD_DATA.domain_qualifiers || {};
-  const out = new Set();
-  for (const k of enabledDomains) {
-    const q = dq[k];
-    if (q) out.add(q);
-  }
-  return out;
-}
-
 function applyNeighborhoodScope(raw) {
-  const nodes = raw.nodes || [];
-  const edges = raw.edges || [];
-  if (scopeFilterDisabled()) return { nodes, edges };
-  if (!nodes.length) return { nodes, edges };
-  if (!nodes.some(n => n.domain_qualifier)) return { nodes, edges };
-
-  const coreQuals = selectedDomainQualifiers();
-  if (!coreQuals.size) return { nodes, edges };
-
-  const expand =
-    document.getElementById('neighborhood-expand') === null
-      ? true
-      : !!document.getElementById('neighborhood-expand').checked;
-
-  const coreIds = new Set();
-  for (const n of nodes) {
-    const q = n.domain_qualifier || '';
-    if (q && coreQuals.has(q)) coreIds.add(n.id);
-  }
-
-  const keepIds = new Set(coreIds);
-  if (expand) {
-    for (const e of edges) {
-      if (coreIds.has(e.source) || coreIds.has(e.target)) {
-        keepIds.add(e.source);
-        keepIds.add(e.target);
-      }
-    }
-  }
-
-  const nodesOut = nodes.filter(n => keepIds.has(n.id));
-  const ok = new Set(nodesOut.map(n => n.id));
-  const edgesOut = edges.filter(e => ok.has(e.source) && ok.has(e.target));
-  return { nodes: nodesOut, edges: edgesOut };
+  const entities = raw.entities || [];
+  const relations = raw.relations || [];
+  if (!entities.length) return { entities, relations };
+  // API graph entity rows no longer carry per-node domain_qualifier; neighborhood scoping is disabled.
+  return { entities, relations };
 }
 
 function getDomainData() {
@@ -368,9 +322,9 @@ async function initD3Graphviz() {
   if (!cont) return;
   cont.innerHTML = '<div class="erd-loading">&#x23F3; Loading Graphviz…</div>';
 
-  const { nodes, edges } = getDomainData();
-  currentNodes = nodes || [];
-  currentEdges = edges || [];
+  const { entities, relations } = getDomainData();
+  currentEntities = entities || [];
+  currentRelations = relations || [];
 
   const dot = buildDotSource();
   const engine = getGvEngine();
@@ -462,18 +416,18 @@ async function initCytoscape() {
 
   cont.innerHTML = '<div id="cy-graph" style="width:100%;height:100%;background:transparent;"></div>';
 
-  const { nodes, edges } = getDomainData();
-  currentNodes = nodes || [];
-  currentEdges = edges || [];
+  const { entities, relations } = getDomainData();
+  currentEntities = entities || [];
+  currentRelations = relations || [];
 
   const isLR = activeLayout === 'cy-dagre-lr';
   const elements = [
-    ...currentNodes.map(nd => ({
+    ...currentEntities.map(nd => ({
       group: 'nodes',
       data:  { id: nd.id, label: nd.label || nd.id,
                 fields: nd.fields || [], color: nd.color || '#3b82f6' },
     })),
-    ...currentEdges.map(ed => ({
+    ...currentRelations.map(ed => ({
       group: 'edges',
       data:  { id: 'e_' + ed.source + '_' + ed.target,
                 source: ed.source, target: ed.target, label: ed.label || '' },
@@ -577,7 +531,7 @@ async function initMermaid() {
 //  DOT / Mermaid source builders
 // ════════════════════════════════════════════════════════════════════════════
 function buildDotSource() {
-  const { nodes, edges } = getDomainData();
+  const { entities, relations } = getDomainData();
   const isLR = activeLayout === 'gv-dot-lr' || activeLayout === 'cy-dagre-lr';
   const lines = ['digraph ERD {'];
   // Neato ignores rankdir / nodesep / ranksep; those attrs produce a poor spring layout. Use
@@ -599,7 +553,7 @@ function buildDotSource() {
     '',
   );
 
-  for (const nd of (nodes || [])) {
+  for (const nd of (entities || [])) {
     const color = nd.color || '#3b82f6';
     const rows  = (nd.fields || []).map(f => {
       const bg      = f.primary_key ? '#fef9c3' : f.foreign_key ? '#dbeafe' : '#ffffff';
@@ -624,7 +578,7 @@ function buildDotSource() {
   }
 
   lines.push('');
-  for (const ed of (edges || [])) {
+  for (const ed of (relations || [])) {
     const lbl = ed.label ? ' [label="' + escHtml(ed.label) + '" fontsize=9]' : '';
     lines.push('  "' + ed.source + '" -> "' + ed.target + '"' + lbl);
   }
@@ -633,9 +587,9 @@ function buildDotSource() {
 }
 
 function buildMermaidSource() {
-  const { nodes, edges } = getDomainData();
+  const { entities, relations } = getDomainData();
   const lines = ['erDiagram'];
-  for (const nd of (nodes || [])) {
+  for (const nd of (entities || [])) {
     lines.push('  ' + nd.id.replace(/[^\w]/g,'_') + ' {');
     for (const f of (nd.fields || [])) {
       lines.push('    ' + (f.type || 'string').replace(/[^\w]/g, '_') +
@@ -643,7 +597,7 @@ function buildMermaidSource() {
     }
     lines.push('  }');
   }
-  for (const ed of (edges || [])) {
+  for (const ed of (relations || [])) {
     lines.push('  ' + ed.source.replace(/[^\w]/g,'_') + ' ||--o{ ' +
                ed.target.replace(/[^\w]/g,'_') +
                ' : "' + escHtml(ed.label || 'has') + '"');
@@ -879,8 +833,7 @@ function wireDomainPickerOnce() {
 function initNeighborhoodFilter() {
   const grp = document.getElementById('neighborhood-filter');
   if (grp) {
-    const dq = ERD_DATA?.domain_qualifiers;
-    grp.style.display = dq && Object.keys(dq).length ? 'flex' : 'none';
+    grp.style.display = 'none';
   }
   const cb = document.getElementById('neighborhood-expand');
   if (cb && !nhFilterWired) {

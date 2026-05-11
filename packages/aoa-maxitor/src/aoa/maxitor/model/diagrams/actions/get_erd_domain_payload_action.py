@@ -6,7 +6,7 @@ GetErdDomainPayloadAction — one bounded-context ERD graph as JSON for the clie
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Materialize ``{nodes, edges}`` for a single ``domain_qualname`` so the SPA can
+Materialize ``{entities, relations}`` for a single ``domain_qualname`` so the SPA can
 render ERD without server-generated HTML. Node rows omit per-entity ``color``; the
 browser injects accent hex from ``ListDomainsAction`` ``domain_info`` before rendering.
 The ``graph`` field on ``Result`` uses the module-level ``ErdDomainGraphJson`` type from
@@ -49,12 +49,14 @@ from aoa.maxitor.model.diagrams.actions.build_erd_graph_data_action import (
 )
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
+_ERD_RELATION_CARDINALITY = {"type": "string", "enum": ["one", "zero_one", "one_many", "zero_many"]}
+
 ErdDomainGraphJson = JsonSchemaValue.define(
     name="ErdDomainGraphJson",
     schema={
         "type": "object",
         "properties": {
-            "nodes": {
+            "entities": {
                 "type": "array",
                 "items": {
                     "type": "object",
@@ -80,13 +82,12 @@ ErdDomainGraphJson = JsonSchemaValue.define(
                                 "additionalProperties": False,
                             },
                         },
-                        "domain_qualifier": {"type": "string"},
                     },
                     "required": ["id", "label", "fields"],
                     "additionalProperties": False,
                 },
             },
-            "edges": {
+            "relations": {
                 "type": "array",
                 "items": {
                     "type": "object",
@@ -94,20 +95,30 @@ ErdDomainGraphJson = JsonSchemaValue.define(
                         "source": {"type": "string"},
                         "target": {"type": "string"},
                         "label": {"type": "string"},
+                        "relationship_kind": {"type": "string"},
+                        "source_cardinality": _ERD_RELATION_CARDINALITY,
+                        "target_cardinality": _ERD_RELATION_CARDINALITY,
                     },
-                    "required": ["source", "target", "label"],
+                    "required": [
+                        "source",
+                        "target",
+                        "label",
+                        "relationship_kind",
+                        "source_cardinality",
+                        "target_cardinality",
+                    ],
                     "additionalProperties": False,
                 },
             },
         },
-        "required": ["nodes", "edges"],
+        "required": ["entities", "relations"],
         "additionalProperties": False,
     },
 )
 
 
 @meta(
-    description="Get ERD nodes/edges JSON for one interchange domain qualname (diagrams)",
+    description="Get ERD entities/relations JSON for one interchange domain qualname (diagrams)",
     domain=DiagramsDomain,
 )
 @check_roles(NoneRole)
@@ -129,7 +140,28 @@ class GetErdDomainPayloadAction(
     class Result(BaseResult):
         domain_label: str = Field(min_length=1, description="Human tab label (domain name or class name)")
         domain_qualifier: str = Field(min_length=1, description="Same as request interchange qualname")
-        graph: ErdDomainGraphJson = Field(description="ERD_DATA-style object: {nodes: [...], edges: [...]}")
+        # {
+        #   "entities": [
+        #     {
+        #       "id": "aoa.orders.entity.OrderEntity",
+        #       "label": "Order",
+        #       "fields": [
+        #         {"name": "id", "type": "str", "primary_key": true, "foreign_key": false}
+        #       ]
+        #     }
+        #   ],
+        #   "relations": [
+        #     {
+        #       "source": "aoa.orders.entity.OrderEntity",
+        #       "target": "aoa.orders.entity.LineItemEntity",
+        #       "label": "line_items",
+        #       "relationship_kind": "association",
+        #       "source_cardinality": "one",
+        #       "target_cardinality": "zero_many"
+        #     }
+        #   ]
+        # }
+        graph: ErdDomainGraphJson = Field(description="ERD_DATA-style object: {entities: [...], relations: [...]}")
 
     @regular_aspect("Resolve interchange BaseDomain class from qualname")
     @result_instance("erd_domain_class", type, required=True)  # type: ignore[untyped-decorator]

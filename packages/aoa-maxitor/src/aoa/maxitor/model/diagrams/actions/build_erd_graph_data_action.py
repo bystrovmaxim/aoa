@@ -9,11 +9,11 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Pure helpers read :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator`
-and build normalized ERD rows (:class:`ErdGraphPayload`) and ``nodes`` / ``edges`` JSON.
+and build normalized ERD rows (:class:`ErdGraphPayload`) and ``entities`` / ``relations`` JSON.
 
 HTTP-facing flows use small actions (``ListDomainsAction``,
 ``GetErdDomainPayloadAction``) with ``@connection`` on :class:`~aoa.maxitor.model.core.resources.service_graph_resource.ServiceGraphResource`;
-this module keeps serializers shared with the Maxitor React ERD viewer (``nodes`` / ``edges`` JSON).
+this module keeps serializers shared with the Maxitor React ERD viewer (``entities`` / ``relations`` JSON).
 """
 
 from __future__ import annotations
@@ -85,8 +85,6 @@ class ErdEntitySpec:
     is_junction: bool = False
     #: Header/table accent (hex). Empty → HTML export falls back to row-index palette.
     accent_color: str = ""
-    #: Declared interchange domain qualifier (``TypeIntrospection.full_qualname(domain_cls)``).
-    declaring_domain_qual: str = ""
 
 
 @dataclass(frozen=True)
@@ -369,7 +367,6 @@ def erd_payload_from_coordinator_for_domain(
             is_junction=sum(1 for f in field_map[eid].values() if "fk" in f.role) >= 2
             and sum(1 for f in field_map[eid].values() if f.role == "field") <= 3,
             accent_color=accent_by_qual.get(all_graph[eid].domain.target_node_id, ""),
-            declaring_domain_qual=all_graph[eid].domain.target_node_id,
         )
         for eid in sorted(display_ids)
     )
@@ -388,7 +385,7 @@ def _role_to_flags(role: str) -> dict[str, bool]:
 
 
 def _serialize_entity(entity: ErdEntitySpec) -> dict[str, Any]:
-    """Convert ErdEntitySpec into the JS node shape (shared with the React ERD viewer ``ERD_DATA`` JSON)."""
+    """Convert ErdEntitySpec into the JS entity-row shape (shared with the React ERD viewer ``ERD_DATA`` JSON)."""
     fields: list[dict[str, Any]] = []
     for f in entity.fields:
         flags = _role_to_flags(f.role)
@@ -406,35 +403,33 @@ def _serialize_entity(entity: ErdEntitySpec) -> dict[str, Any]:
             if k == "id":
                 continue
             fields.append({"name": k, "type": str(v), "primary_key": False, "foreign_key": False})
-    qual = (getattr(entity, "declaring_domain_qual", None) or "").strip()
-    out: dict[str, Any] = {
+    return {
         "id": entity.id,
         "label": entity.label,
         "fields": fields,
     }
-    if qual:
-        out["domain_qualifier"] = qual
-
-    return out
 
 
 def _serialize_edge(rel: ErdEdgeSpec) -> dict[str, Any]:
-    """Convert ErdEdgeSpec into the JS edge shape."""
+    """Convert ErdEdgeSpec into the JS relation shape."""
     return {
         "source": rel.source,
         "target": rel.target,
         "label": rel.label or "",
+        "relationship_kind": rel.relationship_kind,
+        "source_cardinality": rel.source_cardinality,
+        "target_cardinality": rel.target_cardinality,
     }
 
 
 def payload_to_domain_dict(payload: ErdGraphPayload) -> dict[str, Any]:
     """Convert ErdGraphPayload into the JSON-ready domain dictionary for ``ERD_DATA``."""
-    nodes: list[dict[str, Any]] = []
+    serialized_entities: list[dict[str, Any]] = []
     for entity in payload.entities:
-        nodes.append(_serialize_entity(entity))
+        serialized_entities.append(_serialize_entity(entity))
 
-    edges = [_serialize_edge(rel) for rel in payload.relationships]
-    return {"nodes": nodes, "edges": edges}
+    relations = [_serialize_edge(rel) for rel in payload.relationships]
+    return {"entities": serialized_entities, "relations": relations}
 
 
 def node_graph_coordinator_from_interchange_nx(nx_graph: Any) -> NodeGraphCoordinator:

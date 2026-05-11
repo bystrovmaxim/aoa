@@ -13,7 +13,7 @@ export type ErdDomainPayload = {
   domain_label: string;
   domain_qualifier: string;
   graph: {
-    nodes: Array<Record<string, unknown>>;
-    edges: Array<Record<string, unknown>>;
+    entities: Array<Record<string, unknown>>;
+    relations: Array<Record<string, unknown>>;
   };
 };

@@ -48,7 +48,7 @@ export function useErdViewerBlobUrl(selection: ErdViewerSelection): {
         if (!quals.length) throw new Error("No domain qualnames");
 
         const used = new Set<string>();
-        const domains: Record<string, { nodes: unknown[]; edges: unknown[] }> = {};
+        const domains: Record<string, { entities: unknown[]; relations: unknown[] }> = {};
         const domain_qualifiers: Record<string, string> = {};
 
         const payloads = await Promise.all(quals.map((q) => fetchErdDomainPayload(q)));
