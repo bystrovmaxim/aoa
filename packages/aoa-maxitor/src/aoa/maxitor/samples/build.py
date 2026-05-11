@@ -48,6 +48,10 @@ _MODULES: Final[tuple[str, ...]] = (
     "aoa.maxitor.samples.store.plugins",
     "aoa.maxitor.samples.catalog.actions",
     "aoa.maxitor.samples.store.actions",
+    # entity wire projection demo (PR-5)
+    "aoa.maxitor.samples.entity_projection_demo.domain",
+    "aoa.maxitor.samples.entity_projection_demo.entities",
+    "aoa.maxitor.samples.entity_projection_demo.actions",
     # support: @depends on BaseAction in the same domain and in store
     "aoa.maxitor.samples.support.domain",
     "aoa.maxitor.samples.support.entities",

@@ -32,4 +32,10 @@ def node_graph_coordinator_from_interchange_nx(nx_graph: Any) -> NodeGraphCoordi
             "materialize it with LoadGraphAction.Params(graph=coordinator) first."
         )
         raise ValueError(msg)
+    if not isinstance(coordinator, NodeGraphCoordinator):
+        msg = (
+            f"Expected {MAXITOR_NX_GRAPH_COORDINATOR_KEY!r} to hold a NodeGraphCoordinator, "
+            f"got {type(coordinator).__name__}."
+        )
+        raise TypeError(msg)
     return coordinator

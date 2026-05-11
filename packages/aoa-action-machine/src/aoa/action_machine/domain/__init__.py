@@ -99,6 +99,7 @@ EXAMPLES
 
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.entity import BaseEntity
+from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker, entity_schema_marker_from_annotated
 from aoa.action_machine.domain.exceptions import (
     EntityDecoratorError,
     FieldNotLoadedError,
@@ -140,6 +141,7 @@ __all__ = [
     # Exceptions
     "EntityDecoratorError",
     "EntityIntent",
+    "EntitySchemaMarker",
     "FieldNotLoadedError",
     # Relation markers
     "Inverse",
@@ -156,5 +158,6 @@ __all__ = [
     "StateType",
     # Utilities
     "build",
+    "entity_schema_marker_from_annotated",
     "make",
 ]

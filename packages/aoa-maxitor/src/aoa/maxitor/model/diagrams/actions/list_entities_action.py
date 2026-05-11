@@ -53,8 +53,8 @@ from aoa.maxitor.model.core.resources.service_graph_resource import (
     SERVICE_GRAPH_CONNECTION_KEY,
     ServiceGraphResource,
 )
-from aoa.maxitor.model.diagrams.interchange_nx_coordinator import node_graph_coordinator_from_interchange_nx
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
+from aoa.maxitor.model.diagrams.interchange_nx_coordinator import node_graph_coordinator_from_interchange_nx
 
 
 def _entity_nodes_by_id(coordinator: NodeGraphCoordinator) -> dict[str, EntityGraphNode]:

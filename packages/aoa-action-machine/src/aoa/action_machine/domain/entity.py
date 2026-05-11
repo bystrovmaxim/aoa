@@ -4,7 +4,9 @@ Abstract base for all domain entities in ActionMachine.
 
 `BaseEntity` defines the in-memory domain object contract: typed fields,
 immutability, strict structure, and optional partial loads from storage. It is
-**not** a transport schema; use Params/Result or explicit DTOs for wire formats.
+**not** a transport schema by default; use Params/Result or explicit DTOs for wire formats.
+For an explicit wire contract tied to an entity class, use ``BaseEntity.schema(schema={...})``
+(``Annotated`` + :class:`~aoa.action_machine.domain.entity_schema_marker.EntitySchemaMarker`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -23,11 +25,13 @@ SCOPE (IN / OUT)
     Pydantic model config: `frozen=True`, `extra="forbid"`.
     Partial construction via `partial()` and fail-fast access via `__getattr__`.
     Mixins ``EntityIntent`` so ``@entity`` and non-empty ``Field(description=...)`` policies apply.
+    ``BaseEntity.schema()`` builds ``Annotated`` aliases for explicit JSON Schema wire projections.
 
 **Out of scope (by design)**
     Persistence queries, caching, and lazy loading — partial instances never
     fetch missing fields.
-    API schemas, OpenAPI, or RPC payloads — use separate DTOs when needed.
+    Implicit API payloads without a declared wire schema — use DTOs or ``BaseEntity.schema()``;
+    Pydantic/OpenAPI integration for projections uses hooks on :class:`~aoa.action_machine.domain.entity_schema_marker.EntitySchemaMarker`.
     Interchange graph construction — lives in graph-model inspectors when
     ``NodeGraphCoordinator.build()`` runs, not in this file.
 
@@ -79,6 +83,16 @@ the rule “only entities use `@entity`” enforceable via `issubclass` at decor
 time rather than ad hoc checks.
 
 ═══════════════════════════════════════════════════════════════════════════════
+WIRE PROJECTIONS (`BaseEntity.schema`)
+═══════════════════════════════════════════════════════════════════════════════
+
+``BaseEntity.schema(schema={...})`` declares a **partial JSON wire** view of an entity
+on ``BaseParams`` / ``BaseResult`` fields: values are plain ``dict`` objects validated
+by the given JSON Schema, while the graph records an ``entity_view`` edge to the
+entity class. For when to prefer a DTO, optional-field patterns, OpenAPI/MCP notes,
+and limitations, see ``docs/guide/entity-wire-projection.md``.
+
+═══════════════════════════════════════════════════════════════════════════════
 LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -93,11 +107,14 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 
 from __future__ import annotations
 
+import copy
 from abc import ABC
-from typing import Any, ClassVar, Self
+from typing import Annotated, Any, ClassVar, Self
 
+import jsonschema
 from pydantic import ConfigDict
 
+from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker
 from aoa.action_machine.domain.exceptions import FieldNotLoadedError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.intents.entity.entity_intent import EntityIntent
@@ -142,6 +159,25 @@ AI-CORE-BEGIN
                 f"end with the suffix '{_REQUIRED_SUFFIX}'. "
                 f"Rename it to '{cls.__name__}{_REQUIRED_SUFFIX}'."
             )
+
+    @classmethod
+    # pylint: disable-next=arguments-differ
+    def schema(cls, *, schema: dict[str, Any]) -> Any:  # type: ignore[override]
+        """
+        Return ``Annotated[cls, EntitySchemaMarker(...)]`` for an explicit JSON Schema wire projection.
+
+        Intentionally **not** Pydantic's ``BaseModel.schema()`` (JSON Schema of the entity model);
+        entity classes use this name for wire projection annotations only (see ``docs/guide/entity-wire-projection.md``).
+        """
+        if not isinstance(schema, dict):
+            msg = f"{cls.__name__}.schema(): schema must be a dict, got {type(schema).__name__}."
+            raise TypeError(msg)
+        if not schema:
+            msg = f"{cls.__name__}.schema(): schema cannot be empty."
+            raise ValueError(msg)
+        schema_copy = copy.deepcopy(schema)
+        jsonschema.Draft7Validator.check_schema(schema_copy)
+        return Annotated[cls, EntitySchemaMarker(entity_cls=cls, schema=schema_copy)]
 
     @classmethod
     def partial(cls, **kwargs: Any) -> Self:
