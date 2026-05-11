@@ -7,12 +7,15 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Expose resource types used by core/diagram actions for ``@connection`` wiring
-(see ``LoadGraphAction`` interchange nx graph).
+(see ``LoadGraphAction`` interchange nx graph). Both resources use the same connection key
+``SERVICE_GRAPH_CONNECTION_KEY`` from :mod:`aoa.maxitor.model.core.resources.service_graph_resource`.
 """
 
+from .networkx_graph_resource import NetworkXGraphResource
 from .service_graph_resource import SERVICE_GRAPH_CONNECTION_KEY, ServiceGraphResource
 
 __all__ = [
+    "NetworkXGraphResource",
     "SERVICE_GRAPH_CONNECTION_KEY",
     "ServiceGraphResource",
 ]
