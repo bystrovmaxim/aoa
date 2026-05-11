@@ -12,6 +12,7 @@ dotted id plus ``:`` plus the property name; ``node_obj`` is a frozen :class:`Pr
 
 If the member is ``@sensitive`` on ``parent_type``, a stub :class:`~aoa.action_machine.graph_model.edges.sensitive_graph_edge.SensitiveGraphEdge`
 is resolved internally; :meth:`get_all_edges` returns it, and :meth:`get_companion_nodes` adds the matching :class:`~aoa.action_machine.graph_model.nodes.sensitive_graph_node.SensitiveGraphNode`.
+If the member return annotation uses ``BaseEntity.schema(...)``, this node also exposes an outgoing ``entity_schema`` edge to the entity node.
 
 Constructor shape matches :class:`FieldGraphNode` (``parent_type``, name, ``required``); this node names that string ``property_name`` on the payload. Callers supply interchange metadata explicitly; optional stub edges use :meth:`~aoa.action_machine.graph_model.edges.sensitive_graph_edge.SensitiveGraphEdge.get_sensitive_edge`.
 """
@@ -21,6 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
+from aoa.action_machine.graph_model.edges.entity_schema_graph_edge import EntitySchemaGraphEdge
 from aoa.action_machine.graph_model.edges.sensitive_graph_edge import SensitiveGraphEdge
 from aoa.action_machine.graph_model.nodes.sensitive_graph_node import SensitiveGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
@@ -35,6 +37,7 @@ class PropertyFieldGraphPayload:
     host_type: type[Any]
     property_name: str
     required: bool
+    entity_schema: bool = False
 
 
 @dataclass(init=False, frozen=True)
@@ -46,13 +49,14 @@ class PropertyFieldGraphNode(BaseGraphNode[PropertyFieldGraphPayload]):
     :attr:`NODE_TYPE` is ``PropertyField``; ``parent_type`` must be a ``type``;
     ``@sensitive`` stub edge is derived via :meth:`~aoa.action_machine.graph_model.edges.sensitive_graph_edge.SensitiveGraphEdge.get_sensitive_edge`;
     when non-``None``, :meth:`get_companion_nodes` materializes :class:`~aoa.action_machine.graph_model.nodes.sensitive_graph_node.SensitiveGraphNode`;
-    Interchange ``properties`` carry ``required`` only;
-    :class:`PropertyFieldGraphPayload` holds ``host_type``, property name, and required flag.
+    Interchange ``properties`` carry ``required`` and optional ``entity_schema`` flag;
+    :class:`PropertyFieldGraphPayload` holds ``host_type``, property name, required flag, and entity-schema presence.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "PropertyField"
     sensitive: SensitiveGraphEdge | None
+    entity_schema_edge: EntitySchemaGraphEdge | None
 
     def __init__(
         self,
@@ -60,6 +64,7 @@ class PropertyFieldGraphNode(BaseGraphNode[PropertyFieldGraphPayload]):
         property_name: str,
         *,
         required: bool = False,
+        entity_schema_target: type | None = None,
     ) -> None:
         if not isinstance(parent_type, type):
             msg = f"parent_type must be a type, got {type(parent_type).__name__}"
@@ -70,6 +75,7 @@ class PropertyFieldGraphNode(BaseGraphNode[PropertyFieldGraphPayload]):
             host_type=parent_type,
             property_name=property_name,
             required=required,
+            entity_schema=entity_schema_target is not None,
         )
         super().__init__(
             node_id=f"{TypeIntrospection.full_qualname(parent_type)}:{stripped}",
@@ -77,17 +83,18 @@ class PropertyFieldGraphNode(BaseGraphNode[PropertyFieldGraphPayload]):
             label=stripped,
             properties={
                 "required": required,
+                "entity_schema": entity_schema_target is not None,
             },
             node_obj=node_obj,
         )
         sens = SensitiveGraphEdge.get_sensitive_edge(parent_type, stripped)
         object.__setattr__(self, "sensitive", sens)
+        edge = EntitySchemaGraphEdge(entity_cls=entity_schema_target) if entity_schema_target is not None else None
+        object.__setattr__(self, "entity_schema_edge", edge)
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return the optional stub :class:`SensitiveGraphEdge` toward :class:`SensitiveGraphNode`."""
-        if self.sensitive is None:
-            return []
-        return [self.sensitive]
+        """Return optional sensitive and ``entity_schema`` edges from this concrete property node."""
+        return [edge for edge in (self.sensitive, self.entity_schema_edge) if edge is not None]
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Attach :class:`SensitiveGraphNode` when a sensitive stub edge is present (coordinator expansion)."""

@@ -10,7 +10,7 @@ Materializes a frozen :class:`~aoa.graph.base_graph_node.BaseGraphNode` for one 
 caller-supplied host ``parent_type`` (typically a params or result schema class). ``node_id`` is the host
 dotted id plus ``:`` plus the field name (``parent_type`` is only an argument to ``__init__``, not stored on the payload); ``node_obj`` is a frozen :class:`FieldGraphPayload`.
 
-Constructor inputs mirror :class:`CheckerGraphNode`: ``parent_type``, ``field_name``, optional ``description``, ``required``, and optional JSON-schema metadata. Declared-field graphs are usually built via :class:`~aoa.action_machine.graph_model.edges.field_graph_edge.FieldGraphEdge`, which reads Pydantic ``model_fields`` / ``get_type_hints`` and attaches :class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue` metadata when applicable.
+Constructor inputs mirror :class:`CheckerGraphNode`: ``parent_type``, ``field_name``, optional ``description``, ``required``, and optional JSON-schema metadata. Declared-field graphs are usually built via :class:`~aoa.action_machine.graph_model.edges.field_graph_edge.FieldGraphEdge`, which reads Pydantic ``model_fields`` / ``get_type_hints`` and attaches :class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue` metadata when applicable. Fields annotated with ``BaseEntity.schema(...)`` carry an outgoing ``entity_schema`` edge from the concrete field node to the entity node.
 """
 
 from __future__ import annotations
@@ -19,7 +19,9 @@ import copy
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
+from aoa.action_machine.graph_model.edges.entity_schema_graph_edge import EntitySchemaGraphEdge
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+from aoa.graph.base_graph_edge import BaseGraphEdge
 from aoa.graph.base_graph_node import BaseGraphNode
 
 
@@ -33,6 +35,7 @@ class FieldGraphPayload:
     json_schema_value: bool = False
     json_schema_name: str | None = None
     json_schema: dict[str, Any] | None = None
+    entity_schema: bool = False
 
 
 @dataclass(init=False, frozen=True)
@@ -41,14 +44,16 @@ class FieldGraphNode(BaseGraphNode[FieldGraphPayload]):
     AI-CORE-BEGIN
     ROLE: Interchange node for one declared field under a host ``parent_type``.
     CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(parent_type) + ':' + field_name.strip()``;
-    :attr:`NODE_TYPE` is ``Field``; ``parent_type`` must be a ``type``; ``edges`` empty;
+    :attr:`NODE_TYPE` is ``Field``; ``parent_type`` must be a ``type``;
     Interchange ``properties`` on the node carry ``required``, ``description`` (empty string when omitted),
     optional ``json_schema_value`` / ``json_schema_name`` / ``json_schema`` for :class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue` fields;
+    optional ``entity_schema`` marks a concrete field with an outgoing entity link.
     :class:`FieldGraphPayload` mirrors those fields. No Pydantic graph walk inside this class (callers pass flags and schema copies).
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Field"
+    entity_schema_edge: EntitySchemaGraphEdge | None
 
     def __init__(
         self,
@@ -60,6 +65,7 @@ class FieldGraphNode(BaseGraphNode[FieldGraphPayload]):
         json_schema_value: bool = False,
         json_schema_name: str | None = None,
         json_schema: dict[str, Any] | None = None,
+        entity_schema_target: type | None = None,
     ) -> None:
         if not isinstance(parent_type, type):
             msg = f"parent_type must be a type, got {type(parent_type).__name__}"
@@ -73,11 +79,13 @@ class FieldGraphNode(BaseGraphNode[FieldGraphPayload]):
             json_schema_value=json_schema_value,
             json_schema_name=json_schema_name,
             json_schema=schema_copy,
+            entity_schema=entity_schema_target is not None,
         )
         props: dict[str, Any] = {
             "required": required,
             "description": "" if description is None else description,
             "json_schema_value": json_schema_value,
+            "entity_schema": entity_schema_target is not None,
         }
         if json_schema_name:
             props["json_schema_name"] = json_schema_name
@@ -90,3 +98,11 @@ class FieldGraphNode(BaseGraphNode[FieldGraphPayload]):
             properties=props,
             node_obj=node_obj,
         )
+        edge = EntitySchemaGraphEdge(entity_cls=entity_schema_target) if entity_schema_target is not None else None
+        object.__setattr__(self, "entity_schema_edge", edge)
+
+    def get_all_edges(self) -> list[BaseGraphEdge]:
+        """Return the optional ``entity_schema`` edge from this concrete field to an entity node."""
+        if self.entity_schema_edge is None:
+            return []
+        return [self.entity_schema_edge]

@@ -92,9 +92,9 @@ Pydantic v2 uses metadata hooks on `EntitySchemaMarker` for core validation and 
 
 ---
 
-## 6. Interchange graph — `entity_view`
+## 6. Interchange graph — `entity_schema`
 
-For each `BaseParams` / `BaseResult` field that uses `BaseEntity.schema(...)`, the graph emits an aggregation edge named **`entity_view`** from the schema host node (`Params` / `Result`) to the **`Entity`** node for the marker’s `entity_cls`. The edge is DAG-participating (`is_dag=True`); `target_node_id` is the entity class full qualname; `properties` include JSON-safe metadata (at minimum `field_name`).
+For each `BaseParams` / `BaseResult` field (or property-style member) that uses `BaseEntity.schema(...)`, the graph emits an aggregation edge named **`entity_schema`** from the concrete **`Field`** / **`PropertyField`** companion node to the **`Entity`** node for the marker’s `entity_cls`. The edge is DAG-participating (`is_dag=True`); `target_node_id` is the entity class full qualname; `properties` on the edge are JSON-only (currently `{}`).
 
 If the entity type is excluded from the graph (for example `@exclude_graph_model` on the entity class) but a projection still targets it, `NodeGraphCoordinator.build()` can fail referential integrity checks — keep projections pointed at entities that exist in the coordinator’s node set.
 
@@ -104,4 +104,4 @@ If the entity type is excluded from the graph (for example `@exclude_graph_model
 
 - Implementation: `packages/aoa-action-machine/src/aoa/action_machine/domain/entity.py` (`BaseEntity.schema`), `entity_schema_marker.py`.
 - Sample usage in Maxitor: `packages/aoa-maxitor/src/aoa/maxitor/samples/entity_projection_demo/`.
-- Tests: `tests/action_machine/domain/`, adapter tests under `tests/action_machine/adapters/`, `tests/action_machine/graph_model/test_entity_view_graph_edge.py`, `tests/maxitor/test_entity_projection_samples.py`.
+- Tests: `tests/action_machine/domain/`, adapter tests under `tests/action_machine/adapters/`, `tests/action_machine/graph_model/test_entity_schema_graph_edge.py`, `tests/maxitor/test_entity_projection_samples.py`.

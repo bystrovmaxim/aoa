@@ -88,7 +88,7 @@ WIRE PROJECTIONS (`BaseEntity.schema`)
 
 ``BaseEntity.schema(schema={...})`` declares a **partial JSON wire** view of an entity
 on ``BaseParams`` / ``BaseResult`` fields: values are plain ``dict`` objects validated
-by the given JSON Schema, while the graph records an ``entity_view`` edge to the
+by the given JSON Schema, while the graph records an ``entity_schema`` edge to the
 entity class. For when to prefer a DTO, optional-field patterns, OpenAPI/MCP notes,
 and limitations, see ``docs/guide/entity-wire-projection.md``.
 

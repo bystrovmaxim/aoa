@@ -23,6 +23,9 @@ import typing
 from collections.abc import Mapping
 from typing import Any, get_args, get_origin, get_type_hints
 
+from aoa.action_machine.graph_model.edges.entity_schema_graph_edge import (
+    entity_schema_projection_target_from_annotation,
+)
 from aoa.action_machine.graph_model.nodes.field_graph_node import FieldGraphNode
 from aoa.action_machine.model.json_schema_value import get_json_schema_value_metadata
 from aoa.graph.base_graph_node import BaseGraphNode
@@ -81,6 +84,7 @@ class FieldGraphEdge(CompositionGraphEdge):
             annotation = hints.get(field_name, finfo.annotation)
             actual_type = _unwrap_optional(annotation)
             jsv_meta = get_json_schema_value_metadata(actual_type)
+            entity_schema_target = entity_schema_projection_target_from_annotation(annotation)
             out.append(
                 FieldGraphNode(
                     host_cls,
@@ -90,6 +94,7 @@ class FieldGraphEdge(CompositionGraphEdge):
                     json_schema_value=jsv_meta is not None,
                     json_schema_name=jsv_meta["name"] if jsv_meta else None,
                     json_schema=jsv_meta["schema"] if jsv_meta else None,
+                    entity_schema_target=entity_schema_target,
                 ),
             )
         return out
