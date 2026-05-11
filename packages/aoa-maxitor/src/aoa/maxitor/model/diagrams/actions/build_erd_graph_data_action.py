@@ -12,7 +12,7 @@ Pure helpers read :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator
 and build normalized ERD rows (:class:`ErdGraphPayload`) and ``entities`` / ``relations`` JSON.
 
 HTTP-facing flows use small actions (``ListDomainsAction``,
-``GetErdDomainPayloadAction``) with ``@connection`` on :class:`~aoa.maxitor.model.core.resources.service_graph_resource.ServiceGraphResource`;
+``ListEntitiesAction``) with ``@connection`` on :class:`~aoa.maxitor.model.core.resources.service_graph_resource.ServiceGraphResource`;
 this module keeps serializers shared with the Maxitor React ERD viewer (``entities`` / ``relations`` JSON).
 """
 

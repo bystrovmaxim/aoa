@@ -38,12 +38,12 @@ export function useErdViewerBlobUrl(selection: ErdViewerSelection): {
       try {
         const listing = await fetchErdDomainQualnames();
         const domain_qualifier_colors = Object.fromEntries(
-          listing.domain_info.map((r) => [r.qualname, r.color]),
+          listing.list_domains.map((r) => [r.qualname, r.color]),
         );
         const quals: string[] =
           selection.qualifier !== null
             ? [selection.qualifier]
-            : listing.domain_info.map((r) => r.qualname);
+            : listing.list_domains.map((r) => r.qualname);
 
         if (!quals.length) throw new Error("No domain qualnames");
 
@@ -54,7 +54,7 @@ export function useErdViewerBlobUrl(selection: ErdViewerSelection): {
         const payloads = await Promise.all(quals.map((q) => fetchErdDomainPayload(q)));
         for (const p of payloads) {
           const key = allocateDomainTabKey(used, p.domain_label);
-          domains[key] = p.graph;
+          domains[key] = p.list_entities;
           domain_qualifiers[key] = p.domain_qualifier;
         }
 

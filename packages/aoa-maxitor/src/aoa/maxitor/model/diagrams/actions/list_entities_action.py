@@ -1,15 +1,15 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/get_erd_domain_payload_action.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py
 """
-GetErdDomainPayloadAction — one bounded-context ERD graph as JSON for the client.
+ListEntitiesAction — one bounded-context ERD graph as JSON for the client.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Materialize ``{entities, relations}`` for a single ``domain_qualname`` so the SPA can
-render ERD without server-generated HTML. Node rows omit per-entity ``color``; the
-browser injects accent hex from ``ListDomainsAction`` ``domain_info`` before rendering.
-The ``graph`` field on ``Result`` uses the module-level ``ErdDomainGraphJson`` type from
+render ERD without server-generated HTML. Entity rows omit per-entity ``color``; the
+browser injects accent hex from ``ListDomainsAction`` ``list_domains`` before rendering.
+The ``list_entities`` field on ``Result`` uses the module-level ``ListEntitiesJson`` type from
 ``JsonSchemaValue.define`` (see :class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue`).
 
     Params.domain_qualname
@@ -18,7 +18,7 @@ The ``graph`` field on ``Result`` uses the module-level ``ErdDomainGraphJson`` t
     regular aspect  ->  ``erd_domain_class`` (:class:`~aoa.action_machine.domain.base_domain.BaseDomain` subclass)
           |
           v
-    summary aspect  ->  Result graph JSON + labels
+    summary aspect  ->  Result payload (labels + ``list_entities``)
 """
 
 from __future__ import annotations
@@ -51,8 +51,11 @@ from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
 _ERD_RELATION_CARDINALITY = {"type": "string", "enum": ["one", "zero_one", "one_many", "zero_many"]}
 
-ErdDomainGraphJson = JsonSchemaValue.define(
-    name="ErdDomainGraphJson",
+# One bounded-context ERD slice for ``ListEntitiesAction.Result.list_entities``: ``entities`` carry
+# interchange entity ids, display labels, and tabular field rows; ``relations`` connect entity ids
+# with a display label, ``relationship_kind``, and source/target cardinalities (``ERD_DATA`` domain payload).
+ListEntitiesJson = JsonSchemaValue.define(
+    name="ListEntitiesJson",
     schema={
         "type": "object",
         "properties": {
@@ -118,17 +121,17 @@ ErdDomainGraphJson = JsonSchemaValue.define(
 
 
 @meta(
-    description="Get ERD entities/relations JSON for one interchange domain qualname (diagrams)",
+    description="List entities, fields, and relations for one interchange domain qualname (diagrams)",
     domain=DiagramsDomain,
 )
 @check_roles(NoneRole)
 @connection(ServiceGraphResource, key=SERVICE_GRAPH_CONNECTION_KEY, description="Interchange nx graph from LoadGraphAction")
-class GetErdDomainPayloadAction(
-    BaseAction["GetErdDomainPayloadAction.Params", "GetErdDomainPayloadAction.Result"],
+class ListEntitiesAction(
+    BaseAction["ListEntitiesAction.Params", "ListEntitiesAction.Result"],
 ):
     """
     AI-CORE-BEGIN
-    ROLE: Emit one domain slice of ``ERD_DATA``-shaped JSON for client rendering.
+    ROLE: Emit one domain slice of ``ERD_DATA``-shaped JSON (``list_entities``) for client rendering.
     CONTRACT: ``domain_qualname`` is the full interchange node id for a ``BaseDomain`` class.
     INVARIANTS: Reads the graph only via ``connections["ServiceGraph"].service``; resolves the domain class in a regular aspect before building the graph.
     AI-CORE-END
@@ -161,13 +164,20 @@ class GetErdDomainPayloadAction(
         #     }
         #   ]
         # }
-        graph: ErdDomainGraphJson = Field(description="ERD_DATA-style object: {entities: [...], relations: [...]}")
+        list_entities: ListEntitiesJson = Field(
+            description=(
+                "ERD slice for this domain: ``entities`` are interchange entity ids with display labels "
+                "and tabular ``fields`` (name, type string, PK/FK flags); ``relations`` connect entity ids "
+                "with a display ``label``, ``relationship_kind``, and ``source_cardinality`` / "
+                "``target_cardinality``. Shape matches ``ERD_DATA`` domain payloads."
+            ),
+        )
 
     @regular_aspect("Resolve interchange BaseDomain class from qualname")
     @result_instance("erd_domain_class", type, required=True)  # type: ignore[untyped-decorator]
     async def resolve_erd_domain_class_aspect(
         self,
-        params: GetErdDomainPayloadAction.Params,
+        params: ListEntitiesAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
@@ -199,19 +209,19 @@ class GetErdDomainPayloadAction(
     @summary_aspect("Build ERD graph JSON for one domain")
     async def build_domain_payload_summary(
         self,
-        params: GetErdDomainPayloadAction.Params,
+        params: ListEntitiesAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> GetErdDomainPayloadAction.Result:
+    ) -> ListEntitiesAction.Result:
         nx_resource = cast(ServiceGraphResource, connections[SERVICE_GRAPH_CONNECTION_KEY])
         coordinator = node_graph_coordinator_from_interchange_nx(nx_resource.service)
         qual = params.domain_qualname.strip()
         dc = cast(type[BaseDomain], state["erd_domain_class"])
         payload = erd_payload_from_coordinator_for_domain(coordinator, dc)
         base = getattr(dc, "name", None) or dc.__name__
-        return GetErdDomainPayloadAction.Result(
+        return ListEntitiesAction.Result(
             domain_label=str(base),
             domain_qualifier=qual,
-            graph=payload_to_domain_dict(payload),
+            list_entities=payload_to_domain_dict(payload),
         )

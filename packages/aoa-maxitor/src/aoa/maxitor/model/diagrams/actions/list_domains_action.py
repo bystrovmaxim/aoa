@@ -10,8 +10,8 @@ Return ordered domain rows (interchange qualname + accent colour) from the embed
 nx graph so the React shell can fetch per-domain payloads separately. The list is always
 derived from the graph; there is no request filter on this action. The first twenty
 domain rows receive pairwise distinct accent hex colours (legacy ``ERD_DEFAULT_ENTITY_COLORS``
-first, then additional hues); further rows cycle within the combined palette. The wire ``domain_info`` field is validated by a static JSON Schema on
-``Result`` via :class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue`.
+first, then additional hues); further rows cycle within the combined palette. The wire ``list_domains`` field uses the module-level ``ListDomainsJson`` type from
+:class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -26,12 +26,12 @@ ARCHITECTURE / DATA FLOW
     @regular_aspect — sort and emit ``erd_domain_infos`` (qualname + color)
           |
           v
-    @summary_aspect — ``Result(domain_info=...)``
+    @summary_aspect — ``Result(list_domains=...)``
 """
 
 from __future__ import annotations
 
-from typing import Any, ClassVar, cast
+from typing import Any, cast
 
 from pydantic import Field
 
@@ -101,6 +101,25 @@ _LIST_DOMAINS_DISTINCT_COLORS: tuple[str, ...] = _unique_color_tuple(
     _EXTRA_LIST_DOMAIN_COLORS,
 )
 
+# Ordered interchange ``BaseDomain`` type qualnames with one ERD accent hex per row; used for
+# ``ListDomainsAction.Result.list_domains`` and the domain-qualnames HTTP JSON body.
+ListDomainsJson = JsonSchemaValue.define(
+    name="ListDomainsJson",
+    schema={
+        "type": "array",
+        "minItems": 0,
+        "items": {
+            "type": "object",
+            "properties": {
+                "qualname": {"type": "string"},
+                "color": {"type": "string"},
+            },
+            "required": ["qualname", "color"],
+            "additionalProperties": False,
+        },
+    },
+)
+
 
 @meta(
     description="List interchange domain type qualnames for ERD client (diagrams)",
@@ -113,37 +132,20 @@ class ListDomainsAction(
 ):
     """
     AI-CORE-BEGIN
-    ROLE: Emit ``domain_info`` rows (qualname + color) for ERD tab discovery on the client.
+    ROLE: Emit ``list_domains`` rows (qualname + color) for ERD tab discovery on the client.
     CONTRACT: Domain rows are computed only from ``connections["ServiceGraph"].service``; colours use ``_LIST_DOMAINS_DISTINCT_COLORS`` by sorted index (first twenty unique).
     INVARIANTS: Reads the graph only via ``connections["ServiceGraph"].service``; pipeline uses ``@regular_aspect`` state keys then ``@summary_aspect``.
     AI-CORE-END
     """
 
     class Result(BaseResult):
-        """HTTP/JSON body is ``model_dump(mode="json")`` of this result (single key ``domain_info``)."""
-
-        ListDomainsJson: ClassVar = JsonSchemaValue.define(
-            name="ListDomainsJson",
-            schema={
-                "type": "array",
-                "minItems": 0,
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "qualname": {"type": "string"},
-                        "color": {"type": "string"},
-                    },
-                    "required": ["qualname", "color"],
-                    "additionalProperties": False,
-                },
-            },
-        )
+        """HTTP/JSON body is ``model_dump(mode="json")`` of this result (single key ``list_domains``)."""
 
         # [
         #   {"qualname": "aoa.orders.domain.OrdersDomain", "color": "#3b82f6"},
         #   {"qualname": "aoa.billing.domain.BillingDomain", "color": "#8b5cf6"}
         # ]
-        domain_info: ListDomainsJson = Field(
+        list_domains: ListDomainsJson = Field(
             description="Ordered interchange qualname rows with ERD accent hex colour per row.",
         )
 
@@ -198,4 +200,4 @@ class ListDomainsAction(
         connections: dict[str, BaseResource],
     ) -> ListDomainsAction.Result:
         infos = list(cast(list[Any], state["erd_domain_infos"]))
-        return ListDomainsAction.Result(domain_info=infos)
+        return ListDomainsAction.Result(list_domains=infos)
