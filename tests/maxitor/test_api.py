@@ -72,4 +72,4 @@ def test_erd_domain_payload_json(client: TestClient) -> None:
     body = response.json()
     assert set(body) == {"domain_label", "domain_qualifier", "graph"}
     assert body["domain_qualifier"] == qual
-    assert "nodes" in body["graph"] and "edges" in body["graph"]
+    assert "entities" in body["graph"] and "relations" in body["graph"]
