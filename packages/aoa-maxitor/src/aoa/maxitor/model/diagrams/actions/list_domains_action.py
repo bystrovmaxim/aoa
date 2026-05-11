@@ -8,10 +8,10 @@ PURPOSE
 
 Return ordered domain rows (interchange qualname + accent colour) from the embedded
 nx graph so the React shell can fetch per-domain payloads separately. The list is always
-derived from the graph; there is no request filter on this action. Accent colours match
-``ERD_DEFAULT_ENTITY_COLORS`` in ``build_erd_graph_data_action``. The wire ``domain_info``
-field is validated by a static JSON Schema on ``Result`` via
-:class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue`.
+derived from the graph; there is no request filter on this action. The first twenty
+domain rows receive pairwise distinct accent hex colours (legacy ``ERD_DEFAULT_ENTITY_COLORS``
+first, then additional hues); further rows cycle within the combined palette. The wire ``domain_info`` field is validated by a static JSON Schema on
+``Result`` via :class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -52,6 +52,55 @@ from aoa.maxitor.model.core.resources.service_graph_resource import (
 from aoa.maxitor.model.diagrams.actions.build_erd_graph_data_action import ERD_DEFAULT_ENTITY_COLORS
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
+# Legacy entity-disk palette first (same order as ``ERD_DEFAULT_ENTITY_COLORS``), then extra
+# saturated hues so the first twenty domain rows stay visually distinct; longer lists cycle.
+_EXTRA_LIST_DOMAIN_COLORS: tuple[str, ...] = (
+    "#2563eb",
+    "#dc2626",
+    "#16a34a",
+    "#d97706",
+    "#7c3aed",
+    "#0891b2",
+    "#db2777",
+    "#4f46e5",
+    "#ea580c",
+    "#059669",
+    "#a855f7",
+    "#0d9488",
+    "#e11d48",
+    "#65a30d",
+    "#c026d3",
+    "#0369a1",
+    "#b45309",
+    "#15803d",
+    "#9333ea",
+    "#0e7490",
+    "#4d7c0f",
+    "#b91c1c",
+    "#be185d",
+    "#4338ca",
+)
+
+
+def _unique_color_tuple(*segments: tuple[str, ...]) -> tuple[str, ...]:
+    """Concatenate colour tuples, preserving order and dropping case-insensitive duplicates."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for seg in segments:
+        for hex_color in seg:
+            key = hex_color.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(hex_color)
+    return tuple(out)
+
+
+_LIST_DOMAINS_DISTINCT_COLORS: tuple[str, ...] = _unique_color_tuple(
+    ERD_DEFAULT_ENTITY_COLORS,
+    _EXTRA_LIST_DOMAIN_COLORS,
+)
+
 
 @meta(
     description="List interchange domain type qualnames for ERD client (diagrams)",
@@ -65,7 +114,7 @@ class ListDomainsAction(
     """
     AI-CORE-BEGIN
     ROLE: Emit ``domain_info`` rows (qualname + color) for ERD tab discovery on the client.
-    CONTRACT: Domain rows are computed only from ``connections["ServiceGraph"].service``; colours use ``ERD_DEFAULT_ENTITY_COLORS`` by sorted index.
+    CONTRACT: Domain rows are computed only from ``connections["ServiceGraph"].service``; colours use ``_LIST_DOMAINS_DISTINCT_COLORS`` by sorted index (first twenty unique).
     INVARIANTS: Reads the graph only via ``connections["ServiceGraph"].service``; pipeline uses ``@regular_aspect`` state keys then ``@summary_aspect``.
     AI-CORE-END
     """
@@ -90,14 +139,10 @@ class ListDomainsAction(
             },
         )
 
-        # Valid JSON value examples:
         # [
         #   {"qualname": "aoa.orders.domain.OrdersDomain", "color": "#3b82f6"},
         #   {"qualname": "aoa.billing.domain.BillingDomain", "color": "#8b5cf6"}
         # ]
-        #
-        # Each array item is exactly:
-        # {"qualname": "<BaseDomain full qualname>", "color": "<ERD accent hex colour>"}
         domain_info: ListDomainsJson = Field(
             description="Ordered interchange qualname rows with ERD accent hex colour per row.",
         )
@@ -123,7 +168,7 @@ class ListDomainsAction(
             rows.append([label, nid_s])
         return {"erd_domain_label_rows": rows}
 
-    @regular_aspect("Sort domain rows and attach ERD accent colours from the shared palette")
+    @regular_aspect("Sort domain rows and attach distinct ERD accent colours")
     @result_instance("erd_domain_infos", list, required=True)  # type: ignore[untyped-decorator]
     async def sort_domain_infos_aspect(
         self,
@@ -137,7 +182,7 @@ class ListDomainsAction(
         for pair in raw_rows:
             pairs.append((str(pair[0]), str(pair[1])))
         pairs.sort(key=lambda lr: (lr[0].lower(), lr[1]))
-        palette = ERD_DEFAULT_ENTITY_COLORS
+        palette = _LIST_DOMAINS_DISTINCT_COLORS
         infos = [
             {"qualname": qual, "color": palette[i % len(palette)]}
             for i, (_label, qual) in enumerate(pairs)
