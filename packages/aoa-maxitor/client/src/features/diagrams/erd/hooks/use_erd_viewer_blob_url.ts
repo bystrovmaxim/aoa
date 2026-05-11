@@ -55,7 +55,7 @@ export function useErdViewerBlobUrl(selection: ErdViewerSelection): {
         for (const p of payloads) {
           const key = allocateDomainTabKey(used, p.domain_label);
           domains[key] = p.list_entities;
-          domain_qualifiers[key] = p.domain_qualifier;
+          domain_qualifiers[key] = p.domain_qualname;
         }
 
         const title =
