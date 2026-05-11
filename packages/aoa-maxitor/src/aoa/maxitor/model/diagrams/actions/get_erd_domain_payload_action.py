@@ -7,9 +7,10 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Materialize ``{nodes, edges}`` for a single ``domain_qualname`` so the SPA can
-render ERD without server-generated HTML. The ``graph`` field on ``Result`` uses the
-module-level ``ErdDomainGraphJson`` type from ``JsonSchemaValue.define`` (see
-:class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue`).
+render ERD without server-generated HTML. Node rows omit per-entity ``color``; the
+browser injects accent hex from ``ListDomainsAction`` ``domain_info`` before rendering.
+The ``graph`` field on ``Result`` uses the module-level ``ErdDomainGraphJson`` type from
+``JsonSchemaValue.define`` (see :class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue`).
 
     Params.domain_qualname
           |
@@ -60,7 +61,6 @@ ErdDomainGraphJson = JsonSchemaValue.define(
                     "properties": {
                         "id": {"type": "string"},
                         "label": {"type": "string"},
-                        "color": {"type": "string"},
                         "fields": {
                             "type": "array",
                             "items": {
@@ -82,7 +82,7 @@ ErdDomainGraphJson = JsonSchemaValue.define(
                         },
                         "domain_qualifier": {"type": "string"},
                     },
-                    "required": ["id", "label", "color", "fields"],
+                    "required": ["id", "label", "fields"],
                     "additionalProperties": False,
                 },
             },

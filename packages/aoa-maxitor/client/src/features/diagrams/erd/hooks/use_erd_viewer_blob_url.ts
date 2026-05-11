@@ -36,10 +36,14 @@ export function useErdViewerBlobUrl(selection: ErdViewerSelection): {
       revokeLast();
       setLoading(true);
       try {
+        const listing = await fetchErdDomainQualnames();
+        const domain_qualifier_colors = Object.fromEntries(
+          listing.domain_info.map((r) => [r.qualname, r.color]),
+        );
         const quals: string[] =
           selection.qualifier !== null
             ? [selection.qualifier]
-            : (await fetchErdDomainQualnames()).domain_info.map((r) => r.qualname);
+            : listing.domain_info.map((r) => r.qualname);
 
         if (!quals.length) throw new Error("No domain qualnames");
 
@@ -59,7 +63,10 @@ export function useErdViewerBlobUrl(selection: ErdViewerSelection): {
             ? "Interchange ERD"
             : `ERD — ${payloads[0]?.domain_label ?? selection.qualifier.split(".").pop() ?? "domain"}`;
 
-        const html = buildErdHtmlDocument({ domains, domain_qualifiers }, title);
+        const html = buildErdHtmlDocument(
+          { domains, domain_qualifiers, domain_qualifier_colors },
+          title,
+        );
         const blob = new Blob([html], { type: "text/html;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         if (cancelled) {

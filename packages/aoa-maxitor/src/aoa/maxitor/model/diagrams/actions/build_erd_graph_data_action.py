@@ -387,7 +387,7 @@ def _role_to_flags(role: str) -> dict[str, bool]:
     }
 
 
-def _serialize_entity(entity: ErdEntitySpec, color: str) -> dict[str, Any]:
+def _serialize_entity(entity: ErdEntitySpec) -> dict[str, Any]:
     """Convert ErdEntitySpec into the JS node shape (shared with the React ERD viewer ``ERD_DATA`` JSON)."""
     fields: list[dict[str, Any]] = []
     for f in entity.fields:
@@ -410,7 +410,6 @@ def _serialize_entity(entity: ErdEntitySpec, color: str) -> dict[str, Any]:
     out: dict[str, Any] = {
         "id": entity.id,
         "label": entity.label,
-        "color": color,
         "fields": fields,
     }
     if qual:
@@ -431,10 +430,8 @@ def _serialize_edge(rel: ErdEdgeSpec) -> dict[str, Any]:
 def payload_to_domain_dict(payload: ErdGraphPayload) -> dict[str, Any]:
     """Convert ErdGraphPayload into the JSON-ready domain dictionary for ``ERD_DATA``."""
     nodes: list[dict[str, Any]] = []
-    for i, entity in enumerate(payload.entities):
-        accent = (getattr(entity, "accent_color", None) or "").strip()
-        color = accent if accent else ERD_DEFAULT_ENTITY_COLORS[i % len(ERD_DEFAULT_ENTITY_COLORS)]
-        nodes.append(_serialize_entity(entity, color))
+    for entity in payload.entities:
+        nodes.append(_serialize_entity(entity))
 
     edges = [_serialize_edge(rel) for rel in payload.relationships]
     return {"nodes": nodes, "edges": edges}
