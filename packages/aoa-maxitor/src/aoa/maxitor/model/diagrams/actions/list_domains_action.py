@@ -8,9 +8,9 @@ PURPOSE
 
 Return ordered domain rows (interchange qualname + accent colour) from the embedded
 nx graph so the React shell can fetch per-domain payloads separately. The list is always
-derived from the graph; there is no request filter on this action. The first twenty
-domain rows receive pairwise distinct accent hex colours (legacy ``ERD_DEFAULT_ENTITY_COLORS``
-first, then additional hues); further rows cycle within the combined palette. The wire ``list_domains`` field uses the module-level ``ListDomainsJson`` type from
+derived from the graph; there is no request filter on this action. Domain rows receive
+accent hex colours from ``_LIST_DOMAINS_DISTINCT_COLORS`` (ordered disk-like hues then
+extended saturated tones); further rows cycle within that palette. The wire ``list_domains`` field uses the module-level ``ListDomainsJson`` type from
 :class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue`.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -49,12 +49,18 @@ from aoa.maxitor.model.core.resources.service_graph_resource import (
     SERVICE_GRAPH_CONNECTION_KEY,
     ServiceGraphResource,
 )
-from aoa.maxitor.model.diagrams.actions.build_erd_graph_data_action import ERD_DEFAULT_ENTITY_COLORS
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
-# Legacy entity-disk palette first (same order as ``ERD_DEFAULT_ENTITY_COLORS``), then extra
-# saturated hues so the first twenty domain rows stay visually distinct; longer lists cycle.
+# Ordered palette: React ERD disk hues first, then extra saturated tones; longer domain lists cycle.
 _EXTRA_LIST_DOMAIN_COLORS: tuple[str, ...] = (
+    "#3b82f6",
+    "#8b5cf6",
+    "#10b981",
+    "#f59e0b",
+    "#ef4444",
+    "#06b6d4",
+    "#ec4899",
+    "#64748b",
     "#2563eb",
     "#dc2626",
     "#16a34a",
@@ -96,10 +102,7 @@ def _unique_color_tuple(*segments: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(out)
 
 
-_LIST_DOMAINS_DISTINCT_COLORS: tuple[str, ...] = _unique_color_tuple(
-    ERD_DEFAULT_ENTITY_COLORS,
-    _EXTRA_LIST_DOMAIN_COLORS,
-)
+_LIST_DOMAINS_DISTINCT_COLORS: tuple[str, ...] = _unique_color_tuple(_EXTRA_LIST_DOMAIN_COLORS)
 
 # Ordered interchange ``BaseDomain`` type qualnames with one ERD accent hex per row; used for
 # ``ListDomainsAction.Result.list_domains`` and the domain-qualnames HTTP JSON body.
