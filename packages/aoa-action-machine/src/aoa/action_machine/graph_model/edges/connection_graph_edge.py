@@ -50,6 +50,18 @@ class ConnectionGraphEdge(AssociationGraphEdge):
             properties={"key": connection_key},
         )
 
+    def to_dict(self, *, source_node_id: str) -> dict[str, Any]:
+        return {
+            "source_node_id": source_node_id,
+            "target_node_id": self.target_node_id,
+            "type": self.edge_name,
+            "relationship": self.edge_relationship.archimate_name,
+            "is_dag": self.is_dag,
+            "properties": {
+                "key": str(self.properties["key"]),
+            },
+        }
+
     @staticmethod
     def get_connection_edges(
         action_cls: type[Any],

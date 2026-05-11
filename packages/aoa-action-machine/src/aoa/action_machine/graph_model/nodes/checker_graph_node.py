@@ -22,6 +22,7 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+import copy
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -103,3 +104,26 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
             properties=merged_properties,
             node_obj=node_obj,
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        p = self.properties
+        # Optional Field-metadata kwargs (names vary); fixed interchange keys above.
+        extra: dict[str, Any] = {}
+        for name in sorted(k for k in p if k not in ("TypeChecker", "required")):
+            val = p[name]
+            if isinstance(val, (str, int, float, bool)) or val is None:
+                extra[name] = val
+            elif isinstance(val, dict):
+                extra[name] = copy.deepcopy(val)
+            elif isinstance(val, (list, tuple)):
+                extra[name] = [copy.deepcopy(x) if isinstance(x, dict) else x for x in val]
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "TypeChecker": str(self.properties["TypeChecker"]),
+                "required": bool(self.properties["required"]),
+                **extra,
+            },
+        }

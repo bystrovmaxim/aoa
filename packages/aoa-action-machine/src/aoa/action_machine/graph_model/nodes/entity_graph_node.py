@@ -63,6 +63,16 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         object.__setattr__(self, "relations", EntityGraphEdge.get_entity_relation_edges(entity_cls))
         object.__setattr__(self, "lifecycles", LifeCycleGraphEdge.get_lifecycle_edges(entity_cls))
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "description": str(self.properties["description"]),
+            },
+        }
+
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Direct lifecycle companion rows."""
         return [target for edge in self.lifecycles if (target := edge.target_node) is not None]

@@ -33,7 +33,8 @@ class BaseGraphNode[T: object](ABC):
     ROLE: Frozen interchange node (id, type, label, properties, edges, host object, optional companions).
     CONTRACT: Non-empty string ids/types/label; non-null ``node_obj``; ``properties`` / ``edges`` /
     ``companion_nodes`` optional (empty when omitted or ``None``). Use ``companion_nodes`` for child
-    vertices without a dedicated inspector (see module docstring).
+    vertices without a dedicated inspector (see module docstring). Concrete subclasses implement
+    :meth:`to_dict` for JSON export (``id``, ``type``, ``label``, JSON-safe ``properties`` only; no ``node_obj``).
     INVARIANTS: Frozen; ``properties`` is ``dict(...)`` of the argument; ``edges`` and ``companion_nodes``
     are ``list(...)`` copies when provided.
     AI-CORE-END
@@ -70,3 +71,19 @@ class BaseGraphNode[T: object](ABC):
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Return additional graph nodes that must be included with this node."""
         return []
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-serializable interchange row (``id``, ``type``, ``label``, ``properties``)."""
+
+        if self.properties:
+            msg = (
+                f"{type(self).__qualname__}.to_dict() must be overridden for non-empty "
+                "``properties`` (export only whitelisted keys per interchange type)."
+            )
+            raise NotImplementedError(msg)
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {},
+        }

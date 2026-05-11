@@ -36,7 +36,7 @@ Edge case: same interchange shape for any concrete ``BaseRole`` subclass type pa
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from aoa.action_machine.application.application import Application
 from aoa.action_machine.auth.base_role import BaseRole
@@ -72,6 +72,16 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
             node_obj=role_cls,
         )
         object.__setattr__(self, "application", ApplicationGraphEdge(Application))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "role_mode": str(self.properties["role_mode"]),
+            },
+        }
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return the outgoing application aggregation edge."""

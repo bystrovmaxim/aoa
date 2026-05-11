@@ -92,6 +92,17 @@ class PropertyFieldGraphNode(BaseGraphNode[PropertyFieldGraphPayload]):
         edge = EntitySchemaGraphEdge(entity_cls=entity_schema_target) if entity_schema_target is not None else None
         object.__setattr__(self, "entity_schema_edge", edge)
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "required": bool(self.properties["required"]),
+                "entity_schema": bool(self.properties["entity_schema"]),
+            },
+        }
+
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return optional sensitive and ``entity_schema`` edges from this concrete property node."""
         return [edge for edge in (self.sensitive, self.entity_schema_edge) if edge is not None]

@@ -101,6 +101,29 @@ class FieldGraphNode(BaseGraphNode[FieldGraphPayload]):
         edge = EntitySchemaGraphEdge(entity_cls=entity_schema_target) if entity_schema_target is not None else None
         object.__setattr__(self, "entity_schema_edge", edge)
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "required": bool(self.properties["required"]),
+                "description": str(self.properties["description"]),
+                "json_schema_value": bool(self.properties["json_schema_value"]),
+                "entity_schema": bool(self.properties["entity_schema"]),
+                **(
+                    {"json_schema_name": str(self.properties["json_schema_name"])}
+                    if "json_schema_name" in self.properties
+                    else {}
+                ),
+                **(
+                    {"json_schema": copy.deepcopy(self.properties["json_schema"])}
+                    if self.properties.get("json_schema") is not None
+                    else {}
+                ),
+            },
+        }
+
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return the optional ``entity_schema`` edge from this concrete field to an entity node."""
         if self.entity_schema_edge is None:

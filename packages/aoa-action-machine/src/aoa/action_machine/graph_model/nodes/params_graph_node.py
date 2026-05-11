@@ -65,6 +65,14 @@ class ParamsGraphNode(BaseGraphNode[type[TParams]]):
         object.__setattr__(self, "fields", FieldGraphEdge.get_field_edges(params_cls, self))
         object.__setattr__(self, "props", PropertyGraphEdge.get_property_edges(params_cls, self))
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {},
+        }
+
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return outgoing field/property composition edges from the params host."""
         return [*self.fields, *self.props]

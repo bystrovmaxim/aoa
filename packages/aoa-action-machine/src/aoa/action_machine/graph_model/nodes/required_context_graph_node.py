@@ -74,3 +74,13 @@ class RequiredContextGraphNode(BaseGraphNode[RequiredContextGraphPayload]):
             properties={"key": key_s},
             node_obj=payload,
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "key": str(self.properties["key"]),
+            },
+        }
