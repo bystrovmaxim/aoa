@@ -15,8 +15,11 @@ call registers one MCP tool. Protocol methods return ``self`` for fluent chains:
         .build()
 
 ``inputSchema`` is generated from the Pydantic Params model via
-``model_json_schema()``. Field descriptions, constraints, and examples from
-``Field(...)`` propagate to MCP schema without duplicate declarations.
+``model_json_schema()`` on the effective request model (including the dynamic
+``McpArgs`` wrapper). Wire-only fields annotated with ``BaseEntity.schema(...)``
+resolve through Pydantic v2 metadata on ``EntitySchemaMarker`` — the MCP layer
+does not walk raw ``typing`` annotations separately; the emitted schema is a
+plain JSON Schema object tree suitable for ``json.dumps``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -587,6 +590,7 @@ AI-CORE-BEGIN
         )
         arg_model = self._mcp_argument_model(record)
         fn_meta = FuncMetadata(arg_model=arg_model)
+        # Pydantic-only: JsonSchemaValue / BaseEntity.schema(...) metadata supplies field fragments.
         parameters = arg_model.model_json_schema(by_alias=True)
         description = record.description or _get_action_class_description(
             record.action_class,

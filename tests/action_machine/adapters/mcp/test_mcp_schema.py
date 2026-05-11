@@ -32,6 +32,9 @@ INVARIANTS
 
 from pydantic import BaseModel, Field
 
+from tests.action_machine.adapters.entity_projection_adapter_fixtures import (
+    EntityProjectionParamsMcpTestAction,
+)
 from tests.action_machine.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -259,3 +262,27 @@ class TestNestedModel:
         assert address_def is not None
         zip_prop = address_def["properties"]["zip_code"]
         assert "pattern" in zip_prop
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# BaseEntity.schema(...) on Params (MCP inputSchema / PR-3)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestEntityProjectionParamsSchema:
+    """``model_json_schema`` on Params matches what ``McpAdapter`` uses for ``inputSchema``."""
+
+    def test_order_field_inline_json_schema(self) -> None:
+        schema = _get_schema(EntityProjectionParamsMcpTestAction.Params)
+        order_prop = schema["properties"]["order"]
+        assert order_prop.get("type") == "object"
+        assert set(order_prop.get("required", [])) == {"id", "name"}
+        assert order_prop["properties"]["id"] == {"type": "string"}
+        assert order_prop["properties"]["name"] == {"type": "string"}
+        assert order_prop.get("additionalProperties") is False
+
+    def test_label_field_unchanged(self) -> None:
+        schema = _get_schema(EntityProjectionParamsMcpTestAction.Params)
+        assert schema["properties"]["label"].get("type") == "string"
+        assert "label" in schema.get("required", [])
+        assert "order" in schema.get("required", [])
