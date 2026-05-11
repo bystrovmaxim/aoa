@@ -9,15 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.5] – 2026-05-08
 
+### Added
+
+- **JSON Schema fields in results.** Result schemas can declare explicit JSON-shaped fields so adapters expose the intended wire contract instead of relying on implicit Python object structure.
+- **Entity JSON Schema projections in results.** `BaseEntity` classes can be referenced from result fields through an explicit JSON Schema projection, preserving the entity relationship while returning only the declared wire fields.
+
 ### Breaking changes
 
-- **Multiple PyPI packages and `aoa.*` layout.** Runtime code lives under `packages/aoa-*/src/aoa/{graph,action_machine,maxitor,examples}`. Public imports are `**aoa.graph`**, `**aoa.action_machine**`, `**aoa.maxitor**`, and `**aoa.examples**` only. Install `**aoa-graph**`, `**aoa-action-machine**`, `**aoa-maxitor**`, or `**aoa-examples**` as needed; there are no legacy top-level shims (`graph.*`, `action_machine.*`, …). `**aoa-examples**` does not pull `**aoa-maxitor**` as a dependency.
+- **Multiple PyPI packages and `aoa.*` layout.** Runtime code lives under `packages/aoa-*/src/aoa/{graph,action_machine,maxitor,examples}`. Public imports are `**aoa.graph`**, `**aoa.action_machine`**, `**aoa.maxitor**`, and `**aoa.examples**` only. Install `**aoa-graph**`, `**aoa-action-machine**`, `**aoa-maxitor**`, or `**aoa-examples**` as needed; there are no legacy top-level shims (`graph.*`, `action_machine.*`, …). `**aoa-examples**` does not pull `**aoa-maxitor**` as a dependency.
 
 ## [1.1.5] – 2026-05-08
 
 ### Changed
 
-- **Interchange graph as the canonical topology.** Coordinators and tooling now pivot on `**NodeGraphCoordinator`** and typed interchange vertices (`**BaseGraphNode`**) and edges (`**BaseGraphEdge**`) — domains, lifecycle/entity meshes, declarative facets, propagated domain membership, and stable edge payloads (DAG flags, attachment / line-style metadata) replace ad-hoc graph sketches for visualization and serializers.
+- **Interchange graph as the canonical topology.** Coordinators and tooling now pivot on `**NodeGraphCoordinator`** and typed interchange vertices (`**BaseGraphNode`**) and edges (`**BaseGraphEdge`**) — domains, lifecycle/entity meshes, declarative facets, propagated domain membership, and stable edge payloads (DAG flags, attachment / line-style metadata) replace ad-hoc graph sketches for visualization and serializers.
 
 ### Added
 
@@ -26,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- **Legacy ERD package split.** Drops the old `**erd_visualizer_1`** / `**erd_visualizer_2`** layout; `**erd_visualizer**` is now the single graph-backed viewer entry point.
+- **Legacy ERD package split.** Drops the old `**erd_visualizer_1`** / `**erd_visualizer_2`** layout; `**erd_visualizer`** is now the single graph-backed viewer entry point.
 
 ## [1.0.0] – 2026-04-12
 
@@ -330,4 +335,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `**GraphCoordinator` — central metadata and graph registry.** Lazily builds and caches `ClassMetadata` for any class on first access. Recursively discovers dependencies and connections. Maintains a directed acyclic graph (rustworkx `PyDiGraph`) with nodes for actions, dependencies, connections, aspects, checkers, plugins, subscriptions, sensitive fields, roles, and domains. Detects cyclic dependencies via `is_directed_acyclic_graph()` after each edge addition.
 - **Logging subsystem.** `LogCoordinator` broadcasts messages to registered `BaseLogger` instances. `ConsoleLogger` outputs to stdout with configurable colors and indentation. `VariableSubstitutor` resolves five namespaces (`var`, `state`, `params`, `context`, `scope`) with dot-path traversal. `ExpressionEvaluator` handles `{iif(condition; true; false)}` via `simpleeval`. `@sensitive` decorator masks property values in logs. Strict error policy: invalid templates raise `LogTemplateError` immediately.
 - **Exception hierarchy.** `AuthorizationError` (role mismatch), `ValidationFieldError` (checker failure), `HandleError` (resource manager errors), `TransactionError` (base for connection errors), `ConnectionAlreadyOpenError`, `ConnectionNotOpenError`, `TransactionProhibitedError` (wrapper prevents nested transactions), `ConnectionValidationError` (key mismatch), `LogTemplateError` (invalid template syntax), `CyclicDependencyError` (graph cycle detected).
-
