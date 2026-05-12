@@ -58,7 +58,7 @@ def create_app() -> FastAPI:
         """Build Maxitor runtime state once per ASGI application lifecycle."""
         session = await build_maxitor_api_session(machine=machine)
         application.state.maxitor_session = session
-        networkx_graph = NetworkXGraphResource(session.coordinator.to_json())
+        networkx_graph = NetworkXGraphResource(session.coordinator_json)
 
         action_subapp = (
             FastApiAdapter(
@@ -79,7 +79,7 @@ def create_app() -> FastAPI:
                 tags=["erd"],
             )
             .get(
-                "/erd/domains/{domain_qualname:path}",
+                "/erd/domains",
                 ListEntitiesAction,
                 connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
                 tags=["erd"],

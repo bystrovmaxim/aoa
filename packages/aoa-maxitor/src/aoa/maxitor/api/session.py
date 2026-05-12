@@ -41,6 +41,8 @@ class MaxitorApiSession:
     sidebar_data: Any
     nx_graph: nx.DiGraph[Any]
     coordinator: NodeGraphCoordinator
+    #: :meth:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator.to_json` after :class:`LoadGraphAction` (same timing as the former ``app`` snapshot).
+    coordinator_json: str
     action_machine: ActionProductMachine
 
 
@@ -65,9 +67,13 @@ async def build_maxitor_api_session(*, machine: ActionProductMachine) -> Maxitor
         GetLeftMenuSidebarDataAction(),
         GetLeftMenuSidebarDataAction.Params(nx_graph=nx_result.nx_graph),
     )
+    # After :class:`LoadGraphAction` materializes interchange state on ``graph`` (same as before
+    # ``app`` called ``session.coordinator.to_json()`` post-bootstrap).
+    coordinator_json = graph.to_json()
     return MaxitorApiSession(
         sidebar_data=sidebar_data,
         nx_graph=nx_result.nx_graph,
         coordinator=graph,
+        coordinator_json=coordinator_json,
         action_machine=machine,
     )

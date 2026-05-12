@@ -1,5 +1,5 @@
 // packages/aoa-maxitor/client/src/features/diagrams/erd/lib/load_erd_domains_bundle.ts
-import { fetchErdDomainPayload, fetchErdDomainQualnames } from "../api/erd_api";
+import { fetchErdDomainsBatch, fetchErdDomainQualnames } from "../api/erd_api";
 import type { DiagramSelection } from "../../../diagram_selection/types";
 import { allocateDomainTabKey } from "./domain_tab_keys";
 
@@ -41,7 +41,7 @@ export async function loadErdDomainsBundle(
   const domains: Record<string, { entities: unknown[]; relations: unknown[] }> = {};
   const domain_qualifiers: Record<string, string> = {};
 
-  const payloads = await Promise.all(quals.map((q) => fetchErdDomainPayload(q, includeOneHopNeighbors)));
+  const { domain_slices: payloads } = await fetchErdDomainsBatch(quals, includeOneHopNeighbors);
   let first_domain_label: string | undefined;
   for (const p of payloads) {
     const key = allocateDomainTabKey(used, p.domain_label);
@@ -61,14 +61,17 @@ export async function loadErdDomainSlicesBundle(
   const domains: Record<string, { entities: unknown[]; relations: unknown[] }> = {};
   const domain_qualifiers: Record<string, string> = {};
 
-  const payloads = await Promise.all(
-    requests.map(async ({ key, qualname }) => ({
-      key,
-      payload: await fetchErdDomainPayload(qualname, includeOneHopNeighbors),
-    })),
+  const { domain_slices } = await fetchErdDomainsBatch(
+    requests.map((r) => r.qualname),
+    includeOneHopNeighbors,
   );
+  const byQual = new Map(domain_slices.map((s) => [s.domain_qualname, s]));
 
-  for (const { key, payload } of payloads) {
+  for (const { key, qualname } of requests) {
+    const payload = byQual.get(qualname);
+    if (!payload) {
+      throw new Error(`missing domain slice for ${qualname}`);
+    }
     domains[key] = payload.list_entities;
     domain_qualifiers[key] = payload.domain_qualname;
   }

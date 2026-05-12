@@ -1,5 +1,5 @@
-# tests/graph/test_node_graph_coordinator_json.py
-"""Tests for :meth:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator.to_json`."""
+# tests/action_machine/graph/test_node_graph_coordinator_json.py
+"""Tests for :meth:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator.to_json` (graph + action_machine)."""
 
 from __future__ import annotations
 
@@ -101,17 +101,22 @@ def test_to_json_validates_minimal_params_graph() -> None:
 class _MiniAxisAction:
     """Isolated inspector root (no subclasses): emit a single ``ActionGraphNode``."""
 
+
 class _MiniAxisDomain:
     """Isolated inspector root: emit ``DomainGraphNode(SystemDomain)``."""
+
 
 class _MiniAxisApplication:
     """Isolated inspector root: emit ``ApplicationGraphNode``."""
 
+
 class _MiniAxisParams:
     """Isolated inspector root: emit ``ParamsGraphNode(PingAction.Params)``."""
 
+
 class _MiniAxisResult:
     """Isolated inspector root: emit ``ResultGraphNode(PingAction.Result)``."""
+
 
 class _MiniAxisRole:
     """Isolated inspector root: emit ``RoleGraphNode(NoneRole)``."""

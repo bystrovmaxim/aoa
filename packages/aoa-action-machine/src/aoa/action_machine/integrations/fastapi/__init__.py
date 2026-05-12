@@ -40,6 +40,7 @@ COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``FastApiAdapter`` — concrete adapter exposing ``post/get/put/delete/patch``.
+- ``query_field_before`` — Pydantic ``BeforeValidator`` helpers for strict OpenAPI-style query string lists.
 - ``FastApiRouteRecord`` — frozen route record with HTTP-specific metadata:
   method, path, tags, summary, description, operation_id, deprecated, and optional
   per-route ``connections`` (see :mod:`aoa.action_machine.resources.per_call_connection`).
@@ -122,9 +123,15 @@ except ImportError:
     ) from None
 
 from aoa.action_machine.integrations.fastapi.adapter import FastApiAdapter
+from aoa.action_machine.integrations.fastapi.query_field_before import (
+    QUERY_STR_LIST_BEFORE,
+    coerce_query_str_list,
+)
 from aoa.action_machine.integrations.fastapi.route_record import FastApiRouteRecord
 
 __all__ = [
+    "QUERY_STR_LIST_BEFORE",
     "FastApiAdapter",
     "FastApiRouteRecord",
+    "coerce_query_str_list",
 ]

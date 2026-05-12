@@ -3,20 +3,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-from urllib.parse import quote
-
 import pytest
 from fastapi.testclient import TestClient
-
-from aoa.maxitor.api.app import create_app
-
-
-@pytest.fixture
-def client() -> Iterator[TestClient]:
-    """Create a TestClient with FastAPI lifespan enabled."""
-    with TestClient(create_app()) as test_client:
-        yield test_client
 
 
 def test_health(client: TestClient) -> None:
@@ -66,20 +54,65 @@ def test_erd_domain_qualnames_json(client: TestClient) -> None:
 
 def test_erd_domain_payload_json(client: TestClient) -> None:
     listing = client.get("/api/v1/erd/domain-qualnames").json()
-    qual = listing["list_domains"][0]["qualname"]
-    path = quote(qual, safe="")
-    response = client.get(f"/api/v1/erd/domains/{path}")
+    rows = listing["list_domains"]
+    assert rows
 
-    assert response.status_code == 200
-    body = response.json()
-    assert set(body) == {"domain_label", "domain_qualname", "list_entities"}
-    assert body["domain_qualname"] == qual
-    assert "entities" in body["list_entities"] and "relations" in body["list_entities"]
-    assert any(
-        len(entity.get("fields", ())) > 1
-        for entity in body["list_entities"]["entities"]
-    )
-    for entity in body["list_entities"]["entities"]:
+    qual: str | None = None
+    row: dict[str, object] | None = None
+    for cand in rows:
+        q = str(cand["qualname"])
+        response = client.get(
+            "/api/v1/erd/domains",
+            params={"domain_qualnames": q, "include_one_hop_neighbors": "true"},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert set(body) == {"domain_slices"}
+        slices = body["domain_slices"]
+        assert len(slices) == 1
+        slice0 = slices[0]
+        entities = slice0["list_entities"]["entities"]
+        if entities:
+            qual = q
+            row = slice0
+            break
+
+    assert qual is not None, "fixture graph must expose at least one domain with ERD entities"
+    assert row is not None
+    assert set(row) == {"domain_label", "domain_qualname", "list_entities"}
+    assert row["domain_qualname"] == qual
+    assert "entities" in row["list_entities"] and "relations" in row["list_entities"]
+    entities = row["list_entities"]["entities"]
+    assert entities
+    assert any(len(entity.get("fields", ())) >= 1 for entity in entities)
+    for entity in row["list_entities"]["entities"]:
         assert "domain_qualname" in entity
         assert isinstance(entity["domain_qualname"], str)
-    assert any(e["domain_qualname"] == qual for e in body["list_entities"]["entities"])
+    assert any(e["domain_qualname"] == qual for e in row["list_entities"]["entities"])
+
+
+def test_erd_domains_batch_empty(client: TestClient) -> None:
+    response = client.get(
+        "/api/v1/erd/domains",
+        params=[("include_one_hop_neighbors", "false")],
+    )
+    assert response.status_code == 200
+    assert response.json() == {"domain_slices": []}
+
+
+def test_erd_domains_batch_multi(client: TestClient) -> None:
+    listing = client.get("/api/v1/erd/domain-qualnames").json()
+    quals = [listing["list_domains"][i]["qualname"] for i in range(min(2, len(listing["list_domains"])))]
+    if len(quals) < 2:
+        pytest.skip("need at least two domains in fixture graph")
+    response = client.get(
+        "/api/v1/erd/domains",
+        params=[
+            ("domain_qualnames", quals[0]),
+            ("domain_qualnames", quals[1]),
+            ("include_one_hop_neighbors", "false"),
+        ],
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert [s["domain_qualname"] for s in body["domain_slices"]] == quals

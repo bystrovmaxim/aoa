@@ -17,3 +17,8 @@ export type ErdDomainPayload = {
     relations: Array<Record<string, unknown>>;
   };
 };
+
+/** Batch response from ``GET /api/v1/erd/domains`` (one graph scan, multiple slices). */
+export type ErdDomainsBatchPayload = {
+  domain_slices: ErdDomainPayload[];
+};
