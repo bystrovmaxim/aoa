@@ -17,7 +17,7 @@ extended saturated tones); further rows cycle within that palette. The wire ``li
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ``connections["ServiceGraph"].service`` (NetworkX ``DiGraph``)
+    ``connections["NetworkXGraph"].service`` (NetworkX ``DiGraph``)
           |
           v
     @regular_aspect — collect ``[label, qualname]`` rows (``erd_domain_label_rows``)
@@ -36,7 +36,6 @@ from typing import Any, cast
 from pydantic import Field
 
 from aoa.action_machine.auth import NoneRole
-from aoa.action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance
@@ -45,9 +44,9 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, JsonSchemaValue, ParamsStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.model.core.resources.service_graph_resource import (
-    SERVICE_GRAPH_CONNECTION_KEY,
-    ServiceGraphResource,
+from aoa.maxitor.model.core.resources.networkx_graph_resource import (
+    NETWORKX_GRAPH_CONNECTION_KEY,
+    NetworkXGraphResource,
 )
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
@@ -129,15 +128,15 @@ ListDomainsJson = JsonSchemaValue.define(
     domain=DiagramsDomain,
 )
 @check_roles(NoneRole)
-@connection(ServiceGraphResource, key=SERVICE_GRAPH_CONNECTION_KEY, description="Interchange nx graph from LoadGraphAction")
+@connection(NetworkXGraphResource, key=NETWORKX_GRAPH_CONNECTION_KEY, description="Serialized interchange nx graph")
 class ListDomainsAction(
     BaseAction[ParamsStub, "ListDomainsAction.Result"],
 ):
     """
     AI-CORE-BEGIN
     ROLE: Emit ``list_domains`` rows (qualname + color) for ERD tab discovery on the client.
-    CONTRACT: Domain rows are computed only from ``connections["ServiceGraph"].service``; colours use ``_LIST_DOMAINS_DISTINCT_COLORS`` by sorted index (first twenty unique).
-    INVARIANTS: Reads the graph only via ``connections["ServiceGraph"].service``; pipeline uses ``@regular_aspect`` state keys then ``@summary_aspect``.
+    CONTRACT: Domain rows are computed only from ``connections["NetworkXGraph"].service``; colours use ``_LIST_DOMAINS_DISTINCT_COLORS`` by sorted index (first twenty unique).
+    INVARIANTS: Reads the graph only via ``connections["NetworkXGraph"].service``; pipeline uses ``@regular_aspect`` state keys then ``@summary_aspect``.
     AI-CORE-END
     """
 
@@ -161,10 +160,10 @@ class ListDomainsAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        nx_resource = cast(ServiceGraphResource, connections[SERVICE_GRAPH_CONNECTION_KEY])
+        nx_resource = cast(NetworkXGraphResource, connections[NETWORKX_GRAPH_CONNECTION_KEY])
         rows: list[list[str]] = []
         for nid, data in nx_resource.service.nodes(data=True):
-            if str(data.get("node_type", "")) != DomainGraphNode.NODE_TYPE:
+            if str(data.get("type", "")) != "Domain":
                 continue
             nid_s = str(nid)
             if nid_s.startswith("tests.") or "<locals>" in nid_s:

@@ -11,9 +11,9 @@ not serve React assets or Python-rendered shell HTML.
 
 ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.action_machine.integrations.fastapi.FastApiAdapter`
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
-Each generated route declares the ``connections`` required by its action; the live
-interchange graph uses one :class:`~aoa.maxitor.model.core.resources.service_graph_resource.ServiceGraphResource`
-instance for the whole application, built when ASGI ``lifespan`` creates the API session.
+Each generated route declares the ``connections`` required by its action; diagram
+routes share one :class:`~aoa.maxitor.model.core.resources.networkx_graph_resource.NetworkXGraphResource`
+for the whole application.
 """
 
 from __future__ import annotations
@@ -30,10 +30,9 @@ from aoa.action_machine.integrations.fastapi import FastApiAdapter
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.api.session import build_maxitor_api_session
-from aoa.maxitor.model.core.resources.networkx_graph_resource import NetworkXGraphResource
-from aoa.maxitor.model.core.resources.service_graph_resource import (
-    SERVICE_GRAPH_CONNECTION_KEY,
-    ServiceGraphResource,
+from aoa.maxitor.model.core.resources.networkx_graph_resource import (
+    NETWORKX_GRAPH_CONNECTION_KEY,
+    NetworkXGraphResource,
 )
 from aoa.maxitor.model.diagrams.actions.get_interchange_graph_payload_action import (
     GetInterchangeGraphPayloadAction,
@@ -59,8 +58,7 @@ def create_app() -> FastAPI:
         """Build Maxitor runtime state once per ASGI application lifecycle."""
         session = await build_maxitor_api_session(machine=machine)
         application.state.maxitor_session = session
-        networkx_graph = NetworkXGraphResource()
-        diagram_service_graph = ServiceGraphResource(session.nx_graph)
+        networkx_graph = NetworkXGraphResource(session.coordinator.to_json())
 
         action_subapp = (
             FastApiAdapter(
@@ -71,25 +69,25 @@ def create_app() -> FastAPI:
                 description=(
                     "JSON endpoints generated from diagrams actions. "
                     "Each route declares its ``connections``; diagram routes share one "
-                    "``ServiceGraphResource`` for the application lifetime."
+                    "``NetworkXGraphResource`` for the application lifetime."
                 ),
             )
             .get(
                 "/erd/domain-qualnames",
                 ListDomainsAction,
-                connections={SERVICE_GRAPH_CONNECTION_KEY: diagram_service_graph},
+                connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
                 tags=["erd"],
             )
             .get(
                 "/erd/domains/{domain_qualname:path}",
                 ListEntitiesAction,
-                connections={SERVICE_GRAPH_CONNECTION_KEY: diagram_service_graph},
+                connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
                 tags=["erd"],
             )
             .get(
                 "/graph/interchange",
                 GetInterchangeGraphPayloadAction,
-                connections={SERVICE_GRAPH_CONNECTION_KEY: diagram_service_graph},
+                connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
                 tags=["graph"],
             )
             .build()

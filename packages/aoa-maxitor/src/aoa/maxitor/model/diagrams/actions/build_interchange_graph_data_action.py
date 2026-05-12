@@ -755,13 +755,13 @@ def interchange_g6_payload_from_nx(  # pylint: disable=too-many-statements
     for nid in node_ids:
         attrs = nx_graph.nodes[nid]
         row: dict[str, Any] = dict(attrs) if isinstance(attrs, dict) else {}
-        node_type = str(row.get("node_type", "unknown"))
+        node_type = str(row.get("node_type", row.get("type", "unknown")))
         label = str(row.get("label", "") or "").strip() or str(nid)
         idx_to_node[str(nid)] = {
             "id": str(nid),
             "node_type": node_type,
             "label": label,
-            "properties": {k: v for k, v in row.items() if k not in ("node_type", "label")},
+            "properties": {k: v for k, v in row.items() if k not in ("node_type", "type", "label")},
             "node_obj": "",
         }
 
@@ -807,7 +807,7 @@ def interchange_g6_payload_from_nx(  # pylint: disable=too-many-statements
         u_s, v_s = str(u), str(v)
         if u_s not in idx_to_node or v_s not in idx_to_node:
             continue
-        raw_en = str(edata.get("edge_name", "") or "")
+        raw_en = str(edata.get("edge_name", edata.get("type", "")) or "")
         elabel = raw_en
         if elabel == "belongs_to":
             elabel = "BELONGS_TO"
