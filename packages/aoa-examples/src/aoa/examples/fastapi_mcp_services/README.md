@@ -249,6 +249,8 @@ fastapi_mcp_services/
 
 ## Fluent chain
 
+Optional keyword-only ``connections`` on each fluent call passes resources into ``machine.run`` for that route or tool only; use ``PerCallConnection`` when the resource must be built per request or per tool invocation (see ``aoa.action_machine.resources.per_call_connection``).
+
 **FastAPI:**
 
 ```python

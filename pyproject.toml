@@ -136,6 +136,9 @@ warn_unused_ignores = true
 show_error_codes = true
 namespace_packages = true
 explicit_package_bases = true
+# Standalone ``collect_python_files.py`` scripts at repo / package roots share the module
+# name ``collect_python_files``; exclude them from ``mypy packages/`` (task ``typecheck``).
+exclude = "collect_python_files\\.py$"
 mypy_path = "packages/aoa-graph/src:packages/aoa-action-machine/src:packages/aoa-maxitor/src:packages/aoa-examples/src"
 
 [[tool.mypy.overrides]]

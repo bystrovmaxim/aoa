@@ -49,7 +49,7 @@ For each registered ``McpRouteRecord``, the adapter builds an async handler that
    ``details["errors"]``.
 3. Applies ``params_mapper`` when configured.
 4. Builds ``Context`` via ``auth_coordinator``.
-5. Resolves connections via ``connections_factory`` (or ``None``).
+5. Resolves connections via ``resolve_connections(record.connections)``.
 6. Creates action instance and calls ``machine.run()``.
 7. Applies ``response_mapper`` when configured.
 8. Builds success ``data`` via ``_serialize_result`` (``model_dump(mode="json")`` for
@@ -124,7 +124,7 @@ import json
 import logging
 import re
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any, Self
 
 from pydantic import BaseModel
@@ -142,7 +142,7 @@ from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNo
 from aoa.action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
 from aoa.action_machine.integrations.mcp.route_record import McpRouteRecord
 from aoa.action_machine.model.base_action import BaseAction
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
@@ -308,7 +308,6 @@ def _make_tool_handler(
     record: McpRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResource]] | None,
     graph_coordinator: NodeGraphCoordinator,
 ) -> Callable[..., Any]:
     """Async MCP handler: validate input, ``machine.run``, JSON envelope in ``CallToolResult``."""
@@ -321,7 +320,7 @@ def _make_tool_handler(
         try:
             payload = await _execute_tool_call(
                 kwargs, req_model, record, machine,
-                auth_coordinator, connections_factory,
+                auth_coordinator,
                 has_params_mapper, has_response_mapper,
             )
             return CallToolResult(
@@ -376,7 +375,6 @@ async def _execute_tool_call(
     record: McpRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResource]] | None,
     has_params_mapper: bool,
     has_response_mapper: bool,
 ) -> Any:
@@ -396,7 +394,7 @@ async def _execute_tool_call(
     if context is None:
         context = Context()
 
-    connections = connections_factory() if connections_factory is not None else None
+    connections = resolve_connections(record.connections)
 
     action = record.action_class()
     result = await machine.run(context, action, params, connections)
@@ -440,16 +438,14 @@ AI-CORE-BEGIN
         self,
         machine: ActionProductMachine,
         auth_coordinator: Any,
-        connections_factory: Callable[..., dict[str, BaseResource]] | None = None,
         *,
         server_name: str = "ActionMachine MCP",
         server_version: str = "0.1.0",
     ) -> None:
-        """Wire machine, auth, optional connections, and server metadata."""
+        """Wire machine, auth, and server metadata."""
         super().__init__(
             machine=machine,
             auth_coordinator=auth_coordinator,
-            connections_factory=connections_factory,
         )
         self._server_name: str = server_name
         self._server_version: str = server_version
@@ -481,6 +477,8 @@ AI-CORE-BEGIN
         params_mapper: Callable[..., Any] | None = None,
         response_mapper: Callable[..., Any] | None = None,
         description: str = "",
+        *,
+        connections: Mapping[str, ConnectionValue] | None = None,
     ) -> Self:
         """Add one tool (``inputSchema`` from request model; ``@meta`` description if description empty)."""
         effective_description = description or _get_action_class_description(
@@ -494,6 +492,7 @@ AI-CORE-BEGIN
             response_model=response_model,
             params_mapper=params_mapper,
             response_mapper=response_mapper,
+            connections=connections,
             tool_name=name,
             description=effective_description,
         )
@@ -585,7 +584,6 @@ AI-CORE-BEGIN
             record=record,
             machine=self._machine,
             auth_coordinator=self._auth_coordinator,
-            connections_factory=self._connections_factory,
             graph_coordinator=self.graph_coordinator,
         )
         arg_model = self._mcp_argument_model(record)

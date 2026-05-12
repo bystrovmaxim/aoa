@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **JSON Schema fields in results.** Result schemas can declare explicit JSON-shaped fields so adapters expose the intended wire contract instead of relying on implicit Python object structure.
 - **Entity JSON Schema projections in results.** `BaseEntity` classes can be referenced from result fields through an explicit JSON Schema projection, preserving the entity relationship while returning only the declared wire fields.
+- **Node graph JSON serialization.** `NodeGraphCoordinator.to_json()` exports a stable JSON payload with linear `nodes` and `edges` lists, including node ids/types/labels/properties and edge source/target/type/relationship metadata, so downstream tools can reconstruct the coordinator graph without touching Python runtime objects.
+- **NetworkX-friendly graph payloads.** Node and edge JSON is shaped for direct reconstruction into `networkx.DiGraph`: nodes are keyed by stable ids, edges carry `source_node_id` and `target_node_id`, and empty `nodes` / `edges` payloads are valid.
 
 ### Breaking changes
 
@@ -335,3 +337,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `**GraphCoordinator` — central metadata and graph registry.** Lazily builds and caches `ClassMetadata` for any class on first access. Recursively discovers dependencies and connections. Maintains a directed acyclic graph (rustworkx `PyDiGraph`) with nodes for actions, dependencies, connections, aspects, checkers, plugins, subscriptions, sensitive fields, roles, and domains. Detects cyclic dependencies via `is_directed_acyclic_graph()` after each edge addition.
 - **Logging subsystem.** `LogCoordinator` broadcasts messages to registered `BaseLogger` instances. `ConsoleLogger` outputs to stdout with configurable colors and indentation. `VariableSubstitutor` resolves five namespaces (`var`, `state`, `params`, `context`, `scope`) with dot-path traversal. `ExpressionEvaluator` handles `{iif(condition; true; false)}` via `simpleeval`. `@sensitive` decorator masks property values in logs. Strict error policy: invalid templates raise `LogTemplateError` immediately.
 - **Exception hierarchy.** `AuthorizationError` (role mismatch), `ValidationFieldError` (checker failure), `HandleError` (resource manager errors), `TransactionError` (base for connection errors), `ConnectionAlreadyOpenError`, `ConnectionNotOpenError`, `TransactionProhibitedError` (wrapper prevents nested transactions), `ConnectionValidationError` (key mismatch), `LogTemplateError` (invalid template syntax), `CyclicDependencyError` (graph cycle detected).
+
