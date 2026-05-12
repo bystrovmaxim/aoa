@@ -209,30 +209,37 @@
       box-shadow: inset 0 0 0 1px rgba(236, 72, 153, 0.45);
     }
 
-    /* 1-hop neighbor checkbox — same strip */
+    /* 1-hop — compact strip control (refetch from API; keeps zoom / mode / domain toggles) */
     #zoom-toolbar #neighborhood-filter.dock-neighbor {
       display: none;
+      flex-direction: row;
       align-items: center;
-      gap: 6px;
-      margin-left: 10px;
-      padding: 0 4px;
+      gap: 5px;
+      height: 30px;
+      padding: 0 8px;
+      margin-left: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      text-transform: none;
       cursor: pointer;
       user-select: none;
-      font-size: 10px;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      color: #64748b;
-      transition: color 0.15s;
+      transition: color 0.15s, background 0.15s;
     }
     #zoom-toolbar #neighborhood-filter.dock-neighbor:hover {
-      color: #334155;
+      color: #0f172a;
+      background: rgba(15, 23, 42, 0.06);
     }
-    #zoom-toolbar #neighborhood-filter input {
-      width: 14px;
-      height: 14px;
+    #zoom-toolbar #neighborhood-filter.dock-neighbor input {
+      width: 13px;
+      height: 13px;
       accent-color: #3b82f6;
       cursor: pointer;
       margin: 0;
+      flex-shrink: 0;
     }
 
     /* ── Hover tip ── */
@@ -296,10 +303,11 @@
       </div>
       <span class="toolbar-sep" aria-hidden="true"></span>
       <div class="mode-dock" id="mode-dock" role="toolbar" aria-label="Diagram mode"></div>
+      <span class="toolbar-sep" aria-hidden="true"></span>
       <label id="neighborhood-filter" class="dock-neighbor"
-        title="When on, include entities exactly one interchange relation away from the selected domain(s).">
+        title="Include entities one relation away (same as API include_one_hop_neighbors).">
         <input type="checkbox" id="neighborhood-expand" checked />
-        <span>1‑hop</span>
+        <span>1-hop</span>
       </label>
     </div>
 

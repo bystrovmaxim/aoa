@@ -2,7 +2,10 @@
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
+import { useCallback, useEffect, useRef } from "react";
 import { useErdViewerBlobUrl, type ErdViewerSelection } from "../hooks/use_erd_viewer_blob_url";
+import { enrichErdDataForViewer } from "../lib/enrich_erd_data";
+import { loadErdDomainSlicesBundle } from "../lib/load_erd_domains_bundle";
 
 type ErdViewerProps = {
   selection: ErdViewerSelection;
@@ -10,7 +13,73 @@ type ErdViewerProps = {
 
 /** Full-page ERD workspace: API JSON → in-browser HTML shell → iframe (Graphviz / Cytoscape / Mermaid inside). */
 export function ErdViewer({ selection }: ErdViewerProps) {
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const { iframeUrl, loading, error } = useErdViewerBlobUrl(selection);
+
+  const postPatchToShell = useCallback((patch: { domains: unknown; domain_accent_colors: unknown }) => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    win.postMessage(
+      {
+        source: "maxitor-erd",
+        type: "domains-patch",
+        patch,
+      },
+      "*",
+    );
+  }, []);
+
+  const postPatchErrorToShell = useCallback((revertTo: boolean, message: string) => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    win.postMessage(
+      {
+        source: "maxitor-erd",
+        type: "domains-patch-error",
+        revertTo,
+        message,
+      },
+      "*",
+    );
+  }, []);
+
+  useEffect(() => {
+    const onMessage = (ev: MessageEvent) => {
+      const d = ev.data as {
+        source?: string;
+        type?: string;
+        include?: boolean;
+        domains?: Array<{ key: string; qualname: string }>;
+        domain_qualifier_colors?: Record<string, string>;
+      } | null;
+      if (!d || d.source !== "maxitor-erd" || d.type !== "set-one-hop") return;
+      const include = Boolean(d.include);
+      const revertTo = !include;
+      const domainRequests = (d.domains ?? []).filter((row) => row.key && row.qualname);
+      void (async () => {
+        try {
+          const raw = await loadErdDomainSlicesBundle(
+            domainRequests,
+            include,
+            d.domain_qualifier_colors ?? {},
+          );
+          const enriched = enrichErdDataForViewer({
+            domains: raw.domains,
+            domain_qualifiers: raw.domain_qualifiers,
+            domain_qualifier_colors: raw.domain_qualifier_colors,
+          } as Record<string, unknown>);
+          postPatchToShell({
+            domains: enriched.domains,
+            domain_accent_colors: enriched.domain_accent_colors,
+          });
+        } catch (e) {
+          postPatchErrorToShell(revertTo, e instanceof Error ? e.message : String(e));
+        }
+      })();
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [postPatchErrorToShell, postPatchToShell]);
 
   return (
     <Box
@@ -37,6 +106,7 @@ export function ErdViewer({ selection }: ErdViewerProps) {
       )}
       {iframeUrl && (
         <Box
+          ref={iframeRef}
           component="iframe"
           key={iframeUrl}
           title="ERD viewer"

@@ -37,7 +37,12 @@ export function enrichErdDataForViewer(erdData: Record<string, unknown>): Record
 
     const entities = (payload.entities ?? []).map((raw) => {
       const n = { ...raw };
-      const hex = (tabQual && qualToColor[tabQual]) || tabColor;
+      const entityDomain =
+        typeof n.domain_qualname === "string" ? n.domain_qualname.trim() : "";
+      const hex =
+        (entityDomain && qualToColor[entityDomain]) ||
+        (tabQual && qualToColor[tabQual]) ||
+        tabColor;
       n.color = hex;
       return n;
     });

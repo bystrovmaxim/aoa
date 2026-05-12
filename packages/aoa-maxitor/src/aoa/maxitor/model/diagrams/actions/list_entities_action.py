@@ -20,7 +20,10 @@ The ``list_entities`` field on ``Result`` uses the module-level ``ListEntitiesJs
     regular aspect  ->  ``erd_domain_class`` (:class:`~aoa.action_machine.domain.base_domain.BaseDomain` subclass)
           |
           v
-    regular aspect  ->  ``erd_graph_payload`` (:class:`ErdGraphPayload`) from serialized NetworkX graph
+    regular aspect  ->  ``erd_seed_payload`` (domain entities + direct relation rows)
+          |
+          v
+    regular aspect  ->  optional ``erd_one_hop_entity_ids`` from direct relation rows
           |
           v
     summary aspect  ->  Result payload (labels + ``list_entities``)
@@ -81,6 +84,8 @@ class ErdEntitySpec:
 
     id: str
     label: str
+    #: Interchange qualname of the ``BaseDomain`` this entity belongs to (``domain`` edge target).
+    domain_qualname: str = ""
     attributes: dict[str, Any] = field(default_factory=dict)
     fields: tuple[ErdFieldSpec, ...] = ()
     is_junction: bool = False
@@ -108,6 +113,17 @@ class ErdGraphPayload:
 
     entities: tuple[ErdEntitySpec, ...]
     relationships: tuple[ErdEdgeSpec, ...]
+
+
+@dataclass(frozen=True)
+class ErdSeedPayload:
+    """Domain-local ERD rows and boundary relations discovered from the selected domain."""
+
+    all_entities: dict[str, dict[str, Any]]
+    domain_entity_ids: frozenset[str]
+    relation_rows: tuple[tuple[str, str, str, dict[str, Any]], ...]
+    #: Every entity id with a ``domain`` edge in the graph → that domain's interchange qualname.
+    entity_domain_qualname: dict[str, str] = field(default_factory=dict)
 
 
 def _relation_slot_names(entity_cls: type[BaseEntity]) -> frozenset[str]:
@@ -221,11 +237,11 @@ def _entity_attributes_from_json_node(entity_id: str) -> dict[str, str]:
     return {}
 
 
-def erd_payload_from_networkx_for_domain(
+def erd_seed_from_networkx_for_domain(
     nx_graph: Any,
     domain_qual: str,
-) -> ErdGraphPayload:
-    """Build ERD rows from serialized coordinator JSON carried by ``NetworkXGraphResource``."""
+) -> ErdSeedPayload:
+    """Find domain-local entities and first-order relation rows from serialized coordinator JSON."""
     all_entities: dict[str, dict[str, Any]] = {
         str(nid): dict(data)
         for nid, data in nx_graph.nodes(data=True)
@@ -233,6 +249,7 @@ def erd_payload_from_networkx_for_domain(
     }
 
     domain_entity_ids: set[str] = set()
+    entity_domain_qualname: dict[str, str] = {}
     relation_rows: list[tuple[str, str, str, dict[str, Any]]] = []
     for source, target, data in nx_graph.edges(data=True):
         src = str(source)
@@ -240,21 +257,63 @@ def erd_payload_from_networkx_for_domain(
         edge = dict(data)
         etype = _edge_type(edge)
         props = dict(edge.get("properties") or {})
-        if etype == "domain" and tgt == domain_qual and src in all_entities:
-            domain_entity_ids.add(src)
+        if etype == "domain" and src in all_entities:
+            dqual = str(tgt)
+            if dqual == domain_qual:
+                domain_entity_ids.add(src)
+            prev = entity_domain_qualname.get(src)
+            if prev is None or dqual < prev:
+                entity_domain_qualname[src] = dqual
         elif etype == "entity_relation":
             field_name = str(props.get("field_name", "") or "")
             relation_rows.append((src, tgt, field_name, props))
 
-    entity_ids_dom = frozenset(domain_entity_ids)
-    relation_rows = [
-        row
-        for row in relation_rows
-        if (row[0] in entity_ids_dom and row[1] in all_entities)
-        or (row[0] in all_entities and row[1] in entity_ids_dom)
-    ]
+    return ErdSeedPayload(
+        all_entities=all_entities,
+        domain_entity_ids=frozenset(domain_entity_ids),
+        relation_rows=tuple(relation_rows),
+        entity_domain_qualname=entity_domain_qualname,
+    )
 
-    display_ids: set[str] = set(entity_ids_dom)
+
+def _one_hop_entity_ids(seed: ErdSeedPayload) -> frozenset[str]:
+    """Entity ids reached by seed relations, excluding entities already in the selected domain."""
+    out: set[str] = set()
+    for src, tgt, _, _ in seed.relation_rows:
+        if src in seed.domain_entity_ids and tgt in seed.all_entities and tgt not in seed.domain_entity_ids:
+            out.add(tgt)
+        if tgt in seed.domain_entity_ids and src in seed.all_entities and src not in seed.domain_entity_ids:
+            out.add(src)
+    return frozenset(out)
+
+
+def erd_payload_from_seed(
+    seed: ErdSeedPayload,
+    one_hop_entity_ids: frozenset[str],
+) -> ErdGraphPayload:
+    """Build final ERD payload from domain entities plus optional one-hop entities."""
+    all_entities = seed.all_entities
+    selected_entity_ids = frozenset((*seed.domain_entity_ids, *one_hop_entity_ids))
+    intra_domain_rows = [
+        row
+        for row in seed.relation_rows
+        if row[0] in seed.domain_entity_ids and row[1] in seed.domain_entity_ids
+    ]
+    # One-hop neighbors are discovered from the full graph, but we still omit second-hop:
+    # only edges that tie a domain entity to an included one-hop entity (not one_hop–one_hop).
+    boundary_rows = (
+        [
+            row
+            for row in seed.relation_rows
+            if (row[0] in seed.domain_entity_ids and row[1] in one_hop_entity_ids)
+            or (row[1] in seed.domain_entity_ids and row[0] in one_hop_entity_ids)
+        ]
+        if one_hop_entity_ids
+        else []
+    )
+    relation_rows = [*intra_domain_rows, *boundary_rows]
+
+    display_ids: set[str] = set(selected_entity_ids)
     for src, tgt, _, _ in relation_rows:
         if src in all_entities:
             display_ids.add(src)
@@ -279,6 +338,7 @@ def erd_payload_from_networkx_for_domain(
         ErdEntitySpec(
             id=eid,
             label=str(all_entities[eid].get("label", eid.rsplit(".", 1)[-1])),
+            domain_qualname=str(seed.entity_domain_qualname.get(eid, "") or ""),
             attributes=_entity_attributes_from_json_node(eid),
             fields=tuple(field_map[eid].values()),
             is_junction=sum(1 for f in field_map[eid].values() if "fk" in f.role) >= 2
@@ -287,6 +347,23 @@ def erd_payload_from_networkx_for_domain(
         for eid in sorted(display_ids)
     )
     return ErdGraphPayload(entities=entities, relationships=tuple(relationships))
+
+
+def _seed_payload_from_state(value: object) -> ErdSeedPayload:
+    if isinstance(value, ErdSeedPayload):
+        return value
+    if isinstance(value, dict):
+        return ErdSeedPayload(
+            all_entities=dict(value["all_entities"]),
+            domain_entity_ids=frozenset(value["domain_entity_ids"]),
+            relation_rows=tuple(
+                (str(src), str(tgt), str(field), dict(props))
+                for src, tgt, field, props in value["relation_rows"]
+            ),
+            entity_domain_qualname=dict(value.get("entity_domain_qualname") or {}),
+        )
+    msg = f"Expected ErdSeedPayload-compatible state, got {type(value).__name__}."
+    raise TypeError(msg)
 
 
 def _append_relationship_edge_from_row_json(
@@ -374,6 +451,7 @@ def _serialize_entity(entity: ErdEntitySpec) -> dict[str, Any]:
     return {
         "id": entity.id,
         "label": entity.label,
+        "domain_qualname": entity.domain_qualname,
         "fields": fields,
     }
 
@@ -417,6 +495,10 @@ ListEntitiesJson = JsonSchemaValue.define(
                     "properties": {
                         "id": {"type": "string"},
                         "label": {"type": "string"},
+                        "domain_qualname": {
+                            "type": "string",
+                            "description": "Interchange qualname of the BaseDomain owning this entity (for accent coloring).",
+                        },
                         "fields": {
                             "type": "array",
                             "items": {
@@ -437,7 +519,7 @@ ListEntitiesJson = JsonSchemaValue.define(
                             },
                         },
                     },
-                    "required": ["id", "label", "fields"],
+                    "required": ["id", "label", "domain_qualname", "fields"],
                     "additionalProperties": False,
                 },
             },
@@ -485,12 +567,20 @@ class ListEntitiesAction(
     ROLE: Emit one domain slice of ``ERD_DATA``-shaped JSON (``list_entities``) for client rendering.
     CONTRACT: ``domain_qualname`` is the full interchange node id for a ``BaseDomain`` class.
     INVARIANTS: Reads the graph only via ``connections["NetworkXGraph"].service``; regular aspects
-    populate ``erd_domain_class``, then ``erd_graph_payload`` before summary serialization.
+    populate ``erd_domain_class`` and ``erd_seed_payload``, then optionally add one-hop entities before summary serialization.
     AI-CORE-END
     """
 
     class Params(BaseParams):
         domain_qualname: str = Field(min_length=1, description="Full qualname of the BaseDomain interchange node id")
+        include_one_hop_neighbors: bool = Field(
+            default=True,
+            description=(
+                "Include BaseEntity interchange nodes one ``entity_relation`` edge away from a domain entity "
+                "(often in another bounded context). When true, draw those boundary edges; omit second-hop pairs "
+                "and omit one-hop–one-hop edges."
+            ),
+        )
 
     class Result(BaseResult):
         domain_label: str = Field(min_length=1, description="Human tab label (domain name or class name)")
@@ -500,6 +590,7 @@ class ListEntitiesAction(
         #     {
         #       "id": "aoa.orders.entity.OrderEntity",
         #       "label": "Order",
+        #       "domain_qualname": "aoa.orders.domain.OrdersDomain",
         #       "fields": [
         #         {"name": "id", "type": "str", "primary_key": true, "foreign_key": false}
         #       ]
@@ -558,10 +649,10 @@ class ListEntitiesAction(
         msg = f"Not a BaseDomain subclass or not importable: {qual!r}"
         raise TypeError(msg)
 
-    @regular_aspect("Read serialized nx graph and assemble transient ERD rows for the domain")
+    @regular_aspect("Find domain entities and direct relation rows")
     @result_instance("erd_domain_class", type, required=True)  # type: ignore[untyped-decorator]
-    @result_instance("erd_graph_payload", ErdGraphPayload, required=True)  # type: ignore[untyped-decorator]
-    async def materialize_coordinator_and_erd_payload_aspect(
+    @result_instance("erd_seed_payload", ErdSeedPayload, required=True)  # type: ignore[untyped-decorator]
+    async def collect_domain_entities_and_relations_aspect(
         self,
         params: ListEntitiesAction.Params,
         state: BaseState,
@@ -570,12 +661,27 @@ class ListEntitiesAction(
     ) -> dict[str, Any]:
         nx_resource = cast(NetworkXGraphResource, connections[NETWORKX_GRAPH_CONNECTION_KEY])
         dc = cast(type[BaseDomain], state["erd_domain_class"])
-        payload = erd_payload_from_networkx_for_domain(
+        seed = erd_seed_from_networkx_for_domain(
             nx_resource.service,
             TypeIntrospection.full_qualname(dc),
         )
         # BaseState is replaced entirely per aspect; carry forward keys prior aspects produced.
-        return {**state.to_dict(), "erd_graph_payload": payload}
+        return {**state.to_dict(), "erd_seed_payload": seed}
+
+    @regular_aspect("Apply optional one-hop neighbor expansion")
+    @result_instance("erd_domain_class", type, required=True)  # type: ignore[untyped-decorator]
+    @result_instance("erd_seed_payload", dict, required=True)  # type: ignore[untyped-decorator]
+    @result_instance("erd_one_hop_entity_ids", frozenset, required=True)  # type: ignore[untyped-decorator]
+    async def collect_one_hop_neighbor_entities_aspect(
+        self,
+        params: ListEntitiesAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> dict[str, Any]:
+        seed = _seed_payload_from_state(state["erd_seed_payload"])
+        one_hop_ids = _one_hop_entity_ids(seed) if params.include_one_hop_neighbors else frozenset()
+        return {**state.to_dict(), "erd_one_hop_entity_ids": one_hop_ids}
 
     @summary_aspect("Serialize ERD slice and domain labels for HTTP JSON")
     async def build_domain_payload_summary(
@@ -587,7 +693,9 @@ class ListEntitiesAction(
     ) -> ListEntitiesAction.Result:
         qual = params.domain_qualname.strip()
         dc = cast(type[BaseDomain], state["erd_domain_class"])
-        payload = cast(ErdGraphPayload, state["erd_graph_payload"])
+        seed = _seed_payload_from_state(state["erd_seed_payload"])
+        one_hop_ids = cast(frozenset[str], state["erd_one_hop_entity_ids"])
+        payload = erd_payload_from_seed(seed, one_hop_ids)
         base = getattr(dc, "name", None) or dc.__name__
         return ListEntitiesAction.Result(
             domain_label=str(base),
