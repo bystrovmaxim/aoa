@@ -24,16 +24,14 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.model.core.resources.service_graph_resource import (
-    SERVICE_GRAPH_CONNECTION_KEY,
-    ServiceGraphResource,
+from aoa.maxitor.model.core.resources.networkx_graph_resource import (
+    NETWORKX_GRAPH_CONNECTION_KEY,
+    NetworkXGraphResource,
 )
 from aoa.maxitor.model.diagrams.actions.build_interchange_graph_data_action import (
-    dag_cycle_violation_keys_from_coordinator,
     interchange_g6_payload_from_nx,
 )
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
-from aoa.maxitor.model.diagrams.interchange_nx_coordinator import node_graph_coordinator_from_interchange_nx
 
 
 @meta(
@@ -41,14 +39,14 @@ from aoa.maxitor.model.diagrams.interchange_nx_coordinator import node_graph_coo
     domain=DiagramsDomain,
 )
 @check_roles(NoneRole)
-@connection(ServiceGraphResource, key=SERVICE_GRAPH_CONNECTION_KEY, description="Interchange nx graph from LoadGraphAction")
+@connection(NetworkXGraphResource, key=NETWORKX_GRAPH_CONNECTION_KEY, description="Serialized interchange nx graph")
 class GetInterchangeGraphPayloadAction(
     BaseAction["GetInterchangeGraphPayloadAction.Params", "GetInterchangeGraphPayloadAction.Result"],
 ):
     """
     AI-CORE-BEGIN
     ROLE: Emit G6-oriented interchange graph JSON for client rendering.
-    CONTRACT: Reads the DiGraph only via ``connections["ServiceGraph"].service``.
+    CONTRACT: Reads the DiGraph only via ``connections["NetworkXGraph"].service``.
     OUTPUT: Dict suitable for AntV G6 ``data`` plus legend and bubble plugins.
     AI-CORE-END
     """
@@ -71,12 +69,6 @@ class GetInterchangeGraphPayloadAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> GetInterchangeGraphPayloadAction.Result:
-        nx_resource = cast(ServiceGraphResource, connections[SERVICE_GRAPH_CONNECTION_KEY])
-        coordinator = node_graph_coordinator_from_interchange_nx(nx_resource.service)
-        keys = dag_cycle_violation_keys_from_coordinator(coordinator)
-        payload = interchange_g6_payload_from_nx(
-            nx_resource.service,
-            title="Interchange graph",
-            cycle_violation_keys=keys,
-        )
+        nx_resource = cast(NetworkXGraphResource, connections[NETWORKX_GRAPH_CONNECTION_KEY])
+        payload = interchange_g6_payload_from_nx(nx_resource.service, title="Interchange graph")
         return GetInterchangeGraphPayloadAction.Result(payload=payload)

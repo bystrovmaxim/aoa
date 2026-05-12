@@ -20,7 +20,7 @@ The ``list_entities`` field on ``Result`` uses the module-level ``ListEntitiesJs
     regular aspect  ->  ``erd_domain_class`` (:class:`~aoa.action_machine.domain.base_domain.BaseDomain` subclass)
           |
           v
-    regular aspect  ->  ``erd_nx_coordinator`` + ``erd_graph_payload`` (coordinator + :class:`ErdGraphPayload`)
+    regular aspect  ->  ``erd_graph_payload`` (:class:`ErdGraphPayload`) from serialized NetworkX graph
           |
           v
     summary aspect  ->  Result payload (labels + ``list_entities``)
@@ -37,7 +37,6 @@ from pydantic import Field
 from aoa.action_machine.auth import NoneRole
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.entity import BaseEntity
-from aoa.action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance
@@ -48,18 +47,11 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from aoa.maxitor.model.core.resources.service_graph_resource import (
-    SERVICE_GRAPH_CONNECTION_KEY,
-    ServiceGraphResource,
+from aoa.maxitor.model.core.resources.networkx_graph_resource import (
+    NETWORKX_GRAPH_CONNECTION_KEY,
+    NetworkXGraphResource,
 )
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
-from aoa.maxitor.model.diagrams.interchange_nx_coordinator import node_graph_coordinator_from_interchange_nx
-
-
-def _entity_nodes_by_id(coordinator: NodeGraphCoordinator) -> dict[str, EntityGraphNode]:
-    return {node.node_id: node for node in coordinator.get_all_nodes() if isinstance(node, EntityGraphNode)}
-
 
 FieldRole = Literal["pk", "fk", "pk_fk", "field"]
 Cardinality = Literal["one", "zero_one", "one_many", "zero_many"]
@@ -187,27 +179,138 @@ def _merge_field_role(existing: FieldRole, incoming: FieldRole) -> FieldRole:
     return incoming if incoming != "field" else existing
 
 
-def _append_relationship_edge_from_row(
+def _node_type(row: dict[str, Any]) -> str:
+    return str(row.get("type", row.get("node_type", "")) or "")
+
+
+def _edge_type(row: dict[str, Any]) -> str:
+    return str(row.get("type", row.get("edge_name", "")) or "")
+
+
+def _class_from_qualname(qualname: str) -> type[Any] | None:
+    parts = qualname.split(".")
+    for mod_len in range(len(parts) - 1, 0, -1):
+        mod_name = ".".join(parts[:mod_len])
+        attr_path = parts[mod_len:]
+        try:
+            module = importlib.import_module(mod_name)
+        except ModuleNotFoundError:
+            continue
+        obj: Any = module
+        try:
+            for attr in attr_path:
+                obj = getattr(obj, attr)
+        except AttributeError:
+            continue
+        if isinstance(obj, type):
+            return obj
+    return None
+
+
+def _entity_fields_from_json_node(entity_id: str) -> tuple[ErdFieldSpec, ...]:
+    entity_cls = _class_from_qualname(entity_id)
+    if isinstance(entity_cls, type) and issubclass(entity_cls, BaseEntity):
+        return entity_fields_from_class(entity_cls)
+    return (ErdFieldSpec(name="id", type="str", role="pk"),)
+
+
+def _entity_attributes_from_json_node(entity_id: str) -> dict[str, str]:
+    entity_cls = _class_from_qualname(entity_id)
+    if isinstance(entity_cls, type) and issubclass(entity_cls, BaseEntity):
+        return entity_attributes_from_class(entity_cls)
+    return {}
+
+
+def erd_payload_from_networkx_for_domain(
+    nx_graph: Any,
+    domain_qual: str,
+) -> ErdGraphPayload:
+    """Build ERD rows from serialized coordinator JSON carried by ``NetworkXGraphResource``."""
+    all_entities: dict[str, dict[str, Any]] = {
+        str(nid): dict(data)
+        for nid, data in nx_graph.nodes(data=True)
+        if _node_type(dict(data)) == "Entity"
+    }
+
+    domain_entity_ids: set[str] = set()
+    relation_rows: list[tuple[str, str, str, dict[str, Any]]] = []
+    for source, target, data in nx_graph.edges(data=True):
+        src = str(source)
+        tgt = str(target)
+        edge = dict(data)
+        etype = _edge_type(edge)
+        props = dict(edge.get("properties") or {})
+        if etype == "domain" and tgt == domain_qual and src in all_entities:
+            domain_entity_ids.add(src)
+        elif etype == "entity_relation":
+            field_name = str(props.get("field_name", "") or "")
+            relation_rows.append((src, tgt, field_name, props))
+
+    entity_ids_dom = frozenset(domain_entity_ids)
+    relation_rows = [
+        row
+        for row in relation_rows
+        if (row[0] in entity_ids_dom and row[1] in all_entities)
+        or (row[0] in all_entities and row[1] in entity_ids_dom)
+    ]
+
+    display_ids: set[str] = set(entity_ids_dom)
+    for src, tgt, _, _ in relation_rows:
+        if src in all_entities:
+            display_ids.add(src)
+        if tgt in all_entities:
+            display_ids.add(tgt)
+
+    field_map: dict[str, dict[str, ErdFieldSpec]] = {
+        eid: {field.name: field for field in _entity_fields_from_json_node(eid)}
+        for eid in sorted(display_ids)
+    }
+
+    relationships: list[ErdEdgeSpec] = []
+    for row in relation_rows:
+        _append_relationship_edge_from_row_json(
+            relationships=relationships,
+            field_map=field_map,
+            entity_rows=all_entities,
+            row=row,
+        )
+
+    entities = tuple(
+        ErdEntitySpec(
+            id=eid,
+            label=str(all_entities[eid].get("label", eid.rsplit(".", 1)[-1])),
+            attributes=_entity_attributes_from_json_node(eid),
+            fields=tuple(field_map[eid].values()),
+            is_junction=sum(1 for f in field_map[eid].values() if "fk" in f.role) >= 2
+            and sum(1 for f in field_map[eid].values() if f.role == "field") <= 3,
+        )
+        for eid in sorted(display_ids)
+    )
+    return ErdGraphPayload(entities=entities, relationships=tuple(relationships))
+
+
+def _append_relationship_edge_from_row_json(
     *,
     relationships: list[ErdEdgeSpec],
     field_map: dict[str, dict[str, ErdFieldSpec]],
-    by_id: dict[str, EntityGraphNode],
+    entity_rows: dict[str, dict[str, Any]],
     row: tuple[str, str, str, dict[str, Any]],
 ) -> None:
-    """Emit one directed relationship row into ``relationships`` and merge FK compartments."""
+    """Emit one ERD relationship from JSON-exported edge properties."""
     c_src, c_tgt, c_field, c_props = row
-    cardinality = c_props.get("cardinality", "")
+    cardinality = str(c_props.get("cardinality", "") or "")
     label_field = c_field or str(c_props.get("field_name", "") or "")
-    chosen_is_to_one_fk = str(cardinality or "") == "one"
+    chosen_is_to_one_fk = cardinality == "one"
     src_card, tgt_card = _cardinality_pair_for_chosen_relation(
-        str(cardinality or ""),
+        cardinality,
         chosen_is_to_one_fk=chosen_is_to_one_fk,
     )
     if label_field:
         label = label_field if not cardinality else f"{label_field} ({cardinality})"
         rid_field = label_field
         existing = field_map.setdefault(c_src, {}).get(label_field)
-        fk_type = f"FK -> {by_id[c_tgt].node_obj.__name__}" if c_tgt in by_id else "FK"
+        target_label = str(entity_rows.get(c_tgt, {}).get("label", "") or c_tgt.rsplit(".", 1)[-1])
+        fk_type = f"FK -> {target_label}" if c_tgt in entity_rows else "FK"
         if existing is None:
             field_map[c_src][label_field] = ErdFieldSpec(
                 name=label_field,
@@ -224,7 +327,7 @@ def _append_relationship_edge_from_row(
                 nullable=existing.nullable,
             )
     else:
-        label = str(cardinality or "")
+        label = cardinality
         rid_field = "relation"
     rid = f"rel.{c_src}.{rid_field}".replace(":", "_")
     relationships.append(
@@ -239,143 +342,6 @@ def _append_relationship_edge_from_row(
             relationship_kind=str(c_props.get("relation_type", "") or "association"),
         ),
     )
-
-
-def erd_payload_from_coordinator_for_domain(
-    coordinator: NodeGraphCoordinator,
-    domain_cls: type[BaseDomain],
-) -> ErdGraphPayload:
-    """
-    Read the coordinator graph for one bounded context and assemble transient ERD rows.
-
-    AI-CORE-BEGIN
-    ROLE: Read interchange ``Entity`` vertices and ``entity_relation`` associations into transient ERD rows.
-    CONTRACT: Rows are anchored at ``domain_cls``; association edges whose far end lives in another declared domain appear as FK slots and stubs for that foreign entity (same Annotated semantics as intra-domain graphs).
-    INVERSE pairs with **matching** cardinality (``AssociationOne`` / ``one``+``one``) still collapse or dual-emit using inverse slot bookkeeping.
-    INVARIANTS: Every diagram vertex maps to an ``EntityGraphNode`` id on the built coordinator graph.
-    AI-CORE-END
-    """
-    domain_qual = TypeIntrospection.full_qualname(domain_cls)
-    all_graph = _entity_nodes_by_id(coordinator)
-
-    by_dom: dict[str, EntityGraphNode] = {}
-    for node in coordinator.get_all_nodes():
-        if not isinstance(node, EntityGraphNode):
-            continue
-        if node.domain.target_node_id != domain_qual:
-            continue
-        by_dom[node.node_id] = node
-
-    entity_ids_dom = frozenset(by_dom)
-
-    relation_rows: list[tuple[str, str, str, dict[str, Any]]] = []
-    for src_id in sorted(entity_ids_dom):
-        ent_node = by_dom[src_id]
-        for assoc in ent_node.relations:
-            tgt = assoc.target_node_id
-            if tgt not in all_graph:
-                continue
-            props = assoc.properties
-            field_name = str(props.get("field_name", "") or "")
-            relation_rows.append((src_id, tgt, field_name, props))
-
-    for src_id in sorted(all_graph.keys()):
-        if src_id in entity_ids_dom:
-            continue
-        ext_node = all_graph[src_id]
-        for assoc in ext_node.relations:
-            tgt = assoc.target_node_id
-            if tgt not in entity_ids_dom:
-                continue
-            props = assoc.properties
-            field_name = str(props.get("field_name", "") or "")
-            relation_rows.append((src_id, tgt, field_name, props))
-
-    display_ids: set[str] = set(entity_ids_dom)
-    for src, tgt, _, _ in relation_rows:
-        if src in all_graph:
-            display_ids.add(src)
-        if tgt in all_graph:
-            display_ids.add(tgt)
-
-    field_map: dict[str, dict[str, ErdFieldSpec]] = {}
-    for eid in sorted(display_ids):
-        node_row = all_graph[eid]
-        fields = entity_fields_from_class(node_row.node_obj)
-        field_map[eid] = {f.name: f for f in fields}
-
-    relationships: list[ErdEdgeSpec] = []
-    emitted_inverse_pairs: set[frozenset[tuple[str, str]]] = set()
-    by_slot = {
-        (src, field_name): (src, tgt, field_name, props) for src, tgt, field_name, props in relation_rows if field_name
-    }
-    for src_id, tgt, field_name, props in relation_rows:
-        inv_entity_id = props.get("inverse_entity_id")
-        inv_field = props.get("inverse_field")
-        inverse_slot = (
-            (str(inv_entity_id), str(inv_field))
-            if inv_entity_id is not None and inv_field is not None and str(inv_field).strip()
-            else None
-        )
-        inverse_key = frozenset(((src_id, field_name), inverse_slot)) if inverse_slot is not None else None
-        if inverse_key is not None and inverse_key in emitted_inverse_pairs:
-            continue
-
-        chosen = (src_id, tgt, field_name, props)
-        row_self = (src_id, tgt, field_name, props)
-        if inverse_key is not None and inverse_slot is not None and (inv := by_slot.get(inverse_slot)) is not None:
-            this_card = str(props.get("cardinality", "") or "")
-            inv_card = str(inv[3].get("cardinality", "") or "")
-            emitted_inverse_pairs.add(inverse_key)
-            if this_card == "many" and inv_card == "one":
-                _append_relationship_edge_from_row(
-                    relationships=relationships,
-                    field_map=field_map,
-                    by_id=all_graph,
-                    row=inv,
-                )
-            elif this_card == inv_card:
-                _append_relationship_edge_from_row(
-                    relationships=relationships,
-                    field_map=field_map,
-                    by_id=all_graph,
-                    row=row_self,
-                )
-                _append_relationship_edge_from_row(
-                    relationships=relationships,
-                    field_map=field_map,
-                    by_id=all_graph,
-                    row=inv,
-                )
-            else:
-                cand = min(row_self, inv, key=lambda row: (row[0], row[2]))
-                _append_relationship_edge_from_row(
-                    relationships=relationships,
-                    field_map=field_map,
-                    by_id=all_graph,
-                    row=cand,
-                )
-            continue
-
-        _append_relationship_edge_from_row(
-            relationships=relationships,
-            field_map=field_map,
-            by_id=all_graph,
-            row=chosen,
-        )
-
-    entities = tuple(
-        ErdEntitySpec(
-            id=eid,
-            label=all_graph[eid].node_obj.__name__,
-            attributes=entity_attributes_from_class(all_graph[eid].node_obj),
-            fields=tuple(field_map[eid].values()),
-            is_junction=sum(1 for f in field_map[eid].values() if "fk" in f.role) >= 2
-            and sum(1 for f in field_map[eid].values() if f.role == "field") <= 3,
-        )
-        for eid in sorted(display_ids)
-    )
-    return ErdGraphPayload(entities=entities, relationships=tuple(relationships))
 
 
 def _role_to_flags(role: str) -> dict[str, bool]:
@@ -510,7 +476,7 @@ ListEntitiesJson = JsonSchemaValue.define(
     domain=DiagramsDomain,
 )
 @check_roles(NoneRole)
-@connection(ServiceGraphResource, key=SERVICE_GRAPH_CONNECTION_KEY, description="Interchange nx graph from LoadGraphAction")
+@connection(NetworkXGraphResource, key=NETWORKX_GRAPH_CONNECTION_KEY, description="Serialized interchange nx graph")
 class ListEntitiesAction(
     BaseAction["ListEntitiesAction.Params", "ListEntitiesAction.Result"],
 ):
@@ -518,8 +484,8 @@ class ListEntitiesAction(
     AI-CORE-BEGIN
     ROLE: Emit one domain slice of ``ERD_DATA``-shaped JSON (``list_entities``) for client rendering.
     CONTRACT: ``domain_qualname`` is the full interchange node id for a ``BaseDomain`` class.
-    INVARIANTS: Reads the graph only via ``connections["ServiceGraph"].service``; regular aspects
-    populate ``erd_domain_class``, then ``erd_nx_coordinator`` / ``erd_graph_payload`` together, before summary serialization.
+    INVARIANTS: Reads the graph only via ``connections["NetworkXGraph"].service``; regular aspects
+    populate ``erd_domain_class``, then ``erd_graph_payload`` before summary serialization.
     AI-CORE-END
     """
 
@@ -592,9 +558,8 @@ class ListEntitiesAction(
         msg = f"Not a BaseDomain subclass or not importable: {qual!r}"
         raise TypeError(msg)
 
-    @regular_aspect("Recover coordinator from nx graph and assemble transient ERD rows for the domain")
+    @regular_aspect("Read serialized nx graph and assemble transient ERD rows for the domain")
     @result_instance("erd_domain_class", type, required=True)  # type: ignore[untyped-decorator]
-    @result_instance("erd_nx_coordinator", NodeGraphCoordinator, required=True)  # type: ignore[untyped-decorator]
     @result_instance("erd_graph_payload", ErdGraphPayload, required=True)  # type: ignore[untyped-decorator]
     async def materialize_coordinator_and_erd_payload_aspect(
         self,
@@ -603,12 +568,14 @@ class ListEntitiesAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        nx_resource = cast(ServiceGraphResource, connections[SERVICE_GRAPH_CONNECTION_KEY])
-        coordinator = node_graph_coordinator_from_interchange_nx(nx_resource.service)
+        nx_resource = cast(NetworkXGraphResource, connections[NETWORKX_GRAPH_CONNECTION_KEY])
         dc = cast(type[BaseDomain], state["erd_domain_class"])
-        payload = erd_payload_from_coordinator_for_domain(coordinator, dc)
+        payload = erd_payload_from_networkx_for_domain(
+            nx_resource.service,
+            TypeIntrospection.full_qualname(dc),
+        )
         # BaseState is replaced entirely per aspect; carry forward keys prior aspects produced.
-        return {**state.to_dict(), "erd_nx_coordinator": coordinator, "erd_graph_payload": payload}
+        return {**state.to_dict(), "erd_graph_payload": payload}
 
     @summary_aspect("Serialize ERD slice and domain labels for HTTP JSON")
     async def build_domain_payload_summary(

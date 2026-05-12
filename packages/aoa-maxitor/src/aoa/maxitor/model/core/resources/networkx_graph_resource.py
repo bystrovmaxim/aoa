@@ -17,10 +17,11 @@ from typing import Any
 
 import networkx as nx
 
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
+
+NETWORKX_GRAPH_CONNECTION_KEY = "NetworkXGraph"
 
 
 @meta(
@@ -35,9 +36,8 @@ class NetworkXGraphResource(ExternalServiceResource[Any]):
     AI-CORE-END
     """
 
-    def __init__(self) -> None:
-        coordinator = create_node_graph_coordinator()
-        json_data: dict[str, Any] = json.loads(coordinator.to_json())
+    def __init__(self, coordinator_json: str) -> None:
+        json_data: dict[str, Any] = json.loads(coordinator_json)
         service = self.get_networkx_graph(json_data)
         super().__init__(service)
 
@@ -47,6 +47,7 @@ class NetworkXGraphResource(ExternalServiceResource[Any]):
         nodes = json_data.get("nodes") or []
         edges = json_data.get("edges") or []
         graph: Any = nx.DiGraph()
+        graph.graph["source_json"] = json_data
         for node in nodes:
             nid = node["id"]
             graph.add_node(nid, **node)

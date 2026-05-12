@@ -46,6 +46,8 @@ def test_interchange_graph_payload_json(client: TestClient) -> None:
     p = body["payload"]
     assert "nodes" in p and "edges" in p
     assert isinstance(p["nodes"], list) and isinstance(p["edges"], list)
+    assert p["legend_items"]
+    assert any(item["type"] != "unknown" for item in p["legend_items"])
 
 
 def test_erd_domain_qualnames_json(client: TestClient) -> None:
@@ -73,3 +75,7 @@ def test_erd_domain_payload_json(client: TestClient) -> None:
     assert set(body) == {"domain_label", "domain_qualname", "list_entities"}
     assert body["domain_qualname"] == qual
     assert "entities" in body["list_entities"] and "relations" in body["list_entities"]
+    assert any(
+        len(entity.get("fields", ())) > 1
+        for entity in body["list_entities"]["entities"]
+    )
