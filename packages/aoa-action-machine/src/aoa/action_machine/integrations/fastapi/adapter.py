@@ -115,7 +115,7 @@ from __future__ import annotations
 
 import inspect
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any, Self
 
 from pydantic import BaseModel
@@ -134,7 +134,7 @@ from aoa.action_machine.exceptions.validation_field_error import ValidationField
 from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.integrations.fastapi.route_record import FastApiRouteRecord
 from aoa.action_machine.model.base_action import BaseAction
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
@@ -242,7 +242,6 @@ def _make_endpoint_with_body(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResource]] | None,
 ) -> Callable[..., Any]:
     """
     Create endpoint for methods with JSON body (POST, PUT, PATCH).
@@ -254,7 +253,6 @@ def _make_endpoint_with_body(
         record: route configuration.
         machine: action execution machine.
         auth_coordinator: authentication coordinator (required).
-        connections_factory: connections factory, or ``None``.
 
     Returns:
         Async endpoint function for ``app.add_api_route()``.
@@ -280,9 +278,7 @@ def _make_endpoint_with_body(
         if context is None:
             context = Context()
 
-        connections = None
-        if connections_factory is not None:
-            connections = connections_factory()
+        connections = resolve_connections(record.connections)
 
         action = record.action_class()
         result = await machine.run(context, action, params, connections)
@@ -311,7 +307,6 @@ def _make_endpoint_with_query(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResource]] | None,
 ) -> Callable[..., Any]:
     """
     Create endpoint for GET/DELETE with query/path parameters.
@@ -324,7 +319,6 @@ def _make_endpoint_with_query(
         record: route configuration.
         machine: action execution machine.
         auth_coordinator: authentication coordinator (required).
-        connections_factory: connections factory, or ``None``.
 
     Returns:
         Async endpoint function for ``app.add_api_route()``.
@@ -354,9 +348,7 @@ def _make_endpoint_with_query(
         if context is None:
             context = Context()
 
-        connections = None
-        if connections_factory is not None:
-            connections = connections_factory()
+        connections = resolve_connections(record.connections)
 
         action = record.action_class()
         result = await machine.run(context, action, params, connections)
@@ -406,7 +398,6 @@ def _make_endpoint_no_params(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResource]] | None,
 ) -> Callable[..., Any]:
     """
     Create endpoint for actions with empty Params (no fields).
@@ -418,7 +409,6 @@ def _make_endpoint_no_params(
         record: route configuration.
         machine: action execution machine.
         auth_coordinator: authentication coordinator (required).
-        connections_factory: connections factory, or ``None``.
 
     Returns:
         Async endpoint function for ``app.add_api_route()``.
@@ -446,9 +436,7 @@ def _make_endpoint_no_params(
         if context is None:
             context = Context()
 
-        connections = None
-        if connections_factory is not None:
-            connections = connections_factory()
+        connections = resolve_connections(record.connections)
 
         action = record.action_class()
         result = await machine.run(context, action, params, connections)
@@ -471,7 +459,6 @@ def _make_endpoint(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
     auth_coordinator: Any,
-    connections_factory: Callable[..., dict[str, BaseResource]] | None,
 ) -> Callable[..., Any]:
     """
     Endpoint factory for FastAPI.
@@ -486,7 +473,6 @@ def _make_endpoint(
         record: route configuration.
         machine: action execution machine.
         auth_coordinator: authentication coordinator (required).
-        connections_factory: connections factory, or ``None``.
 
     Returns:
         Async function suitable for ``app.add_api_route()``.
@@ -494,12 +480,12 @@ def _make_endpoint(
     model_fields = _get_model_fields(record.effective_request_model)
 
     if not model_fields:
-        return _make_endpoint_no_params(record, machine, auth_coordinator, connections_factory)
+        return _make_endpoint_no_params(record, machine, auth_coordinator)
 
     if _has_body_method(record.method):
-        return _make_endpoint_with_body(record, machine, auth_coordinator, connections_factory)
+        return _make_endpoint_with_body(record, machine, auth_coordinator)
 
-    return _make_endpoint_with_query(record, machine, auth_coordinator, connections_factory)
+    return _make_endpoint_with_query(record, machine, auth_coordinator)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -559,7 +545,6 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         self,
         machine: ActionProductMachine,
         auth_coordinator: Any,
-        connections_factory: Callable[..., dict[str, BaseResource]] | None = None,
         *,
         title: str = "ActionMachine API",
         version: str = "0.1.0",
@@ -572,8 +557,6 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             machine: action execution machine (required).
             auth_coordinator: authentication coordinator (required).
                 For open APIs use ``NoAuthCoordinator()``. ``None`` is invalid.
-            connections_factory: connections factory; if ``None``, connections
-                are not passed.
             title: API title for OpenAPI/Swagger UI.
             version: API version for OpenAPI.
             description: API description for OpenAPI (Markdown supported).
@@ -581,7 +564,6 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         super().__init__(
             machine=machine,
             auth_coordinator=auth_coordinator,
-            connections_factory=connections_factory,
         )
         self._title: str = title
         self._version: str = version
@@ -624,6 +606,8 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         description: str = "",
         operation_id: str | None = None,
         deprecated: bool = False,
+        *,
+        connections: Mapping[str, ConnectionValue] | None = None,
     ) -> Self:
         """
         Create ``FastApiRouteRecord``, append to ``_routes``, and return ``self``.
@@ -641,6 +625,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             response_model=response_model,
             params_mapper=params_mapper,
             response_mapper=response_mapper,
+            connections=connections,
             method=method,
             path=path,
             tags=tuple(tags or ()),
@@ -668,12 +653,14 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         description: str = "",
         operation_id: str | None = None,
         deprecated: bool = False,
+        *,
+        connections: Mapping[str, ConnectionValue] | None = None,
     ) -> Self:
         """Register POST endpoint. Returns self for fluent chain."""
         return self._register(
             "POST", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated,
+            operation_id, deprecated, connections=connections,
         )
 
     def get(
@@ -689,12 +676,14 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         description: str = "",
         operation_id: str | None = None,
         deprecated: bool = False,
+        *,
+        connections: Mapping[str, ConnectionValue] | None = None,
     ) -> Self:
         """Register GET endpoint. Returns self for fluent chain."""
         return self._register(
             "GET", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated,
+            operation_id, deprecated, connections=connections,
         )
 
     def put(
@@ -710,12 +699,14 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         description: str = "",
         operation_id: str | None = None,
         deprecated: bool = False,
+        *,
+        connections: Mapping[str, ConnectionValue] | None = None,
     ) -> Self:
         """Register PUT endpoint. Returns self for fluent chain."""
         return self._register(
             "PUT", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated,
+            operation_id, deprecated, connections=connections,
         )
 
     def delete(
@@ -731,12 +722,14 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         description: str = "",
         operation_id: str | None = None,
         deprecated: bool = False,
+        *,
+        connections: Mapping[str, ConnectionValue] | None = None,
     ) -> Self:
         """Register DELETE endpoint. Returns self for fluent chain."""
         return self._register(
             "DELETE", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated,
+            operation_id, deprecated, connections=connections,
         )
 
     def patch(
@@ -752,12 +745,14 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         description: str = "",
         operation_id: str | None = None,
         deprecated: bool = False,
+        *,
+        connections: Mapping[str, ConnectionValue] | None = None,
     ) -> Self:
         """Register PATCH endpoint. Returns self for fluent chain."""
         return self._register(
             "PATCH", path, action_class, request_model, response_model,
             params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated,
+            operation_id, deprecated, connections=connections,
         )
 
     # ─────────────────────────────────────────────────────────────────────
@@ -805,7 +800,6 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             record=record,
             machine=self._machine,
             auth_coordinator=self._auth_coordinator,
-            connections_factory=self._connections_factory,
         )
 
         app.add_api_route(

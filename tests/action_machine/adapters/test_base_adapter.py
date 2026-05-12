@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Assert constructor validation (machine type, mandatory ``auth_coordinator``),
-property surfaces (machine ``graph_coordinator``, ``connections_factory``), fluent ``_add_route``, and that the abstract class
+property surfaces (machine ``graph_coordinator``), fluent ``_add_route``, and that the abstract class
 cannot be instantiated without a concrete ``build()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -22,7 +22,7 @@ ARCHITECTURE / DATA FLOW
       v
     BaseAdapter[R]  --stores-->  machine, auth_coordinator,
                                  graph_coordinator (from machine),
-                                 connections_factory, _routes
+                                 _routes
       |
       v
     _add_route(record)  ->  append + return self (fluent)
@@ -168,26 +168,6 @@ class TestProperties:
             auth_coordinator=auth,
         )
         assert adapter.auth_coordinator is auth
-
-    def test_connections_factory_defaults_to_none(self) -> None:
-        """Omitted ``connections_factory`` is ``None``."""
-        machine = _make_machine()
-        adapter = _TestAdapter(
-            machine=machine,
-            auth_coordinator=_make_auth(),
-        )
-        assert adapter.connections_factory is None
-
-    def test_connections_factory_stored(self) -> None:
-        """Explicit ``connections_factory`` is stored and exposed."""
-        factory = MagicMock()
-        machine = _make_machine()
-        adapter = _TestAdapter(
-            machine=machine,
-            auth_coordinator=_make_auth(),
-            connections_factory=factory,
-        )
-        assert adapter.connections_factory is factory
 
     def test_graph_coordinator_comes_from_machine(self) -> None:
         """``graph_coordinator`` property mirrors the machine facade."""

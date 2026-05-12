@@ -15,7 +15,7 @@ from .networkx_graph_resource import NetworkXGraphResource
 from .service_graph_resource import SERVICE_GRAPH_CONNECTION_KEY, ServiceGraphResource
 
 __all__ = [
-    "NetworkXGraphResource",
     "SERVICE_GRAPH_CONNECTION_KEY",
+    "NetworkXGraphResource",
     "ServiceGraphResource",
 ]

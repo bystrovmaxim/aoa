@@ -18,8 +18,9 @@ Concrete adapters (FastApiAdapter, McpAdapter, etc.) inherit ``BaseAdapter``,
 implement protocol-specific registration methods (``post``, ``get``, ``tool``),
 and implement ``build()`` to produce a protocol application object.
 
-The adapter stores a machine reference, an authentication coordinator, the
-machine's ``NodeGraphCoordinator``, and an optional connections factory.
+The adapter stores a machine reference, an authentication coordinator, and the
+machine's ``NodeGraphCoordinator``. Per-route connection wiring lives on each
+``BaseRouteRecord`` (``connections`` + :func:`~aoa.action_machine.resources.per_call_connection.resolve_connections`).
 Registered routes are accumulated in
 ``_routes`` as concrete ``BaseRouteRecord`` subclasses.
 
@@ -31,7 +32,6 @@ Registered routes are accumulated in
     │  machine: ActionProductMachine       │
     │  auth_coordinator: Any (required)    │
     │  graph_coordinator: NodeGraphCoordinator │
-    │  connections_factory: Fn | None      │
     │  _routes: list[R]                    │
     │                                      │
     │  _add_route(record: R) → Self        │
@@ -81,11 +81,9 @@ replace ``ActionProductMachine`` only when testing constructor wiring itself.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from typing import Any, Self
 
 from aoa.action_machine.adapters.base_route_record import BaseRouteRecord
-from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 
@@ -103,7 +101,6 @@ AI-CORE-BEGIN
         self,
         machine: ActionProductMachine,
         auth_coordinator: Any,
-        connections_factory: Callable[..., dict[str, BaseResource]] | None = None,
     ) -> None:
         """
         Initialize the adapter.
@@ -127,7 +124,6 @@ AI-CORE-BEGIN
         self._machine: ActionProductMachine = machine
         self._auth_coordinator: Any = auth_coordinator
         self._graph_coordinator: NodeGraphCoordinator = machine.graph_coordinator
-        self._connections_factory: Callable[..., dict[str, BaseResource]] | None = connections_factory
         self._routes: list[R] = []
 
     @property
@@ -144,11 +140,6 @@ AI-CORE-BEGIN
     def graph_coordinator(self) -> NodeGraphCoordinator:
         """Returns the machine node graph coordinator."""
         return self._graph_coordinator
-
-    @property
-    def connections_factory(self) -> Callable[..., dict[str, BaseResource]] | None:
-        """Returns the connections factory (or None)."""
-        return self._connections_factory
 
     @property
     def routes(self) -> list[R]:

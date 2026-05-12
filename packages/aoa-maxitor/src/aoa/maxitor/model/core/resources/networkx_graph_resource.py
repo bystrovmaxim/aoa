@@ -16,6 +16,7 @@ import json
 from typing import Any
 
 import networkx as nx
+
 from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource

@@ -41,7 +41,8 @@ COMPONENTS
 
 - ``FastApiAdapter`` — concrete adapter exposing ``post/get/put/delete/patch``.
 - ``FastApiRouteRecord`` — frozen route record with HTTP-specific metadata:
-  method, path, tags, summary, description, operation_id, deprecated.
+  method, path, tags, summary, description, operation_id, deprecated, and optional
+  per-route ``connections`` (see :mod:`aoa.action_machine.resources.per_call_connection`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 QUICK START
