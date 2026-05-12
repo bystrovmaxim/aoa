@@ -3,4 +3,4 @@
  * ERD viewer data contracts.
  */
 
-export type { DomainInfoRow, DomainQualnamesPayload, ErdDomainPayload } from "./types";
+export type { DomainInfoRow, DomainQualnamesPayload, ErdDomainPayload, ErdDomainsBatchPayload } from "./types";

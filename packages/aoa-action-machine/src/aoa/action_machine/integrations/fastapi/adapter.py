@@ -116,7 +116,7 @@ from __future__ import annotations
 import inspect
 import re
 from collections.abc import Callable, Mapping
-from typing import Any, Self
+from typing import Annotated, Any, Self, get_origin
 
 from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -138,7 +138,7 @@ from aoa.action_machine.resources.per_call_connection import ConnectionValue, re
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -146,6 +146,26 @@ from fastapi.responses import JSONResponse
 # ═════════════════════════════════════════════════════════════════════════════
 
 _PATH_PARAM_PATTERN: re.Pattern[str] = re.compile(r"\{(\w+)\}")
+
+
+def _fastapi_query_param_annotation(field_name: str, field_info: Any, path_params: set[str]) -> Any:
+    """
+    Build the FastAPI endpoint parameter annotation for one query field.
+
+    FastAPI treats bare ``list[...]`` on GET handlers as a JSON body field; wrap with
+    :class:`fastapi.Query` so list values bind from repeated query keys (or a single
+    value, depending on client) instead.
+    """
+    if field_name in path_params:
+        return field_info.annotation if field_info.annotation is not None else str
+    ann = field_info.annotation
+    if ann is None:
+        return str
+    if get_origin(ann) is list:
+        if field_info.is_required():
+            return Annotated[ann, Query()]
+        return Annotated[ann, Query(default_factory=list)]
+    return ann
 
 
 def _fastapi_route_label(record: FastApiRouteRecord) -> str:
@@ -369,7 +389,7 @@ def _make_endpoint_with_query(
     ]
 
     for field_name, field_info in model_fields.items():
-        annotation = field_info.annotation if field_info.annotation is not None else str
+        annotation = _fastapi_query_param_annotation(field_name, field_info, path_params)
 
         if field_name in path_params:
             if field_info.default is not None and not field_info.is_required():

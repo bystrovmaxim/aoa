@@ -9,4 +9,4 @@ export type { ErdViewerSelection } from "./hooks/use_erd_viewer_blob_url";
 export { buildErdHtmlDocument } from "./lib/build_erd_html_document";
 export { enrichErdDataForViewer } from "./lib/enrich_erd_data";
 export { allocateDomainTabKey } from "./lib/domain_tab_keys";
-export { fetchErdDomainPayload, fetchErdDomainQualnames } from "./api/erd_api";
+export { fetchErdDomainPayload, fetchErdDomainsBatch, fetchErdDomainQualnames } from "./api/erd_api";

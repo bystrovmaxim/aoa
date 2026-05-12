@@ -31,4 +31,3 @@ def get_maxitor_session(request: Request) -> MaxitorApiSession:
         msg = "Maxitor API session is not initialized."
         raise RuntimeError(msg)
     return session
-
