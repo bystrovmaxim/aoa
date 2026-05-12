@@ -22,6 +22,9 @@ ARCHITECTURE / DATA FLOW
               |
     examples/  (this package)
               |
+              +-- model/
+              |       interchange + bounded-context demo domains for Maxitor
+              |
               +-- fastapi_mcp_services/
               |       dual-transport app + shared actions
               |

@@ -1,0 +1,19 @@
+# packages/aoa-examples/src/aoa/examples/model/messaging/resources/smtp_transport.py
+"""SMTP transport stub for ``@depends`` and ``connections`` resource manager."""
+
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.external_service import ExternalServiceResource
+from aoa.examples.model.messaging.domain import MessagingDomain
+
+
+class SmtpTransportStub:
+    async def send_raw(self, to: str, body: str) -> str:
+        return "MSG-ID-SMTP-STUB"
+
+
+@meta(
+    description="SMTP transport client for aspects/connections (stub)",
+    domain=MessagingDomain,
+)
+class SmtpTransportStubResource(ExternalServiceResource[SmtpTransportStub]):
+    pass

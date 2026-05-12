@@ -1,6 +1,0 @@
-# packages/aoa-maxitor/src/aoa/maxitor/samples/identity/__init__.py
-"""Identity bounded context stubs (entities only; no downstream actions wired)."""
-
-from aoa.maxitor.samples.identity.domain import IdentityDomain
-
-__all__ = ["IdentityDomain"]

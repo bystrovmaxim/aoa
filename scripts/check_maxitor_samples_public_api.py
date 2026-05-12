@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # scripts/check_maxitor_samples_public_api.py
 """
-Enforce facade-only imports of ``aoa.action_machine`` under ``packages/aoa-maxitor/src/aoa/maxitor/samples``.
+Enforce facade-only imports of ``aoa.action_machine`` under ``packages/aoa-examples/src/aoa/examples/model``.
 
 Only ``ImportFrom`` / ``Import`` targets listed in ``ALLOWED_ACTION_MACHINE_MODULES`` are
 accepted. Extend that set when new public surfaces are intentionally exposed to samples.
@@ -51,7 +51,7 @@ ALLOWED_ACTION_MACHINE_MODULES: frozenset[str] = frozenset(
 
 def _git_ls_python_samples(repo_root: Path) -> list[Path]:
     proc = subprocess.run(
-        ["git", "-C", str(repo_root), "ls-files", "-z", "--", "packages/aoa-maxitor/src/aoa/maxitor/samples"],
+        ["git", "-C", str(repo_root), "ls-files", "-z", "--", "packages/aoa-examples/src/aoa/examples/model"],
         capture_output=True,
         check=False,
     )
@@ -139,7 +139,7 @@ def main() -> int:
         "--samples-root",
         type=Path,
         default=None,
-        help="Override root (default: git-tracked paths under packages/aoa-maxitor/src/aoa/maxitor/samples)",
+        help="Override root (default: git-tracked paths under packages/aoa-examples/src/aoa/examples/model)",
     )
     args = parser.parse_args()
 
@@ -159,7 +159,7 @@ def main() -> int:
 
     if all_violations:
         sys.stderr.write(
-            "aoa.maxitor.samples must import aoa.action_machine only through facade modules.\n"
+            "aoa.examples.model must import aoa.action_machine only through facade modules.\n"
             "Violation(s):\n  "
             + "\n  ".join(all_violations)
             + "\nExtend scripts/check_maxitor_samples_public_api.py "

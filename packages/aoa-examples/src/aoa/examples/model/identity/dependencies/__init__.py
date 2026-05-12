@@ -1,0 +1,4 @@
+# packages/aoa-examples/src/aoa/examples/model/identity/dependencies/__init__.py
+"""Dependencies placeholder — identity demo is entity-only."""
+
+__all__: list[str] = []

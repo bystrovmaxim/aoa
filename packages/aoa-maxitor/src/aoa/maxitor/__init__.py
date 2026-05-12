@@ -6,9 +6,8 @@ Maxitor — sample graph helpers.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Provide a minimal harness around :mod:`aoa.maxitor.samples`: one import path to the
-primary domain marker and the graph visualizer HTML export path built on
-``NodeGraphCoordinator``.
+Provide helpers for the graph visualizer HTML export path built on ``NodeGraphCoordinator``
+and the FastAPI-backed React SPA (see :mod:`aoa.maxitor.api.app`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 REACT SPA + FASTAPI
@@ -21,14 +20,12 @@ from JSON under ``/api/v1`` (see ``aoa.maxitor.api.app``).
 
 from __future__ import annotations
 
-from aoa.maxitor.samples.node_build import (
+from aoa.maxitor.node_build import (
     build_sample_node_graph_coordinator,
     export_samples_graph_html,
 )
-from aoa.maxitor.samples.store.domain import StoreDomain
 
 __all__ = [
-    "StoreDomain",
     "build_sample_node_graph_coordinator",
     "export_samples_graph_html",
 ]
