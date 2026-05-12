@@ -95,7 +95,7 @@ Public helpers for custom tooling:
 - `is_json_schema_value_type(tp)`
 - `get_json_schema_value_metadata(tp)` → `{"name": str, "schema": dict}` or `None`
 
-Maxitor sample interchange graphs include several results with a `sample_audit` field; see `tests/maxitor/test_sample_graph_json_fields.py` and `aoa.maxitor.samples.*.actions` for concrete usage.
+Example interchange graphs include several results with a `sample_audit` field; see `tests/examples/model/test_sample_graph_json_fields.py` and `aoa.examples.model.*.actions` for concrete usage.
 
 ---
 

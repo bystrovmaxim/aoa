@@ -12,8 +12,9 @@ not serve React assets or Python-rendered shell HTML.
 ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.action_machine.integrations.fastapi.FastApiAdapter`
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
 Each generated route declares the ``connections`` required by its action; diagram
-routes share one :class:`~aoa.maxitor.model.core.resources.networkx_graph_resource.NetworkXGraphResource`
-for the whole application.
+routes share one :class:`~aoa.maxitor.model.core.resources.networkx_graph_resource.NetworkXGraphResource`,
+constructed once with :func:`create_app` (interchange JSON from the examples ``graph-json`` HTTP endpoint). Sidebar rows are loaded once in the ASGI lifespan
+(``application.state.sidebar_data``).
 """
 
 from __future__ import annotations
@@ -52,50 +53,17 @@ def create_app() -> FastAPI:
     """
     machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
     auth = NoAuthCoordinator()
+    networkx_graph = NetworkXGraphResource()
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        """Build Maxitor runtime state once per ASGI application lifecycle."""
+        """Load sidebar once; runs inside uvicorn's event loop (no ``asyncio.run``)."""
         session = await build_maxitor_api_session(machine=machine)
-        application.state.maxitor_session = session
-        networkx_graph = NetworkXGraphResource(session.coordinator_json)
-
-        action_subapp = (
-            FastApiAdapter(
-                machine=machine,
-                auth_coordinator=auth,
-                title="Maxitor ActionMachine API",
-                version="1.0.0",
-                description=(
-                    "JSON endpoints generated from diagrams actions. "
-                    "Each route declares its ``connections``; diagram routes share one "
-                    "``NetworkXGraphResource`` for the application lifetime."
-                ),
-            )
-            .get(
-                "/erd/domain-qualnames",
-                ListDomainsAction,
-                connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
-                tags=["erd"],
-            )
-            .get(
-                "/erd/domains",
-                ListEntitiesAction,
-                connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
-                tags=["erd"],
-            )
-            .get(
-                "/graph/interchange",
-                GetInterchangeGraphPayloadAction,
-                connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
-                tags=["graph"],
-            )
-            .build()
-        )
-        application.mount("/api/v1", action_subapp)
+        application.state.sidebar_data = session.sidebar_data
         yield
 
     fastapi_app = FastAPI(title="Maxitor API", lifespan=lifespan)
+
     fastapi_app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -104,6 +72,40 @@ def create_app() -> FastAPI:
     )
     fastapi_app.include_router(sidebar_router)
 
+    action_subapp = (
+        FastApiAdapter(
+            machine=machine,
+            auth_coordinator=auth,
+            title="Maxitor ActionMachine API",
+            version="1.0.0",
+            description=(
+                "JSON endpoints generated from diagrams actions. "
+                "Each route declares its ``connections``; diagram routes share one "
+                "``NetworkXGraphResource`` for the application lifetime."
+            ),
+        )
+        .get(
+            "/erd/domain-qualnames",
+            ListDomainsAction,
+            connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
+            tags=["erd"],
+        )
+        .get(
+            "/erd/domains",
+            ListEntitiesAction,
+            connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
+            tags=["erd"],
+        )
+        .get(
+            "/graph/interchange",
+            GetInterchangeGraphPayloadAction,
+            connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
+            tags=["graph"],
+        )
+        .build()
+    )
+    fastapi_app.mount("/api/v1", action_subapp)
+
     @fastapi_app.get("/api/health", tags=["health"])
     async def health() -> dict[str, str]:
         return {"status": "ok"}
@@ -111,4 +113,14 @@ def create_app() -> FastAPI:
     return fastapi_app
 
 
-app = create_app()
+__maxitor_fastapi_app: FastAPI | None = None
+
+
+def __getattr__(name: str) -> FastAPI:
+    """Lazily build ``app`` so imports of this module do not hit the examples graph-json URL."""
+    global __maxitor_fastapi_app
+    if name != "app":
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    if __maxitor_fastapi_app is None:
+        __maxitor_fastapi_app = create_app()
+    return __maxitor_fastapi_app

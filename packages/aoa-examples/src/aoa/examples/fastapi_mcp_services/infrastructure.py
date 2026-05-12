@@ -10,7 +10,10 @@ PURPOSE
 imported by both transports so HTTP and MCP share the same runtime instance and
 auth policy.
 
-``ActionProductMachine`` creates its default ``NodeGraphCoordinator`` lazily.
+``GetExampleModelGraphJsonAction`` is imported before ``ActionProductMachine()`` so
+``create_node_graph_coordinator()`` materializes that action on the default graph.
+
+``ActionProductMachine`` creates its default ``NodeGraphCoordinator`` eagerly.
 Adapters receive ``machine`` and ``auth``; they use ``machine.graph_coordinator``
 when they need the graph.
 
@@ -25,7 +28,7 @@ ARCHITECTURE / DATA FLOW
 
     infrastructure (this module)
     +-- machine = ActionProductMachine()
-    |       +-- built NodeGraphCoordinator (lazy factory inside machine)
+    |       +-- built NodeGraphCoordinator (eager ``create_node_graph_coordinator()``)
     +-- auth    = NoAuthCoordinator()
               |
               +------------------+------------------+
@@ -42,6 +45,9 @@ ARCHITECTURE / DATA FLOW
 
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+
+# Register on the default graph before ``create_node_graph_coordinator()`` runs.
+from aoa.examples.model.actions import GetExampleModelGraphJsonAction  # noqa: F401
 
 machine = ActionProductMachine()
 auth = NoAuthCoordinator()

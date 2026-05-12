@@ -12,12 +12,9 @@ Diagram rendering stays Python-side; React only consumes this tree for navigatio
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Any
 
-from fastapi import APIRouter, Depends
-
-from aoa.maxitor.api.dependencies import get_maxitor_session
-from aoa.maxitor.api.session import MaxitorApiSession
+from fastapi import APIRouter, Request
 
 router = APIRouter(prefix="/api", tags=["sidebar"])
 
@@ -49,8 +46,6 @@ def sidebar_payload(sidebar_result: Any) -> dict[str, Any]:
 
 
 @router.get("/sidebar")
-async def get_sidebar(
-    session: Annotated[MaxitorApiSession, Depends(get_maxitor_session)],
-) -> dict[str, Any]:
+async def get_sidebar(request: Request) -> dict[str, Any]:
     """Return sidebar navigation data for the React SPA."""
-    return sidebar_payload(session.sidebar_data)
+    return sidebar_payload(request.app.state.sidebar_data)

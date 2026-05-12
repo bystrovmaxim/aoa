@@ -103,5 +103,5 @@ If the entity type is excluded from the graph (for example `@exclude_graph_model
 ## 7. Further reading
 
 - Implementation: `packages/aoa-action-machine/src/aoa/action_machine/domain/entity.py` (`BaseEntity.schema`), `entity_schema_marker.py`.
-- Sample usage in Maxitor: `packages/aoa-maxitor/src/aoa/maxitor/samples/entity_projection_demo/`.
-- Tests: `tests/action_machine/domain/`, adapter tests under `tests/action_machine/adapters/`, `tests/action_machine/graph_model/test_entity_schema_graph_edge.py`, `tests/maxitor/test_entity_projection_samples.py`.
+- Sample usage: `packages/aoa-examples/src/aoa/examples/model/entity_projection_demo/`.
+- Tests: `tests/action_machine/domain/`, adapter tests under `tests/action_machine/adapters/`, `tests/action_machine/graph_model/test_entity_schema_graph_edge.py`, `tests/examples/model/test_entity_projection_samples.py`.

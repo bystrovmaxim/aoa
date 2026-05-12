@@ -73,7 +73,7 @@ Optional field::
         graph: GraphJson | None = None
 
 Real adapter and sample usage: see ``tests/action_machine/adapters/json_schema_adapter_fixtures.py``
-and ``aoa.maxitor.samples`` actions that expose a ``sample_audit`` field.
+and ``aoa.examples.model`` actions that expose a ``sample_audit`` field.
 
 ═══════════════════════════════════════════════════════════════════════════════
 KNOWN LIMITATIONS
