@@ -79,3 +79,7 @@ def test_erd_domain_payload_json(client: TestClient) -> None:
         len(entity.get("fields", ())) > 1
         for entity in body["list_entities"]["entities"]
     )
+    for entity in body["list_entities"]["entities"]:
+        assert "domain_qualname" in entity
+        assert isinstance(entity["domain_qualname"], str)
+    assert any(e["domain_qualname"] == qual for e in body["list_entities"]["entities"])

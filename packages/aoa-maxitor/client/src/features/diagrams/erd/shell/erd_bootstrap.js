@@ -8,6 +8,9 @@ const __GRAPHVIZ_URL__ = "https://esm.sh/@hpcc-js/wasm-graphviz@1.21.5";
 
 const ERD_DATA = __MAXITOR_ERD_DATA_JSON__;
 
+/** After one-hop patch from host: restore pan/zoom instead of fit (set before ``switchRenderer``). */
+let pendingViewportRestore = null;
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 function escHtml(s) {
   return String(s)
@@ -70,8 +73,8 @@ let gvApi = null;
 let nhFilterWired = false;
 let domainPickerWired = false;
 
-// ── Zoom / pan (same mechanics as erd: rAF wheel + exp factor, 1.25 / 0.8, clamp)
-const MIN_SCALE = 0.2;
+// ── Zoom / pan (same mechanics as erd: rAF wheel + exp factor, 1.25 / 0.8)
+const MIN_SCALE = 0.005;
 const MAX_SCALE = 2.5;
 const WHEEL_ZOOM_SENSITIVITY = 0.0045;
 
@@ -146,6 +149,50 @@ function fitSvgPanorama() {
   svgPan.ty = (ch - h * s) / 2 - by * s;
   svgApplyTransform();
   syncZoomPct();
+}
+
+function centerSvgPanoramaAtScale(scale) {
+  const vp = document.getElementById(svgPan.vpid);
+  const panner = document.getElementById(svgPan.pnid);
+  if (!vp || !panner) return false;
+  const svg = panner.querySelector('svg');
+  if (!svg) return false;
+
+  const vb = svg.viewBox && svg.viewBox.baseVal;
+  let w;
+  let h;
+  let bx = 0;
+  let by = 0;
+  if (vb && Number(vb.width) > 0 && Number(vb.height) > 0) {
+    w = vb.width;
+    h = vb.height;
+    bx = vb.x || 0;
+    by = vb.y || 0;
+    svg.setAttribute('width', String(vb.width));
+    svg.setAttribute('height', String(vb.height));
+  } else {
+    try {
+      const bbox = svg.getBBox();
+      w = bbox.width || 1;
+      h = bbox.height || 1;
+      bx = bbox.x || 0;
+      by = bbox.y || 0;
+      svg.setAttribute('width', String(w));
+      svg.setAttribute('height', String(h));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  const cw = vp.clientWidth || 1;
+  const ch = vp.clientHeight || 1;
+  const s = clampUserScale(Number(scale) || 1);
+  svgPan.scale = s;
+  svgPan.tx = (cw - w * s) / 2 - bx * s;
+  svgPan.ty = (ch - h * s) / 2 - by * s;
+  svgApplyTransform();
+  syncZoomPct();
+  return true;
 }
 
 function zoomSvgFromViewportCenter(factor) {
@@ -239,6 +286,69 @@ function syncZoomPct() {
   if (lab) lab.textContent = Math.round(Number(currentZoomRatio()) * 100) + '%';
 }
 
+function captureActiveViewportForRestore() {
+  if (activeRenderer === 'd3gv' || activeRenderer === 'mermaid') {
+    return {
+      kind: 'svg-scale',
+      which: activeRenderer,
+      scale: svgPan.scale,
+    };
+  }
+  if (activeRenderer === 'cytoscape' && cyInstance) {
+    return { kind: 'cy', zoom: cyInstance.zoom(), pan: cyInstance.pan() };
+  }
+  return null;
+}
+
+function consumePendingSvgPan(whichRenderer) {
+  const p = pendingViewportRestore;
+  if (!p || p.which !== whichRenderer || activeRenderer !== whichRenderer) {
+    return false;
+  }
+  if (p.kind === 'svg-scale') {
+    const ok = centerSvgPanoramaAtScale(p.scale);
+    pendingViewportRestore = null;
+    return ok;
+  }
+  pendingViewportRestore = null;
+  return false;
+}
+
+function applyDomainsPatchFromHost(patch) {
+  if (!patch || typeof patch !== 'object') return;
+  if (patch.domains && typeof patch.domains === 'object' && ERD_DATA.domains) {
+    Object.assign(ERD_DATA.domains, patch.domains);
+  }
+  if (patch.domain_accent_colors && typeof patch.domain_accent_colors === 'object') {
+    ERD_DATA.domain_accent_colors = Object.assign(
+      ERD_DATA.domain_accent_colors || {},
+      patch.domain_accent_colors,
+    );
+  }
+  pendingViewportRestore = captureActiveViewportForRestore();
+  switchRenderer(activeRenderer);
+}
+
+let hostPatchWired = false;
+
+function wireHostDomainPatchListener() {
+  if (hostPatchWired) return;
+  hostPatchWired = true;
+  window.addEventListener('message', (ev) => {
+    const d = ev.data;
+    if (!d || d.source !== 'maxitor-erd') return;
+    if (d.type === 'domains-patch') {
+      applyDomainsPatchFromHost(d.patch);
+      return;
+    }
+    if (d.type === 'domains-patch-error') {
+      const cb = document.getElementById('neighborhood-expand');
+      if (cb && typeof d.revertTo === 'boolean') cb.checked = d.revertTo;
+      console.error(d.message || 'domains-patch-error');
+    }
+  });
+}
+
 function flushCyWheelZoom() {
   cyWheelRaf = null;
   if (!cyInstance) return;
@@ -294,7 +404,6 @@ function applyNeighborhoodScope(raw) {
   const entities = raw.entities || [];
   const relations = raw.relations || [];
   if (!entities.length) return { entities, relations };
-  // API graph entity rows no longer carry per-node domain_qualifier; neighborhood scoping is disabled.
   return { entities, relations };
 }
 
@@ -350,7 +459,9 @@ async function initD3Graphviz() {
     svgPan.pnid = 'gv-panner';
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        fitSvgPanorama();
+        if (!consumePendingSvgPan('d3gv')) {
+          fitSvgPanorama();
+        }
         attachSvgViewportInteraction();
       });
     });
@@ -436,13 +547,15 @@ async function initCytoscape() {
 
   if (cyInstance) { try { cyInstance.destroy(); } catch(_){} }
 
+  const preserveCy = pendingViewportRestore && pendingViewportRestore.kind === 'cy';
+
   cyInstance = cytoscape({
     container: document.getElementById('cy-graph'),
     elements,
     style:  buildCytoscapeStyle(),
     layout: { name: 'dagre', rankDir: isLR ? 'LR' : 'TB',
                nodeSep: 60, rankSep: 100, padding: 40,
-               animate: true, animationDuration: 400 },
+               animate: !preserveCy, animationDuration: preserveCy ? 0 : 400 },
     minZoom: MIN_SCALE,
     maxZoom: MAX_SCALE,
     zoomingEnabled: true,
@@ -451,6 +564,16 @@ async function initCytoscape() {
   });
 
   cyInstance.on('zoom', () => syncZoomPct());
+
+  cyInstance.one('layoutstop', () => {
+    const p = pendingViewportRestore;
+    if (p && p.kind === 'cy' && activeRenderer === 'cytoscape') {
+      cyInstance.zoom(p.zoom);
+      cyInstance.pan(p.pan);
+      pendingViewportRestore = null;
+    }
+    syncZoomPct();
+  });
 
   const cyGraph = document.getElementById('cy-graph');
   cyGraph.addEventListener(
@@ -517,7 +640,9 @@ async function initMermaid() {
     svgPan.pnid = 'mm-panner';
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        fitSvgPanorama();
+        if (!consumePendingSvgPan('mermaid')) {
+          fitSvgPanorama();
+        }
         attachSvgViewportInteraction();
       });
     });
@@ -832,14 +957,32 @@ function wireDomainPickerOnce() {
 
 function initNeighborhoodFilter() {
   const grp = document.getElementById('neighborhood-filter');
-  if (grp) {
-    grp.style.display = 'none';
-  }
   const cb = document.getElementById('neighborhood-expand');
-  if (cb && !nhFilterWired) {
-    cb.addEventListener('change', () => switchRenderer(activeRenderer));
-    nhFilterWired = true;
-  }
+  if (!grp || !cb) return;
+  grp.style.display = 'flex';
+  cb.checked = ERD_DATA.initial_include_one_hop !== false;
+  if (nhFilterWired) return;
+  nhFilterWired = true;
+  cb.addEventListener('change', () => {
+    const domains = ERD_DATA?.domains || {};
+    const requests = [...enabledDomains]
+      .filter((key) => domains[key])
+      .map((key) => ({
+        key,
+        qualname: ERD_DATA.domain_qualifiers && ERD_DATA.domain_qualifiers[key],
+      }))
+      .filter((row) => row.qualname);
+    window.parent.postMessage(
+      {
+        source: 'maxitor-erd',
+        type: 'set-one-hop',
+        include: cb.checked,
+        domains: requests,
+        domain_qualifier_colors: ERD_DATA.domain_qualifier_colors || {},
+      },
+      '*',
+    );
+  });
 }
 
 function initDomainPicker() {
@@ -874,6 +1017,7 @@ function initDomainPicker() {
 //  INIT
 // ════════════════════════════════════════════════════════════════════════════
 (function boot() {
+  wireHostDomainPatchListener();
   initDomainPicker();
   initModeDock();
   installZoomChrome();

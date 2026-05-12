@@ -1,9 +1,8 @@
 // packages/aoa-maxitor/client/src/features/diagrams/erd/hooks/use_erd_viewer_blob_url.ts
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DiagramSelection } from "../../../diagram_selection/types";
-import { fetchErdDomainPayload, fetchErdDomainQualnames } from "../api/erd_api";
 import { buildErdHtmlDocument } from "../lib/build_erd_html_document";
-import { allocateDomainTabKey } from "../lib/domain_tab_keys";
+import { loadErdDomainsBundle } from "../lib/load_erd_domains_bundle";
 
 export type ErdViewerSelection = Extract<DiagramSelection, { kind: "erd" }>;
 
@@ -36,35 +35,19 @@ export function useErdViewerBlobUrl(selection: ErdViewerSelection): {
       revokeLast();
       setLoading(true);
       try {
-        const listing = await fetchErdDomainQualnames();
-        const domain_qualifier_colors = Object.fromEntries(
-          listing.list_domains.map((r) => [r.qualname, r.color]),
-        );
-        const quals: string[] =
-          selection.qualifier !== null
-            ? [selection.qualifier]
-            : listing.list_domains.map((r) => r.qualname);
-
-        if (!quals.length) throw new Error("No domain qualnames");
-
-        const used = new Set<string>();
-        const domains: Record<string, { entities: unknown[]; relations: unknown[] }> = {};
-        const domain_qualifiers: Record<string, string> = {};
-
-        const payloads = await Promise.all(quals.map((q) => fetchErdDomainPayload(q)));
-        for (const p of payloads) {
-          const key = allocateDomainTabKey(used, p.domain_label);
-          domains[key] = p.list_entities;
-          domain_qualifiers[key] = p.domain_qualname;
-        }
+        const includeOneHopNeighbors = true;
+        const bundle = await loadErdDomainsBundle(selection, includeOneHopNeighbors);
 
         const title =
           selection.qualifier === null
             ? "Interchange ERD"
-            : `ERD — ${payloads[0]?.domain_label ?? selection.qualifier.split(".").pop() ?? "domain"}`;
+            : `ERD — ${bundle.first_domain_label ?? selection.qualifier.split(".").pop() ?? "domain"}`;
 
         const html = buildErdHtmlDocument(
-          { domains, domain_qualifiers, domain_qualifier_colors },
+          {
+            ...bundle,
+            initial_include_one_hop: includeOneHopNeighbors,
+          },
           title,
         );
         const blob = new Blob([html], { type: "text/html;charset=utf-8" });

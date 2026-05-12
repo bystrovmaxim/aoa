@@ -8,8 +8,16 @@ export async function fetchErdDomainQualnames(): Promise<DomainQualnamesPayload>
   return (await res.json()) as DomainQualnamesPayload;
 }
 
-export async function fetchErdDomainPayload(qual: string): Promise<ErdDomainPayload> {
-  const res = await fetch(apiUrl(`/api/v1/erd/domains/${encodeURIComponent(qual)}`));
+export async function fetchErdDomainPayload(
+  qual: string,
+  includeOneHopNeighbors = true,
+): Promise<ErdDomainPayload> {
+  const params = new URLSearchParams({
+    include_one_hop_neighbors: String(includeOneHopNeighbors),
+  });
+  const res = await fetch(
+    apiUrl(`/api/v1/erd/domains/${encodeURIComponent(qual)}?${params.toString()}`),
+  );
   if (!res.ok) throw new Error(`domain ${res.status}`);
   return (await res.json()) as ErdDomainPayload;
 }
