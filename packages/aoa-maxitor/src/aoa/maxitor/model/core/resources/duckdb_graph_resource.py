@@ -93,7 +93,8 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
         """CREATE TABLE entity (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
-      description VARCHAR NOT NULL
+      description VARCHAR NOT NULL,
+      field_order VARCHAR NOT NULL
     );""",
         """CREATE TABLE entity_field (
       entity_id VARCHAR NOT NULL,
@@ -453,7 +454,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT id, label, CAST('action' AS VARCHAR) AS type, json_object('description', description) AS payload FROM action",
         "SELECT id, label, CAST('application' AS VARCHAR) AS type, json_object('name', name, 'description', description) AS payload FROM application",
         "SELECT id, label, CAST('domain' AS VARCHAR) AS type, json_object('name', name, 'description', description) AS payload FROM domain",
-        "SELECT id, label, CAST('entity' AS VARCHAR) AS type, json_object('description', description) AS payload FROM entity",
+        "SELECT id, label, CAST('entity' AS VARCHAR) AS type, json_object('description', description, 'field_order', field_order) AS payload FROM entity",
         "SELECT id, label, CAST('resource' AS VARCHAR) AS type, json_object('description', description) AS payload FROM resource",
         f"SELECT id, label, CAST('params' AS VARCHAR) AS type, {_nj()} AS payload FROM params",
         f"SELECT id, label, CAST('result' AS VARCHAR) AS type, {_nj()} AS payload FROM result",
@@ -546,7 +547,13 @@ def _fill_table_domain(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]
 def _fill_table_entity(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
     for node in rows:
         p = _get_properties(node)
-        con.execute("INSERT INTO entity VALUES (?, ?, ?)", [node["id"], node["label"], p["description"]])
+        field_order = p.get("field_order") or []
+        if not isinstance(field_order, list):
+            field_order = []
+        con.execute(
+            "INSERT INTO entity VALUES (?, ?, ?, ?)",
+            [node["id"], node["label"], p["description"], json.dumps(field_order)],
+        )
         for field in p.get("fields", []):
             con.execute(
                 "INSERT INTO entity_field VALUES (?, ?, ?, ?)",
@@ -943,8 +950,16 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     )
     _executemany(
         con,
-        "INSERT INTO entity VALUES (?, ?, ?)",
-        [[n["id"], n["label"], _get_properties(n)["description"]] for n in nodes_by_type.get("Entity", [])],
+        "INSERT INTO entity VALUES (?, ?, ?, ?)",
+        [
+            [
+                n["id"],
+                n["label"],
+                _get_properties(n)["description"],
+                json.dumps(_get_properties(n).get("field_order") or []),
+            ]
+            for n in nodes_by_type.get("Entity", [])
+        ],
     )
     entity_fields: list[list[Any]] = []
     for n in nodes_by_type.get("Entity", []):

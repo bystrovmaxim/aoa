@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Annotated, Any, cast
 
 from pydantic import Field
@@ -21,6 +22,39 @@ from aoa.maxitor.model.core.resources.duckdb_graph_resource import (
     DuckDBGraphResource,
 )
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
+
+
+def _sort_entity_fields_row(row: dict[str, Any]) -> None:
+    """Order ERD ``fields`` like ``field_order`` (``BaseEntity.model_fields`` declaration order)."""
+    fields = row.get("fields")
+    if not isinstance(fields, list) or not fields:
+        row.pop("field_order", None)
+        return
+    raw_order = row.pop("field_order", None)
+    if isinstance(raw_order, str):
+        try:
+            order = json.loads(raw_order)
+        except json.JSONDecodeError:
+            order = []
+    elif isinstance(raw_order, list):
+        order = raw_order
+    else:
+        order = []
+    if not order:
+        return
+    by_name: dict[str, dict[str, Any]] = {}
+    for item in fields:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        if isinstance(name, str) and name:
+            by_name[name] = item
+    sorted_fields: list[dict[str, Any]] = []
+    for name in order:
+        if name in by_name:
+            sorted_fields.append(by_name.pop(name))
+    sorted_fields.extend(by_name.values())
+    row["fields"] = sorted_fields
 
 
 def _domain_label(duck: DuckDBGraphResource, qual: str) -> str:
@@ -62,6 +96,7 @@ def _slice_payload(duck: DuckDBGraphResource, qual: str, include_neighbors: bool
           SELECT entity_id, name, type, FALSE AS primary_key, foreign_key FROM fk
         )
         SELECT e.id, e.label, COALESCE(MIN(de.target_id), '') AS domain_qualname,
+               any_value(e.field_order) AS field_order,
                list(distinct struct_pack(
                  name := fr.name,
                  type := fr.type,
@@ -94,8 +129,11 @@ def _slice_payload(duck: DuckDBGraphResource, qual: str, include_neighbors: bool
            OR er.target_id IN (SELECT id FROM domain_entity)
         ORDER BY er.source_id, er.target_id, er.field_name
     """
+    entities = duck.execute_fetch_dicts(entity_sql, [qual])
+    for ent in entities:
+        _sort_entity_fields_row(ent)
     return {
-        "entities": duck.execute_fetch_dicts(entity_sql, [qual]),
+        "entities": entities,
         "relations": duck.execute_fetch_dicts(relation_sql, [qual]),
     }
 
