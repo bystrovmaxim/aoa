@@ -267,11 +267,36 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
               "type": "object",
               "additionalProperties": false,
               "required": [
-                "description"
+                "description",
+                "fields"
               ],
               "properties": {
                 "description": {
                   "type": "string"
+                },
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "name",
+                      "type",
+                      "primary_key"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "primary_key": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
                 }
               }
             }

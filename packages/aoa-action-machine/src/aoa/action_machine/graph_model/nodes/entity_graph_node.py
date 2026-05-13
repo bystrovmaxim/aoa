@@ -23,7 +23,7 @@ the entity row contributes lifecycle vertices only.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, TypeVar
+from typing import Annotated, Any, ClassVar, TypeVar, get_args, get_origin
 
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
@@ -35,6 +35,33 @@ from aoa.graph.base_graph_edge import BaseGraphEdge
 from aoa.graph.base_graph_node import BaseGraphNode
 
 TEntity = TypeVar("TEntity", bound=BaseEntity)
+
+
+def _pretty_annotation(annotation: Any) -> str:
+    ann = annotation
+    while get_origin(ann) is Annotated:
+        args = get_args(ann)
+        if not args:
+            break
+        ann = args[0]
+    origin = get_origin(ann)
+    if origin is None:
+        return ann.__qualname__ if isinstance(ann, type) else str(ann)
+    rendered_args = ", ".join(_pretty_annotation(arg) for arg in get_args(ann))
+    name = getattr(origin, "__qualname__", str(origin))
+    return f"{name}[{rendered_args}]" if rendered_args else name
+
+
+def _entity_field_rows(entity_cls: type[BaseEntity]) -> list[dict[str, Any]]:
+    relation_names = {rel.field_name for rel in EntityIntentResolver.resolve_entity_relations(entity_cls)}
+    rows = [
+        {"name": name, "type": _pretty_annotation(field.annotation), "primary_key": name == "id"}
+        for name, field in entity_cls.model_fields.items()
+        if name not in relation_names
+    ]
+    if not any(row["name"] == "id" for row in rows):
+        rows.insert(0, {"name": "id", "type": "str", "primary_key": True})
+    return rows
 
 
 @dataclass(init=False, frozen=True)
@@ -52,11 +79,13 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     lifecycles: list[LifeCycleGraphEdge] = field(init=False)
 
     def __init__(self, entity_cls: type[TEntity]) -> None:
+        description = EntityIntentResolver.resolve_description(entity_cls)
+        fields = _entity_field_rows(entity_cls)
         super().__init__(
             node_id=TypeIntrospection.full_qualname(entity_cls),
             node_type=EntityGraphNode.NODE_TYPE,
             label=entity_cls.__name__,
-            properties=dict({"description": EntityIntentResolver.resolve_description(entity_cls)}),
+            properties={"description": description, "fields": fields},
             node_obj=entity_cls,
         )
         object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self))
@@ -70,6 +99,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             "label": self.label,
             "properties": {
                 "description": str(self.properties["description"]),
+                "fields": list(self.properties["fields"]),
             },
         }
 
