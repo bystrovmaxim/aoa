@@ -22,8 +22,8 @@ Environment for the `maxitor-api` console script: `MAXITOR_API_HOST` (default `1
 
 - `GET /api/health` returns API health.
 - `GET /api/sidebar` returns navigation rows for the sidebar.
-- `GET /api/v1/graph/interchange` returns interchange graph JSON for the React G6 viewer.
-- `GET /api/v1/erd/domain-qualnames` and `GET /api/v1/erd/domains/{qualname}` return ERD graph JSON for the React viewer.
+- `GET /api/v1/full-graph` returns interchange graph JSON for the React G6 viewer.
+- `GET /api/v1/list-domains` returns domain qualnames with accent colours; `GET /api/v1/list-entities` returns ERD entity slices (repeat ``domain_qualnames`` as query params).
 
 ### React frontend
 

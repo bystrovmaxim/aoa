@@ -13,8 +13,8 @@ ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.a
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
 Each generated route declares the ``connections`` required by its action; diagram routes use a
 shared :class:`~aoa.maxitor.model.core.resources.networkx_graph_resource.NetworkXGraphResource`
-(list domains and interchange graph payload) and :class:`~aoa.maxitor.model.core.resources.duckdb_graph_resource.DuckDBGraphResource`
-(ERD ``/erd/domains``),
+(interchange graph payload) and :class:`~aoa.maxitor.model.core.resources.duckdb_graph_resource.DuckDBGraphResource`
+(ERD domain qualnames and per-domain entity slices),
 constructed once with :func:`create_app` (interchange JSON from the examples ``graph-json`` HTTP endpoint). Sidebar rows are loaded once in the ASGI lifespan
 (``application.state.sidebar_data``).
 """
@@ -87,27 +87,24 @@ def create_app() -> FastAPI:
             version="1.0.0",
             description=(
                 "JSON endpoints generated from diagrams actions. "
-                "Each route declares its ``connections``; ``ListDomainsAction`` / interchange graph use "
-                "``NetworkXGraphResource``; ``ListEntitiesAction`` uses ``DuckDBGraphResource``."
+                "Each route declares its ``connections``; ``ListDomainsAction`` and ``ListEntitiesAction`` use "
+                "``DuckDBGraphResource``; ``GetInterchangeGraphPayloadAction`` uses ``NetworkXGraphResource``."
             ),
         )
         .get(
-            "/erd/domain-qualnames",
+            "/list-domains",
             ListDomainsAction,
-            connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
-            tags=["erd"],
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .get(
-            "/erd/domains",
+            "/list-entities",
             ListEntitiesAction,
             connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
-            tags=["erd"],
         )
         .get(
-            "/graph/interchange",
+            "/full-graph",
             GetInterchangeGraphPayloadAction,
             connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
-            tags=["graph"],
         )
         .build()
     )

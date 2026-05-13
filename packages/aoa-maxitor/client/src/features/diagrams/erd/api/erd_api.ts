@@ -3,8 +3,8 @@ import { apiUrl } from "../../../../shared/config/api";
 import type { DomainQualnamesPayload, ErdDomainPayload, ErdDomainsBatchPayload } from "../model";
 
 export async function fetchErdDomainQualnames(): Promise<DomainQualnamesPayload> {
-  const res = await fetch(apiUrl("/api/v1/erd/domain-qualnames"));
-  if (!res.ok) throw new Error(`domain-qualnames ${res.status}`);
+  const res = await fetch(apiUrl("/api/v1/list-domains"));
+  if (!res.ok) throw new Error(`list-domains ${res.status}`);
   return (await res.json()) as DomainQualnamesPayload;
 }
 
@@ -17,8 +17,8 @@ export async function fetchErdDomainsBatch(
   for (const q of domainQualnames) {
     params.append("domain_qualnames", q);
   }
-  const res = await fetch(apiUrl(`/api/v1/erd/domains?${params.toString()}`));
-  if (!res.ok) throw new Error(`erd/domains ${res.status}`);
+  const res = await fetch(apiUrl(`/api/v1/list-entities?${params.toString()}`));
+  if (!res.ok) throw new Error(`list-entities ${res.status}`);
   return (await res.json()) as ErdDomainsBatchPayload;
 }
 

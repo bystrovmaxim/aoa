@@ -37,13 +37,17 @@ export function MainDiagramView({ diagram }: MainDiagramViewProps) {
             <Typography variant="body2" color="text.secondary">
               Open the interchange graph or an ERD. The graph loads JSON from{" "}
               <Box component="code" sx={{ fontSize: "0.85em" }}>
-                /api/v1/graph/interchange
+                /api/v1/full-graph
               </Box>{" "}
               and renders with AntV G6 in the SPA; ERD uses{" "}
               <Box component="code" sx={{ fontSize: "0.85em" }}>
-                /api/v1/erd/*
+                /api/v1/list-domains
               </Box>{" "}
-              and bundles the viewer shell in the SPA.
+              and{" "}
+              <Box component="code" sx={{ fontSize: "0.85em" }}>
+                /api/v1/list-entities
+              </Box>
+              ; the SPA bundles the viewer shell.
             </Typography>
           </Paper>
         </Box>

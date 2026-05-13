@@ -2,7 +2,7 @@
 import type { DiagramSelection } from "../../diagram_selection/types";
 import type { NodeRow, SidebarGroupedMaps, SidebarPayload } from "./types";
 
-/** ERD uses JSON from ``/api/v1/erd/*``; interchange graph uses ``GET /api/v1/graph/interchange`` + G6 in the SPA. */
+/** ERD uses ``GET /api/v1/list-domains`` and ``GET /api/v1/list-entities``; interchange graph uses ``GET /api/v1/full-graph`` + G6 in the SPA. */
 export function diagramSelectionForRow(row: NodeRow): DiagramSelection | null {
   if (row.type === "graph") {
     return { kind: "interchange_graph" };
