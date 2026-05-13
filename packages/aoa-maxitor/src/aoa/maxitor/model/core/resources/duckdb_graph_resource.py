@@ -72,50 +72,50 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
     def _install_database(self, con: duckdb.DuckDBPyConnection) -> None:
         """Create DuckDB tables, indexes, and ``nodes`` / ``edges`` views (DDL only; no row inserts)."""
         parts: list[str] = [
-        # --- node tables (one table per graph-node oneOf branch in GRAPH_JSON_SCHEMA) ---
-        """CREATE TABLE action (
+            # --- node tables (one table per graph-node oneOf branch in GRAPH_JSON_SCHEMA) ---
+            """CREATE TABLE action (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL
     );""",
-        """CREATE TABLE application (
-      id VARCHAR NOT NULL PRIMARY KEY,
-      label VARCHAR NOT NULL,
-      name VARCHAR NOT NULL,
-      description VARCHAR NOT NULL
-    );""",
-        """CREATE TABLE domain (
+            """CREATE TABLE application (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       name VARCHAR NOT NULL,
       description VARCHAR NOT NULL
     );""",
-        """CREATE TABLE entity (
+            """CREATE TABLE domain (
+      id VARCHAR NOT NULL PRIMARY KEY,
+      label VARCHAR NOT NULL,
+      name VARCHAR NOT NULL,
+      description VARCHAR NOT NULL
+    );""",
+            """CREATE TABLE entity (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL,
       field_order VARCHAR NOT NULL
     );""",
-        """CREATE TABLE entity_field (
+            """CREATE TABLE entity_field (
       entity_id VARCHAR NOT NULL,
       name VARCHAR NOT NULL,
       type VARCHAR NOT NULL,
       primary_key BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE resource (
+            """CREATE TABLE resource (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL
     );""",
-        """CREATE TABLE params (
+            """CREATE TABLE params (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL
     );""",
-        """CREATE TABLE result (
+            """CREATE TABLE result (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL
     );""",
-        """CREATE TABLE field (
+            """CREATE TABLE field (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       prop_required BOOLEAN NOT NULL,
@@ -125,169 +125,169 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       json_schema_name VARCHAR,
       json_schema JSON
     );""",
-        """CREATE TABLE property_field (
+            """CREATE TABLE property_field (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       prop_required BOOLEAN NOT NULL,
       entity_schema BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE regular_aspect (
+            """CREATE TABLE regular_aspect (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL
     );""",
-        """CREATE TABLE summary_aspect (
+            """CREATE TABLE summary_aspect (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL
     );""",
-        """CREATE TABLE compensator (
+            """CREATE TABLE compensator (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       description VARCHAR,
       target_aspect_name VARCHAR
     );""",
-        """CREATE TABLE error_handler (
+            """CREATE TABLE error_handler (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       description VARCHAR,
       exception_types JSON
     );""",
-        """CREATE TABLE checker (
+            """CREATE TABLE checker (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       type_checker VARCHAR NOT NULL,
       checker_required BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE required_context (
+            """CREATE TABLE required_context (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       ctx_key VARCHAR NOT NULL
     );""",
-        """CREATE TABLE lifecycle (
+            """CREATE TABLE lifecycle (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       field_name VARCHAR NOT NULL
     );""",
-        """CREATE TABLE state (
+            """CREATE TABLE state (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       kind VARCHAR NOT NULL,
       lifecycle_class_id VARCHAR NOT NULL,
       state_key VARCHAR NOT NULL
     );""",
-        """CREATE TABLE sensitive (
+            """CREATE TABLE sensitive (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       properties JSON NOT NULL
     );""",
-        """CREATE TABLE role (
+            """CREATE TABLE role (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       role_mode VARCHAR NOT NULL
     );""",
-        # --- edges: ``empty_properties`` enum members (separate tables) ---
-        """CREATE TABLE application_edges (
+            # --- edges: ``empty_properties`` enum members (separate tables) ---
+            """CREATE TABLE application_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE domain_edges (
+            """CREATE TABLE domain_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE generic_params_edges (
+            """CREATE TABLE generic_params_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE generic_result_edges (
+            """CREATE TABLE generic_result_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE check_roles_edges (
+            """CREATE TABLE check_roles_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE regular_aspect_edges (
+            """CREATE TABLE regular_aspect_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE summary_aspect_edges (
+            """CREATE TABLE summary_aspect_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE compensate_edges (
+            """CREATE TABLE compensate_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE on_error_edges (
+            """CREATE TABLE on_error_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE result_checker_edges (
+            """CREATE TABLE result_checker_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE entity_schema_edges (
+            """CREATE TABLE entity_schema_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE field_edges (
+            """CREATE TABLE field_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        """CREATE TABLE property_edges (
+            """CREATE TABLE property_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
-        # --- other link oneOf branches ---
-        """CREATE TABLE depends_edges (
+            # --- other link oneOf branches ---
+            """CREATE TABLE depends_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL,
       description VARCHAR NOT NULL
     );""",
-        """CREATE TABLE connection_edges (
+            """CREATE TABLE connection_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL,
       conn_key VARCHAR NOT NULL
     );""",
-        """CREATE TABLE required_context_edges (
+            """CREATE TABLE required_context_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL,
       ctx_key VARCHAR NOT NULL
     );""",
-        """CREATE TABLE entity_relation_edges (
+            """CREATE TABLE entity_relation_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
@@ -301,28 +301,28 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       inverse_entity_id VARCHAR,
       inverse_field VARCHAR
     );""",
-        """CREATE TABLE entity_view_edges (
+            """CREATE TABLE entity_view_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL,
       field_name VARCHAR NOT NULL
     );""",
-        """CREATE TABLE lifecycle_edges (
+            """CREATE TABLE lifecycle_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL,
       field_name VARCHAR NOT NULL
     );""",
-        """CREATE TABLE lifecycle_contains_state_edges (
+            """CREATE TABLE lifecycle_contains_state_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL,
       state_key VARCHAR NOT NULL
     );""",
-        """CREATE TABLE lifecycle_transition_edges (
+            """CREATE TABLE lifecycle_transition_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
@@ -330,14 +330,14 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       from_state VARCHAR NOT NULL,
       to_state VARCHAR NOT NULL
     );""",
-        """CREATE TABLE sensitive_edges (
+            """CREATE TABLE sensitive_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL,
       properties JSON NOT NULL
     );""",
-        """CREATE TABLE state_edges (
+            """CREATE TABLE state_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
@@ -872,7 +872,10 @@ def _fill_table_lifecycle_transition_edges(con: duckdb.DuckDBPyConnection, rows:
     _executemany(
         con,
         "INSERT INTO lifecycle_transition_edges (source_id, target_id, relationship, is_dag, from_state, to_state) VALUES (?, ?, ?, ?, ?, ?)",
-        [[*_base_edge_row(edge), _get_properties(edge)["from_state"], _get_properties(edge)["to_state"]] for edge in rows],
+        [
+            [*_base_edge_row(edge), _get_properties(edge)["from_state"], _get_properties(edge)["to_state"]]
+            for edge in rows
+        ],
     )
 
 
@@ -924,7 +927,10 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
         _executemany(
             con,
             f"INSERT INTO {table} (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [[e["source_id"], e["target_id"], e["relationship"], e["is_dag"]] for e in edges_by_type.get(edge_type, [])],
+            [
+                [e["source_id"], e["target_id"], e["relationship"], e["is_dag"]]
+                for e in edges_by_type.get(edge_type, [])
+            ],
         )
 
     _executemany(
@@ -971,8 +977,12 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
         "INSERT INTO resource VALUES (?, ?, ?)",
         [[n["id"], n["label"], _get_properties(n)["description"]] for n in nodes_by_type.get("Resource", [])],
     )
-    _executemany(con, "INSERT INTO params VALUES (?, ?)", [[n["id"], n["label"]] for n in nodes_by_type.get("Params", [])])
-    _executemany(con, "INSERT INTO result VALUES (?, ?)", [[n["id"], n["label"]] for n in nodes_by_type.get("Result", [])])
+    _executemany(
+        con, "INSERT INTO params VALUES (?, ?)", [[n["id"], n["label"]] for n in nodes_by_type.get("Params", [])]
+    )
+    _executemany(
+        con, "INSERT INTO result VALUES (?, ?)", [[n["id"], n["label"]] for n in nodes_by_type.get("Result", [])]
+    )
     _executemany(
         con,
         "INSERT INTO field VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -1020,7 +1030,12 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
         con,
         "INSERT INTO error_handler VALUES (?, ?, ?, ?)",
         [
-            [n["id"], n["label"], _get_properties(n).get("description"), _pack_json_or_none(_get_properties(n).get("exception_types"))]
+            [
+                n["id"],
+                n["label"],
+                _get_properties(n).get("description"),
+                _pack_json_or_none(_get_properties(n).get("exception_types")),
+            ]
             for n in nodes_by_type.get("ErrorHandler", [])
         ],
     )

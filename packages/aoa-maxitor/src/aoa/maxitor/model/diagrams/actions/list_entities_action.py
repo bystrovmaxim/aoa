@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import Annotated, Any, cast
 
 from pydantic import Field
@@ -22,39 +21,6 @@ from aoa.maxitor.model.core.resources.duckdb_graph_resource import (
     DuckDBGraphResource,
 )
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
-
-
-def _sort_entity_fields_row(row: dict[str, Any]) -> None:
-    """Order ERD ``fields`` like ``field_order`` (``BaseEntity.model_fields`` declaration order)."""
-    fields = row.get("fields")
-    if not isinstance(fields, list) or not fields:
-        row.pop("field_order", None)
-        return
-    raw_order = row.pop("field_order", None)
-    if isinstance(raw_order, str):
-        try:
-            order = json.loads(raw_order)
-        except json.JSONDecodeError:
-            order = []
-    elif isinstance(raw_order, list):
-        order = raw_order
-    else:
-        order = []
-    if not order:
-        return
-    by_name: dict[str, dict[str, Any]] = {}
-    for item in fields:
-        if not isinstance(item, dict):
-            continue
-        name = item.get("name")
-        if isinstance(name, str) and name:
-            by_name[name] = item
-    sorted_fields: list[dict[str, Any]] = []
-    for name in order:
-        if name in by_name:
-            sorted_fields.append(by_name.pop(name))
-    sorted_fields.extend(by_name.values())
-    row["fields"] = sorted_fields
 
 
 def _domain_label(duck: DuckDBGraphResource, qual: str) -> str:
@@ -94,19 +60,28 @@ def _slice_payload(duck: DuckDBGraphResource, qual: str, include_neighbors: bool
           SELECT entity_id, name, type, primary_key, FALSE AS foreign_key FROM entity_field
           UNION ALL
           SELECT entity_id, name, type, FALSE AS primary_key, foreign_key FROM fk
+        ), ordered_field_rows AS (
+          SELECT DISTINCT
+                 fr.entity_id,
+                 fr.name,
+                 fr.type,
+                 fr.primary_key,
+                 fr.foreign_key,
+                 COALESCE(NULLIF(strpos(e.field_order, '"' || fr.name || '"'), 0), 2147483647) AS sort_key
+          FROM field_rows fr
+          JOIN entity e ON e.id = fr.entity_id
         )
         SELECT e.id, e.label, COALESCE(MIN(de.target_id), '') AS domain_qualname,
-               any_value(e.field_order) AS field_order,
-               list(distinct struct_pack(
+               list(struct_pack(
                  name := fr.name,
                  type := fr.type,
                  primary_key := fr.primary_key,
                  foreign_key := fr.foreign_key
-               )) AS fields
+               ) ORDER BY fr.sort_key, fr.name) AS fields
         FROM selected_entity se
         JOIN entity e ON e.id = se.id
         LEFT JOIN domain_edges de ON de.source_id = e.id
-        LEFT JOIN field_rows fr ON fr.entity_id = e.id
+        LEFT JOIN ordered_field_rows fr ON fr.entity_id = e.id
         GROUP BY e.id, e.label
         ORDER BY e.id
     """
@@ -129,18 +104,22 @@ def _slice_payload(duck: DuckDBGraphResource, qual: str, include_neighbors: bool
            OR er.target_id IN (SELECT id FROM domain_entity)
         ORDER BY er.source_id, er.target_id, er.field_name
     """
-    entities = duck.execute_fetch_dicts(entity_sql, [qual])
-    for ent in entities:
-        _sort_entity_fields_row(ent)
     return {
-        "entities": entities,
+        "entities": duck.execute_fetch_dicts(entity_sql, [qual]),
         "relations": duck.execute_fetch_dicts(relation_sql, [qual]),
     }
 
 
-@meta(description="List entities, fields, and relations for interchange domain qualnames (diagrams)", domain=DiagramsDomain)
+@meta(
+    description="List entities, fields, and relations for interchange domain qualnames (diagrams)",
+    domain=DiagramsDomain,
+)
 @check_roles(NoneRole)
-@connection(DuckDBGraphResource, key=DUCKDB_GRAPH_CONNECTION_KEY, description="Coordinator graph in DuckDB (entity / domain / entity_relation)")
+@connection(
+    DuckDBGraphResource,
+    key=DUCKDB_GRAPH_CONNECTION_KEY,
+    description="Coordinator graph in DuckDB (entity / domain / entity_relation)",
+)
 class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAction.Result"]):
     """
     AI-CORE-BEGIN
@@ -154,8 +133,7 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         domain_qualnames: Annotated[list[str], QUERY_STR_LIST_BEFORE] = Field(
             default_factory=list,
             description=(
-                "BaseDomain interchange node ids. HTTP: repeat ``domain_qualnames`` once per id. "
-                "Omit for no domains."
+                "BaseDomain interchange node ids. HTTP: repeat ``domain_qualnames`` once per id. Omit for no domains."
             ),
         )
         include_one_hop_neighbors: bool = Field(
