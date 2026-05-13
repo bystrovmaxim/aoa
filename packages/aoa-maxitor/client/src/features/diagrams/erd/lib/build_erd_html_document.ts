@@ -3,7 +3,7 @@
  * Assemble the standalone ERD viewer HTML in the browser from bundled shell assets
  * (``erd/shell/*`` imported as raw strings). Graph engines load from CDN inside the iframe.
  *
- * The FastAPI app only exposes JSON at ``/api/v1/erd/*``; this module is the sole HTML stitcher.
+ * The FastAPI app exposes list/ERD JSON at ``/api/v1/list-domains`` and ``/api/v1/list-entities``; this module is the sole HTML stitcher.
  */
 
 import erdBootstrapJs from "../shell/erd_bootstrap.js?raw";

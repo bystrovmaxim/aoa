@@ -8,7 +8,7 @@ type InterchangeGraphApiBody = {
 
 /** Load interchange topology JSON for the AntV G6 workspace. */
 export async function fetchInterchangeGraphPayload(): Promise<InterchangeGraphG6Payload> {
-  const url = apiUrl("/api/v1/graph/interchange");
+  const url = apiUrl("/api/v1/full-graph");
   const response = await fetch(url);
   if (!response.ok) {
     const text = await response.text().catch(() => "");

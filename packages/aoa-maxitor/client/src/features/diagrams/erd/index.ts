@@ -1,6 +1,6 @@
 // packages/aoa-maxitor/client/src/features/diagrams/erd/index.ts
 /**
- * ERD viewer sub-feature: JSON from ``/api/v1/erd/*`` + bundled ``shell/*`` assets → blob iframe document.
+ * ERD viewer sub-feature: JSON from ``/api/v1/list-domains`` and ``/api/v1/list-entities`` + bundled ``shell/*`` assets → blob iframe document.
  */
 
 export { ErdViewer } from "./components/erd_viewer";

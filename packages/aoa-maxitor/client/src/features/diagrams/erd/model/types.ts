@@ -18,7 +18,7 @@ export type ErdDomainPayload = {
   };
 };
 
-/** Batch response from ``GET /api/v1/erd/domains`` (one graph scan, multiple slices). */
+/** Batch response from ``GET /api/v1/list-entities`` (one graph scan, multiple slices). */
 export type ErdDomainsBatchPayload = {
   domain_slices: ErdDomainPayload[];
 };

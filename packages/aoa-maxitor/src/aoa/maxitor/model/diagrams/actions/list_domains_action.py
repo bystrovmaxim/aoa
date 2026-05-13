@@ -6,24 +6,18 @@ ListDomainsAction — domain interchange rows (qualname + colour) for client-sid
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Return ordered domain rows (interchange qualname + accent colour) from the embedded
-nx graph so the React shell can fetch per-domain payloads separately. The list is always
-derived from the graph; there is no request filter on this action. Domain rows receive
-accent hex colours from ``_LIST_DOMAINS_DISTINCT_COLORS`` (ordered disk-like hues then
-extended saturated tones); further rows cycle within that palette. The wire ``list_domains`` field uses the module-level ``ListDomainsJson`` type from
-:class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue`.
+Return ordered domain rows (interchange qualname + accent colour) from
+``connections["DuckDBGraph"]`` so the React shell can fetch per-domain payloads separately.
+Rows are read from the DuckDB ``domain`` table (same coordinator graph load as
+``ListEntitiesAction``). Accent colours use ``_LIST_DOMAINS_DISTINCT_COLORS`` by row index
+after SQL sort. The wire ``list_domains`` field uses ``ListDomainsJson`` from
+:mod:`~aoa.maxitor.model.diagrams.actions.list_domains_action_schema`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    ``connections["NetworkXGraph"].service`` (NetworkX ``DiGraph``)
-          |
-          v
-    @regular_aspect — collect ``[label, qualname]`` rows (``erd_domain_label_rows``)
-          |
-          v
-    @regular_aspect — sort and emit ``erd_domain_infos`` (qualname + color)
+    ``connections["DuckDBGraph"]`` (``domain`` table)
           |
           v
     @summary_aspect — ``Result(list_domains=...)``
@@ -36,18 +30,18 @@ from typing import Any, cast
 from pydantic import Field
 
 from aoa.action_machine.auth import NoneRole
-from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
+from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
-from aoa.action_machine.intents.checkers import result_instance
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseResult, BaseState, JsonSchemaValue, ParamsStub
+from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.model.core.resources.networkx_graph_resource import (
-    NETWORKX_GRAPH_CONNECTION_KEY,
-    NetworkXGraphResource,
+from aoa.maxitor.model.core.resources.duckdb_graph_resource import (
+    DUCKDB_GRAPH_CONNECTION_KEY,
+    DuckDBGraphResource,
 )
+from aoa.maxitor.model.diagrams.actions.list_domains_action_schema import ListDomainsJson
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
 # Ordered palette: React ERD disk hues first, then extra saturated tones; longer domain lists cycle.
@@ -103,40 +97,23 @@ def _unique_color_tuple(*segments: tuple[str, ...]) -> tuple[str, ...]:
 
 _LIST_DOMAINS_DISTINCT_COLORS: tuple[str, ...] = _unique_color_tuple(_EXTRA_LIST_DOMAIN_COLORS)
 
-# Ordered interchange ``BaseDomain`` type qualnames with one ERD accent hex per row; used for
-# ``ListDomainsAction.Result.list_domains`` and the domain-qualnames HTTP JSON body.
-ListDomainsJson = JsonSchemaValue.define(
-    name="ListDomainsJson",
-    schema={
-        "type": "array",
-        "minItems": 0,
-        "items": {
-            "type": "object",
-            "properties": {
-                "qualname": {"type": "string"},
-                "color": {"type": "string"},
-            },
-            "required": ["qualname", "color"],
-            "additionalProperties": False,
-        },
-    },
-)
-
 
 @meta(
     description="List interchange domain type qualnames for ERD client (diagrams)",
     domain=DiagramsDomain,
 )
 @check_roles(NoneRole)
-@connection(NetworkXGraphResource, key=NETWORKX_GRAPH_CONNECTION_KEY, description="Serialized interchange nx graph")
-class ListDomainsAction(
-    BaseAction[ParamsStub, "ListDomainsAction.Result"],
-):
+@connection(
+    DuckDBGraphResource,
+    key=DUCKDB_GRAPH_CONNECTION_KEY,
+    description="Coordinator graph in DuckDB (domain rows for ERD discovery)",
+)
+class ListDomainsAction(BaseAction[ParamsStub, "ListDomainsAction.Result"]):
     """
     AI-CORE-BEGIN
     ROLE: Emit ``list_domains`` rows (qualname + color) for ERD tab discovery on the client.
-    CONTRACT: Domain rows are computed only from ``connections["NetworkXGraph"].service``; colours use ``_LIST_DOMAINS_DISTINCT_COLORS`` by sorted index (first twenty unique).
-    INVARIANTS: Reads the graph only via ``connections["NetworkXGraph"].service``; pipeline uses ``@regular_aspect`` state keys then ``@summary_aspect``.
+    CONTRACT: Domain rows come from DuckDB ``domain`` ordered like the former nx pipeline (label then id); test and ``<locals>`` ids are excluded.
+    INVARIANTS: Reads ``connections[DuckDBGraph]`` only — no NetworkX scan.
     AI-CORE-END
     """
 
@@ -151,55 +128,27 @@ class ListDomainsAction(
             description="Ordered interchange qualname rows with ERD accent hex colour per row.",
         )
 
-    @regular_aspect("Collect domain interchange label rows from nx graph")
-    @result_instance("erd_domain_label_rows", list, required=True)  # type: ignore[untyped-decorator]
-    async def collect_domain_label_rows_aspect(
-        self,
-        _params: ParamsStub,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-    ) -> dict[str, Any]:
-        nx_resource = cast(NetworkXGraphResource, connections[NETWORKX_GRAPH_CONNECTION_KEY])
-        rows: list[list[str]] = []
-        for nid, data in nx_resource.service.nodes(data=True):
-            if str(data.get("type", "")) != "Domain":
-                continue
-            nid_s = str(nid)
-            if nid_s.startswith("tests.") or "<locals>" in nid_s:
-                continue
-            label = str(data.get("label", ""))
-            rows.append([label, nid_s])
-        return {"erd_domain_label_rows": rows}
-
-    @regular_aspect("Sort domain rows and attach distinct ERD accent colours")
-    @result_instance("erd_domain_infos", list, required=True)  # type: ignore[untyped-decorator]
-    async def sort_domain_infos_aspect(
-        self,
-        _params: ParamsStub,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-    ) -> dict[str, Any]:
-        raw_rows = cast(list[Any], state["erd_domain_label_rows"])
-        pairs: list[tuple[str, str]] = []
-        for pair in raw_rows:
-            pairs.append((str(pair[0]), str(pair[1])))
-        pairs.sort(key=lambda lr: (lr[0].lower(), lr[1]))
+    @staticmethod
+    def _list_domains_rows(duck: DuckDBGraphResource) -> list[dict[str, Any]]:
+        """Return ``list_domains`` rows: qualnames from DuckDB with cycling accent colours."""
+        sql = """
+        SELECT id AS qualname
+        FROM domain
+        WHERE id NOT LIKE 'tests.%'
+          AND strpos(id, '<locals>') = 0
+        ORDER BY lower(label), lower(COALESCE(NULLIF(name, ''), label, id)), id
+        """
+        raw = duck.execute_fetch_dicts(sql)
         palette = _LIST_DOMAINS_DISTINCT_COLORS
-        infos = [
-            {"qualname": qual, "color": palette[i % len(palette)]}
-            for i, (_label, qual) in enumerate(pairs)
-        ]
-        return {"erd_domain_infos": infos}
+        return [{"qualname": str(row["qualname"]), "color": palette[i % len(palette)]} for i, row in enumerate(raw)]
 
-    @summary_aspect("Resolve domain qualifier list from nx graph")
-    async def list_qualnames_summary(
+    @summary_aspect("Resolve domain qualifier list from DuckDB graph")
+    async def build_list_domains_summary(
         self,
         _params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> ListDomainsAction.Result:
-        infos = list(cast(list[Any], state["erd_domain_infos"]))
-        return ListDomainsAction.Result(list_domains=infos)
+        duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
+        return ListDomainsAction.Result(list_domains=self._list_domains_rows(duck))

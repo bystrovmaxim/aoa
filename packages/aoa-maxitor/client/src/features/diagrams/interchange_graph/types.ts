@@ -1,6 +1,6 @@
 // packages/aoa-maxitor/client/src/features/diagrams/interchange_graph/types.ts
 
-/** G6-oriented payload from ``GET /api/v1/graph/interchange`` (``body.payload``). */
+/** G6-oriented payload from ``GET /api/v1/full-graph`` (``body.payload``). */
 export type InterchangeGraphG6Payload = {
   title: string;
   nodes: Array<{
