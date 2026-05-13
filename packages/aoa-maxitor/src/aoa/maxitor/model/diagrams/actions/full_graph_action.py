@@ -1,25 +1,4 @@
 # packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/full_graph_action.py
-"""
-FullGraphAction — G6 graph payload from DuckDB graph views.
-
-═══════════════════════════════════════════════════════════════════════════════
-PURPOSE
-═══════════════════════════════════════════════════════════════════════════════
-
-Read the interchange topology from DuckDB ``nodes`` / ``edges`` views and emit
-the JSON consumed by the React G6 viewer. Colours are shared with
-``ListNodeTypesAction``; heavier visual derivations are intentionally kept out
-of the backend payload so the client can normalize/render from raw graph rows.
-
-═══════════════════════════════════════════════════════════════════════════════
-ARCHITECTURE / DATA FLOW
-═══════════════════════════════════════════════════════════════════════════════
-
-    ``connections["DuckDBGraph"]`` (``nodes`` / ``edges`` views)
-          |
-          v
-    @summary_aspect — ``Result(payload=...)``
-"""
 
 from __future__ import annotations
 
@@ -39,7 +18,6 @@ from aoa.maxitor.model.core.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
     DuckDBGraphResource,
 )
-from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import (
     DEFAULT_NODE_TYPE_COLOR,
     fill_color_for_node_type,
@@ -51,12 +29,202 @@ G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 DAG_CYCLE_VIOLATION_COLOR = "#E41A1C"
 GRAPH_NODE_VISUAL_PX = 24
 
+# ---------------------------------------------------------------------------
+# SQL — single round-trip (nodes + edges + domains); no PyArrow dependency.
+# ---------------------------------------------------------------------------
+
+_FULL_GRAPH_SQL = """
+WITH
+  node_rows AS (
+    SELECT
+      id,
+      label,
+      type,
+      payload
+    FROM nodes
+    ORDER BY lower(type), lower(label), id
+  ),
+  edge_rows AS (
+    SELECT
+      row_number() OVER (ORDER BY source_id, target_id, type, relationship) - 1 AS idx,
+      source_id,
+      target_id,
+      relationship,
+      is_dag,
+      type,
+      payload
+    FROM edges
+    ORDER BY source_id, target_id, type, relationship
+  ),
+  domain_rows AS (
+    SELECT id AS qualname
+    FROM domain
+    WHERE id NOT LIKE 'tests.%'
+      AND strpos(id, '<locals>') = 0
+    ORDER BY lower(label), lower(COALESCE(NULLIF(name, ''), label, id)), id
+  )
+SELECT
+  'nodes'   AS result_type,
+  id        AS pk,
+  label,
+  type,
+  CAST(NULL AS BIGINT) AS idx,
+  NULL      AS source_id,
+  NULL      AS target_id,
+  NULL      AS relationship,
+  NULL      AS is_dag,
+  payload
+FROM node_rows
+UNION ALL
+SELECT
+  'edges'         AS result_type,
+  CAST(idx AS VARCHAR) AS pk,
+  NULL            AS label,
+  type,
+  idx,
+  source_id,
+  target_id,
+  relationship,
+  is_dag,
+  payload
+FROM edge_rows
+UNION ALL
+SELECT
+  'domain'  AS result_type,
+  qualname  AS pk,
+  NULL      AS label,
+  NULL      AS type,
+  NULL      AS idx,
+  NULL      AS source_id,
+  NULL      AS target_id,
+  NULL      AS relationship,
+  NULL      AS is_dag,
+  NULL      AS payload
+FROM domain_rows
+"""
+
 
 def _short_label(raw: str) -> str:
     value = str(raw or "").strip()
     if not value:
         return "?"
     return value.rsplit(".", 1)[-1] if "." in value else value
+
+
+def _build_payload_from_duckdb(
+    duck: DuckDBGraphResource,
+    palette: tuple[str, ...],
+) -> dict[str, Any]:
+    """Run unified SQL once, split rows by ``result_type``, build G6 payload."""
+    rows = duck.execute_fetch_dicts(_FULL_GRAPH_SQL)
+    node_rows: list[dict[str, Any]] = []
+    edge_rows: list[dict[str, Any]] = []
+    domain_rows: list[dict[str, Any]] = []
+    for row in rows:
+        rt = row.get("result_type")
+        if rt == "nodes":
+            node_rows.append(row)
+        elif rt == "edges":
+            edge_rows.append(row)
+        elif rt == "domain":
+            domain_rows.append(row)
+
+    nodes: list[dict[str, Any]] = []
+    node_id_set: set[str] = set()
+    node_type_map: dict[str, str] = {}
+    node_types: list[str] = []
+
+    for row in node_rows:
+        nid = str(row["pk"])
+        label = row.get("label")
+        duck_type = row.get("type")
+        payload = row.get("payload")
+        node_types.append(str(duck_type or ""))
+        duck_s = str(duck_type or "")
+        node_type = interchange_node_type_from_duck(duck_s)
+        fill = fill_color_for_node_type(duck_s)
+        lbl = str(label or nid)
+        nodes.append(
+            {
+                "id": nid,
+                "data": {
+                    "label": _short_label(lbl),
+                    "title": lbl,
+                    "graph_node_subtitle": f"{node_type}\n{_short_label(lbl)}",
+                    "graph_key": nid,
+                    "qualified": nid,
+                    "node_type": node_type,
+                    "typeFill": fill,
+                    "fill": fill,
+                    "isDagCycleViolationIncident": False,
+                    "payload": payload,
+                },
+            }
+        )
+        node_id_set.add(nid)
+        node_type_map[nid] = node_type
+
+    edges: list[dict[str, Any]] = []
+    for row in edge_rows:
+        idx = row.get("idx")
+        src = str(row["source_id"]) if row.get("source_id") is not None else ""
+        tgt = str(row["target_id"]) if row.get("target_id") is not None else ""
+        rel = row.get("relationship")
+        is_dag = row.get("is_dag")
+        etype = row.get("type")
+        epayload = row.get("payload")
+        if not src or not tgt or src not in node_id_set or tgt not in node_id_set:
+            continue
+        edges.append(
+            {
+                "id": f"e-{idx}",
+                "source": src,
+                "target": tgt,
+                "data": {
+                    "label": str(rel),
+                    "isDag": bool(is_dag),
+                    "isForbiddenDagCycle": False,
+                    "relationshipName": str(rel),
+                    "sourceAttachment": "none",
+                    "targetAttachment": "arrow",
+                    "lineStyle": "solid",
+                    "edge_type": str(etype),
+                    "payload": epayload,
+                },
+            }
+        )
+
+    qualnames = [str(r["pk"]) for r in domain_rows]
+    domain_color_map = {
+        q: palette[i % len(palette)]
+        for i, q in enumerate(qualnames)
+    }
+
+    seen_types: dict[str, str] = {}
+    for duck_type in node_types:
+        nt = interchange_node_type_from_duck(str(duck_type))
+        if nt and nt != "unknown" and nt not in seen_types:
+            seen_types[nt] = fill_color_for_node_type(str(duck_type))
+    legend_items = (
+        [{"type": nt, "color": col} for nt, col in sorted(seen_types.items())]
+        or [{"type": "unknown", "color": DEFAULT_NODE_TYPE_COLOR}]
+    )
+
+    return {
+        "title": "Interchange graph",
+        "nodes": nodes,
+        "edges": edges,
+        "legend_items": legend_items,
+        "node_type_map": node_type_map,
+        "domain_color_map": domain_color_map,
+        "bubble_plugins": [],
+        "constants": {
+            "node_visual_px": GRAPH_NODE_VISUAL_PX,
+            "dag_cycle_violation_color": DAG_CYCLE_VIOLATION_COLOR,
+            "default_color": DEFAULT_NODE_TYPE_COLOR,
+            "g6_cdn_url": G6_CDN_URL,
+        },
+    }
 
 
 @meta(
@@ -73,19 +241,18 @@ class FullGraphAction(BaseAction[ParamsStub, "FullGraphAction.Result"]):
     """
     AI-CORE-BEGIN
     ROLE: Emit a G6-oriented full graph payload from DuckDB ``nodes`` / ``edges`` views.
-    CONTRACT: Nodes and edges are read with SQL only; node disk colours use ``ListNodeTypesAction`` and domain bubble membership is derived client-side.
-    INVARIANTS: No NetworkX or ``NodeGraphCoordinator`` dependency in this action.
+    CONTRACT: One SQL round-trip via ``execute_fetch_dicts`` (no PyArrow); same node/edge
+    shape, domain colours, and legend as the prior interchange payload.
+    INVARIANTS: No NetworkX or ``NodeGraphCoordinator`` dependency.
     AI-CORE-END
     """
 
     class Result(BaseResult):
-        """HTTP/JSON body is ``model_dump(mode="json")`` of this result (single key ``payload``)."""
-
         payload: dict[str, Any] = Field(
             description="G6 graph payload built from DuckDB nodes/edges views.",
         )
 
-    @summary_aspect("Build full graph JSON from DuckDB views")
+    @summary_aspect("Build full graph JSON from DuckDB (single unified SQL query)")
     async def build_full_graph_summary(
         self,
         _params: ParamsStub,
@@ -96,100 +263,12 @@ class FullGraphAction(BaseAction[ParamsStub, "FullGraphAction.Result"]):
         _ = (state, box)
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
 
-        node_rows = duck.execute_fetch_dicts(
-            """
-            SELECT id, label, type, payload
-            FROM nodes
-            ORDER BY lower(type), lower(label), id
-            """
-        )
-        edge_rows = duck.execute_fetch_dicts(
-            """
-            SELECT
-                row_number() OVER (ORDER BY source_id, target_id, type, relationship) - 1 AS idx,
-                source_id,
-                target_id,
-                relationship,
-                is_dag,
-                type,
-                payload
-            FROM edges
-            ORDER BY source_id, target_id, type, relationship
-            """
+        from aoa.maxitor.model.diagrams.actions.list_domains_action import (  # noqa: PLC0415
+            _LIST_DOMAINS_DISTINCT_COLORS,
         )
 
-        nodes: list[dict[str, Any]] = []
-        node_type_map: dict[str, str] = {}
-        for row in node_rows:
-            node_id = str(row["id"])
-            duck_type = str(row["type"])
-            node_type = interchange_node_type_from_duck(duck_type)
-            label = str(row["label"] or node_id)
-            fill = fill_color_for_node_type(duck_type)
-            nodes.append(
-                {
-                    "id": node_id,
-                    "data": {
-                        "label": _short_label(label),
-                        "title": label,
-                        "graph_node_subtitle": f"{node_type}\n{_short_label(label)}",
-                        "graph_key": node_id,
-                        "qualified": node_id,
-                        "node_type": node_type,
-                        "typeFill": fill,
-                        "fill": fill,
-                        "isDagCycleViolationIncident": False,
-                        "payload": row.get("payload"),
-                    },
-                }
-            )
-            node_type_map[node_id] = node_type
-
-        edges = [
-            {
-                "id": f"e-{row['idx']}",
-                "source": str(row["source_id"]),
-                "target": str(row["target_id"]),
-                "data": {
-                    "label": str(row["relationship"]),
-                    "isDag": bool(row["is_dag"]),
-                    "isForbiddenDagCycle": False,
-                    "relationshipName": str(row["relationship"]),
-                    "sourceAttachment": "none",
-                    "targetAttachment": "arrow",
-                    "lineStyle": "solid",
-                    "edge_type": str(row["type"]),
-                    "payload": row.get("payload"),
-                },
-            }
-            for row in edge_rows
-            if str(row["source_id"]) in node_type_map and str(row["target_id"]) in node_type_map
-        ]
-
-        used_types = sorted({node_type for node_type in node_type_map.values() if node_type})
-        legend_items = [
-            {"type": node_type, "color": fill_color_for_node_type(node_type)}
-            for node_type in used_types
-            if node_type != "unknown"
-        ] or [{"type": "unknown", "color": DEFAULT_NODE_TYPE_COLOR}]
-
-        domain_color_map = {
-            str(row["qualname"]): str(row["color"])
-            for row in ListDomainsAction.domain_accent_rows(duck)
-        }
-        payload = {
-            "title": "Interchange graph",
-            "nodes": nodes,
-            "edges": edges,
-            "legend_items": legend_items,
-            "node_type_map": node_type_map,
-            "domain_color_map": domain_color_map,
-            "bubble_plugins": [],
-            "constants": {
-                "node_visual_px": GRAPH_NODE_VISUAL_PX,
-                "dag_cycle_violation_color": DAG_CYCLE_VIOLATION_COLOR,
-                "default_color": DEFAULT_NODE_TYPE_COLOR,
-                "g6_cdn_url": G6_CDN_URL,
-            },
-        }
+        payload = _build_payload_from_duckdb(
+            duck,
+            _LIST_DOMAINS_DISTINCT_COLORS,
+        )
         return FullGraphAction.Result(payload=payload)
