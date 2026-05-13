@@ -13,7 +13,8 @@ ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.a
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
 Each generated route declares the ``connections`` required by its action; diagram routes use a
 shared :class:`~aoa.maxitor.model.core.resources.networkx_graph_resource.NetworkXGraphResource`
-(list domains, interchange graph payload, and ERD ``/erd/domains``),
+(list domains and interchange graph payload) and :class:`~aoa.maxitor.model.core.resources.duckdb_graph_resource.DuckDBGraphResource`
+(ERD ``/erd/domains``),
 constructed once with :func:`create_app` (interchange JSON from the examples ``graph-json`` HTTP endpoint). Sidebar rows are loaded once in the ASGI lifespan
 (``application.state.sidebar_data``).
 """
@@ -32,6 +33,10 @@ from aoa.action_machine.integrations.fastapi import FastApiAdapter
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.api.session import build_maxitor_api_session
+from aoa.maxitor.model.core.resources.duckdb_graph_resource import (
+    DUCKDB_GRAPH_CONNECTION_KEY,
+    DuckDBGraphResource,
+)
 from aoa.maxitor.model.core.resources.networkx_graph_resource import (
     NETWORKX_GRAPH_CONNECTION_KEY,
     NetworkXGraphResource,
@@ -55,6 +60,7 @@ def create_app() -> FastAPI:
     machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
     auth = NoAuthCoordinator()
     networkx_graph = NetworkXGraphResource()
+    duckdb_graph = DuckDBGraphResource()
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
@@ -81,8 +87,8 @@ def create_app() -> FastAPI:
             version="1.0.0",
             description=(
                 "JSON endpoints generated from diagrams actions. "
-                "Each route declares its ``connections``; diagram routes share one "
-                "``NetworkXGraphResource`` (domains, interchange graph JSON, and ERD entity slices)."
+                "Each route declares its ``connections``; ``ListDomainsAction`` / interchange graph use "
+                "``NetworkXGraphResource``; ``ListEntitiesAction`` uses ``DuckDBGraphResource``."
             ),
         )
         .get(
@@ -94,7 +100,7 @@ def create_app() -> FastAPI:
         .get(
             "/erd/domains",
             ListEntitiesAction,
-            connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
             tags=["erd"],
         )
         .get(

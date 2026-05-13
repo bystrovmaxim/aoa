@@ -12,7 +12,7 @@ is the in-memory ``duckdb.DuckDBPyConnection``. :meth:`DuckDBGraphResource.__ini
 :meth:`DuckDBGraphResource._install_database` runs explicit ``CREATE TABLE`` / ``CREATE INDEX`` / ``CREATE VIEW``
 (physical tables plus ``CREATE VIEW nodes`` / ``edges``, then ``nodes_type_counts`` / ``edge_type_counts`` over those views; aligned with
 :data:`~aoa.action_machine.graph_model.graph_json_schema.GRAPH_JSON_SCHEMA`), then :func:`_fill_database` inserts rows
-from the validated coordinator payload.
+from the coordinator payload.
 """
 
 from __future__ import annotations
@@ -24,9 +24,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 import duckdb
-from jsonschema import Draft202012Validator
 
-from aoa.action_machine.graph_model.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
@@ -45,13 +43,13 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
     """
     AI-CORE-BEGIN
     ROLE: Fetch coordinator graph JSON via HTTP and load it into DuckDB; :attr:`.service` is the DuckDB connection.
-    CONTRACT: GET :data:`DEFAULT_EXAMPLE_GRAPH_JSON_URL` (or :envvar:`MAXITOR_EXAMPLE_GRAPH_JSON_URL`), parse ``coordinator_json``, validate against :data:`~aoa.action_machine.graph_model.graph_json_schema.GRAPH_JSON_SCHEMA`, create schema via :meth:`_install_database`, then :func:`_fill_database`.
+    CONTRACT: GET :data:`DEFAULT_EXAMPLE_GRAPH_JSON_URL` (or :envvar:`MAXITOR_EXAMPLE_GRAPH_JSON_URL`), parse ``coordinator_json``, create schema via :meth:`_install_database`, then :func:`_fill_database`.
     AI-CORE-END
     """
 
     @staticmethod
     def load_graph_json_http() -> dict[str, Any]:
-        """HTTP GET ``graph-json``; parse ``coordinator_json`` and validate against :data:`~aoa.action_machine.graph_model.graph_json_schema.GRAPH_JSON_SCHEMA`."""
+        """HTTP GET ``graph-json`` and parse the inner ``coordinator_json`` payload."""
         raw_url = os.environ.get(ENV_EXAMPLE_GRAPH_JSON_URL, DEFAULT_EXAMPLE_GRAPH_JSON_URL)
         url = (raw_url or "").strip() or DEFAULT_EXAMPLE_GRAPH_JSON_URL
         req = Request(url, method="GET")
@@ -69,9 +67,7 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
         if not isinstance(coordinator_raw, str):
             msg = f"Expected str coordinator_json in response from {url!r}, got {type(coordinator_raw).__name__}"
             raise TypeError(msg)
-        payload: dict[str, Any] = json.loads(coordinator_raw)
-        Draft202012Validator(GRAPH_JSON_SCHEMA).validate(payload)
-        return payload
+        return cast(dict[str, Any], json.loads(coordinator_raw))
 
     def _install_database(self, con: duckdb.DuckDBPyConnection) -> None:
         """Create DuckDB tables, indexes, and ``nodes`` / ``edges`` views (DDL only; no row inserts)."""
@@ -98,6 +94,12 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL
+    );""",
+        """CREATE TABLE entity_field (
+      entity_id VARCHAR NOT NULL,
+      name VARCHAR NOT NULL,
+      type VARCHAR NOT NULL,
+      primary_key BOOLEAN NOT NULL
     );""",
         """CREATE TABLE resource (
       id VARCHAR NOT NULL PRIMARY KEY,
@@ -342,6 +344,11 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       properties JSON NOT NULL
     );""",
         ]
+        con.execute("".join(parts))
+
+    def _install_post_load_objects(self, con: duckdb.DuckDBPyConnection) -> None:
+        """Create indexes and graph views after rows are loaded."""
+        parts: list[str] = []
         parts.extend(f"CREATE INDEX ix_{t}_source ON {t} (source_id);" for t in _EDGE_TABLE_NAMES)
         parts.extend(f"CREATE INDEX ix_{t}_target ON {t} (target_id);" for t in _EDGE_TABLE_NAMES)
         parts.extend(
@@ -360,7 +367,19 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
         con = duckdb.connect(database=":memory:")
         self._install_database(con)
         _fill_database(con, json_data)
+        self._install_post_load_objects(con)
         super().__init__(con)
+
+    def execute_fetch_dicts(
+        self,
+        sql: str,
+        parameters: list[Any] | tuple[Any, ...] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Execute ``sql`` and return every result row as a column-name → value dict."""
+        con = self.service
+        params = list(parameters) if parameters is not None else []
+        cols = [str(c[0]) for c in con.execute(sql, params).description]
+        return [dict(zip(cols, row, strict=True)) for row in con.fetchall()]
 
 
 def _pack_json_or_none(value: Any) -> str | None:
@@ -376,6 +395,15 @@ def _get_properties(row: dict[str, Any]) -> dict[str, Any]:
     if isinstance(raw, dict):
         return cast(dict[str, Any], raw)
     return {}
+
+
+def _executemany(con: duckdb.DuckDBPyConnection, sql: str, rows: list[list[Any]]) -> None:
+    if rows:
+        con.executemany(sql, rows)
+
+
+def _base_edge_row(edge: dict[str, Any]) -> list[Any]:
+    return [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]]
 
 
 # Nodes / edge JSON ``type`` is implied by the physical table name, except ``state`` rows where
@@ -519,6 +547,11 @@ def _fill_table_entity(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]
     for node in rows:
         p = _get_properties(node)
         con.execute("INSERT INTO entity VALUES (?, ?, ?)", [node["id"], node["label"], p["description"]])
+        for field in p.get("fields", []):
+            con.execute(
+                "INSERT INTO entity_field VALUES (?, ?, ?, ?)",
+                [node["id"], field["name"], field["type"], field["primary_key"]],
+            )
 
 
 def _fill_table_resource(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
@@ -757,43 +790,36 @@ def _fill_table_property_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[s
 
 
 def _fill_table_depends_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        p = _get_properties(edge)
-        base = [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]]
-        con.execute(
-            "INSERT INTO depends_edges (source_id, target_id, relationship, is_dag, description) VALUES (?, ?, ?, ?, ?)",
-            [*base, p["description"]],
-        )
+    _executemany(
+        con,
+        "INSERT INTO depends_edges (source_id, target_id, relationship, is_dag, description) VALUES (?, ?, ?, ?, ?)",
+        [[*_base_edge_row(edge), _get_properties(edge)["description"]] for edge in rows],
+    )
 
 
 def _fill_table_connection_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        p = _get_properties(edge)
-        base = [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]]
-        con.execute(
-            "INSERT INTO connection_edges (source_id, target_id, relationship, is_dag, conn_key) VALUES (?, ?, ?, ?, ?)",
-            [*base, p["key"]],
-        )
+    _executemany(
+        con,
+        "INSERT INTO connection_edges (source_id, target_id, relationship, is_dag, conn_key) VALUES (?, ?, ?, ?, ?)",
+        [[*_base_edge_row(edge), _get_properties(edge)["key"]] for edge in rows],
+    )
 
 
 def _fill_table_required_context_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        p = _get_properties(edge)
-        base = [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]]
-        con.execute(
-            "INSERT INTO required_context_edges (source_id, target_id, relationship, is_dag, ctx_key) VALUES (?, ?, ?, ?, ?)",
-            [*base, p["key"]],
-        )
+    _executemany(
+        con,
+        "INSERT INTO required_context_edges (source_id, target_id, relationship, is_dag, ctx_key) VALUES (?, ?, ?, ?, ?)",
+        [[*_base_edge_row(edge), _get_properties(edge)["key"]] for edge in rows],
+    )
 
 
 def _fill_table_entity_relation_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
+    data: list[list[Any]] = []
     for edge in rows:
         p = _get_properties(edge)
-        base = [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]]
-        con.execute(
-            "INSERT INTO entity_relation_edges (source_id, target_id, relationship, is_dag, field_name, relation_type, cardinality, description, has_inverse, deprecated, inverse_entity_id, inverse_field) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        data.append(
             [
-                *base,
+                *_base_edge_row(edge),
                 p["field_name"],
                 p["relation_type"],
                 p["cardinality"],
@@ -804,66 +830,59 @@ def _fill_table_entity_relation_edges(con: duckdb.DuckDBPyConnection, rows: list
                 p.get("inverse_field"),
             ],
         )
+    _executemany(
+        con,
+        "INSERT INTO entity_relation_edges (source_id, target_id, relationship, is_dag, field_name, relation_type, cardinality, description, has_inverse, deprecated, inverse_entity_id, inverse_field) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        data,
+    )
 
 
 def _fill_table_entity_view_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        p = _get_properties(edge)
-        base = [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]]
-        con.execute(
-            "INSERT INTO entity_view_edges (source_id, target_id, relationship, is_dag, field_name) VALUES (?, ?, ?, ?, ?)",
-            [*base, p["field_name"]],
-        )
+    _executemany(
+        con,
+        "INSERT INTO entity_view_edges (source_id, target_id, relationship, is_dag, field_name) VALUES (?, ?, ?, ?, ?)",
+        [[*_base_edge_row(edge), _get_properties(edge)["field_name"]] for edge in rows],
+    )
 
 
 def _fill_table_lifecycle_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        p = _get_properties(edge)
-        base = [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]]
-        con.execute(
-            "INSERT INTO lifecycle_edges (source_id, target_id, relationship, is_dag, field_name) VALUES (?, ?, ?, ?, ?)",
-            [*base, p["field_name"]],
-        )
+    _executemany(
+        con,
+        "INSERT INTO lifecycle_edges (source_id, target_id, relationship, is_dag, field_name) VALUES (?, ?, ?, ?, ?)",
+        [[*_base_edge_row(edge), _get_properties(edge)["field_name"]] for edge in rows],
+    )
 
 
 def _fill_table_lifecycle_contains_state_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        p = _get_properties(edge)
-        base = [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]]
-        con.execute(
-            "INSERT INTO lifecycle_contains_state_edges (source_id, target_id, relationship, is_dag, state_key) VALUES (?, ?, ?, ?, ?)",
-            [*base, p["state_key"]],
-        )
+    _executemany(
+        con,
+        "INSERT INTO lifecycle_contains_state_edges (source_id, target_id, relationship, is_dag, state_key) VALUES (?, ?, ?, ?, ?)",
+        [[*_base_edge_row(edge), _get_properties(edge)["state_key"]] for edge in rows],
+    )
 
 
 def _fill_table_lifecycle_transition_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        p = _get_properties(edge)
-        base = [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]]
-        con.execute(
-            "INSERT INTO lifecycle_transition_edges (source_id, target_id, relationship, is_dag, from_state, to_state) VALUES (?, ?, ?, ?, ?, ?)",
-            [*base, p["from_state"], p["to_state"]],
-        )
+    _executemany(
+        con,
+        "INSERT INTO lifecycle_transition_edges (source_id, target_id, relationship, is_dag, from_state, to_state) VALUES (?, ?, ?, ?, ?, ?)",
+        [[*_base_edge_row(edge), _get_properties(edge)["from_state"], _get_properties(edge)["to_state"]] for edge in rows],
+    )
 
 
 def _fill_table_sensitive_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        p = _get_properties(edge)
-        base = [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]]
-        con.execute(
-            "INSERT INTO sensitive_edges (source_id, target_id, relationship, is_dag, properties) VALUES (?, ?, ?, ?, ?)",
-            [*base, _pack_json_or_none(p)],
-        )
+    _executemany(
+        con,
+        "INSERT INTO sensitive_edges (source_id, target_id, relationship, is_dag, properties) VALUES (?, ?, ?, ?, ?)",
+        [[*_base_edge_row(edge), _pack_json_or_none(_get_properties(edge))] for edge in rows],
+    )
 
 
 def _fill_table_state_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        p = _get_properties(edge)
-        base = [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]]
-        con.execute(
-            "INSERT INTO state_edges (source_id, target_id, relationship, is_dag, properties) VALUES (?, ?, ?, ?, ?)",
-            [*base, _pack_json_or_none(p)],
-        )
+    _executemany(
+        con,
+        "INSERT INTO state_edges (source_id, target_id, relationship, is_dag, properties) VALUES (?, ?, ?, ?, ?)",
+        [[*_base_edge_row(edge), _pack_json_or_none(_get_properties(edge))] for edge in rows],
+    )
 
 
 def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) -> None:
@@ -877,46 +896,160 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     for e in edges:
         edges_by_type.setdefault(str(e["type"]), []).append(e)
 
-    _fill_table_action(con, nodes_by_type.get("Action", []))
-    _fill_table_application(con, nodes_by_type.get("Application", []))
-    _fill_table_domain(con, nodes_by_type.get("Domain", []))
-    _fill_table_entity(con, nodes_by_type.get("Entity", []))
-    _fill_table_resource(con, nodes_by_type.get("Resource", []))
-    _fill_table_params(con, nodes_by_type.get("Params", []))
-    _fill_table_result(con, nodes_by_type.get("Result", []))
-    _fill_table_field(con, nodes_by_type.get("Field", []))
-    _fill_table_property_field(con, nodes_by_type.get("PropertyField", []))
-    _fill_table_regular_aspect(con, nodes_by_type.get("RegularAspect", []))
-    _fill_table_summary_aspect(con, nodes_by_type.get("SummaryAspect", []))
-    _fill_table_compensator(con, nodes_by_type.get("Compensator", []))
-    _fill_table_error_handler(con, nodes_by_type.get("ErrorHandler", []))
-    _fill_table_checker(con, nodes_by_type.get("Checker", []))
-    _fill_table_required_context(con, nodes_by_type.get("RequiredContext", []))
-    _fill_table_lifecycle(con, nodes_by_type.get("Lifecycle", []))
-    _fill_table_state(
+    _assert_no_unknown_graph_types(nodes_by_type, edges_by_type)
+
+    simple_edge_types = {
+        "application": "application_edges",
+        "domain": "domain_edges",
+        "generic:params": "generic_params_edges",
+        "generic:result": "generic_result_edges",
+        "@check_roles": "check_roles_edges",
+        "@regular_aspect": "regular_aspect_edges",
+        "@summary_aspect": "summary_aspect_edges",
+        "@compensate": "compensate_edges",
+        "@on_error": "on_error_edges",
+        "@result_checker": "result_checker_edges",
+        "entity_schema": "entity_schema_edges",
+        "field": "field_edges",
+        "property": "property_edges",
+    }
+    for edge_type, table in simple_edge_types.items():
+        _executemany(
+            con,
+            f"INSERT INTO {table} (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
+            [[e["source_id"], e["target_id"], e["relationship"], e["is_dag"]] for e in edges_by_type.get(edge_type, [])],
+        )
+
+    _executemany(
         con,
+        "INSERT INTO action VALUES (?, ?, ?)",
+        [[n["id"], n["label"], _get_properties(n)["description"]] for n in nodes_by_type.get("Action", [])],
+    )
+    _executemany(
+        con,
+        "INSERT INTO application VALUES (?, ?, ?, ?)",
         [
-            *nodes_by_type.get("StateInitial", []),
-            *nodes_by_type.get("StateIntermediate", []),
-            *nodes_by_type.get("StateFinal", []),
+            [n["id"], n["label"], _get_properties(n)["name"], _get_properties(n)["description"]]
+            for n in nodes_by_type.get("Application", [])
         ],
     )
-    _fill_table_sensitive(con, nodes_by_type.get("Sensitive", []))
-    _fill_table_role(con, nodes_by_type.get("Role", []))
+    _executemany(
+        con,
+        "INSERT INTO domain VALUES (?, ?, ?, ?)",
+        [
+            [n["id"], n["label"], _get_properties(n)["name"], _get_properties(n)["description"]]
+            for n in nodes_by_type.get("Domain", [])
+        ],
+    )
+    _executemany(
+        con,
+        "INSERT INTO entity VALUES (?, ?, ?)",
+        [[n["id"], n["label"], _get_properties(n)["description"]] for n in nodes_by_type.get("Entity", [])],
+    )
+    entity_fields: list[list[Any]] = []
+    for n in nodes_by_type.get("Entity", []):
+        for f in _get_properties(n).get("fields", []):
+            entity_fields.append([n["id"], f["name"], f["type"], f["primary_key"]])
+    _executemany(con, "INSERT INTO entity_field VALUES (?, ?, ?, ?)", entity_fields)
+    _executemany(
+        con,
+        "INSERT INTO resource VALUES (?, ?, ?)",
+        [[n["id"], n["label"], _get_properties(n)["description"]] for n in nodes_by_type.get("Resource", [])],
+    )
+    _executemany(con, "INSERT INTO params VALUES (?, ?)", [[n["id"], n["label"]] for n in nodes_by_type.get("Params", [])])
+    _executemany(con, "INSERT INTO result VALUES (?, ?)", [[n["id"], n["label"]] for n in nodes_by_type.get("Result", [])])
+    _executemany(
+        con,
+        "INSERT INTO field VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+            [
+                n["id"],
+                n["label"],
+                _get_properties(n)["required"],
+                _get_properties(n)["description"],
+                _get_properties(n)["json_schema_value"],
+                _get_properties(n)["entity_schema"],
+                _get_properties(n).get("json_schema_name"),
+                _pack_json_or_none(_get_properties(n).get("json_schema")),
+            ]
+            for n in nodes_by_type.get("Field", [])
+        ],
+    )
+    _executemany(
+        con,
+        "INSERT INTO property_field VALUES (?, ?, ?, ?)",
+        [
+            [n["id"], n["label"], _get_properties(n)["required"], _get_properties(n)["entity_schema"]]
+            for n in nodes_by_type.get("PropertyField", [])
+        ],
+    )
+    _executemany(
+        con,
+        "INSERT INTO regular_aspect VALUES (?, ?, ?)",
+        [[n["id"], n["label"], _get_properties(n)["description"]] for n in nodes_by_type.get("RegularAspect", [])],
+    )
+    _executemany(
+        con,
+        "INSERT INTO summary_aspect VALUES (?, ?, ?)",
+        [[n["id"], n["label"], _get_properties(n)["description"]] for n in nodes_by_type.get("SummaryAspect", [])],
+    )
+    _executemany(
+        con,
+        "INSERT INTO compensator VALUES (?, ?, ?, ?)",
+        [
+            [n["id"], n["label"], _get_properties(n).get("description"), _get_properties(n).get("target_aspect_name")]
+            for n in nodes_by_type.get("Compensator", [])
+        ],
+    )
+    _executemany(
+        con,
+        "INSERT INTO error_handler VALUES (?, ?, ?, ?)",
+        [
+            [n["id"], n["label"], _get_properties(n).get("description"), _pack_json_or_none(_get_properties(n).get("exception_types"))]
+            for n in nodes_by_type.get("ErrorHandler", [])
+        ],
+    )
+    _executemany(
+        con,
+        "INSERT INTO checker VALUES (?, ?, ?, ?)",
+        [
+            [n["id"], n["label"], _get_properties(n)["TypeChecker"], _get_properties(n)["required"]]
+            for n in nodes_by_type.get("Checker", [])
+        ],
+    )
+    _executemany(
+        con,
+        "INSERT INTO required_context VALUES (?, ?, ?)",
+        [[n["id"], n["label"], _get_properties(n)["key"]] for n in nodes_by_type.get("RequiredContext", [])],
+    )
+    _executemany(
+        con,
+        "INSERT INTO lifecycle VALUES (?, ?, ?)",
+        [[n["id"], n["label"], _get_properties(n)["field_name"]] for n in nodes_by_type.get("Lifecycle", [])],
+    )
+    _executemany(
+        con,
+        "INSERT INTO state VALUES (?, ?, ?, ?, ?)",
+        [
+            [n["id"], n["label"], n["type"], _get_properties(n)["lifecycle_class_id"], _get_properties(n)["state_key"]]
+            for n in [
+                *nodes_by_type.get("StateInitial", []),
+                *nodes_by_type.get("StateIntermediate", []),
+                *nodes_by_type.get("StateFinal", []),
+            ]
+        ],
+    )
+    _executemany(
+        con,
+        "INSERT INTO sensitive VALUES (?, ?, ?)",
+        [[n["id"], n["label"], _pack_json_or_none(_get_properties(n))] for n in nodes_by_type.get("Sensitive", [])],
+    )
+    _executemany(
+        con,
+        "INSERT INTO role VALUES (?, ?, ?)",
+        [[n["id"], n["label"], _get_properties(n)["role_mode"]] for n in nodes_by_type.get("Role", [])],
+    )
 
-    _fill_table_application_edges(con, edges_by_type.get("application", []))
-    _fill_table_domain_edges(con, edges_by_type.get("domain", []))
-    _fill_table_generic_params_edges(con, edges_by_type.get("generic:params", []))
-    _fill_table_generic_result_edges(con, edges_by_type.get("generic:result", []))
-    _fill_table_check_roles_edges(con, edges_by_type.get("@check_roles", []))
-    _fill_table_regular_aspect_edges(con, edges_by_type.get("@regular_aspect", []))
-    _fill_table_summary_aspect_edges(con, edges_by_type.get("@summary_aspect", []))
-    _fill_table_compensate_edges(con, edges_by_type.get("@compensate", []))
-    _fill_table_on_error_edges(con, edges_by_type.get("@on_error", []))
-    _fill_table_result_checker_edges(con, edges_by_type.get("@result_checker", []))
-    _fill_table_entity_schema_edges(con, edges_by_type.get("entity_schema", []))
-    _fill_table_field_edges(con, edges_by_type.get("field", []))
-    _fill_table_property_edges(con, edges_by_type.get("property", []))
     _fill_table_depends_edges(con, edges_by_type.get("@depends", []))
     _fill_table_connection_edges(con, edges_by_type.get("@connection", []))
     _fill_table_required_context_edges(con, edges_by_type.get("@required_context", []))
@@ -927,8 +1060,6 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     _fill_table_lifecycle_transition_edges(con, edges_by_type.get("lifecycle_transition", []))
     _fill_table_sensitive_edges(con, edges_by_type.get("sensitive", []))
     _fill_table_state_edges(con, edges_by_type.get("state", []))
-
-    _assert_no_unknown_graph_types(nodes_by_type, edges_by_type)
 
 
 def _assert_no_unknown_graph_types(
