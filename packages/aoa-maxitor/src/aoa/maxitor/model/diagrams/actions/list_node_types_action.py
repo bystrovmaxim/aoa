@@ -39,11 +39,78 @@ from aoa.maxitor.model.core.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
     DuckDBGraphResource,
 )
-from aoa.maxitor.model.diagrams.actions.build_interchange_graph_data_action import (
-    _fill_color_for_graph_node_type,
-)
 from aoa.maxitor.model.diagrams.actions.list_node_types_action_schema import ListNodeTypesJson
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
+
+DEFAULT_NODE_TYPE_COLOR = "#95a5a6"
+
+# DuckDB ``nodes.type`` uses lowercase SQL literals for most kinds; ``state`` rows use ``kind`` (PascalCase).
+_DUCK_SLUG_TO_INTERCHANGE: dict[str, str] = {
+    "action": "Action",
+    "application": "Application",
+    "domain": "Domain",
+    "entity": "Entity",
+    "resource": "Resource",
+    "params": "Params",
+    "result": "Result",
+    "field": "Field",
+    "property_field": "PropertyField",
+    "regular_aspect": "RegularAspect",
+    "summary_aspect": "SummaryAspect",
+    "compensator": "Compensator",
+    "error_handler": "ErrorHandler",
+    "checker": "Checker",
+    "required_context": "RequiredContext",
+    "lifecycle": "Lifecycle",
+    "sensitive": "Sensitive",
+    "role": "Role",
+}
+
+# Fixed fill per interchange graph-node ``node_type`` (matches G6 client icon keys).
+NODE_TYPE_FILL_COLORS: dict[str, str] = {
+    "Application": "#000000",
+    "Action": "#4F46E5",
+    "Domain": "#377EB8",
+    "Resource": "#7570B3",
+    "RequiredContext": "#4DAF4A",
+    "RegularAspect": "#FF7F00",
+    "SummaryAspect": "#FF7F00",
+    "Checker": "#A65628",
+    "Compensator": "#F781BF",
+    "ErrorHandler": "#FCD34D",
+    "Entity": "#1B9E77",
+    "Lifecycle": "#00798C",
+    "StateInitial": "#9575CD",
+    "StateIntermediate": "#6A51A3",
+    "StateFinal": "#452E7A",
+    "Role": "#66A61E",
+    "Sensitive": "#A855F7",
+    "Params": "#CAB2D6",
+    "Result": "#B2DF8A",
+    "Field": "#6B5B95",
+    "PropertyField": "#6B5B95",
+}
+
+
+def interchange_node_type_from_duck(duck_type: str) -> str:
+    """Map DuckDB ``nodes.type`` string to interchange ``node_type`` (PascalCase) for G6."""
+    raw = str(duck_type).strip()
+    if not raw or raw == "unknown":
+        return "unknown"
+    if raw in NODE_TYPE_FILL_COLORS:
+        return raw
+    mapped = _DUCK_SLUG_TO_INTERCHANGE.get(raw.casefold())
+    if mapped:
+        return mapped
+    return raw
+
+
+def fill_color_for_node_type(node_type: str) -> str:
+    """Return the G6 disk fill for a DuckDB or interchange ``node_type`` string."""
+    canonical = interchange_node_type_from_duck(node_type)
+    if canonical == "unknown":
+        return DEFAULT_NODE_TYPE_COLOR
+    return NODE_TYPE_FILL_COLORS.get(canonical, DEFAULT_NODE_TYPE_COLOR)
 
 
 @meta(
@@ -60,7 +127,7 @@ class ListNodeTypesAction(BaseAction[ParamsStub, "ListNodeTypesAction.Result"]):
     """
     AI-CORE-BEGIN
     ROLE: Emit present ``nodes.type`` rows with their interchange G6 disk fill colours.
-    CONTRACT: Rows come from DuckDB ``nodes`` grouped by ``type``; colours use the graph builder's node-type fill resolver.
+    CONTRACT: Rows come from DuckDB ``nodes`` grouped by ``type``; ``node_type`` is normalized to interchange PascalCase for G6; colours use the shared resolver.
     INVARIANTS: Reads ``connections[DuckDBGraph]`` only — no NetworkX scan and no static type inventory.
     AI-CORE-END
     """
@@ -95,8 +162,8 @@ class ListNodeTypesAction(BaseAction[ParamsStub, "ListNodeTypesAction.Result"]):
         raw = duck.execute_fetch_dicts(sql)
         rows = [
             {
-                "node_type": str(row["node_type"]),
-                "color": _fill_color_for_graph_node_type(str(row["node_type"])),
+                "node_type": interchange_node_type_from_duck(str(row["node_type"])),
+                "color": fill_color_for_node_type(str(row["node_type"])),
             }
             for row in raw
         ]

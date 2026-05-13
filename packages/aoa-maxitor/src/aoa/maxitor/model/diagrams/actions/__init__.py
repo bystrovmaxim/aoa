@@ -2,13 +2,13 @@
 """Action exports for diagrams composition (interchange graph, ERD)."""
 
 from ...core.actions.load_graph_action import LoadGraphAction
-from .get_interchange_graph_payload_action import GetInterchangeGraphPayloadAction
+from .full_graph_action import FullGraphAction
 from .list_domains_action import ListDomainsAction
 from .list_entities_action import ListEntitiesAction
 from .list_node_types_action import ListNodeTypesAction
 
 __all__ = [
-    "GetInterchangeGraphPayloadAction",
+    "FullGraphAction",
     "ListDomainsAction",
     "ListEntitiesAction",
     "ListNodeTypesAction",

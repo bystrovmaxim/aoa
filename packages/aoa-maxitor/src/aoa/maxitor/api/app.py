@@ -11,11 +11,9 @@ not serve React assets or Python-rendered shell HTML.
 
 ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.action_machine.integrations.fastapi.FastApiAdapter`
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
-Each generated route declares the ``connections`` required by its action; diagram routes use a
-shared :class:`~aoa.maxitor.model.core.resources.networkx_graph_resource.NetworkXGraphResource`
-(interchange graph payload) and :class:`~aoa.maxitor.model.core.resources.duckdb_graph_resource.DuckDBGraphResource`
-(ERD domain qualnames and per-domain entity slices),
-constructed once with :func:`create_app` (interchange JSON from the examples ``graph-json`` HTTP endpoint). Sidebar rows are loaded once in the ASGI lifespan
+Each generated diagram route declares the shared
+:class:`~aoa.maxitor.model.core.resources.duckdb_graph_resource.DuckDBGraphResource`
+connection it reads. Sidebar rows are loaded once in the ASGI lifespan
 (``application.state.sidebar_data``).
 """
 
@@ -37,13 +35,7 @@ from aoa.maxitor.model.core.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
     DuckDBGraphResource,
 )
-from aoa.maxitor.model.core.resources.networkx_graph_resource import (
-    NETWORKX_GRAPH_CONNECTION_KEY,
-    NetworkXGraphResource,
-)
-from aoa.maxitor.model.diagrams.actions.get_interchange_graph_payload_action import (
-    GetInterchangeGraphPayloadAction,
-)
+from aoa.maxitor.model.diagrams.actions.full_graph_action import FullGraphAction
 from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
 from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
@@ -60,7 +52,6 @@ def create_app() -> FastAPI:
     """
     machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
     auth = NoAuthCoordinator()
-    networkx_graph = NetworkXGraphResource()
     duckdb_graph = DuckDBGraphResource()
 
     @asynccontextmanager
@@ -88,9 +79,7 @@ def create_app() -> FastAPI:
             version="1.0.0",
             description=(
                 "JSON endpoints generated from diagrams actions. "
-                "Each route declares its ``connections``; ``ListDomainsAction``, ``ListEntitiesAction``, and "
-                "``ListNodeTypesAction`` use ``DuckDBGraphResource``; ``GetInterchangeGraphPayloadAction`` uses "
-                "``NetworkXGraphResource``."
+                "Each diagram route declares its shared ``DuckDBGraphResource`` connection."
             ),
         )
         .get(
@@ -110,8 +99,8 @@ def create_app() -> FastAPI:
         )
         .get(
             "/full-graph",
-            GetInterchangeGraphPayloadAction,
-            connections={NETWORKX_GRAPH_CONNECTION_KEY: networkx_graph},
+            FullGraphAction,
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .build()
     )
