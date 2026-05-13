@@ -8,6 +8,8 @@ import ListItemText from "@mui/material/ListItemText";
 import ListSubheader from "@mui/material/ListSubheader";
 import Typography from "@mui/material/Typography";
 import { DiagramListIcon } from "./diagram_list_icon";
+import { prefetchErdGraphviz } from "../../diagrams/erd/hooks/use_graphviz";
+import { prefetchInterchangeG6 } from "../../diagrams/interchange_graph/prefetch_interchange_g6";
 import type { DiagramSelection } from "../../diagram_selection/types";
 import { diagramSelectionForRow, sortNodes, type SidebarGroupedMaps, type SidebarPayload } from "../model";
 
@@ -22,6 +24,11 @@ type SidebarNavProps = {
 function selectionKey(sel: DiagramSelection): string {
   if (sel.kind === "interchange_graph") return "interchange_graph";
   return `erd:${sel.qualifier ?? "all"}`;
+}
+
+function prefetchDiagramModule(sel: DiagramSelection | null): void {
+  if (sel?.kind === "erd") prefetchErdGraphviz();
+  if (sel?.kind === "interchange_graph") prefetchInterchangeG6();
 }
 
 export function SidebarNav({ sidebar, group, error, diagram, onSelectDiagram }: SidebarNavProps) {
@@ -60,6 +67,7 @@ export function SidebarNav({ sidebar, group, error, diagram, onSelectDiagram }: 
                     key={node.id}
                     disabled={!sel}
                     selected={sel !== null && diagram !== null && selectionKey(diagram) === selectionKey(sel)}
+                    onMouseEnter={() => prefetchDiagramModule(sel)}
                     onClick={() => sel && onSelectDiagram(sel)}
                     sx={{ pl: 2, py: 0.5 }}
                   >
@@ -94,6 +102,7 @@ export function SidebarNav({ sidebar, group, error, diagram, onSelectDiagram }: 
                             key={e.id}
                             disabled={!sel}
                             selected={sel !== null && diagram !== null && selectionKey(diagram) === selectionKey(sel)}
+                            onMouseEnter={() => prefetchDiagramModule(sel)}
                             onClick={() => sel && onSelectDiagram(sel)}
                             sx={{ pl: 1, py: 0.25 }}
                           >

@@ -9,7 +9,7 @@ export type ErdDomainsBundle = {
   domains: Record<string, { entities: unknown[]; relations: unknown[] }>;
   domain_qualifiers: Record<string, string>;
   domain_qualifier_colors: Record<string, string>;
-  /** First domain row label for iframe title (optional). */
+  /** First domain row label for the diagram title (optional). */
   first_domain_label?: string;
 };
 
@@ -20,7 +20,7 @@ export type ErdDomainSliceRequest = {
 
 /**
  * Load all ERD domain slices for the current selection (same contract as the blob HTML builder).
- * Runs in the SPA origin so ``fetch`` matches ``erd_api`` (blob iframes cannot reliably call the API).
+ * Runs in the SPA origin so ``fetch`` matches ``erd_api`` (same origin as the Vite app).
  */
 export async function loadErdDomainsBundle(
   selection: ErdViewerSelection,

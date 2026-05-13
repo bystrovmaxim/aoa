@@ -1,17 +1,42 @@
 // packages/aoa-maxitor/client/src/features/diagrams/interchange_graph/interchange_graph_viewer.tsx
 import Box from "@mui/material/Box";
-import CircularProgress from "@mui/material/CircularProgress";
-import Typography from "@mui/material/Typography";
 import type { EdgeData, Graph as G6Graph, GraphData, NodeData } from "@antv/g6";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import interchangeChromeCss from "../erd/shell/interchange_chrome.css?raw";
-import { svgDataUriForGraphNodeGlyphOnly, svgDataUriForGraphNodeIcon } from "../../../shared/icons";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { DiagramShell, useDiagramLoader, ZoomToolbar } from "../shared";
+import { svgDataUriForGraphNodeGlyphOnly } from "../../../shared/icons";
 import { fetchInterchangeGraphPayload } from "./fetch_interchange_graph_payload";
+import { NodeTypeLegend } from "./node_type_legend";
 import type { InterchangeGraphG6Payload } from "./types";
 
 const NODE_BASE_RING_LINE_WIDTH = 0.75;
 
-/** Canvas shell copied from the archived ``template.html`` (not in ``interchange_chrome.css``). */
+const GRAPH_HOVER_LABEL_SX = {
+  "& .graph-hover-label": {
+    position: "absolute",
+    zIndex: 1,
+    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    color: "#0f172a",
+    fontSize: "10px",
+    fontWeight: 400,
+    letterSpacing: "0.01em",
+    maxWidth: 168,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    lineHeight: 1.3,
+    transform: "translate(-50%, 0)",
+    py: "3px",
+    pl: "7px",
+    pr: "8px",
+    borderRadius: 0,
+    bgcolor: "rgba(255,255,255,0.96)",
+    border: "1px solid rgba(0,0,0,0.08)",
+    borderLeft: "3px solid #95a5a6",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.07)",
+  },
+} as const;
+
+/** Canvas shell — dot grid surface under G6 (MUI ``sx``, no global CSS import). */
 const CANVAS_SHELL_SX = {
   position: "absolute" as const,
   inset: 0,
@@ -210,13 +235,11 @@ function buildGraph(
 }
 
 /**
- * Interchange graph viewer — parity with the former Python ``template.html`` + inline G6 script:
- * circle + glyph icons, d3-force, bubble plugins, floating legend / zoom chrome from
- * ``interchange_chrome.css``, neighbor glow, and hover labels in ``#graph-hover-labels``
- * (sibling layer above the G6 container so cards are not covered by the graph canvas).
+ * Interchange graph viewer — G6 circle + glyph icons, d3-force, bubble plugins, MUI-positioned
+ * legend / zoom chrome, neighbor glow, and hover labels in ``#graph-hover-labels`` (sibling layer
+ * above the G6 container so cards are not covered by the graph canvas).
  *
- * G6 is lazy-loaded; styles are injected once per mount. A future optional path is to fetch
- * pre-built HTML from the API and render it via ``srcDoc`` if we need bit-identical output.
+ * G6 is lazy-loaded on first open; chrome uses MUI ``sx`` (no raw CSS import).
  */
 export function InterchangeGraphViewer() {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -225,43 +248,28 @@ export function InterchangeGraphViewer() {
   const hoverOverlayRef = useRef<HTMLDivElement | null>(null);
   const graphRef = useRef<G6Graph | null>(null);
 
-  const [payload, setPayload] = useState<InterchangeGraphG6Payload | null>(null);
-  const [graphModule, setGraphModule] = useState<typeof import("@antv/g6") | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [zoomPct, setZoomPct] = useState("100%");
-
-  const chromeStyleTag = useMemo(
-    () => ({ __html: `${interchangeChromeCss}\n:root{--ix-surface:#f4f5f7;}` }),
+  const loadInterchange = useCallback(
+    () =>
+      Promise.all([fetchInterchangeGraphPayload(), import("@antv/g6")]).then(([p, mod]) => ({
+        payload: p,
+        mod,
+      })),
     [],
   );
+  const { data, loading, error } = useDiagramLoader(loadInterchange);
+  const payload = data?.payload ?? null;
+  const graphModule = data?.mod ?? null;
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    Promise.all([fetchInterchangeGraphPayload(), import("@antv/g6")])
-      .then(([p, mod]) => {
-        if (cancelled) return;
-        setPayload(p);
-        setGraphModule(mod);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const [zoomPct, setZoomPct] = useState(100);
+  const [graphError, setGraphError] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     const hoverLayer = hoverOverlayRef.current;
     const mod = graphModule;
     if (!canvas || !hoverLayer || !payload || !mod) return undefined;
+
+    setGraphError(null);
 
     const { graphData, adjIndex, nodeById } = buildGraphDataAndAdjacency(payload);
 
@@ -271,9 +279,9 @@ export function InterchangeGraphViewer() {
     const syncZoom = () => {
       try {
         const z = graph.getZoom();
-        setZoomPct(`${Math.round(z * 100)}%`);
+        setZoomPct(Math.round(z * 100));
       } catch {
-        setZoomPct("—");
+        setZoomPct(0);
       }
     };
 
@@ -597,7 +605,7 @@ export function InterchangeGraphViewer() {
         scheduleHoverOverlaySync();
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : String(err));
+        setGraphError(err instanceof Error ? err.message : String(err));
       });
 
     return () => {
@@ -626,111 +634,64 @@ export function InterchangeGraphViewer() {
     const next = Math.min(4, Math.max(0.15, cur * factor));
     await g.zoomTo(next, false);
     try {
-      setZoomPct(`${Math.round(g.getZoom() * 100)}%`);
+      setZoomPct(Math.round(g.getZoom() * 100));
     } catch {
-      setZoomPct("—");
+      setZoomPct(0);
     }
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ flex: 1, display: "grid", placeItems: "center" }}>
-        <CircularProgress size={32} />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ flex: 1, p: 2 }}>
-        <Typography color="error" variant="body2">
-          {error}
-        </Typography>
-      </Box>
-    );
-  }
-
-  if (!payload) {
-    return null;
-  }
+  const doFit = () => {
+    const g = graphRef.current;
+    if (!g) return;
+    void g.fitView().then(() => {
+      try {
+        setZoomPct(Math.round(g.getZoom() * 100));
+      } catch {
+        setZoomPct(0);
+      }
+    });
+  };
 
   return (
-    <Box
-      ref={rootRef}
-      className="ix-interchange-viewport"
-      sx={{
-        flex: 1,
-        minHeight: 0,
-        minWidth: 0,
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <style dangerouslySetInnerHTML={chromeStyleTag} />
+    <DiagramShell loading={loading} error={error ?? graphError}>
+      {payload && graphModule && !graphError && (
+        <Box
+          ref={rootRef}
+          className="ix-interchange-viewport"
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            minWidth: 0,
+            position: "relative",
+            overflow: "hidden",
+            ...GRAPH_HOVER_LABEL_SX,
+          }}
+        >
+          <Box ref={canvasRef} sx={CANVAS_SHELL_SX} />
 
-      <Box ref={canvasRef} sx={CANVAS_SHELL_SX} />
-
-      <Box
-        ref={hoverOverlayRef}
-        id="graph-hover-labels"
-        aria-hidden
-        sx={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          zIndex: 30,
-          overflow: "visible",
-        }}
-      />
-
-      <div id="color-legend" className="color-legend ix-legend-panel">
-        <div className="legend-title">Node types</div>
-        {payload.legend_items.map((it) => (
-          <div className="row" key={it.type} title={it.type}>
-            <img
-              className="legend-icon"
-              src={svgDataUriForGraphNodeIcon(it.color, it.type)}
-              width={20}
-              height={20}
-              alt=""
-            />
-            <span>{it.type}</span>
-          </div>
-        ))}
-      </div>
-
-      <div id="zoom-toolbar" className="zoom-toolbar" aria-label="View controls">
-        <div className="zoom-cluster">
-          <button type="button" className="zoom-btn" id="btn-zoom-in" title="Zoom in" onClick={() => void doZoom(1.25)}>
-            +
-          </button>
-          <button type="button" className="zoom-btn" id="btn-zoom-out" title="Zoom out" onClick={() => void doZoom(0.8)}>
-            −
-          </button>
-          <button
-            type="button"
-            className="zoom-btn"
-            id="btn-zoom-fit"
-            title="Fit to window"
-            onClick={() => {
-              const g = graphRef.current;
-              if (!g) return;
-              void g.fitView().then(() => {
-                try {
-                  setZoomPct(`${Math.round(g.getZoom() * 100)}%`);
-                } catch {
-                  setZoomPct("—");
-                }
-              });
+          <Box
+            ref={hoverOverlayRef}
+            id="graph-hover-labels"
+            aria-hidden
+            sx={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              zIndex: 30,
+              overflow: "visible",
             }}
-          >
-            ⊡
-          </button>
-          <span className="zoom-pct" id="zoom-pct">
-            {zoomPct}
-          </span>
-        </div>
-      </div>
-    </Box>
+          />
+
+          <NodeTypeLegend items={payload.legend_items} />
+
+          <ZoomToolbar
+            zoomPct={zoomPct}
+            onZoomIn={() => void doZoom(1.25)}
+            onZoomOut={() => void doZoom(0.8)}
+            onFit={doFit}
+          />
+        </Box>
+      )}
+    </DiagramShell>
   );
 }
