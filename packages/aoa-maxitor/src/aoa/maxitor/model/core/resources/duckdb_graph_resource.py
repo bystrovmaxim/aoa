@@ -1,14 +1,14 @@
 # packages/aoa-maxitor/src/aoa/maxitor/model/core/resources/duckdb_graph_resource.py
 """
-DuckDB-backed coordinator graph resource — in-memory SQL over JSON loaded **over HTTP**
-from the examples ``graph-json`` endpoint (:data:`DEFAULT_EXAMPLE_GRAPH_JSON_URL`).
+DuckDB-backed coordinator graph resource — in-memory SQL over coordinator graph JSON.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``connections["DuckDBGraph"]`` is the :class:`DuckDBGraphResource`; :attr:`~ExternalServiceResource.service`
-is the in-memory ``duckdb.DuckDBPyConnection``. :meth:`DuckDBGraphResource.__init__` opens the database,
+is the in-memory ``duckdb.DuckDBPyConnection``. Production loads JSON in the ASGI lifespan via
+:meth:`DuckDBGraphResource.create_from_http`; tests use :meth:`DuckDBGraphResource.build_from_json`.
 :meth:`DuckDBGraphResource._install_database` runs explicit ``CREATE TABLE`` / ``CREATE INDEX`` / ``CREATE VIEW``
 (physical tables plus ``CREATE VIEW nodes`` / ``edges``, then ``nodes_type_counts`` / ``edge_type_counts`` over those views; aligned with
 :data:`~aoa.action_machine.graph_model.graph_json_schema.GRAPH_JSON_SCHEMA`), then :func:`_fill_database` inserts rows
@@ -19,11 +19,11 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Mapping
 from typing import Any, cast
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 
 import duckdb
+import httpx
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
@@ -42,32 +42,59 @@ DUCKDB_GRAPH_CONNECTION_KEY = "DuckDBGraph"
 class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
     """
     AI-CORE-BEGIN
-    ROLE: Fetch coordinator graph JSON via HTTP and load it into DuckDB; :attr:`.service` is the DuckDB connection.
-    CONTRACT: GET :data:`DEFAULT_EXAMPLE_GRAPH_JSON_URL` (or :envvar:`MAXITOR_EXAMPLE_GRAPH_JSON_URL`), parse ``coordinator_json``, create schema via :meth:`_install_database`, then :func:`_fill_database`.
+    ROLE: Load coordinator graph JSON into DuckDB; :attr:`.service` is the DuckDB connection.
+    CONTRACT: Production uses :meth:`create_from_http` in app lifespan; tests use :meth:`build_from_json`. Optional sync fetch via :meth:`load_graph_json_http`.
     AI-CORE-END
     """
 
+    @classmethod
+    def graph_json_url(cls) -> str:
+        raw = os.environ.get(ENV_EXAMPLE_GRAPH_JSON_URL, DEFAULT_EXAMPLE_GRAPH_JSON_URL)
+        return (raw or "").strip() or DEFAULT_EXAMPLE_GRAPH_JSON_URL
+
     @staticmethod
-    def load_graph_json_http() -> dict[str, Any]:
-        """HTTP GET ``graph-json`` and parse the inner ``coordinator_json`` payload."""
-        raw_url = os.environ.get(ENV_EXAMPLE_GRAPH_JSON_URL, DEFAULT_EXAMPLE_GRAPH_JSON_URL)
-        url = (raw_url or "").strip() or DEFAULT_EXAMPLE_GRAPH_JSON_URL
-        req = Request(url, method="GET")
-        try:
-            with urlopen(req, timeout=60) as resp:
-                body = resp.read().decode("utf-8")
-        except HTTPError as exc:
-            msg = f"Example graph-json HTTP {exc.code} from {url!r}"
-            raise RuntimeError(msg) from exc
-        except URLError as exc:
-            msg = f"Example graph-json request failed for {url!r}: {exc.reason!r}"
-            raise RuntimeError(msg) from exc
-        envelope: dict[str, Any] = json.loads(body)
+    def _coordinator_from_envelope(envelope: Mapping[str, Any]) -> dict[str, Any]:
         coordinator_raw = envelope.get("coordinator_json")
         if not isinstance(coordinator_raw, str):
-            msg = f"Expected str coordinator_json in response from {url!r}, got {type(coordinator_raw).__name__}"
-            raise TypeError(msg)
+            raise TypeError("Expected str coordinator_json in envelope")
         return cast(dict[str, Any], json.loads(coordinator_raw))
+
+    @classmethod
+    async def _load_graph_json_http(cls) -> dict[str, Any]:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(cls.graph_json_url(), timeout=30.0)
+            response.raise_for_status()
+            envelope = response.json()
+        if not isinstance(envelope, dict):
+            raise TypeError("Expected JSON object envelope from graph-json endpoint")
+        return DuckDBGraphResource._coordinator_from_envelope(cast(Mapping[str, Any], envelope))
+
+    @classmethod
+    async def create_from_http(cls) -> DuckDBGraphResource:
+        json_data = await cls._load_graph_json_http()
+        return cls.build_from_json(json_data)
+
+    @classmethod
+    def build_from_json(cls, json_data: Mapping[str, Any]) -> DuckDBGraphResource:
+        instance = object.__new__(cls)
+        con = duckdb.connect(database=":memory:")
+        instance._install_database(con)
+        _fill_database(con, cast(dict[str, Any], json_data))
+        instance._install_post_load_objects(con)
+        ExternalServiceResource.__init__(instance, con)
+        return instance
+
+    @staticmethod
+    def load_graph_json_http() -> dict[str, Any]:
+        """Synchronous HTTP GET ``graph-json`` and parse the inner ``coordinator_json`` payload (non-production helpers)."""
+        url = DuckDBGraphResource.graph_json_url()
+        with httpx.Client() as client:
+            response = client.get(url, timeout=30.0)
+            response.raise_for_status()
+            envelope = response.json()
+        if not isinstance(envelope, dict):
+            raise TypeError("Expected JSON object envelope from graph-json endpoint")
+        return DuckDBGraphResource._coordinator_from_envelope(cast(Mapping[str, Any], envelope))
 
     def _install_database(self, con: duckdb.DuckDBPyConnection) -> None:
         """Create DuckDB tables, indexes, and ``nodes`` / ``edges`` views (DDL only; no row inserts)."""
@@ -361,15 +388,6 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
         parts.extend(_graph_union_view_ddls())
         parts.extend(_type_count_view_ddls())
         con.execute("".join(parts))
-
-    def __init__(self) -> None:
-        json_data = DuckDBGraphResource.load_graph_json_http()
-        self._source_json = dict(json_data)
-        con = duckdb.connect(database=":memory:")
-        self._install_database(con)
-        _fill_database(con, json_data)
-        self._install_post_load_objects(con)
-        super().__init__(con)
 
     def execute_fetch_dicts(
         self,

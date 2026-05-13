@@ -18,6 +18,9 @@ from aoa.maxitor.model.core.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
     DuckDBGraphResource,
 )
+from aoa.maxitor.model.diagrams.actions.list_domains_action import (
+    _LIST_DOMAINS_DISTINCT_COLORS,
+)
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import (
     DEFAULT_NODE_TYPE_COLOR,
     fill_color_for_node_type,
@@ -262,10 +265,6 @@ class FullGraphAction(BaseAction[ParamsStub, "FullGraphAction.Result"]):
     ) -> FullGraphAction.Result:
         _ = (state, box)
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
-
-        from aoa.maxitor.model.diagrams.actions.list_domains_action import (  # noqa: PLC0415
-            _LIST_DOMAINS_DISTINCT_COLORS,
-        )
 
         payload = _build_payload_from_duckdb(
             duck,

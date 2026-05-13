@@ -25,6 +25,8 @@ Environment for the `maxitor-api` console script: `MAXITOR_API_HOST` (default `1
 - `GET /api/v1/full-graph` returns interchange graph JSON for the React G6 viewer.
 - `GET /api/v1/list-domains` returns domain qualnames with accent colours; `GET /api/v1/list-entities` returns ERD entity slices (repeat ``domain_qualnames`` as query params).
 
+Diagram viewers in the SPA are plain React: G6 for the interchange graph and `@hpcc-js/wasm-graphviz` for ERD (no iframe shell).
+
 ### React frontend
 
 Local development:

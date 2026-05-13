@@ -13,12 +13,13 @@ ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.a
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
 Each generated diagram route declares the shared
 :class:`~aoa.maxitor.model.core.resources.duckdb_graph_resource.DuckDBGraphResource`
-connection it reads. Sidebar rows are loaded once in the ASGI lifespan
-(``application.state.sidebar_data``).
+connection it reads. Sidebar rows and the DuckDB graph resource are created in the ASGI lifespan
+(``application.state.sidebar_data`` and ``application.state.duckdb_graph``).
 """
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -28,6 +29,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.integrations.fastapi import FastApiAdapter
+from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.api.session import build_maxitor_api_session
@@ -52,16 +54,21 @@ def create_app() -> FastAPI:
     """
     machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
     auth = NoAuthCoordinator()
-    duckdb_graph = DuckDBGraphResource()
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        """Load sidebar once; runs inside uvicorn's event loop (no ``asyncio.run``)."""
-        session = await build_maxitor_api_session(machine=machine)
+        """Load graph JSON into DuckDB and sidebar once; runs inside uvicorn's event loop."""
+        duckdb_resource, session = await asyncio.gather(
+            DuckDBGraphResource.create_from_http(),
+            build_maxitor_api_session(machine=machine),
+        )
+        application.state.duckdb_graph = duckdb_resource
         application.state.sidebar_data = session.sidebar_data
         yield
 
     fastapi_app = FastAPI(title="Maxitor API", lifespan=lifespan)
+
+    duckdb_per_request = PerCallConnection(factory=lambda: fastapi_app.state.duckdb_graph)
 
     fastapi_app.add_middleware(
         CORSMiddleware,
@@ -85,22 +92,22 @@ def create_app() -> FastAPI:
         .get(
             "/list-domains",
             ListDomainsAction,
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
         )
         .get(
             "/list-entities",
             ListEntitiesAction,
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
         )
         .get(
             "/list-node-types",
             ListNodeTypesAction,
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
         )
         .get(
             "/full-graph",
             FullGraphAction,
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
         )
         .build()
     )
@@ -117,7 +124,7 @@ _lazy_fastapi_app: dict[str, FastAPI | None] = {"app": None}
 
 
 def __getattr__(name: str) -> FastAPI:
-    """Lazily build ``app`` so imports of this module do not hit the examples graph-json URL."""
+    """Lazily build ``app``; graph JSON is loaded in the ASGI lifespan, not at import time."""
     if name != "app":
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     cached = _lazy_fastapi_app["app"]
