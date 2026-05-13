@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from aoa.action_machine.graph_model.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph_model.inspectors.action_graph_node_inspector import ActionGraphNodeInspector
 from aoa.action_machine.graph_model.inspectors.application_graph_node_inspector import (
     ApplicationGraphNodeInspector,
@@ -29,7 +30,6 @@ from aoa.action_machine.graph_model.inspectors.params_graph_node_inspector impor
 from aoa.action_machine.graph_model.inspectors.resource_graph_node_inspector import ResourceGraphNodeInspector
 from aoa.action_machine.graph_model.inspectors.result_graph_node_inspector import ResultGraphNodeInspector
 from aoa.action_machine.graph_model.inspectors.role_graph_node_inspector import RoleGraphNodeInspector
-from aoa.action_machine.graph_model.interchange_json_schema import GRAPH_JSON_SCHEMA
 from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
 from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 

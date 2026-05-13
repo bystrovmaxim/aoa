@@ -28,7 +28,7 @@ Unexpected rows (duplicate ids, dangling targets, forbidden ``is_dag`` cycles, s
 
 **JSON export:** :meth:`NodeGraphCoordinator.to_json` assembles a JSON object with
 ``schema_version``, ``nodes``, and ``edges`` (each node includes ``id``, ``type``,
-``label``, ``properties``; each edge includes ``source_node_id``, ``target_node_id``,
+``label``, ``properties``; each edge includes ``source_id``, ``target_id``,
 ``type``, ``relationship``, ``is_dag``, ``properties``) suitable for rebuilding a
 ``networkx.DiGraph`` keyed by node ``id``. If callers passed ``export_json_schema`` to
 :meth:`build`, the dict is validated with :class:`jsonschema.Draft202012Validator` before
@@ -198,13 +198,13 @@ class NodeGraphCoordinator:
         edge_dicts: list[dict[str, Any]] = []
         for node in nodes:
             for edge in node.get_all_edges():
-                edge_dicts.append(edge.to_dict(source_node_id=node.node_id))
+                edge_dicts.append(edge.to_dict(source_id=node.node_id))
         payload: dict[str, Any] = {
             "schema_version": "1.0",
             "nodes": [node.to_dict() for node in nodes],
             "edges": sorted(
                 edge_dicts,
-                key=lambda e: (e["source_node_id"], e["type"], e["target_node_id"]),
+                key=lambda e: (e["source_id"], e["type"], e["target_id"]),
             ),
         }
         export_json_schema = self._export_json_schema

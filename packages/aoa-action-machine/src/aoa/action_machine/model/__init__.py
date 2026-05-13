@@ -10,6 +10,7 @@ This package exports the base model contracts used by actions:
 ``BaseAction``, ``BaseParams``, ``BaseResult``, ``ParamsStub``, ``ResultStub``,
 ``BaseSchema``, ``BaseState``, ``JsonSchemaValue``, ``JsonValue``,
 ``get_json_schema_value_metadata``, ``is_json_schema_value_type``.
+Aspect ``box`` typing lives at :class:`aoa.action_machine.runtime.tools_box.ToolsBox` (import from that module).
 
 ``JsonSchemaValue`` (with ``JsonValue`` and the graph helpers above) is the supported way to put
 **schema-validated JSON** on a single field of ``BaseResult`` or ``BaseParams`` while keeping
@@ -51,8 +52,6 @@ Edge case:
     A model validation or contract misuse raises an exception from
     :mod:`aoa.action_machine.exceptions`.
 """
-
-from __future__ import annotations
 
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams

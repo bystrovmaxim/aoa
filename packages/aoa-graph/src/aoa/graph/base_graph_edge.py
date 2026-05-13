@@ -53,7 +53,7 @@ class BaseGraphEdge(ABC):
     AI-CORE-BEGIN
     ROLE: Interchange edge descriptor (slot, DAG flag, target id, optional wired target node, properties).
     CONTRACT: Concrete subclasses expose ``edge_relationship`` as their fixed :class:`~aoa.graph.edge_relationship.EdgeRelationship`. ``target_node_id`` is a non-empty interchange id (``str``; typically matching another node's ``node_id``). ``target_node`` may be ``None`` until wired by a coordinator.
-    Concrete subclasses implement :meth:`to_dict` with ``source_node_id`` for JSON export (edge row keys
+    Concrete subclasses implement :meth:`to_dict` with ``source_id`` for JSON export (edge row keys
     plus JSON-safe ``properties``; no callables or wired object references in the payload).
     INVARIANTS: Frozen; ``is_dag`` is always set explicitly by the caller. ``properties`` is always a ``dict`` (never ``None``). String fields must be non-empty (after strip).
     AI-CORE-END
@@ -136,7 +136,7 @@ class BaseGraphEdge(ABC):
     def edge_relationship(self) -> EdgeRelationship:
         """Return the fixed ArchiMate-style relationship for this concrete edge type."""
 
-    def to_dict(self, *, source_node_id: str) -> dict[str, Any]:
+    def to_dict(self, *, source_id: str) -> dict[str, Any]:
         """Return a JSON-serializable edge row for export (see :meth:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator.to_json`)."""
 
         if self.properties:
@@ -146,8 +146,8 @@ class BaseGraphEdge(ABC):
             )
             raise NotImplementedError(msg)
         return {
-            "source_node_id": source_node_id,
-            "target_node_id": self.target_node_id,
+            "source_id": source_id,
+            "target_id": self.target_node_id,
             "type": self.edge_name,
             "relationship": self.edge_relationship.archimate_name,
             "is_dag": self.is_dag,
