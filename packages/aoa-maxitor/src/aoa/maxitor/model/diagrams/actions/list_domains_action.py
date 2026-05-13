@@ -142,6 +142,11 @@ class ListDomainsAction(BaseAction[ParamsStub, "ListDomainsAction.Result"]):
         palette = _LIST_DOMAINS_DISTINCT_COLORS
         return [{"qualname": str(row["qualname"]), "color": palette[i % len(palette)]} for i, row in enumerate(raw)]
 
+    @staticmethod
+    def domain_accent_rows(duck: DuckDBGraphResource) -> list[dict[str, Any]]:
+        """Same rows as ``list_domains`` (qualname + ERD accent hex); for other diagrams actions."""
+        return ListDomainsAction._list_domains_rows(duck)
+
     @summary_aspect("Resolve domain qualifier list from DuckDB graph")
     async def build_list_domains_summary(
         self,
@@ -151,4 +156,4 @@ class ListDomainsAction(BaseAction[ParamsStub, "ListDomainsAction.Result"]):
         connections: dict[str, BaseResource],
     ) -> ListDomainsAction.Result:
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
-        return ListDomainsAction.Result(list_domains=self._list_domains_rows(duck))
+        return ListDomainsAction.Result(list_domains=ListDomainsAction.domain_accent_rows(duck))

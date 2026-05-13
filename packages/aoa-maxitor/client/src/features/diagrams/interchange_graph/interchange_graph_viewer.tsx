@@ -177,7 +177,7 @@ function buildGraph(
     },
     layout: {
       type: "d3-force",
-      iterations: 320,
+      iterations: 220,
       animation: false,
       link: {
         distance: (edge: EdgeData) => {
@@ -194,9 +194,9 @@ function buildGraph(
       manyBody: { strength: -360, distanceMax: 1200 },
       collide: { radius: px * 0.5 + 7, strength: 0.95, iterations: 4 },
       center: { strength: 0.012 },
-      alphaDecay: 0.008,
-      alphaMin: 0.0008,
-      velocityDecay: 0.36,
+      alphaDecay: 0.012,
+      alphaMin: 0.0015,
+      velocityDecay: 0.42,
     },
     behaviors: [
       { type: "zoom-canvas", key: "zoom-canvas", enable: true },
@@ -428,8 +428,13 @@ export function InterchangeGraphViewer() {
       hoverLayer.innerHTML = "";
       if (hoverLabelNodeId == null) return;
       const adj = adjIndex[hoverLabelNodeId];
-      const labelIds = new Set<string>([String(hoverLabelNodeId)]);
-      if (adj) adj.neighbors.forEach((nid) => labelIds.add(String(nid)));
+      const labelIds = [String(hoverLabelNodeId)];
+      if (adj) {
+        for (const nid of adj.neighbors) {
+          if (labelIds.length >= 9) break;
+          labelIds.push(String(nid));
+        }
+      }
       for (const id of labelIds) {
         const n = nodeById.get(id);
         if (!n) continue;
@@ -492,9 +497,10 @@ export function InterchangeGraphViewer() {
       }
       const sid = nodeIdFromPointerEvt(evt);
       if (sid == null) return;
-      applyNeighborGlow(sid);
+      if (sid === hoverLabelNodeId) return;
       hoverLabelNodeId = sid;
-      scheduleHoverOverlaySync();
+      syncHoverLabels();
+      applyNeighborGlow(sid);
     };
 
     const onPointerMove = (evt: unknown) => {
@@ -534,7 +540,7 @@ export function InterchangeGraphViewer() {
 
     const onAfterTransform = () => {
       scheduleZoom();
-      scheduleHoverOverlaySync();
+      if (hoverLabelNodeId != null) scheduleHoverOverlaySync();
       if (hoverPointerOutPending && glowClearTimer != null) {
         clearTimeout(glowClearTimer);
         glowClearTimer = null;
@@ -548,7 +554,7 @@ export function InterchangeGraphViewer() {
 
     const onWheel = () => {
       scheduleZoom();
-      scheduleHoverOverlaySync();
+      if (hoverLabelNodeId != null) scheduleHoverOverlaySync();
       if (hoverPointerOutPending && glowClearTimer != null) {
         clearTimeout(glowClearTimer);
         glowClearTimer = null;
@@ -561,7 +567,6 @@ export function InterchangeGraphViewer() {
     };
 
     graph.on("node:pointerenter", onNodeOver);
-    graph.on("node:pointerover", onNodeOver);
     graph.on("node:pointermove", onPointerMove);
     graph.on("node:pointerout", onNodeOut);
     graph.on("node:pointerleave", onNodeOut);
@@ -595,7 +600,6 @@ export function InterchangeGraphViewer() {
       ro.disconnect();
       canvas.removeEventListener("wheel", onWheel);
       graph.off("node:pointerenter", onNodeOver);
-      graph.off("node:pointerover", onNodeOver);
       graph.off("node:pointermove", onPointerMove);
       graph.off("node:pointerout", onNodeOut);
       graph.off("node:pointerleave", onNodeOut);
