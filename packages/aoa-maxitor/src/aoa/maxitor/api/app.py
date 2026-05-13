@@ -46,6 +46,7 @@ from aoa.maxitor.model.diagrams.actions.get_interchange_graph_payload_action imp
 )
 from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
 from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
+from aoa.maxitor.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
 
 
 def create_app() -> FastAPI:
@@ -87,8 +88,9 @@ def create_app() -> FastAPI:
             version="1.0.0",
             description=(
                 "JSON endpoints generated from diagrams actions. "
-                "Each route declares its ``connections``; ``ListDomainsAction`` and ``ListEntitiesAction`` use "
-                "``DuckDBGraphResource``; ``GetInterchangeGraphPayloadAction`` uses ``NetworkXGraphResource``."
+                "Each route declares its ``connections``; ``ListDomainsAction``, ``ListEntitiesAction``, and "
+                "``ListNodeTypesAction`` use ``DuckDBGraphResource``; ``GetInterchangeGraphPayloadAction`` uses "
+                "``NetworkXGraphResource``."
             ),
         )
         .get(
@@ -99,6 +101,11 @@ def create_app() -> FastAPI:
         .get(
             "/list-entities",
             ListEntitiesAction,
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
+        )
+        .get(
+            "/list-node-types",
+            ListNodeTypesAction,
             connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .get(
