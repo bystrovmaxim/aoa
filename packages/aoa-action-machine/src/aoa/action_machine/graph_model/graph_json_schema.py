@@ -268,11 +268,20 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
               "additionalProperties": false,
               "required": [
                 "description",
-                "fields"
+                "fields",
+                "field_order"
               ],
               "properties": {
                 "description": {
                   "type": "string"
+                },
+                "field_order": {
+                  "type": "array",
+                  "description": "All model field names in declaration order (includes relation slots).",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 },
                 "fields": {
                   "type": "array",
@@ -282,7 +291,8 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
                     "required": [
                       "name",
                       "type",
-                      "primary_key"
+                      "primary_key",
+                      "ordinal"
                     ],
                     "properties": {
                       "name": {
@@ -294,6 +304,11 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
                       },
                       "primary_key": {
                         "type": "boolean"
+                      },
+                      "ordinal": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Column index among non-relation entity fields (declaration order)."
                       }
                     }
                   }

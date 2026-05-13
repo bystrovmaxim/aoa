@@ -61,6 +61,8 @@ def _entity_field_rows(entity_cls: type[BaseEntity]) -> list[dict[str, Any]]:
     ]
     if not any(row["name"] == "id" for row in rows):
         rows.insert(0, {"name": "id", "type": "str", "primary_key": True})
+    for i, row in enumerate(rows):
+        row["ordinal"] = i
     return rows
 
 
@@ -81,11 +83,12 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     def __init__(self, entity_cls: type[TEntity]) -> None:
         description = EntityIntentResolver.resolve_description(entity_cls)
         fields = _entity_field_rows(entity_cls)
+        field_order = list(entity_cls.model_fields.keys())
         super().__init__(
             node_id=TypeIntrospection.full_qualname(entity_cls),
             node_type=EntityGraphNode.NODE_TYPE,
             label=entity_cls.__name__,
-            properties={"description": description, "fields": fields},
+            properties={"description": description, "fields": fields, "field_order": field_order},
             node_obj=entity_cls,
         )
         object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self))
@@ -100,6 +103,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             "properties": {
                 "description": str(self.properties["description"]),
                 "fields": list(self.properties["fields"]),
+                "field_order": list(self.properties["field_order"]),
             },
         }
 
