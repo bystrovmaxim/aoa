@@ -11,7 +11,7 @@ import pytest
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
-from aoa.action_machine.graph_model.interchange_json_schema import GRAPH_JSON_SCHEMA
+from aoa.action_machine.graph_model.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.graph.base_graph_edge import BaseGraphEdge
 from aoa.graph.base_graph_node import BaseGraphNode
 from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
@@ -224,7 +224,7 @@ def _networkx_from_export_payload(payload: dict[str, Any]) -> nx.DiGraph:
         nid = node["id"]
         graph.add_node(nid, **node)
     for edge in payload["edges"]:
-        graph.add_edge(edge["source_node_id"], edge["target_node_id"], **edge)
+        graph.add_edge(edge["source_id"], edge["target_id"], **edge)
     return graph
 
 

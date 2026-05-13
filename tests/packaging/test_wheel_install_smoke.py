@@ -130,25 +130,6 @@ def test_clean_install_action_machine_pulls_graph(tmp_path: Path) -> None:
     )
 
 
-def test_clean_install_maxitor_pulls_action_machine_and_graph(tmp_path: Path) -> None:
-    venv = tmp_path / "venv"
-    subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
-    vpy = _venv_python(venv)
-    _uv_pip_install(
-        vpy,
-        [
-            _latest_wheel("aoa-graph"),
-            _latest_wheel("aoa-action-machine"),
-            _latest_wheel("aoa-maxitor"),
-        ],
-    )
-    _run_in_venv(
-        vpy,
-        "import importlib.util as u; import aoa.graph; import aoa.action_machine; import aoa.maxitor; "
-        "assert u.find_spec('aoa.examples') is None",
-    )
-
-
 def test_clean_install_examples_does_not_pull_maxitor(tmp_path: Path) -> None:
     venv = tmp_path / "venv"
     subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))

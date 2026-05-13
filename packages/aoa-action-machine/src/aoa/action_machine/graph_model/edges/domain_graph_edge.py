@@ -47,10 +47,10 @@ class DomainGraphEdge(AggregationGraphEdge):
             target_node=None,
         )
 
-    def to_dict(self, *, source_node_id: str) -> dict[str, Any]:
+    def to_dict(self, *, source_id: str) -> dict[str, Any]:
         return {
-            "source_node_id": source_node_id,
-            "target_node_id": self.target_node_id,
+            "source_id": source_id,
+            "target_id": self.target_node_id,
             "type": self.edge_name,
             "relationship": self.edge_relationship.archimate_name,
             "is_dag": self.is_dag,

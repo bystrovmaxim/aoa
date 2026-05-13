@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any
+from typing import Any, cast
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -71,7 +71,7 @@ class NetworkXGraphResource(ExternalServiceResource[Any]):
         if not isinstance(coordinator_raw, str):
             msg = f"Expected str coordinator_json in response from {url!r}, got {type(coordinator_raw).__name__}"
             raise TypeError(msg)
-        return json.loads(coordinator_raw)
+        return cast(dict[str, Any], json.loads(coordinator_raw))
 
 
     @staticmethod
@@ -85,5 +85,5 @@ class NetworkXGraphResource(ExternalServiceResource[Any]):
             nid = node["id"]
             graph.add_node(nid, **node)
         for edge in edges:
-            graph.add_edge(edge["source_node_id"], edge["target_node_id"], **edge)
+            graph.add_edge(edge["source_id"], edge["target_id"], **edge)
         return graph

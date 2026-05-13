@@ -11,8 +11,9 @@ not serve React assets or Python-rendered shell HTML.
 
 ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.action_machine.integrations.fastapi.FastApiAdapter`
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
-Each generated route declares the ``connections`` required by its action; diagram
-routes share one :class:`~aoa.maxitor.model.core.resources.networkx_graph_resource.NetworkXGraphResource`,
+Each generated route declares the ``connections`` required by its action; diagram routes use a
+shared :class:`~aoa.maxitor.model.core.resources.networkx_graph_resource.NetworkXGraphResource`
+(list domains, interchange graph payload, and ERD ``/erd/domains``),
 constructed once with :func:`create_app` (interchange JSON from the examples ``graph-json`` HTTP endpoint). Sidebar rows are loaded once in the ASGI lifespan
 (``application.state.sidebar_data``).
 """
@@ -81,7 +82,7 @@ def create_app() -> FastAPI:
             description=(
                 "JSON endpoints generated from diagrams actions. "
                 "Each route declares its ``connections``; diagram routes share one "
-                "``NetworkXGraphResource`` for the application lifetime."
+                "``NetworkXGraphResource`` (domains, interchange graph JSON, and ERD entity slices)."
             ),
         )
         .get(
@@ -113,14 +114,15 @@ def create_app() -> FastAPI:
     return fastapi_app
 
 
-__maxitor_fastapi_app: FastAPI | None = None
+_lazy_fastapi_app: dict[str, FastAPI | None] = {"app": None}
 
 
 def __getattr__(name: str) -> FastAPI:
     """Lazily build ``app`` so imports of this module do not hit the examples graph-json URL."""
-    global __maxitor_fastapi_app
     if name != "app":
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-    if __maxitor_fastapi_app is None:
-        __maxitor_fastapi_app = create_app()
-    return __maxitor_fastapi_app
+    cached = _lazy_fastapi_app["app"]
+    if cached is None:
+        cached = create_app()
+        _lazy_fastapi_app["app"] = cached
+    return cached
