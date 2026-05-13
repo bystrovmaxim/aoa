@@ -22,7 +22,17 @@ const CANVAS_SHELL_SX = {
   boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.65)",
 };
 
-function graphDataFromPayload(payload: InterchangeGraphG6Payload): GraphData {
+function buildGraphDataAndAdjacency(payload: InterchangeGraphG6Payload): {
+  graphData: GraphData;
+  adjIndex: Record<string, { edges: Set<string>; neighbors: Set<string> }>;
+  nodeById: Map<string, NodeData>;
+} {
+  const nodeById = new Map<string, NodeData>();
+  const adjIndex: Record<string, { edges: Set<string>; neighbors: Set<string> }> = {};
+  const initAdj = (nid: string) => {
+    if (!adjIndex[nid]) adjIndex[nid] = { edges: new Set(), neighbors: new Set() };
+  };
+
   const nodes: NodeData[] = payload.nodes.map((n) => {
     const row = { ...n } as NodeData & { x?: number; y?: number };
     const style = row.style as { x?: number; y?: number } | undefined;
@@ -30,20 +40,14 @@ function graphDataFromPayload(payload: InterchangeGraphG6Payload): GraphData {
       row.x = style.x;
       row.y = style.y;
     }
+    const nodeId = String(row.id);
+    nodeById.set(nodeId, row);
+    initAdj(nodeId);
     return row;
   });
-  return { nodes, edges: payload.edges as GraphData["edges"] };
-}
 
-function buildAdjacency(graphData: GraphData): {
-  adjIndex: Record<string, { edges: Set<string>; neighbors: Set<string> }>;
-  nodeById: Map<string, NodeData>;
-} {
-  const adjIndex: Record<string, { edges: Set<string>; neighbors: Set<string> }> = {};
-  const initAdj = (nid: string) => {
-    if (!adjIndex[nid]) adjIndex[nid] = { edges: new Set(), neighbors: new Set() };
-  };
-  for (const edge of graphData.edges ?? []) {
+  const edges = (payload.edges as GraphData["edges"]) ?? [];
+  for (const edge of edges) {
     const s = String(edge.source);
     const t = String(edge.target);
     initAdj(s);
@@ -55,10 +59,8 @@ function buildAdjacency(graphData: GraphData): {
     adjIndex[s].neighbors.add(t);
     adjIndex[t].neighbors.add(s);
   }
-  for (const node of graphData.nodes ?? []) initAdj(String(node.id));
-  const nodeById = new Map<string, NodeData>();
-  for (const node of graphData.nodes ?? []) nodeById.set(String(node.id), node);
-  return { adjIndex, nodeById };
+
+  return { graphData: { nodes, edges }, adjIndex, nodeById };
 }
 
 function nodeIdFromPointerEvt(evt: unknown): string | null {
@@ -261,8 +263,7 @@ export function InterchangeGraphViewer() {
     const mod = graphModule;
     if (!canvas || !hoverLayer || !payload || !mod) return undefined;
 
-    const graphData = graphDataFromPayload(payload);
-    const { adjIndex, nodeById } = buildAdjacency(graphData);
+    const { graphData, adjIndex, nodeById } = buildGraphDataAndAdjacency(payload);
 
     const graph = buildGraph(mod.Graph, canvas, payload, graphData);
     graphRef.current = graph;
@@ -425,8 +426,11 @@ export function InterchangeGraphViewer() {
 
     let hoverOverlaySyncRaf: number | null = null;
     const syncHoverLabels = () => {
+      if (hoverLabelNodeId == null) {
+        if (hoverLayer.firstChild) hoverLayer.innerHTML = "";
+        return;
+      }
       hoverLayer.innerHTML = "";
-      if (hoverLabelNodeId == null) return;
       const adj = adjIndex[hoverLabelNodeId];
       const labelIds = [String(hoverLabelNodeId)];
       if (adj) {
