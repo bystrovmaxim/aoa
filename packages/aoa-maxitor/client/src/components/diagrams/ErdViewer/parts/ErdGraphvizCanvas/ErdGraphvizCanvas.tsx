@@ -292,7 +292,6 @@ export function ErdGraphvizCanvas({
   }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions]);
 
   const accents = (enriched.domain_accent_colors ?? {}) as Record<string, string>;
-  const icons = (enriched.domain_legend_icons ?? {}) as Record<string, string>;
 
   const toggleDomain = (key: string) => {
     setEnabledDomains((prev) => {
@@ -324,7 +323,6 @@ export function ErdGraphvizCanvas({
           domainKeys={domainKeyList}
           enabledDomains={enabledDomains}
           accents={accents}
-          icons={icons}
           onToggle={toggleDomain}
         />
 
