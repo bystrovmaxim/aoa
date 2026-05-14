@@ -39,6 +39,7 @@ export function DiagramShell({ loading, error, children }: DiagramShellProps) {
             placeItems: "center",
             zIndex: 2,
             bgcolor: "rgba(255,255,255,0.6)",
+            pointerEvents: "none",
           }}
         >
           <CircularProgress size={40} />

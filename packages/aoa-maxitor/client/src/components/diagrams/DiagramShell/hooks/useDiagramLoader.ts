@@ -7,11 +7,20 @@ export type DiagramLoaderResult<T> = {
   error: string | null;
 };
 
+export type UseDiagramLoaderOptions = {
+  /** Keep showing the previous payload until the next request finishes (avoids remounting UI state). */
+  keepPreviousData?: boolean;
+};
+
 /**
  * Async diagram data loader with cancellation. Pass ``loader`` from ``useCallback`` so
  * dependency changes do not cause accidental reload loops.
  */
-export function useDiagramLoader<T>(loader: () => Promise<T>): DiagramLoaderResult<T> {
+export function useDiagramLoader<T>(
+  loader: () => Promise<T>,
+  options?: UseDiagramLoaderOptions,
+): DiagramLoaderResult<T> {
+  const keepPreviousData = options?.keepPreviousData ?? false;
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +28,9 @@ export function useDiagramLoader<T>(loader: () => Promise<T>): DiagramLoaderResu
   useEffect(() => {
     let cancelled = false;
     setError(null);
-    setData(null);
+    if (!keepPreviousData) {
+      setData(null);
+    }
     setLoading(true);
     void loader()
       .then((value) => {

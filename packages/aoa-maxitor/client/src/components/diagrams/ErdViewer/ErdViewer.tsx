@@ -20,11 +20,20 @@ export function ErdViewer({ selection }: ErdViewerProps) {
     [qualifier, includeOneHop],
   );
 
-  const { data: bundle, loading, error } = useDiagramLoader(loadBundle);
+  const diagramResetKey = qualifier ?? "all";
+
+  const { data: bundle, loading, error } = useDiagramLoader(loadBundle, { keepPreviousData: true });
 
   return (
     <DiagramShell loading={loading} error={error}>
-      {bundle && <ErdGraphvizCanvas bundle={bundle} includeOneHop={includeOneHop} onIncludeOneHopChange={setIncludeOneHop} />}
+      {bundle != null && (
+        <ErdGraphvizCanvas
+          bundle={bundle}
+          diagramResetKey={diagramResetKey}
+          includeOneHop={includeOneHop}
+          onIncludeOneHopChange={setIncludeOneHop}
+        />
+      )}
     </DiagramShell>
   );
 }

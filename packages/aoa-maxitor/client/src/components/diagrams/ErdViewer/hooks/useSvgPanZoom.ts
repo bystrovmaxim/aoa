@@ -1,6 +1,10 @@
 // src/components/diagrams/ErdViewer/hooks/useSvgPanZoom.ts
 /**
- * Pan / zoom / wheel zoom for a viewport wrapping an SVG panner (same mechanics as the legacy HTML viewer).
+ * Minimal pan / zoom / fit for Graphviz SVG.
+ *
+ * Keep transform imperative on the panner element. React only renders SVG markup; it does not own
+ * the transform. Fit is measured at identity transform in screen pixels, then applied as a single
+ * CSS matrix ``matrix(s, 0, 0, s, tx, ty)``.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -13,6 +17,76 @@ function clampUserScale(scale: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
 }
 
+function stripGraphvizBackdropPolygons(svg: SVGSVGElement): void {
+  const gg = svg.querySelector("g.graph");
+  if (!gg) return;
+  const vb = svg.viewBox?.baseVal;
+  const vbArea =
+    vb && Number.isFinite(vb.width) && Number.isFinite(vb.height) && vb.width > 0 && vb.height > 0
+      ? Math.abs(vb.width * vb.height)
+      : 0;
+
+  const toRemove: SVGPolygonElement[] = [];
+  for (const child of gg.children) {
+    if (child.tagName.toLowerCase() !== "polygon") continue;
+    const poly = child as SVGPolygonElement;
+    const fill = String(poly.getAttribute("fill") || "").toLowerCase().trim();
+    const knownBackdrop =
+      fill === "#f8fafc" ||
+      fill === "#f4f5f7" ||
+      fill === "#ffffff" ||
+      fill === "#fff" ||
+      fill === "white" ||
+      fill === "lightgray" ||
+      fill === "lightgrey" ||
+      fill === "transparent";
+
+    let huge = false;
+    if (vbArea > 0) {
+      try {
+        const b = poly.getBBox();
+        const a = Math.abs(b.width * b.height);
+        if (Number.isFinite(a) && a > vbArea * 0.18) huge = true;
+      } catch {
+        /* skip */
+      }
+    }
+
+    if (knownBackdrop || huge) toRemove.push(poly);
+  }
+  for (const p of toRemove) p.remove();
+}
+
+type Rect = { x: number; y: number; width: number; height: number };
+
+function unionClientRects(elements: Iterable<Element>, viewport: HTMLElement): Rect | null {
+  const vr = viewport.getBoundingClientRect();
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const el of elements) {
+    const b = el.getBoundingClientRect();
+    if (
+      !Number.isFinite(b.width) ||
+      b.width < 1 ||
+      !Number.isFinite(b.height) ||
+      b.height < 1
+    ) {
+      continue;
+    }
+    minX = Math.min(minX, b.left - vr.left);
+    minY = Math.min(minY, b.top - vr.top);
+    maxX = Math.max(maxX, b.right - vr.left);
+    maxY = Math.max(maxY, b.bottom - vr.top);
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return null;
+  const w = maxX - minX;
+  const h = maxY - minY;
+  if (w < 2 || h < 2) return null;
+  return { x: minX, y: minY, width: w, height: h };
+}
+
 export function useSvgPanZoom() {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const pannerRef = useRef<HTMLDivElement | null>(null);
@@ -23,13 +97,14 @@ export function useSvgPanZoom() {
   const wheelClientRef = useRef<{ x?: number; y?: number }>({});
   const interactAbortRef = useRef<AbortController | null>(null);
   const resizeFitRafRef = useRef<number | null>(null);
+  const hasFittedRef = useRef(false);
   const [zoomPct, setZoomPct] = useState(100);
 
   const applyTransform = useCallback(() => {
     const panner = pannerRef.current;
     if (!panner) return;
     const { scale, tx, ty } = panRef.current;
-    panner.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+    panner.style.transform = `matrix(${scale}, 0, 0, ${scale}, ${tx}, ${ty})`;
     setZoomPct(Math.round(scale * 100));
   }, []);
 
@@ -42,96 +117,33 @@ export function useSvgPanZoom() {
 
     const cw = vp.clientWidth;
     const ch = vp.clientHeight;
-    /** Flex/layout often reports 0×0 for one frame — scaling then overflows once real size appears. */
     if (cw < 8 || ch < 8) return;
 
-    svg.removeAttribute("width");
-    svg.removeAttribute("height");
+    stripGraphvizBackdropPolygons(svg);
 
-    const vb = svg.viewBox?.baseVal;
-    const hasVb = !!(vb && vb.width > 0 && vb.height > 0);
-
-    let w: number;
-    let h: number;
-
-    /**
-     * Graphviz wraps drawable content in ``g.graph``. Prefer that bbox — the root SVG
-     * ``viewBox`` often includes large margins; merging viewBox ∪ bbox (old behaviour)
-     * inflated ``w``/``h``, shrinking the fit scale (~20% zoom with empty canvas).
-     */
-    const tryBBox = (el: SVGGraphicsElement): DOMRect | null => {
-      try {
-        const b = el.getBBox();
-        if (
-          Number.isFinite(b.width) &&
-          b.width > 1 &&
-          Number.isFinite(b.height) &&
-          b.height > 1
-        ) {
-          return b;
-        }
-      } catch {
-        /* detached or not yet laid out */
-      }
-      return null;
-    };
-
-    const graphG = svg.querySelector("g.graph");
-    let box: DOMRect | null =
-      graphG instanceof SVGGraphicsElement ? tryBBox(graphG) : null;
-    if (!box && svg instanceof SVGGraphicsElement) {
-      box = tryBBox(svg);
-    }
-
-    if (box) {
-      w = box.width;
-      h = box.height;
-    } else if (hasVb && vb) {
-      w = vb.width;
-      h = vb.height;
-    } else {
-      w = 800;
-      h = 600;
-    }
-
-    if (!Number.isFinite(w) || w < 1) w = 1;
-    if (!Number.isFinite(h) || h < 1) h = 1;
-
-    if (hasVb && vb && vb.width > 0) {
-      svg.setAttribute("width", String(vb.width));
-      svg.setAttribute("height", String(vb.height));
-    } else {
-      svg.setAttribute("width", String(w));
-      svg.setAttribute("height", String(h));
-    }
-
-    /** Padding inside viewport so the graph does not touch edges (toolbar-safe). */
-    const pad = 0.88;
-    let s = Math.min((cw * pad) / w, (ch * pad) / h);
-    s = Math.max(0.05, Math.min(s, MAX_SCALE));
-
-    /**
-     * Center using layout rects (matches wheel-zoom convention). Apply scale first, force a single
-     * synchronous layout read, then set ``tx``/``ty`` and commit once — avoids visible multi-step
-     * “online” fitting from async RAF / delayed refits.
-     */
-    panRef.current.scale = s;
+    // Measure real painted SVG content at identity panner transform.
+    panRef.current.scale = 1;
     panRef.current.tx = 0;
     panRef.current.ty = 0;
-    panner.style.transform = `translate(0px,0px) scale(${s})`;
-
+    applyTransform();
     void panner.offsetHeight;
 
-    const graphEl = svg.querySelector("g.graph") ?? svg;
-    const vr = vp.getBoundingClientRect();
-    const gr = graphEl.getBoundingClientRect();
-    if (gr.width >= 2 && gr.height >= 2) {
-      const gcx = gr.left - vr.left + gr.width / 2;
-      const gcy = gr.top - vr.top + gr.height / 2;
-      panRef.current.tx = vp.clientWidth / 2 - gcx;
-      panRef.current.ty = vp.clientHeight / 2 - gcy;
+    let box = unionClientRects(svg.querySelectorAll("g.graph g.node"), vp);
+    if (!box) {
+      const graphEl = svg.querySelector("g.graph") ?? svg;
+      box = unionClientRects([graphEl], vp);
     }
+    if (!box) return;
 
+    const pad = 0.88;
+    let s = Math.min((cw * pad) / box.width, (ch * pad) / box.height);
+    s = Math.max(MIN_SCALE, Math.min(s, MAX_SCALE));
+
+    panRef.current.scale = s;
+    const tx = (cw - box.width * s) / 2 - box.x * s;
+    const ty = (ch - box.height * s) / 2 - box.y * s;
+    panRef.current.tx = tx;
+    panRef.current.ty = ty;
     applyTransform();
   }, [applyTransform]);
 
@@ -142,7 +154,9 @@ export function useSvgPanZoom() {
       if (resizeFitRafRef.current !== null) return;
       resizeFitRafRef.current = requestAnimationFrame(() => {
         resizeFitRafRef.current = null;
-        fitToContainer();
+        if (!hasFittedRef.current) {
+          fitToContainer();
+        }
       });
     });
     ro.observe(vp);
@@ -153,6 +167,11 @@ export function useSvgPanZoom() {
         resizeFitRafRef.current = null;
       }
     };
+  }, [fitToContainer]);
+
+  const fitToContainerPublic = useCallback(() => {
+    fitToContainer();
+    hasFittedRef.current = true;
   }, [fitToContainer]);
 
   const zoomFromViewportCenter = useCallback(
@@ -259,13 +278,18 @@ export function useSvgPanZoom() {
   const zoomIn = useCallback(() => zoomFromViewportCenter(1.25), [zoomFromViewportCenter]);
   const zoomOut = useCallback(() => zoomFromViewportCenter(0.8), [zoomFromViewportCenter]);
 
+  const resetFitFlag = useCallback(() => {
+    hasFittedRef.current = false;
+  }, []);
+
   return {
     viewportRef,
     pannerRef,
     zoomPct,
-    fitToContainer,
+    fitToContainer: fitToContainerPublic,
     zoomIn,
     zoomOut,
     bindInteractions,
+    resetFitFlag,
   };
 }
