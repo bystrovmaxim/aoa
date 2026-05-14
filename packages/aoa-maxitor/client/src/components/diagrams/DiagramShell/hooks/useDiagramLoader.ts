@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 export type DiagramLoaderResult<T> = {
   data: T | null;
+  dataVersion: number;
   loading: boolean;
   error: string | null;
 };
@@ -22,6 +23,7 @@ export function useDiagramLoader<T>(
 ): DiagramLoaderResult<T> {
   const keepPreviousData = options?.keepPreviousData ?? false;
   const [data, setData] = useState<T | null>(null);
+  const [dataVersion, setDataVersion] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +36,10 @@ export function useDiagramLoader<T>(
     setLoading(true);
     void loader()
       .then((value) => {
-        if (!cancelled) setData(value);
+        if (!cancelled) {
+          setData(value);
+          setDataVersion((v) => v + 1);
+        }
       })
       .catch((e: unknown) => {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
@@ -47,5 +52,5 @@ export function useDiagramLoader<T>(
     };
   }, [loader]);
 
-  return { data, loading, error };
+  return { data, dataVersion, loading, error };
 }

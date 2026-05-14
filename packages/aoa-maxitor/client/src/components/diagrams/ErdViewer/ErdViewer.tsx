@@ -22,13 +22,15 @@ export function ErdViewer({ selection }: ErdViewerProps) {
 
   const diagramResetKey = qualifier ?? "all";
 
-  const { data: bundle, loading, error } = useDiagramLoader(loadBundle, { keepPreviousData: true });
+  const { data: bundle, dataVersion, loading, error } = useDiagramLoader(loadBundle, { keepPreviousData: true });
 
   return (
     <DiagramShell loading={loading} error={error}>
       {bundle != null && (
         <ErdGraphvizCanvas
+          key={`${diagramResetKey}:${dataVersion}`}
           bundle={bundle}
+          bundleVersion={dataVersion}
           diagramResetKey={diagramResetKey}
           includeOneHop={includeOneHop}
           onIncludeOneHopChange={setIncludeOneHop}
