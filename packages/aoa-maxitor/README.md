@@ -46,10 +46,9 @@ VITE_MAXITOR_API_BASE_URL=https://api.example.com npm run build
 
 ### React source layout (`client/src`)
 
-- `app/` — application composition: root shell (`app.tsx`), providers, layout, and app-level views such as `views/main_diagram_view.tsx`.
-- `features/diagram_selection/` — shared selection contract between navigation and the app-level diagram view.
-- `features/diagrams/` — diagram rendering features only: `interchange_graph/` and `erd/`.
-- `features/diagrams/erd/model/` — ERD API payload contracts.
-- `features/maxitor_navigation/` — current left navigation feature (`api/`, `model/`, `ui/`) backed by `/api/sidebar`.
-- `features/index.ts` — public feature barrel for app composition.
-- `shared/` — theme, API config, and layout constants.
+See **`client/README.md`** in this package for layered conventions (`api`, `model`, `lib`, `prefetch`) and links to the architecture plan.
+
+- `app/` — bootstrap shell only: **`App.tsx`**, **`providers/AppProviders.tsx`** (no diagram JSX).
+- `components/` — all widget UI: **`layout/MainLayout/`**, **`pages/DiagramWorkspacePage/`**, **`navigation/LeftSidebar/`** (includes colocated **`SidebarRowIcon.tsx`**), **`ui/`** (zoom, legends, toggles), **`diagrams/`** (`DiagramShell/`, `FullGraphViewer/`, `ErdViewer/` with **`parts/ErdGraphvizCanvas/`**).
+- `api/`, `model/`, `lib/` — HTTP clients, shared types, pure helpers (see plan 018).
+- `styles/theme.ts` — MUI theme used by **`AppProviders`**.

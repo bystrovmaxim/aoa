@@ -83,6 +83,28 @@ check_no_lazy_init_getattr() {
   fi
 }
 
+# packages/aoa-maxitor/client — each components/<zone>/<Component>/ with index.ts must have README.md (plan 018 section 9.1).
+check_maxitor_client_component_readmes() {
+  local client_src="$REPO_ROOT/packages/aoa-maxitor/client/src"
+  local dir
+  local fail=0
+
+  if [[ ! -d "$client_src" ]]; then
+    echo "Missing directory: $client_src"
+    return 1
+  fi
+
+  while IFS= read -r -d '' dir; do
+    dir="${dir%/}/"
+    if [[ -f "${dir}index.ts" && ! -f "${dir}README.md" ]]; then
+      echo "Missing README.md in ${dir}"
+      fail=1
+    fi
+  done < <(find "$client_src" -mindepth 3 -maxdepth 3 -type d -path "$client_src/components/*/*" -print0)
+
+  return "$fail"
+}
+
 if [[ ! -f "$REPO_ROOT/pyproject.toml" ]]; then
   echo -e "${RED}FAIL pyproject.toml not found in $REPO_ROOT${NC}"
   exit 1
@@ -99,6 +121,23 @@ echo -e "${YELLOW}> ${step_name}${NC}"
   echo ""
 } >>"$LOG_FILE"
 if check_no_lazy_init_getattr >>"$LOG_FILE" 2>&1; then
+  echo -e "${GREEN}OK ${step_name} (exit 0)${NC}"
+  echo "OK ${step_name} (exit 0)" >>"$LOG_FILE"
+else
+  echo -e "${RED}FAIL ${step_name} (non-zero exit)${NC}"
+  echo "FAIL ${step_name} (non-zero exit)" >>"$LOG_FILE"
+  FAILED=1
+fi
+echo "" >>"$LOG_FILE"
+
+step_name="Maxitor client: README beside components/*/ index.ts"
+echo -e "${YELLOW}> ${step_name}${NC}"
+{
+  echo "=== ${step_name} ==="
+  echo "\$ check_maxitor_client_component_readmes (shell function)"
+  echo ""
+} >>"$LOG_FILE"
+if check_maxitor_client_component_readmes >>"$LOG_FILE" 2>&1; then
   echo -e "${GREEN}OK ${step_name} (exit 0)${NC}"
   echo "OK ${step_name} (exit 0)" >>"$LOG_FILE"
 else
