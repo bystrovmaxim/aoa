@@ -3,8 +3,9 @@ import type { Engine } from "@hpcc-js/wasm-graphviz";
 import Box from "@mui/material/Box";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { DomainLegend } from "@/components/ui/DomainLegend";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
@@ -20,6 +21,13 @@ import {
 } from "@/lib/buildDotSource";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
+import {
+  LayoutGlyphCirco,
+  LayoutGlyphDotLR,
+  LayoutGlyphDotTB,
+  LayoutGlyphFdp,
+  LayoutGlyphNeato,
+} from "./layoutEngineGlyphs";
 
 function mergeDomainPayloads(parts: ErdGraphPayload[]): ErdGraphPayload {
   const nodeById = new Map<string, ErdEntity>();
@@ -62,11 +70,29 @@ function getMergedFromDomains(enriched: Record<string, unknown>, enabled: Set<st
 
 export type ErdGraphvizCanvasProps = {
   bundle: ErdDomainsBundle;
+  diagramResetKey: string;
   includeOneHop: boolean;
   onIncludeOneHopChange: (next: boolean) => void;
 };
 
-export function ErdGraphvizCanvas({ bundle, includeOneHop, onIncludeOneHopChange }: ErdGraphvizCanvasProps) {
+const LAYOUT_TOOLS: {
+  value: ErdGraphvizLayout;
+  title: string;
+  Glyph: (props: SVGProps<SVGSVGElement>) => ReactElement;
+}[] = [
+  { value: "gv-dot-lr", title: "Dot — left to right", Glyph: LayoutGlyphDotLR },
+  { value: "gv-dot-tb", title: "Dot — top to bottom", Glyph: LayoutGlyphDotTB },
+  { value: "gv-neato", title: "Neato (spring)", Glyph: LayoutGlyphNeato },
+  { value: "gv-fdp", title: "FDP (force)", Glyph: LayoutGlyphFdp },
+  { value: "gv-circo", title: "Circo (circular)", Glyph: LayoutGlyphCirco },
+];
+
+export function ErdGraphvizCanvas({
+  bundle,
+  diagramResetKey,
+  includeOneHop,
+  onIncludeOneHopChange,
+}: ErdGraphvizCanvasProps) {
   const [layout, setLayout] = useState<ErdGraphvizLayout>("gv-dot-lr");
   const [svgMarkup, setSvgMarkup] = useState("");
   const [renderError, setRenderError] = useState<string | null>(null);
@@ -86,9 +112,28 @@ export function ErdGraphvizCanvas({ bundle, includeOneHop, onIncludeOneHopChange
     () => new Set(Object.keys(bundle.domains ?? {}).sort()),
   );
 
+  const prevDiagramKeyRef = useRef<string | null>(null);
+
+  const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag } =
+    useSvgPanZoom();
+
   useLayoutEffect(() => {
-    setEnabledDomains(new Set(Object.keys(bundle.domains ?? {}).sort()));
-  }, [bundle]);
+    const keys = Object.keys(bundle.domains ?? {}).sort();
+    const all = new Set(keys);
+    const prevKey = prevDiagramKeyRef.current;
+    const sameDiagram = prevKey === diagramResetKey;
+    prevDiagramKeyRef.current = diagramResetKey;
+
+    if (prevKey === null || !sameDiagram) {
+      setEnabledDomains(all);
+      return;
+    }
+
+    setEnabledDomains((prevEnabled) => {
+      const merged = new Set(keys.filter((k) => prevEnabled.has(k)));
+      return merged.size > 0 ? merged : all;
+    });
+  }, [bundle, diagramResetKey]);
 
   const mergedData = useMemo(
     () => getMergedFromDomains(enriched, enabledDomains),
@@ -97,7 +142,15 @@ export function ErdGraphvizCanvas({ bundle, includeOneHop, onIncludeOneHopChange
 
   const dot = useMemo(() => buildDotSource(mergedData, layout), [mergedData, layout]);
 
-  const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions } = useSvgPanZoom();
+  // Reset fit flag whenever the DOT source changes (new diagram, layout mode, or 1-hop toggle)
+  // so the next SVG insertion always re-fits
+  const prevDotRef = useRef<string>("");
+  useLayoutEffect(() => {
+    if (dot !== prevDotRef.current) {
+      prevDotRef.current = dot;
+      resetFitFlag();
+    }
+  }, [dot, resetFitFlag]);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,14 +183,24 @@ export function ErdGraphvizCanvas({ bundle, includeOneHop, onIncludeOneHopChange
     const ac = new AbortController();
     const svg = panner.querySelector("svg");
     if (svg) {
+      // Remove size constraints so getBBox works correctly
       svg.removeAttribute("width");
       svg.removeAttribute("height");
+
       const gg = svg.querySelector("g.graph");
       const bgPoly = gg?.querySelector("polygon");
       if (bgPoly) {
-        const fill = String(bgPoly.getAttribute("fill") || "").toLowerCase();
-        if (fill === "#f8fafc" || fill === "#f4f5f7" || fill === "lightgray" || fill === "lightgrey") {
-          bgPoly.setAttribute("fill", "none");
+        const fill = String(bgPoly.getAttribute("fill") || "").toLowerCase().trim();
+        const backdrop =
+          fill === "#f8fafc" ||
+          fill === "#f4f5f7" ||
+          fill === "#ffffff" ||
+          fill === "#fff" ||
+          fill === "white" ||
+          fill === "lightgray" ||
+          fill === "lightgrey";
+        if (backdrop) {
+          bgPoly.remove();
         }
       }
     }
@@ -169,12 +232,34 @@ export function ErdGraphvizCanvas({ bundle, includeOneHop, onIncludeOneHopChange
       node.addEventListener("mouseleave", onLeave, { signal: ac.signal });
     });
 
-    fitToContainer();
-    const unbindPan = bindInteractions();
+    // Use triple-rAF to ensure the browser has fully laid out and painted the SVG
+    // before we measure getBBox() and compute the fit transform.
+    let unbindPan: (() => void) | undefined;
+    let cancelled = false;
+
+    const doFitAndBind = () => {
+      if (cancelled) return;
+      fitToContainer();
+      unbindPan = bindInteractions();
+    };
+
+    let raf1: number;
+    let raf2: number;
+    let raf3: number;
+
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        raf3 = requestAnimationFrame(doFitAndBind);
+      });
+    });
 
     return () => {
+      cancelled = true;
       ac.abort();
       unbindPan?.();
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      cancelAnimationFrame(raf3);
     };
   }, [svgMarkup, fitToContainer, bindInteractions]);
 
@@ -242,6 +327,7 @@ export function ErdGraphvizCanvas({ bundle, includeOneHop, onIncludeOneHopChange
               top: 0,
               transformOrigin: "0 0",
               willChange: "transform",
+              display: "block",
               "& svg": { display: "block", maxWidth: "none", height: "auto" },
             }}
             dangerouslySetInnerHTML={{ __html: svgMarkup }}
@@ -271,16 +357,14 @@ export function ErdGraphvizCanvas({ bundle, includeOneHop, onIncludeOneHopChange
                 mx: 0,
               },
               "& .MuiToggleButton-root": {
-                px: 0.75,
+                px: 0.35,
                 py: 0.25,
-                minWidth: 0,
+                minWidth: 30,
+                fontSize: 15,
+                lineHeight: 1,
                 border: "none",
                 bgcolor: "transparent",
                 color: "#64748b",
-                textTransform: "none",
-                fontSize: 11,
-                fontWeight: 500,
-                lineHeight: 1.2,
                 "&:hover": {
                   bgcolor: "rgba(15, 23, 42, 0.06)",
                   color: "#0f172a",
@@ -288,7 +372,6 @@ export function ErdGraphvizCanvas({ bundle, includeOneHop, onIncludeOneHopChange
                 "&.Mui-selected": {
                   color: "#1d4ed8",
                   bgcolor: "transparent !important",
-                  fontWeight: 600,
                 },
                 "&.Mui-selected:hover": {
                   bgcolor: "rgba(15, 23, 42, 0.06) !important",
@@ -297,11 +380,24 @@ export function ErdGraphvizCanvas({ bundle, includeOneHop, onIncludeOneHopChange
               },
             }}
           >
-            <ToggleButton value="gv-dot-lr">Dot LR</ToggleButton>
-            <ToggleButton value="gv-dot-tb">Dot TB</ToggleButton>
-            <ToggleButton value="gv-neato">Neato</ToggleButton>
-            <ToggleButton value="gv-fdp">FDP</ToggleButton>
-            <ToggleButton value="gv-circo">Circo</ToggleButton>
+            {LAYOUT_TOOLS.map(({ value, title, Glyph }) => (
+              <ToggleButton key={value} value={value} aria-label={title}>
+                <Tooltip title={title} placement="top">
+                  <Box
+                    component="span"
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "1em",
+                      height: "1em",
+                    }}
+                  >
+                    <Glyph />
+                  </Box>
+                </Tooltip>
+              </ToggleButton>
+            ))}
           </ToggleButtonGroup>
           <Box
             component="span"
