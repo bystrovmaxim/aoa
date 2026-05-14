@@ -1,86 +1,71 @@
 // src/components/ui/DomainLegend/DomainLegend.tsx
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
+import { svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
+import {
+  floatingLegendPanelSx,
+  floatingLegendTitleSx,
+  legendDiskImgSx,
+  legendRowLabelSx,
+  legendRowSx,
+} from "@/lib/ui";
 
 export type DomainLegendProps = {
   domainKeys: string[];
   enabledDomains: Set<string>;
   accents: Record<string, string>;
-  icons: Record<string, string>;
+  /** Reserved for future custom per-domain glyphs; legend uses shared Domain disk from ``@/lib/icons``. */
+  icons?: Record<string, string>;
   onToggle: (key: string) => void;
 };
 
-/** Multi-domain ERD legend with toggles — absolute inside the graph viewport. */
-export function DomainLegend({ domainKeys, enabledDomains, accents, icons, onToggle }: DomainLegendProps) {
+const ROW_OFF_OPACITY = 0.42;
+
+/** Multi-domain ERD legend — same row chrome as ``NodeTypeLegend``; toggles dim rows, no chip chrome. */
+export function DomainLegend({ domainKeys, enabledDomains, accents, onToggle }: DomainLegendProps) {
   if (domainKeys.length <= 1) return null;
 
   return (
-    <Box
-      component="aside"
-      aria-label="Domains"
-      sx={{
-        position: "absolute",
-        top: 12,
-        left: 12,
-        zIndex: 40,
-        maxHeight: "calc(100% - 60px)",
-        overflowY: "auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: 0.5,
-        p: 1,
-        minWidth: 180,
-        maxWidth: 260,
-        bgcolor: "rgba(255,255,255,0.88)",
-        backdropFilter: "blur(8px)",
-        border: "1px solid",
-        borderColor: "rgba(0,0,0,0.08)",
-        borderRadius: 1,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.07)",
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{
-          fontWeight: 600,
-          fontSize: "10px",
-          textTransform: "uppercase",
-          letterSpacing: "0.04em",
-          color: "text.secondary",
-          px: 0.5,
-        }}
-      >
+    <Box component="aside" aria-label="Domains" sx={floatingLegendPanelSx}>
+      <Typography variant="caption" sx={floatingLegendTitleSx}>
         Domains
       </Typography>
       {domainKeys.map((k) => {
         const on = enabledDomains.has(k);
         const color = accents[k] || "#3b82f6";
-        const iconSrc = icons[k];
+        const src = svgDataUriForInterchangeDomainLegend(color);
         return (
-          <Button
+          <Box
             key={k}
-            size="small"
-            variant={on ? "contained" : "outlined"}
+            component="button"
+            type="button"
+            title={k}
             onClick={() => onToggle(k)}
+            aria-pressed={on}
             sx={{
-              justifyContent: "flex-start",
-              textTransform: "none",
-              minWidth: 140,
-              ...(on
-                ? { bgcolor: color, "&:hover": { bgcolor: color } }
-                : { borderColor: color, color: "text.primary" }),
+              ...legendRowSx,
+              m: 0,
+              p: 0,
+              width: "100%",
+              border: "none",
+              bgcolor: "transparent",
+              cursor: "pointer",
+              textAlign: "left",
+              borderRadius: 0.5,
+              opacity: on ? 1 : ROW_OFF_OPACITY,
+              transition: "opacity 120ms ease",
+              "&:hover": { opacity: on ? 1 : Math.min(ROW_OFF_OPACITY + 0.22, 0.85) },
+              "&:focus-visible": {
+                outline: "2px solid rgba(59, 130, 246, 0.45)",
+                outlineOffset: 1,
+              },
             }}
-            startIcon={
-              iconSrc ? (
-                <Box component="img" src={iconSrc} alt="" sx={{ width: 18, height: 18 }} />
-              ) : (
-                <Box sx={{ width: 14, height: 14, borderRadius: "50%", bgcolor: color }} />
-              )
-            }
           >
-            {k}
-          </Button>
+            <Box component="img" src={src} width={20} height={20} alt="" sx={legendDiskImgSx} />
+            <Typography variant="caption" sx={legendRowLabelSx}>
+              {k}
+            </Typography>
+          </Box>
         );
       })}
     </Box>
