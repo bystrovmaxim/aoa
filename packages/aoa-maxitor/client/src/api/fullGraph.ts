@@ -120,8 +120,8 @@ function buildDomainBubblePlugins(
   return result;
 }
 
-/** Load interchange topology JSON for the AntV G6 workspace. */
-export async function fetchInterchangeGraphPayload(): Promise<InterchangeGraphG6Payload> {
+/** Matches ``GET /api/v1/full-graph`` / ``FullGraphAction`` (plus client-side bubble plugins). */
+export async function fullGraph(): Promise<InterchangeGraphG6Payload> {
   const response = await fetch(apiUrl("/api/v1/full-graph"));
   if (!response.ok) {
     const text = await response.text().catch(() => "");

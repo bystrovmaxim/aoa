@@ -10,7 +10,7 @@
 
 ## Public exports
 
-The folder **`index.ts`** exports **`ErdViewer`**, **`ErdViewerSelection`**, and **`ErdGraphvizCanvas`** (the canvas re-export is **only for isolated tests** of the Graphviz surface — app code should import **`ErdViewer`**). For **`fetchErdDomainsBatch`**, **`buildDotSource`**, **`DomainLegend`**, etc., import from **`@/api/*`**, **`@/lib/*`**, **`@/components/ui/*`** — avoid a deep feature barrel (plan §7).
+The folder **`index.ts`** exports **`ErdViewer`**, **`ErdViewerSelection`**, and **`ErdGraphvizCanvas`** (the canvas re-export is **only for isolated tests** of the Graphviz surface — app code should import **`ErdViewer`**). For **`listEntities`** / **`listDomains`**, **`buildDotSource`**, **`DomainLegend`**, etc., import from **`@/api/*`**, **`@/lib/*`**, **`@/components/ui/*`** — avoid a deep feature barrel (plan §7).
 
 ## Files
 

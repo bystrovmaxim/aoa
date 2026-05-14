@@ -8,7 +8,7 @@ Vite + React + TypeScript SPA for diagram workspaces (full graph / ERD). Import 
 |-------|------|
 | **`app/`** | Application glue only: [`App.tsx`](./src/app/App.tsx), [`providers/AppProviders.tsx`](./src/app/providers/AppProviders.tsx). No product widgets here. |
 | **`components/`** | All UI blocks (layout, pages, navigation, `ui/`, `diagrams/`). Each **exported** PascalCase folder has `index.ts` + `README.md`; small private helpers may live as sibling `.tsx` files inside that folder (§1). Nested `hooks/` and `parts/` stay colocated (plan §4). |
-| **`api/`** | HTTP clients (`fetch`), no JSX — [`client.ts`](./src/api/client.ts), domain modules (`erd.ts`, `fullGraph.ts`, `sidebar.ts`). |
+| **`api/`** | HTTP clients (`fetch`), no JSX — names mirror FastAPI handlers / ``/api/v1`` routes ([`getSidebar`](./src/api/sidebar.ts), [`listDomains`](./src/api/erd.ts), [`listEntities`](./src/api/erd.ts), [`fullGraph`](./src/api/fullGraph.ts)); see [`client.ts`](./src/api/client.ts). |
 | **`model/`** | Shared TypeScript contracts between UI and API (`diagramSelection`, `fullGraph`, `erd`, `sidebar`). |
 | **`lib/`** | Pure helpers and **layout constants** (e.g. [`layoutConstants.ts`](./src/lib/layoutConstants.ts)) — not React components. |
 | **`lib/prefetch/`** | Fire-and-forget chunk warmers (`g6Prefetch`, `erdGraphviz` / Graphviz WASM). |

@@ -1,5 +1,5 @@
 // src/components/navigation/LeftSidebar/hooks/useSidebarPayload.ts
-import { fetchSidebarPayload } from "@/api/sidebar";
+import { getSidebar } from "@/api/sidebar";
 import type { SidebarPayload } from "@/model/sidebar";
 import { useEffect, useState } from "react";
 
@@ -11,7 +11,7 @@ export function useSidebarPayload() {
     let cancelled = false;
     (async () => {
       try {
-        const json = await fetchSidebarPayload();
+        const json = await getSidebar();
         if (!cancelled) setSidebar(json);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));

@@ -22,6 +22,7 @@ export function useSvgPanZoom() {
   const wheelRafRef = useRef<number | null>(null);
   const wheelClientRef = useRef<{ x?: number; y?: number }>({});
   const interactAbortRef = useRef<AbortController | null>(null);
+  const resizeFitRafRef = useRef<number | null>(null);
   const [zoomPct, setZoomPct] = useState(100);
 
   const applyTransform = useCallback(() => {
@@ -52,50 +53,45 @@ export function useSvgPanZoom() {
 
     let w: number;
     let h: number;
-    let bx = 0;
-    let by = 0;
 
-    try {
-      const bbox = svg.getBBox();
-      const hasBb =
-        Number.isFinite(bbox.width) &&
-        bbox.width > 0 &&
-        Number.isFinite(bbox.height) &&
-        bbox.height > 0;
+    /**
+     * Graphviz wraps drawable content in ``g.graph``. Prefer that bbox — the root SVG
+     * ``viewBox`` often includes large margins; merging viewBox ∪ bbox (old behaviour)
+     * inflated ``w``/``h``, shrinking the fit scale (~20% zoom with empty canvas).
+     */
+    const tryBBox = (el: SVGGraphicsElement): DOMRect | null => {
+      try {
+        const b = el.getBBox();
+        if (
+          Number.isFinite(b.width) &&
+          b.width > 1 &&
+          Number.isFinite(b.height) &&
+          b.height > 1
+        ) {
+          return b;
+        }
+      } catch {
+        /* detached or not yet laid out */
+      }
+      return null;
+    };
 
-      if (hasBb && hasVb && vb) {
-        const vx2 = vb.x + vb.width;
-        const vy2 = vb.y + vb.height;
-        const bx2 = bbox.x + bbox.width;
-        const by2 = bbox.y + bbox.height;
-        bx = Math.min(vb.x, bbox.x);
-        by = Math.min(vb.y, bbox.y);
-        w = Math.max(vx2, bx2) - bx;
-        h = Math.max(vy2, by2) - by;
-      } else if (hasBb) {
-        w = bbox.width;
-        h = bbox.height;
-        bx = bbox.x;
-        by = bbox.y;
-      } else if (hasVb && vb) {
-        w = vb.width;
-        h = vb.height;
-        bx = vb.x;
-        by = vb.y;
-      } else {
-        w = 800;
-        h = 600;
-      }
-    } catch {
-      if (hasVb && vb) {
-        w = vb.width;
-        h = vb.height;
-        bx = vb.x;
-        by = vb.y;
-      } else {
-        w = 800;
-        h = 600;
-      }
+    const graphG = svg.querySelector("g.graph");
+    let box: DOMRect | null =
+      graphG instanceof SVGGraphicsElement ? tryBBox(graphG) : null;
+    if (!box && svg instanceof SVGGraphicsElement) {
+      box = tryBBox(svg);
+    }
+
+    if (box) {
+      w = box.width;
+      h = box.height;
+    } else if (hasVb && vb) {
+      w = vb.width;
+      h = vb.height;
+    } else {
+      w = 800;
+      h = 600;
     }
 
     if (!Number.isFinite(w) || w < 1) w = 1;
@@ -113,9 +109,29 @@ export function useSvgPanZoom() {
     const pad = 0.88;
     let s = Math.min((cw * pad) / w, (ch * pad) / h);
     s = Math.max(0.05, Math.min(s, MAX_SCALE));
+
+    /**
+     * Center using layout rects (matches wheel-zoom convention). Apply scale first, force a single
+     * synchronous layout read, then set ``tx``/``ty`` and commit once — avoids visible multi-step
+     * “online” fitting from async RAF / delayed refits.
+     */
     panRef.current.scale = s;
-    panRef.current.tx = (cw - w * s) / 2 - bx * s;
-    panRef.current.ty = (ch - h * s) / 2 - by * s;
+    panRef.current.tx = 0;
+    panRef.current.ty = 0;
+    panner.style.transform = `translate(0px,0px) scale(${s})`;
+
+    void panner.offsetHeight;
+
+    const graphEl = svg.querySelector("g.graph") ?? svg;
+    const vr = vp.getBoundingClientRect();
+    const gr = graphEl.getBoundingClientRect();
+    if (gr.width >= 2 && gr.height >= 2) {
+      const gcx = gr.left - vr.left + gr.width / 2;
+      const gcy = gr.top - vr.top + gr.height / 2;
+      panRef.current.tx = vp.clientWidth / 2 - gcx;
+      panRef.current.ty = vp.clientHeight / 2 - gcy;
+    }
+
     applyTransform();
   }, [applyTransform]);
 
@@ -123,12 +139,20 @@ export function useSvgPanZoom() {
     const vp = viewportRef.current;
     if (!vp || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(() => {
-      requestAnimationFrame(() => {
+      if (resizeFitRafRef.current !== null) return;
+      resizeFitRafRef.current = requestAnimationFrame(() => {
+        resizeFitRafRef.current = null;
         fitToContainer();
       });
     });
     ro.observe(vp);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (resizeFitRafRef.current !== null) {
+        cancelAnimationFrame(resizeFitRafRef.current);
+        resizeFitRafRef.current = null;
+      }
+    };
   }, [fitToContainer]);
 
   const zoomFromViewportCenter = useCallback(

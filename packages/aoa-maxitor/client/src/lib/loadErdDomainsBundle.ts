@@ -1,5 +1,5 @@
 // src/lib/loadErdDomainsBundle.ts
-import { fetchErdDomainsBatch, fetchErdDomainQualnames } from "@/api/erd";
+import { listDomains, listEntities } from "@/api/erd";
 import type { DiagramSelection } from "@/model/diagramSelection";
 import { allocateDomainTabKey } from "@/lib/domainTabKeys";
 
@@ -26,7 +26,7 @@ export async function loadErdDomainsBundle(
   selection: ErdViewerSelection,
   includeOneHopNeighbors: boolean,
 ): Promise<ErdDomainsBundle> {
-  const listing = await fetchErdDomainQualnames();
+  const listing = await listDomains();
   const domain_qualifier_colors = Object.fromEntries(
     listing.list_domains.map((r) => [r.qualname, r.color]),
   );
@@ -41,7 +41,7 @@ export async function loadErdDomainsBundle(
   const domains: Record<string, { entities: unknown[]; relations: unknown[] }> = {};
   const domain_qualifiers: Record<string, string> = {};
 
-  const { domain_slices: payloads } = await fetchErdDomainsBatch(quals, includeOneHopNeighbors);
+  const { domain_slices: payloads } = await listEntities(quals, includeOneHopNeighbors);
   let first_domain_label: string | undefined;
   for (const p of payloads) {
     const key = allocateDomainTabKey(used, p.domain_label);
@@ -61,7 +61,7 @@ export async function loadErdDomainSlicesBundle(
   const domains: Record<string, { entities: unknown[]; relations: unknown[] }> = {};
   const domain_qualifiers: Record<string, string> = {};
 
-  const { domain_slices } = await fetchErdDomainsBatch(
+  const { domain_slices } = await listEntities(
     requests.map((r) => r.qualname),
     includeOneHopNeighbors,
   );
