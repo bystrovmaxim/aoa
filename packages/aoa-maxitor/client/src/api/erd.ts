@@ -2,13 +2,15 @@
 import { apiUrl } from "@/api/client";
 import type { DomainQualnamesPayload, ErdDomainPayload, ErdDomainsBatchPayload } from "@/model/erd";
 
-export async function fetchErdDomainQualnames(): Promise<DomainQualnamesPayload> {
+/** Matches ``GET /api/v1/list-domains`` / ``ListDomainsAction``. */
+export async function listDomains(): Promise<DomainQualnamesPayload> {
   const res = await fetch(apiUrl("/api/v1/list-domains"));
   if (!res.ok) throw new Error(`list-domains ${res.status}`);
   return (await res.json()) as DomainQualnamesPayload;
 }
 
-export async function fetchErdDomainsBatch(
+/** Matches ``GET /api/v1/list-entities`` / ``ListEntitiesAction``. */
+export async function listEntities(
   domainQualnames: string[],
   includeOneHopNeighbors = true,
 ): Promise<ErdDomainsBatchPayload> {
@@ -22,11 +24,12 @@ export async function fetchErdDomainsBatch(
   return (await res.json()) as ErdDomainsBatchPayload;
 }
 
-export async function fetchErdDomainPayload(
+/** Same endpoint as ``listEntities``; convenience for a single ``domain_qualname``. */
+export async function listEntitiesForDomain(
   qual: string,
   includeOneHopNeighbors = true,
 ): Promise<ErdDomainPayload> {
-  const batch = await fetchErdDomainsBatch([qual], includeOneHopNeighbors);
+  const batch = await listEntities([qual], includeOneHopNeighbors);
   const slice = batch.domain_slices[0];
   if (!slice) {
     throw new Error("empty domain_slices");

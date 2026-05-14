@@ -4,7 +4,7 @@ import type { EdgeData, Graph as G6Graph, GraphData, NodeData } from "@antv/g6";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
-import { fetchInterchangeGraphPayload } from "@/api/fullGraph";
+import { fullGraph } from "@/api/fullGraph";
 import { svgDataUriForGraphNodeGlyphOnly } from "@/lib/icons";
 import type { InterchangeGraphG6Payload } from "@/model/fullGraph";
 import { NodeTypeLegend } from "@/components/ui/NodeTypeLegend";
@@ -251,7 +251,7 @@ export function FullGraphViewer() {
 
   const loadInterchange = useCallback(
     () =>
-      Promise.all([fetchInterchangeGraphPayload(), import("@antv/g6")]).then(([p, mod]) => ({
+      Promise.all([fullGraph(), import("@antv/g6")]).then(([p, mod]) => ({
         payload: p,
         mod,
       })),

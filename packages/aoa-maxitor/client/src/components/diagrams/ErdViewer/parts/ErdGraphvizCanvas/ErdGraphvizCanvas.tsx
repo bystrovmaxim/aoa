@@ -169,21 +169,12 @@ export function ErdGraphvizCanvas({ bundle, includeOneHop, onIncludeOneHopChange
       node.addEventListener("mouseleave", onLeave, { signal: ac.signal });
     });
 
-    let unbindPan: (() => void) | undefined;
-    let cancelled = false;
-    const raf = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (cancelled) return;
-        fitToContainer();
-        unbindPan = bindInteractions();
-      });
-    });
+    fitToContainer();
+    const unbindPan = bindInteractions();
 
     return () => {
-      cancelled = true;
       ac.abort();
       unbindPan?.();
-      cancelAnimationFrame(raf);
     };
   }, [svgMarkup, fitToContainer, bindInteractions]);
 
