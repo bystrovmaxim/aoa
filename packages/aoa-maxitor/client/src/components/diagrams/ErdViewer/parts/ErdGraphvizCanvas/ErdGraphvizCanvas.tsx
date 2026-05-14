@@ -70,6 +70,8 @@ function getMergedFromDomains(enriched: Record<string, unknown>, enabled: Set<st
 
 export type ErdGraphvizCanvasProps = {
   bundle: ErdDomainsBundle;
+  /** Increments only when the async loader has accepted a new bundle. */
+  bundleVersion: number;
   diagramResetKey: string;
   includeOneHop: boolean;
   onIncludeOneHopChange: (next: boolean) => void;
@@ -87,14 +89,21 @@ const LAYOUT_TOOLS: {
   { value: "gv-circo", title: "Circo (circular)", Glyph: LayoutGlyphCirco },
 ];
 
+const layoutByDiagramKey = new Map<string, ErdGraphvizLayout>();
+const enabledDomainsByDiagramKey = new Map<string, string[]>();
+
 export function ErdGraphvizCanvas({
   bundle,
+  bundleVersion,
   diagramResetKey,
   includeOneHop,
   onIncludeOneHopChange,
 }: ErdGraphvizCanvasProps) {
-  const [layout, setLayout] = useState<ErdGraphvizLayout>("gv-dot-lr");
+  const [layout, setLayout] = useState<ErdGraphvizLayout>(
+    () => layoutByDiagramKey.get(diagramResetKey) ?? "gv-dot-lr",
+  );
   const [svgMarkup, setSvgMarkup] = useState("");
+  const [svgRenderVersion, setSvgRenderVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [gvBusy, setGvBusy] = useState(false);
 
@@ -108,14 +117,28 @@ export function ErdGraphvizCanvas({
     return d ? Object.keys(d).sort() : [];
   }, [enriched]);
 
-  const [enabledDomains, setEnabledDomains] = useState(
-    () => new Set(Object.keys(bundle.domains ?? {}).sort()),
-  );
+  const [enabledDomains, setEnabledDomains] = useState(() => {
+    const keys = Object.keys(bundle.domains ?? {}).sort();
+    const saved = enabledDomainsByDiagramKey.get(diagramResetKey);
+    if (saved) {
+      const restored = new Set(keys.filter((k) => saved.includes(k)));
+      if (restored.size > 0) return restored;
+    }
+    return new Set(keys);
+  });
 
   const prevDiagramKeyRef = useRef<string | null>(null);
 
   const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag } =
     useSvgPanZoom();
+
+  useEffect(() => {
+    layoutByDiagramKey.set(diagramResetKey, layout);
+  }, [diagramResetKey, layout]);
+
+  useEffect(() => {
+    enabledDomainsByDiagramKey.set(diagramResetKey, [...enabledDomains].sort());
+  }, [diagramResetKey, enabledDomains]);
 
   useLayoutEffect(() => {
     const keys = Object.keys(bundle.domains ?? {}).sort();
@@ -124,7 +147,11 @@ export function ErdGraphvizCanvas({
     const sameDiagram = prevKey === diagramResetKey;
     prevDiagramKeyRef.current = diagramResetKey;
 
-    if (prevKey === null || !sameDiagram) {
+    if (prevKey === null) {
+      return;
+    }
+
+    if (!sameDiagram) {
       setEnabledDomains(all);
       return;
     }
@@ -163,6 +190,7 @@ export function ErdGraphvizCanvas({
         const svg = gv.layout(dot, "svg", engine);
         if (cancelled) return;
         setSvgMarkup(svg);
+        setSvgRenderVersion((v) => v + 1);
       })
       .catch((e) => {
         if (!cancelled) setRenderError(e instanceof Error ? e.message : String(e));
@@ -173,7 +201,7 @@ export function ErdGraphvizCanvas({
     return () => {
       cancelled = true;
     };
-  }, [dot, layout]);
+  }, [dot, layout, bundleVersion, resetFitFlag]);
 
   useLayoutEffect(() => {
     if (!svgMarkup) return;
@@ -261,7 +289,7 @@ export function ErdGraphvizCanvas({
       cancelAnimationFrame(raf2);
       cancelAnimationFrame(raf3);
     };
-  }, [svgMarkup, fitToContainer, bindInteractions]);
+  }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions]);
 
   const accents = (enriched.domain_accent_colors ?? {}) as Record<string, string>;
   const icons = (enriched.domain_legend_icons ?? {}) as Record<string, string>;
