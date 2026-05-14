@@ -1,8 +1,8 @@
-// packages/aoa-maxitor/client/src/main.tsx
+// src/main.tsx
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { App } from "./app/app";
-import { AppProviders } from "./app/providers/app_providers";
+import { App } from "./app/App";
+import { AppProviders } from "./app/providers/AppProviders";
 import "./index.css";
 
 const rootEl = document.getElementById("root");
