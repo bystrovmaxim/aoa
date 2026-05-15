@@ -94,6 +94,10 @@ const GRAPH_NODE_TYPE_LUCIDE_INNER_SVG: Record<string, string> = {
     '<path d="M17 12H3" /> ' + '<path d="m11 18 6-6-6-6" /> ' + '<path d="M21 5v14" />',
   Result:
     '<path d="M3 19V5" /> ' + '<path d="m13 6-6 6 6 6" /> ' + '<path d="M7 12h14" />',
+  EntityField:
+    // Distinct from Field / PropertyField (schema columns): grid / table glyph for a scalar on an entity.
+    '<rect width="18" height="18" x="3" y="3" rx="2" />' +
+    '<path d="M9 3v18M15 3v18M3 9h18M3 15h18" />',
   Field: LUCIDE_FIELD_BRACES_INNER,
   PropertyField: LUCIDE_PROPERTY_FIELD_BRACES_INNER,
   unknown: LUCIDE_CONTEXT_FORK_INNER,

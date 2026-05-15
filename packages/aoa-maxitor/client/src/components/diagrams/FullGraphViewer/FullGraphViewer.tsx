@@ -133,6 +133,10 @@ function buildGraph(
   const defaultEdge = "#95a5a6";
   const defaultColor = payload.constants.default_color;
   const nodeTypeMap = payload.node_type_map;
+  const scalarLink = payload.constants.layout_entity_scalar_link;
+  const entityFieldType = String(
+    payload.constants.entity_field_interchange_type ?? "EntityField",
+  ).trim();
 
   const bubblePlugins = normalizeBubblePluginsForInterchange(payload.bubble_plugins ?? []);
   const plugins = bubblePlugins as never[];
@@ -216,11 +220,17 @@ function buildGraph(
         distance: (edge: EdgeData) => {
           const st = nodeTypeMap[String(edge.source)] ?? "";
           const tt = nodeTypeMap[String(edge.target)] ?? "";
+          const entityScalar =
+            (st === "Entity" && tt === entityFieldType) || (st === entityFieldType && tt === "Entity");
+          if (scalarLink && entityScalar) return scalarLink.distance;
           return st === tt ? 72 : 200;
         },
         strength: (edge: EdgeData) => {
           const st = nodeTypeMap[String(edge.source)] ?? "";
           const tt = nodeTypeMap[String(edge.target)] ?? "";
+          const entityScalar =
+            (st === "Entity" && tt === entityFieldType) || (st === entityFieldType && tt === "Entity");
+          if (scalarLink && entityScalar) return scalarLink.strength;
           return st === tt ? 0.82 : 0.11;
         },
       },

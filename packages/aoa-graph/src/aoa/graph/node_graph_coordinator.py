@@ -30,9 +30,8 @@ Unexpected rows (duplicate ids, dangling targets, forbidden ``is_dag`` cycles, s
 ``schema_version``, ``nodes``, and ``edges`` (each node includes ``id``, ``type``,
 ``label``, ``properties``; each edge includes ``source_id``, ``target_id``,
 ``type``, ``relationship``, ``is_dag``, ``properties``) suitable for rebuilding a
-``networkx.DiGraph`` keyed by node ``id``. If callers passed ``export_json_schema`` to
-:meth:`build`, the dict is validated with :class:`jsonschema.Draft202012Validator` before
-:func:`json.dumps`; otherwise validation is skipped (generic graphs carry no domain schema).
+``networkx.DiGraph`` keyed by node ``id``. Callers may still pass ``export_json_schema`` to
+:meth:`build` for API compatibility; it is not used by :meth:`to_json`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -72,8 +71,6 @@ import json
 from collections.abc import Sequence
 from typing import Any, cast
 
-from jsonschema import Draft202012Validator
-
 from aoa.graph import _dag
 from aoa.graph.base_graph_edge import BaseGraphEdge
 from aoa.graph.base_graph_node import BaseGraphNode
@@ -89,7 +86,7 @@ class NodeGraphCoordinator:
     ROLE: Build validated interchange graph from ``BaseGraphNode`` contributions with indexes.
     CONTRACT: ``build`` with :class:`~aoa.graph.base_graph_node_inspector.BaseGraphNodeInspector` instances; each ``get_graph_nodes()``;
         then serve interchange nodes via :meth:`get_all_nodes`, :meth:`get_node_by_id`, type helpers; graph shape is authoritative for loaded scope.
-        Optional ``export_json_schema`` at :meth:`build` enables JSON Schema validation in :meth:`to_json`.
+        Optional ``export_json_schema`` at :meth:`build` is accepted for backward-compatible call sites.
     INVARIANTS: Duplicate id / missing target / DAG cycle raise during build; public read APIs unavailable until ``build`` succeeds.
     AI-CORE-END
     """
@@ -101,7 +98,6 @@ class NodeGraphCoordinator:
         "_edges_by_source",
         "_edges_by_target",
         "_edges_by_type",
-        "_export_json_schema",
         "_node_types",
         "_nodes",
         "_nodes_by_type",
@@ -117,7 +113,6 @@ class NodeGraphCoordinator:
         self._node_types: frozenset[str] | None = None
         self._nodes: dict[str, BaseGraphNode[Any]] | None = None
         self._nodes_by_type: dict[str, list[str]] | None = None
-        self._export_json_schema: dict[str, Any] | None = None
 
     def build(
         self,
@@ -131,10 +126,7 @@ class NodeGraphCoordinator:
 
         Args:
             inspectors: Inspector instances contributing interchange nodes.
-            export_json_schema: Optional JSON Schema (Draft 2020-12) for validating :meth:`to_json`
-                payloads. Callers that own interchange contracts (for example ``aoa-action-machine``)
-                pass their schema here; omit for domain-agnostic graphs where :meth:`to_json` skips
-                schema validation.
+            export_json_schema: Ignored; retained only for backward-compatible keyword arguments.
 
         Raises:
             DuplicateNodeError: two sources contributed the same ``node.node_id``.
@@ -151,7 +143,7 @@ class NodeGraphCoordinator:
         self._validate_dag_acyclicity(nodes, dag_adjacency)
         self._nodes = nodes
         self._build_indexes(nodes)
-        self._export_json_schema = export_json_schema
+        _ = export_json_schema
         self._built = True
 
     def get_all_nodes(self) -> tuple[BaseGraphNode[Any], ...]:
@@ -188,9 +180,6 @@ class NodeGraphCoordinator:
         """
         Serialize the built interchange graph to JSON.
 
-        When :meth:`build` was called with ``export_json_schema``, validates the payload
-        against that schema before encoding. Otherwise skips JSON Schema validation.
-
         Raises:
             RuntimeError: :meth:`build` has not completed successfully on this coordinator.
         """
@@ -208,9 +197,6 @@ class NodeGraphCoordinator:
                 key=lambda e: (e["source_id"], e["type"], e["target_id"]),
             ),
         }
-        export_json_schema = self._export_json_schema
-        if export_json_schema is not None:
-            Draft202012Validator(export_json_schema).validate(payload)
         return json.dumps(payload, ensure_ascii=False, sort_keys=True)
 
     def get_nodes_by_type(self, node_type: str) -> tuple[BaseGraphNode[Any], ...]:

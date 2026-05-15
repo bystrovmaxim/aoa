@@ -7,7 +7,9 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Return ``ERD_DATA``-shaped slices per requested ``BaseDomain`` interchange id from
-``connections["DuckDBGraph"]``. The wire ``domain_slices`` field uses
+``connections["DuckDBGraph"]``. Scalar columns come from ``entity_field`` /
+``entity_field_edges`` (interchange ``EntityField`` vertices + ``entity_field`` composition
+edges); relation slots appear as ``FK -> …`` rows. The wire ``domain_slices`` field uses
 ``ListEntitiesDomainSlicesJson`` from
 :mod:`~aoa.maxitor.model.diagrams.actions.list_entities_action_schema` (a
 :class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue` alias).
@@ -28,7 +30,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.model.core.resources.duckdb_graph_resource import (
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
     DuckDBGraphResource,
 )
@@ -180,27 +182,46 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           JOIN entity target ON target.id = er.target_id
           WHERE er.field_name <> ''
         ), field_rows AS (
-          SELECT entity_id, name, type, primary_key, FALSE AS foreign_key FROM entity_field
+          SELECT
+            efe.source_id AS entity_id,
+            efe.target_id AS field_node_id,
+            vf.label AS name,
+            vf.field_type AS type,
+            vf.primary_key_hint AS primary_key,
+            FALSE AS foreign_key,
+            efe.ordinal AS ordinal
+          FROM entity_field_edges efe
+          INNER JOIN entity_field vf ON vf.id = efe.target_id
           UNION ALL
-          SELECT entity_id, name, type, FALSE AS primary_key, foreign_key FROM fk
+          SELECT entity_id, CAST(NULL AS VARCHAR) AS field_node_id, name, type, FALSE AS primary_key, foreign_key, 2147483647 AS ordinal FROM fk
         ), ordered_field_rows AS (
           SELECT DISTINCT
                  fr.entity_id,
+                 fr.field_node_id,
                  fr.name,
                  fr.type,
                  fr.primary_key,
                  fr.foreign_key,
-                 COALESCE(NULLIF(strpos(e.field_order, '"' || fr.name || '"'), 0), 2147483647) AS sort_key
+                 fr.ordinal AS sort_key
           FROM field_rows fr
-          JOIN entity e ON e.id = fr.entity_id
         )
         SELECT e.id, e.label, COALESCE(MIN(de.target_id), '') AS domain_qualname,
-               list(struct_pack(
-                 name := fr.name,
-                 type := fr.type,
-                 primary_key := fr.primary_key,
-                 foreign_key := fr.foreign_key
-               ) ORDER BY fr.sort_key, fr.name) AS fields
+               COALESCE(
+                 list(struct_pack(
+                   field_id := fr.field_node_id,
+                   name := fr.name,
+                   type := fr.type,
+                   primary_key := fr.primary_key,
+                   foreign_key := fr.foreign_key
+                 ) ORDER BY fr.sort_key, fr.name) FILTER (WHERE fr.name IS NOT NULL),
+                 CAST([] AS STRUCT(
+                   field_id VARCHAR,
+                   name VARCHAR,
+                   type VARCHAR,
+                   primary_key BOOLEAN,
+                   foreign_key BOOLEAN
+                 )[])
+               ) AS fields
         FROM selected_entity se
         JOIN entity e ON e.id = se.id
         LEFT JOIN domain_edges de ON de.source_id = e.id

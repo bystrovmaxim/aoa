@@ -18,7 +18,8 @@ from typing import Any
 
 _SAMPLE_PAYLOAD_BLOB: dict[str, Any] = {
     "description": "x" * 120,
-    "fields": [{"name": f"f{k}", "t": "str"} for k in range(8)],
+    "field_type": "str",
+    "primary_key_hint": True,
 }
 
 
