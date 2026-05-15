@@ -6,8 +6,11 @@ import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShe
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { fullGraph } from "@/api/fullGraph";
 import { svgDataUriForGraphNodeGlyphOnly } from "@/lib/icons";
-import type { InterchangeGraphG6Payload } from "@/model/fullGraph";
+import type { InterchangeGraphEdgeData, InterchangeGraphG6Payload, InterchangeGraphNodeData } from "@/model/fullGraph";
 import { NodeTypeLegend } from "@/components/ui/NodeTypeLegend";
+
+/** Slim edge ``data`` plus optional ``isForbiddenDagCycle`` if the server adds it later. */
+type InterchangeGraphEdgeStyleData = InterchangeGraphEdgeData & { isForbiddenDagCycle?: boolean };
 
 const NODE_BASE_RING_LINE_WIDTH = 0.75;
 
@@ -142,7 +145,8 @@ function buildGraph(
     node: {
       type: "circle",
       style: (data: NodeData) => {
-        const d = (data.data ?? {}) as Record<string, unknown>;
+        // G6 NodeData.data is Record<string, unknown>; interchange payload uses InterchangeGraphNodeData.
+        const d = (data.data ?? {}) as InterchangeGraphNodeData;
         const fillRaw = d.fill;
         const fill =
           fillRaw != null && String(fillRaw).trim() !== "" ? String(fillRaw).trim() : defaultColor;
@@ -185,7 +189,8 @@ function buildGraph(
     edge: {
       type: "line",
       style: (data: EdgeData) => {
-        const d = (data.data ?? {}) as Record<string, unknown>;
+        // G6 EdgeData.data is Record<string, unknown>.
+        const d = (data.data ?? {}) as InterchangeGraphEdgeStyleData;
         const viol = Boolean(d.isForbiddenDagCycle);
         const stroke = viol ? dagColor : defaultEdge;
         return {
@@ -441,25 +446,25 @@ export function FullGraphViewer() {
       }
       hoverLayer.innerHTML = "";
       const adj = adjIndex[hoverLabelNodeId];
-      const labelIds = [String(hoverLabelNodeId)];
+      const hubId = String(hoverLabelNodeId);
+      const labelIds: string[] = [hubId];
       if (adj) {
-        for (const nid of adj.neighbors) {
-          if (labelIds.length >= 9) break;
-          labelIds.push(String(nid));
-        }
+        const neighborIds = Array.from(adj.neighbors)
+          .map(String)
+          .filter((id) => id !== hubId)
+          .sort();
+        labelIds.push(...neighborIds);
       }
       for (const id of labelIds) {
         const n = nodeById.get(id);
         if (!n) continue;
-        const d = (n.data ?? {}) as Record<string, unknown>;
+        const d = (n.data ?? {}) as InterchangeGraphNodeData;
         const hoverText =
           d.label != null && String(d.label).trim() !== ""
             ? String(d.label)
             : d.title != null && String(d.title).trim() !== ""
               ? String(d.title)
-              : d.graph_key != null && String(d.graph_key).trim() !== ""
-                ? String(d.graph_key)
-                : id;
+              : id;
         const fillRaw = d.fill;
         const fill =
           fillRaw != null && String(fillRaw).trim() !== "" ? String(fillRaw).trim() : "";

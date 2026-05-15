@@ -1,6 +1,10 @@
 // src/api/fullGraph.ts
 import { apiUrl } from "@/api/client";
-import type { InterchangeGraphG6Payload } from "@/model/fullGraph";
+import type {
+  InterchangeGraphEdgeData,
+  InterchangeGraphG6Payload,
+  InterchangeGraphNodeData,
+} from "@/model/fullGraph";
 
 type InterchangeGraphApiBody = {
   payload?: InterchangeGraphG6Payload;
@@ -46,13 +50,13 @@ function buildDomainBubblePlugins(
   for (const edge of payload.edges) {
     const source = String(edge.source);
     const target = String(edge.target);
-    const data = (edge.data ?? {}) as Record<string, unknown>;
+    const data = (edge.data ?? {}) as InterchangeGraphEdgeData;
     const edgeType = data.edge_type != null ? String(data.edge_type).trim() : "";
     if (edgeType === "domain_edges" && nodeTypeMap[target] === "Domain") {
       domainMembers.get(target)?.add(source);
       continue;
     }
-    const rel = data.relationshipName != null ? String(data.relationshipName).trim() : "";
+    const rel = data.label != null ? String(data.label).trim() : "";
     const relLower = rel.toLowerCase();
     const isContainment =
       relLower === "composition" ||
@@ -93,7 +97,7 @@ function buildDomainBubblePlugins(
       if (nodeTypeMap[nodeId] !== "Application") members.push(nodeId);
     }
     if (members.length === 0) continue;
-    const domainData = (domainNodeById.get(domainId)?.data ?? {}) as Record<string, unknown>;
+    const domainData = (domainNodeById.get(domainId)?.data ?? {}) as InterchangeGraphNodeData;
     const labelText =
       domainData.title != null && String(domainData.title).trim() !== ""
         ? String(domainData.title)

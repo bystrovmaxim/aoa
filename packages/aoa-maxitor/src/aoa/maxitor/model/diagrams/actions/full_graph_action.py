@@ -42,8 +42,7 @@ WITH
     SELECT
       id,
       label,
-      type,
-      payload
+      type
     FROM nodes
     ORDER BY lower(type), lower(label), id
   ),
@@ -53,9 +52,7 @@ WITH
       source_id,
       target_id,
       relationship,
-      is_dag,
-      type,
-      payload
+      type
     FROM edges
     ORDER BY source_id, target_id, type, relationship
   ),
@@ -76,7 +73,7 @@ SELECT
   NULL      AS target_id,
   NULL      AS relationship,
   NULL      AS is_dag,
-  payload
+  NULL      AS payload
 FROM node_rows
 UNION ALL
 SELECT
@@ -88,8 +85,8 @@ SELECT
   source_id,
   target_id,
   relationship,
-  is_dag,
-  payload
+  NULL            AS is_dag,
+  NULL            AS payload
 FROM edge_rows
 UNION ALL
 SELECT
@@ -141,7 +138,6 @@ def _build_payload_from_duckdb(
         nid = str(row["pk"])
         label = row.get("label")
         duck_type = row.get("type")
-        payload = row.get("payload")
         node_types.append(str(duck_type or ""))
         duck_s = str(duck_type or "")
         node_type = interchange_node_type_from_duck(duck_s)
@@ -153,14 +149,8 @@ def _build_payload_from_duckdb(
                 "data": {
                     "label": _short_label(lbl),
                     "title": lbl,
-                    "graph_node_subtitle": f"{node_type}\n{_short_label(lbl)}",
-                    "graph_key": nid,
-                    "qualified": nid,
                     "node_type": node_type,
-                    "typeFill": fill,
                     "fill": fill,
-                    "isDagCycleViolationIncident": False,
-                    "payload": payload,
                 },
             }
         )
@@ -173,9 +163,7 @@ def _build_payload_from_duckdb(
         src = str(row["source_id"]) if row.get("source_id") is not None else ""
         tgt = str(row["target_id"]) if row.get("target_id") is not None else ""
         rel = row.get("relationship")
-        is_dag = row.get("is_dag")
         etype = row.get("type")
-        epayload = row.get("payload")
         if not src or not tgt or src not in node_id_set or tgt not in node_id_set:
             continue
         edges.append(
@@ -185,14 +173,7 @@ def _build_payload_from_duckdb(
                 "target": tgt,
                 "data": {
                     "label": str(rel),
-                    "isDag": bool(is_dag),
-                    "isForbiddenDagCycle": False,
-                    "relationshipName": str(rel),
-                    "sourceAttachment": "none",
-                    "targetAttachment": "arrow",
-                    "lineStyle": "solid",
                     "edge_type": str(etype),
-                    "payload": epayload,
                 },
             }
         )
@@ -244,8 +225,8 @@ class FullGraphAction(BaseAction[ParamsStub, "FullGraphAction.Result"]):
     """
     AI-CORE-BEGIN
     ROLE: Emit a G6-oriented full graph payload from DuckDB ``nodes`` / ``edges`` views.
-    CONTRACT: One SQL round-trip via ``execute_fetch_dicts`` (no PyArrow); same node/edge
-    shape, domain colours, and legend as the prior interchange payload.
+    CONTRACT: One SQL round-trip via ``execute_fetch_dicts`` (no PyArrow); slim ``data`` on
+    each node/edge (no DuckDB JSON blobs); domain colours and legend unchanged for the viewer.
     INVARIANTS: No NetworkX or ``NodeGraphCoordinator`` dependency.
     AI-CORE-END
     """
