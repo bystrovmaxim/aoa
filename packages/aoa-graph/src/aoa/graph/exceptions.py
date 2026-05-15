@@ -76,7 +76,7 @@ class InvalidGraphError(Exception):
     ROLE: Phase-2 graph integrity: referential break (edge target never materialized) or structural-edge cycle.
     CONTRACT: Plain ``Exception``; message is coordinator/graph-builder diagnostic (targets, cycle path context as available).
     INVARIANTS: Only structural edges participate in acyclicity checks; ``is_structural=False`` edges may cycle by design.
-    FAILURES: Missing payload for ``target_node_type:target_name``, or ``rustworkx`` DAG check fails on structural slice.
+    FAILURES: Missing payload for ``target_node_type:target_name``, or DAG check fails on the ``is_dag=True`` edge slice.
     AI-CORE-END
     """
 

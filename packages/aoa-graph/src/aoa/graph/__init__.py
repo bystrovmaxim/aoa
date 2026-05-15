@@ -21,7 +21,7 @@ ARCHITECTURE / DATA FLOW
     graph_model node inspectors  →  NodeGraphCoordinator.build([…])
               │
               ▼
-    rustworkx interchange graph + tooling reads
+    dict[str, BaseGraphNode] + typed indexes + JSON export
 """
 
 from __future__ import annotations

@@ -224,7 +224,7 @@ def _class_name_to_snake_case(name: str) -> str:
 
 
 def _mcp_edge_type_from_payload(edge_data: Any) -> str:
-    """Normalize rustworkx edge payload to a string edge type for JSON."""
+    """Normalize interchange edge payload to a string edge type for JSON."""
     if isinstance(edge_data, dict):
         return str(edge_data.get("edge_type", ""))
     edge_name = getattr(edge_data, "edge_name", None)

@@ -69,7 +69,7 @@ class _EmptyInspector(BaseGraphNodeInspector[_Axis]):
 
 
 def test_to_json_raises_before_build() -> None:
-    with pytest.raises(RuntimeError, match="to_json"):
+    with pytest.raises(RuntimeError, match="only available after a successful build"):
         NodeGraphCoordinator().to_json()
 
 
