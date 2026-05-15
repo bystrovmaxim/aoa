@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/core/resources/duckdb_graph_resource.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py
 """
 DuckDB-backed coordinator graph resource — in-memory SQL over coordinator graph JSON.
 
@@ -11,8 +11,10 @@ is the in-memory ``duckdb.DuckDBPyConnection``. Production loads JSON in the ASG
 :meth:`DuckDBGraphResource.create_from_http`; tests use :meth:`DuckDBGraphResource.build_from_json`.
 :meth:`DuckDBGraphResource._install_database` runs explicit ``CREATE TABLE`` / ``CREATE INDEX`` / ``CREATE VIEW``
 (physical tables plus ``CREATE VIEW nodes`` / ``edges``, then ``nodes_type_counts`` / ``edge_type_counts`` over those views; aligned with
-:data:`~aoa.action_machine.graph_model.graph_json_schema.GRAPH_JSON_SCHEMA`), then :func:`_fill_database` inserts rows
-from the coordinator payload.
+:data:`~aoa.action_machine.graph_model.graph_json_schema.GRAPH_JSON_SCHEMA`). Scalar entity attributes are
+``EntityField`` vertices and ``entity_field`` edges; list-entities reads scalar columns from
+``entity_field`` + ``entity_field_edges`` (no denormalized field table).
+:func:`_fill_database` inserts rows from the coordinator payload.
 """
 
 from __future__ import annotations
@@ -120,14 +122,13 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
             """CREATE TABLE entity (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
-      description VARCHAR NOT NULL,
-      field_order VARCHAR NOT NULL
+      description VARCHAR NOT NULL
     );""",
             """CREATE TABLE entity_field (
-      entity_id VARCHAR NOT NULL,
-      name VARCHAR NOT NULL,
-      type VARCHAR NOT NULL,
-      primary_key BOOLEAN NOT NULL
+      id VARCHAR NOT NULL PRIMARY KEY,
+      label VARCHAR NOT NULL,
+      field_type VARCHAR NOT NULL,
+      primary_key_hint BOOLEAN NOT NULL
     );""",
             """CREATE TABLE resource (
       id VARCHAR NOT NULL PRIMARY KEY,
@@ -335,6 +336,14 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       is_dag BOOLEAN NOT NULL,
       field_name VARCHAR NOT NULL
     );""",
+            """CREATE TABLE entity_field_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL,
+      ordinal INTEGER NOT NULL,
+      field_name VARCHAR NOT NULL
+    );""",
             """CREATE TABLE lifecycle_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
@@ -454,6 +463,7 @@ _EDGE_TABLE_NAMES: tuple[str, ...] = (
     "required_context_edges",
     "entity_relation_edges",
     "entity_view_edges",
+    "entity_field_edges",
     "lifecycle_edges",
     "lifecycle_contains_state_edges",
     "lifecycle_transition_edges",
@@ -472,7 +482,8 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT id, label, CAST('action' AS VARCHAR) AS type, json_object('description', description) AS payload FROM action",
         "SELECT id, label, CAST('application' AS VARCHAR) AS type, json_object('name', name, 'description', description) AS payload FROM application",
         "SELECT id, label, CAST('domain' AS VARCHAR) AS type, json_object('name', name, 'description', description) AS payload FROM domain",
-        "SELECT id, label, CAST('entity' AS VARCHAR) AS type, json_object('description', description, 'field_order', field_order) AS payload FROM entity",
+        "SELECT id, label, CAST('entity' AS VARCHAR) AS type, json_object('description', description) AS payload FROM entity",
+        "SELECT id, label, CAST('entity_field' AS VARCHAR) AS type, json_object('field_type', field_type, 'primary_key_hint', primary_key_hint) AS payload FROM entity_field",
         "SELECT id, label, CAST('resource' AS VARCHAR) AS type, json_object('description', description) AS payload FROM resource",
         f"SELECT id, label, CAST('params' AS VARCHAR) AS type, {_nj()} AS payload FROM params",
         f"SELECT id, label, CAST('result' AS VARCHAR) AS type, {_nj()} AS payload FROM result",
@@ -508,6 +519,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT source_id, target_id, relationship, is_dag, CAST('required_context_edges' AS VARCHAR) AS type, json_object('ctx_key', ctx_key) AS payload FROM required_context_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_relation_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'relation_type', relation_type, 'cardinality', cardinality, 'description', description, 'has_inverse', has_inverse, 'deprecated', deprecated, 'inverse_entity_id', inverse_entity_id, 'inverse_field', inverse_field) AS payload FROM entity_relation_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_view_edges' AS VARCHAR) AS type, json_object('field_name', field_name) AS payload FROM entity_view_edges",
+        "SELECT source_id, target_id, relationship, is_dag, CAST('entity_field_edges' AS VARCHAR) AS type, json_object('ordinal', ordinal, 'field_name', field_name) AS payload FROM entity_field_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('lifecycle_edges' AS VARCHAR) AS type, json_object('field_name', field_name) AS payload FROM lifecycle_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('lifecycle_contains_state_edges' AS VARCHAR) AS type, json_object('state_key', state_key) AS payload FROM lifecycle_contains_state_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('lifecycle_transition_edges' AS VARCHAR) AS type, json_object('from_state', from_state, 'to_state', to_state) AS payload FROM lifecycle_transition_edges",
@@ -565,18 +577,25 @@ def _fill_table_domain(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]
 def _fill_table_entity(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
     for node in rows:
         p = _get_properties(node)
-        field_order = p.get("field_order") or []
-        if not isinstance(field_order, list):
-            field_order = []
         con.execute(
-            "INSERT INTO entity VALUES (?, ?, ?, ?)",
-            [node["id"], node["label"], p["description"], json.dumps(field_order)],
+            "INSERT INTO entity VALUES (?, ?, ?)",
+            [node["id"], node["label"], p["description"]],
         )
-        for field in p.get("fields", []):
-            con.execute(
-                "INSERT INTO entity_field VALUES (?, ?, ?, ?)",
-                [node["id"], field["name"], field["type"], field["primary_key"]],
-            )
+
+
+def _fill_table_entity_field_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
+    _executemany(
+        con,
+        "INSERT INTO entity_field_edges (source_id, target_id, relationship, is_dag, ordinal, field_name) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+            [
+                *_base_edge_row(edge),
+                int(_get_properties(edge)["ordinal"]),
+                str(_get_properties(edge)["field_name"]),
+            ]
+            for edge in rows
+        ],
+    )
 
 
 def _fill_table_resource(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
@@ -974,22 +993,20 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     )
     _executemany(
         con,
-        "INSERT INTO entity VALUES (?, ?, ?, ?)",
+        "INSERT INTO entity VALUES (?, ?, ?)",
+        [[n["id"], n["label"], _get_properties(n)["description"]] for n in nodes_by_type.get("Entity", [])],
+    )
+    entity_field_nodes = nodes_by_type.get("EntityField", [])
+    _executemany(
+        con,
+        "INSERT INTO entity_field VALUES (?, ?, ?, ?)",
         [
-            [
-                n["id"],
-                n["label"],
-                _get_properties(n)["description"],
-                json.dumps(_get_properties(n).get("field_order") or []),
-            ]
-            for n in nodes_by_type.get("Entity", [])
+            [n["id"], n["label"], _get_properties(n)["field_type"], _get_properties(n)["primary_key_hint"]]
+            for n in entity_field_nodes
         ],
     )
-    entity_fields: list[list[Any]] = []
-    for n in nodes_by_type.get("Entity", []):
-        for f in _get_properties(n).get("fields", []):
-            entity_fields.append([n["id"], f["name"], f["type"], f["primary_key"]])
-    _executemany(con, "INSERT INTO entity_field VALUES (?, ?, ?, ?)", entity_fields)
+    entity_field_edge_rows = edges_by_type.get("entity_field", [])
+    _fill_table_entity_field_edges(con, entity_field_edge_rows)
     _executemany(
         con,
         "INSERT INTO resource VALUES (?, ?, ?)",
@@ -1119,6 +1136,7 @@ def _assert_no_unknown_graph_types(
         "Application",
         "Domain",
         "Entity",
+        "EntityField",
         "Resource",
         "Params",
         "Result",
@@ -1156,6 +1174,7 @@ def _assert_no_unknown_graph_types(
         "@required_context",
         "entity_relation",
         "entity_view",
+        "entity_field",
         "lifecycle",
         "lifecycle_contains_state",
         "lifecycle_transition",

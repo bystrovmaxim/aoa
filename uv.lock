@@ -112,12 +112,6 @@ provides-extras = ["fastapi", "mcp"]
 name = "aoa-graph"
 version = "1.0.0"
 source = { editable = "packages/aoa-graph" }
-dependencies = [
-    { name = "jsonschema" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "jsonschema", specifier = ">=4.17,<5" }]
 
 [[package]]
 name = "aoa-maxitor"

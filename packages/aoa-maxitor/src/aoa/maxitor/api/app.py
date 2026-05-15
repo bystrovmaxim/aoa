@@ -12,7 +12,7 @@ not serve React assets or Python-rendered shell HTML.
 ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.action_machine.integrations.fastapi.FastApiAdapter`
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
 Each generated diagram route declares the shared
-:class:`~aoa.maxitor.model.core.resources.duckdb_graph_resource.DuckDBGraphResource`
+:class:`~aoa.maxitor.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource`
 connection it reads. Sidebar rows and the DuckDB graph resource are created in the ASGI lifespan
 (``application.state.sidebar_data`` and ``application.state.duckdb_graph``).
 """
@@ -33,7 +33,7 @@ from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.api.session import build_maxitor_api_session
-from aoa.maxitor.model.core.resources.duckdb_graph_resource import (
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
     DuckDBGraphResource,
 )

@@ -1,12 +1,12 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/core/resources/__init__.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/__init__.py
 """
-Maxitor core — ActionMachine connection resources.
+Maxitor diagrams — ActionMachine connection resources.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Expose resource types used by core/diagram actions for ``@connection`` wiring.
+Expose resource types used by diagram actions for ``@connection`` wiring.
 """
 
 from .duckdb_graph_resource import (

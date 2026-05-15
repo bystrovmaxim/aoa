@@ -25,7 +25,7 @@ from aoa.maxitor.interchange_demo_coordinator import (
     import_sample_registration_modules,
 )
 from aoa.maxitor.model.core.actions.left_sidebar_action import GetLeftMenuSidebarDataAction
-from aoa.maxitor.model.core.actions.load_graph_action import LoadGraphAction
+from aoa.maxitor.model.diagrams.actions.load_graph_action import LoadGraphAction
 
 
 @dataclass(frozen=True)

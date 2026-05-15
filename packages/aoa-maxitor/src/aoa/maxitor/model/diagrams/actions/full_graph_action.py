@@ -1,4 +1,16 @@
 # packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/full_graph_action.py
+"""
+FullGraphAction — G6 payload from DuckDB ``nodes`` / ``edges``.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+All interchange vertex types materialized in the DuckDB ``nodes`` view participate
+in the payload (including ``EntityField`` rows, slug ``entity_field``, and
+``entity_field_edges`` in ``edges``). The viewer tightens force links between
+``Entity`` and ``EntityField`` so scalar attributes stay near their host entity.
+"""
 
 from __future__ import annotations
 
@@ -14,7 +26,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.model.core.resources.duckdb_graph_resource import (
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
     DuckDBGraphResource,
 )
@@ -31,6 +43,18 @@ from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 DAG_CYCLE_VIOLATION_COLOR = "#E41A1C"
 GRAPH_NODE_VISUAL_PX = 24
+
+# DuckDB ``nodes.type`` slug for :class:`~aoa.action_machine.graph_model.nodes.entity_field_graph_node.EntityFieldGraphNode`.
+FULL_GRAPH_ENTITY_FIELD_DUCK_SLUG = "entity_field"
+
+# Interchange ``node_type`` after :func:`~aoa.maxitor.model.diagrams.actions.list_node_types_action.interchange_node_type_from_duck`.
+FULL_GRAPH_ENTITY_FIELD_INTERCHANGE_TYPE = "EntityField"
+
+# d3-force link tuning for Entity ↔ EntityField (same kind of link strength as same-type clusters).
+LAYOUT_ENTITY_SCALAR_LINK: dict[str, float] = {
+    "distance": 84.0,
+    "strength": 0.8,
+}
 
 # ---------------------------------------------------------------------------
 # SQL — single round-trip (nodes + edges + domains); no PyArrow dependency.
@@ -189,6 +213,7 @@ def _build_payload_from_duckdb(
         nt = interchange_node_type_from_duck(str(duck_type))
         if nt and nt != "unknown" and nt not in seen_types:
             seen_types[nt] = fill_color_for_node_type(str(duck_type))
+
     legend_items = (
         [{"type": nt, "color": col} for nt, col in sorted(seen_types.items())]
         or [{"type": "unknown", "color": DEFAULT_NODE_TYPE_COLOR}]
@@ -207,6 +232,9 @@ def _build_payload_from_duckdb(
             "dag_cycle_violation_color": DAG_CYCLE_VIOLATION_COLOR,
             "default_color": DEFAULT_NODE_TYPE_COLOR,
             "g6_cdn_url": G6_CDN_URL,
+            "entity_field_duck_slug": FULL_GRAPH_ENTITY_FIELD_DUCK_SLUG,
+            "entity_field_interchange_type": FULL_GRAPH_ENTITY_FIELD_INTERCHANGE_TYPE,
+            "layout_entity_scalar_link": LAYOUT_ENTITY_SCALAR_LINK,
         },
     }
 
@@ -226,7 +254,8 @@ class FullGraphAction(BaseAction[ParamsStub, "FullGraphAction.Result"]):
     AI-CORE-BEGIN
     ROLE: Emit a G6-oriented full graph payload from DuckDB ``nodes`` / ``edges`` views.
     CONTRACT: One SQL round-trip via ``execute_fetch_dicts`` (no PyArrow); slim ``data`` on
-    each node/edge (no DuckDB JSON blobs); domain colours and legend unchanged for the viewer.
+    each node/edge; includes ``EntityField`` when present in ``nodes``; ``constants`` exposes
+    layout hints for Entity ↔ EntityField force links and interchange/duck type strings for the viewer.
     INVARIANTS: No NetworkX or ``NodeGraphCoordinator`` dependency.
     AI-CORE-END
     """

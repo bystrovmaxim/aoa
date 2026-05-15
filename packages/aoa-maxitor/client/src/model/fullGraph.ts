@@ -6,6 +6,7 @@
  * **Contract (slim viewer, plan 019 / FullGraphAction):**
  * - `nodes[].data`: `label`, `title`, `node_type`, `fill` only.
  * - `edges[].data`: `label` (DuckDB `edges.relationship`), `edge_type` only.
+ * - `constants` may include `layout_entity_scalar_link`, `entity_field_*` for Entity ↔ EntityField layout.
  * Do not add DuckDB `payload` blobs or duplicate id/relationship fields without updating
  * `tests/maxitor/`.
  *
@@ -49,5 +50,9 @@ export type InterchangeGraphG6Payload = {
     dag_cycle_violation_color: string;
     default_color: string;
     g6_cdn_url: string;
+    /** Optional: d3-force tuning for ``Entity`` ↔ ``EntityField`` links (full graph). */
+    layout_entity_scalar_link?: { distance: number; strength: number };
+    entity_field_duck_slug?: string;
+    entity_field_interchange_type?: string;
   };
 };

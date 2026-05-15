@@ -80,7 +80,7 @@ def test_to_json_empty_graph_round_trip() -> None:
     assert json.loads(raw) == {"edges": [], "nodes": [], "schema_version": "1.0"}
 
 
-def test_to_json_validates_minimal_params_graph() -> None:
+def test_to_json_minimal_params_graph_shape() -> None:
     right = _ParamsNode("pkg.right")
     edge = CompositionGraphEdge(
         edge_name="field",
@@ -171,7 +171,7 @@ class _InspectNoneRole(BaseGraphNodeInspector[_MiniAxisRole]):
 
 
 def test_to_json_ping_action_mini_graph_round_trip() -> None:
-    """Real ``PingAction`` interchange subgraph validates against ``GRAPH_JSON_SCHEMA`` and round-trips."""
+    """Real ``PingAction`` interchange subgraph round-trips; schema checked separately where needed."""
     coord = NodeGraphCoordinator()
     coord.build(
         [

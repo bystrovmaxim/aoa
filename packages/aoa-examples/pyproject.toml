@@ -17,6 +17,10 @@ dependencies = [
     "pydantic>=2.0,<3.0",
 ]
 
+[tool.uv.sources]
+aoa-graph = { workspace = true }
+aoa-action-machine = { workspace = true }
+
 [project.optional-dependencies]
 fastapi = [
     "fastapi>=0.100,<1.0",

@@ -1,9 +1,9 @@
 # packages/aoa-action-machine/src/aoa/action_machine/graph_model/graph_json_schema.py
 """JSON Schema for ActionMachine graph export via :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator`.
 
-Pass :data:`GRAPH_JSON_SCHEMA` to :meth:`NodeGraphCoordinator.build` as ``export_json_schema`` so
-:meth:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator.to_json` can validate payloads without
-``aoa-graph`` owning ActionMachine-specific types.
+Callers may pass :data:`GRAPH_JSON_SCHEMA` to :meth:`NodeGraphCoordinator.build` as ``export_json_schema``
+for a stable keyword at call sites; :meth:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator.to_json`
+does not validate against it (validate in tests or tooling with :class:`jsonschema.Draft202012Validator` if needed).
 
 Sourced from ``archive/plan/CURRENT.md`` (appendix) with alignment fixes
 (``Field`` node properties, ``Lifecycle`` / ``@required_context`` / ``@check_roles`` edge names).
@@ -92,6 +92,9 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
         },
         {
           "$ref": "#/$defs/entity"
+        },
+        {
+          "$ref": "#/$defs/entity_field"
         },
         {
           "$ref": "#/$defs/resource"
@@ -267,51 +270,42 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
               "type": "object",
               "additionalProperties": false,
               "required": [
-                "description",
-                "fields",
-                "field_order"
+                "description"
               ],
               "properties": {
                 "description": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "entity_field": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "EntityField"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field_type",
+                "primary_key_hint"
+              ],
+              "properties": {
+                "field_type": {
+                  "type": "string"
                 },
-                "field_order": {
-                  "type": "array",
-                  "description": "All model field names in declaration order (includes relation slots).",
-                  "items": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "fields": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "name",
-                      "type",
-                      "primary_key",
-                      "ordinal"
-                    ],
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "type": {
-                        "type": "string"
-                      },
-                      "primary_key": {
-                        "type": "boolean"
-                      },
-                      "ordinal": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "description": "Column index among non-relation entity fields (declaration order)."
-                      }
-                    }
-                  }
+                "primary_key_hint": {
+                  "type": "boolean",
+                  "description": "Heuristic (field name == id); not database or schema authority."
                 }
               }
             }
@@ -797,6 +791,9 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
           "$ref": "#/$defs/entity_view"
         },
         {
+          "$ref": "#/$defs/entity_field_link"
+        },
+        {
           "$ref": "#/$defs/lifecycle_binding"
         },
         {
@@ -992,6 +989,40 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
               "properties": {
                 "field_name": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "entity_field_link": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "entity_field"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ordinal",
+                "field_name"
+              ],
+              "properties": {
+                "ordinal": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Scalar field order on the entity (filtered model fields, id synthetic when absent)."
+                },
+                "field_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Same as the target EntityField vertex label."
                 }
               }
             }

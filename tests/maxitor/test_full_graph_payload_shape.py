@@ -99,6 +99,11 @@ def test_build_full_graph_payload_pr1_slim_shape() -> None:
     for key in ("nodes", "edges", "legend_items", "node_type_map", "domain_color_map", "constants", "bubble_plugins"):
         assert key in payload
 
+    const = payload["constants"]
+    assert const["layout_entity_scalar_link"] == {"distance": 84.0, "strength": 0.8}
+    assert const["entity_field_duck_slug"] == "entity_field"
+    assert const["entity_field_interchange_type"] == "EntityField"
+
     for node in payload["nodes"]:
         data = node.get("data") or {}
         overlap = _FORBIDDEN_NODE_DATA & data.keys()
@@ -110,3 +115,61 @@ def test_build_full_graph_payload_pr1_slim_shape() -> None:
         assert not overlap, f"unexpected edge.data keys: {overlap}"
         assert "label" in data
         assert "edge_type" in data
+
+
+def test_full_graph_legend_includes_entity_field_when_duck_slug_present() -> None:
+    rows: list[dict[str, Any]] = [
+        {
+            "result_type": "nodes",
+            "pk": "e.Test",
+            "label": "Test",
+            "type": "entity",
+            "idx": None,
+            "source_id": None,
+            "target_id": None,
+            "relationship": None,
+            "is_dag": None,
+            "payload": None,
+        },
+        {
+            "result_type": "nodes",
+            "pk": "e.Test:id",
+            "label": "id",
+            "type": "entity_field",
+            "idx": None,
+            "source_id": None,
+            "target_id": None,
+            "relationship": None,
+            "is_dag": None,
+            "payload": None,
+        },
+        {
+            "result_type": "edges",
+            "pk": "0",
+            "label": None,
+            "type": "entity_field_edges",
+            "idx": 0,
+            "source_id": "e.Test",
+            "target_id": "e.Test:id",
+            "relationship": "Composition",
+            "is_dag": None,
+            "payload": None,
+        },
+        {
+            "result_type": "domain",
+            "pk": "d1",
+            "label": None,
+            "type": None,
+            "idx": None,
+            "source_id": None,
+            "target_id": None,
+            "relationship": None,
+            "is_dag": None,
+            "payload": None,
+        },
+    ]
+    payload = _build_payload_from_duckdb(_RowsDuck(rows), _LIST_DOMAINS_DISTINCT_COLORS)
+    types = {it["type"] for it in payload["legend_items"]}
+    assert "Entity" in types
+    assert "EntityField" in types
+    assert len(payload["edges"]) == 1

@@ -35,7 +35,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.model.core.resources.duckdb_graph_resource import (
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
     DuckDBGraphResource,
 )
@@ -50,6 +50,7 @@ _DUCK_SLUG_TO_INTERCHANGE: dict[str, str] = {
     "application": "Application",
     "domain": "Domain",
     "entity": "Entity",
+    "entity_field": "EntityField",
     "resource": "Resource",
     "params": "Params",
     "result": "Result",
@@ -79,6 +80,7 @@ NODE_TYPE_FILL_COLORS: dict[str, str] = {
     "Compensator": "#F781BF",
     "ErrorHandler": "#FCD34D",
     "Entity": "#1B9E77",
+    "EntityField": "#5AB4AC",
     "Lifecycle": "#00798C",
     "StateInitial": "#9575CD",
     "StateIntermediate": "#6A51A3",

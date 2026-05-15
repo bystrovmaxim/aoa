@@ -39,8 +39,15 @@ ListEntitiesDomainSlicesJson = JsonSchemaValue.define(
                                         "type": "array",
                                         "items": {
                                             "type": "object",
-                                            "properties": {
-                                                "name": {"type": "string"},
+                                        "properties": {
+                                            "field_id": {
+                                                "type": ["string", "null"],
+                                                "description": (
+                                                    "Interchange node id of the EntityField vertex when the row is a "
+                                                    "scalar field (null for synthetic relation/FK rows)."
+                                                ),
+                                            },
+                                            "name": {"type": "string"},
                                                 "type": {"type": "string"},
                                                 "primary_key": {"type": "boolean"},
                                                 "foreign_key": {"type": "boolean"},

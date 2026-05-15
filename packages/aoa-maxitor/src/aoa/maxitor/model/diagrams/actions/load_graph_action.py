@@ -1,4 +1,4 @@
-# packages/aoa-maxitor/src/aoa/maxitor/model/core/actions/load_graph_action.py
+# packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/load_graph_action.py
 """
 LoadGraphAction — materialize a NetworkX view of a coordinator graph.
 

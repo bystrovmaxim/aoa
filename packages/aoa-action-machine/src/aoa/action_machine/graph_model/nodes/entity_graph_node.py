@@ -12,7 +12,10 @@ entity **class** object: stable ``id`` (dotted path), ``node_type="Entity"``,
 a ``domain`` edge built by :class:`~aoa.action_machine.graph_model.edges.domain_graph_edge.DomainGraphEdge`,
 ``entity_relation`` edges from :class:`~aoa.action_machine.graph_model.edges.entity_graph_edge.EntityGraphEdge`,
 :class:`~aoa.action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge`
-lifecycle compositions (:attr:`lifecycles`).
+lifecycle compositions (:attr:`lifecycles`), and ``entity_field`` compositions from
+:meth:`~aoa.action_machine.graph_model.edges.entity_field_graph_edge.EntityFieldGraphEdge.get_entity_field_edges`
+to :class:`~aoa.action_machine.graph_model.nodes.entity_field_graph_node.EntityFieldGraphNode`
+for each scalar model field (see :attr:`entity_field_edges`).
 
 State rows belong to each wired :class:`~aoa.action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`;
 the entity row contributes lifecycle vertices only.
@@ -23,10 +26,11 @@ the entity row contributes lifecycle vertices only.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Annotated, Any, ClassVar, TypeVar, get_args, get_origin
+from typing import Any, ClassVar, TypeVar
 
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
+from aoa.action_machine.graph_model.edges.entity_field_graph_edge import EntityFieldGraphEdge
 from aoa.action_machine.graph_model.edges.entity_graph_edge import EntityGraphEdge
 from aoa.action_machine.graph_model.edges.lifecycle_graph_edge import LifeCycleGraphEdge
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
@@ -37,41 +41,12 @@ from aoa.graph.base_graph_node import BaseGraphNode
 TEntity = TypeVar("TEntity", bound=BaseEntity)
 
 
-def _pretty_annotation(annotation: Any) -> str:
-    ann = annotation
-    while get_origin(ann) is Annotated:
-        args = get_args(ann)
-        if not args:
-            break
-        ann = args[0]
-    origin = get_origin(ann)
-    if origin is None:
-        return ann.__qualname__ if isinstance(ann, type) else str(ann)
-    rendered_args = ", ".join(_pretty_annotation(arg) for arg in get_args(ann))
-    name = getattr(origin, "__qualname__", str(origin))
-    return f"{name}[{rendered_args}]" if rendered_args else name
-
-
-def _entity_field_rows(entity_cls: type[BaseEntity]) -> list[dict[str, Any]]:
-    relation_names = {rel.field_name for rel in EntityIntentResolver.resolve_entity_relations(entity_cls)}
-    rows = [
-        {"name": name, "type": _pretty_annotation(field.annotation), "primary_key": name == "id"}
-        for name, field in entity_cls.model_fields.items()
-        if name not in relation_names
-    ]
-    if not any(row["name"] == "id" for row in rows):
-        rows.insert(0, {"name": "id", "type": "str", "primary_key": True})
-    for i, row in enumerate(rows):
-        row["ordinal"] = i
-    return rows
-
-
 @dataclass(init=False, frozen=True)
 class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`lifecycles` from :meth:`~aoa.action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge.get_lifecycle_edges`. :meth:`get_all_edges` lists domain, relations, lifecycle composition edges only; :meth:`get_companion_nodes` returns direct lifecycle target rows only. Nested state companions are expanded by the coordinator.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`lifecycles` / :attr:`entity_field_edges` from scalar fields; :meth:`get_all_edges` lists domain, relations, lifecycle compositions, and ``entity_field`` edges; :meth:`get_companion_nodes` returns lifecycle targets and :class:`EntityFieldGraphNode` targets. JSON omits nested ``fields``/``field_order`` on the entity row.
     AI-CORE-END
     """
 
@@ -79,21 +54,22 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     domain: DomainGraphEdge = field(init=False, repr=False, compare=False)
     relations: list[EntityGraphEdge] = field(init=False)
     lifecycles: list[LifeCycleGraphEdge] = field(init=False)
+    entity_field_edges: list[EntityFieldGraphEdge] = field(init=False)
 
     def __init__(self, entity_cls: type[TEntity]) -> None:
         description = EntityIntentResolver.resolve_description(entity_cls)
-        fields = _entity_field_rows(entity_cls)
-        field_order = list(entity_cls.model_fields.keys())
+        field_edges = EntityFieldGraphEdge.get_entity_field_edges(entity_cls)
         super().__init__(
             node_id=TypeIntrospection.full_qualname(entity_cls),
             node_type=EntityGraphNode.NODE_TYPE,
             label=entity_cls.__name__,
-            properties={"description": description, "fields": fields, "field_order": field_order},
+            properties={"description": description},
             node_obj=entity_cls,
         )
         object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self))
         object.__setattr__(self, "relations", EntityGraphEdge.get_entity_relation_edges(entity_cls))
         object.__setattr__(self, "lifecycles", LifeCycleGraphEdge.get_lifecycle_edges(entity_cls))
+        object.__setattr__(self, "entity_field_edges", field_edges)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -102,15 +78,15 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             "label": self.label,
             "properties": {
                 "description": str(self.properties["description"]),
-                "fields": list(self.properties["fields"]),
-                "field_order": list(self.properties["field_order"]),
             },
         }
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
-        """Direct lifecycle companion rows."""
-        return [target for edge in self.lifecycles if (target := edge.target_node) is not None]
+        """Lifecycle field targets and scalar ``EntityField`` vertices."""
+        lifecycle_targets = [target for edge in self.lifecycles if (target := edge.target_node) is not None]
+        field_targets = [edge.target_node for edge in self.entity_field_edges if edge.target_node is not None]
+        return [*lifecycle_targets, *field_targets]
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return ``domain``, entity relations, and lifecycle compositions."""
-        return [self.domain, *self.relations, *self.lifecycles]
+        """Return ``domain``, entity relations, lifecycle compositions, and field compositions."""
+        return [self.domain, *self.relations, *self.lifecycles, *self.entity_field_edges]
