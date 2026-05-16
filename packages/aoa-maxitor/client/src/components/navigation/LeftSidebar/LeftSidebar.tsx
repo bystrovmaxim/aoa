@@ -134,7 +134,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
         >
           <SidebarToggleIcon
             sx={{
-              fontSize: 16,
+              fontSize: 17.6,
               position: "absolute",
               left: "50%",
               top: "50%",
