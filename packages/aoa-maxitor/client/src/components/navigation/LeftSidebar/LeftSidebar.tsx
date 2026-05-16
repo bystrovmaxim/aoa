@@ -22,7 +22,6 @@ const SB = {
   textSecondary: "rgb(71, 85, 105)",
   icon: "rgb(100, 116, 139)",
   chevron: "rgb(100, 116, 139)",
-  border: "rgba(30, 41, 59, 0.12)",
   hover: "rgba(255, 255, 255, 0.55)",
   selected: "rgba(255, 255, 255, 0.88)",
 } as const;
@@ -153,14 +152,16 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                           py: 0.35,
                           minHeight: 32,
                           color: SB.text,
+                          "& .MuiListItemText-primary": { fontWeight: 400 },
                           "&.Mui-selected": {
                             bgcolor: SB.selected,
                             "&:hover": { bgcolor: "rgba(255, 255, 255, 0.95)" },
+                            "& .MuiListItemText-primary": { fontWeight: 400 },
                           },
                           "&:hover": { bgcolor: SB.hover },
                         }}
                       >
-                        <ListItemIcon sx={{ minWidth: 30, color: SB.icon }}>
+                        <ListItemIcon sx={{ minWidth: 28, color: SB.icon }}>
                           <SidebarRowIcon row={node} />
                         </ListItemIcon>
                         <ListItemText primary={node.label} primaryTypographyProps={rowTypography} />
@@ -190,6 +191,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                 py: 0.35,
                                 minHeight: 32,
                                 color: SB.textSecondary,
+                                "& .MuiListItemText-primary": { fontWeight: 400 },
                                 "&:hover": { bgcolor: SB.hover },
                               }}
                             >
@@ -205,7 +207,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                 primaryTypographyProps={{
                                   variant: "body2",
                                   sx: {
-                                    fontWeight: 600,
+                                    fontWeight: 400,
                                     fontSize: 13,
                                     letterSpacing: "-0.01em",
                                     color: SB.textSecondary,
@@ -220,7 +222,6 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                 sx={{
                                   pl: 1.5,
                                   ml: 3.25,
-                                  borderLeft: `1px solid ${SB.border}`,
                                   pb: 0.25,
                                 }}
                               >
@@ -244,14 +245,16 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                         py: 0.3,
                                         minHeight: 30,
                                         color: SB.text,
+                                        "& .MuiListItemText-primary": { fontWeight: 400 },
                                         "&.Mui-selected": {
                                           bgcolor: SB.selected,
                                           "&:hover": { bgcolor: "rgba(255, 255, 255, 0.95)" },
+                                          "& .MuiListItemText-primary": { fontWeight: 400 },
                                         },
                                         "&:hover": { bgcolor: SB.hover },
                                       }}
                                     >
-                                      <ListItemIcon sx={{ minWidth: 28, color: SB.icon }}>
+                                      <ListItemIcon sx={{ minWidth: 26, color: SB.icon }}>
                                         <SidebarRowIcon row={e} />
                                       </ListItemIcon>
                                       <ListItemText primary={primary} primaryTypographyProps={rowTypography} />
@@ -268,7 +271,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                               variant="body2"
                               sx={{
                                 fontSize: 13,
-                                fontWeight: 600,
+                                fontWeight: 400,
                                 color: SB.textSecondary,
                                 lineHeight: 1.35,
                                 letterSpacing: "-0.01em",
