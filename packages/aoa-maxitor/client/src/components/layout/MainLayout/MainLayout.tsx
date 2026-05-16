@@ -2,7 +2,7 @@
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
 import type { ReactNode } from "react";
-import { DRAWER_WIDTH } from "@/lib/layoutConstants";
+import { DRAWER_WIDTH, SIDEBAR_SURFACE } from "@/lib/layoutConstants";
 
 type MainLayoutProps = {
   sidebar: ReactNode;
@@ -22,7 +22,7 @@ export function MainLayout({ sidebar, children }: MainLayoutProps) {
             boxSizing: "border-box",
             borderRight: 1,
             borderColor: "rgba(15, 23, 42, 0.08)",
-            bgcolor: "#EBF2F5",
+            bgcolor: SIDEBAR_SURFACE,
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
