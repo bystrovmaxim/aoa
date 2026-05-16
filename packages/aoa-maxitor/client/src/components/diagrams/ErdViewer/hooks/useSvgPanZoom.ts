@@ -12,6 +12,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const MIN_SCALE = 0.005;
 const MAX_SCALE = 2.5;
 const WHEEL_ZOOM_SENSITIVITY = 0.0045;
+/** One wheel chunk (device pixels) applied per animation frame — avoids huge jumps when delta batches. */
+const WHEEL_CHUNK_PX = 56;
 
 function clampUserScale(scale: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
@@ -94,18 +96,19 @@ export function useSvgPanZoom() {
   const dragRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
   const wheelAccumRef = useRef(0);
   const wheelRafRef = useRef<number | null>(null);
-  const wheelClientRef = useRef<{ x?: number; y?: number }>({});
+  const wheelFocalRef = useRef<{ ox: number; oy: number } | null>(null);
+  const wheelIdleTimeoutRef = useRef<number | null>(null);
   const interactAbortRef = useRef<AbortController | null>(null);
   const resizeFitRafRef = useRef<number | null>(null);
   const hasFittedRef = useRef(false);
   const [zoomPct, setZoomPct] = useState(100);
 
-  const applyTransform = useCallback(() => {
+  const applyTransform = useCallback((publishZoom = true) => {
     const panner = pannerRef.current;
     if (!panner) return;
     const { scale, tx, ty } = panRef.current;
     panner.style.transform = `matrix(${scale}, 0, 0, ${scale}, ${tx}, ${ty})`;
-    setZoomPct(Math.round(scale * 100));
+    if (publishZoom) setZoomPct(Math.round(scale * 100));
   }, []);
 
   const fitToContainer = useCallback(() => {
@@ -125,7 +128,7 @@ export function useSvgPanZoom() {
     panRef.current.scale = 1;
     panRef.current.tx = 0;
     panRef.current.ty = 0;
-    applyTransform();
+    applyTransform(false);
     void panner.offsetHeight;
 
     let box = unionClientRects(svg.querySelectorAll("g.graph g.node"), vp);
@@ -195,28 +198,35 @@ export function useSvgPanZoom() {
     wheelRafRef.current = null;
     const vp = viewportRef.current;
     if (!vp) return;
-    const dy = Math.max(-120, Math.min(120, wheelAccumRef.current));
-    wheelAccumRef.current = 0;
-    const factor = Math.exp(-dy * WHEEL_ZOOM_SENSITIVITY);
+
     const rect = vp.getBoundingClientRect();
-    const wx =
-      typeof wheelClientRef.current.x === "number"
-        ? wheelClientRef.current.x
-        : rect.left + rect.width / 2;
-    const wy =
-      typeof wheelClientRef.current.y === "number"
-        ? wheelClientRef.current.y
-        : rect.top + rect.height / 2;
-    wheelClientRef.current = {};
-    const ox = wx - rect.left;
-    const oy = wy - rect.top;
+    const focal = wheelFocalRef.current ?? { ox: rect.width / 2, oy: rect.height / 2 };
+    const { ox, oy } = focal;
+
+    const chunk = Math.max(-WHEEL_CHUNK_PX, Math.min(WHEEL_CHUNK_PX, wheelAccumRef.current));
+    wheelAccumRef.current -= chunk;
+
     const s0 = panRef.current.scale;
+    const sens = WHEEL_ZOOM_SENSITIVITY / Math.max(1, Math.pow(s0, 0.45));
+    const factor = Math.exp(-chunk * sens);
     const s1 = clampUserScale(s0 * factor);
-    if (s1 === s0) return;
-    panRef.current.tx = ox - (ox - panRef.current.tx) * (s1 / s0);
-    panRef.current.ty = oy - (oy - panRef.current.ty) * (s1 / s0);
-    panRef.current.scale = s1;
-    applyTransform();
+    if (s1 !== s0) {
+      panRef.current.tx = ox - (ox - panRef.current.tx) * (s1 / s0);
+      panRef.current.ty = oy - (oy - panRef.current.ty) * (s1 / s0);
+      panRef.current.scale = s1;
+    }
+
+    applyTransform(false);
+
+    if (Math.abs(wheelAccumRef.current) > 0.5) {
+      wheelRafRef.current = requestAnimationFrame(() => {
+        wheelRafRef.current = null;
+        flushWheelZoom();
+      });
+    } else {
+      wheelFocalRef.current = null;
+      setZoomPct(Math.round(panRef.current.scale * 100));
+    }
   }, [applyTransform]);
 
   const bindInteractions = useCallback(() => {
@@ -229,7 +239,19 @@ export function useSvgPanZoom() {
 
     const onWheel = (evt: WheelEvent) => {
       evt.preventDefault();
-      wheelClientRef.current = { x: evt.clientX, y: evt.clientY };
+      vp.classList.add("erd-wheel-zooming");
+      if (wheelIdleTimeoutRef.current !== null) {
+        window.clearTimeout(wheelIdleTimeoutRef.current);
+      }
+      wheelIdleTimeoutRef.current = window.setTimeout(() => {
+        wheelIdleTimeoutRef.current = null;
+        vp.classList.remove("erd-wheel-zooming");
+        wheelFocalRef.current = null;
+        setZoomPct(Math.round(panRef.current.scale * 100));
+      }, 120);
+
+      const r = vp.getBoundingClientRect();
+      wheelFocalRef.current = { ox: evt.clientX - r.left, oy: evt.clientY - r.top };
       wheelAccumRef.current += evt.deltaY;
       if (wheelRafRef.current == null) {
         wheelRafRef.current = requestAnimationFrame(() => {
@@ -272,6 +294,10 @@ export function useSvgPanZoom() {
 
     return () => {
       ac.abort();
+      if (wheelIdleTimeoutRef.current !== null) {
+        window.clearTimeout(wheelIdleTimeoutRef.current);
+        wheelIdleTimeoutRef.current = null;
+      }
     };
   }, [applyTransform, flushWheelZoom]);
 

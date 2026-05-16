@@ -211,9 +211,17 @@ export function ErdGraphvizCanvas({
     const ac = new AbortController();
     const svg = panner.querySelector("svg");
     if (svg) {
-      // Remove size constraints so getBBox works correctly
+      // Keep Graphviz as a real-size SVG canvas. If width/height are just removed,
+      // browsers can fall back to a 300x150 SVG viewport and zoom math collapses.
       svg.removeAttribute("width");
       svg.removeAttribute("height");
+      const vb = svg.viewBox.baseVal;
+      if (Number.isFinite(vb.width) && vb.width > 0) {
+        svg.style.width = `${vb.width}px`;
+      }
+      if (Number.isFinite(vb.height) && vb.height > 0) {
+        svg.style.height = `${vb.height}px`;
+      }
 
       const gg = svg.querySelector("g.graph");
       const bgPoly = gg?.querySelector("polygon");
@@ -337,6 +345,7 @@ export function ErdGraphvizCanvas({
             touchAction: "none",
             zIndex: 1,
             "&.erd-panning": { cursor: "grabbing" },
+            "&.erd-wheel-zooming .erd-svg-panner": { pointerEvents: "none" },
           }}
         >
           {gvBusy && !svgMarkup && (
@@ -352,9 +361,15 @@ export function ErdGraphvizCanvas({
               left: 0,
               top: 0,
               transformOrigin: "0 0",
-              willChange: "transform",
               display: "block",
-              "& svg": { display: "block", maxWidth: "none", height: "auto" },
+              "& svg": {
+                display: "block",
+                maxWidth: "none",
+                width: "auto",
+                height: "auto",
+                overflow: "visible",
+                transformOrigin: "0 0",
+              },
             }}
             dangerouslySetInnerHTML={{ __html: svgMarkup }}
           />
