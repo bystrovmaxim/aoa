@@ -95,7 +95,7 @@ def test_build_full_graph_payload_pr1_slim_shape() -> None:
     ]
     payload = _build_payload_from_duckdb(_RowsDuck(rows), _LIST_DOMAINS_DISTINCT_COLORS)
 
-    assert payload["title"] == "Interchange graph"
+    assert payload["title"] == "Full graph"
     for key in ("nodes", "edges", "legend_items", "node_type_map", "domain_color_map", "constants", "bubble_plugins"):
         assert key in payload
 

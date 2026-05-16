@@ -220,7 +220,7 @@ def _build_payload_from_duckdb(
     )
 
     return {
-        "title": "Interchange graph",
+        "title": "Full graph",
         "nodes": nodes,
         "edges": edges,
         "legend_items": legend_items,

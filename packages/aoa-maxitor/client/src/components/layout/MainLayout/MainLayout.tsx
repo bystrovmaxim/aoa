@@ -21,7 +21,11 @@ export function MainLayout({ sidebar, children }: MainLayoutProps) {
             width: DRAWER_WIDTH,
             boxSizing: "border-box",
             borderRight: 1,
-            borderColor: "divider",
+            borderColor: "rgba(15, 23, 42, 0.08)",
+            bgcolor: "#EBF2F5",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
           },
         }}
       >

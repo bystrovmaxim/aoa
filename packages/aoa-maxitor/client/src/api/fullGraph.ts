@@ -129,11 +129,11 @@ export async function fullGraph(): Promise<InterchangeGraphG6Payload> {
   const response = await fetch(apiUrl("/api/v1/full-graph"));
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(`Interchange graph request failed (${response.status}): ${text || response.statusText}`);
+    throw new Error(`Full graph request failed (${response.status}): ${text || response.statusText}`);
   }
   const body = (await response.json()) as InterchangeGraphApiBody;
   if (!body.payload || typeof body.payload !== "object") {
-    throw new Error("Interchange graph response missing payload");
+    throw new Error("Full graph response missing payload");
   }
   const domainColors = body.payload.domain_color_map ?? {};
   return { ...body.payload, bubble_plugins: buildDomainBubblePlugins(body.payload, domainColors) };

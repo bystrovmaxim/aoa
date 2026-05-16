@@ -40,13 +40,13 @@ const GRAPH_HOVER_LABEL_SX = {
   },
 } as const;
 
-/** Canvas shell — dot grid surface under G6 (MUI ``sx``, no global CSS import). */
+/** Canvas shell — dot grid under G6 (same surface as ``ErdGraphvizCanvas``; literals avoid undefined CSS vars). */
 const CANVAS_SHELL_SX = {
   position: "absolute" as const,
   inset: 0,
   zIndex: 0,
-  bgcolor: "var(--ix-surface)",
-  backgroundImage: "radial-gradient(var(--ix-grid-dot) 1px, transparent 1px)",
+  bgcolor: "#f4f5f7",
+  backgroundImage: "radial-gradient(rgba(160, 168, 180, 0.42) 1px, transparent 1px)",
   backgroundSize: "20px 20px",
   boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.65)",
 };
@@ -251,7 +251,7 @@ function buildGraph(
 }
 
 /**
- * Interchange graph viewer — G6 circle + glyph icons, d3-force, bubble plugins, MUI-positioned
+ * Full graph viewer — G6 circle + glyph icons, d3-force, bubble plugins, MUI-positioned
  * legend / zoom chrome, neighbor glow, and hover labels in ``#graph-hover-labels`` (sibling layer
  * above the G6 container so cards are not covered by the graph canvas).
  *
