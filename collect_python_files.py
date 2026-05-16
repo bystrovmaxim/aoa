@@ -272,10 +272,10 @@ if __name__ == "__main__":
             ".less",
             ".styl",
             # Config & typed data (package.json, tsconfig, vite, components.json, …)
-            ".json",
-            ".jsonc",
-            ".yaml",
-            ".yml",
+            #".json",
+            #".jsonc",
+            #".yaml",
+            #".yml",
             # Docs / MDX
             ".md",
             ".mdx",
