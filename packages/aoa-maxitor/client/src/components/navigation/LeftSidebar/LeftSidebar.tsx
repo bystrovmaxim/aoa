@@ -7,6 +7,8 @@ import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
+import type { ListItemTextProps } from "@mui/material/ListItemText";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 import type { DiagramSelection } from "@/model/diagramSelection";
@@ -29,10 +31,55 @@ const SB = {
   selected: "rgba(15, 23, 42, 0.09)",
 } as const;
 
+const ellipsisText = {
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+} as const;
+
 const rowTypography = {
   variant: "body2" as const,
-  sx: { fontSize: 13, lineHeight: 1.35, fontWeight: 400, color: SB.text },
+  sx: { fontSize: 13, lineHeight: 1.35, fontWeight: 400, color: SB.text, ...ellipsisText },
 };
+
+const tooltipSlotProps = {
+  tooltip: {
+    sx: {
+      maxWidth: 420,
+      whiteSpace: "normal",
+      wordBreak: "break-word",
+    },
+  },
+} as const;
+
+function TruncatingListLabel({
+  tooltipTitle,
+  primary,
+  primaryTypographyProps,
+}: {
+  tooltipTitle: string;
+  primary: string;
+  primaryTypographyProps?: ListItemTextProps["primaryTypographyProps"];
+}) {
+  return (
+    <Tooltip title={tooltipTitle} placement="right" enterDelay={400} slotProps={tooltipSlotProps}>
+      <Box sx={{ flex: "1 1 auto", minWidth: 0, overflow: "hidden" }}>
+        <ListItemText
+          sx={{ m: 0 }}
+          primary={primary}
+          primaryTypographyProps={{
+            noWrap: true,
+            ...primaryTypographyProps,
+            sx: {
+              ...primaryTypographyProps?.sx,
+              ...ellipsisText,
+            },
+          }}
+        />
+      </Box>
+    </Tooltip>
+  );
+}
 
 type LeftSidebarProps = {
   diagram: DiagramSelection | null;
@@ -179,7 +226,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
             const directDiagrams = sortNodes(group.diagramsByParent.get(root.id) ?? []);
             const childNodes = sortNodes(group.l2ByParent.get(root.id) ?? []);
             return (
-              <Box key={root.id} sx={{ mb: 0.5 }}>
+              <Box key={root.id} sx={{ mb: 0.5, minWidth: 0 }}>
                 <ListItemButton
                   dense
                   onClick={() =>
@@ -193,6 +240,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                     borderRadius: 1.5,
                     py: 0.45,
                     minHeight: 36,
+                    minWidth: 0,
                     color: SB.text,
                     "&:hover": { bgcolor: SB.hover },
                   }}
@@ -200,7 +248,8 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                   <ListItemIcon sx={{ minWidth: 32, color: SB.chevron }}>
                     {open ? <ExpandMoreIcon sx={{ fontSize: 20 }} /> : <ChevronRightIcon sx={{ fontSize: 20 }} />}
                   </ListItemIcon>
-                  <ListItemText
+                  <TruncatingListLabel
+                    tooltipTitle={root.label}
                     primary={root.label}
                     primaryTypographyProps={{
                       variant: "body2",
@@ -224,6 +273,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                             pl: 4,
                             py: 0.35,
                             minHeight: 32,
+                            minWidth: 0,
                             color: SB.text,
                             "& .MuiListItemText-primary": { fontWeight: 400 },
                             "&.Mui-selected": {
@@ -237,7 +287,11 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                           <ListItemIcon sx={{ minWidth: 32, color: SB.icon }}>
                             <SidebarRowIcon row={node} />
                           </ListItemIcon>
-                          <ListItemText primary={node.label} primaryTypographyProps={rowTypography} />
+                          <TruncatingListLabel
+                            tooltipTitle={node.label}
+                            primary={node.label}
+                            primaryTypographyProps={rowTypography}
+                          />
                         </ListItemButton>
                       );
                     })}
@@ -263,6 +317,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                   pl: 4,
                                   py: 0.35,
                                   minHeight: 32,
+                                  minWidth: 0,
                                   color: SB.textSecondary,
                                   "& .MuiListItemText-primary": { fontWeight: 400 },
                                   "&:hover": { bgcolor: SB.hover },
@@ -275,7 +330,8 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                     <ChevronRightIcon sx={{ fontSize: 20 }} />
                                   )}
                                 </ListItemIcon>
-                                <ListItemText
+                                <TruncatingListLabel
+                                  tooltipTitle={cnode.label}
                                   primary={cnode.label}
                                   primaryTypographyProps={{
                                     variant: "body2",
@@ -294,7 +350,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                   disablePadding
                                   sx={{
                                     pl: 0,
-                                    ml: 4,
+                                    ml: 0,
                                     pb: 0.25,
                                   }}
                                 >
@@ -314,9 +370,10 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                         onClick={() => sel && onSelectDiagram(sel)}
                                         sx={{
                                           borderRadius: 1.5,
-                                          pl: 0,
+                                          pl: 6,
                                           py: 0.3,
-                                          minHeight: 30,
+                                          minHeight: 32,
+                                          minWidth: 0,
                                           color: SB.text,
                                           "& .MuiListItemText-primary": { fontWeight: 400 },
                                           "&.Mui-selected": {
@@ -327,10 +384,14 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                           "&:hover": { bgcolor: SB.hover },
                                         }}
                                       >
-                                        <ListItemIcon sx={{ minWidth: 30, color: SB.icon }}>
+                                        <ListItemIcon sx={{ minWidth: 32, color: SB.icon }}>
                                           <SidebarRowIcon row={e} />
                                         </ListItemIcon>
-                                        <ListItemText primary={primary} primaryTypographyProps={rowTypography} />
+                                        <TruncatingListLabel
+                                          tooltipTitle={e.label}
+                                          primary={primary}
+                                          primaryTypographyProps={rowTypography}
+                                        />
                                       </ListItemButton>
                                     );
                                   })}
@@ -338,21 +399,37 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                               ) : null}
                             </>
                           ) : (
-                            <Box sx={{ pl: 4, py: 0.35, minHeight: 32, display: "flex", alignItems: "center" }}>
-                              <Typography
-                                component="div"
-                                variant="body2"
-                                sx={{
-                                  fontSize: 13,
-                                  fontWeight: 400,
-                                  color: SB.textSecondary,
-                                  lineHeight: 1.35,
-                                  letterSpacing: "-0.01em",
-                                  pl: 3.5,
-                                }}
-                              >
-                                {cnode.label}
-                              </Typography>
+                            <Box
+                              sx={{
+                                pl: 4,
+                                py: 0.35,
+                                minHeight: 32,
+                                display: "flex",
+                                alignItems: "center",
+                                minWidth: 0,
+                                pr: 0.5,
+                              }}
+                            >
+                              <Tooltip title={cnode.label} placement="right" enterDelay={400} slotProps={tooltipSlotProps}>
+                                <Typography
+                                  component="div"
+                                  variant="body2"
+                                  noWrap
+                                  sx={{
+                                    fontSize: 13,
+                                    fontWeight: 400,
+                                    color: SB.textSecondary,
+                                    lineHeight: 1.35,
+                                    letterSpacing: "-0.01em",
+                                    pl: 3.5,
+                                    flex: "1 1 auto",
+                                    minWidth: 0,
+                                    ...ellipsisText,
+                                  }}
+                                >
+                                  {cnode.label}
+                                </Typography>
+                              </Tooltip>
                             </Box>
                           )}
                         </Box>

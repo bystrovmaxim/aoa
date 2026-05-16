@@ -1,7 +1,6 @@
 // src/components/layout/MainLayout/MainLayout.tsx
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
-import { useTheme } from "@mui/material/styles";
 import type { ReactNode } from "react";
 import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED, SIDEBAR_SURFACE } from "@/lib/layoutConstants";
 import { SidebarCollapseProvider, useSidebarCollapse } from "./SidebarCollapseContext";
@@ -12,7 +11,6 @@ type MainLayoutProps = {
 };
 
 function MainLayoutBody({ sidebar, children }: MainLayoutProps) {
-  const theme = useTheme();
   const { collapsed } = useSidebarCollapse();
   const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH;
 
@@ -23,6 +21,7 @@ function MainLayoutBody({ sidebar, children }: MainLayoutProps) {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
+          transition: "none",
           [`& .MuiDrawer-paper`]: {
             width: drawerWidth,
             boxSizing: "border-box",
@@ -32,10 +31,7 @@ function MainLayoutBody({ sidebar, children }: MainLayoutProps) {
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            transition: theme.transitions.create("width", {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.shortest,
-            }),
+            transition: "none",
           },
         }}
       >
