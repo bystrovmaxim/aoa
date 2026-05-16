@@ -1,16 +1,24 @@
 // src/components/pages/DiagramWorkspacePage/DiagramWorkspacePage.tsx
 import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
 import type { DiagramSelection } from "@/model/diagramSelection";
 import { ErdViewer } from "@/components/diagrams/ErdViewer";
 import { FullGraphViewer } from "@/components/diagrams/FullGraphViewer";
+
+/** Same dot grid as ``ErdGraphvizCanvas`` — empty workspace before any diagram is chosen. */
+const EMPTY_WORKSPACE_SX = {
+  flex: 1,
+  minWidth: 0,
+  minHeight: 0,
+  bgcolor: "#f4f5f7",
+  backgroundImage: "radial-gradient(rgba(160, 168, 180, 0.42) 1px, transparent 1px)",
+  backgroundSize: "20px 20px",
+} as const;
 
 type DiagramWorkspacePageProps = {
   diagram: DiagramSelection | null;
 };
 
-/** Central workspace: full graph, ERD, or empty state from sidebar selection. */
+/** Central workspace: full graph, ERD, or empty dotted surface from sidebar selection. */
 export function DiagramWorkspacePage({ diagram }: DiagramWorkspacePageProps) {
   return (
     <Box
@@ -20,7 +28,7 @@ export function DiagramWorkspacePage({ diagram }: DiagramWorkspacePageProps) {
         minHeight: 0,
         display: "flex",
         flexDirection: "column",
-        bgcolor: "grey.100",
+        bgcolor: "#f4f5f7",
         overflow: "hidden",
       }}
     >
@@ -29,28 +37,7 @@ export function DiagramWorkspacePage({ diagram }: DiagramWorkspacePageProps) {
       ) : diagram?.kind === "erd" ? (
         <ErdViewer key={diagram.qualifier ?? "all"} selection={diagram} />
       ) : (
-        <Box sx={{ flex: 1, display: "grid", placeItems: "center", p: 2 }}>
-          <Paper variant="outlined" sx={{ maxWidth: 520, p: 3, borderRadius: 2 }}>
-            <Typography variant="h5" component="h1" gutterBottom>
-              Select a diagram
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Open the interchange graph or an ERD. The graph loads JSON from{" "}
-              <Box component="code" sx={{ fontSize: "0.85em" }}>
-                /api/v1/full-graph
-              </Box>{" "}
-              and renders with AntV G6 in the SPA; ERD uses{" "}
-              <Box component="code" sx={{ fontSize: "0.85em" }}>
-                /api/v1/list-domains
-              </Box>{" "}
-              and{" "}
-              <Box component="code" sx={{ fontSize: "0.85em" }}>
-                /api/v1/list-entities
-              </Box>
-              ; the SPA bundles the viewer shell.
-            </Typography>
-          </Paper>
-        </Box>
+        <Box sx={EMPTY_WORKSPACE_SX} aria-label="Diagram workspace" />
       )}
     </Box>
   );
