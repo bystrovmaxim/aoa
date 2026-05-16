@@ -30,12 +30,16 @@ def sidebar_payload(sidebar_result: Any) -> dict[str, Any]:
     """
 
     def row(n: Any) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "id": str(n.id),
             "parent_id": None if n.parent_id is None else str(n.parent_id),
             "label": str(n.label),
             "type": str(n.type),
         }
+        ord_ = getattr(n, "ordinal", None)
+        if ord_ is not None:
+            out["ordinal"] = int(ord_)
+        return out
 
     return {
         "level1_nodes": [row(n) for n in sidebar_result.level1_nodes],

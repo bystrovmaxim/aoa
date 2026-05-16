@@ -36,3 +36,7 @@ class NodeEntity(BaseEntity):
     parent_id: str | None = Field(default=None, description="Parent node id when nested under another row")
     label: str = Field(description="Display label")
     type: str = Field(description="Coarse node category (e.g. interchange primary node_type)")
+    ordinal: int | None = Field(
+        default=None,
+        description="Optional sort rank among siblings (lower first); used for level-3 diagram order",
+    )

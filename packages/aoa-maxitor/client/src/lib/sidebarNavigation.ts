@@ -20,9 +20,15 @@ export function diagramSelectionForRow(row: NodeRow): DiagramSelection | null {
  * Alphabetical order for nested rows (level-2+). Do **not** use for
  * ``level1_nodes``: the API returns roots in a fixed contract order
  * (``_ROOT_SECTIONS`` on the server); preserve that array order in the UI.
+ * When ``ordinal`` is set, it sorts before label (lower first); rows without
+ * ``ordinal`` sort after all ordinals, then by label.
  */
 export function sortNodes(nodes: NodeRow[]): NodeRow[] {
+  const rank = (n: NodeRow) => (typeof n.ordinal === "number" ? n.ordinal : Number.MAX_SAFE_INTEGER);
   return [...nodes].sort((a, b) => {
+    const ra = rank(a);
+    const rb = rank(b);
+    if (ra !== rb) return ra - rb;
     const lc = a.label.toLowerCase().localeCompare(b.label.toLowerCase());
     if (lc !== 0) return lc;
     return a.id.localeCompare(b.id);

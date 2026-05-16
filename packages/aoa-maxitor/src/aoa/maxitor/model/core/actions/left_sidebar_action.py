@@ -7,10 +7,12 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Materialize flat ``NodeEntity`` lists (by depth / role) from a ``LoadGraphAction``
-``DiGraph`` so the UI can render roots, per-root diagrams, coordinator rows, and
-per-domain ERD rows using ``parent_id`` links only. **Level-1 order matches**
+``DiGraph`` so the UI can render roots, per-root diagrams, interchange nodes, and
+level-3 diagram rows (per-domain ERD, per-entity diagram row, per-lifecycle field
+diagram) using ``parent_id`` links only. **Level-1 order matches**
 ``_ROOT_SECTIONS`` (Applications through Resources); clients must preserve
-``Result.level1_nodes`` order. Deeper rows are ordered alphabetically by label, then id.
+``Result.level1_nodes`` order. Deeper rows use ``ordinal`` when present (see
+``prepare_level3_diagrams_aspect``); otherwise alphabetical by label, then id.
 """
 
 from __future__ import annotations
@@ -46,6 +48,77 @@ _ROOT_SECTIONS: tuple[tuple[str, str, str], ...] = (
 )
 
 
+def _diagram_view_label(name: str) -> str:
+    """Append `` view`` to diagram display names (sidebar and aligned payloads)."""
+    base = str(name).strip()
+    if base.endswith(" view"):
+        return base
+    return f"{base} view"
+
+
+def _lifecycle_nodes_for_entity(graph: Any, entity_id: str) -> list[tuple[str, str]]:
+    """
+    Return ``(lifecycle_vertex_id, label)`` for lifecycles owned by this entity, sorted.
+
+    Only ``lifecycle`` composition edges from the entity are counted (see
+    :class:`~aoa.action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge`
+    and :meth:`LoadGraphAction.prepare_topology_aspect`, which sets ``edge_name`` on
+    NetworkX edges). A generic 2-hop scan is unsafe: e.g. ``Entity → Domain`` then
+    ``Domain → … → Lifecycle`` can reach another host's lifecycle and duplicate rows.
+    """
+    seen: set[str] = set()
+    out: list[tuple[str, str]] = []
+    eid = str(entity_id)
+    if not graph.has_node(eid):
+        return []
+
+    for _src, target, attrs in graph.out_edges(eid, data=True):
+        if str(attrs.get("edge_name", "")) != "lifecycle":
+            continue
+        tdata = graph.nodes[target]
+        if str(tdata.get("node_type", "")) != "Lifecycle":
+            continue
+        lid = str(target)
+        if lid in seen:
+            continue
+        seen.add(lid)
+        out.append((lid, str(tdata.get("label", lid))))
+
+    if not out:
+        # Backward-compatible fallback when edges lack ``edge_name`` (direct Lifecycle only).
+        for mid in graph.successors(eid):
+            mid_data = graph.nodes[mid]
+            if str(mid_data.get("node_type", "")) != "Lifecycle":
+                continue
+            lid = str(mid)
+            if lid in seen:
+                continue
+            seen.add(lid)
+            out.append((lid, str(mid_data.get("label", lid))))
+
+    out.sort(key=lambda t: (t[1].lower(), t[0]))
+    return out
+
+
+def _lifecycle_state_machine_row_title(field_name: str) -> str:
+    """
+    Sidebar title for one lifecycle field under an entity: first snake segment capitalised,
+    remaining segments lowercased, joined with spaces, then trailing `` view``.
+
+    Example: ``counterparty_linkage_lifecycle`` → ``Counterparty linkage lifecycle view``.
+    """
+    parts = [p for p in str(field_name).strip().split("_") if p]
+    if not parts:
+        return _diagram_view_label("Lifecycle")
+    head = parts[0][:1].upper() + parts[0][1:].lower()
+    if len(parts) == 1:
+        display = head
+    else:
+        tail = " ".join(p.lower() for p in parts[1:])
+        display = f"{head} {tail}"
+    return _diagram_view_label(display)
+
+
 @meta(description="Build left-menu sidebar NodeEntity lists from NetworkX graph view", domain=DiagramsDomain)
 @check_roles(NoneRole)
 class GetLeftMenuSidebarDataAction(
@@ -54,7 +127,7 @@ class GetLeftMenuSidebarDataAction(
     """
     AI-CORE-BEGIN
     ROLE: Emit four ``NodeEntity`` layers for a simple parent-linked sidebar hierarchy.
-    CONTRACT: Params carry ``nx_graph`` from ``LoadGraphAction``; regular aspects leave plain dict rows on state; level-1 order is exactly ``_ROOT_SECTIONS`` (do not reorder in clients); deeper lists sorted by label then id.
+    CONTRACT: Params carry ``nx_graph`` from ``LoadGraphAction``; regular aspects leave plain dict rows on state; level-1 order is exactly ``_ROOT_SECTIONS`` (do not reorder in clients); level-3 diagram rows use ``ordinal`` for sibling order where required.
     INVARIANTS: Summary maps dict rows to ``NodeEntity``; no coordinator objects on ``BaseResult`` fields.
     AI-CORE-END
     """
@@ -65,12 +138,20 @@ class GetLeftMenuSidebarDataAction(
         model_config = ConfigDict(arbitrary_types_allowed=True)
 
     class Result(BaseResult):
-        """Four ``NodeEntity`` layers: roots, diagrams under roots, graph nodes under roots, ERD rows under domains."""
+        """Four ``NodeEntity`` layers: roots, diagrams under roots, interchange nodes under roots, diagram rows under domains and entities."""
 
         level1_nodes: list[NodeEntity] = Field(default_factory=list, description="Root buckets (parent_id unset)")
         level2_diagrams: list[NodeEntity] = Field(default_factory=list, description="Diagram rows under a root id (parent_id = root key)")
         level2_nodes: list[NodeEntity] = Field(default_factory=list, description="Interchange nodes grouped under a root (parent_id = root key)")
-        level3_diagrams: list[NodeEntity] = Field(default_factory=list, description="Per-domain ERD rows (parent_id = domain interchange node id)")
+        level3_diagrams: list[NodeEntity] = Field(
+            default_factory=list,
+            description=(
+                "Diagram rows under a domain or entity interchange node: "
+                "``erd_domain`` (parent = domain id), ``entity_class_diagram`` (id = entity id, parent = entity id), "
+                "``lifecycle_state_diagram`` (id = lifecycle vertex id, parent = entity id). "
+                "Use ``ordinal`` for stable order: entity row first, then lifecycle rows."
+            ),
+        )
 
         model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -100,8 +181,18 @@ class GetLeftMenuSidebarDataAction(
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         rows = [
-            {"id": "application_interchange_graph", "parent_id": "applications_root", "label": "Full graph", "type": "graph"},
-            {"id": "domains_all_erd", "parent_id": "domains_root", "label": "ERD — all domains", "type": "erd_all"},
+            {
+                "id": "application_interchange_graph",
+                "parent_id": "applications_root",
+                "label": _diagram_view_label("Full graph"),
+                "type": "graph",
+            },
+            {
+                "id": "domains_all_erd",
+                "parent_id": "domains_root",
+                "label": _diagram_view_label("ERD — all domains"),
+                "type": "erd_all",
+            },
         ]
         rows.sort(key=lambda r: (r["label"].lower(), r["id"]))
         return {
@@ -140,7 +231,7 @@ class GetLeftMenuSidebarDataAction(
     @result_instance("level2_diagram_rows", list, required=True)  # type: ignore[untyped-decorator]
     @result_instance("level2_node_rows", list, required=True)  # type: ignore[untyped-decorator]
     @result_instance("level3_diagram_rows", list, required=True)  # type: ignore[untyped-decorator]
-    @regular_aspect("Level-3 per-domain ERD diagram rows")
+    @regular_aspect("Level-3 diagram rows (domain ERD, entity diagram, lifecycle field)")
     async def prepare_level3_diagrams_aspect(
         self,
         params: GetLeftMenuSidebarDataAction.Params,
@@ -149,15 +240,47 @@ class GetLeftMenuSidebarDataAction(
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         rows: list[dict[str, Any]] = []
-        for node_id, data in params.nx_graph.nodes(data=True):
+        graph = params.nx_graph
+        for node_id, data in graph.nodes(data=True):
             if data.get("node_type") != "Domain":
                 continue
             label = str(data.get("label", ""))
             nid = str(node_id)
             rows.append(
-                {"id": f"erd_domain:{nid}", "parent_id": nid, "label": f"ERD — {label}", "type": "erd_domain"},
+                {
+                    "id": f"erd_domain:{nid}",
+                    "parent_id": nid,
+                    "label": _diagram_view_label(f"ERD — {label}"),
+                    "type": "erd_domain",
+                    "ordinal": 0,
+                },
             )
-        rows.sort(key=lambda r: (r["label"].lower(), r["id"]))
+        for node_id, data in graph.nodes(data=True):
+            if data.get("node_type") != "Entity":
+                continue
+            nid = str(node_id)
+            rows.append(
+                {
+                    "id": nid,
+                    "parent_id": nid,
+                    "label": _diagram_view_label("Entity"),
+                    "type": "entity_class_diagram",
+                    "ordinal": 0,
+                },
+            )
+            ordinal = 1
+            for lifecycle_id, lifecycle_label in _lifecycle_nodes_for_entity(graph, nid):
+                rows.append(
+                    {
+                        "id": lifecycle_id,
+                        "parent_id": nid,
+                        "label": _lifecycle_state_machine_row_title(lifecycle_label),
+                        "type": "lifecycle_state_diagram",
+                        "ordinal": ordinal,
+                    },
+                )
+                ordinal += 1
+        rows.sort(key=lambda r: (str(r["parent_id"]).lower(), int(r.get("ordinal", 10**9)), r["label"].lower(), r["id"]))
         return {
             "level1_rows": _sidebar_row_dicts(state, "level1_rows"),
             "level2_diagram_rows": _sidebar_row_dicts(state, "level2_diagram_rows"),
