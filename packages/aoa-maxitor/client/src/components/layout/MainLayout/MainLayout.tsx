@@ -1,24 +1,30 @@
 // src/components/layout/MainLayout/MainLayout.tsx
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
+import { useTheme } from "@mui/material/styles";
 import type { ReactNode } from "react";
-import { DRAWER_WIDTH, SIDEBAR_SURFACE } from "@/lib/layoutConstants";
+import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED, SIDEBAR_SURFACE } from "@/lib/layoutConstants";
+import { SidebarCollapseProvider, useSidebarCollapse } from "./SidebarCollapseContext";
 
 type MainLayoutProps = {
   sidebar: ReactNode;
   children: ReactNode;
 };
 
-export function MainLayout({ sidebar, children }: MainLayoutProps) {
+function MainLayoutBody({ sidebar, children }: MainLayoutProps) {
+  const theme = useTheme();
+  const { collapsed } = useSidebarCollapse();
+  const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH;
+
   return (
     <Box sx={{ display: "flex", height: "100%", minHeight: 0, minWidth: 0 }}>
       <Drawer
         variant="permanent"
         sx={{
-          width: DRAWER_WIDTH,
+          width: drawerWidth,
           flexShrink: 0,
           [`& .MuiDrawer-paper`]: {
-            width: DRAWER_WIDTH,
+            width: drawerWidth,
             boxSizing: "border-box",
             borderRight: 1,
             borderColor: "rgba(15, 23, 42, 0.08)",
@@ -26,6 +32,10 @@ export function MainLayout({ sidebar, children }: MainLayoutProps) {
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
+            transition: theme.transitions.create("width", {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.shortest,
+            }),
           },
         }}
       >
@@ -45,5 +55,13 @@ export function MainLayout({ sidebar, children }: MainLayoutProps) {
         {children}
       </Box>
     </Box>
+  );
+}
+
+export function MainLayout({ sidebar, children }: MainLayoutProps) {
+  return (
+    <SidebarCollapseProvider>
+      <MainLayoutBody sidebar={sidebar}>{children}</MainLayoutBody>
+    </SidebarCollapseProvider>
   );
 }

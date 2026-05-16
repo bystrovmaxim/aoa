@@ -2,6 +2,7 @@
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -13,8 +14,10 @@ import { prefetchInterchangeG6 } from "@/lib/prefetch/g6Prefetch";
 import { prefetchErdGraphviz } from "@/lib/prefetch/erdGraphviz";
 import { buildSidebarGroupedMaps, diagramSelectionForRow, sortNodes } from "@/lib/sidebarNavigation";
 import { SIDEBAR_SURFACE } from "@/lib/layoutConstants";
+import { useSidebarCollapse } from "@/components/layout/MainLayout/SidebarCollapseContext";
 import { useSidebarPayload } from "./hooks/useSidebarPayload";
 import { SidebarRowIcon } from "./SidebarRowIcon";
+import { SidebarToggleIcon } from "./SidebarToggleIcon";
 
 /** One readable palette for the whole sidebar (on ``SIDEBAR_SURFACE`` drawer). */
 const SB = {
@@ -22,8 +25,8 @@ const SB = {
   textSecondary: "rgb(71, 85, 105)",
   icon: "rgb(100, 116, 139)",
   chevron: "rgb(100, 116, 139)",
-  hover: "rgba(255, 255, 255, 0.55)",
-  selected: "rgba(255, 255, 255, 0.88)",
+  hover: "rgba(15, 23, 42, 0.07)",
+  selected: "rgba(15, 23, 42, 0.09)",
 } as const;
 
 const rowTypography = {
@@ -55,6 +58,7 @@ function erdRowLabelForDomainGroup(domainLabel: string, rowLabel: string): strin
 }
 
 export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
+  const { collapsed, toggleCollapsed } = useSidebarCollapse();
   const { sidebar, error } = useSidebarPayload();
   const group = useMemo(() => (sidebar ? buildSidebarGroupedMaps(sidebar) : null), [sidebar]);
   /** Root ids (e.g. `domains_root`) and graph node ids (e.g. domain rows) share one expand map — ids do not collide. */
@@ -94,18 +98,50 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
         sx={{
           flexShrink: 0,
           flexGrow: 0,
-          overflow: "hidden",
-          px: 1.25,
-          py: 1.25,
+          overflow: "visible",
+          pt: 0.5,
+          pb: 0.25,
+          px: 1,
           bgcolor: SIDEBAR_SURFACE,
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "flex-start",
         }}
       >
-        <Typography
-          variant="body2"
-          sx={{ fontWeight: 600, fontSize: 14, letterSpacing: "-0.02em", color: SB.text }}
+        <IconButton
+          type="button"
+          onClick={toggleCollapsed}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          disableRipple
+          disableFocusRipple
+          sx={{
+            m: 0,
+            p: 0,
+            width: 32,
+            minWidth: 32,
+            height: 32,
+            position: "relative",
+            boxSizing: "border-box",
+            overflow: "visible",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: SB.icon,
+            borderRadius: 1.5,
+            "&:hover": { bgcolor: SB.hover },
+          }}
         >
-          Maxitor
-        </Typography>
+          <SidebarToggleIcon
+            sx={{
+              fontSize: 16,
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          />
+        </IconButton>
       </Box>
 
       <Box
@@ -122,6 +158,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
           pt: 0.5,
           pb: 1,
           bgcolor: SIDEBAR_SURFACE,
+          ...(collapsed ? { display: "none" } : {}),
         }}
       >
         {error && (
@@ -153,14 +190,14 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                   }
                   aria-expanded={open}
                   sx={{
-                    borderRadius: 1,
-                    py: 0.5,
+                    borderRadius: 1.5,
+                    py: 0.45,
                     minHeight: 36,
                     color: SB.text,
                     "&:hover": { bgcolor: SB.hover },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 28, color: SB.chevron }}>
+                  <ListItemIcon sx={{ minWidth: 32, color: SB.chevron }}>
                     {open ? <ExpandMoreIcon sx={{ fontSize: 20 }} /> : <ChevronRightIcon sx={{ fontSize: 20 }} />}
                   </ListItemIcon>
                   <ListItemText
@@ -183,21 +220,21 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                           onMouseEnter={() => prefetchDiagramModule(sel)}
                           onClick={() => sel && onSelectDiagram(sel)}
                           sx={{
-                            borderRadius: 1,
-                            pl: 3.25,
+                            borderRadius: 1.5,
+                            pl: 4,
                             py: 0.35,
                             minHeight: 32,
                             color: SB.text,
                             "& .MuiListItemText-primary": { fontWeight: 400 },
                             "&.Mui-selected": {
                               bgcolor: SB.selected,
-                              "&:hover": { bgcolor: "rgba(255, 255, 255, 0.95)" },
+                              "&:hover": { bgcolor: SB.selected },
                               "& .MuiListItemText-primary": { fontWeight: 400 },
                             },
                             "&:hover": { bgcolor: SB.hover },
                           }}
                         >
-                          <ListItemIcon sx={{ minWidth: 28, color: SB.icon }}>
+                          <ListItemIcon sx={{ minWidth: 32, color: SB.icon }}>
                             <SidebarRowIcon row={node} />
                           </ListItemIcon>
                           <ListItemText primary={node.label} primaryTypographyProps={rowTypography} />
@@ -222,8 +259,8 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                 }
                                 aria-expanded={childOpen}
                                 sx={{
-                                  borderRadius: 1,
-                                  pl: 3.25,
+                                  borderRadius: 1.5,
+                                  pl: 4,
                                   py: 0.35,
                                   minHeight: 32,
                                   color: SB.textSecondary,
@@ -231,7 +268,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                   "&:hover": { bgcolor: SB.hover },
                                 }}
                               >
-                                <ListItemIcon sx={{ minWidth: 28, color: SB.chevron }}>
+                                <ListItemIcon sx={{ minWidth: 32, color: SB.chevron }}>
                                   {childOpen ? (
                                     <ExpandMoreIcon sx={{ fontSize: 20 }} />
                                   ) : (
@@ -256,8 +293,8 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                   dense
                                   disablePadding
                                   sx={{
-                                    pl: 1.5,
-                                    ml: 3.25,
+                                    pl: 0,
+                                    ml: 4,
                                     pb: 0.25,
                                   }}
                                 >
@@ -276,21 +313,21 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                         onMouseEnter={() => prefetchDiagramModule(sel)}
                                         onClick={() => sel && onSelectDiagram(sel)}
                                         sx={{
-                                          borderRadius: 1,
-                                          pl: 1,
+                                          borderRadius: 1.5,
+                                          pl: 0,
                                           py: 0.3,
                                           minHeight: 30,
                                           color: SB.text,
                                           "& .MuiListItemText-primary": { fontWeight: 400 },
                                           "&.Mui-selected": {
                                             bgcolor: SB.selected,
-                                            "&:hover": { bgcolor: "rgba(255, 255, 255, 0.95)" },
+                                            "&:hover": { bgcolor: SB.selected },
                                             "& .MuiListItemText-primary": { fontWeight: 400 },
                                           },
                                           "&:hover": { bgcolor: SB.hover },
                                         }}
                                       >
-                                        <ListItemIcon sx={{ minWidth: 26, color: SB.icon }}>
+                                        <ListItemIcon sx={{ minWidth: 30, color: SB.icon }}>
                                           <SidebarRowIcon row={e} />
                                         </ListItemIcon>
                                         <ListItemText primary={primary} primaryTypographyProps={rowTypography} />
@@ -301,7 +338,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                               ) : null}
                             </>
                           ) : (
-                            <Box sx={{ pl: 3.25, py: 0.35, minHeight: 32, display: "flex", alignItems: "center" }}>
+                            <Box sx={{ pl: 4, py: 0.35, minHeight: 32, display: "flex", alignItems: "center" }}>
                               <Typography
                                 component="div"
                                 variant="body2"
@@ -337,6 +374,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
           px: 1.25,
           py: 1,
           bgcolor: SIDEBAR_SURFACE,
+          display: collapsed ? "none" : "block",
         }}
       />
     </Box>
