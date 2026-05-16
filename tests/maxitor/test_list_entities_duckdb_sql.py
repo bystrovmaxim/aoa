@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
 
 def _slice(duck: DuckDBGraphResource, qual: str) -> dict:

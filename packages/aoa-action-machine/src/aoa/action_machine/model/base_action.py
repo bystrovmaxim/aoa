@@ -30,6 +30,46 @@ ARCHITECTURE / DATA FLOW
     ActionProductMachine.run()  →  get_snapshot(action_cls, snapshot_key)
 
 ═══════════════════════════════════════════════════════════════════════════════
+CACHING
+═══════════════════════════════════════════════════════════════════════════════
+
+Caching is **opt-in** for the whole machine: pass a
+:class:`~aoa.action_machine.runtime.cache_coordinator.CacheCoordinator` into
+:class:`~aoa.action_machine.runtime.action_product_machine.ActionProductMachine`
+(``cache_coordinator=...``). When it is ``None`` (default), the engine does **not**
+call ``cache_key``, ``read_cache``, or ``on_cache_write`` on actions.
+
+The coordinator lives on the **machine instance**, not on ``BaseAction``. Do **not**
+use a ``ClassVar`` (or similar) on the action class to hold a cache or coordinator;
+that pattern is out of scope for v1.
+
+**v1 does not implement single-flight (de-duplication of in-flight runs).** Parallel
+callers with the same key may each run the pipeline until entries exist.
+
+Subclasses may override:
+
+- ``cache_key(params) -> str | None`` — return ``None`` to skip the cache for this
+  call. For data scoped to a **subject** (for example a signed-in user), the key
+  segment **must** include that scope (for example ``user_id``), so tenants do not
+  share entries by accident.
+- ``read_cache(params, entry) -> R | None`` — interpret ``entry``; return ``None``
+  to treat the row as stale or unusable (the machine invalidates that key and runs
+  the pipeline).
+- ``on_cache_write(result, params, duration_ms) -> bool`` — return whether the
+  machine should **persist** ``result`` after a successful pipeline. The action does
+  **not** write to the coordinator itself.
+
+Results produced only via a matching ``@on_error`` handler (**handled error path**)
+are **not** written to the cache, even when ``on_cache_write`` would return ``True``.
+
+If a cache hook, validation of its return value, or a coordinator method raises,
+the exception propagates to the caller. In v1 the machine does **not** emit
+``GlobalFinishEvent`` when that happens after ``GlobalStartEvent`` (same class of
+lifecycle gap as an unhandled pipeline error). :exc:`CacheContractError` is raised
+when a hook return value violates the typed contract (for example wrong type or
+empty ``cache_key`` string).
+
+═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE — MARKER MIXINS
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -73,7 +113,7 @@ Edge case: ``class Bad(BaseAction[BaseParams, BaseResult]):`` (name not ending i
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any
+from typing import Any, cast
 
 from aoa.action_machine.intents.aspects.aspect_intent import AspectIntent
 from aoa.action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
@@ -90,6 +130,7 @@ from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
+from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.graph.exclude_graph_model import exclude_graph_model
 
 _REQUIRED_SUFFIX = "Action"
@@ -110,12 +151,25 @@ class BaseAction[P: BaseParams, R: BaseResult](
     SensitiveIntent,
 ):
     """
-AI-CORE-BEGIN
+    AI-CORE-BEGIN
     ROLE: Public base type for all async/sync actions.
     CONTRACT: Subclasses end with ``Action``; carry marker mixins; use required decorators.
     INVARIANTS: Stateless at instance level regarding metadata.
+    CACHE: Optional ``cache_key`` / ``read_cache`` / ``on_cache_write``; defaults disable caching writes and leave keying to ``None``.
     AI-CORE-END
 """
+
+    def cache_key(self, params: P) -> str | None:
+        """User key segment for this run; ``None`` skips cache read/write for the call."""
+        return None
+
+    async def read_cache(self, params: P, entry: CacheEntry) -> R | None:
+        """Return a typed hit from ``entry``, or ``None`` so the machine invalidates and re-runs."""
+        return cast("R", entry.result)
+
+    async def on_cache_write(self, result: R, params: P, duration_ms: float) -> bool:
+        """Whether the machine should ``put`` ``result`` after a clean summary (not ``@on_error``-only)."""
+        return False
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Enforce the ``"Action"`` name suffix for every concrete subclass."""

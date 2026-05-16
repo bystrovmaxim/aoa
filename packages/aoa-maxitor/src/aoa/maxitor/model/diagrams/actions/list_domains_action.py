@@ -37,12 +37,12 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.maxitor.model.diagrams.actions.list_domains_action_schema import ListDomainsJson
+from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
     DuckDBGraphResource,
 )
-from aoa.maxitor.model.diagrams.actions.list_domains_action_schema import ListDomainsJson
-from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
 # Ordered palette: React ERD disk hues first, then extra saturated tones; longer domain lists cycle.
 _EXTRA_LIST_DOMAIN_COLORS: tuple[str, ...] = (

@@ -21,6 +21,7 @@ def machine(log_coordinator: LogCoordinator) -> ActionProductMachine:
     """ActionProductMachine with quiet logging (nested run and similar tests)."""
     return ActionProductMachine(
         log_coordinator=log_coordinator,
+        cache_coordinator=None,
     )
 
 
@@ -44,6 +45,7 @@ def machine_with_mock_plugins(log_coordinator: LogCoordinator, mock_plugin_ctx: 
 
     machine = ActionProductMachine(
         log_coordinator=log_coordinator,
+        cache_coordinator=None,
     )
     machine._plugin_coordinator = mock_coordinator
     return machine

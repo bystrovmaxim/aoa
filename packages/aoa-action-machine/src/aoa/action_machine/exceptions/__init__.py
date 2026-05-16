@@ -9,6 +9,7 @@ from aoa.action_machine.exceptions.action_result_declaration_error import Action
 from aoa.action_machine.exceptions.action_result_type_error import ActionResultTypeError
 from aoa.action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from aoa.action_machine.exceptions.connection_not_open_error import ConnectionNotOpenError
 from aoa.action_machine.exceptions.connection_validation_error import ConnectionValidationError
@@ -37,6 +38,7 @@ __all__ = [
     "ActionResultTypeError",
     "AspectPipelineError",
     "AuthorizationError",
+    "CacheContractError",
     "ConnectionAlreadyOpenError",
     "ConnectionNotOpenError",
     "ConnectionValidationError",
