@@ -26,10 +26,6 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
-    DUCKDB_GRAPH_CONNECTION_KEY,
-    DuckDBGraphResource,
-)
 from aoa.maxitor.model.diagrams.actions.list_domains_action import (
     _LIST_DOMAINS_DISTINCT_COLORS,
 )
@@ -39,6 +35,10 @@ from aoa.maxitor.model.diagrams.actions.list_node_types_action import (
     interchange_node_type_from_duck,
 )
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
+    DUCKDB_GRAPH_CONNECTION_KEY,
+    DuckDBGraphResource,
+)
 
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 DAG_CYCLE_VIOLATION_COLOR = "#E41A1C"

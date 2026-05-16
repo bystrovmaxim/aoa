@@ -43,7 +43,7 @@ async def _run_pipeline(
     machine: ActionProductMachine,
     action_graph_node: MagicMock,
 ) -> object:
-    return await machine._execute_pipeline_aspects(  # pylint: disable=protected-access
+    return (await machine._execute_pipeline_aspects(  # pylint: disable=protected-access
         action=MagicMock(),
         params=MagicMock(),
         box=SimpleNamespace(nested_level=1),
@@ -51,7 +51,7 @@ async def _run_pipeline(
         context=MagicMock(),
         plugin_ctx=AsyncMock(),
         action_graph_node=action_graph_node,
-    )
+    )).result
 
 
 @pytest.mark.asyncio

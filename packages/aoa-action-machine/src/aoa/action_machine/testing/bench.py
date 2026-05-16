@@ -457,6 +457,7 @@ class TestBench:
         """Build async production machine with current settings."""
         kwargs: dict[str, Any] = {
             "plugins": self._plugins,
+            "cache_coordinator": None,
         }
         if self._log_coordinator is not None:
             kwargs["log_coordinator"] = self._log_coordinator
@@ -466,6 +467,7 @@ class TestBench:
         """Build sync production machine with current settings."""
         kwargs: dict[str, Any] = {
             "plugins": self._plugins,
+            "cache_coordinator": None,
         }
         if self._log_coordinator is not None:
             kwargs["log_coordinator"] = self._log_coordinator

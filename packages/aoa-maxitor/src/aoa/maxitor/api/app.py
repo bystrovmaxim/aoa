@@ -33,14 +33,14 @@ from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.api.session import build_maxitor_api_session
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
-    DUCKDB_GRAPH_CONNECTION_KEY,
-    DuckDBGraphResource,
-)
 from aoa.maxitor.model.diagrams.actions.full_graph_action import FullGraphAction
 from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
 from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
+    DUCKDB_GRAPH_CONNECTION_KEY,
+    DuckDBGraphResource,
+)
 
 
 def create_app() -> FastAPI:

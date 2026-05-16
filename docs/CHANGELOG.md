@@ -11,10 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Optional action result cache.** `ActionProductMachine` accepts an injected `CacheCoordinator` (in-memory store, namespaced keys, optional `max_size` eviction). `BaseAction` gains `cache_key`, `read_cache`, and `on_cache_write`; the machine orchestrates reads after role/connection gates and `emit_global_start`, and writes only after a clean summary path (handled `@on_error` results are never cached). `CacheContractError` enforces hook return contracts; hook or coordinator failures propagate without `emit_global_finish` in v1.
+
 - **JSON Schema fields in results.** Result schemas can declare explicit JSON-shaped fields so adapters expose the intended wire contract instead of relying on implicit Python object structure.
 - **Entity JSON Schema projections in results.** `BaseEntity` classes can be referenced from result fields through an explicit JSON Schema projection, preserving the entity relationship while returning only the declared wire fields.
 - **Node graph JSON serialization.** `NodeGraphCoordinator.to_json()` exports a stable JSON payload with linear `nodes` and `edges` lists, including node ids/types/labels/properties and edge source/target/type/relationship metadata, so downstream tools can reconstruct the coordinator graph without touching Python runtime objects.
 - **NetworkX-friendly graph payloads.** Node and edge JSON is shaped for direct reconstruction into `networkx.DiGraph`: nodes are keyed by stable ids, edges carry `source_node_id` and `target_node_id`, and empty `nodes` / `edges` payloads are valid.
+
+### Changed
+
+- **Maxitor operator UI: React SPA instead of generated HTML as the primary surface.** The main Maxitor experience is now a **Vite** + **React** app (`packages/aoa-maxitor/client`) talking to the Maxitor FastAPI backend, rather than treating standalone Python-built HTML pages as the default workflow. Server-side HTML visualizers remain available where documented for specific interchange exports, but day-to-day graph exploration and diagrams are intended through the SPA.
+
+### Removed
+
+- **rustworkx from the interchange graph stack.** The live coordinator graph is no longer a rustworkx `PyDiGraph`; `aoa-graph` does not depend on rustworkx. Topology uses typed interchange nodes/edges with in-tree DAG checks (`aoa.graph._dag`); **NetworkX** is used where consumers need a `DiGraph` view (e.g. JSON export), not as an embedded rustworkx runtime.
 
 ### Breaking changes
 
