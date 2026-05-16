@@ -16,6 +16,11 @@ export function diagramSelectionForRow(row: NodeRow): DiagramSelection | null {
   return null;
 }
 
+/**
+ * Alphabetical order for nested rows (level-2+). Do **not** use for
+ * ``level1_nodes``: the API returns roots in a fixed contract order
+ * (``_ROOT_SECTIONS`` on the server); preserve that array order in the UI.
+ */
 export function sortNodes(nodes: NodeRow[]): NodeRow[] {
   return [...nodes].sort((a, b) => {
     const lc = a.label.toLowerCase().localeCompare(b.label.toLowerCase());

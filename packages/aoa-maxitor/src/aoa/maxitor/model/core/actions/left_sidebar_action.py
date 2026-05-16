@@ -6,10 +6,11 @@ GetLeftMenuSidebarDataAction — left menu rows for diagrams from a NetworkX gra
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Materialize four flat ``NodeEntity`` lists (by depth / role) from a ``LoadGraphAction``
+Materialize flat ``NodeEntity`` lists (by depth / role) from a ``LoadGraphAction``
 ``DiGraph`` so the UI can render roots, per-root diagrams, coordinator rows, and
-per-domain ERD rows using ``parent_id`` links only. Only level-1 order is fixed
-(``_ROOT_SECTIONS``); deeper rows are ordered alphabetically by label, then id.
+per-domain ERD rows using ``parent_id`` links only. **Level-1 order matches**
+``_ROOT_SECTIONS`` (Applications through Resources); clients must preserve
+``Result.level1_nodes`` order. Deeper rows are ordered alphabetically by label, then id.
 """
 
 from __future__ import annotations
@@ -53,7 +54,7 @@ class GetLeftMenuSidebarDataAction(
     """
     AI-CORE-BEGIN
     ROLE: Emit four ``NodeEntity`` layers for a simple parent-linked sidebar hierarchy.
-    CONTRACT: Params carry ``nx_graph`` from ``LoadGraphAction``; regular aspects leave plain dict rows on state; level-1 order follows ``_ROOT_SECTIONS``, deeper lists sorted by label then id.
+    CONTRACT: Params carry ``nx_graph`` from ``LoadGraphAction``; regular aspects leave plain dict rows on state; level-1 order is exactly ``_ROOT_SECTIONS`` (do not reorder in clients); deeper lists sorted by label then id.
     INVARIANTS: Summary maps dict rows to ``NodeEntity``; no coordinator objects on ``BaseResult`` fields.
     AI-CORE-END
     """
@@ -99,7 +100,7 @@ class GetLeftMenuSidebarDataAction(
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         rows = [
-            {"id": "application_interchange_graph", "parent_id": "applications_root", "label": "Interchange graph", "type": "graph"},
+            {"id": "application_interchange_graph", "parent_id": "applications_root", "label": "Full graph", "type": "graph"},
             {"id": "domains_all_erd", "parent_id": "domains_root", "label": "ERD — all domains", "type": "erd_all"},
         ]
         rows.sort(key=lambda r: (r["label"].lower(), r["id"]))
