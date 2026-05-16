@@ -45,7 +45,7 @@ const rowTypography = {
 const tooltipSlotProps = {
   tooltip: {
     sx: {
-      maxWidth: 420,
+      maxWidth: 640,
       whiteSpace: "normal",
       wordBreak: "break-word",
     },
@@ -56,27 +56,36 @@ function TruncatingListLabel({
   tooltipTitle,
   primary,
   primaryTypographyProps,
+  disableTooltip = false,
 }: {
   tooltipTitle: string;
   primary: string;
   primaryTypographyProps?: ListItemTextProps["primaryTypographyProps"];
+  /** When true, render text only (parent may wrap the row in ``Tooltip`` — e.g. disabled ``ListItemButton``). */
+  disableTooltip?: boolean;
 }) {
+  const inner = (
+    <Box sx={{ flex: "1 1 auto", minWidth: 0, overflow: "hidden" }}>
+      <ListItemText
+        sx={{ m: 0 }}
+        primary={primary}
+        primaryTypographyProps={{
+          noWrap: true,
+          ...primaryTypographyProps,
+          sx: {
+            ...primaryTypographyProps?.sx,
+            ...ellipsisText,
+          },
+        }}
+      />
+    </Box>
+  );
+  if (disableTooltip) {
+    return inner;
+  }
   return (
     <Tooltip title={tooltipTitle} placement="right" enterDelay={400} slotProps={tooltipSlotProps}>
-      <Box sx={{ flex: "1 1 auto", minWidth: 0, overflow: "hidden" }}>
-        <ListItemText
-          sx={{ m: 0 }}
-          primary={primary}
-          primaryTypographyProps={{
-            noWrap: true,
-            ...primaryTypographyProps,
-            sx: {
-              ...primaryTypographyProps?.sx,
-              ...ellipsisText,
-            },
-          }}
-        />
-      </Box>
+      {inner}
     </Tooltip>
   );
 }
@@ -96,11 +105,11 @@ function prefetchDiagramModule(sel: DiagramSelection | null): void {
   if (sel?.kind === "interchange_graph") prefetchInterchangeG6();
 }
 
-/** Avoid "DOMAIN Foo" + "ERD — Foo": under a domain heading, show a short ERD label when redundant. */
+/** Avoid redundant long ERD label under a domain heading when it mirrors the domain name. */
 function erdRowLabelForDomainGroup(domainLabel: string, rowLabel: string): string {
   const d = domainLabel.trim();
   const r = rowLabel.trim();
-  if (r === `ERD — ${d}` || r === `ERD - ${d}`) return "ERD";
+  if (r === `ERD — ${d} view` || r === `ERD - ${d} view`) return "ERD view";
   return rowLabel;
 }
 
@@ -262,37 +271,48 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                     {directDiagrams.map((node) => {
                       const sel = diagramSelectionForRow(node);
                       return (
-                        <ListItemButton
+                        <Tooltip
                           key={node.id}
-                          disabled={!sel}
-                          selected={sel !== null && diagram !== null && selectionKey(diagram) === selectionKey(sel)}
-                          onMouseEnter={() => prefetchDiagramModule(sel)}
-                          onClick={() => sel && onSelectDiagram(sel)}
-                          sx={{
-                            borderRadius: 1.5,
-                            pl: 4,
-                            py: 0.35,
-                            minHeight: 32,
-                            minWidth: 0,
-                            color: SB.text,
-                            "& .MuiListItemText-primary": { fontWeight: 400 },
-                            "&.Mui-selected": {
-                              bgcolor: SB.selected,
-                              "&:hover": { bgcolor: SB.selected },
-                              "& .MuiListItemText-primary": { fontWeight: 400 },
-                            },
-                            "&:hover": { bgcolor: SB.hover },
-                          }}
+                          title={node.label}
+                          placement="right"
+                          enterDelay={400}
+                          slotProps={tooltipSlotProps}
                         >
-                          <ListItemIcon sx={{ minWidth: 32, color: SB.icon }}>
-                            <SidebarRowIcon row={node} />
-                          </ListItemIcon>
-                          <TruncatingListLabel
-                            tooltipTitle={node.label}
-                            primary={node.label}
-                            primaryTypographyProps={rowTypography}
-                          />
-                        </ListItemButton>
+                          <Box component="span" sx={{ display: "block", width: "100%", minWidth: 0 }}>
+                            <ListItemButton
+                              disabled={!sel}
+                              selected={sel !== null && diagram !== null && selectionKey(diagram) === selectionKey(sel)}
+                              onMouseEnter={() => prefetchDiagramModule(sel)}
+                              onClick={() => sel && onSelectDiagram(sel)}
+                              sx={{
+                                borderRadius: 1.5,
+                                pl: 4,
+                                py: 0.35,
+                                minHeight: 32,
+                                minWidth: 0,
+                                width: "100%",
+                                color: SB.text,
+                                "& .MuiListItemText-primary": { fontWeight: 400 },
+                                "&.Mui-selected": {
+                                  bgcolor: SB.selected,
+                                  "&:hover": { bgcolor: SB.selected },
+                                  "& .MuiListItemText-primary": { fontWeight: 400 },
+                                },
+                                "&:hover": { bgcolor: SB.hover },
+                              }}
+                            >
+                              <ListItemIcon sx={{ minWidth: 32, color: SB.icon }}>
+                                <SidebarRowIcon row={node} />
+                              </ListItemIcon>
+                              <TruncatingListLabel
+                                disableTooltip
+                                tooltipTitle={node.label}
+                                primary={node.label}
+                                primaryTypographyProps={rowTypography}
+                              />
+                            </ListItemButton>
+                          </Box>
+                        </Tooltip>
                       );
                     })}
                     {childNodes.map((cnode) => {
@@ -358,41 +378,52 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                     const sel = diagramSelectionForRow(e);
                                     const primary = erdRowLabelForDomainGroup(cnode.label, e.label);
                                     return (
-                                      <ListItemButton
-                                        key={e.id}
-                                        disabled={!sel}
-                                        selected={
-                                          sel !== null &&
-                                          diagram !== null &&
-                                          selectionKey(diagram) === selectionKey(sel)
-                                        }
-                                        onMouseEnter={() => prefetchDiagramModule(sel)}
-                                        onClick={() => sel && onSelectDiagram(sel)}
-                                        sx={{
-                                          borderRadius: 1.5,
-                                          pl: 6,
-                                          py: 0.3,
-                                          minHeight: 32,
-                                          minWidth: 0,
-                                          color: SB.text,
-                                          "& .MuiListItemText-primary": { fontWeight: 400 },
-                                          "&.Mui-selected": {
-                                            bgcolor: SB.selected,
-                                            "&:hover": { bgcolor: SB.selected },
-                                            "& .MuiListItemText-primary": { fontWeight: 400 },
-                                          },
-                                          "&:hover": { bgcolor: SB.hover },
-                                        }}
+                                      <Tooltip
+                                        key={`${e.type}:${e.id}`}
+                                        title={e.label}
+                                        placement="right"
+                                        enterDelay={400}
+                                        slotProps={tooltipSlotProps}
                                       >
-                                        <ListItemIcon sx={{ minWidth: 32, color: SB.icon }}>
-                                          <SidebarRowIcon row={e} />
-                                        </ListItemIcon>
-                                        <TruncatingListLabel
-                                          tooltipTitle={e.label}
-                                          primary={primary}
-                                          primaryTypographyProps={rowTypography}
-                                        />
-                                      </ListItemButton>
+                                        <Box component="span" sx={{ display: "block", width: "100%", minWidth: 0 }}>
+                                          <ListItemButton
+                                            disabled={!sel}
+                                            selected={
+                                              sel !== null &&
+                                              diagram !== null &&
+                                              selectionKey(diagram) === selectionKey(sel)
+                                            }
+                                            onMouseEnter={() => prefetchDiagramModule(sel)}
+                                            onClick={() => sel && onSelectDiagram(sel)}
+                                            sx={{
+                                              borderRadius: 1.5,
+                                              pl: 6,
+                                              py: 0.3,
+                                              minHeight: 32,
+                                              minWidth: 0,
+                                              width: "100%",
+                                              color: SB.text,
+                                              "& .MuiListItemText-primary": { fontWeight: 400 },
+                                              "&.Mui-selected": {
+                                                bgcolor: SB.selected,
+                                                "&:hover": { bgcolor: SB.selected },
+                                                "& .MuiListItemText-primary": { fontWeight: 400 },
+                                              },
+                                              "&:hover": { bgcolor: SB.hover },
+                                            }}
+                                          >
+                                            <ListItemIcon sx={{ minWidth: 32, color: SB.icon }}>
+                                              <SidebarRowIcon row={e} />
+                                            </ListItemIcon>
+                                            <TruncatingListLabel
+                                              disableTooltip
+                                              tooltipTitle={e.label}
+                                              primary={primary}
+                                              primaryTypographyProps={rowTypography}
+                                            />
+                                          </ListItemButton>
+                                        </Box>
+                                      </Tooltip>
                                     );
                                   })}
                                 </List>

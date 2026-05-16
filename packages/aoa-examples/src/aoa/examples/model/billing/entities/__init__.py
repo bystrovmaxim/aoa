@@ -7,6 +7,16 @@ from aoa.examples.model.billing.entities.billing_dense_lifecycle import BillingD
 from aoa.examples.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestEntity
 from aoa.examples.model.billing.entities.billing_mesh_chargeback_ingest import BillingChargebackIngestCorrelateEntity
 from aoa.examples.model.billing.entities.billing_mesh_parse_interchange import BillingParseInterchangeBridgeEntity
+from aoa.examples.model.billing.entities.billing_multi_lifecycle_table_entities import (
+    CounterpartyLinkageLifecycle,
+    IssuerDisputeWorkbenchEntity,
+    LedgerPostingWaveLifecycle,
+    MultiRingSettlementAuditEntity,
+    NostroLiquiditySweepLifecycle,
+    SchemeDisputeClockLifecycle,
+    TreasuryCutoverBundleEntity,
+    TreasuryCutoverProgramLifecycle,
+)
 from aoa.examples.model.billing.entities.billing_parse_pass import BillingParsePassEntity
 from aoa.examples.model.billing.entities.billing_payout_plan import BillingPayoutPlanEntity
 from aoa.examples.model.billing.entities.billing_sat_acquirer_integrity import AcquirerIntegrityCheckEntity
@@ -53,18 +63,26 @@ __all__ = [
     "BillingSweepInstructionEntity",
     "CashApplicationHintEntity",
     "ChargebackTicketEntity",
+    "CounterpartyLinkageLifecycle",
     "DuplicateSuppressionLedgerEntity",
     "FundingWindowHintEntity",
     "FxResidualTagEntity",
     "InterchangeAssessmentSliceEntity",
+    "IssuerDisputeWorkbenchEntity",
     "LedgerMirrorOffsetEntity",
+    "LedgerPostingWaveLifecycle",
     "MerchantFeeSchedulePointerEntity",
+    "MultiRingSettlementAuditEntity",
     "NarrativeCorrectionEntity",
+    "NostroLiquiditySweepLifecycle",
     "PaymentEventLifecycle",
     "PaymentEventLogEntity",
     "ProfitCenterContributionEntity",
     "RegulatorySubmissionPointerEntity",
     "RetrievalEvidenceBundleEntity",
+    "SchemeDisputeClockLifecycle",
     "SettlementRippleCorrectionEntity",
     "TaxRemittanceAdviceEntity",
+    "TreasuryCutoverBundleEntity",
+    "TreasuryCutoverProgramLifecycle",
 ]

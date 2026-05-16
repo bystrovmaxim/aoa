@@ -4,6 +4,8 @@ export type NodeRow = {
   parent_id: string | null;
   label: string;
   type: string;
+  /** Lower sorts earlier among siblings; omit for label-only sort (e.g. level-2 nodes). */
+  ordinal?: number;
 };
 
 export type SidebarPayload = {
