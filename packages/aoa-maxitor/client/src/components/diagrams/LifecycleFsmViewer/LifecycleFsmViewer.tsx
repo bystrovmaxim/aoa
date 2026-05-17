@@ -13,8 +13,6 @@ import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { buildLifecycleFsmDotSource, type LifecycleFsmRankdir } from "@/lib/buildLifecycleFsmDotSource";
 import { loadGraphvizWasm } from "@/lib/prefetch/erdGraphviz";
 
-const TOOLBAR_BOTTOM_INSET = 52;
-
 const GRID_SX = {
   flex: 1,
   minWidth: 0,
@@ -31,7 +29,6 @@ export type LifecycleFsmViewerProps = {
   lifecycleGraphNodeId: string;
 };
 
-/** Lifecycle template FSM via Graphviz WASM (entry / exit pseudostates, dotted canvas). */
 export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerProps) {
   const load = useCallback(() => fetchLifecycleFiniteAutomaton(lifecycleGraphNodeId), [lifecycleGraphNodeId]);
   const { data, loading, error } = useDiagramLoader(load, { keepPreviousData: true });
@@ -53,17 +50,27 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
     [data, rankdir],
   );
 
+  // Reserve space for the floating zoom + rankdir toolbar (bottom: 10 + ~36px button row)
+  // so vertical fit doesn't push the diagram under the controls in TB mode.
   const { viewportRef, pannerRef, zoomPct, zoomIn, zoomOut, fitToContainer, bindInteractions, resetFitFlag } =
-    useSvgPanZoom({ fitBottomInset: TOOLBAR_BOTTOM_INSET, fitMaxScale: 1 });
+    useSvgPanZoom({ fitBottomInset: 56 });
+
   const [svgMarkup, setSvgMarkup] = useState("");
   const [svgRenderVersion, setSvgRenderVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
-  const prevDotRef = useRef("");
+  const [firstFitDone, setFirstFitDone] = useState(false);
+  const prevDotRef = useRef<string | null>(null);
 
   useLayoutEffect(() => {
-    if (dot !== prevDotRef.current) {
-      prevDotRef.current = dot;
-      resetFitFlag();
+    if (dot === prevDotRef.current) return;
+    const prev = prevDotRef.current;
+    prevDotRef.current = dot;
+    setFirstFitDone(false);
+    resetFitFlag();
+    // While Graphviz recomputes for the new DOT (e.g. LR↔TB), drop the previous SVG so
+    // ``ResizeObserver`` / pan-zoom cannot measure stale geometry and lock a bad transform.
+    if (prev !== null) {
+      setSvgMarkup("");
     }
   }, [dot, resetFitFlag]);
 
@@ -89,8 +96,9 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
     return () => {
       cancelled = true;
     };
-  }, [dot, resetFitFlag]);
+  }, [dot]);
 
+  // Identical structure to ErdGraphvizCanvas.useLayoutEffect
   useLayoutEffect(() => {
     if (!svgMarkup) return;
     const panner = pannerRef.current;
@@ -112,32 +120,36 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
       const bgPoly = gg?.querySelector("polygon");
       if (bgPoly) {
         const fill = String(bgPoly.getAttribute("fill") || "").toLowerCase().trim();
-        const backdrop =
-          fill === "#f8fafc" ||
-          fill === "#f4f5f7" ||
-          fill === "#ffffff" ||
-          fill === "#fff" ||
-          fill === "white" ||
-          fill === "lightgray" ||
-          fill === "lightgrey";
-        if (backdrop) {
-          bgPoly.remove();
-        }
+        const isBackdrop =
+          fill === "#f8fafc" || fill === "#f4f5f7" || fill === "#ffffff" ||
+          fill === "#fff" || fill === "white" || fill === "lightgray" || fill === "lightgrey";
+        if (isBackdrop) bgPoly.remove();
       }
     }
 
     let unbindPan: (() => void) | undefined;
     let cancelled = false;
+    let raf1: number;
+    let raf2: number;
+    let raf3: number;
+    let raf4: number | undefined;
 
     const doFitAndBind = () => {
       if (cancelled) return;
       fitToContainer();
-      unbindPan = bindInteractions();
+      // One follow-up frame: after rankdir switches, flex + SVG text metrics can shift by
+      // a pixel or two; the manual fit button often lands here. Still invisible (opacity 0).
+      raf4 = requestAnimationFrame(() => {
+        if (cancelled) return;
+        fitToContainer();
+        unbindPan = bindInteractions();
+        setFirstFitDone(true);
+      });
     };
 
-    let raf1: number;
-    let raf2: number;
-    let raf3: number;
+    // Triple rAF matches ``ErdGraphvizCanvas``: wait for layout + paint before measuring.
+    // Panner uses opacity 0 until then (not ``visibility: hidden``), which can zero out
+    // ``getBoundingClientRect`` for Graphviz children in some engines and break auto-fit.
     raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
         raf3 = requestAnimationFrame(doFitAndBind);
@@ -150,6 +162,7 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
       cancelAnimationFrame(raf3);
+      if (raf4 !== undefined) cancelAnimationFrame(raf4);
     };
   }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions]);
 
@@ -185,6 +198,9 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
                   top: 0,
                   transformOrigin: "0 0",
                   display: "block",
+                  opacity: firstFitDone ? 1 : 0,
+                  pointerEvents: firstFitDone ? "auto" : "none",
+                  transition: "none",
                   "& svg": {
                     display: "block",
                     maxWidth: "none",
@@ -215,63 +231,26 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
                   flexWrap: "wrap",
                   gap: "1px",
                   bgcolor: "transparent",
-                  "& .MuiToggleButtonGroup-grouped": {
-                    border: 0,
-                    borderRadius: "8px !important",
-                    mx: 0,
-                  },
+                  "& .MuiToggleButtonGroup-grouped": { border: 0, borderRadius: "8px !important", mx: 0 },
                   "& .MuiToggleButton-root": {
-                    px: 0.35,
-                    py: 0.25,
-                    minWidth: 30,
-                    fontSize: 15,
-                    lineHeight: 1,
-                    border: "none",
-                    bgcolor: "transparent",
-                    color: "#64748b",
-                    "&:hover": {
-                      bgcolor: "rgba(15, 23, 42, 0.06)",
-                      color: "#0f172a",
-                    },
-                    "&.Mui-selected": {
-                      color: "#1d4ed8",
-                      bgcolor: "transparent !important",
-                    },
-                    "&.Mui-selected:hover": {
-                      bgcolor: "rgba(15, 23, 42, 0.06) !important",
-                      color: "#1d4ed8",
-                    },
+                    px: 0.35, py: 0.25, minWidth: 30, fontSize: 15, lineHeight: 1,
+                    border: "none", bgcolor: "transparent", color: "#64748b",
+                    "&:hover": { bgcolor: "rgba(15, 23, 42, 0.06)", color: "#0f172a" },
+                    "&.Mui-selected": { color: "#1d4ed8", bgcolor: "transparent !important" },
+                    "&.Mui-selected:hover": { bgcolor: "rgba(15, 23, 42, 0.06) !important", color: "#1d4ed8" },
                   },
                 }}
               >
                 <ToggleButton value="LR" aria-label="Dot — left to right">
                   <Tooltip title="Dot — left to right" placement="top">
-                    <Box
-                      component="span"
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: "1em",
-                        height: "1em",
-                      }}
-                    >
+                    <Box component="span" sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: "1em", height: "1em" }}>
                       <LayoutGlyphDotLR />
                     </Box>
                   </Tooltip>
                 </ToggleButton>
                 <ToggleButton value="TB" aria-label="Dot — top to bottom">
                   <Tooltip title="Dot — top to bottom" placement="top">
-                    <Box
-                      component="span"
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: "1em",
-                        height: "1em",
-                      }}
-                    >
+                    <Box component="span" sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: "1em", height: "1em" }}>
                       <LayoutGlyphDotTB />
                     </Box>
                   </Tooltip>
