@@ -3,6 +3,11 @@ import type { DomainUseCaseDiagramPayload } from "@/model/domainUseCaseDiagram";
 
 export type DomainUseCaseRankdir = "LR" | "TB";
 
+/** Must match ``image=`` on role nodes and ``images[].path`` passed to Graphviz WASM. */
+export type DomainUseCaseDotImageOptions = {
+  roleActorImageUrl: string;
+};
+
 /** Stable Graphviz node id from interchange qualname. */
 export function domainUseCaseDotNodeId(kind: "a" | "r", qualname: string): string {
   const safe = qualname.replace(/[^0-9A-Za-z_]/g, "_");
@@ -13,19 +18,33 @@ function dotEscLabel(text: string): string {
   return text.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 }
 
+function dotEscAttr(text: string): string {
+  return text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 function htmlEsc(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/** Virtual paths registered via ``Graphviz.layout(..., { files })`` — WASM Graphviz does not render ``data:`` URLs in HTML labels. */
+export type DomainUseCaseGraphvizFile = { path: string; data: string };
+
+export type DomainUseCaseDotBundle = {
+  dot: string;
+  files: DomainUseCaseGraphvizFile[];
+};
+
 /**
- * Build DOT for a use-case diagram slice: neutral system boundary (not a single interchange
- * domain — actions may belong to several domains), roles outside, UML edges.
+ * Build DOT for a use-case slice. Actions are native ellipses; roles use an SVG actor via ``<IMG>``.
+ * The bundle includes ``files`` for future WASM virtual assets (empty when none are emitted).
  */
-export function buildDomainUseCaseDotSource(
+export function buildDomainUseCaseDotBundle(
   data: DomainUseCaseDiagramPayload,
   rankdir: DomainUseCaseRankdir = "LR",
-): string {
+  imageOptions: DomainUseCaseDotImageOptions,
+): DomainUseCaseDotBundle {
   const { actions, roles, edges } = data;
+  const files: DomainUseCaseGraphvizFile[] = [];
   const lines: string[] = [
     "digraph use_case {",
     `  graph [rankdir=${rankdir}, bgcolor=transparent, fontname="Inter, Helvetica, sans-serif"];`,
@@ -52,11 +71,12 @@ export function buildDomainUseCaseDotSource(
   }
   lines.push(`  }`);
 
+  const imgUrl = dotEscAttr(imageOptions.roleActorImageUrl);
   for (const r of roles) {
     const nid = domainUseCaseDotNodeId("r", r.id);
     const rl = htmlEsc(r.short_label || r.label);
     lines.push(
-      `  ${nid} [shape=plaintext label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="2"><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="18">&#x1F464;</FONT></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="11">${rl}</FONT></TD></TR></TABLE>>];`,
+      `  ${nid} [shape=plaintext margin=0 label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="-8" CELLPADDING="0"><TR><TD FIXEDSIZE="TRUE" WIDTH="52" HEIGHT="74"><IMG SRC="${imgUrl}" WIDTH="52" HEIGHT="74"/></TD></TR><TR><TD HEIGHT="12"><FONT POINT-SIZE="10">${rl}</FONT></TD></TR></TABLE>>];`,
     );
   }
 
@@ -87,5 +107,5 @@ export function buildDomainUseCaseDotSource(
   }
 
   lines.push("}");
-  return lines.join("\n");
+  return { dot: lines.join("\n"), files };
 }
