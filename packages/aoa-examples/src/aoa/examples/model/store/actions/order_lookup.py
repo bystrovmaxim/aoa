@@ -3,34 +3,28 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import Field
-
 from aoa.action_machine.context import Ctx
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.checkers import result_float, result_string
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.examples.model.roles import ViewerRole
+from aoa.examples.model.store.actions.store_read import StoreReadAction
 from aoa.examples.model.store.domain import StoreDomain
 
 
 @meta(description="Load order snapshot (stub)", domain=StoreDomain)
 @check_roles(ViewerRole)
-class OrderLookupAction(BaseAction["OrderLookupAction.Params", "OrderLookupAction.Result"]):
-    class Params(BaseParams):
-        order_id: str = Field(description="Order id to load")
-
-    class Result(BaseResult):
-        order_id: str = Field(description="Loaded order id")
-        amount: float = Field(description="Loaded amount")
-        status: str = Field(description="Loaded status")
-
+class OrderLookupAction(StoreReadAction):
     @regular_aspect("Load order")
+    @result_string("order_id", required=True, not_empty=True)
+    @result_float("amount", required=True)
+    @result_string("status", required=True, not_empty=True)
     @context_requires(Ctx.User.user_id, Ctx.Request.request_path)
     async def load_aspect(
         self,
-        params: OrderLookupAction.Params,
+        params: StoreReadAction.Params,
         state: Any,
         box: Any,
         connections: Any,
@@ -45,12 +39,14 @@ class OrderLookupAction(BaseAction["OrderLookupAction.Params", "OrderLookupActio
     @summary_aspect("Build read result")
     async def build_result_summary(
         self,
-        params: OrderLookupAction.Params,
+        params: StoreReadAction.Params,
         state: Any,
         box: Any,
         connections: Any,
-    ) -> OrderLookupAction.Result:
-        return OrderLookupAction.Result(
+    ) -> StoreReadAction.Result:
+        _ = (params, box, connections)
+        return StoreReadAction.Result(
+            ok=True,
             order_id=state.order_id,
             amount=state.amount,
             status=state.status,

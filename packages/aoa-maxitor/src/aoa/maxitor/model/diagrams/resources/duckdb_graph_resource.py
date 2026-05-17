@@ -16,6 +16,8 @@ is the in-memory ``duckdb.DuckDBPyConnection``. Production loads JSON in the ASG
 ``entity_field`` + ``entity_field_edges`` (no denormalized field table).
 ``depends_edges`` stores optional ``mode`` (``include`` / ``extend`` from wire ``properties``) as a nullable
 VARCHAR and mirrors it in the ``edges`` view JSON ``payload``.
+``parent_action_edges`` / ``parent_role_edges`` / ``parent_domain_edges`` mirror wire ``parent_*`` edges
+(same four columns as ``domain_edges``; relationship is GENERALIZATION in JSON).
 :func:`_fill_database` inserts rows from the coordinator payload.
 """
 
@@ -224,6 +226,24 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       is_dag BOOLEAN NOT NULL
     );""",
             """CREATE TABLE domain_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE parent_action_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE parent_role_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE parent_domain_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
@@ -450,6 +470,9 @@ def _qt(ident: str) -> str:
 _EDGE_TABLE_NAMES: tuple[str, ...] = (
     "application_edges",
     "domain_edges",
+    "parent_action_edges",
+    "parent_domain_edges",
+    "parent_role_edges",
     "generic_params_edges",
     "generic_result_edges",
     "check_roles_edges",
@@ -506,6 +529,9 @@ def _graph_union_view_ddls() -> list[str]:
     edge_parts: list[str] = [
         f"SELECT source_id, target_id, relationship, is_dag, CAST('application_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM application_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('domain_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM domain_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('parent_action_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM parent_action_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('parent_domain_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM parent_domain_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('parent_role_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM parent_role_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('generic_params_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM generic_params_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('generic_result_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM generic_result_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('check_roles_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM check_roles_edges",
@@ -964,6 +990,9 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     simple_edge_types = {
         "application": "application_edges",
         "domain": "domain_edges",
+        "parent_action": "parent_action_edges",
+        "parent_domain": "parent_domain_edges",
+        "parent_role": "parent_role_edges",
         "generic:params": "generic_params_edges",
         "generic:result": "generic_result_edges",
         "@check_roles": "check_roles_edges",
@@ -1174,6 +1203,9 @@ def _assert_no_unknown_graph_types(
     known_edges = {
         "application",
         "domain",
+        "parent_action",
+        "parent_domain",
+        "parent_role",
         "generic:params",
         "generic:result",
         "@check_roles",

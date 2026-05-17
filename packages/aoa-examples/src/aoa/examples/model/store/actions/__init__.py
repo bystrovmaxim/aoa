@@ -6,6 +6,7 @@ from aoa.examples.model.store.actions.loyalty_points_stub import LoyaltyPointsSt
 from aoa.examples.model.store.actions.order_lookup import OrderLookupAction
 from aoa.examples.model.store.actions.ping import OpsPingAction
 from aoa.examples.model.store.actions.role_migration import RoleMigrationAction
+from aoa.examples.model.store.actions.store_read import StoreReadAction
 
 CartAbandonStubParams = CartAbandonStubAction.Params
 CartAbandonStubResult = CartAbandonStubAction.Result
@@ -17,8 +18,10 @@ LoyaltyPointsStubParams = LoyaltyPointsStubAction.Params
 LoyaltyPointsStubResult = LoyaltyPointsStubAction.Result
 OpsPingParams = OpsPingAction.Params
 OpsPingResult = OpsPingAction.Result
-OrderLookupParams = OrderLookupAction.Params
-OrderLookupResult = OrderLookupAction.Result
+OrderLookupParams = StoreReadAction.Params
+OrderLookupResult = StoreReadAction.Result
+StoreReadParams = StoreReadAction.Params
+StoreReadResult = StoreReadAction.Result
 RoleMigrationParams = RoleMigrationAction.Params
 RoleMigrationResult = RoleMigrationAction.Result
 
@@ -44,4 +47,7 @@ __all__ = [
     "RoleMigrationAction",
     "RoleMigrationParams",
     "RoleMigrationResult",
+    "StoreReadAction",
+    "StoreReadParams",
+    "StoreReadResult",
 ]

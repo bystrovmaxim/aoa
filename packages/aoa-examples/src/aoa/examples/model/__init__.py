@@ -13,6 +13,6 @@ Load :data:`_MODULES` when import-time registrations are needed.
 """
 
 from aoa.examples.model.build import _MODULES
-from aoa.examples.model.store.domain import StoreDomain
+from aoa.examples.model.store.domain import CommerceDomain, StoreDomain
 
-__all__ = ["_MODULES", "StoreDomain"]
+__all__ = ["_MODULES", "CommerceDomain", "StoreDomain"]

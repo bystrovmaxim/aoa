@@ -36,11 +36,15 @@ Edge case: same interchange shape for any concrete ``BaseRole`` subclass type pa
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar, cast
 
 from aoa.action_machine.application.application import Application
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.graph_model.edges.application_graph_edge import ApplicationGraphEdge
+from aoa.action_machine.graph_model.edges.parent_role_graph_edge import (
+    ParentRoleGraphEdge,
+    build_parent_role_edges,
+)
 from aoa.action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.graph.base_graph_edge import BaseGraphEdge
@@ -54,12 +58,13 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseRole`` host class.
-    CONTRACT: Built from ``type[TRole]``; :attr:`NODE_TYPE`; dotted ``id``, ``__name__`` label; ``properties`` include ``role_mode``. :attr:`application` aggregates to :class:`~aoa.action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`; :meth:`get_all_edges` returns ``[application]``.
+    CONTRACT: Built from ``type[TRole]``; :attr:`NODE_TYPE`; dotted ``id``, ``__name__`` label; ``properties`` include ``role_mode``. :attr:`application` aggregates to :class:`~aoa.action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`; :meth:`get_all_edges` returns ``application`` then ``parent_role`` edges when present.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Role"
     application: ApplicationGraphEdge = field(init=False, repr=False, compare=False)
+    parent_roles: list[ParentRoleGraphEdge]
 
     def __init__(self, role_cls: type[TRole]) -> None:
         super().__init__(
@@ -72,6 +77,7 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
             node_obj=role_cls,
         )
         object.__setattr__(self, "application", ApplicationGraphEdge(Application))
+        object.__setattr__(self, "parent_roles", cast(list[ParentRoleGraphEdge], build_parent_role_edges(role_cls)))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -84,5 +90,5 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
         }
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return the outgoing application aggregation edge."""
-        return [self.application]
+        """Return the application edge, then ``parent_role`` generalization edges (plan §I.6)."""
+        return [self.application, *self.parent_roles]
