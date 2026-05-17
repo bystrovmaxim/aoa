@@ -134,7 +134,7 @@ export function buildDomainUseCaseDotBundle(
   // Neutral contour — diagram may mix actions from several domains (see per-node accent_color).
   lines.push(`  subgraph cluster_scope {`);
   lines.push(`    label="";`);
-  lines.push(`    style="rounded";`);
+  lines.push(`    style="rounded,filled";`);
   lines.push(`    color="#64748b";`);
   lines.push(`    fontcolor="#0f172a";`);
   lines.push(`    fillcolor="#ffffff";`);
