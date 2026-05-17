@@ -190,9 +190,13 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     loadGraphvizWasm()
       .then((gv) => {
         if (cancelled) return;
+        const images = [
+          ...bundle.actionImages,
+          ...(needsRoleImages ? [graphvizRoleActorImage] : []),
+        ];
         const svg = gv.layout(bundle.dot, "svg", "dot", {
           files: bundle.files,
-          images: needsRoleImages ? [graphvizRoleActorImage] : [],
+          images,
         });
         if (cancelled) return;
         setSvgMarkup(svg);
