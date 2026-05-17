@@ -106,11 +106,11 @@ function prefetchDiagramModule(sel: DiagramSelection | null): void {
   if (sel?.kind === "interchange_graph") prefetchInterchangeG6();
 }
 
-/** Avoid redundant long ERD label under a domain heading when it mirrors the domain name. */
+/** Avoid redundant long entity-domain diagram label when it mirrors the domain name. */
 function erdRowLabelForDomainGroup(domainLabel: string, rowLabel: string): string {
   const d = domainLabel.trim();
   const r = rowLabel.trim();
-  if (r === `ERD — ${d} view` || r === `ERD - ${d} view`) return "ERD view";
+  if (r === `Entity domain — ${d} view` || r === `Entity domain - ${d} view`) return "Entity domain view";
   return rowLabel;
 }
 

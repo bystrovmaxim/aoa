@@ -2,7 +2,6 @@
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import RouteOutlinedIcon from "@mui/icons-material/RouteOutlined";
-import SchemaOutlinedIcon from "@mui/icons-material/SchemaOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import type { ReactElement } from "react";
 import type { NodeRow } from "@/model/sidebar";
@@ -15,10 +14,7 @@ export function SidebarRowIcon({ row }: { row: NodeRow }): ReactElement {
   if (row.type === "graph") {
     return <HubOutlinedIcon sx={ICON_SX} />;
   }
-  if (row.type === "erd_all" || row.type === "erd_domain") {
-    return <SchemaOutlinedIcon sx={ICON_SX} />;
-  }
-  if (row.type === "entity_class_diagram") {
+  if (row.type === "erd_all" || row.type === "erd_domain" || row.type === "entity_class_diagram") {
     return <TableChartOutlinedIcon sx={ICON_SX} />;
   }
   if (row.type === "lifecycle_state_diagram") {
