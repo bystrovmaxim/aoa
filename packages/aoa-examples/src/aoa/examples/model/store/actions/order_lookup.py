@@ -11,7 +11,7 @@ from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
 from aoa.examples.model.roles import ViewerRole
 from aoa.examples.model.store.actions.store_read import StoreReadAction
-from aoa.examples.model.store.domain import StoreDomain
+from aoa.examples.model.store.store_domain import StoreDomain
 
 
 @meta(description="Load order snapshot (stub)", domain=StoreDomain)

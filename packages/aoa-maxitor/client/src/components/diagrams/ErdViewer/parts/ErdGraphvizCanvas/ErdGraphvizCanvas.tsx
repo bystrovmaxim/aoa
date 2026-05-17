@@ -21,6 +21,7 @@ import {
 } from "@/lib/buildDotSource";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
+import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
 import {
   LayoutGlyphCirco,
@@ -335,7 +336,7 @@ export function ErdGraphvizCanvas({
 
     const ac = new AbortController();
     const svg = panner.querySelector("svg");
-    if (svg) {
+    if (svg instanceof SVGSVGElement) {
       // Keep Graphviz as a real-size SVG canvas. If width/height are just removed,
       // browsers can fall back to a 300x150 SVG viewport and zoom math collapses.
       svg.removeAttribute("width");
@@ -348,22 +349,7 @@ export function ErdGraphvizCanvas({
         svg.style.height = `${vb.height}px`;
       }
 
-      const gg = svg.querySelector("g.graph");
-      const bgPoly = gg?.querySelector("polygon");
-      if (bgPoly) {
-        const fill = String(bgPoly.getAttribute("fill") || "").toLowerCase().trim();
-        const backdrop =
-          fill === "#f8fafc" ||
-          fill === "#f4f5f7" ||
-          fill === "#ffffff" ||
-          fill === "#fff" ||
-          fill === "white" ||
-          fill === "lightgray" ||
-          fill === "lightgrey";
-        if (backdrop) {
-          bgPoly.remove();
-        }
-      }
+      postProcessGraphvizSvgDom(svg);
     }
 
     const onEnter = (evt: Event) => {

@@ -7,9 +7,9 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.examples.model.support.domain import SupportDomain
 from aoa.examples.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
 from aoa.examples.model.support.entities.support_sla_interval import SupportSlaIntervalEntity
+from aoa.examples.model.support.support_domain import SupportDomain
 
 
 @entity(description="Conversation stub tail on SLA segment (no fan-in back to ticket hub)", domain=SupportDomain)

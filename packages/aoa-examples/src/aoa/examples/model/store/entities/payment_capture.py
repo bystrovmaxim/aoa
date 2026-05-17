@@ -8,9 +8,9 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.examples.model.messaging.entities.msg_webhook_ingress_receipt import WebhookIngressReceiptEntity
-from aoa.examples.model.store.domain import StoreDomain
-from aoa.examples.model.store.entities.lifecycle import SalesOrderLifecycle
 from aoa.examples.model.store.entities.sales_core import SalesOrderEntity
+from aoa.examples.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
+from aoa.examples.model.store.store_domain import StoreDomain
 
 
 @entity(description="Payment capture row", domain=StoreDomain)

@@ -8,8 +8,8 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.examples.model.store.entities.sales_core import SalesOrderEntity
-from aoa.examples.model.support.domain import SupportDomain
 from aoa.examples.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
+from aoa.examples.model.support.support_domain import SupportDomain
 
 
 @entity(description="Sparse support-domain hub (minimal star topology)", domain=SupportDomain)

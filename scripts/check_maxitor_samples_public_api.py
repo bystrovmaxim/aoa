@@ -155,8 +155,19 @@ def main() -> int:
         py_files = _git_ls_python_samples(repo_root)
 
     all_violations: list[str] = []
+    skipped_missing = 0
     for path in py_files:
+        if not path.is_file():
+            skipped_missing += 1
+            continue
         all_violations.extend(_scan_file(repo_root, path))
+
+    if skipped_missing:
+        print(
+            f"check_maxitor_samples_public_api: skipped {skipped_missing} git-listed path(s) "
+            "not present on disk (unstaged deletes or incomplete checkout?).",
+            file=sys.stderr,
+        )
 
     if all_violations:
         sys.stderr.write(

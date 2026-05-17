@@ -15,7 +15,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.examples.model.roles import ViewerRole
 from aoa.examples.model.store.actions.order_lookup import OrderLookupAction
 from aoa.examples.model.store.actions.store_read import StoreReadAction
-from aoa.examples.model.store.domain import StoreDomain
+from aoa.examples.model.store.store_domain import StoreDomain
 
 
 @meta(

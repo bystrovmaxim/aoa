@@ -7,9 +7,9 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.examples.model.store.domain import StoreDomain
-from aoa.examples.model.store.entities.lifecycle import AuditLogEntryLifecycle
+from aoa.examples.model.store.entities.audit_log_entry_lifecycle import AuditLogEntryLifecycle
 from aoa.examples.model.store.entities.sales_core import SalesOrderEntity
+from aoa.examples.model.store.store_domain import StoreDomain
 
 
 @entity(description="Immutable audit row", domain=StoreDomain)

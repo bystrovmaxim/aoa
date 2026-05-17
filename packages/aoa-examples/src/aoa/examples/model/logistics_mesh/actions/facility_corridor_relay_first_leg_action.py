@@ -1,0 +1,28 @@
+# packages/aoa-examples/src/aoa/examples/model/logistics_mesh/actions/facility_corridor_relay_first_leg_action.py
+"""First corridor relay leg — specialises origin ingest."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.meta import meta
+from aoa.examples.model.logistics_mesh.actions.facility_handoff_origin_action import FacilityHandoffOriginAction
+from aoa.examples.model.logistics_mesh.freight_network_director_role import FreightNetworkDirectorRole
+from aoa.examples.model.logistics_mesh.logistics_mesh_domain import LogisticsMeshDomain
+
+
+@meta(description="First relay leg — berth + gate handshake", domain=LogisticsMeshDomain)
+@check_roles(FreightNetworkDirectorRole)
+class FacilityCorridorRelayFirstLegAction(FacilityHandoffOriginAction):
+    @summary_aspect("Facility relay leg one")
+    async def relay_first_summary(
+        self,
+        params: FacilityHandoffOriginAction.Params,
+        state: Any,
+        box: Any,
+        connections: Any,
+    ) -> FacilityHandoffOriginAction.Result:
+        _ = (params, state, box, connections)
+        return self.Result()

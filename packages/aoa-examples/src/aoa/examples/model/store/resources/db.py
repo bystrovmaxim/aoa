@@ -3,7 +3,7 @@ from typing import Any
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlResource
-from aoa.examples.model.store.domain import StoreDomain
+from aoa.examples.model.store.store_domain import StoreDomain
 
 
 @meta(description="Primary relational store (stub)", domain=StoreDomain)

@@ -10,7 +10,7 @@ every ``@check_roles`` association (including engine sentinels), and role genera
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 from pydantic import Field
 
@@ -78,6 +78,131 @@ def _transitive_role_parents(duck: DuckDBGraphResource, seeds: set[str]) -> set[
                     nxt.add(par)
         frontier = nxt
     return out
+
+
+def _comma_question_placeholders(length: int) -> str:
+    return ", ".join(["?"] * length)
+
+
+def _fetch_id_labels(
+    duck: DuckDBGraphResource,
+    table: Literal["role", "action"],
+    entity_ids: set[str],
+) -> dict[str, str]:
+    if not entity_ids:
+        return {}
+    ids = sorted(entity_ids)
+    sql = (
+        f"SELECT id, label FROM {table} "
+        f"WHERE id IN ({_comma_question_placeholders(len(ids))})"
+    )
+    rows = duck.execute_fetch_dicts(sql, ids)
+    return {str(r["id"]): str(r["label"]) for r in rows}
+
+
+def _action_generalizations_within_actions(
+    duck: DuckDBGraphResource,
+    action_ids: set[str],
+) -> list[dict[str, Any]]:
+    if not action_ids:
+        return []
+    ids = sorted(action_ids)
+    ph = _comma_question_placeholders(len(ids))
+    sql = (
+        "SELECT source_id, target_id FROM parent_action_edges "
+        f"WHERE source_id IN ({ph}) AND target_id IN ({ph})"
+    )
+    return duck.execute_fetch_dicts(sql, ids + ids)
+
+
+def _role_generalizations_within_roles(
+    duck: DuckDBGraphResource,
+    role_ids: set[str],
+) -> list[dict[str, Any]]:
+    if not role_ids:
+        return []
+    ids = sorted(role_ids)
+    ph = _comma_question_placeholders(len(ids))
+    sql = (
+        "SELECT source_id, target_id FROM parent_role_edges "
+        f"WHERE source_id IN ({ph}) AND target_id IN ({ph})"
+    )
+    return duck.execute_fetch_dicts(sql, ids + ids)
+
+
+def _depends_rows_for_action_closure(
+    duck: DuckDBGraphResource,
+    action_ids: set[str],
+) -> list[dict[str, Any]]:
+    if not action_ids:
+        return []
+    ids = sorted(action_ids)
+    ph = _comma_question_placeholders(len(ids))
+    sql = f"""
+    SELECT source_id, target_id, mode FROM depends_edges
+    WHERE source_id IN ({ph}) AND target_id IN ({ph})
+    """
+    return duck.execute_fetch_dicts(sql.strip(), ids + ids)
+
+
+def _append_depends_edges(edges_out: list[dict[str, Any]], drows: list[dict[str, Any]]) -> None:
+    for r in drows:
+        mode_raw = r.get("mode")
+        mode = str(mode_raw).strip() if mode_raw is not None else ""
+        if mode in VALID_USE_CASE_MODES:
+            edges_out.append(
+                {
+                    "edge_kind": mode,
+                    "source_id": str(r["source_id"]),
+                    "target_id": str(r["target_id"]),
+                    "stereotype": f"«{mode}»",
+                },
+            )
+        else:
+            edges_out.append(
+                {
+                    "edge_kind": "depends",
+                    "source_id": str(r["source_id"]),
+                    "target_id": str(r["target_id"]),
+                    "stereotype": None,
+                },
+            )
+
+
+def _depends_targets_in_actions(
+    duck: DuckDBGraphResource,
+    seed_actions: set[str],
+    action_ids_all: set[str],
+) -> set[str]:
+    if not seed_actions:
+        return set()
+    ids = sorted(seed_actions)
+    ph = _comma_question_placeholders(len(ids))
+    sql_dep = f"SELECT target_id, mode FROM depends_edges WHERE source_id IN ({ph})"
+    out: set[str] = set()
+    for r in duck.execute_fetch_dicts(sql_dep, ids):
+        tid = str(r["target_id"])
+        if tid in action_ids_all:
+            out.add(tid)
+    return out
+
+
+def _group_check_roles_targets_by_action(
+    duck: DuckDBGraphResource,
+    actions_final: set[str],
+) -> dict[str, list[str]]:
+    role_edges_by_action: dict[str, list[str]] = defaultdict(list)
+    if not actions_final:
+        return role_edges_by_action
+    ids = sorted(actions_final)
+    ph = _comma_question_placeholders(len(ids))
+    cr_rows = duck.execute_fetch_dicts(
+        f"SELECT source_id, target_id FROM check_roles_edges WHERE source_id IN ({ph})",
+        ids,
+    )
+    for r in cr_rows:
+        role_edges_by_action[str(r["source_id"])].append(str(r["target_id"]))
+    return role_edges_by_action
 
 
 @meta(
@@ -161,51 +286,18 @@ class GetDomainUseCaseDiagramAction(
 
         with_parents = _transitive_action_parents(duck, seed_actions)
 
-        dep_targets: set[str] = set()
-        if seed_actions:
-            placeholders = ", ".join(["?"] * len(seed_actions))
-            sql_dep = f"SELECT target_id, mode FROM depends_edges WHERE source_id IN ({placeholders})"
-            for r in duck.execute_fetch_dicts(sql_dep, list(seed_actions)):
-                tid = str(r["target_id"])
-                if tid in action_ids_all:
-                    dep_targets.add(tid)
+        dep_targets = _depends_targets_in_actions(duck, seed_actions, action_ids_all)
 
         actions_final = _transitive_action_parents(duck, with_parents | dep_targets) & action_ids_all
 
-        role_edges_by_action: dict[str, list[str]] = defaultdict(list)
-        if actions_final:
-            ph = ", ".join(["?"] * len(actions_final))
-            cr_rows = duck.execute_fetch_dicts(
-                f"SELECT source_id, target_id FROM check_roles_edges WHERE source_id IN ({ph})",
-                list(actions_final),
-            )
-            for r in cr_rows:
-                role_edges_by_action[str(r["source_id"])].append(str(r["target_id"]))
-
+        role_edges_by_action = _group_check_roles_targets_by_action(duck, actions_final)
         role_seed: set[str] = set()
         for targets in role_edges_by_action.values():
             role_seed.update(targets)
 
         roles_final = _transitive_role_parents(duck, role_seed)
-        role_labels = {
-            str(r["id"]): str(r["label"])
-            for r in duck.execute_fetch_dicts(
-                "SELECT id, label FROM role WHERE id IN ({})".format(
-                    ", ".join(["?"] * len(roles_final)),
-                ),
-                list(roles_final),
-            )
-        } if roles_final else {}
-
-        action_labels = {
-            str(r["id"]): str(r["label"])
-            for r in duck.execute_fetch_dicts(
-                "SELECT id, label FROM action WHERE id IN ({})".format(
-                    ", ".join(["?"] * len(actions_final)),
-                ),
-                list(actions_final),
-            )
-        } if actions_final else {}
+        role_labels = _fetch_id_labels(duck, "role", roles_final)
+        action_labels = _fetch_id_labels(duck, "action", actions_final)
 
         action_domain_by_id = GetDomainUseCaseDiagramAction._action_domain_map(duck)
 
@@ -237,39 +329,25 @@ class GetDomainUseCaseDiagramAction(
 
         edges_out: list[dict[str, Any]] = []
 
-        if actions_final:
-            pa_rows = duck.execute_fetch_dicts(
-                "SELECT source_id, target_id FROM parent_action_edges WHERE source_id IN ({0}) AND target_id IN ({0})".format(
-                    ", ".join(["?"] * len(actions_final)),
-                ),
-                list(actions_final) + list(actions_final),
+        for r in _action_generalizations_within_actions(duck, actions_final):
+            edges_out.append(
+                {
+                    "edge_kind": "action_generalization",
+                    "source_id": str(r["source_id"]),
+                    "target_id": str(r["target_id"]),
+                    "stereotype": None,
+                },
             )
-            for r in pa_rows:
-                edges_out.append(
-                    {
-                        "edge_kind": "action_generalization",
-                        "source_id": str(r["source_id"]),
-                        "target_id": str(r["target_id"]),
-                        "stereotype": None,
-                    },
-                )
 
-        if roles_final:
-            pr_rows = duck.execute_fetch_dicts(
-                "SELECT source_id, target_id FROM parent_role_edges WHERE source_id IN ({0}) AND target_id IN ({0})".format(
-                    ", ".join(["?"] * len(roles_final)),
-                ),
-                list(roles_final) + list(roles_final),
+        for r in _role_generalizations_within_roles(duck, roles_final):
+            edges_out.append(
+                {
+                    "edge_kind": "role_generalization",
+                    "source_id": str(r["source_id"]),
+                    "target_id": str(r["target_id"]),
+                    "stereotype": None,
+                },
             )
-            for r in pr_rows:
-                edges_out.append(
-                    {
-                        "edge_kind": "role_generalization",
-                        "source_id": str(r["source_id"]),
-                        "target_id": str(r["target_id"]),
-                        "stereotype": None,
-                    },
-                )
 
         for aid, targets in sorted(role_edges_by_action.items()):
             for tid in sorted(frozenset(targets)):
@@ -282,36 +360,7 @@ class GetDomainUseCaseDiagramAction(
                     },
                 )
 
-        if actions_final:
-            ph = ", ".join(["?"] * len(actions_final))
-            drows = duck.execute_fetch_dicts(
-                f"""
-                SELECT source_id, target_id, mode FROM depends_edges
-                WHERE source_id IN ({ph}) AND target_id IN ({ph})
-                """,
-                list(actions_final) + list(actions_final),
-            )
-            for r in drows:
-                mode_raw = r.get("mode")
-                mode = str(mode_raw).strip() if mode_raw is not None else ""
-                if mode in VALID_USE_CASE_MODES:
-                    edges_out.append(
-                        {
-                            "edge_kind": mode,
-                            "source_id": str(r["source_id"]),
-                            "target_id": str(r["target_id"]),
-                            "stereotype": f"«{mode}»",
-                        },
-                    )
-                else:
-                    edges_out.append(
-                        {
-                            "edge_kind": "depends",
-                            "source_id": str(r["source_id"]),
-                            "target_id": str(r["target_id"]),
-                            "stereotype": None,
-                        },
-                    )
+        _append_depends_edges(edges_out, _depends_rows_for_action_closure(duck, actions_final))
 
         edges_out.sort(
             key=lambda e: (

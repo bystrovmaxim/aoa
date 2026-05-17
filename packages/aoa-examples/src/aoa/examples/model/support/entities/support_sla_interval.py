@@ -7,9 +7,9 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.examples.model.support.domain import SupportDomain
 from aoa.examples.model.support.entities.support_participant_row import SupportParticipantEntity
 from aoa.examples.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
+from aoa.examples.model.support.support_domain import SupportDomain
 
 
 @entity(description="SLA interval chaining from participant row", domain=SupportDomain)

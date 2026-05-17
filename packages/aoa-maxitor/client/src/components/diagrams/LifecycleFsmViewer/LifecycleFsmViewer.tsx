@@ -12,6 +12,7 @@ import { LayoutGlyphDotLR, LayoutGlyphDotTB } from "@/components/diagrams/ErdVie
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { buildLifecycleFsmDotSource, type LifecycleFsmRankdir } from "@/lib/buildLifecycleFsmDotSource";
 import { loadGraphvizWasm } from "@/lib/prefetch/erdGraphviz";
+import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 
 const GRID_SX = {
   flex: 1,
@@ -105,7 +106,7 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
     if (!panner) return;
 
     const svg = panner.querySelector("svg");
-    if (svg) {
+    if (svg instanceof SVGSVGElement) {
       svg.removeAttribute("width");
       svg.removeAttribute("height");
       const vb = svg.viewBox.baseVal;
@@ -116,15 +117,7 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
         svg.style.height = `${vb.height}px`;
       }
 
-      const gg = svg.querySelector("g.graph");
-      const bgPoly = gg?.querySelector("polygon");
-      if (bgPoly) {
-        const fill = String(bgPoly.getAttribute("fill") || "").toLowerCase().trim();
-        const isBackdrop =
-          fill === "#f8fafc" || fill === "#f4f5f7" || fill === "#ffffff" ||
-          fill === "#fff" || fill === "white" || fill === "lightgray" || fill === "lightgrey";
-        if (isBackdrop) bgPoly.remove();
-      }
+      postProcessGraphvizSvgDom(svg);
     }
 
     let unbindPan: (() => void) | undefined;

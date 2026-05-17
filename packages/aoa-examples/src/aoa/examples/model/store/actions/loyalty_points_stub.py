@@ -10,7 +10,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.examples.model.store.domain import StoreDomain
+from aoa.examples.model.store.store_domain import StoreDomain
 
 
 @meta(description="Fetch loyalty points balance (store sample stub)", domain=StoreDomain)

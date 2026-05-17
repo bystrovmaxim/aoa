@@ -2,24 +2,22 @@
 from __future__ import annotations
 
 from aoa.examples.model.store.entities.audit_log_entry import AuditLogEntryEntity
+from aoa.examples.model.store.entities.audit_log_entry_lifecycle import AuditLogEntryLifecycle
+from aoa.examples.model.store.entities.customer_account_lifecycle import CustomerAccountLifecycle
 from aoa.examples.model.store.entities.discount_application import DiscountApplicationEntity
 from aoa.examples.model.store.entities.fulfillment_task import FulfillmentTaskEntity
 from aoa.examples.model.store.entities.invoice_record import InvoiceRecordEntity
-from aoa.examples.model.store.entities.lifecycle import (
-    AuditLogEntryLifecycle,
-    CustomerAccountLifecycle,
-    SalesOrderLifecycle,
-    SalesOrderLineLifecycle,
-    StoreDualEntryLifecycle,
-)
 from aoa.examples.model.store.entities.payment_authorization import PaymentAuthorizationEntity
 from aoa.examples.model.store.entities.payment_capture import PaymentCaptureEntity
 from aoa.examples.model.store.entities.refund_request import RefundRequestEntity
 from aoa.examples.model.store.entities.return_request import ReturnRequestEntity
 from aoa.examples.model.store.entities.sales_core import CustomerAccountEntity, SalesOrderEntity, SalesOrderLineEntity
+from aoa.examples.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
+from aoa.examples.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
 from aoa.examples.model.store.entities.shipment_parcel import ShipmentParcelEntity
 from aoa.examples.model.store.entities.shipment_tracking_event import ShipmentTrackingEventEntity
 from aoa.examples.model.store.entities.store_cart_merge_trace import CartMergeTraceEntity
+from aoa.examples.model.store.entities.store_dual_entry_lifecycle import StoreDualEntryLifecycle
 from aoa.examples.model.store.entities.store_er_cycle_ping_pong import (
     StoreDirectedCyclePingEntity,
     StoreDirectedCyclePongEntity,

@@ -26,6 +26,7 @@ import {
 } from "@/lib/buildDomainUseCaseDotSource";
 import { filterUseCaseDiagramByDomains } from "@/lib/filterUseCaseDiagramByDomains";
 import { loadGraphvizWasm } from "@/lib/prefetch/erdGraphviz";
+import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
 
 const useCaseEnabledDomainsByViewKey = new Map<string, string[]>();
@@ -301,7 +302,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     if (!panner) return;
 
     const svg = panner.querySelector("svg");
-    if (svg) {
+    if (svg instanceof SVGSVGElement) {
       svg.removeAttribute("width");
       svg.removeAttribute("height");
       const vb = svg.viewBox.baseVal;
@@ -312,15 +313,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
         svg.style.height = `${vb.height}px`;
       }
 
-      const gg = svg.querySelector("g.graph");
-      const bgPoly = gg?.querySelector("polygon");
-      if (bgPoly) {
-        const fill = String(bgPoly.getAttribute("fill") || "").toLowerCase().trim();
-        const isBackdrop =
-          fill === "#f8fafc" || fill === "#f4f5f7" || fill === "#ffffff" ||
-          fill === "#fff" || fill === "white" || fill === "lightgray" || fill === "lightgrey";
-        if (isBackdrop) bgPoly.remove();
-      }
+      postProcessGraphvizSvgDom(svg);
     }
 
     let unbindPan: (() => void) | undefined;

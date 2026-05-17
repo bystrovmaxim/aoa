@@ -12,7 +12,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, JsonSchemaValue
-from aoa.examples.model.store.domain import StoreDomain
+from aoa.examples.model.store.store_domain import StoreDomain
 
 _SAMPLE_AUDIT_SCHEMA: dict[str, object] = {
     "type": "object",
