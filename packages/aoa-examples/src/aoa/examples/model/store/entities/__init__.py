@@ -10,6 +10,7 @@ from aoa.examples.model.store.entities.lifecycle import (
     CustomerAccountLifecycle,
     SalesOrderLifecycle,
     SalesOrderLineLifecycle,
+    StoreDualEntryLifecycle,
 )
 from aoa.examples.model.store.entities.payment_authorization import PaymentAuthorizationEntity
 from aoa.examples.model.store.entities.payment_capture import PaymentCaptureEntity
@@ -39,6 +40,7 @@ from aoa.examples.model.store.entities.store_mesh_order_parcel_handoff import St
 from aoa.examples.model.store.entities.store_order_address_verification import AddressVerificationTrailEntity
 from aoa.examples.model.store.entities.store_order_channel_attribution import OrderChannelAttributionEntity
 from aoa.examples.model.store.entities.store_order_compliance_review import ComplianceReviewQueueEntity
+from aoa.examples.model.store.entities.store_order_dual_entry_origin import OrderDualEntryOriginTraceEntity
 from aoa.examples.model.store.entities.store_order_deposit_allocation import DepositAllocationEntity
 from aoa.examples.model.store.entities.store_order_fraud_challenge import FraudChallengeTicketEntity
 from aoa.examples.model.store.entities.store_order_geo_fence import OrderGeoFenceEntity
@@ -71,6 +73,7 @@ __all__ = [
     "LineShipmentPieceEntity",
     "LoyaltyEarnProjectionEntity",
     "OrderChannelAttributionEntity",
+    "OrderDualEntryOriginTraceEntity",
     "OrderGeoFenceEntity",
     "OrderRiskScoreEntity",
     "OrderTaxJurisdictionSnapshotEntity",
@@ -85,6 +88,7 @@ __all__ = [
     "SalesOrderLifecycle",
     "SalesOrderLineEntity",
     "SalesOrderLineLifecycle",
+    "StoreDualEntryLifecycle",
     "ShipmentEstimateEntity",
     "ShipmentParcelEntity",
     "ShipmentTrackingEventEntity",
