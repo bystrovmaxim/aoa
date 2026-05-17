@@ -2,6 +2,8 @@
 /** ERD API response contracts consumed by the browser-side ERD viewer. */
 export type DomainInfoRow = {
   qualname: string;
+  /** Interchange graph ``domain.label`` (human-readable; same idea as list-entities ``domain_label``). */
+  label: string;
   color: string;
 };
 

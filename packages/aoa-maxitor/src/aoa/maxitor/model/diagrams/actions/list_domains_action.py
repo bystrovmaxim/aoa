@@ -121,8 +121,8 @@ class ListDomainsAction(BaseAction[ParamsStub, "ListDomainsAction.Result"]):
         """HTTP/JSON body is ``model_dump(mode="json")`` of this result (single key ``list_domains``)."""
 
         # [
-        #   {"qualname": "aoa.orders.domain.OrdersDomain", "color": "#3b82f6"},
-        #   {"qualname": "aoa.billing.domain.BillingDomain", "color": "#8b5cf6"}
+        #   {"qualname": "aoa.orders.domain.OrdersDomain", "label": "Orders", "color": "#3b82f6"},
+        #   {"qualname": "aoa.billing.domain.BillingDomain", "label": "Billing", "color": "#8b5cf6"}
         # ]
         list_domains: ListDomainsJson = Field(
             description="Ordered interchange qualname rows with ERD accent hex colour per row.",
@@ -132,7 +132,7 @@ class ListDomainsAction(BaseAction[ParamsStub, "ListDomainsAction.Result"]):
     def _list_domains_rows(duck: DuckDBGraphResource) -> list[dict[str, Any]]:
         """Return ``list_domains`` rows: qualnames from DuckDB with cycling accent colours."""
         sql = """
-        SELECT id AS qualname
+        SELECT id AS qualname, label AS label
         FROM domain
         WHERE id NOT LIKE 'tests.%'
           AND strpos(id, '<locals>') = 0
@@ -140,7 +140,14 @@ class ListDomainsAction(BaseAction[ParamsStub, "ListDomainsAction.Result"]):
         """
         raw = duck.execute_fetch_dicts(sql)
         palette = _LIST_DOMAINS_DISTINCT_COLORS
-        return [{"qualname": str(row["qualname"]), "color": palette[i % len(palette)]} for i, row in enumerate(raw)]
+        return [
+            {
+                "qualname": str(row["qualname"]),
+                "label": str(row["label"]),
+                "color": palette[i % len(palette)],
+            }
+            for i, row in enumerate(raw)
+        ]
 
     @staticmethod
     def domain_accent_rows(duck: DuckDBGraphResource) -> list[dict[str, Any]]:

@@ -69,6 +69,36 @@ function getMergedFromDomains(enriched: Record<string, unknown>, enabled: Set<st
   );
 }
 
+function readEntityQual(e: ErdEntity): string | null {
+  const q = e.domain_qualname?.trim();
+  if (q) return q;
+  const raw = (e as unknown as Record<string, unknown>).domain_qualname;
+  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+}
+
+function collectEntityQualifiers(entities: ErdEntity[] | undefined, fallbackQual: string | null): string[] {
+  const s = new Set<string>();
+  for (const e of entities ?? []) {
+    const q = readEntityQual(e) ?? fallbackQual;
+    if (q) s.add(q);
+  }
+  return [...s].sort();
+}
+
+function filterGraphByEntityQuals(
+  data: ErdGraphPayload,
+  enabled: Set<string>,
+  fallbackQual: string | null,
+): ErdGraphPayload {
+  const entities = (data.entities ?? []).filter((e) => {
+    const q = readEntityQual(e) ?? fallbackQual;
+    return q != null && q !== "" && enabled.has(q);
+  });
+  const ids = new Set(entities.map((e) => e.id));
+  const relations = (data.relations ?? []).filter((r) => ids.has(r.source) && ids.has(r.target));
+  return { entities, relations };
+}
+
 export type ErdGraphvizCanvasProps = {
   bundle: ErdDomainsBundle;
   /** Increments only when the async loader has accepted a new bundle. */
@@ -92,6 +122,8 @@ const LAYOUT_TOOLS: {
 
 const layoutByDiagramKey = new Map<string, ErdGraphvizLayout>();
 const enabledDomainsByDiagramKey = new Map<string, string[]>();
+/** Single-slice ERD: persisted ``domain_qualname`` toggles (1-hop neighbors). */
+const enabledEntityQualsByDiagramKey = new Map<string, string[]>();
 
 export function ErdGraphvizCanvas({
   bundle,
@@ -118,6 +150,8 @@ export function ErdGraphvizCanvas({
     return d ? Object.keys(d).sort() : [];
   }, [enriched]);
 
+  const multiTab = domainKeyList.length > 1;
+
   const bundleEntityTotal = useMemo(() => {
     const d = enriched.domains as Record<string, { entities?: ErdEntity[] }> | undefined;
     if (!d) return 0;
@@ -138,6 +172,8 @@ export function ErdGraphvizCanvas({
     return new Set(keys);
   });
 
+  const [enabledEntityQualifiers, setEnabledEntityQualifiers] = useState<Set<string>>(() => new Set());
+
   const prevDiagramKeyRef = useRef<string | null>(null);
 
   const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag } =
@@ -150,6 +186,11 @@ export function ErdGraphvizCanvas({
   useEffect(() => {
     enabledDomainsByDiagramKey.set(diagramResetKey, [...enabledDomains].sort());
   }, [diagramResetKey, enabledDomains]);
+
+  useEffect(() => {
+    if (multiTab) return;
+    enabledEntityQualsByDiagramKey.set(diagramResetKey, [...enabledEntityQualifiers].sort());
+  }, [multiTab, diagramResetKey, enabledEntityQualifiers]);
 
   useLayoutEffect(() => {
     const keys = Object.keys(bundle.domains ?? {}).sort();
@@ -173,10 +214,74 @@ export function ErdGraphvizCanvas({
     });
   }, [bundle, diagramResetKey]);
 
-  const mergedData = useMemo(
-    () => getMergedFromDomains(enriched, enabledDomains),
-    [enriched, enabledDomains],
+  const mergedByTabs = useMemo(
+    () =>
+      getMergedFromDomains(
+        enriched,
+        multiTab ? enabledDomains : new Set(domainKeyList),
+      ),
+    [enriched, multiTab, enabledDomains, domainKeyList],
   );
+
+  const fallbackQual = useMemo(() => {
+    if (multiTab || domainKeyList.length === 0) return null;
+    const tab0 = domainKeyList[0]!;
+    return bundle.domain_qualifiers[tab0]?.trim() || null;
+  }, [multiTab, domainKeyList, bundle.domain_qualifiers]);
+
+  const entityQualList = useMemo(
+    () => collectEntityQualifiers(mergedByTabs.entities, fallbackQual),
+    [mergedByTabs.entities, fallbackQual],
+  );
+
+  const entityQualListKey = entityQualList.join("\u001f");
+
+  // When entityQualList grows (1-hop ON) — add new quals as enabled.
+  // When it shrinks (1-hop OFF) — keep the Set untouched; missing quals just won't appear in legend.
+  // Reset only when the diagram itself changes (diagramResetKey).
+  const prevEntityQualListKeyRef = useRef<string>("");
+  const prevEntityDiagramKeyRef = useRef<string>("");
+  useLayoutEffect(() => {
+    if (multiTab) return;
+
+    const diagramChanged = prevEntityDiagramKeyRef.current !== diagramResetKey;
+    const listChanged = prevEntityQualListKeyRef.current !== entityQualListKey;
+    prevEntityDiagramKeyRef.current = diagramResetKey;
+    prevEntityQualListKeyRef.current = entityQualListKey;
+
+    if (!listChanged && !diagramChanged) return;
+
+    if (diagramChanged) {
+      // New diagram — restore saved or enable all
+      const saved = enabledEntityQualsByDiagramKey.get(diagramResetKey);
+      if (saved?.length) {
+        setEnabledEntityQualifiers(new Set(saved));
+      } else {
+        setEnabledEntityQualifiers(new Set(entityQualList));
+      }
+      return;
+    }
+
+    // List changed (1-hop toggle or data refresh) — add new quals as enabled, keep existing state
+    setEnabledEntityQualifiers((prev) => {
+      if (entityQualList.length === 0) return prev;
+      const next = new Set(prev);
+      let changed = false;
+      for (const q of entityQualList) {
+        if (!next.has(q)) {
+          next.add(q);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [multiTab, diagramResetKey, entityQualListKey]);
+
+  const mergedData = useMemo(() => {
+    if (multiTab) return mergedByTabs;
+    if (enabledEntityQualifiers.size === 0) return { entities: [], relations: [] };
+    return filterGraphByEntityQuals(mergedByTabs, enabledEntityQualifiers, fallbackQual);
+  }, [multiTab, mergedByTabs, enabledEntityQualifiers, fallbackQual]);
 
   const erdEmptyOverlay =
     mergedData.entities.length === 0 ? (
@@ -319,13 +424,41 @@ export function ErdGraphvizCanvas({
     };
   }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions]);
 
-  const accents = (enriched.domain_accent_colors ?? {}) as Record<string, string>;
+  const tabAccents = (enriched.domain_accent_colors ?? {}) as Record<string, string>;
+
+  const qualAccents = useMemo(() => {
+    const out: Record<string, string> = {};
+    const palette = bundle.domain_qualifier_colors;
+    for (const q of entityQualList) {
+      out[q] = palette[q] ?? "#64748b";
+    }
+    return out;
+  }, [entityQualList, bundle.domain_qualifier_colors]);
+
+  const qualRowLabels = useMemo(() => {
+    const byQual = bundle.domain_qualifier_labels ?? {};
+    const out: Record<string, string> = {};
+    for (const q of entityQualList) {
+      const lbl = byQual[q]?.trim();
+      if (lbl) out[q] = lbl;
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
+  }, [entityQualList, bundle.domain_qualifier_labels]);
 
   const toggleDomain = (key: string) => {
     setEnabledDomains((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleEntityQual = (qual: string) => {
+    setEnabledEntityQualifiers((prev) => {
+      const next = new Set(prev);
+      if (next.has(qual)) next.delete(qual);
+      else next.add(qual);
       return next;
     });
   };
@@ -347,12 +480,25 @@ export function ErdGraphvizCanvas({
           backgroundSize: "20px 20px",
         }}
       >
-        <DomainLegend
-          domainKeys={domainKeyList}
-          enabledDomains={enabledDomains}
-          accents={accents}
-          onToggle={toggleDomain}
-        />
+        {multiTab ? (
+          <DomainLegend
+            domainKeys={domainKeyList}
+            enabledDomains={enabledDomains}
+            accents={tabAccents}
+            rowLabels={bundle.domain_tab_labels}
+            showWhenSingle
+            onToggle={toggleDomain}
+          />
+        ) : (
+          <DomainLegend
+            domainKeys={entityQualList}
+            enabledDomains={enabledEntityQualifiers}
+            accents={qualAccents}
+            rowLabels={qualRowLabels}
+            showWhenSingle
+            onToggle={toggleEntityQual}
+          />
+        )}
         {erdEmptyOverlay}
 
         <Box

@@ -15,6 +15,8 @@ export type ErdEntity = {
   id: string;
   label?: string;
   color?: string;
+  /** Interchange domain qualname (for legend / filter when 1-hop adds neighbors). */
+  domain_qualname?: string;
   fields?: ErdField[];
 };
 

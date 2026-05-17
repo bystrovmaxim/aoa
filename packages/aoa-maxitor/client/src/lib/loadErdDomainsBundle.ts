@@ -9,6 +9,10 @@ export type ErdDomainsBundle = {
   domains: Record<string, { entities: unknown[]; relations: unknown[] }>;
   domain_qualifiers: Record<string, string>;
   domain_qualifier_colors: Record<string, string>;
+  /** ``domain_qualname`` → short label from ``list_domains`` / DuckDB ``domain.label``. */
+  domain_qualifier_labels: Record<string, string>;
+  /** Tab key → human domain label (for legend row text). */
+  domain_tab_labels?: Record<string, string>;
   /** First domain row label for the diagram title (optional). */
   first_domain_label?: string;
 };
@@ -30,6 +34,9 @@ export async function loadErdDomainsBundle(
   const domain_qualifier_colors = Object.fromEntries(
     listing.list_domains.map((r) => [r.qualname, r.color]),
   );
+  const domain_qualifier_labels = Object.fromEntries(
+    listing.list_domains.map((r) => [r.qualname, r.label]),
+  );
   const quals: string[] =
     selection.qualifier !== null
       ? [selection.qualifier]
@@ -40,6 +47,7 @@ export async function loadErdDomainsBundle(
   const used = new Set<string>();
   const domains: Record<string, { entities: unknown[]; relations: unknown[] }> = {};
   const domain_qualifiers: Record<string, string> = {};
+  const domain_tab_labels: Record<string, string> = {};
 
   const { domain_slices: payloads } = await listEntities(quals, includeOneHopNeighbors);
   let first_domain_label: string | undefined;
@@ -47,10 +55,11 @@ export async function loadErdDomainsBundle(
     const key = allocateDomainTabKey(used, p.domain_label);
     domains[key] = p.list_entities;
     domain_qualifiers[key] = p.domain_qualname;
+    domain_tab_labels[key] = p.domain_label;
     if (first_domain_label === undefined) first_domain_label = p.domain_label;
   }
 
-  return { domains, domain_qualifiers, domain_qualifier_colors, first_domain_label };
+  return { domains, domain_qualifiers, domain_qualifier_colors, domain_qualifier_labels, domain_tab_labels, first_domain_label };
 }
 
 export async function loadErdDomainSlicesBundle(

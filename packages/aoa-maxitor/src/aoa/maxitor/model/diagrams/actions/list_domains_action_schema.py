@@ -17,9 +17,10 @@ ListDomainsJson = JsonSchemaValue.define(
             "type": "object",
             "properties": {
                 "qualname": {"type": "string"},
+                "label": {"type": "string"},
                 "color": {"type": "string"},
             },
-            "required": ["qualname", "color"],
+            "required": ["qualname", "label", "color"],
             "additionalProperties": False,
         },
     },
