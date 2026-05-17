@@ -26,12 +26,90 @@ function htmlEsc(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function svgXmlEsc(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/**
+ * Wrap label into the minimum number of lines by greedily packing camelCase
+ * words onto each line up to ``maxChars`` characters.
+ */
+function wrapLabel(label: string, maxChars = 15): string[] {
+  // Split on camelCase boundaries to get atomic words.
+  const words = label.replace(/([a-z])([A-Z])/g, "$1\n$2").split("\n");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    if (current === "") {
+      current = word;
+    } else if ((current + word).length <= maxChars) {
+      current += word;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+/**
+ * Build a UML-use-case SVG glyph: ellipse with right-side diagonal slash + centred label.
+ * Returned as a ``data:image/svg+xml;base64,...`` URL so Graphviz WASM can embed it via
+ * ``images: [{ path: dataUrl, width, height }]`` — the browser loads ``href=dataUrl`` fine.
+ */
+export function buildActionGlyphDataUrl(label: string, accentColor: string): string {
+  const lines = wrapLabel(label);
+  const lineCount = lines.length;
+
+  const FONT = 11;
+  const LINE_H = FONT + 3;
+  const PAD_V = 10;
+  const H = Math.max(60, lineCount * LINE_H + PAD_V * 2);
+  const W = 160;
+  const cx = W / 2;
+  const cy = H / 2;
+  const rx = 74;
+  const ry = H / 2 - 4;
+  const fill = `${accentColor}22`;
+
+  // Right-shifted chord on the ellipse.
+  const frac1 = 0.50;
+  const frac2 = 0.97;
+  const x1 = cx + rx * frac1;
+  const y1 = cy + ry * Math.sqrt(1 - frac1 ** 2);
+  const x2 = cx + rx * frac2;
+  const y2 = cy - ry * Math.sqrt(Math.max(0, 1 - frac2 ** 2));
+
+  const textY0 = cy - ((lineCount - 1) * LINE_H) / 2 + FONT * 0.35;
+  const textSvg = lines
+    .map((ln, i) =>
+      `<text x="${cx}" y="${(textY0 + i * LINE_H).toFixed(2)}" text-anchor="middle" ` +
+      `font-family="Inter,Helvetica,sans-serif" font-size="${FONT}" font-weight="600" fill="#0f172a">${svgXmlEsc(ln)}</text>`,
+    )
+    .join("");
+
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
+    `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="${accentColor}" stroke-width="1.6"/>` +
+    textSvg +
+    `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${accentColor}" stroke-width="1.3" stroke-linecap="round"/>` +
+    `</svg>`;
+
+  const b64 = typeof btoa !== "undefined"
+    ? btoa(unescape(encodeURIComponent(svg)))
+    : Buffer.from(svg, "utf8").toString("base64");
+  return `data:image/svg+xml;base64,${b64}`;
+}
+
 /** Virtual paths registered via ``Graphviz.layout(..., { files })`` — WASM Graphviz does not render ``data:`` URLs in HTML labels. */
 export type DomainUseCaseGraphvizFile = { path: string; data: string };
 
 export type DomainUseCaseDotBundle = {
   dot: string;
   files: DomainUseCaseGraphvizFile[];
+  /** ``images`` entries to pass to ``gv.layout(..., { images })`` — action glyph data URLs. */
+  actionImages: Array<{ path: string; width: string; height: string }>;
 };
 
 /**
@@ -45,6 +123,7 @@ export function buildDomainUseCaseDotBundle(
 ): DomainUseCaseDotBundle {
   const { actions, roles, edges } = data;
   const files: DomainUseCaseGraphvizFile[] = [];
+  const actionImages: Array<{ path: string; width: string; height: string }> = [];
   const lines: string[] = [
     "digraph use_case {",
     `  graph [rankdir=${rankdir}, bgcolor=transparent, fontname="Inter, Helvetica, sans-serif"];`,
@@ -63,10 +142,15 @@ export function buildDomainUseCaseDotBundle(
 
   for (const a of actions) {
     const nid = domainUseCaseDotNodeId("a", a.id);
-    const lbl = dotEscLabel(a.short_label || a.label);
-    const fill = a.accent_color;
+    const linesCount = wrapLabel(a.short_label || a.label).length;
+    const H = Math.max(60, linesCount * 14 + 20);
+    const W = 160;
+    const wIn = (W / 96).toFixed(3);
+    const hIn = (H / 96).toFixed(3);
+    const dataUrl = buildActionGlyphDataUrl(a.short_label || a.label, a.accent_color);
+    actionImages.push({ path: dataUrl, width: `${W}px`, height: `${H}px` });
     lines.push(
-      `    ${nid} [shape=ellipse style="filled" fillcolor="${fill}22" color="${fill}" penwidth=1.2 label="${lbl}" fontsize=11];`,
+      `    ${nid} [shape=none label="" image="${dotEscAttr(dataUrl)}" width=${wIn} height=${hIn} fixedsize=true];`,
     );
   }
   lines.push(`  }`);
@@ -107,5 +191,5 @@ export function buildDomainUseCaseDotBundle(
   }
 
   lines.push("}");
-  return { dot: lines.join("\n"), files };
+  return { dot: lines.join("\n"), files, actionImages };
 }
