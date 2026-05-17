@@ -7,8 +7,10 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``connections["DuckDBGraph"]`` is the :class:`DuckDBGraphResource`; :attr:`~ExternalServiceResource.service`
-is the in-memory ``duckdb.DuckDBPyConnection``. Production loads JSON in the ASGI lifespan via
-:meth:`DuckDBGraphResource.create_from_http`; tests use :meth:`DuckDBGraphResource.build_from_json`.
+is the in-memory ``duckdb.DuckDBPyConnection``. The Maxitor FastAPI lifespan builds DuckDB from the same
+coordinator JSON as the sidebar via :meth:`DuckDBGraphResource.build_from_json`; :meth:`create_from_http`
+fetches an envelope from a separate ``graph-json`` URL (helpers only). Tests typically call
+:meth:`build_from_json` directly.
 :meth:`DuckDBGraphResource._install_database` runs explicit ``CREATE TABLE`` / ``CREATE INDEX`` / ``CREATE VIEW``
 (physical tables plus ``CREATE VIEW nodes`` / ``edges``, then ``nodes_type_counts`` / ``edge_type_counts`` over those views; aligned with
 :data:`~aoa.action_machine.graph_model.graph_json_schema.GRAPH_JSON_SCHEMA`). Scalar entity attributes are
@@ -49,7 +51,8 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
     """
     AI-CORE-BEGIN
     ROLE: Load coordinator graph JSON into DuckDB; :attr:`.service` is the DuckDB connection.
-    CONTRACT: Production uses :meth:`create_from_http` in app lifespan; tests use :meth:`build_from_json`. Optional sync fetch via :meth:`load_graph_json_http`.
+    CONTRACT: The bundled Maxitor API loads from :meth:`build_from_json` in the lifespan (same graph as
+    the sidebar). :meth:`create_from_http` is for tools that fetch from a remote ``graph-json`` envelope.
     AI-CORE-END
     """
 

@@ -4,6 +4,7 @@ import type { DiagramSelection } from "@/model/diagramSelection";
 import { ErdViewer } from "@/components/diagrams/ErdViewer";
 import { FullGraphViewer } from "@/components/diagrams/FullGraphViewer";
 import { LifecycleFsmViewer } from "@/components/diagrams/LifecycleFsmViewer";
+import { UseCaseDiagramViewer } from "@/components/diagrams/UseCaseDiagramViewer";
 
 /** Same dot grid as ``ErdGraphvizCanvas`` — empty workspace before any diagram is chosen. */
 const EMPTY_WORKSPACE_SX = {
@@ -19,7 +20,7 @@ type DiagramWorkspacePageProps = {
   diagram: DiagramSelection | null;
 };
 
-/** Central workspace: full graph, ERD, or empty dotted surface from sidebar selection. */
+/** Central workspace: full graph, ERD, use-case, lifecycle, or empty dotted surface from sidebar selection. */
 export function DiagramWorkspacePage({ diagram }: DiagramWorkspacePageProps) {
   return (
     <Box
@@ -39,6 +40,8 @@ export function DiagramWorkspacePage({ diagram }: DiagramWorkspacePageProps) {
         <ErdViewer key={diagram.qualifier ?? "all"} selection={diagram} />
       ) : diagram?.kind === "lifecycle_fsm" ? (
         <LifecycleFsmViewer key={diagram.lifecycle_graph_node_id} lifecycleGraphNodeId={diagram.lifecycle_graph_node_id} />
+      ) : diagram?.kind === "use_case" ? (
+        <UseCaseDiagramViewer key={diagram.domain_qualifier} domainId={diagram.domain_qualifier} />
       ) : (
         <Box sx={EMPTY_WORKSPACE_SX} aria-label="Diagram workspace" />
       )}

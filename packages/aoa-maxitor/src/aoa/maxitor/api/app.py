@@ -11,15 +11,13 @@ not serve React assets or Python-rendered shell HTML.
 
 ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.action_machine.integrations.fastapi.FastApiAdapter`
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
-Each generated diagram route declares the shared
-:class:`~aoa.maxitor.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource`
-connection it reads. Sidebar rows and the DuckDB graph resource are created in the ASGI lifespan
-(``application.state.sidebar_data`` and ``application.state.duckdb_graph``).
+Each diagram route reads the same in-process DuckDB snapshot built from the coordinator
+JSON produced alongside the sidebar (avoids desync with a separate HTTP graph-json service).
 """
 
 from __future__ import annotations
 
-import asyncio
+import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -33,6 +31,7 @@ from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.api.session import build_maxitor_api_session
+from aoa.maxitor.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
 from aoa.maxitor.model.diagrams.actions.full_graph_action import FullGraphAction
 from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action import GetLifecycleFiniteAutomatonAction
 from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
@@ -58,12 +57,11 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        """Load graph JSON into DuckDB and sidebar once; runs inside uvicorn's event loop."""
-        duckdb_resource, session = await asyncio.gather(
-            DuckDBGraphResource.create_from_http(),
-            build_maxitor_api_session(machine=machine),
+        """Build sidebar + DuckDB from the same coordinator export (single source of truth)."""
+        session = await build_maxitor_api_session(machine=machine)
+        application.state.duckdb_graph = DuckDBGraphResource.build_from_json(
+            json.loads(session.coordinator_json),
         )
-        application.state.duckdb_graph = duckdb_resource
         application.state.sidebar_data = session.sidebar_data
         yield
 
@@ -113,6 +111,11 @@ def create_app() -> FastAPI:
         .get(
             "/lifecycle-finite-automaton",
             GetLifecycleFiniteAutomatonAction,
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
+        )
+        .get(
+            "/domain-use-case-diagram",
+            GetDomainUseCaseDiagramAction,
             connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
         )
         .build()

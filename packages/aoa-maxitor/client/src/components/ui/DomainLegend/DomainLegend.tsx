@@ -14,16 +14,26 @@ export type DomainLegendProps = {
   domainKeys: string[];
   enabledDomains: Set<string>;
   accents: Record<string, string>;
-  /** Reserved for future custom per-domain glyphs; legend uses shared Domain disk from ``@/lib/icons``. */
-  icons?: Record<string, string>;
+  /** Optional row label by key (e.g. short_label); falls back to ``domainKeys`` entry. */
+  rowLabels?: Record<string, string>;
+  /** When true, show the panel even if there is only one domain (e.g. use-case slice). Default: hide when ≤1. */
+  showWhenSingle?: boolean;
   onToggle: (key: string) => void;
 };
 
 const ROW_OFF_OPACITY = 0.42;
 
 /** Multi-domain ERD legend — same row chrome as ``NodeTypeLegend``; toggles dim rows, no chip chrome. */
-export function DomainLegend({ domainKeys, enabledDomains, accents, onToggle }: DomainLegendProps) {
-  if (domainKeys.length <= 1) return null;
+export function DomainLegend({
+  domainKeys,
+  enabledDomains,
+  accents,
+  rowLabels,
+  showWhenSingle = false,
+  onToggle,
+}: DomainLegendProps) {
+  if (domainKeys.length === 0) return null;
+  if (!showWhenSingle && domainKeys.length <= 1) return null;
 
   return (
     <Box component="aside" aria-label="Domains" sx={floatingLegendPanelSx}>
@@ -63,7 +73,7 @@ export function DomainLegend({ domainKeys, enabledDomains, accents, onToggle }: 
           >
             <Box component="img" src={src} width={20} height={20} alt="" sx={legendDiskImgSx} />
             <Typography variant="caption" sx={legendRowLabelSx}>
-              {k}
+              {rowLabels?.[k] ?? k}
             </Typography>
           </Box>
         );

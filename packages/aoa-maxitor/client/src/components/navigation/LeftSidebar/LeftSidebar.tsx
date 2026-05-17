@@ -98,12 +98,22 @@ type LeftSidebarProps = {
 function selectionKey(sel: DiagramSelection): string {
   if (sel.kind === "interchange_graph") return "interchange_graph";
   if (sel.kind === "lifecycle_fsm") return `lifecycle_fsm:${sel.lifecycle_graph_node_id}`;
+  if (sel.kind === "use_case") return `use_case:${sel.domain_qualifier}`;
   return `erd:${sel.qualifier ?? "all"}`;
 }
 
 function prefetchDiagramModule(sel: DiagramSelection | null): void {
-  if (sel?.kind === "erd") prefetchErdGraphviz();
+  if (sel?.kind === "erd" || sel?.kind === "use_case") prefetchErdGraphviz();
   if (sel?.kind === "interchange_graph") prefetchInterchangeG6();
+}
+
+/** Shorten use-case row when the domain name is already visible in the parent row. */
+function useCaseRowLabelForDomainGroup(domainLabel: string, rowLabel: string): string {
+  const d = domainLabel.trim();
+  const suffix = ` — ${d} view`;
+  const r = rowLabel.trim();
+  if (r.endsWith(suffix)) return "Use case view";
+  return rowLabel;
 }
 
 /** Avoid redundant long entity-domain diagram label when it mirrors the domain name. */
@@ -133,6 +143,10 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
         if (diagram.qualifier) {
           next[diagram.qualifier] = true;
         }
+      }
+      if (diagram.kind === "use_case") {
+        next.domains_root = true;
+        next[diagram.domain_qualifier] = true;
       }
       if (diagram.kind === "lifecycle_fsm") {
         next.entities_root = true;
@@ -381,7 +395,10 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
                                 >
                                   {erdRows.map((e) => {
                                     const sel = diagramSelectionForRow(e);
-                                    const primary = erdRowLabelForDomainGroup(cnode.label, e.label);
+                                    const primary =
+                                      e.type === "use_case_domain"
+                                        ? useCaseRowLabelForDomainGroup(cnode.label, e.label)
+                                        : erdRowLabelForDomainGroup(cnode.label, e.label);
                                     return (
                                       <Tooltip
                                         key={`${e.type}:${e.id}`}
