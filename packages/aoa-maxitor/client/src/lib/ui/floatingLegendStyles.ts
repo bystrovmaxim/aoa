@@ -53,3 +53,15 @@ export const legendRowLabelSx: SxProps<Theme> = {
   fontSize: 11,
   color: "text.primary",
 };
+
+/** Centered copy on dotted diagram canvas when the visible graph is empty (use-case / ERD). */
+export const diagramCanvasEmptyMessageSx: SxProps<Theme> = {
+  position: "absolute",
+  left: "50%",
+  top: "50%",
+  transform: "translate(-50%, -50%)",
+  zIndex: 20,
+  pointerEvents: "none",
+  maxWidth: "90%",
+  textAlign: "center",
+};

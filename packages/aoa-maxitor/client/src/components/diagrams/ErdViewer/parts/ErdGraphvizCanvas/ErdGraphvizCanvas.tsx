@@ -21,6 +21,7 @@ import {
 } from "@/lib/buildDotSource";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
+import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
 import {
   LayoutGlyphCirco,
   LayoutGlyphDotLR,
@@ -117,6 +118,16 @@ export function ErdGraphvizCanvas({
     return d ? Object.keys(d).sort() : [];
   }, [enriched]);
 
+  const bundleEntityTotal = useMemo(() => {
+    const d = enriched.domains as Record<string, { entities?: ErdEntity[] }> | undefined;
+    if (!d) return 0;
+    let n = 0;
+    for (const slice of Object.values(d)) {
+      n += slice.entities?.length ?? 0;
+    }
+    return n;
+  }, [enriched]);
+
   const [enabledDomains, setEnabledDomains] = useState(() => {
     const keys = Object.keys(bundle.domains ?? {}).sort();
     const saved = enabledDomainsByDiagramKey.get(diagramResetKey);
@@ -166,6 +177,15 @@ export function ErdGraphvizCanvas({
     () => getMergedFromDomains(enriched, enabledDomains),
     [enriched, enabledDomains],
   );
+
+  const erdEmptyOverlay =
+    mergedData.entities.length === 0 ? (
+      <Typography variant="body2" color="text.secondary" sx={diagramCanvasEmptyMessageSx}>
+        {bundleEntityTotal === 0
+          ? "No entities in this diagram."
+          : "No entities for the selected domains."}
+      </Typography>
+    ) : null;
 
   const dot = useMemo(() => buildDotSource(mergedData, layout), [mergedData, layout]);
 
@@ -333,6 +353,7 @@ export function ErdGraphvizCanvas({
           accents={accents}
           onToggle={toggleDomain}
         />
+        {erdEmptyOverlay}
 
         <Box
           ref={viewportRef}

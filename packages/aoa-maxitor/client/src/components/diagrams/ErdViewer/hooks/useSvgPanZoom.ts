@@ -117,12 +117,25 @@ export type UseSvgPanZoomOptions = {
    * (e.g. floating zoom toolbar over the canvas bottom).
    */
   fitBottomInset?: number;
+  /**
+   * Uniform margin (pixels) subtracted from usable width/height so titles/cluster labels
+   * are not flush against the viewport edge after fit.
+   */
+  fitMarginPx?: number;
+  /**
+   * Elements whose union ``getBoundingClientRect`` defines the fitted region.
+   * Default: Graphviz node + edge groups. Use-case / cluster-heavy DOT output should also
+   * include ``g.cluster`` so subgraph titles and frames participate in the bounds.
+   */
+  fitBoundsSelector?: string;
   /** Maximum scale used by automatic fit; user zoom still uses MAX_SCALE. */
   fitMaxScale?: number;
 };
 
 export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
   const fitBottomInset = options?.fitBottomInset ?? 0;
+  const fitMarginPx = options?.fitMarginPx ?? 0;
+  const fitBoundsSelector = options?.fitBoundsSelector ?? "g.graph g.node, g.graph g.edge";
   const fitMaxScale = options?.fitMaxScale ?? MAX_SCALE;
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const pannerRef = useRef<HTMLDivElement | null>(null);
@@ -158,6 +171,8 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     if (cw < 8 || ch < 8) return;
 
     const chFit = Math.max(8, ch - fitBottomInset);
+    const availW = Math.max(8, cw - 2 * fitMarginPx);
+    const availH = Math.max(8, chFit - 2 * fitMarginPx);
 
     stripGraphvizBackdropPolygons(svg);
 
@@ -171,7 +186,7 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     // Prefer union of node + edge rects: ``g.graph`` bounds can balloon from off-canvas spline
     // control points (notably TB back-edges in lifecycle FSMs), shrinking ``s`` too much and
     // leaving huge empty margins. Fall back to ``g.graph`` only if the union is empty.
-    let box = unionClientRects(svg.querySelectorAll("g.graph g.node, g.graph g.edge"), vp);
+    let box = unionClientRects(svg.querySelectorAll(fitBoundsSelector), vp);
     if (!box) {
       box = graphGroupBoxInViewport(svg, vp);
     }
@@ -181,18 +196,18 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     }
     if (!box) return;
 
-    const pad = 0.9;
-    let s = Math.min((cw * pad) / box.width, (chFit * pad) / box.height);
+    const pad = 0.92;
+    let s = Math.min((availW * pad) / box.width, (availH * pad) / box.height);
     s = Math.max(MIN_SCALE, Math.min(s, fitMaxScale));
 
     panRef.current.scale = s;
-    const tx = (cw - box.width * s) / 2 - box.x * s;
-    const ty = (chFit - box.height * s) / 2 - box.y * s;
+    const tx = fitMarginPx + (availW - box.width * s) / 2 - box.x * s;
+    const ty = fitMarginPx + (availH - box.height * s) / 2 - box.y * s;
     panRef.current.tx = tx;
     panRef.current.ty = ty;
     applyTransform();
     hasFittedRef.current = true;
-  }, [applyTransform, fitBottomInset, fitMaxScale]);
+  }, [applyTransform, fitBottomInset, fitMarginPx, fitBoundsSelector, fitMaxScale]);
 
   useEffect(() => {
     const vp = viewportRef.current;

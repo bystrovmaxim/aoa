@@ -20,6 +20,9 @@ export function diagramSelectionForRow(row: NodeRow): DiagramSelection | null {
       host_entity_interchange_id: String(row.parent_id),
     };
   }
+  if (row.type === "use_case_domain" && row.parent_id) {
+    return { kind: "use_case", domain_qualifier: String(row.parent_id) };
+  }
   return null;
 }
 

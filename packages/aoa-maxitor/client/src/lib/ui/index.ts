@@ -1,5 +1,6 @@
 // src/lib/ui/index.ts
 export {
+  diagramCanvasEmptyMessageSx,
   floatingLegendPanelSx,
   floatingLegendTitleSx,
   legendDiskImgSx,

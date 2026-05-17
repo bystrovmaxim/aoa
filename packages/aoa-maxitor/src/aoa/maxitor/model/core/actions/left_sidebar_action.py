@@ -147,7 +147,8 @@ class GetLeftMenuSidebarDataAction(
             default_factory=list,
             description=(
                 "Diagram rows under a domain or entity interchange node: "
-                "``erd_domain`` (parent = domain id; entity domain diagram), ``entity_class_diagram`` (id = entity id, parent = entity id), "
+                "``erd_domain`` (parent = domain id; entity domain diagram), ``use_case_domain`` (UML use-case diagram), "
+                "``entity_class_diagram`` (id = entity id, parent = entity id), "
                 "``lifecycle_state_diagram`` (id = lifecycle vertex id, parent = entity id). "
                 "Use ``ordinal`` for stable order: entity row first, then lifecycle rows."
             ),
@@ -253,6 +254,15 @@ class GetLeftMenuSidebarDataAction(
                     "label": _diagram_view_label(f"Entity domain — {label}"),
                     "type": "erd_domain",
                     "ordinal": 0,
+                },
+            )
+            rows.append(
+                {
+                    "id": f"use_case_domain:{nid}",
+                    "parent_id": nid,
+                    "label": _diagram_view_label(f"Use case — {label}"),
+                    "type": "use_case_domain",
+                    "ordinal": 1,
                 },
             )
         for node_id, data in graph.nodes(data=True):
