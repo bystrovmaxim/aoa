@@ -1,19 +1,29 @@
 // src/components/diagrams/UseCaseDiagramViewer/UseCaseDiagramViewer.tsx
+import type { Engine } from "@hpcc-js/wasm-graphviz";
 import Box from "@mui/material/Box";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { fetchDomainUseCaseDiagram } from "@/api/domainUseCaseDiagram";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
-import { LayoutGlyphDotLR, LayoutGlyphDotTB } from "@/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/layoutEngineGlyphs";
+import {
+  LayoutGlyphDotLR,
+  LayoutGlyphDotTB,
+  LayoutGlyphFdp,
+  LayoutGlyphNeato,
+} from "@/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/layoutEngineGlyphs";
 import { DomainLegend } from "@/components/ui/DomainLegend";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import useCaseRoleActorUrl from "@/assets/useCaseRoleActor.svg?url";
-import { buildDomainUseCaseDotBundle, type DomainUseCaseRankdir } from "@/lib/buildDomainUseCaseDotSource";
+import {
+  buildDomainUseCaseDotBundle,
+  type DomainUseCaseLayoutEngine,
+  type DomainUseCaseRankdir,
+} from "@/lib/buildDomainUseCaseDotSource";
 import { filterUseCaseDiagramByDomains } from "@/lib/filterUseCaseDiagramByDomains";
 import { loadGraphvizWasm } from "@/lib/prefetch/erdGraphviz";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
@@ -30,9 +40,47 @@ const GRID_SX = {
   backgroundSize: "20px 20px",
 };
 
+type UseCaseDiagramLayoutPreset = "dot_lr" | "dot_tb" | "neato" | "fdp";
+
 const useCaseRankdirByDomainId = new Map<string, DomainUseCaseRankdir>();
 
+/** LR/TB + Neato/FDP when Boundary off; persisted per domain together with Boundary. */
+const useCaseLayoutPresetByDomainId = new Map<string, UseCaseDiagramLayoutPreset>();
+
 const useCaseBoundaryByDomainId = new Map<string, boolean>();
+
+const USE_CASE_LAYOUT_TOOL_ROW: {
+  preset: UseCaseDiagramLayoutPreset;
+  title: string;
+  Glyph: (props: SVGProps<SVGSVGElement>) => ReactElement;
+}[] = [
+  { preset: "dot_lr", title: "Dot — left to right", Glyph: LayoutGlyphDotLR },
+  { preset: "dot_tb", title: "Dot — top to bottom", Glyph: LayoutGlyphDotTB },
+  { preset: "neato", title: "Neato (spring)", Glyph: LayoutGlyphNeato },
+  { preset: "fdp", title: "FDP (force)", Glyph: LayoutGlyphFdp },
+];
+
+function readStoredLayoutPreset(domainId: string): UseCaseDiagramLayoutPreset {
+  const preset = useCaseLayoutPresetByDomainId.get(domainId);
+  if (preset) return preset;
+  const legacyRd = useCaseRankdirByDomainId.get(domainId);
+  return legacyRd === "TB" ? "dot_tb" : "dot_lr";
+}
+
+function presetToRankdir(preset: UseCaseDiagramLayoutPreset): DomainUseCaseRankdir {
+  return preset === "dot_tb" ? "TB" : "LR";
+}
+
+function presetToLayoutEngine(preset: UseCaseDiagramLayoutPreset): DomainUseCaseLayoutEngine {
+  switch (preset) {
+    case "neato":
+      return "neato";
+    case "fdp":
+      return "fdp";
+    default:
+      return "dot";
+  }
+}
 
 const graphvizRoleActorImage = {
   path: useCaseRoleActorUrl,
@@ -48,17 +96,20 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   const load = useCallback(() => fetchDomainUseCaseDiagram(domainId), [domainId]);
   const { data, loading, error } = useDiagramLoader(load, { keepPreviousData: true });
 
-  const [rankdir, setRankdir] = useState<DomainUseCaseRankdir>(
-    () => useCaseRankdirByDomainId.get(domainId) ?? "LR",
+  const [layoutPreset, setLayoutPreset] = useState<UseCaseDiagramLayoutPreset>(() =>
+    readStoredLayoutPreset(domainId),
   );
 
   useEffect(() => {
-    setRankdir(useCaseRankdirByDomainId.get(domainId) ?? "LR");
+    setLayoutPreset(readStoredLayoutPreset(domainId));
   }, [domainId]);
 
   useEffect(() => {
-    useCaseRankdirByDomainId.set(domainId, rankdir);
-  }, [domainId, rankdir]);
+    useCaseLayoutPresetByDomainId.set(domainId, layoutPreset);
+    if (layoutPreset === "dot_lr" || layoutPreset === "dot_tb") {
+      useCaseRankdirByDomainId.set(domainId, presetToRankdir(layoutPreset));
+    }
+  }, [domainId, layoutPreset]);
 
   const [boundary, setBoundary] = useState(
     () => useCaseBoundaryByDomainId.get(domainId) ?? true,
@@ -71,6 +122,15 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   useEffect(() => {
     useCaseBoundaryByDomainId.set(domainId, boundary);
   }, [domainId, boundary]);
+
+  /** Boundary on forces hierarchical dot ranks; preserve neato/fdp in ``layoutPreset`` for when Boundary turns off. */
+  const layoutForBundler = useMemo((): UseCaseDiagramLayoutPreset => {
+    if (boundary) {
+      if (layoutPreset === "dot_lr" || layoutPreset === "dot_tb") return layoutPreset;
+      return "dot_lr";
+    }
+    return layoutPreset;
+  }, [boundary, layoutPreset]);
 
   const domainKeyList = useMemo(() => {
     if (!data) return [];
@@ -148,9 +208,19 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   const bundle = useMemo(
     () =>
       filtered != null
-        ? buildDomainUseCaseDotBundle(filtered, rankdir, { roleActorImageUrl: useCaseRoleActorUrl }, { boundary })
+        ? buildDomainUseCaseDotBundle(
+            filtered,
+            presetToRankdir(layoutForBundler),
+            { roleActorImageUrl: useCaseRoleActorUrl },
+            { boundary, layoutEngine: presetToLayoutEngine(layoutForBundler) },
+          )
         : null,
-    [filtered, rankdir, boundary],
+    [filtered, layoutForBundler, boundary],
+  );
+
+  const graphvizEngineForBundle = useMemo(
+    (): Engine => presetToLayoutEngine(layoutForBundler) as Engine,
+    [layoutForBundler],
   );
 
   const dot = bundle?.dot ?? "";
@@ -209,7 +279,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
           ...bundle.actionImages,
           ...(needsRoleImages ? [graphvizRoleActorImage] : []),
         ];
-        const svg = gv.layout(bundle.dot, "svg", "dot", {
+        const svg = gv.layout(bundle.dot, "svg", graphvizEngineForBundle, {
           files: bundle.files,
           images,
         });
@@ -223,7 +293,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     return () => {
       cancelled = true;
     };
-  }, [bundle, filtered]);
+  }, [bundle, filtered, graphvizEngineForBundle]);
 
   useLayoutEffect(() => {
     if (!svgMarkup) return;
@@ -359,9 +429,9 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
               <ToggleButtonGroup
                 exclusive
                 size="small"
-                value={rankdir}
-                onChange={(_, v: DomainUseCaseRankdir | null) => {
-                  if (v !== null) setRankdir(v);
+                value={layoutForBundler}
+                onChange={(_, v: UseCaseDiagramLayoutPreset | null) => {
+                  if (v !== null) setLayoutPreset(v);
                 }}
                 sx={{
                   flexWrap: "wrap",
@@ -377,20 +447,15 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
                   },
                 }}
               >
-                <ToggleButton value="LR" aria-label="Dot — left to right">
-                  <Tooltip title="Dot — left to right" placement="top">
-                    <Box component="span" sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: "1em", height: "1em" }}>
-                      <LayoutGlyphDotLR />
-                    </Box>
-                  </Tooltip>
-                </ToggleButton>
-                <ToggleButton value="TB" aria-label="Dot — top to bottom">
-                  <Tooltip title="Dot — top to bottom" placement="top">
-                    <Box component="span" sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: "1em", height: "1em" }}>
-                      <LayoutGlyphDotTB />
-                    </Box>
-                  </Tooltip>
-                </ToggleButton>
+                {(boundary ? USE_CASE_LAYOUT_TOOL_ROW.slice(0, 2) : USE_CASE_LAYOUT_TOOL_ROW).map(({ preset, title, Glyph: LayoutGlyph }) => (
+                  <ToggleButton key={preset} value={preset} aria-label={title}>
+                    <Tooltip title={title} placement="top">
+                      <Box component="span" sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: "1em", height: "1em" }}>
+                        <LayoutGlyph />
+                      </Box>
+                    </Tooltip>
+                  </ToggleButton>
+                ))}
               </ToggleButtonGroup>
               <Box
                 component="span"
