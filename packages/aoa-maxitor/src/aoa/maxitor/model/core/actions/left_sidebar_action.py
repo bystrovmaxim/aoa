@@ -8,7 +8,7 @@ PURPOSE
 
 Materialize flat ``NodeEntity`` lists (by depth / role) from a ``LoadGraphAction``
 ``DiGraph`` so the UI can render roots, per-root diagrams, interchange nodes, and
-level-3 diagram rows (per-domain ERD, per-entity diagram row, per-lifecycle field
+level-3 diagram rows (per-domain entity diagram, per-entity diagram row, per-lifecycle field
 diagram) using ``parent_id`` links only. **Level-1 order matches**
 ``_ROOT_SECTIONS`` (Applications through Resources); clients must preserve
 ``Result.level1_nodes`` order. Deeper rows use ``ordinal`` when present (see
@@ -147,7 +147,7 @@ class GetLeftMenuSidebarDataAction(
             default_factory=list,
             description=(
                 "Diagram rows under a domain or entity interchange node: "
-                "``erd_domain`` (parent = domain id), ``entity_class_diagram`` (id = entity id, parent = entity id), "
+                "``erd_domain`` (parent = domain id; entity domain diagram), ``entity_class_diagram`` (id = entity id, parent = entity id), "
                 "``lifecycle_state_diagram`` (id = lifecycle vertex id, parent = entity id). "
                 "Use ``ordinal`` for stable order: entity row first, then lifecycle rows."
             ),
@@ -190,7 +190,7 @@ class GetLeftMenuSidebarDataAction(
             {
                 "id": "domains_all_erd",
                 "parent_id": "domains_root",
-                "label": _diagram_view_label("ERD — all domains"),
+                "label": _diagram_view_label("Entity all domains"),
                 "type": "erd_all",
             },
         ]
@@ -231,7 +231,7 @@ class GetLeftMenuSidebarDataAction(
     @result_instance("level2_diagram_rows", list, required=True)  # type: ignore[untyped-decorator]
     @result_instance("level2_node_rows", list, required=True)  # type: ignore[untyped-decorator]
     @result_instance("level3_diagram_rows", list, required=True)  # type: ignore[untyped-decorator]
-    @regular_aspect("Level-3 diagram rows (domain ERD, entity diagram, lifecycle field)")
+    @regular_aspect("Level-3 diagram rows (domain entity diagram, entity diagram, lifecycle field)")
     async def prepare_level3_diagrams_aspect(
         self,
         params: GetLeftMenuSidebarDataAction.Params,
@@ -250,7 +250,7 @@ class GetLeftMenuSidebarDataAction(
                 {
                     "id": f"erd_domain:{nid}",
                     "parent_id": nid,
-                    "label": _diagram_view_label(f"ERD — {label}"),
+                    "label": _diagram_view_label(f"Entity domain — {label}"),
                     "type": "erd_domain",
                     "ordinal": 0,
                 },
