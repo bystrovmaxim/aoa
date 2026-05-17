@@ -18,6 +18,7 @@ from aoa.action_machine.exceptions.cyclic_dependency_error import CyclicDependen
 from aoa.action_machine.exceptions.domain_graph_edge_resolution_error import DomainGraphEdgeResolutionError
 from aoa.action_machine.exceptions.graph_edge_resolution_error import GraphEdgeResolutionError
 from aoa.action_machine.exceptions.handle_error import HandleError
+from aoa.action_machine.exceptions.include_contract_violation_error import IncludeContractViolationError
 from aoa.action_machine.exceptions.log_template_error import LogTemplateError
 from aoa.action_machine.exceptions.missing_check_roles_error import MissingCheckRolesError
 from aoa.action_machine.exceptions.missing_entity_info_error import MissingEntityInfoError
@@ -47,6 +48,7 @@ __all__ = [
     "DomainGraphEdgeResolutionError",
     "GraphEdgeResolutionError",
     "HandleError",
+    "IncludeContractViolationError",
     "LogTemplateError",
     "MissingCheckRolesError",
     "MissingEntityInfoError",

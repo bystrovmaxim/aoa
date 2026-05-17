@@ -14,6 +14,8 @@ is the in-memory ``duckdb.DuckDBPyConnection``. Production loads JSON in the ASG
 :data:`~aoa.action_machine.graph_model.graph_json_schema.GRAPH_JSON_SCHEMA`). Scalar entity attributes are
 ``EntityField`` vertices and ``entity_field`` edges; list-entities reads scalar columns from
 ``entity_field`` + ``entity_field_edges`` (no denormalized field table).
+``depends_edges`` stores optional ``mode`` (``include`` / ``extend`` from wire ``properties``) as a nullable
+VARCHAR and mirrors it in the ``edges`` view JSON ``payload``.
 :func:`_fill_database` inserts rows from the coordinator payload.
 """
 
@@ -299,7 +301,8 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL,
-      description VARCHAR NOT NULL
+      description VARCHAR NOT NULL,
+      mode VARCHAR
     );""",
             """CREATE TABLE connection_edges (
       source_id VARCHAR NOT NULL,
@@ -514,7 +517,7 @@ def _graph_union_view_ddls() -> list[str]:
         f"SELECT source_id, target_id, relationship, is_dag, CAST('entity_schema_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM entity_schema_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('field_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM field_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('property_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM property_edges",
-        "SELECT source_id, target_id, relationship, is_dag, CAST('depends_edges' AS VARCHAR) AS type, json_object('description', description) AS payload FROM depends_edges",
+        "SELECT source_id, target_id, relationship, is_dag, CAST('depends_edges' AS VARCHAR) AS type, json_object('description', description, 'mode', mode) AS payload FROM depends_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('connection_edges' AS VARCHAR) AS type, json_object('conn_key', conn_key) AS payload FROM connection_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('required_context_edges' AS VARCHAR) AS type, json_object('ctx_key', ctx_key) AS payload FROM required_context_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_relation_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'relation_type', relation_type, 'cardinality', cardinality, 'description', description, 'has_inverse', has_inverse, 'deprecated', deprecated, 'inverse_entity_id', inverse_entity_id, 'inverse_field', inverse_field) AS payload FROM entity_relation_edges",
@@ -833,11 +836,24 @@ def _fill_table_property_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[s
         )
 
 
+def _depends_edge_description_and_mode(edge: dict[str, Any]) -> tuple[str, str | None]:
+    """Return ``(description, mode)`` for a ``@depends`` row; ``mode`` is ``NULL`` in SQL when absent."""
+    p = _get_properties(edge)
+    desc = str(p.get("description") or "")
+    raw_mode = p.get("mode")
+    if isinstance(raw_mode, str) and raw_mode.strip():
+        return desc, raw_mode.strip()
+    return desc, None
+
+
 def _fill_table_depends_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
     _executemany(
         con,
-        "INSERT INTO depends_edges (source_id, target_id, relationship, is_dag, description) VALUES (?, ?, ?, ?, ?)",
-        [[*_base_edge_row(edge), _get_properties(edge)["description"]] for edge in rows],
+        "INSERT INTO depends_edges (source_id, target_id, relationship, is_dag, description, mode) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+            [*_base_edge_row(edge), *_depends_edge_description_and_mode(edge)]
+            for edge in rows
+        ],
     )
 
 

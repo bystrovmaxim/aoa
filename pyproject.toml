@@ -96,7 +96,7 @@ packages = ["aoa_run"]
 # PYTEST
 # ============================================================================
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "packages/aoa-examples/aoa_examples_tests"]
 asyncio_mode = "auto"
 # Четыре `…/src` на PYTHONPATH для неймспейса `aoa.*`; `.` — корень репо (conftest/fixtures).
 pythonpath = [
