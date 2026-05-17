@@ -3,6 +3,7 @@ import Box from "@mui/material/Box";
 import type { DiagramSelection } from "@/model/diagramSelection";
 import { ErdViewer } from "@/components/diagrams/ErdViewer";
 import { FullGraphViewer } from "@/components/diagrams/FullGraphViewer";
+import { LifecycleFsmViewer } from "@/components/diagrams/LifecycleFsmViewer";
 
 /** Same dot grid as ``ErdGraphvizCanvas`` — empty workspace before any diagram is chosen. */
 const EMPTY_WORKSPACE_SX = {
@@ -36,6 +37,8 @@ export function DiagramWorkspacePage({ diagram }: DiagramWorkspacePageProps) {
         <FullGraphViewer key="full-graph" />
       ) : diagram?.kind === "erd" ? (
         <ErdViewer key={diagram.qualifier ?? "all"} selection={diagram} />
+      ) : diagram?.kind === "lifecycle_fsm" ? (
+        <LifecycleFsmViewer key={diagram.lifecycle_graph_node_id} lifecycleGraphNodeId={diagram.lifecycle_graph_node_id} />
       ) : (
         <Box sx={EMPTY_WORKSPACE_SX} aria-label="Diagram workspace" />
       )}

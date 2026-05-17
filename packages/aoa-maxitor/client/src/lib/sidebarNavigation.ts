@@ -13,6 +13,13 @@ export function diagramSelectionForRow(row: NodeRow): DiagramSelection | null {
   if (row.type === "erd_domain" && row.parent_id) {
     return { kind: "erd", qualifier: String(row.parent_id) };
   }
+  if (row.type === "lifecycle_state_diagram" && row.parent_id) {
+    return {
+      kind: "lifecycle_fsm",
+      lifecycle_graph_node_id: row.id,
+      host_entity_interchange_id: String(row.parent_id),
+    };
+  }
   return null;
 }
 

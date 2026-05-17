@@ -34,6 +34,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.api.session import build_maxitor_api_session
 from aoa.maxitor.model.diagrams.actions.full_graph_action import FullGraphAction
+from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action import GetLifecycleFiniteAutomatonAction
 from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
 from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
@@ -107,6 +108,11 @@ def create_app() -> FastAPI:
         .get(
             "/full-graph",
             FullGraphAction,
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
+        )
+        .get(
+            "/lifecycle-finite-automaton",
+            GetLifecycleFiniteAutomatonAction,
             connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
         )
         .build()
