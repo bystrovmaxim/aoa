@@ -39,11 +39,15 @@ Edge case: same interchange shape for any concrete ``BaseDomain`` subclass type 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar, cast
 
 from aoa.action_machine.application.application import Application
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph_model.edges.application_graph_edge import ApplicationGraphEdge
+from aoa.action_machine.graph_model.edges.parent_domain_graph_edge import (
+    ParentDomainGraphEdge,
+    build_parent_domain_edges,
+)
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.graph.base_graph_edge import BaseGraphEdge
 from aoa.graph.base_graph_node import BaseGraphNode
@@ -56,12 +60,13 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a bounded-context domain marker.
-    CONTRACT: Built from ``type[TDomain]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; ``properties`` carry ``name`` / ``description``. :attr:`application` aggregates to :class:`~aoa.action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`; :meth:`get_all_edges` returns ``[application]``.
+    CONTRACT: Built from ``type[TDomain]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; ``properties`` carry ``name`` / ``description``. :attr:`application` aggregates to :class:`~aoa.action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`; :meth:`get_all_edges` returns ``application`` then ``parent_domain`` edges when present.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Domain"
     application: ApplicationGraphEdge = field(init=False, repr=False, compare=False)
+    parent_domains: list[ParentDomainGraphEdge]
 
     def __init__(self, domain_cls: type[TDomain]) -> None:
         super().__init__(
@@ -75,6 +80,7 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
             node_obj=domain_cls,
         )
         object.__setattr__(self, "application", ApplicationGraphEdge(Application))
+        object.__setattr__(self, "parent_domains", cast(list[ParentDomainGraphEdge], build_parent_domain_edges(domain_cls)))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -88,5 +94,5 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
         }
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return the outgoing application aggregation edge."""
-        return [self.application]
+        """Return the application edge, then ``parent_domain`` generalization edges (plan §I.6)."""
+        return [self.application, *self.parent_domains]

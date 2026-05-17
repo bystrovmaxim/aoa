@@ -11,7 +11,9 @@ registered :class:`~aoa.graph.base_graph_node_inspector.BaseGraphNodeInspector`
 **instances** (each implements :meth:`~aoa.graph.base_graph_node_inspector.BaseGraphNodeInspector.get_graph_nodes`),
 validates **unique**
 :attr:`~aoa.graph.base_graph_node.BaseGraphNode.node_id` keys, **referential
-integrity** of :class:`~aoa.graph.base_graph_edge.BaseGraphEdge.target_node_id`,
+integrity** of :class:`~aoa.graph.base_graph_edge.BaseGraphEdge.target_node_id`
+(for every edge emitted by :meth:`~aoa.graph.base_graph_node.BaseGraphNode.get_all_edges`, including
+``parent_action`` / ``parent_role`` / ``parent_domain`` generalization rows when present),
 and **acyclicity** of edges marked ``is_dag=True``, then retains a canonical
 ``dict[str, BaseGraphNode]`` plus typed edge indexes for efficient reads and export.
 
@@ -212,7 +214,7 @@ class NodeGraphCoordinator:
         return tuple(nodes_map[nid] for nid in ids)
 
     def get_edges_by_type(self, edge_type: str) -> tuple[tuple[str, str, BaseGraphEdge], ...]:
-        """Return edges with ``edge_name == edge_type`` as ``(source_id, target_id, edge)`` tuples."""
+        """Return edges with ``edge.edge_name == edge_type`` (any interchange name, including ``parent_*``)."""
         self._require_indexes()
         by_et = self._edges_by_type
         if by_et is None:

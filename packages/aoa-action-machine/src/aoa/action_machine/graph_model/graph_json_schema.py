@@ -7,6 +7,10 @@ does not validate against it (validate in tests or tooling with :class:`jsonsche
 
 Sourced from ``archive/plan/CURRENT.md`` (appendix) with alignment fixes
 (``Field`` node properties, ``Lifecycle`` / ``@required_context`` / ``@check_roles`` edge names).
+
+Generalization (UML inheritance) edges ``parent_action``, ``parent_role``, and ``parent_domain`` use
+``relationship: \"Generalization\"`` and empty ``properties``; each wire ``type`` is its own ``oneOf`` branch
+(see plan ``generalization_graph_nodes.md`` §PR‑4 / §I.3).
 """
 
 from __future__ import annotations
@@ -776,6 +780,15 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
           "$ref": "#/$defs/empty_properties"
         },
         {
+          "$ref": "#/$defs/parent_action"
+        },
+        {
+          "$ref": "#/$defs/parent_role"
+        },
+        {
+          "$ref": "#/$defs/parent_domain"
+        },
+        {
           "$ref": "#/$defs/depends"
         },
         {
@@ -830,6 +843,72 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
                 "field",
                 "property"
               ]
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "parent_action": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "parent_action"
+            },
+            "relationship": {
+              "const": "Generalization"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "parent_role": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "parent_role"
+            },
+            "relationship": {
+              "const": "Generalization"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "parent_domain": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "parent_domain"
+            },
+            "relationship": {
+              "const": "Generalization"
             },
             "properties": {
               "type": "object",

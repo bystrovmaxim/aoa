@@ -26,6 +26,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.graph.edge_relationship import GENERALIZATION
 from aoa.maxitor.model.diagrams.actions.list_domains_action import (
     _LIST_DOMAINS_DISTINCT_COLORS,
 )
@@ -60,7 +61,10 @@ LAYOUT_ENTITY_SCALAR_LINK: dict[str, float] = {
 # SQL — single round-trip (nodes + edges + domains); no PyArrow dependency.
 # ---------------------------------------------------------------------------
 
-_FULL_GRAPH_SQL = """
+# Full-graph viewer omits UML generalization links (``parent_*`` wire edges); they remain in DuckDB.
+_FULL_GRAPH_SQL_EXCLUDED_RELATIONSHIP = GENERALIZATION.archimate_name
+
+_FULL_GRAPH_SQL = f"""
 WITH
   node_rows AS (
     SELECT
@@ -78,6 +82,7 @@ WITH
       relationship,
       type
     FROM edges
+    WHERE relationship <> '{_FULL_GRAPH_SQL_EXCLUDED_RELATIONSHIP}'
     ORDER BY source_id, target_id, type, relationship
   ),
   domain_rows AS (
