@@ -168,11 +168,12 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     applyTransform(false);
     void panner.offsetHeight;
 
-    // Prefer ``g.graph`` bounds: union of ``g.node`` / ``g.edge`` rects often misses wide splines
-    // and off-node labels, which makes ``s`` too large and clips the diagram (lifecycle + ERD).
-    let box = graphGroupBoxInViewport(svg, vp);
+    // Prefer union of node + edge rects: ``g.graph`` bounds can balloon from off-canvas spline
+    // control points (notably TB back-edges in lifecycle FSMs), shrinking ``s`` too much and
+    // leaving huge empty margins. Fall back to ``g.graph`` only if the union is empty.
+    let box = unionClientRects(svg.querySelectorAll("g.graph g.node, g.graph g.edge"), vp);
     if (!box) {
-      box = unionClientRects(svg.querySelectorAll("g.graph g.node, g.graph g.edge"), vp);
+      box = graphGroupBoxInViewport(svg, vp);
     }
     if (!box) {
       const graphEl = svg.querySelector("g.graph") ?? svg;
@@ -190,6 +191,7 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     panRef.current.tx = tx;
     panRef.current.ty = ty;
     applyTransform();
+    hasFittedRef.current = true;
   }, [applyTransform, fitBottomInset, fitMaxScale]);
 
   useEffect(() => {
@@ -223,7 +225,6 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
 
   const fitToContainerPublic = useCallback(() => {
     fitToContainer();
-    hasFittedRef.current = true;
   }, [fitToContainer]);
 
   const zoomFromViewportCenter = useCallback(
