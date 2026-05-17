@@ -11,7 +11,8 @@ import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZo
 import { LayoutGlyphDotLR, LayoutGlyphDotTB } from "@/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/layoutEngineGlyphs";
 import { DomainLegend } from "@/components/ui/DomainLegend";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
-import { buildDomainUseCaseDotSource, type DomainUseCaseRankdir } from "@/lib/buildDomainUseCaseDotSource";
+import useCaseRoleActorUrl from "@/assets/useCaseRoleActor.svg?url";
+import { buildDomainUseCaseDotBundle, type DomainUseCaseRankdir } from "@/lib/buildDomainUseCaseDotSource";
 import { filterUseCaseDiagramByDomains } from "@/lib/filterUseCaseDiagramByDomains";
 import { loadGraphvizWasm } from "@/lib/prefetch/erdGraphviz";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
@@ -29,6 +30,12 @@ const GRID_SX = {
 };
 
 const useCaseRankdirByDomainId = new Map<string, DomainUseCaseRankdir>();
+
+const graphvizRoleActorImage = {
+  path: useCaseRoleActorUrl,
+  width: "52px",
+  height: "74px",
+} as const;
 
 export type UseCaseDiagramViewerProps = {
   domainId: string;
@@ -123,10 +130,15 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     [data, effectiveEnabled],
   );
 
-  const dot = useMemo(
-    () => (filtered != null ? buildDomainUseCaseDotSource(filtered, rankdir) : ""),
+  const bundle = useMemo(
+    () =>
+      filtered != null
+        ? buildDomainUseCaseDotBundle(filtered, rankdir, { roleActorImageUrl: useCaseRoleActorUrl })
+        : null,
     [filtered, rankdir],
   );
+
+  const dot = bundle?.dot ?? "";
 
   const toggleDomain = useCallback(
     (key: string) => {
@@ -155,9 +167,10 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   const prevDotRef = useRef<string | null>(null);
 
   useLayoutEffect(() => {
-    if (dot === prevDotRef.current) return;
+    const d = bundle?.dot ?? "";
+    if (d === prevDotRef.current) return;
     const prev = prevDotRef.current;
-    prevDotRef.current = dot;
+    prevDotRef.current = d;
     setFirstFitDone(false);
     resetFitFlag();
     if (prev !== null) {
@@ -166,17 +179,21 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   }, [dot, resetFitFlag]);
 
   useEffect(() => {
-    if (!dot) {
+    if (!bundle) {
       setSvgMarkup("");
       setRenderError(null);
       return;
     }
     let cancelled = false;
     setRenderError(null);
+    const needsRoleImages = (filtered?.roles.length ?? 0) > 0;
     loadGraphvizWasm()
       .then((gv) => {
         if (cancelled) return;
-        const svg = gv.layout(dot, "svg", "dot");
+        const svg = gv.layout(bundle.dot, "svg", "dot", {
+          files: bundle.files,
+          images: needsRoleImages ? [graphvizRoleActorImage] : [],
+        });
         if (cancelled) return;
         setSvgMarkup(svg);
         setSvgRenderVersion((v) => v + 1);
@@ -187,7 +204,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     return () => {
       cancelled = true;
     };
-  }, [dot]);
+  }, [bundle, filtered]);
 
   useLayoutEffect(() => {
     if (!svgMarkup) return;
