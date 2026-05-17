@@ -71,9 +71,9 @@ function unionClientRects(elements: Iterable<Element>, viewport: HTMLElement): R
     const b = el.getBoundingClientRect();
     if (
       !Number.isFinite(b.width) ||
-      b.width < 1 ||
+      b.width < 0.25 ||
       !Number.isFinite(b.height) ||
-      b.height < 1
+      b.height < 0.25
     ) {
       continue;
     }
@@ -89,7 +89,41 @@ function unionClientRects(elements: Iterable<Element>, viewport: HTMLElement): R
   return { x: minX, y: minY, width: w, height: h };
 }
 
-export function useSvgPanZoom() {
+/** Tight bounds of the whole Graphviz drawing (nodes + splines + labels), viewport-local px. */
+function graphGroupBoxInViewport(svg: SVGSVGElement, viewport: HTMLElement): Rect | null {
+  const gg = svg.querySelector("g.graph");
+  if (!gg) return null;
+  const b = gg.getBoundingClientRect();
+  const vr = viewport.getBoundingClientRect();
+  if (
+    !Number.isFinite(b.width) ||
+    b.width < 1 ||
+    !Number.isFinite(b.height) ||
+    b.height < 1
+  ) {
+    return null;
+  }
+  return {
+    x: b.left - vr.left,
+    y: b.top - vr.top,
+    width: b.width,
+    height: b.height,
+  };
+}
+
+export type UseSvgPanZoomOptions = {
+  /**
+   * Pixels subtracted from viewport height when computing fit scale / vertical centering
+   * (e.g. floating zoom toolbar over the canvas bottom).
+   */
+  fitBottomInset?: number;
+  /** Maximum scale used by automatic fit; user zoom still uses MAX_SCALE. */
+  fitMaxScale?: number;
+};
+
+export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
+  const fitBottomInset = options?.fitBottomInset ?? 0;
+  const fitMaxScale = options?.fitMaxScale ?? MAX_SCALE;
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const pannerRef = useRef<HTMLDivElement | null>(null);
   const panRef = useRef({ scale: 1, tx: 0, ty: 0 });
@@ -101,6 +135,7 @@ export function useSvgPanZoom() {
   const interactAbortRef = useRef<AbortController | null>(null);
   const resizeFitRafRef = useRef<number | null>(null);
   const hasFittedRef = useRef(false);
+  const lastVpSizeRef = useRef({ w: 0, h: 0 });
   const [zoomPct, setZoomPct] = useState(100);
 
   const applyTransform = useCallback((publishZoom = true) => {
@@ -122,6 +157,8 @@ export function useSvgPanZoom() {
     const ch = vp.clientHeight;
     if (cw < 8 || ch < 8) return;
 
+    const chFit = Math.max(8, ch - fitBottomInset);
+
     stripGraphvizBackdropPolygons(svg);
 
     // Measure real painted SVG content at identity panner transform.
@@ -131,24 +168,29 @@ export function useSvgPanZoom() {
     applyTransform(false);
     void panner.offsetHeight;
 
-    let box = unionClientRects(svg.querySelectorAll("g.graph g.node"), vp);
+    // Prefer ``g.graph`` bounds: union of ``g.node`` / ``g.edge`` rects often misses wide splines
+    // and off-node labels, which makes ``s`` too large and clips the diagram (lifecycle + ERD).
+    let box = graphGroupBoxInViewport(svg, vp);
+    if (!box) {
+      box = unionClientRects(svg.querySelectorAll("g.graph g.node, g.graph g.edge"), vp);
+    }
     if (!box) {
       const graphEl = svg.querySelector("g.graph") ?? svg;
       box = unionClientRects([graphEl], vp);
     }
     if (!box) return;
 
-    const pad = 0.88;
-    let s = Math.min((cw * pad) / box.width, (ch * pad) / box.height);
-    s = Math.max(MIN_SCALE, Math.min(s, MAX_SCALE));
+    const pad = 0.9;
+    let s = Math.min((cw * pad) / box.width, (chFit * pad) / box.height);
+    s = Math.max(MIN_SCALE, Math.min(s, fitMaxScale));
 
     panRef.current.scale = s;
     const tx = (cw - box.width * s) / 2 - box.x * s;
-    const ty = (ch - box.height * s) / 2 - box.y * s;
+    const ty = (chFit - box.height * s) / 2 - box.y * s;
     panRef.current.tx = tx;
     panRef.current.ty = ty;
     applyTransform();
-  }, [applyTransform]);
+  }, [applyTransform, fitBottomInset, fitMaxScale]);
 
   useEffect(() => {
     const vp = viewportRef.current;
@@ -157,7 +199,14 @@ export function useSvgPanZoom() {
       if (resizeFitRafRef.current !== null) return;
       resizeFitRafRef.current = requestAnimationFrame(() => {
         resizeFitRafRef.current = null;
-        if (!hasFittedRef.current) {
+        const w = vp.clientWidth;
+        const h = vp.clientHeight;
+        const prev = lastVpSizeRef.current;
+        const sizeChanged = Math.abs(w - prev.w) > 1 || Math.abs(h - prev.h) > 1;
+        if (sizeChanged) {
+          lastVpSizeRef.current = { w, h };
+        }
+        if (!hasFittedRef.current || sizeChanged) {
           fitToContainer();
         }
       });
@@ -306,7 +355,10 @@ export function useSvgPanZoom() {
 
   const resetFitFlag = useCallback(() => {
     hasFittedRef.current = false;
-  }, []);
+    panRef.current = { scale: 1, tx: 0, ty: 0 };
+    applyTransform(false);
+    setZoomPct(100);
+  }, [applyTransform]);
 
   return {
     viewportRef,

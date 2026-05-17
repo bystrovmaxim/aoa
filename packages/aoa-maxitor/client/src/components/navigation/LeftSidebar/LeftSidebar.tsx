@@ -97,6 +97,7 @@ type LeftSidebarProps = {
 
 function selectionKey(sel: DiagramSelection): string {
   if (sel.kind === "interchange_graph") return "interchange_graph";
+  if (sel.kind === "lifecycle_fsm") return `lifecycle_fsm:${sel.lifecycle_graph_node_id}`;
   return `erd:${sel.qualifier ?? "all"}`;
 }
 
@@ -132,6 +133,10 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
         if (diagram.qualifier) {
           next[diagram.qualifier] = true;
         }
+      }
+      if (diagram.kind === "lifecycle_fsm") {
+        next.entities_root = true;
+        next[diagram.host_entity_interchange_id] = true;
       }
       return next;
     });
