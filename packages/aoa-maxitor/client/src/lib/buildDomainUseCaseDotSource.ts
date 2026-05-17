@@ -126,6 +126,9 @@ export type DomainUseCaseDotBundle = {
   actionImages: Array<{ path: string; width: string; height: string }>;
 };
 
+/** Graphviz engine passed through to WASM ``layout(dot, ..., engine)``. */
+export type DomainUseCaseLayoutEngine = "dot" | "neato" | "fdp";
+
 /** Optional layout switches for DOT generation. */
 export type DomainUseCaseDotLayoutOptions = {
   /**
@@ -133,6 +136,11 @@ export type DomainUseCaseDotLayoutOptions = {
    * When false, action nodes lay out without that cluster (UML boundary optional).
    */
   boundary?: boolean;
+  /**
+   * ``dot`` uses hierarchical ``rankdir``; ``neato`` / ``fdp`` suit boundary-free sketches (spring / force).
+   * Default ``dot``.
+   */
+  layoutEngine?: DomainUseCaseLayoutEngine;
 };
 
 /**
@@ -146,14 +154,36 @@ export function buildDomainUseCaseDotBundle(
   layout?: DomainUseCaseDotLayoutOptions,
 ): DomainUseCaseDotBundle {
   const boundary = layout?.boundary !== false;
+  const layoutEngine: DomainUseCaseLayoutEngine =
+    boundary ? "dot" : (layout?.layoutEngine ?? "dot");
   const { actions, roles, edges } = data;
   const files: DomainUseCaseGraphvizFile[] = [];
   const actionImages: Array<{ path: string; width: string; height: string }> = [];
+
+  let graphAttrs: string;
+  let edgeDefaultAttrs: string;
+  if (layoutEngine === "dot") {
+    graphAttrs = `rankdir=${rankdir}, bgcolor=transparent, fontname="Inter, Helvetica, sans-serif"`;
+    edgeDefaultAttrs = 'fontname="Inter, Helvetica, sans-serif"';
+  } else if (layoutEngine === "neato") {
+    // ``sep`` only nudges overlap removal; ``len`` on edges actually stretches Neato/KK springs.
+    graphAttrs =
+      `bgcolor=transparent, fontname="Inter, Helvetica, sans-serif", ` +
+      `overlap=false, splines=spline, sep="+55,+45", pad=0.44`;
+    edgeDefaultAttrs = 'fontname="Inter, Helvetica, sans-serif", len=1.45';
+  } else {
+    // Tighter pack: ~30 % less sep/pad/len vs previous FDP line.
+    graphAttrs =
+      `bgcolor=transparent, fontname="Inter, Helvetica, sans-serif", ` +
+      `overlap=scale, splines=spline, sep="+25,+22", pad=0.19`;
+    edgeDefaultAttrs = 'fontname="Inter, Helvetica, sans-serif", len=0.43';
+  }
+
   const lines: string[] = [
     "digraph use_case {",
-    `  graph [rankdir=${rankdir}, bgcolor=transparent, fontname="Inter, Helvetica, sans-serif"];`,
+    `  graph [${graphAttrs}];`,
     '  node [fontname="Inter, Helvetica, sans-serif"];',
-    '  edge [fontname="Inter, Helvetica, sans-serif"];',
+    `  edge [${edgeDefaultAttrs}];`,
   ];
 
   const pushActionNodes = (indent: string) => {
