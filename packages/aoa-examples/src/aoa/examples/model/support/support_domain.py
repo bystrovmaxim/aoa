@@ -1,4 +1,4 @@
-# packages/aoa-examples/src/aoa/examples/model/support/domain.py
+# packages/aoa-examples/src/aoa/examples/model/support/support_domain.py
 """Bounded-context marker for support — demo ``@depends`` on other actions."""
 
 from aoa.action_machine.domain import BaseDomain

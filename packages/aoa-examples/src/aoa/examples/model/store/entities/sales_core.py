@@ -28,12 +28,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.examples.model.billing.entities.payment_event_log import PaymentEventLogEntity
 from aoa.examples.model.catalog.entities.product_row import CatalogProductEntity
 from aoa.examples.model.identity.entities.identity_person_hub import IdentityPersonHubEntity
-from aoa.examples.model.store.domain import StoreDomain
-from aoa.examples.model.store.entities.lifecycle import (
-    CustomerAccountLifecycle,
-    SalesOrderLifecycle,
-    SalesOrderLineLifecycle,
-)
+from aoa.examples.model.store.entities.customer_account_lifecycle import CustomerAccountLifecycle
+from aoa.examples.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
+from aoa.examples.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
+from aoa.examples.model.store.store_domain import StoreDomain
 
 
 @entity(description="Registered customer", domain=StoreDomain)

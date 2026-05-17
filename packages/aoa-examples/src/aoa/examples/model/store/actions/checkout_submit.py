@@ -23,8 +23,8 @@ from aoa.examples.model.billing.resources.payment_gateway import PaymentGateway,
 from aoa.examples.model.messaging.resources.notification_gateway import NotificationGatewayResource
 from aoa.examples.model.roles import EditorRole
 from aoa.examples.model.store.dependencies import _shared_notifier
-from aoa.examples.model.store.domain import StoreDomain
 from aoa.examples.model.store.resources import StorefrontDatabase, StorefrontSessionCache
+from aoa.examples.model.store.store_domain import StoreDomain
 
 
 @meta(description="Sample checkout with full decorator surface (graph demo)", domain=StoreDomain)

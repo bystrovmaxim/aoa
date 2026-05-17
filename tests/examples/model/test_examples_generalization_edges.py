@@ -14,7 +14,8 @@ from aoa.examples.model.interchange_demo_coordinator import (
 from aoa.examples.model.roles import EditorRole, ViewerRole
 from aoa.examples.model.store.actions.order_lookup import OrderLookupAction
 from aoa.examples.model.store.actions.store_read import StoreReadAction
-from aoa.examples.model.store.domain import CommerceDomain, StoreDomain
+from aoa.examples.model.store.marketplace_operations_domain import MarketplaceOperationsDomain
+from aoa.examples.model.store.store_domain import StoreDomain
 
 
 def test_examples_model_interchange_includes_parent_generalization_edges() -> None:
@@ -34,11 +35,11 @@ def test_examples_model_interchange_includes_parent_generalization_edges() -> No
     assert viewer_id in node_ids
 
     store_dom_id = TypeIntrospection.full_qualname(StoreDomain)
-    commerce_id = TypeIntrospection.full_qualname(CommerceDomain)
+    marketplace_id = TypeIntrospection.full_qualname(MarketplaceOperationsDomain)
     pd = [e for e in payload["edges"] if e["type"] == "parent_domain" and e["source_id"] == store_dom_id]
     assert len(pd) == 1
-    assert pd[0]["target_id"] == commerce_id
-    assert commerce_id in node_ids
+    assert pd[0]["target_id"] == marketplace_id
+    assert marketplace_id in node_ids
 
     lookup_id = TypeIntrospection.full_qualname(OrderLookupAction)
     read_id = TypeIntrospection.full_qualname(StoreReadAction)

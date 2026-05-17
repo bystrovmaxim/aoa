@@ -41,7 +41,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
-from ..domains import OrdersDomain
+from ..orders_domain import OrdersDomain
 
 
 @meta(description="Create new order", domain=OrdersDomain)

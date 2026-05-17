@@ -11,7 +11,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.examples.model.roles import DeprecatedRole, EditorRole
-from aoa.examples.model.store.domain import StoreDomain
+from aoa.examples.model.store.store_domain import StoreDomain
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", DeprecationWarning)

@@ -10,7 +10,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.examples.model.support.domain import SupportDomain
+from aoa.examples.model.support.support_domain import SupportDomain
 
 
 @meta(description="Evaluate SLA breach (support sample stub)", domain=SupportDomain)

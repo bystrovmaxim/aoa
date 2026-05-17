@@ -16,8 +16,8 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseEntity, Inverse, Lifecycle, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.examples.model.store.domain import StoreDomain
 from aoa.examples.model.store.entities.sales_core import CustomerAccountEntity, SalesOrderEntity
+from aoa.examples.model.store.store_domain import StoreDomain
 
 
 class _StoreDirectedCycleSketchLifecycle(Lifecycle):

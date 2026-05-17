@@ -12,7 +12,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.examples.model.roles import ViewerRole
-from aoa.examples.model.store.domain import StoreDomain
+from aoa.examples.model.store.store_domain import StoreDomain
 
 
 @meta(description="Shared store read pipeline base (sample inheritance)", domain=StoreDomain)

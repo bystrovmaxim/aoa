@@ -7,9 +7,9 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.examples.model.store.domain import StoreDomain
-from aoa.examples.model.store.entities.lifecycle import SalesOrderLineLifecycle
 from aoa.examples.model.store.entities.sales_core import SalesOrderEntity, SalesOrderLineEntity
+from aoa.examples.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
+from aoa.examples.model.store.store_domain import StoreDomain
 
 
 @entity(description="Shipment piece bridging line + header (dense mesh cue)", domain=StoreDomain)
