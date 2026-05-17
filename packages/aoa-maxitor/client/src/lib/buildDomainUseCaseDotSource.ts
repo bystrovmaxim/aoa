@@ -30,6 +30,20 @@ function svgXmlEsc(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+/** Solid light fill from accent (replaces translucent ``#RRGGBB22`` alpha overlay). */
+function opaqueAccentFill(accentHex: string): string {
+  const raw = accentHex.trim();
+  const compact = raw.startsWith("#") ? raw.slice(1) : raw;
+  if (!/^[0-9a-fA-F]{6}$/.test(compact)) return "#ffffff";
+  const n = Number.parseInt(compact, 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const mix = (c: number) => Math.round(c * 0.12 + 255 * 0.88);
+  const toHex = (v: number) => v.toString(16).padStart(2, "0");
+  return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+}
+
 /**
  * Wrap label into the minimum number of lines by greedily packing camelCase
  * words onto each line up to ``maxChars`` characters.
@@ -71,7 +85,7 @@ export function buildActionGlyphDataUrl(label: string, accentColor: string): str
   const cy = H / 2;
   const rx = 74;
   const ry = H / 2 - 4;
-  const fill = `${accentColor}22`;
+  const fill = opaqueAccentFill(accentColor);
 
   // Right-shifted chord on the ellipse.
   const frac1 = 0.50;
@@ -112,6 +126,15 @@ export type DomainUseCaseDotBundle = {
   actionImages: Array<{ path: string; width: string; height: string }>;
 };
 
+/** Optional layout switches for DOT generation. */
+export type DomainUseCaseDotLayoutOptions = {
+  /**
+   * When true (default), actions are subgraph-clustered behind a rounded system-boundary contour.
+   * When false, action nodes lay out without that cluster (UML boundary optional).
+   */
+  boundary?: boolean;
+};
+
 /**
  * Build DOT for a use-case slice. Actions are native ellipses; roles use an SVG actor via ``<IMG>``.
  * The bundle includes ``files`` for future WASM virtual assets (empty when none are emitted).
@@ -120,7 +143,9 @@ export function buildDomainUseCaseDotBundle(
   data: DomainUseCaseDiagramPayload,
   rankdir: DomainUseCaseRankdir = "LR",
   imageOptions: DomainUseCaseDotImageOptions,
+  layout?: DomainUseCaseDotLayoutOptions,
 ): DomainUseCaseDotBundle {
+  const boundary = layout?.boundary !== false;
   const { actions, roles, edges } = data;
   const files: DomainUseCaseGraphvizFile[] = [];
   const actionImages: Array<{ path: string; width: string; height: string }> = [];
@@ -131,29 +156,36 @@ export function buildDomainUseCaseDotBundle(
     '  edge [fontname="Inter, Helvetica, sans-serif"];',
   ];
 
-  // Neutral contour — diagram may mix actions from several domains (see per-node accent_color).
-  lines.push(`  subgraph cluster_scope {`);
-  lines.push(`    label="";`);
-  lines.push(`    style="rounded,filled";`);
-  lines.push(`    color="#64748b";`);
-  lines.push(`    fontcolor="#0f172a";`);
-  lines.push(`    fillcolor="#ffffff";`);
-  lines.push(`    penwidth=1.2;`);
+  const pushActionNodes = (indent: string) => {
+    for (const a of actions) {
+      const nid = domainUseCaseDotNodeId("a", a.id);
+      const linesCount = wrapLabel(a.short_label || a.label).length;
+      const H = Math.max(60, linesCount * 14 + 20);
+      const W = 160;
+      const wIn = (W / 96).toFixed(3);
+      const hIn = (H / 96).toFixed(3);
+      const dataUrl = buildActionGlyphDataUrl(a.short_label || a.label, a.accent_color);
+      actionImages.push({ path: dataUrl, width: `${W}px`, height: `${H}px` });
+      lines.push(
+        `${indent}${nid} [shape=none label="" image="${dotEscAttr(dataUrl)}" width=${wIn} height=${hIn} fixedsize=true];`,
+      );
+    }
+  };
 
-  for (const a of actions) {
-    const nid = domainUseCaseDotNodeId("a", a.id);
-    const linesCount = wrapLabel(a.short_label || a.label).length;
-    const H = Math.max(60, linesCount * 14 + 20);
-    const W = 160;
-    const wIn = (W / 96).toFixed(3);
-    const hIn = (H / 96).toFixed(3);
-    const dataUrl = buildActionGlyphDataUrl(a.short_label || a.label, a.accent_color);
-    actionImages.push({ path: dataUrl, width: `${W}px`, height: `${H}px` });
-    lines.push(
-      `    ${nid} [shape=none label="" image="${dotEscAttr(dataUrl)}" width=${wIn} height=${hIn} fixedsize=true];`,
-    );
+  if (boundary) {
+    // Neutral contour — diagram may mix actions from several domains (see per-node accent_color).
+    lines.push(`  subgraph cluster_scope {`);
+    lines.push(`    label="";`);
+    lines.push(`    style="rounded,filled";`);
+    lines.push(`    color="#64748b";`);
+    lines.push(`    fontcolor="#0f172a";`);
+    lines.push(`    fillcolor="#ffffff";`);
+    lines.push(`    penwidth=1.2;`);
+    pushActionNodes("    ");
+    lines.push(`  }`);
+  } else {
+    pushActionNodes("  ");
   }
-  lines.push(`  }`);
 
   const imgUrl = dotEscAttr(imageOptions.roleActorImageUrl);
   for (const r of roles) {
