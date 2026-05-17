@@ -70,8 +70,7 @@ export function buildLifecycleFsmDotSource(data: LifecycleFiniteAutomatonPayload
     const id = dotQuoteId(s.key);
     const { fill, stroke } = paletteForStateType(s.state_type ?? "");
     const title = formatStateTitle(s.display_name, s.key);
-    const sub = htmlEscape(s.key);
-    const label = `<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="1" CELLSPACING="0"><TR><TD ALIGN="CENTER"><B>${htmlEscape(title)}</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9" COLOR="#64748b">${sub}</FONT></TD></TR></TABLE>>`;
+    const label = `<<B>${htmlEscape(title)}</B>>`;
     lines.push(
       `  ${id} [label=${label}, shape=box, style="rounded,filled", fillcolor="${fill}", color="${stroke}", penwidth=1.15];`,
     );
