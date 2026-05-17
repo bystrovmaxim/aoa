@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 92" width="64" height="92" fill="none">
   <!-- Classic UML actor close to the reference screenshot. -->
   <g stroke="#3f3f46" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="32" cy="14" r="10" />
+    <circle cx="32" cy="14" r="10" fill="#ffffff" />
     <!-- Diagonal slash inside head, shifted further right; does not pass through circle center. -->
     <line x1="29.42" y1="22.58" x2="40.58" y2="11.42" />
     <line x1="32" y1="24" x2="32" y2="54" />

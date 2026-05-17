@@ -5,10 +5,12 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 export type OneHopToggleProps = {
   checked: boolean;
   onChange: (next: boolean) => void;
+  /** Checkbox label ("1-hop" for ERD neighborhood). Default: `"1-hop"`. */
+  label?: string;
 };
 
 /** Same strip as former ``#neighborhood-filter`` / 13px checkbox + label. */
-export function OneHopToggle({ checked, onChange }: OneHopToggleProps) {
+export function OneHopToggle({ checked, onChange, label = "1-hop" }: OneHopToggleProps) {
   return (
     <FormControlLabel
       sx={{
@@ -52,7 +54,7 @@ export function OneHopToggle({ checked, onChange }: OneHopToggleProps) {
           }}
         />
       }
-      label="1-hop"
+      label={label}
     />
   );
 }

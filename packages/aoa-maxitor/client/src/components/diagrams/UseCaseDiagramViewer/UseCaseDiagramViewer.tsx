@@ -10,6 +10,7 @@ import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShe
 import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
 import { LayoutGlyphDotLR, LayoutGlyphDotTB } from "@/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/layoutEngineGlyphs";
 import { DomainLegend } from "@/components/ui/DomainLegend";
+import { OneHopToggle } from "@/components/ui/OneHopToggle";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import useCaseRoleActorUrl from "@/assets/useCaseRoleActor.svg?url";
 import { buildDomainUseCaseDotBundle, type DomainUseCaseRankdir } from "@/lib/buildDomainUseCaseDotSource";
@@ -30,6 +31,8 @@ const GRID_SX = {
 };
 
 const useCaseRankdirByDomainId = new Map<string, DomainUseCaseRankdir>();
+
+const useCaseBoundaryByDomainId = new Map<string, boolean>();
 
 const graphvizRoleActorImage = {
   path: useCaseRoleActorUrl,
@@ -56,6 +59,18 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   useEffect(() => {
     useCaseRankdirByDomainId.set(domainId, rankdir);
   }, [domainId, rankdir]);
+
+  const [boundary, setBoundary] = useState(
+    () => useCaseBoundaryByDomainId.get(domainId) ?? true,
+  );
+
+  useEffect(() => {
+    setBoundary(useCaseBoundaryByDomainId.get(domainId) ?? true);
+  }, [domainId]);
+
+  useEffect(() => {
+    useCaseBoundaryByDomainId.set(domainId, boundary);
+  }, [domainId, boundary]);
 
   const domainKeyList = useMemo(() => {
     if (!data) return [];
@@ -133,9 +148,9 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   const bundle = useMemo(
     () =>
       filtered != null
-        ? buildDomainUseCaseDotBundle(filtered, rankdir, { roleActorImageUrl: useCaseRoleActorUrl })
+        ? buildDomainUseCaseDotBundle(filtered, rankdir, { roleActorImageUrl: useCaseRoleActorUrl }, { boundary })
         : null,
-    [filtered, rankdir],
+    [filtered, rankdir, boundary],
   );
 
   const dot = bundle?.dot ?? "";
@@ -377,6 +392,12 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
                   </Tooltip>
                 </ToggleButton>
               </ToggleButtonGroup>
+              <Box
+                component="span"
+                aria-hidden
+                sx={{ width: "1px", height: "22px", bgcolor: "rgba(15, 23, 42, 0.12)", flexShrink: 0, mx: "2px" }}
+              />
+              <OneHopToggle checked={boundary} onChange={setBoundary} label="Boundary" />
             </ZoomToolbar>
           </Box>
         </Box>
