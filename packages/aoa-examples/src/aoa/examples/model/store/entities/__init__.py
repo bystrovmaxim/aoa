@@ -40,8 +40,8 @@ from aoa.examples.model.store.entities.store_mesh_order_parcel_handoff import St
 from aoa.examples.model.store.entities.store_order_address_verification import AddressVerificationTrailEntity
 from aoa.examples.model.store.entities.store_order_channel_attribution import OrderChannelAttributionEntity
 from aoa.examples.model.store.entities.store_order_compliance_review import ComplianceReviewQueueEntity
-from aoa.examples.model.store.entities.store_order_dual_entry_origin import OrderDualEntryOriginTraceEntity
 from aoa.examples.model.store.entities.store_order_deposit_allocation import DepositAllocationEntity
+from aoa.examples.model.store.entities.store_order_dual_entry_origin import OrderDualEntryOriginTraceEntity
 from aoa.examples.model.store.entities.store_order_fraud_challenge import FraudChallengeTicketEntity
 from aoa.examples.model.store.entities.store_order_geo_fence import OrderGeoFenceEntity
 from aoa.examples.model.store.entities.store_order_gift_wrap import GiftWrapAddonEntity
@@ -88,7 +88,6 @@ __all__ = [
     "SalesOrderLifecycle",
     "SalesOrderLineEntity",
     "SalesOrderLineLifecycle",
-    "StoreDualEntryLifecycle",
     "ShipmentEstimateEntity",
     "ShipmentParcelEntity",
     "ShipmentTrackingEventEntity",
@@ -96,6 +95,7 @@ __all__ = [
     "StoreCustomerOrderAffinityEntity",
     "StoreDirectedCyclePingEntity",
     "StoreDirectedCyclePongEntity",
+    "StoreDualEntryLifecycle",
     "StoreInvoiceLineTieEntity",
     "StoreLineParcelPickEntity",
     "StoreOrderInvoiceBridgeEntity",

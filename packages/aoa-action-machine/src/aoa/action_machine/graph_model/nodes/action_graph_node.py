@@ -33,6 +33,7 @@ from typing import Any, ClassVar, TypeVar, cast
 
 from aoa.action_machine.exceptions.missing_summary_aspect_error import MissingSummaryAspectError
 from aoa.action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
+from aoa.action_machine.intents.depends.use_case import VALID_USE_CASE_MODES
 from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.runtime.dependency_info import DependencyInfo
@@ -138,7 +139,9 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             factory = raw_fac if raw_fac is None or callable(raw_fac) else None
             desc_raw = edge.properties.get("description", "")
             description = desc_raw if isinstance(desc_raw, str) else ""
-            out.append(DependencyInfo(cls=host, factory=factory, description=description))
+            raw_mode = edge.properties.get("mode")
+            mode = raw_mode if isinstance(raw_mode, str) and raw_mode in VALID_USE_CASE_MODES else None
+            out.append(DependencyInfo(cls=host, factory=factory, description=description, mode=mode))
         return tuple(out)
 
     def get_regular_aspect_graph_nodes(self) -> list[RegularAspectGraphNode]:

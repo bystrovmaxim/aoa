@@ -9,7 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking changes
+
+- **@depends on concrete actions requires `mode`.** Host actions that depend on another `BaseAction` subclass must pass `mode=UseCase.include` or `mode=UseCase.extend`. Dependencies on `BaseResource` must omit `mode`. Call sites that only `box.resolve` a peer action should use `extend` until an unconditional `await box.run(...)` / `machine.run` path exists; then `include` is appropriate where the peer must always run in that root session.
+
 ### Added
+
+- **UML-style `@depends` mode (Use Case stereotypes).** `UseCase` / `VALID_USE_CASE_MODES`, `DependencyInfo.mode`, decorator validation, `DependsGraphEdge` and `resolved_dependency_infos` round-trip, and interchange JSON Schema (`optional` `mode` enum `include` / `extend` on `@depends` edges). `DependsIntentResolver.resolve_include_dependency_types` lists declared `include` targets. Package docs and READMEs describe semantics; **Maxitor DuckDB `depends_edges` in the default v1 path does not add a `mode` column** — consumers read `mode` from the full graph JSON.
+
+- **Include contract on successful root runs.** `ActionProductMachine` tracks action classes that enter `_run_internal` for the current root session (`ContextVar`) and runs `IncludeContractChecker` before `emit_global_finish` when the aspect pipeline ran (including success paths that return only from `@on_error`). Missing `UseCase.include` executions raise `IncludeContractViolationError` with `missing_include_types`. Root cache hits that skip the pipeline skip this check.
 
 - **Entity lifecycle (finite-state) diagram in Maxitor.** The operator SPA can open an entity’s **Lifecycle view**: Graphviz `dot` renders the automaton as SVG with pan/zoom, LR/TB rank direction, and a **Fit to window** control. The backend exposes the lifecycle payload for the viewer (`GET /api/v1/lifecycle-finite-automaton`).
 

@@ -859,6 +859,13 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
               "properties": {
                 "description": {
                   "type": "string"
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "include",
+                    "extend"
+                  ]
                 }
               }
             }
