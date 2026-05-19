@@ -147,6 +147,8 @@ else
 fi
 echo "" >>"$LOG_FILE"
 
+run_and_log "(cd packages/aoa-maxitor/client && npm ci && npm run build)" "Maxitor client: npm ci and Vite build"
+
 run_and_log "uv run --extra dev ruff check --fix ." "Ruff auto-fix"
 run_and_log "uv run --extra dev task lint" "Ruff lint"
 run_and_log "uv run --extra dev task typecheck" "Mypy typecheck"
