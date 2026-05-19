@@ -45,6 +45,7 @@ USAGE
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
@@ -57,7 +58,7 @@ class FieldInstanceChecker:
     Self-contained implementation; runtime uses the usual constructor kwargs and ``.check(result_dict)``.
     """
 
-    __slots__ = ("expected_class", "field_name", "no_none", "required")
+    __slots__ = ("expected_class", "field_name", "no_none", "required", "value_check")
 
     def __init__(
         self,
@@ -65,23 +66,28 @@ class FieldInstanceChecker:
         expected_class: type[Any] | tuple[type[Any], ...],
         required: bool = True,
         no_none: bool = False,
+        value_check: Callable[[Any], bool] | None = None,
     ) -> None:
         self.field_name = field_name
         self.required = required
         self.expected_class = expected_class
         self.no_none = no_none
+        self.value_check = value_check
 
     def _get_extra_params(self) -> dict[str, Any]:
         """
         Return constructor params for snapshot serialization.
 
         Returns:
-            Dictionary with ``expected_class`` and ``no_none`` keys.
+            Dictionary with ``expected_class``, ``no_none``, and optional ``value_check``.
         """
-        return {
+        params: dict[str, Any] = {
             "expected_class": self.expected_class,
             "no_none": self.no_none,
         }
+        if self.value_check is not None:
+            params["value_check"] = self.value_check
+        return params
 
     def check(self, result: dict[str, Any]) -> None:
         """Validate one instance-typed field in ``result``."""
@@ -114,12 +120,20 @@ class FieldInstanceChecker:
                 f"got {type(value).__name__}"
             )
 
+        if self.value_check is not None:
+            if not self.value_check(value):
+                raise ValidationFieldError(
+                    f"Field '{self.field_name}' failed value_check",
+                    field=self.field_name,
+                )
+
 
 def result_instance(
     field_name: str,
     expected_class: type[Any] | tuple[type[Any], ...],
     required: bool = True,
     no_none: bool = False,
+    value_check: Callable[[Any], bool] | None = None,
 ) -> Any:
     """
     Decorator for aspect methods declaring class-instance result field.
@@ -133,6 +147,8 @@ def result_instance(
         expected_class: expected class or tuple of classes.
         required: whether field is required.
         no_none: when ``True``, reject explicit ``None`` even if the field key is present.
+        value_check: optional predicate run after ``isinstance``; ``False`` raises
+            ``ValidationFieldError``.
 
     Returns:
         Decorator function that appends checker metadata to method.
@@ -155,6 +171,7 @@ def result_instance(
         "required": required,
         "no_none": no_none,
         "expected_class": expected_class,
+        "value_check": value_check,
     }
 
     def decorator(func: Any) -> Any:
