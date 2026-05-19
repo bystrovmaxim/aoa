@@ -50,6 +50,7 @@ dmypy.json
 # Node (Maxitor web client — source lives in git; node_modules stays local only)
 # ============================================================================
 packages/aoa-maxitor/client/node_modules/
+packages/aoa-maxitor/client/.vite/
 
 # ============================================================================
 # IDE
