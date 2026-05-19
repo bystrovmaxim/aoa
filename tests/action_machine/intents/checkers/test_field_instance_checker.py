@@ -36,6 +36,10 @@ TestNoNone
     - no_none=True: explicit None rejected.
     - no_none=False: explicit None follows optional/required + isinstance rules.
 
+TestValueCheck
+    - value_check True/False after isinstance.
+    - value_check skipped on wrong type, no_none, or missing field.
+
 TestExtraParams
     - _get_extra_params returns expected_class and no_none.
 
@@ -45,6 +49,8 @@ TestDecorator
     - Decorator returns the original function.
     - Multiple decorators accumulate.
 """
+
+from typing import Any
 
 import pytest
 
@@ -84,6 +90,18 @@ class _Payment:
 
     def __init__(self, amount: float) -> None:
         self.amount = amount
+
+
+def _bool_value_check(value: Any) -> bool:
+    return bool(value)
+
+
+def _always_true_value_check(_value: Any) -> bool:
+    return True
+
+
+def _always_false_value_check(_value: Any) -> bool:
+    return False
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -381,6 +399,73 @@ class TestNoNone:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# value_check
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestValueCheck:
+    """Optional predicate after isinstance."""
+
+    def test_value_check_true_passes(self):
+        """value_check returning True accepts valid instance."""
+        checker = FieldInstanceChecker(
+            "x", _User, value_check=_always_true_value_check,
+        )
+        checker.check({"x": _User(1, "Alice")})
+
+    def test_value_check_false_raises(self):
+        """value_check returning False raises ValidationFieldError."""
+        checker = FieldInstanceChecker(
+            "x", _User, value_check=_always_false_value_check,
+        )
+        with pytest.raises(ValidationFieldError, match="failed value_check"):
+            checker.check({"x": _User(1, "Alice")})
+
+    def test_value_check_not_called_on_wrong_type(self):
+        """value_check skipped when isinstance fails."""
+        calls: list[Any] = []
+
+        def track(_v: Any) -> bool:
+            calls.append(1)
+            return True
+
+        checker = FieldInstanceChecker("x", _User, value_check=track)
+        with pytest.raises(ValidationFieldError):
+            checker.check({"x": "not a user"})
+        assert calls == []
+
+    def test_value_check_not_called_on_no_none_violation(self):
+        """value_check skipped when no_none rejects explicit None."""
+        calls: list[Any] = []
+
+        def track(_v: Any) -> bool:
+            calls.append(1)
+            return True
+
+        checker = FieldInstanceChecker("x", _User, no_none=True, value_check=track)
+        with pytest.raises(ValidationFieldError, match="must not be None"):
+            checker.check({"x": None})
+        assert calls == []
+
+    def test_value_check_not_called_when_field_missing(self):
+        """value_check skipped when field is absent."""
+        calls: list[Any] = []
+
+        def track(_v: Any) -> bool:
+            calls.append(1)
+            return True
+
+        checker = FieldInstanceChecker("x", _User, required=False, value_check=track)
+        checker.check({})
+        assert calls == []
+
+    def test_without_value_check_unchanged(self):
+        """Default value_check=None keeps prior behavior."""
+        checker = FieldInstanceChecker("user", _User)
+        checker.check({"user": _User(1, "Alice")})
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # _get_extra_params
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -407,6 +492,22 @@ class TestExtraParams:
         params = checker._get_extra_params()
 
         assert params["no_none"] is True
+
+    def test_extra_params_includes_value_check_when_set(self):
+        """value_check callable stored in extra_params."""
+        checker = FieldInstanceChecker("x", _User, value_check=_bool_value_check)
+
+        params = checker._get_extra_params()
+
+        assert params["value_check"] is _bool_value_check
+
+    def test_extra_params_omits_value_check_when_none(self):
+        """value_check omitted from extra_params when unset."""
+        checker = FieldInstanceChecker("user", _User)
+
+        params = checker._get_extra_params()
+
+        assert "value_check" not in params
 
     def test_extra_params_tuple_of_classes(self):
         """Tuple of classes stored in extra_params."""
@@ -506,6 +607,24 @@ class TestDecorator:
 
         meta = aspect._checker_meta[0]
         assert meta["no_none"] is True
+
+    def test_value_check_recorded_in_meta(self):
+        """value_check callable stored in decorator metadata."""
+        @result_instance("ocel", _User, value_check=_bool_value_check)
+        async def aspect(self, params, state, box, connections):
+            return {"ocel": _User(1, "Alice")}
+
+        meta = aspect._checker_meta[0]
+        assert meta["value_check"] is _bool_value_check
+
+    def test_value_check_default_none_in_meta(self):
+        """Default value_check=None in metadata."""
+        @result_instance("user", _User)
+        async def aspect(self, params, state, box, connections):
+            return {"user": _User(1, "Alice")}
+
+        meta = aspect._checker_meta[0]
+        assert meta["value_check"] is None
 
     def test_extra_params_single_class_in_meta(self):
         """Single expected_class verified via checker instance."""
