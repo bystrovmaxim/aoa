@@ -35,6 +35,7 @@ def sync_machine() -> SyncActionProductMachine:
     """SyncActionProductMachine with a silent logger for unit tests."""
     return SyncActionProductMachine(
         log_coordinator=LogCoordinator(loggers=[]),
+        cache_coordinator=None,
     )
 
 

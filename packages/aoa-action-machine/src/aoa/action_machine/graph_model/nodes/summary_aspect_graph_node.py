@@ -53,6 +53,16 @@ class SummaryAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
         )
         object.__setattr__(self, "required_context", RequiredContextGraphEdge.get_required_context_edges(summary_func, _action_cls, self))
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "description": str(self.properties["description"]),
+            },
+        }
+
     def get_required_context_keys(self) -> frozenset[str]:
         """Return dot-path keys from :attr:`required_context` (``properties['key']`` per edge)."""
         out: set[str] = set()

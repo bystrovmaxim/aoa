@@ -7,7 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Builds a production-style ASGI app via ``FastApiAdapter``: registers routes for
-``PingAction``, ``CreateOrderAction``, and ``GetOrderAction`` using the shared
+``PingAction``, ``CreateOrderAction``, ``GetOrderAction``, and
+``GetExampleModelGraphJsonAction`` using the shared
 ``ActionProductMachine`` and auth coordinator from ``infrastructure``.
 
 OpenAPI is generated from Pydantic models and ``@meta`` / field metadata — no
@@ -29,7 +30,7 @@ ARCHITECTURE / DATA FLOW
     machine.run(...)  <- ActionProductMachine from infrastructure
          |
          v
-    PingAction | CreateOrderAction | GetOrderAction
+    PingAction | CreateOrderAction | GetOrderAction | GetExampleModelGraphJsonAction
 
     auth_coordinator  <- same as MCP example (infrastructure.auth)
 
@@ -75,6 +76,7 @@ _ensure_examples_package_src_on_path()
 from aoa.action_machine.integrations.fastapi import FastApiAdapter
 from aoa.examples.fastapi_mcp_services.actions import CreateOrderAction, GetOrderAction, PingAction
 from aoa.examples.fastapi_mcp_services.infrastructure import auth, machine
+from aoa.examples.model.actions import GetExampleModelGraphJsonAction
 
 # pylint: enable=wrong-import-position
 
@@ -92,6 +94,7 @@ app = (
         ),
     )
     .get("/api/v1/ping", PingAction, tags=["system"])
+    .get("/examples/model/graph-json", GetExampleModelGraphJsonAction, tags=["examples"])
     .post("/api/v1/orders", CreateOrderAction, tags=["orders"])
     .get("/api/v1/orders/{order_id}", GetOrderAction, tags=["orders"])
     .build()

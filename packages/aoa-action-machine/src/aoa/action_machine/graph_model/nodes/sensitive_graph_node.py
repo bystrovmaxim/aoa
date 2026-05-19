@@ -16,7 +16,7 @@ on the same property name. ``node_obj`` is a frozen :class:`SensitiveGraphPayloa
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from aoa.action_machine.intents.sensitive.sensitive_intent_resolver import SensitiveIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
@@ -89,3 +89,16 @@ class SensitiveGraphNode(BaseGraphNode[SensitiveGraphPayload]):
             properties=dict(row),
             node_obj=node_obj,
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "sensitive_enabled": bool(self.properties["sensitive_enabled"]),
+                "sensitive_max_chars": int(self.properties["sensitive_max_chars"]),
+                "sensitive_char": str(self.properties["sensitive_char"]),
+                "sensitive_max_percent": int(self.properties["sensitive_max_percent"]),
+            },
+        }

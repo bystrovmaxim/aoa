@@ -56,6 +56,16 @@ class CheckerGraphEdge(CompositionGraphEdge):
             target_node=checker_node,
         )
 
+    def to_dict(self, *, source_id: str) -> dict[str, Any]:
+        return {
+            "source_id": source_id,
+            "target_id": self.target_node_id,
+            "type": self.edge_name,
+            "relationship": self.edge_relationship.archimate_name,
+            "is_dag": self.is_dag,
+            "properties": {},
+        }
+
     @staticmethod
     def checkers_for_method(method: Any) -> list[dict[str, Any]]:
         """Return normalized ``_checker_meta`` rows from method metadata."""

@@ -37,11 +37,14 @@ Inheritance sketch::
         ├── McpRouteRecord(tool_name, description, ...)
         └── GRPCRouteRecord(service_name, method_name, ...)
 
+    All concrete records may carry optional per-route ``connections`` mapping
+    (see :mod:`aoa.action_machine.resources.per_call_connection`).
+
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -49,6 +52,10 @@ from aoa.action_machine.intents.action_schema.action_schema_intent_resolver impo
     ActionSchemaIntentResolver,
 )
 from aoa.action_machine.model.base_action import BaseAction
+from aoa.action_machine.resources.per_call_connection import (
+    ConnectionValue,
+    validate_connection_entries,
+)
 
 
 def extract_action_types(action_class: type) -> tuple[type | None, type | None]:
@@ -124,6 +131,7 @@ AI-CORE-BEGIN
     response_model: type | None = None
     params_mapper: Callable[..., Any] | None = None
     response_mapper: Callable[..., Any] | None = None
+    connections: Mapping[str, ConnectionValue] | None = None
     _cached_params_type: type = field(init=False, repr=False)
     _cached_result_type: type = field(init=False, repr=False)
 
@@ -168,6 +176,8 @@ AI-CORE-BEGIN
                 f"response_model ({self.response_model.__name__}) differs from "
                 f"result_type ({r_type.__name__}); response_mapper is required."
             )
+
+        validate_connection_entries(self.connections)
 
     @property
     def params_type(self) -> type:

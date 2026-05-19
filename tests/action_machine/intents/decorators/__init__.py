@@ -11,8 +11,7 @@ Covers class-level and method-level decorators:
 Class-level:
 - @meta(description, domain) — description and domain. Writes _meta_info. Required
   for Actions with aspects and for ResourceManager.
-- @depends(cls, factory, description) — dependency declaration. Writes DependencyInfo
-  to cls._depends_info.
+- @depends(cls, *, mode=…, factory=…, description=…) — dependency declaration. ``mode`` is required for ``BaseAction`` targets (``UseCase``); omit for resources. Writes ``DependencyInfo`` into ``_depends_info``.
 - @connection(cls, key, description) — external resource connection. Writes
   ConnectionInfo to cls._connection_info.
 

@@ -40,14 +40,15 @@ ARCHITECTURE / DATA FLOW
         HTTP clients                          AI / tool clients
 
     infrastructure.py  ->  ActionProductMachine + NoAuthCoordinator
-    domains.py         ->  OrdersDomain, SystemDomain
+    orders_domain.py / system_domain.py  ->  OrdersDomain, SystemDomain
 
 Package layout:
 
     fastapi_mcp_services/
     ├── __init__.py              <- this file
     ├── infrastructure.py        <- ActionProductMachine + NoAuthCoordinator
-    ├── domains.py               <- business domains (OrdersDomain, SystemDomain)
+    ├── orders_domain.py          <- OrdersDomain
+    ├── system_domain.py          <- SystemDomain
     ├── actions/
     │   ├── __init__.py
     │   ├── ping.py              <- PingAction

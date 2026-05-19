@@ -53,3 +53,22 @@ class CompensatorGraphNode(BaseGraphNode[Callable[..., Any]]):
             properties=properties,
             node_obj=compensator_func,
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                **(
+                    {"description": str(self.properties["description"])}
+                    if "description" in self.properties
+                    else {}
+                ),
+                **(
+                    {"target_aspect_name": str(self.properties["target_aspect_name"])}
+                    if "target_aspect_name" in self.properties
+                    else {}
+                ),
+            },
+        }

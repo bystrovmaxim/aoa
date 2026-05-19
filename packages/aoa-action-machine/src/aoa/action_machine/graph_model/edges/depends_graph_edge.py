@@ -8,7 +8,8 @@ PURPOSE
 
 Centralizes ``@depends`` edge construction: ``edge_name`` ``@depends``, ``is_dag=True``,
 ``target_node`` stub until hydrated, and ``properties`` mirroring ``DependencyInfo``
-(``description``, optional ``factory``) so runtime can reconstruct a
+(``description``, optional ``factory``, optional ``mode`` for action targets) so runtime
+can reconstruct a
 :class:`~aoa.action_machine.runtime.dependency_factory.DependencyFactory` from the graph.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -24,6 +25,7 @@ from collections.abc import Callable
 from typing import Any
 
 from aoa.action_machine.intents.depends.depends_intent_resolver import DependsIntentResolver
+from aoa.action_machine.intents.depends.use_case import VALID_USE_CASE_MODES
 from aoa.action_machine.runtime.dependency_info import DependencyInfo
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.graph.association_graph_edge import AssociationGraphEdge
@@ -35,7 +37,7 @@ class DependsGraphEdge(AssociationGraphEdge):
     AI-CORE-BEGIN
     ROLE: Typed association edge for ``@depends`` slots on an Action host.
     CONTRACT: ``edge_name`` ``@depends``, ``is_dag`` True; coordinator wires ``target_node`` for typed graph-node reads.
-    PROPERTIES: ``description`` (human text); optional ``factory`` callable (runtime-only); ``DependencyFactory.resolve`` forwards ``*args``, ``**kwargs`` when calling ``factory``.
+    PROPERTIES: ``description`` (human text); optional ``factory`` callable (runtime-only); optional ``mode`` (``include`` / ``extend`` for action targets); ``DependencyFactory.resolve`` forwards ``*args``, ``**kwargs`` when calling ``factory``.
     INVARIANTS: Frozen via ``AssociationGraphEdge``.
     AI-CORE-END
     """
@@ -47,14 +49,35 @@ class DependsGraphEdge(AssociationGraphEdge):
         target_node: BaseGraphNode[Any] | None = None,
         description: str = "",
         factory: Callable[..., Any] | None = None,
+        mode: str | None = None,
     ) -> None:
         super().__init__(
             edge_name="@depends",
             is_dag=True,
             target_node_id=target_node_id,
             target_node=target_node,
-            properties={"description": description, "factory": factory},
+            properties={"description": description, "factory": factory, "mode": mode},
         )
+
+    def to_dict(self, *, source_id: str) -> dict[str, Any]:
+        props: dict[str, Any] = {
+            "description": (
+                self.properties["description"]
+                if isinstance(self.properties["description"], str)
+                else ""
+            ),
+        }
+        raw_mode = self.properties.get("mode")
+        if isinstance(raw_mode, str) and raw_mode in VALID_USE_CASE_MODES:
+            props["mode"] = raw_mode
+        return {
+            "source_id": source_id,
+            "target_id": self.target_node_id,
+            "type": self.edge_name,
+            "relationship": self.edge_relationship.archimate_name,
+            "is_dag": self.is_dag,
+            "properties": props,
+        }
 
     @staticmethod
     def get_dependency_edges(
@@ -75,6 +98,7 @@ class DependsGraphEdge(AssociationGraphEdge):
                     target_node=None,
                     description=raw.description,
                     factory=raw.factory,
-                )
+                    mode=getattr(raw, "mode", None),
+                ),
             )
         return edges

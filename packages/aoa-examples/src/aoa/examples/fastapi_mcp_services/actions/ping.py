@@ -37,7 +37,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
-from ..domains import SystemDomain
+from ..system_domain import SystemDomain
 
 
 @meta(description="Service liveness check", domain=SystemDomain)

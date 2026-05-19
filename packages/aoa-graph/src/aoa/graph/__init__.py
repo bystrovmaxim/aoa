@@ -21,7 +21,7 @@ ARCHITECTURE / DATA FLOW
     graph_model node inspectors  →  NodeGraphCoordinator.build([…])
               │
               ▼
-    rustworkx interchange graph + tooling reads
+    dict[str, BaseGraphNode] + typed indexes + JSON export
 """
 
 from __future__ import annotations
@@ -46,6 +46,7 @@ from aoa.graph.edge_relationship import (
     LineStyle,
 )
 from aoa.graph.exclude_graph_model import exclude_graph_model, excluded_from_graph_model
+from aoa.graph.generalization_graph_edge import GeneralizationGraphEdge
 from aoa.graph.graph_edge import GraphEdge
 from aoa.graph.validation import require_non_empty_str, require_non_null
 
@@ -66,6 +67,7 @@ __all__ = [
     "BaseGraphNodeInspector",
     "EdgeRelationship",
     "EndpointAttachment",
+    "GeneralizationGraphEdge",
     "GraphEdge",
     "LineStyle",
     "exclude_graph_model",

@@ -41,13 +41,15 @@ INVARIANTS
 
 """
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
 from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
 from aoa.action_machine.integrations.fastapi.adapter import FastApiAdapter
+from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from tests.action_machine.resources.test_connections_dict import DummyResourceManager
 from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -56,7 +58,6 @@ from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
 
 
 def _make_app(
-    connections_factory=None,
     run_side_effect=None,
     run_return=None,
 ):
@@ -81,7 +82,6 @@ def _make_app(
     adapter = FastApiAdapter(
         machine=machine,
         auth_coordinator=auth,
-        connections_factory=connections_factory,
     )
     return adapter, machine
 
@@ -168,47 +168,73 @@ class TestGetEmptyParams:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# connections_factory
+# Per-route connections
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class TestConnectionsFactory:
-    """Ensures ``connections_factory`` runs per request."""
+class TestPerRouteConnections:
+    """``connections`` on each route resolve into ``machine.run``."""
 
-    def test_factory_called_on_request(self) -> None:
-        """``connections_factory`` is invoked once per incoming request."""
-        # Arrange
-        mock_connections = {"db": MagicMock()}
-        factory = MagicMock(return_value=mock_connections)
+    def test_connections_passed_to_machine_run(self) -> None:
+        res = DummyResourceManager()
+        adapter, machine = _make_app()
+        adapter.post("/ping", PingAction, connections={"db": res})
+        app = adapter.build()
+        client = TestClient(app)
 
-        adapter, _machine = _make_app(connections_factory=factory)
+        client.post("/ping", json={})
+
+        _args, _kwargs = machine.run.call_args
+        assert _args[3] == {"db": res}
+
+    def test_per_call_connection_factory_each_request(self) -> None:
+        res = DummyResourceManager()
+        calls: list[int] = []
+
+        def factory() -> DummyResourceManager:
+            calls.append(1)
+            return res
+
+        adapter, machine = _make_app()
+        adapter.post("/ping", PingAction, connections={"db": PerCallConnection(factory)})
+        app = adapter.build()
+        client = TestClient(app)
+
+        client.post("/ping", json={})
+        client.post("/ping", json={})
+
+        assert calls == [1, 1]
+        _args1, _ = machine.run.call_args_list[0]
+        _args2, _ = machine.run.call_args_list[1]
+        assert _args1[3]["db"] is res
+        assert _args2[3]["db"] is res
+
+    def test_two_routes_get_distinct_connections(self) -> None:
+        res_a = DummyResourceManager()
+        res_b = DummyResourceManager()
+        adapter, machine = _make_app()
+        adapter.post("/a", PingAction, connections={"svc": res_a})
+        adapter.post("/b", PingAction, connections={"svc": res_b})
+        app = adapter.build()
+        client = TestClient(app)
+
+        client.post("/a", json={})
+        client.post("/b", json={})
+
+        a_conn = machine.run.call_args_list[0][0][3]
+        b_conn = machine.run.call_args_list[1][0][3]
+        assert a_conn == {"svc": res_a}
+        assert b_conn == {"svc": res_b}
+
+    def test_no_connections_means_none(self) -> None:
+        adapter, machine = _make_app()
         adapter.post("/ping", PingAction)
         app = adapter.build()
         client = TestClient(app)
 
-        # Act
         client.post("/ping", json={})
 
-        # Assert
-        factory.assert_called_once()
-
-    def test_factory_result_passed_to_machine(self) -> None:
-        """The factory return value is forwarded into ``machine.run``."""
-        # Arrange
-        mock_connections = {"db": MagicMock()}
-        factory = MagicMock(return_value=mock_connections)
-
-        adapter, _machine = _make_app(connections_factory=factory)
-        adapter.post("/ping", PingAction)
-        app = adapter.build()
-        client = TestClient(app)
-
-        # Act
-        client.post("/ping", json={})
-
-        # Assert
-        call_args = _machine.run.call_args
-        assert call_args is not None
+        assert machine.run.call_args[0][3] is None
 
 
 # ═════════════════════════════════════════════════════════════════════════════

@@ -55,7 +55,7 @@ Third-party libraries (Pydantic, rustworkx, FastAPI, …) are declared per packa
 | Package metadata            | `scripts/check_package_metadata.py`               | Declared pip dependencies match the matrix in each `packages/aoa-*/pyproject.toml`.                                                                                                                     |
 | Build + packaging smoke     | `python -m build …` then `pytest tests/packaging` | Wheels layout and clean-venv installs.                                                                                                                                                                  |
 | Test layer (action_machine) | `scripts/check_test_layer_imports.py`             | **Not** redundant with package boundaries: it restricts *internal* `aoa.action_machine.`* subpackages per directory under `tests/action_machine/` (e.g. model tests must not import runtime). **Kept.** |
-| Maxitor samples public API  | `scripts/check_maxitor_samples_public_api.py`     | Samples may only import an allowlisted facade of `aoa.action_machine`. **Kept.**                                                                                                                        |
+| Examples model public API   | `scripts/check_maxitor_samples_public_api.py`     | `aoa.examples.model` may only import an allowlisted facade of `aoa.action_machine`. **Kept.**                                                                                                            |
 
 
 There is **no** open temporary `allow` list in `scripts/package_boundaries.toml` (`allow = []`). Any future exception must include `reason` and `expires`.

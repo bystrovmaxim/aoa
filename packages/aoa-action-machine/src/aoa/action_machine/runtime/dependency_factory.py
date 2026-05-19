@@ -39,7 +39,7 @@ AI-CORE-BEGIN
                   coordinator ``depends`` snapshot).
                 - ``list[dict]`` — backward compatibility for tests.
                   Each dict: ``{"class": type, "factory": callable|None,
-                  "description": str}``
+                  "description": str, "mode": str|None (optional)}``
         """
         if isinstance(dependencies, (tuple, list)) and dependencies and isinstance(dependencies[0], dict):
             self._deps: dict[type, DependencyInfo] = self._build_from_dicts(list(dependencies))
@@ -63,6 +63,7 @@ AI-CORE-BEGIN
                 cls=info_dict["class"],
                 factory=info_dict.get("factory"),
                 description=info_dict.get("description", ""),
+                mode=info_dict.get("mode"),
             )
             result[info.cls] = info
         return result

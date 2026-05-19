@@ -33,8 +33,6 @@ from typing import Any
 from aoa.action_machine.exceptions.connection_validation_error import ConnectionValidationError
 from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.model.base_action import BaseAction
-from aoa.action_machine.model.base_params import BaseParams
-from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.resources.base_resource import BaseResource
 
 
@@ -117,7 +115,7 @@ class ConnectionValidator:
 
     def validate(
         self,
-        action: BaseAction[BaseParams, BaseResult],
+        action: BaseAction[Any, Any],
         connections: dict[str, BaseResource] | None,
         action_node: ActionGraphNode[BaseAction[Any, Any]],
     ) -> dict[str, BaseResource]:
