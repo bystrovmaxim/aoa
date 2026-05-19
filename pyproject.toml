@@ -25,6 +25,7 @@ authors = [
 dependencies = [
     "aoa-graph",
     "aoa-action-machine",
+    "aoa-ocel",
     "aoa-maxitor",
     "aoa-examples",
 ]
@@ -75,6 +76,7 @@ Repository = "https://github.com/action-machine/action-machine"
 members = [
     "packages/aoa-graph",
     "packages/aoa-action-machine",
+    "packages/aoa-ocel",
     "packages/aoa-maxitor",
     "packages/aoa-examples",
 ]
@@ -83,6 +85,7 @@ members = [
 [tool.uv.sources]
 aoa-graph = { workspace = true }
 aoa-action-machine = { workspace = true }
+aoa-ocel = { workspace = true }
 aoa-maxitor = { workspace = true }
 aoa-examples = { workspace = true }
 
@@ -102,6 +105,7 @@ asyncio_mode = "auto"
 pythonpath = [
     "packages/aoa-graph/src",
     "packages/aoa-action-machine/src",
+    "packages/aoa-ocel/src",
     "packages/aoa-maxitor/src",
     "packages/aoa-examples/src",
     ".",
