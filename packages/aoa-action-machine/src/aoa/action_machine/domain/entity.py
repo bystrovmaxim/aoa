@@ -116,6 +116,8 @@ from pydantic import ConfigDict
 
 from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker
 from aoa.action_machine.domain.exceptions import FieldNotLoadedError
+from aoa.action_machine.domain.lifecycle import Lifecycle
+from aoa.action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.intents.entity.entity_intent import EntityIntent
 from aoa.action_machine.model.base_schema import BaseSchema
@@ -123,6 +125,9 @@ from aoa.graph.exclude_graph_model import exclude_graph_model
 
 # Suffix required for every class that inherits BaseEntity (directly or indirectly).
 _REQUIRED_SUFFIX = "Entity"
+
+_SCALAR_TYPES = (str, int, float, bool, bytes)
+
 
 @exclude_graph_model
 class BaseEntity(BaseSchema, ABC, EntityIntent):
@@ -245,3 +250,99 @@ AI-CORE-BEGIN
         raise AttributeError(
             f"'{self.__class__.__name__}' object has no attribute '{name}'"
         )
+
+    def is_field_loaded(self, field_name: str) -> bool:
+        """True when ``field_name`` is declared and present on this instance."""
+        if field_name not in self.__class__.model_fields:
+            return False
+        try:
+            is_partial = object.__getattribute__(self, "_partial_instance")
+        except AttributeError:
+            is_partial = False
+        if not is_partial:
+            return True
+        loaded = object.__getattribute__(self, "_loaded_fields")
+        return field_name in loaded
+
+    def get_field_value(self, field_name: str) -> Any:
+        """Return a loaded field value without triggering hidden lazy-load."""
+        if field_name not in self.__class__.model_fields:
+            raise AttributeError(
+                f"'{self.__class__.__name__}' has no field '{field_name}'"
+            )
+        if not self.is_field_loaded(field_name):
+            loaded_fields: frozenset[str] = frozenset()
+            try:
+                is_partial = object.__getattribute__(self, "_partial_instance")
+                if is_partial:
+                    loaded_fields = object.__getattribute__(self, "_loaded_fields")
+            except AttributeError:
+                pass
+            raise FieldNotLoadedError(
+                field_name=field_name,
+                entity_class_name=self.__class__.__name__,
+                loaded_fields=loaded_fields,
+            )
+        return object.__getattribute__(self, field_name)
+
+    def is_field(self, field_name: str) -> bool:
+        """True when the field is declared and loaded on this instance."""
+        if field_name not in self.__class__.model_fields:
+            return False
+        return self.is_field_loaded(field_name)
+
+    def is_fields(self, field_names: list[str] | tuple[str, ...]) -> bool:
+        """Logical AND of :meth:`is_field` over all names; empty sequence is True."""
+        return all(self.is_field(name) for name in field_names)
+
+    def get_primary_key(self, loaded_only: bool = True) -> dict[str, Any]:
+        """Return ``id`` when loaded (PK by convention)."""
+        if "id" not in self.__class__.model_fields:
+            return {}
+        if loaded_only and not self.is_field_loaded("id"):
+            return {}
+        return {"id": self.get_field_value("id")}
+
+    def get_foreign_keys(self, loaded_only: bool = True) -> dict[str, Any]:
+        """Loaded relation containers (``BaseRelationOne`` / ``BaseRelationMany``)."""
+        result: dict[str, Any] = {}
+        for name in self.__class__.model_fields:
+            if loaded_only and not self.is_field_loaded(name):
+                continue
+            value = self.get_field_value(name)
+            if isinstance(value, (BaseRelationOne, BaseRelationMany)):
+                result[name] = value
+        return result
+
+    def get_scalar_fields(self, loaded_only: bool = True) -> dict[str, Any]:
+        """Loaded primitive values; ``id`` is PK, not scalar."""
+        result: dict[str, Any] = {}
+        for name in self.__class__.model_fields:
+            if name == "id":
+                continue
+            if loaded_only and not self.is_field_loaded(name):
+                continue
+            value = self.get_field_value(name)
+            if isinstance(value, _SCALAR_TYPES):
+                result[name] = value
+        return result
+
+    def get_lifecycle_fields(self, loaded_only: bool = True) -> dict[str, Any]:
+        """Loaded ``Lifecycle`` instances."""
+        result: dict[str, Any] = {}
+        for name in self.__class__.model_fields:
+            if loaded_only and not self.is_field_loaded(name):
+                continue
+            value = self.get_field_value(name)
+            if isinstance(value, Lifecycle):
+                result[name] = value
+        return result
+
+    def get_all_fields(self, loaded_only: bool = True) -> dict[str, Any]:
+        """Union of PK, FK, scalar, and lifecycle getters (disjoint keys)."""
+        return {
+            **self.get_primary_key(loaded_only),
+            **self.get_foreign_keys(loaded_only),
+            **self.get_scalar_fields(loaded_only),
+            **self.get_lifecycle_fields(loaded_only),
+        }
