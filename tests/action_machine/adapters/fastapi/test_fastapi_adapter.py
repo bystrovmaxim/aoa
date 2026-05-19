@@ -42,6 +42,7 @@ from fastapi.testclient import TestClient
 from aoa.action_machine.integrations.fastapi.adapter import FastApiAdapter
 from aoa.action_machine.integrations.fastapi.route_record import FastApiRouteRecord
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from tests.action_machine.resources.test_connections_dict import DummyResourceManager
 from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -174,6 +175,14 @@ class TestRouteRegistration:
         adapter.post("/old", PingAction, deprecated=True)
 
         assert adapter.routes[0].deprecated is True
+
+    def test_connections_stored_on_record(self) -> None:
+        """Per-route ``connections`` are stored on ``FastApiRouteRecord``."""
+        adapter = _make_adapter()
+        res = DummyResourceManager()
+        adapter.get("/x", PingAction, connections={"svc": res})
+
+        assert adapter.routes[0].connections == {"svc": res}
 
 
 # ═════════════════════════════════════════════════════════════════════════════

@@ -7,17 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
-## [1.2.5] – 2026-05-08
+## [Unreleased]
+
+### Documentation
+
+- **ADR — interchange generalization edges.** `archive/docs/architecture/decisions/generalization-edges.md` records the export, DuckDB, and FullGraph contracts; the full specification and PR sequence remain in `archive/plan/generalization_graph_nodes.md`.
 
 ### Breaking changes
 
-- **Multiple PyPI packages and `aoa.*` layout.** Runtime code lives under `packages/aoa-*/src/aoa/{graph,action_machine,maxitor,examples}`. Public imports are `**aoa.graph`**, `**aoa.action_machine**`, `**aoa.maxitor**`, and `**aoa.examples**` only. Install `**aoa-graph**`, `**aoa-action-machine**`, `**aoa-maxitor**`, or `**aoa-examples**` as needed; there are no legacy top-level shims (`graph.*`, `action_machine.*`, …). `**aoa-examples**` does not pull `**aoa-maxitor**` as a dependency.
+- **@depends on concrete actions requires `mode`.** Host actions that depend on another `BaseAction` subclass must pass `mode=UseCase.include` or `mode=UseCase.extend`. Dependencies on `BaseResource` must omit `mode`. Call sites that only `box.resolve` a peer action should use `extend` until an unconditional `await box.run(...)` / `machine.run` path exists; then `include` is appropriate where the peer must always run in that root session.
+
+### Added
+
+- **UML generalization edges in the interchange graph.** Direct superclass links on the Action, Role, and Domain axes are exported as `parent_action`, `parent_role`, and `parent_domain` edges with relationship `Generalization` (`GENERALIZATION.archimate_name`). `GeneralizationGraphEdge.collect_direct_parents` in `aoa-graph` is the single parent-resolution algorithm; coordinator `to_json()` and `get_edges_by_type` expose the full edge set with no `include_generalization` flag. Maxitor DuckDB stores these in `parent_action_edges` / `parent_role_edges` / `parent_domain_edges` and in the unified `edges` view. **Exception:** `FullGraphAction` omits generalization links in the G6 full-graph payload only, filtering SQL by `relationship <> 'Generalization'` so the visualization stays sparse while data exports remain complete.
+
+- **UML-style `@depends` mode (Use Case stereotypes).** `UseCase` / `VALID_USE_CASE_MODES`, `DependencyInfo.mode`, decorator validation, `DependsGraphEdge` and `resolved_dependency_infos` round-trip, and interchange JSON Schema (`optional` `mode` enum `include` / `extend` on `@depends` edges). `DependsIntentResolver.resolve_include_dependency_types` lists declared `include` targets. Package docs and READMEs describe semantics; **Maxitor DuckDB `depends_edges` in the default v1 path does not add a `mode` column** — consumers read `mode` from the full graph JSON.
+
+- **Include contract on successful root runs.** `ActionProductMachine` tracks action classes that enter `_run_internal` for the current root session (`ContextVar`) and runs `IncludeContractChecker` before `emit_global_finish` when the aspect pipeline ran (including success paths that return only from `@on_error`). Missing `UseCase.include` executions raise `IncludeContractViolationError` with `missing_include_types`. Root cache hits that skip the pipeline skip this check.
+
+- **Entity lifecycle (finite-state) diagram in Maxitor.** The operator SPA can open an entity’s **Lifecycle view**: Graphviz `dot` renders the automaton as SVG with pan/zoom, LR/TB rank direction, and a **Fit to window** control. The backend exposes the lifecycle payload for the viewer (`GET /api/v1/lifecycle-finite-automaton`).
+
+- **UML use-case diagram in Maxitor.** The operator SPA can render a domain-scoped UML-style use-case slice (actions in the Domain boundary, roles, `@check_roles` associations, action/role generalizations, and `@depends` edges including `UseCase.include` / `UseCase.extend` stereotypes) as Graphviz SVG with pan/zoom, Dot LR/TB and Neato/FDP layout presets, **Fit to window**, optional one-hop narrowing, and a sidebar entry per domain (`use_case_domain`). The payload is produced by **`GetDomainUseCaseDiagramAction`** from the DuckDB graph snapshot (`GET /api/v1/domain-use-case-diagram`).
+
+### Fixed
+
+- **Lifecycle Graphviz auto-fit.** Initial fit, resize refit, and LR/TB toggles now measure the correct SVG geometry (no stale markup, no `visibility: hidden` measurement trap), align `hasFittedRef` with successful fits, and apply a follow-up frame fit to match manual **Fit to window** without visible snapping.
+
+## [1.2.5] – 2026-05-08
+
+### Added
+
+- **Optional action result cache.** `ActionProductMachine` accepts an injected `CacheCoordinator` (in-memory store, namespaced keys, optional `max_size` eviction). `BaseAction` gains `cache_key`, `read_cache`, and `on_cache_write`; the machine orchestrates reads after role/connection gates and `emit_global_start`, and writes only after a clean summary path (handled `@on_error` results are never cached). `CacheContractError` enforces hook return contracts; hook or coordinator failures propagate without `emit_global_finish` in v1.
+
+- **JSON Schema fields in results.** Result schemas can declare explicit JSON-shaped fields so adapters expose the intended wire contract instead of relying on implicit Python object structure.
+- **Entity JSON Schema projections in results.** `BaseEntity` classes can be referenced from result fields through an explicit JSON Schema projection, preserving the entity relationship while returning only the declared wire fields.
+- **Node graph JSON serialization.** `NodeGraphCoordinator.to_json()` exports a stable JSON payload with linear `nodes` and `edges` lists, including node ids/types/labels/properties and edge source/target/type/relationship metadata, so downstream tools can reconstruct the coordinator graph without touching Python runtime objects.
+- **NetworkX-friendly graph payloads.** Node and edge JSON is shaped for direct reconstruction into `networkx.DiGraph`: nodes are keyed by stable ids, edges carry `source_node_id` and `target_node_id`, and empty `nodes` / `edges` payloads are valid.
+
+### Changed
+
+- **Maxitor operator UI: React SPA instead of generated HTML as the primary surface.** The main Maxitor experience is now a **Vite** + **React** app (`packages/aoa-maxitor/client`) talking to the Maxitor FastAPI backend, rather than treating standalone Python-built HTML pages as the default workflow. Server-side HTML visualizers remain available where documented for specific interchange exports, but day-to-day graph exploration and diagrams are intended through the SPA.
+
+### Removed
+
+- **rustworkx from the interchange graph stack.** The live coordinator graph is no longer a rustworkx `PyDiGraph`; `aoa-graph` does not depend on rustworkx. Topology uses typed interchange nodes/edges with in-tree DAG checks (`aoa.graph._dag`); **NetworkX** is used where consumers need a `DiGraph` view (e.g. JSON export), not as an embedded rustworkx runtime.
+
+### Breaking changes
+
+- **Multiple PyPI packages and `aoa.*` layout.** Runtime code lives under `packages/aoa-*/src/aoa/{graph,action_machine,maxitor,examples}`. Public imports are `**aoa.graph`**, `**aoa.action_machine`**, `**aoa.maxitor**`, and `**aoa.examples**` only. Install `**aoa-graph**`, `**aoa-action-machine**`, `**aoa-maxitor**`, or `**aoa-examples**` as needed; there are no legacy top-level shims (`graph.*`, `action_machine.*`, …). `**aoa-examples**` does not pull `**aoa-maxitor**` as a dependency.
 
 ## [1.1.5] – 2026-05-08
 
 ### Changed
 
-- **Interchange graph as the canonical topology.** Coordinators and tooling now pivot on `**NodeGraphCoordinator`** and typed interchange vertices (`**BaseGraphNode`**) and edges (`**BaseGraphEdge**`) — domains, lifecycle/entity meshes, declarative facets, propagated domain membership, and stable edge payloads (DAG flags, attachment / line-style metadata) replace ad-hoc graph sketches for visualization and serializers.
+- **Interchange graph as the canonical topology.** Coordinators and tooling now pivot on `**NodeGraphCoordinator`** and typed interchange vertices (`**BaseGraphNode`**) and edges (`**BaseGraphEdge`**) — domains, lifecycle/entity meshes, declarative facets, propagated domain membership, and stable edge payloads (DAG flags, attachment / line-style metadata) replace ad-hoc graph sketches for visualization and serializers.
 
 ### Added
 
@@ -26,7 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- **Legacy ERD package split.** Drops the old `**erd_visualizer_1`** / `**erd_visualizer_2`** layout; `**erd_visualizer**` is now the single graph-backed viewer entry point.
+- **Legacy ERD package split.** Drops the old `**erd_visualizer_1`** / `**erd_visualizer_2`** layout; `**erd_visualizer`** is now the single graph-backed viewer entry point.
 
 ## [1.0.0] – 2026-04-12
 

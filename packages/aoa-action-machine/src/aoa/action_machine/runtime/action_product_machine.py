@@ -32,7 +32,8 @@ ARCHITECTURE / DATA FLOW
                 ├── log = ScopedLogger(..., domain=action_node.domain.target_node.node_obj)
                 ├── box = ToolsBox(..., factory=DependencyFactory(action_node.resolved_dependency_infos()))
                 ├── _plugin_coordinator.emit_global_start(...)
-                ├── _execute_pipeline_aspects(...)
+                ├── optional cache read (``cache_coordinator`` set) or pipeline
+                ├── _execute_pipeline_aspects(...)  # skipped on cache hit
                 │       ├── per regular aspect:
                 │       │       _plugin_coordinator.emit_before_regular_aspect(...)
                 │       │       _aspect_executor.execute_regular(...)
@@ -43,6 +44,7 @@ ARCHITECTURE / DATA FLOW
                 │       └── on exception (saga_stack prefilled):
                 │               _saga_coordinator.execute(saga_stack=..., ...)   [if stack]
                 │               _error_handler_executor.handle(...)
+                ├── optional cache write after clean pipeline
                 ├── _plugin_coordinator.emit_global_finish(...)
                 └── return Result
 
@@ -73,17 +75,73 @@ Aspects, compensators, and ``@on_error`` handlers cannot read ``Context`` from
 Protocol adapters and tools should use ``graph_coordinator`` (:class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator`
 built by :func:`~aoa.action_machine.graph_model.node_graph_coordinator_factory.create_node_graph_coordinator` during machine initialization unless injected).
 
+═══════════════════════════════════════════════════════════════════════════════
+CACHE INTEGRATION
+═══════════════════════════════════════════════════════════════════════════════
+
+Optional **in-memory** action result cache, enabled only when the machine is
+constructed with ``cache_coordinator`` set to a
+:class:`~aoa.action_machine.runtime.cache_coordinator.CacheCoordinator` instance
+(default ``None`` disables all cache behavior and **does not** invoke action cache
+hooks).
+
+**Not in v1:** sharing the coordinator via ``ClassVar`` on ``BaseAction``, or
+single-flight / request coalescing for identical keys. Those belong to future design.
+
+**Order inside** ``_run_internal`` (after role and connection gates, ``ToolsBox``,
+and ``emit_global_start``): resolve ``cache_key`` and validate it; on a hit,
+``read_cache`` may return a result or ``None`` (stale → invalidate and run the
+pipeline). On a miss, ``_execute_pipeline_aspects`` runs (regular/summary aspect
+plugin events as today). A **cache hit** still emits **global** start and finish,
+but **does not** emit regular/summary aspect events because the pipeline is skipped.
+
+After a successful **summary** path (not a result coming only from ``@on_error``),
+the machine may call ``on_cache_write`` and, if it returns ``True``, ``put`` on the
+coordinator. Handled ``@on_error`` outcomes are never cached. Cache ``duration_ms``
+passed to ``on_cache_write`` uses the same ``time.time()``-based wall interval as
+``GlobalFinishEvent`` for comparability.
+
+If ``cache_key``, ``read_cache``, ``on_cache_write``, or coordinator I/O raises,
+the exception propagates and ``emit_global_finish`` is **not** called in v1.
+:exc:`~aoa.action_machine.exceptions.cache_contract_error.CacheContractError` is used
+for strict return-value contract violations (invalid key type, empty key string,
+non-result from ``read_cache``, non-bool from ``on_cache_write``).
+
+═══════════════════════════════════════════════════════════════════════════════
+INCLUDE CONTRACTS (``UseCase.include``, PR-4)
+═══════════════════════════════════════════════════════════════════════════════
+
+A :class:`~contextvars.ContextVar` holds the set of action types that entered
+``_run_internal`` during the current **root** run. Nested ``await box.run(...)``
+shares that set. On a successful root run (after the aspect pipeline, including
+results produced only via ``@on_error``), :class:`~aoa.action_machine.runtime.include_contract_checker.IncludeContractChecker`
+runs **before** ``emit_global_finish`` unless the root finished with an action-cache
+hit (pipeline skipped), in which case the check is skipped because nested runs
+from an earlier materialization are not represented in this session.
+
+**Note on** ``asyncio.create_task``: CPython's task context inherits existing
+``ContextVar`` values until the task rebinds the variable; awaited
+``create_task(box.run(...))`` therefore still contributes types to the same root
+tracker. Fire-and-forget tasks that complete **after** the root action has already
+passed include verification are not modeled and should be avoided for ``include``.
+
 """
 
 from __future__ import annotations
 
 import time
+from contextvars import ContextVar, Token
+from dataclasses import dataclass
 from functools import partial
 from typing import Any, TypeVar, cast
 
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import (
+    ActionSchemaIntentResolver,
+)
 from aoa.action_machine.logging.channel import Channel
 from aoa.action_machine.logging.domain_resolver import resolve_domain
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
@@ -98,9 +156,11 @@ from aoa.action_machine.plugin.plugin_run_context import PluginRunContext
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.aspect_executor import AspectExecutor
 from aoa.action_machine.runtime.base_action_machine import BaseActionMachine
+from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.connection_validator import ConnectionValidator
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 from aoa.action_machine.runtime.error_handler_executor import ErrorHandlerExecutor
+from aoa.action_machine.runtime.include_contract_checker import IncludeContractChecker
 from aoa.action_machine.runtime.role_checker import RoleChecker
 from aoa.action_machine.runtime.saga_coordinator import SagaCoordinator
 from aoa.action_machine.runtime.saga_frame import SagaFrame
@@ -110,6 +170,27 @@ from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
+
+# Tracks ``type(action)`` for every ``_run_internal`` entry in the current root run
+# (``ContextVar.get()`` is ``None`` only for the outermost call that owns the set).
+_INCLUDE_EXECUTION_TYPES: ContextVar[set[type] | None] = ContextVar(
+    "_INCLUDE_EXECUTION_TYPES",
+    default=None,
+)
+
+
+@dataclass(frozen=True)
+class _PipelineOutcome[R]:
+    """
+    Return value of ``_execute_pipeline_aspects`` for cache and finish wiring.
+
+    Attributes:
+        result: Object from the summary aspect or a matching ``@on_error`` handler.
+        from_error_handler: ``True`` when ``result`` was produced only via the error path.
+    """
+
+    result: R
+    from_error_handler: bool
 
 
 class ActionProductMachine(BaseActionMachine):
@@ -133,8 +214,9 @@ class ActionProductMachine(BaseActionMachine):
         aspect_executor: AspectExecutor | None = None,
         error_handler_executor: ErrorHandlerExecutor | None = None,
         saga_coordinator: SagaCoordinator | None = None,
+        cache_coordinator: CacheCoordinator | None = None,
     ) -> None:
-        """Keyword-only injectable overrides; build the default graph coordinator eagerly."""
+        """Wire injectable components; ``cache_coordinator`` enables optional in-memory action caching."""
         plugins = plugins or []
         self._log_coordinator = log_coordinator or LogCoordinator()
         self._plugin_coordinator = plugin_coordinator or PluginCoordinator(
@@ -153,6 +235,48 @@ class ActionProductMachine(BaseActionMachine):
             self._error_handler_executor,
             self._plugin_coordinator,
         )
+        self._cache_coordinator = cache_coordinator
+
+    @staticmethod
+    def _validate_cache_key(cache_key: str | None, action: BaseAction[Any, Any]) -> None:
+        """Ensure ``cache_key`` is ``None``, a non-empty ``str``, or raise :exc:`CacheContractError`."""
+        if cache_key is None:
+            return
+        if not isinstance(cache_key, str):
+            raise CacheContractError(
+                f"cache_key in {type(action).__name__!r} must return str | None; "
+                f"got {type(cache_key).__name__!r}.",
+            )
+        if not cache_key.strip():
+            raise CacheContractError(
+                f"cache_key in {type(action).__name__!r} must not be empty or whitespace-only.",
+            )
+
+    @staticmethod
+    def _validate_cached_result(
+        cached_result: object,
+        result_type: type[BaseResult],
+        action: BaseAction[Any, Any],
+    ) -> None:
+        """Ensure ``cached_result`` is an instance of ``result_type`` or raise :exc:`CacheContractError`."""
+        if not isinstance(cached_result, result_type):
+            raise CacheContractError(
+                f"read_cache in {type(action).__name__!r} returned "
+                f"{type(cached_result).__name__!r}, expected "
+                f"{result_type.__name__!r} or None.",
+            )
+
+    @staticmethod
+    def _validate_cache_write_decision(
+        should_write: object,
+        action: BaseAction[Any, Any],
+    ) -> None:
+        """Ensure ``on_cache_write`` returned a ``bool`` or raise :exc:`CacheContractError`."""
+        if not isinstance(should_write, bool):
+            raise CacheContractError(
+                f"on_cache_write in {type(action).__name__!r} must return bool; "
+                f"got {type(should_write).__name__!r}.",
+            )
 
     def get_action_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
         """Return the materialized ``Action`` graph node for ``action_cls`` (same id as :class:`ActionGraphNode`)."""
@@ -208,8 +332,8 @@ class ActionProductMachine(BaseActionMachine):
         context: Context,
         plugin_ctx: PluginRunContext,
         action_graph_node: ActionGraphNode[BaseAction[Any, Any]],
-    ) -> R:
-        """Run regular and summary aspects; on failure, unwind saga then handle error."""
+    ) -> _PipelineOutcome[R]:
+        """Run aspects; return outcome with ``from_error_handler`` set on error-handler path."""
         saga_stack: list[SagaFrame] = []
         failed_aspect_name: str | None = None
         state: BaseState | None = None
@@ -310,7 +434,7 @@ class ActionProductMachine(BaseActionMachine):
                 result=result,
                 duration_ms=summary_duration * 1000,
             )
-            return cast("R", result)
+            return _PipelineOutcome(cast("R", result), from_error_handler=False)
 
         except Exception as aspect_error:
             try:
@@ -345,7 +469,7 @@ class ActionProductMachine(BaseActionMachine):
                 plugin_ctx=plugin_ctx,
                 failed_aspect_name=failed_aspect_name,
             )
-            return cast("R", handled_result)
+            return _PipelineOutcome(cast("R", handled_result), from_error_handler=True)
 
     # ─────────────────────────────────────────────────────────────────────
     # Public entry: run
@@ -370,7 +494,7 @@ class ActionProductMachine(BaseActionMachine):
             rollup=False,
         )
 
-    async def _run_internal(
+    async def _run_internal(  # pylint: disable=too-many-branches,too-many-statements
         self,
         context: Context,
         action: BaseAction[P, R],
@@ -380,68 +504,119 @@ class ActionProductMachine(BaseActionMachine):
         nested_level: int,
         rollup: bool,
     ) -> R:
-        """Single run level with fresh plugin context and local saga stack."""
+        """One nested or top-level run: gates, optional cache, pipeline, plugins, return ``result``."""
         current_nest = nested_level + 1
         start_time = time.time()
 
-        guard = getattr(self.graph_coordinator, "assert_no_dag_cycle_violations", None)
-        if guard is not None:
-            guard()
+        active_include_types = _INCLUDE_EXECUTION_TYPES.get()
+        include_tracker_reset_token: Token[set[type] | None] | None = None
+        owns_include_tracker = False
+        if active_include_types is None:
+            active_include_types = set()
+            include_tracker_reset_token = _INCLUDE_EXECUTION_TYPES.set(active_include_types)
+            owns_include_tracker = True
+        active_include_types.add(type(action))
 
-        action_cls = action.__class__
-        action_node = self.get_action_node_by_id(action_cls)
-        self._role_checker.check(context, action_node)
-        conns = self._connection_validator.validate(action, connections, action_node)
-        plugin_ctx = await self._plugin_coordinator.create_run_context()
+        try:
+            guard = getattr(self.graph_coordinator, "assert_no_dag_cycle_violations", None)
+            if guard is not None:
+                guard()
 
-        log = ScopedLogger(
-            coordinator=self._log_coordinator,
-            nest_level=current_nest,
-            action_name=action_node.node_id,
-            aspect_name="",
-            context=context,
-            state=BaseState(),
-            params=params,
-            domain=action_node.domain.target_node.node_obj,
-        )
+            action_cls = action.__class__
+            result_type = ActionSchemaIntentResolver.resolve_result_type(action_cls)
+            action_node = self.get_action_node_by_id(action_cls)
+            self._role_checker.check(context, action_node)
+            conns = self._connection_validator.validate(action, connections, action_node)
+            plugin_ctx = await self._plugin_coordinator.create_run_context()
 
-        box = ToolsBox(
-            run_child=partial(
-                self._run_internal,
+            log = ScopedLogger(
+                coordinator=self._log_coordinator,
+                nest_level=current_nest,
+                action_name=action_node.node_id,
+                aspect_name="",
                 context=context,
+                state=BaseState(),
+                params=params,
+                domain=action_node.domain.target_node.node_obj,
+            )
+
+            box = ToolsBox(
+                run_child=partial(
+                    self._run_internal,
+                    context=context,
+                    resources=resources,
+                    nested_level=current_nest,
+                    rollup=rollup,
+                ),
                 resources=resources,
+                log=log,
                 nested_level=current_nest,
                 rollup=rollup,
-            ),
-            resources=resources,
-            log=log,
-            nested_level=current_nest,
-            rollup=rollup,
-            factory=DependencyFactory(action_node.resolved_dependency_infos()),
-        )
+                factory=DependencyFactory(action_node.resolved_dependency_infos()),
+            )
 
-        await self._plugin_coordinator.emit_global_start(
-            plugin_ctx,
-            action=action,
-            context=context,
-            params=params,
-            nest_level=current_nest,
-        )
+            await self._plugin_coordinator.emit_global_start(
+                plugin_ctx,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=current_nest,
+            )
 
-        result = await self._execute_pipeline_aspects(
-            action, params, box, conns, context, plugin_ctx, action_node
-        )
+            cache_key: str | None = None
+            cache_hit = False
 
-        total_duration = time.time() - start_time
+            if self._cache_coordinator is not None:
+                cache_key = action.cache_key(params)
+                self._validate_cache_key(cache_key, action)
+                if cache_key is not None:
+                    entry = await self._cache_coordinator.get_entry(action_cls, cache_key)
+                    if entry is not None:
+                        cached_result = await action.read_cache(params, entry)
+                        if cached_result is not None:
+                            self._validate_cached_result(cached_result, result_type, action)
+                            result = cached_result
+                            cache_hit = True
+                        else:
+                            await self._cache_coordinator.invalidate(action_cls, cache_key)
 
-        await self._plugin_coordinator.emit_global_finish(
-            plugin_ctx,
-            action=action,
-            context=context,
-            params=params,
-            nest_level=current_nest,
-            result=cast("BaseResult", result),
-            duration_ms=total_duration * 1000,
-        )
+            if not cache_hit:
+                outcome = await self._execute_pipeline_aspects(
+                    action, params, box, conns, context, plugin_ctx, action_node
+                )
+                result = outcome.result
+                if (
+                    self._cache_coordinator is not None
+                    and cache_key is not None
+                    and not outcome.from_error_handler
+                ):
+                    total_duration_ms = (time.time() - start_time) * 1000
+                    should_write = await action.on_cache_write(result, params, total_duration_ms)
+                    self._validate_cache_write_decision(should_write, action)
+                    if should_write:
+                        await self._cache_coordinator.put(
+                            action_cls,
+                            cache_key,
+                            result,
+                            total_duration_ms,
+                        )
 
-        return result
+            if owns_include_tracker and not cache_hit:
+                IncludeContractChecker.verify(action, frozenset(active_include_types))
+
+            total_duration = time.time() - start_time
+
+            await self._plugin_coordinator.emit_global_finish(
+                plugin_ctx,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=current_nest,
+                result=cast("BaseResult", result),
+                duration_ms=total_duration * 1000,
+            )
+
+            return result
+        finally:
+            if owns_include_tracker and include_tracker_reset_token is not None:
+                _INCLUDE_EXECUTION_TYPES.reset(include_tracker_reset_token)

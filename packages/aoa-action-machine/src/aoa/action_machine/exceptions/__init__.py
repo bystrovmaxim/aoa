@@ -9,6 +9,7 @@ from aoa.action_machine.exceptions.action_result_declaration_error import Action
 from aoa.action_machine.exceptions.action_result_type_error import ActionResultTypeError
 from aoa.action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from aoa.action_machine.exceptions.connection_not_open_error import ConnectionNotOpenError
 from aoa.action_machine.exceptions.connection_validation_error import ConnectionValidationError
@@ -17,6 +18,7 @@ from aoa.action_machine.exceptions.cyclic_dependency_error import CyclicDependen
 from aoa.action_machine.exceptions.domain_graph_edge_resolution_error import DomainGraphEdgeResolutionError
 from aoa.action_machine.exceptions.graph_edge_resolution_error import GraphEdgeResolutionError
 from aoa.action_machine.exceptions.handle_error import HandleError
+from aoa.action_machine.exceptions.include_contract_violation_error import IncludeContractViolationError
 from aoa.action_machine.exceptions.log_template_error import LogTemplateError
 from aoa.action_machine.exceptions.missing_check_roles_error import MissingCheckRolesError
 from aoa.action_machine.exceptions.missing_entity_info_error import MissingEntityInfoError
@@ -37,6 +39,7 @@ __all__ = [
     "ActionResultTypeError",
     "AspectPipelineError",
     "AuthorizationError",
+    "CacheContractError",
     "ConnectionAlreadyOpenError",
     "ConnectionNotOpenError",
     "ConnectionValidationError",
@@ -45,6 +48,7 @@ __all__ = [
     "DomainGraphEdgeResolutionError",
     "GraphEdgeResolutionError",
     "HandleError",
+    "IncludeContractViolationError",
     "LogTemplateError",
     "MissingCheckRolesError",
     "MissingEntityInfoError",

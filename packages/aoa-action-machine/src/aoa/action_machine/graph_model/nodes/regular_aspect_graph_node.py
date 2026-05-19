@@ -58,6 +58,16 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
         object.__setattr__(self, "checkers", CheckerGraphEdge.get_checker_edges(aspect_func, _action_cls, self))
         object.__setattr__(self, "required_context", RequiredContextGraphEdge.get_required_context_edges(aspect_func, _action_cls, self))
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "description": str(self.properties["description"]),
+            },
+        }
+
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Return checker and required-context composition edges materialized on this node."""
         return [*self.checkers, *self.required_context]

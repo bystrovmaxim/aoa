@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Marks an action method as the final pipeline step. A summary aspect runs after
-all regular aspects, consumes accumulated state, and returns a typed Result.
+all regular aspects, consumes the last explicitly returned state, and returns a typed Result.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

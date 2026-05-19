@@ -33,6 +33,7 @@ from typing import Any, ClassVar, TypeVar, cast
 
 from aoa.action_machine.exceptions.missing_summary_aspect_error import MissingSummaryAspectError
 from aoa.action_machine.graph_model.edges.domain_graph_edge import DomainGraphEdge
+from aoa.action_machine.intents.depends.use_case import VALID_USE_CASE_MODES
 from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.runtime.dependency_info import DependencyInfo
@@ -45,6 +46,7 @@ from ..edges.connection_graph_edge import ConnectionGraphEdge
 from ..edges.depends_graph_edge import DependsGraphEdge
 from ..edges.error_handler_graph_edge import ErrorHandlerGraphEdge
 from ..edges.params_graph_edge import ParamsGraphEdge
+from ..edges.parent_action_graph_edge import ParentActionGraphEdge, build_parent_action_edges
 from ..edges.regular_aspect_graph_edge import RegularAspectGraphEdge
 from ..edges.result_graph_edge import ResultGraphEdge
 from ..edges.role_graph_edge import RoleGraphEdge
@@ -78,6 +80,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     summary_aspect: list[SummaryAspectGraphEdge]
     compensators: list[CompensatorGraphEdge]
     on_error_handlers: list[ErrorHandlerGraphEdge]
+    parent_actions: list[ParentActionGraphEdge]
 
     def __init__(self, action_cls: type[TAction]) -> None:
         node_id = TypeIntrospection.full_qualname(action_cls)
@@ -98,6 +101,17 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         object.__setattr__(self, "summary_aspect", SummaryAspectGraphEdge.get_summary_aspect_edges(action_cls))
         object.__setattr__(self, "compensators", CompensatorGraphEdge.get_compensator_edges(action_cls))
         object.__setattr__(self, "on_error_handlers", ErrorHandlerGraphEdge.get_on_error_handlers_edges(action_cls))
+        object.__setattr__(self, "parent_actions", cast(list[ParentActionGraphEdge], build_parent_action_edges(action_cls)))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "label": self.label,
+            "properties": {
+                "description": str(self.properties["description"]),
+            },
+        }
 
     def connection_keys(self) -> frozenset[str]:
         """Declared ``@connection`` slot keys (non-empty stripped ``properties[\"key\"]`` on connection edges)."""
@@ -128,7 +142,9 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             factory = raw_fac if raw_fac is None or callable(raw_fac) else None
             desc_raw = edge.properties.get("description", "")
             description = desc_raw if isinstance(desc_raw, str) else ""
-            out.append(DependencyInfo(cls=host, factory=factory, description=description))
+            raw_mode = edge.properties.get("mode")
+            mode = raw_mode if isinstance(raw_mode, str) and raw_mode in VALID_USE_CASE_MODES else None
+            out.append(DependencyInfo(cls=host, factory=factory, description=description, mode=mode))
         return tuple(out)
 
     def get_regular_aspect_graph_nodes(self) -> list[RegularAspectGraphNode]:
@@ -187,6 +203,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             *self.summary_aspect,
             *self.compensators,
             *self.on_error_handlers,
+            *self.parent_actions,
         ]
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:

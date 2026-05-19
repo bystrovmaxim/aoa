@@ -38,7 +38,7 @@ may_import = ["graph", "action_machine"]
 
 [tests.zones.maxitor]
 roots = ["tests/maxitor"]
-may_import = ["graph", "action_machine", "maxitor"]
+may_import = ["graph", "action_machine", "maxitor", "examples"]
 
 [tests.zones.examples]
 roots = ["tests/examples"]

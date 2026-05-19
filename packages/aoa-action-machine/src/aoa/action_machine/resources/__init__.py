@@ -26,8 +26,18 @@ ARCHITECTURE / DATA FLOW
 
 from aoa.action_machine.intents.connection.connection_intent import ConnectionIntent
 from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.per_call_connection import (
+    ConnectionValue,
+    PerCallConnection,
+    resolve_connections,
+    validate_connection_entries,
+)
 
 __all__ = [
     "BaseResource",
     "ConnectionIntent",
+    "ConnectionValue",
+    "PerCallConnection",
+    "resolve_connections",
+    "validate_connection_entries",
 ]

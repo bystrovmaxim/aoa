@@ -78,7 +78,7 @@ stack. See ``BaseAdapter`` (ADAPTER TESTING CONTRACT) and ``mcp.adapter``
 import json
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 from mcp.types import CallToolResult
@@ -94,9 +94,26 @@ from aoa.action_machine.integrations.mcp.adapter import (
     _validate_tool_request_kwargs,
 )
 from aoa.action_machine.integrations.mcp.route_record import McpRouteRecord
+from aoa.action_machine.intents.meta.meta_decorator import meta
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
+from tests.action_machine.scenarios.domain_model.domains import TestDomain
 from tests.action_machine.scenarios.domain_model.roles import AdminRole
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stub resource (``resolve_connections`` requires ``BaseResource`` instances)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@meta(description="MCP handler connection test resource", domain=TestDomain)
+class _McpHandlerTestResource(BaseResource):
+    """Minimal ``BaseResource`` for connection resolution assertions."""
+
+    def get_wrapper_class(self):
+        return None
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -165,6 +182,7 @@ def _make_record(
     response_mapper=None,
     request_model=None,
     response_model=None,
+    connections=None,
 ) -> McpRouteRecord:
     """Create a McpRouteRecord with test defaults."""
     return McpRouteRecord(
@@ -174,6 +192,7 @@ def _make_record(
         response_mapper=response_mapper,
         request_model=request_model,
         response_model=response_model,
+        connections=connections,
     )
 
 
@@ -243,7 +262,6 @@ class TestExecuteToolCallDirect:
                 record,
                 machine,
                 auth,
-                None,
                 False,
                 False,
             )
@@ -352,7 +370,7 @@ class TestHandlerSuccess:
         machine.run = AsyncMock(return_value=mock_result)
 
         handler = _make_tool_handler(
-            record, machine, auth, None, machine.graph_coordinator,
+            record, machine, auth, machine.graph_coordinator,
         )
         result = await handler()
 
@@ -372,7 +390,7 @@ class TestHandlerSuccess:
         machine.run = AsyncMock(return_value=PingAction.Result(message="pong"))
 
         handler = _make_tool_handler(
-            record, machine, auth, None, machine.graph_coordinator,
+            record, machine, auth, machine.graph_coordinator,
         )
         result = await handler()
         env = _tool_result_envelope(result)
@@ -386,7 +404,7 @@ class TestHandlerSuccess:
         record = _make_record(tool_name="orders.create")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
 
         assert handler.__name__ == "orders_create"
@@ -398,7 +416,7 @@ class TestHandlerSuccess:
         record = _make_record(tool_name="my-tool-name")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
 
         assert handler.__name__ == "my_tool_name"
@@ -420,7 +438,7 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
         result = await handler()
 
@@ -442,7 +460,7 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
         result = await handler()
 
@@ -460,7 +478,7 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
         result = await handler()
 
@@ -478,7 +496,7 @@ class TestHandlerErrors:
         record = _make_record(action_class=SimpleAction, tool_name="simple.run")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
         result = await handler()
 
@@ -503,7 +521,7 @@ class TestHandlerErrors:
         record = _make_record(action_class=SimpleAction, tool_name="simple.run")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
         result = await handler(name=[])
 
@@ -523,7 +541,7 @@ class TestHandlerErrors:
         record = _make_record(action_class=SimpleAction, tool_name="simple.run")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
         result = await handler(name="")
 
@@ -547,7 +565,7 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
         result = await handler()
 
@@ -586,7 +604,7 @@ class TestHandlerWithMappers:
         )
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
         await handler()
 
@@ -606,7 +624,7 @@ class TestHandlerWithMappers:
         )
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
         result = await handler()
 
@@ -626,7 +644,7 @@ class TestHandlerWithMappers:
             params_mapper=lambda _p: PingAction.Params(),  # not SimpleAction.Params
         )
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
         result = await handler(name="Alice")
 
@@ -652,7 +670,7 @@ class TestHandlerWithMappers:
             response_mapper=lambda _r: "not-alt-response",  # type: ignore[return-value]
         )
         handler = _make_tool_handler(
-            record, machine, _make_auth(), None, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
         result = await handler(name="Bob")
 
@@ -665,33 +683,38 @@ class TestHandlerWithMappers:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# _make_tool_handler — connections_factory
+# _make_tool_handler — per-tool connections
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestHandlerWithConnections:
-    """Verify handler calls connections_factory when provided."""
+    """``record.connections`` is resolved and passed to ``machine.run``."""
 
     @pytest.mark.asyncio
-    async def test_connections_factory_called(self) -> None:
-        """connections_factory is invoked and result passed to machine.run."""
+    async def test_per_call_connection_factory_and_run_connections(self) -> None:
+        """``PerCallConnection`` invokes its factory; resolved map reaches ``machine.run``."""
         machine = _make_machine()
         mock_result = PingAction.Result(message="pong")
         machine.run = AsyncMock(return_value=mock_result)
 
-        mock_conn = {"db": MagicMock()}
-        factory = MagicMock(return_value=mock_conn)
+        resource = _McpHandlerTestResource()
+        factory_calls = {"n": 0}
 
-        record = _make_record()
+        def factory() -> BaseResource:
+            factory_calls["n"] += 1
+            return resource
+
+        record = _make_record(
+            connections={"db": PerCallConnection(factory=factory)},
+        )
         handler = _make_tool_handler(
-            record, machine, _make_auth(), factory, machine.graph_coordinator,
+            record, machine, _make_auth(), machine.graph_coordinator,
         )
         await handler()
 
-        factory.assert_called_once()
-        # machine.run received the connections
-        call_kwargs = machine.run.call_args
-        assert call_kwargs is not None
+        assert factory_calls["n"] == 1
+        assert machine.run.call_args is not None
+        assert machine.run.call_args.args[3] == {"db": resource}
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -733,8 +756,13 @@ class TestBuildGraphJson:
         parsed = json.loads(json_str)
 
         action_nodes = [n for n in parsed["nodes"] if n.get("type") == "Action"]
+        # Disambiguate from sample actions whose ids also contain "PingAction" (e.g. ``OpsPingAction``).
         ping_action = next(
-            (n for n in action_nodes if "PingAction" in n.get("id", "")),
+            (
+                n
+                for n in action_nodes
+                if "scenarios.domain_model.ping_action.PingAction" in n.get("id", "")
+            ),
             None,
         )
         assert ping_action is not None

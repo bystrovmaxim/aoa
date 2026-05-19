@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from aoa.action_machine.intents.depends.use_case import UseCase
+
 
 class DependsIntentResolver:
     """
@@ -30,3 +32,18 @@ class DependsIntentResolver:
             if isinstance(dependency_type, type):
                 dependency_types.append(dependency_type)
         return dependency_types
+
+    @staticmethod
+    def resolve_include_dependency_types(host_cls: type) -> list[type]:
+        """Return types of ``@depends`` entries with ``mode == UseCase.include`` (declaration order)."""
+        depends_info = DependsIntentResolver.resolve_dependency_infos(host_cls)
+        if not depends_info:
+            return []
+        out: list[type] = []
+        for dependency_info in depends_info:
+            if getattr(dependency_info, "mode", None) != UseCase.include:
+                continue
+            dependency_type = getattr(dependency_info, "cls", None)
+            if isinstance(dependency_type, type):
+                out.append(dependency_type)
+        return out

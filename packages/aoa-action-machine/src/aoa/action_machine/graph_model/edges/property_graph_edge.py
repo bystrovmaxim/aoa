@@ -20,8 +20,11 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, get_type_hints
 
+from aoa.action_machine.graph_model.edges.entity_schema_graph_edge import (
+    entity_schema_projection_target_from_annotation,
+)
 from aoa.action_machine.graph_model.nodes.property_field_graph_node import PropertyFieldGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.graph.base_graph_node import BaseGraphNode
@@ -49,6 +52,16 @@ class PropertyGraphEdge(CompositionGraphEdge):
             target_node=property_node,
         )
 
+    def to_dict(self, *, source_id: str) -> dict[str, Any]:
+        return {
+            "source_id": source_id,
+            "target_id": self.target_node_id,
+            "type": self.edge_name,
+            "relationship": self.edge_relationship.archimate_name,
+            "is_dag": self.is_dag,
+            "properties": {},
+        }
+
     @classmethod
     def get_property_edges(cls, schema_cls: type, _source_host: BaseGraphNode[Any]) -> list[PropertyGraphEdge]:
         """Build composition edges from params or result host to computed/plain property nodes."""
@@ -64,15 +77,22 @@ class PropertyGraphEdge(CompositionGraphEdge):
         model_fields = getattr(host_cls, "model_fields", None)
         model_field_names = set(model_fields) if isinstance(model_fields, Mapping) else set()
 
+        try:
+            hints = get_type_hints(host_cls, include_extras=True)
+        except Exception:
+            hints = {}
+
         model_computed_fields = getattr(host_cls, "model_computed_fields", None)
         if isinstance(model_computed_fields, Mapping):
-            for prop_name, _ in model_computed_fields.items():
+            for prop_name, computed_info in model_computed_fields.items():
                 seen.add(prop_name)
+                annotation = hints.get(prop_name, getattr(computed_info, "return_type", None))
                 out.append(
                     PropertyFieldGraphNode(
                         host_cls,
                         prop_name,
                         required=False,
+                        entity_schema_target=entity_schema_projection_target_from_annotation(annotation),
                     ),
                 )
 
@@ -81,11 +101,15 @@ class PropertyGraphEdge(CompositionGraphEdge):
             if prop_name in seen or prop_name in model_field_names:
                 continue
             seen.add(prop_name)
+            fget = prop_members[prop_name].fget
+            fallback = None if fget is None else TypeIntrospection.callable_return_annotation(fget)
+            annotation = hints.get(prop_name, fallback)
             out.append(
                 PropertyFieldGraphNode(
                     host_cls,
                     prop_name,
                     required=False,
+                    entity_schema_target=entity_schema_projection_target_from_annotation(annotation),
                 ),
             )
         return out

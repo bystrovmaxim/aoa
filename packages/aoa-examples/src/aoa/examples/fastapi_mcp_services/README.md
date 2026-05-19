@@ -5,7 +5,7 @@ run through any protocol adapter without modification**.
 
 Actions inherit the standard set of **Intent** mixins from `BaseAction` and
 declare behavior with decorators (`@meta`, `@check_roles`, aspects, dependencies).
-The metadata graph is built when ``NodeGraphCoordinator.build()`` runs from those declarations —
+The metadata graph is built when `NodeGraphCoordinator.build()` runs from those declarations —
 see the “Key concepts: Intent” section in the root `README.md`.
 
 Three actions (PingAction, CreateOrderAction, GetOrderAction) are defined once
@@ -58,11 +58,11 @@ python -m aoa.examples.fastapi_mcp_services.app_mcp_service --transport streamab
 ## Actions (shared by both transports)
 
 
-| Action            | FastAPI                         | MCP Tool        | Description        |
-| ----------------- | ------------------------------- | --------------- | ------------------ |
-| PingAction        | `GET /api/v1/ping`              | `system.ping`   | Liveness check     |
-| CreateOrderAction | `POST /api/v1/orders`           | `orders.create` | Create an order    |
-| GetOrderAction    | `GET /api/v1/orders/{order_id}` | `orders.get`    | Fetch an order     |
+| Action            | FastAPI                         | MCP Tool        | Description     |
+| ----------------- | ------------------------------- | --------------- | --------------- |
+| PingAction        | `GET /api/v1/ping`              | `system.ping`   | Liveness check  |
+| CreateOrderAction | `POST /api/v1/orders`           | `orders.create` | Create an order |
+| GetOrderAction    | `GET /api/v1/orders/{order_id}` | `orders.get`    | Fetch an order  |
 
 
 FastAPI also registers `GET /health → {"status": "ok"}` automatically.
@@ -70,11 +70,11 @@ FastAPI also registers `GET /health → {"status": "ok"}` automatically.
 ### CreateOrderAction parameters
 
 
-| Field       | Type   | Required            | Constraints         | Description           |
-| ----------- | ------ | ------------------- | ------------------- | --------------------- |
-| `user_id`   | str    | yes                 | min_length=1        | User ID               |
-| `amount`    | float  | yes                 | gt=0                | Order amount          |
-| `currency`  | str    | no (default: RUB)   | pattern=^[A-Z]{3}$  | ISO 4217 currency code |
+| Field      | Type  | Required          | Constraints        | Description            |
+| ---------- | ----- | ----------------- | ------------------ | ---------------------- |
+| `user_id`  | str   | yes               | min_length=1       | User ID                |
+| `amount`   | float | yes               | gt=0               | Order amount           |
+| `currency` | str   | no (default: RUB) | pattern=^[A-Z]{3}$ | ISO 4217 currency code |
 
 
 ### Examples
@@ -136,9 +136,9 @@ Nothing is duplicated — descriptions are written once in the Pydantic models.
 ## MCP: available resources
 
 
-| Resource         | Description                                                                 |
-| ---------------- | --------------------------------------------------------------------------- |
-| `system://graph` | System structure: nodes (actions, domains), edges (depends, belongs_to)    |
+| Resource         | Description                                                             |
+| ---------------- | ----------------------------------------------------------------------- |
+| `system://graph` | System structure: nodes (actions, domains), edges (depends, belongs_to) |
 
 
 ```json
@@ -248,6 +248,8 @@ fastapi_mcp_services/
 ```
 
 ## Fluent chain
+
+Optional keyword-only `connections` on each fluent call passes resources into `machine.run` for that route or tool only; use `PerCallConnection` when the resource must be built per request or per tool invocation (see `aoa.action_machine.resources.per_call_connection`).
 
 **FastAPI:**
 

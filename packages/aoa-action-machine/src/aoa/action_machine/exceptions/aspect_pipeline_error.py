@@ -14,7 +14,7 @@ class AspectPipelineError(Exception):
     Internal aspect-pipeline failure wrapper carrying the state active at failure.
 
     The original exception is stored as ``__cause__``. ``pipeline_state`` is the
-    state passed into the aspect call, or the merged state after a successful
+    state passed into the aspect call, or the state returned by a successful
     regular aspect when post-aspect plugin emission fails.
     """
 

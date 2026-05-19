@@ -32,7 +32,10 @@ class DependencyInfo:
                  If ``None``, the default constructor ``klass()`` is used.
                  Use a lambda for singletons, e.g. ``lambda: shared_instance``.
         description: Human‑readable description for documentation and introspection.
+        mode: For action targets, ``UseCase.include`` / ``UseCase.extend`` (PR-2+).
+               ``None`` for resource targets or before validation is applied.
     """
     cls: type
     factory: Callable[..., Any] | None = None
     description: str = ""
+    mode: str | None = None
