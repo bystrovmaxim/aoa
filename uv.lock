@@ -8,6 +8,7 @@ members = [
     "aoa-examples",
     "aoa-graph",
     "aoa-maxitor",
+    "aoa-ocel",
     "aoa-run",
 ]
 
@@ -139,6 +140,17 @@ requires-dist = [
 ]
 
 [[package]]
+name = "aoa-ocel"
+version = "1.0.0"
+source = { editable = "packages/aoa-ocel" }
+dependencies = [
+    { name = "aoa-action-machine" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "aoa-action-machine", editable = "packages/aoa-action-machine" }]
+
+[[package]]
 name = "aoa-run"
 version = "1.0.0"
 source = { editable = "." }
@@ -147,6 +159,7 @@ dependencies = [
     { name = "aoa-examples" },
     { name = "aoa-graph" },
     { name = "aoa-maxitor" },
+    { name = "aoa-ocel" },
 ]
 
 [package.optional-dependencies]
@@ -219,6 +232,7 @@ requires-dist = [
     { name = "aoa-examples", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/aoa-examples" },
     { name = "aoa-graph", editable = "packages/aoa-graph" },
     { name = "aoa-maxitor", editable = "packages/aoa-maxitor" },
+    { name = "aoa-ocel", editable = "packages/aoa-ocel" },
     { name = "aoa-run", extras = ["fastapi", "mcp", "postgres", "dev"], marker = "extra == 'all'" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=24.0,<25.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27,<1.0" },
