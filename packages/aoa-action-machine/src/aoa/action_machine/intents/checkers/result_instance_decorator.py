@@ -57,39 +57,52 @@ class FieldInstanceChecker:
     Self-contained implementation; runtime uses the usual constructor kwargs and ``.check(result_dict)``.
     """
 
-    __slots__ = ("expected_class", "field_name", "required")
+    __slots__ = ("expected_class", "field_name", "no_none", "required")
 
     def __init__(
         self,
         field_name: str,
         expected_class: type[Any] | tuple[type[Any], ...],
         required: bool = True,
+        no_none: bool = False,
     ) -> None:
         self.field_name = field_name
         self.required = required
         self.expected_class = expected_class
+        self.no_none = no_none
 
     def _get_extra_params(self) -> dict[str, Any]:
         """
         Return constructor params for snapshot serialization.
 
         Returns:
-            Dictionary with ``expected_class`` key.
+            Dictionary with ``expected_class`` and ``no_none`` keys.
         """
         return {
             "expected_class": self.expected_class,
+            "no_none": self.no_none,
         }
 
     def check(self, result: dict[str, Any]) -> None:
         """Validate one instance-typed field in ``result``."""
-        value = result.get(self.field_name)
-        if value is None:
+        if self.field_name not in result:
             if self.required:
                 raise ValidationFieldError(
                     f"Missing required parameter: '{self.field_name}'",
                     field=self.field_name,
                 )
             return
+
+        value = result[self.field_name]
+        if value is None:
+            if self.no_none:
+                raise ValidationFieldError(
+                    f"Field '{self.field_name}' must not be None",
+                    field=self.field_name,
+                )
+            if not self.required:
+                return
+
         if not isinstance(value, self.expected_class):
             if isinstance(self.expected_class, tuple):
                 names = ", ".join(cls.__name__ for cls in self.expected_class)
@@ -106,6 +119,7 @@ def result_instance(
     field_name: str,
     expected_class: type[Any] | tuple[type[Any], ...],
     required: bool = True,
+    no_none: bool = False,
 ) -> Any:
     """
     Decorator for aspect methods declaring class-instance result field.
@@ -118,6 +132,7 @@ def result_instance(
         field_name: field name in aspect result dictionary.
         expected_class: expected class or tuple of classes.
         required: whether field is required.
+        no_none: when ``True``, reject explicit ``None`` even if the field key is present.
 
     Returns:
         Decorator function that appends checker metadata to method.
@@ -138,6 +153,7 @@ def result_instance(
         "checker_class": FieldInstanceChecker,
         "field_name": field_name,
         "required": required,
+        "no_none": no_none,
         "expected_class": expected_class,
     }
 
