@@ -32,8 +32,12 @@ TestRequired
     - required=False: missing or None field allowed.
     - required=False: wrong type when present → error.
 
+TestNoNone
+    - no_none=True: explicit None rejected.
+    - no_none=False: explicit None follows optional/required + isinstance rules.
+
 TestExtraParams
-    - _get_extra_params returns expected_class.
+    - _get_extra_params returns expected_class and no_none.
 
 TestDecorator
     - result_instance records _checker_meta with correct parameters.
@@ -334,6 +338,49 @@ class TestRequired:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# no_none
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestNoNone:
+    """Explicit None rejection when no_none=True."""
+
+    def test_no_none_true_rejects_explicit_none(self):
+        """required=True, no_none=True: explicit None raises."""
+        checker = FieldInstanceChecker("ocel", _User, required=True, no_none=True)
+
+        with pytest.raises(ValidationFieldError, match="must not be None"):
+            checker.check({"ocel": None})
+
+    def test_no_none_false_required_none_fails_isinstance(self):
+        """required=True, no_none=False: explicit None fails type check."""
+        checker = FieldInstanceChecker("ocel", _User, required=True, no_none=False)
+
+        with pytest.raises(ValidationFieldError):
+            checker.check({"ocel": None})
+
+    def test_no_none_true_valid_value_passes(self):
+        """no_none=True: valid instance accepted."""
+        checker = FieldInstanceChecker("ocel", _User, required=True, no_none=True)
+        user = _User(user_id=1, name="Alice")
+
+        checker.check({"ocel": user})
+
+    def test_required_true_missing_field_raises(self):
+        """required=True: missing key raises."""
+        checker = FieldInstanceChecker("ocel", _User, required=True, no_none=True)
+
+        with pytest.raises(ValidationFieldError, match="Missing required parameter"):
+            checker.check({})
+
+    def test_required_false_missing_field_passes(self):
+        """required=False: missing key allowed."""
+        checker = FieldInstanceChecker("ocel", _User, required=False, no_none=True)
+
+        checker.check({})
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # _get_extra_params
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -351,6 +398,15 @@ class TestExtraParams:
 
         # Assert
         assert params["expected_class"] is _User
+        assert params["no_none"] is False
+
+    def test_extra_params_no_none_true(self):
+        """no_none flag stored in extra_params."""
+        checker = FieldInstanceChecker("ocel", _User, no_none=True)
+
+        params = checker._get_extra_params()
+
+        assert params["no_none"] is True
 
     def test_extra_params_tuple_of_classes(self):
         """Tuple of classes stored in extra_params."""
@@ -432,6 +488,24 @@ class TestDecorator:
         # Assert
         meta = aspect._checker_meta[0]
         assert meta["required"] is False
+
+    def test_no_none_default_false(self):
+        """Default no_none=False in metadata."""
+        @result_instance("user", _User)
+        async def aspect(self, params, state, box, connections):
+            return {"user": _User(1, "Alice")}
+
+        meta = aspect._checker_meta[0]
+        assert meta["no_none"] is False
+
+    def test_no_none_true_recorded(self):
+        """Explicit no_none=True stored in metadata."""
+        @result_instance("ocel", _User, required=True, no_none=True)
+        async def aspect(self, params, state, box, connections):
+            return {"ocel": _User(1, "Alice")}
+
+        meta = aspect._checker_meta[0]
+        assert meta["no_none"] is True
 
     def test_extra_params_single_class_in_meta(self):
         """Single expected_class verified via checker instance."""
