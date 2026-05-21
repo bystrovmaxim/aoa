@@ -187,10 +187,48 @@ class _PipelineOutcome[R]:
     Attributes:
         result: Object from the summary aspect or a matching ``@on_error`` handler.
         from_error_handler: ``True`` when ``result`` was produced only via the error path.
+        all_aspect_states: Plugin-readable snapshots derived from saga frames after each
+            regular aspect (live objects preserved when ``to_dict()`` would coerce them).
     """
 
     result: R
     from_error_handler: bool
+    all_aspect_states: tuple[dict[str, Any], ...] = ()
+
+
+def _plugin_snapshot_value_differs(live: Any, dumped: Any) -> bool:
+    """True when ``model_dump`` coerced ``live`` (including nested list items)."""
+    if type(live) is not type(dumped):
+        return True
+    if isinstance(live, list):
+        if not isinstance(dumped, list) or len(live) != len(dumped):
+            return True
+        return any(
+            _plugin_snapshot_value_differs(live_item, dumped_item)
+            for live_item, dumped_item in zip(live, dumped, strict=True)
+        )
+    return bool(live != dumped)
+
+
+def _aspect_state_snapshot_for_plugins(state: BaseState) -> dict[str, Any]:
+    """Build plugin snapshot; keep live values pydantic would coerce in ``to_dict()``."""
+    snapshot = state.to_dict()
+    for key in snapshot:
+        live = getattr(state, key, None)
+        if live is not None and _plugin_snapshot_value_differs(live, snapshot[key]):
+            snapshot[key] = live
+    return snapshot
+
+
+def _all_aspect_states_from_saga_stack(
+    saga_stack: list[SagaFrame],
+) -> tuple[dict[str, Any], ...]:
+    """Return successful regular-aspect states already stored in saga frames."""
+    return tuple(
+        _aspect_state_snapshot_for_plugins(frame.state_after)
+        for frame in saga_stack
+        if isinstance(frame.state_after, BaseState)
+    )
 
 
 class ActionProductMachine(BaseActionMachine):
@@ -347,15 +385,14 @@ class ActionProductMachine(BaseActionMachine):
                 compensator_node = action_graph_node.compensator_graph_node_for_aspect(
                     aspect_node.label
                 )
-                if compensator_node is not None:
-                    saga_stack.append(
-                        SagaFrame(
-                            compensator=compensator_node,
-                            aspect_name=aspect_node.label,
-                            state_before=state_passed_into_aspect,
-                            state_after=None,
-                        )
+                saga_stack.append(
+                    SagaFrame(
+                        compensator=compensator_node,
+                        aspect_name=aspect_node.label,
+                        state_before=state_passed_into_aspect,
+                        state_after=None,
                     )
+                )
 
                 await self._plugin_coordinator.emit_before_regular_aspect(
                     plugin_ctx,
@@ -379,7 +416,7 @@ class ActionProductMachine(BaseActionMachine):
                     )
                 )
 
-                if compensator_node is not None and saga_stack:
+                if saga_stack:
                     saga_stack[-1] = SagaFrame(
                         compensator=compensator_node,
                         aspect_name=aspect_node.label,
@@ -434,7 +471,11 @@ class ActionProductMachine(BaseActionMachine):
                 result=result,
                 duration_ms=summary_duration * 1000,
             )
-            return _PipelineOutcome(cast("R", result), from_error_handler=False)
+            return _PipelineOutcome(
+                cast("R", result),
+                from_error_handler=False,
+                all_aspect_states=_all_aspect_states_from_saga_stack(saga_stack),
+            )
 
         except Exception as aspect_error:
             try:
@@ -469,7 +510,11 @@ class ActionProductMachine(BaseActionMachine):
                 plugin_ctx=plugin_ctx,
                 failed_aspect_name=failed_aspect_name,
             )
-            return _PipelineOutcome(cast("R", handled_result), from_error_handler=True)
+            return _PipelineOutcome(
+                cast("R", handled_result),
+                from_error_handler=True,
+                all_aspect_states=_all_aspect_states_from_saga_stack(saga_stack),
+            )
 
     # ─────────────────────────────────────────────────────────────────────
     # Public entry: run
@@ -606,6 +651,10 @@ class ActionProductMachine(BaseActionMachine):
 
             total_duration = time.time() - start_time
 
+            finish_snapshots: tuple[dict[str, Any], ...] = ()
+            if not cache_hit:
+                finish_snapshots = outcome.all_aspect_states
+
             await self._plugin_coordinator.emit_global_finish(
                 plugin_ctx,
                 action=action,
@@ -614,6 +663,7 @@ class ActionProductMachine(BaseActionMachine):
                 nest_level=current_nest,
                 result=cast("BaseResult", result),
                 duration_ms=total_duration * 1000,
+                all_aspect_states=finish_snapshots,
             )
 
             return result

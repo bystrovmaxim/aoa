@@ -33,6 +33,7 @@ ALLOWED_ACTION_MACHINE_MODULES: frozenset[str] = frozenset(
         f"{_AM}.resources",
         f"{_AM}.resources.external_service",
         f"{_AM}.resources.sql",
+        f"{_AM}.runtime.action_product_machine",
         f"{_AM}.runtime.tools_box",
         f"{_AM}.testing",
         f"{_AM}.intents.aspects",

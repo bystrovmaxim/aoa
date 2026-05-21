@@ -168,12 +168,18 @@ AI-CORE-BEGIN
         nest_level: int,
         result: BaseResult,
         duration_ms: float,
+        all_aspect_states: tuple[dict[str, object], ...] = (),
     ) -> None:
         """Emit ``GlobalFinishEvent`` with the final result and total duration."""
         base = self.base_fields(action, context, params, nest_level)
         kwargs = self.emit_extra_kwargs(nest_level)
         await plugin_ctx.emit_event(
-            GlobalFinishEvent(**base, result=result, duration_ms=duration_ms),
+            GlobalFinishEvent(
+                **base,
+                result=result,
+                duration_ms=duration_ms,
+                all_aspect_states=all_aspect_states,
+            ),
             **kwargs,
         )
 

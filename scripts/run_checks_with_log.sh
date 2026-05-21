@@ -156,7 +156,7 @@ run_and_log "uv run --extra dev task pylint" "Pylint"
 run_and_log "uv run --extra dev python scripts/check_package_boundaries.py" "Package import boundaries (production)"
 run_and_log "uv run --extra dev python scripts/check_package_boundaries.py --tests" "Package import boundaries (tests/)"
 run_and_log "uv run --extra dev python scripts/check_package_metadata.py" "Package metadata (pyproject dependency matrix)"
-for pkg_dir in packages/aoa-graph packages/aoa-action-machine packages/aoa-maxitor packages/aoa-examples; do
+for pkg_dir in packages/aoa-graph packages/aoa-action-machine packages/aoa-ocel packages/aoa-maxitor packages/aoa-examples; do
   run_and_log "uv run --group dev python -m build \"${REPO_ROOT}/${pkg_dir}\"" "Build wheel/sdist (${pkg_dir})"
 done
 run_and_log "uv run --extra dev pytest tests/packaging -v" "Packaging wheel install smoke"
