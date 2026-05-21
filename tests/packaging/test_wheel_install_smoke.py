@@ -22,6 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 _PACKAGE_DIRS: dict[str, str] = {
     "aoa-graph": "aoa-graph",
     "aoa-action-machine": "aoa-action-machine",
+    "aoa-ocel": "aoa-ocel",
     "aoa-maxitor": "aoa-maxitor",
     "aoa-examples": "aoa-examples",
 }
@@ -30,15 +31,17 @@ _PACKAGE_DIRS: dict[str, str] = {
 _REQUIRED_AOA_PREFIX: dict[str, str] = {
     "aoa-graph": "aoa/graph/",
     "aoa-action-machine": "aoa/action_machine/",
+    "aoa-ocel": "aoa/ocel/",
     "aoa-maxitor": "aoa/maxitor/",
     "aoa-examples": "aoa/examples/",
 }
 
 # No other ``aoa.*`` subtree may appear inside the wheel archive.
 _FORBIDDEN_AOA_PREFIXES: dict[str, tuple[str, ...]] = {
-    "aoa-graph": ("aoa/action_machine/", "aoa/maxitor/", "aoa/examples/"),
-    "aoa-action-machine": ("aoa/maxitor/", "aoa/examples/"),
-    "aoa-maxitor": ("aoa/examples/",),
+    "aoa-graph": ("aoa/action_machine/", "aoa/ocel/", "aoa/maxitor/", "aoa/examples/"),
+    "aoa-action-machine": ("aoa/ocel/", "aoa/maxitor/", "aoa/examples/"),
+    "aoa-ocel": ("aoa/maxitor/", "aoa/examples/"),
+    "aoa-maxitor": ("aoa/ocel/", "aoa/examples/"),
     "aoa-examples": ("aoa/maxitor/",),
 }
 
@@ -112,6 +115,7 @@ def test_clean_install_graph_only(tmp_path: Path) -> None:
         vpy,
         "import importlib.util as u; import aoa.graph; "
         "assert u.find_spec('aoa.action_machine') is None; "
+        "assert u.find_spec('aoa.ocel') is None; "
         "assert u.find_spec('aoa.maxitor') is None; "
         "assert u.find_spec('aoa.examples') is None",
     )
@@ -125,6 +129,7 @@ def test_clean_install_action_machine_pulls_graph(tmp_path: Path) -> None:
     _run_in_venv(
         vpy,
         "import importlib.util as u; import aoa.graph; import aoa.action_machine; "
+        "assert u.find_spec('aoa.ocel') is None; "
         "assert u.find_spec('aoa.maxitor') is None; "
         "assert u.find_spec('aoa.examples') is None",
     )
@@ -139,12 +144,14 @@ def test_clean_install_examples_does_not_pull_maxitor(tmp_path: Path) -> None:
         [
             _latest_wheel("aoa-graph"),
             _latest_wheel("aoa-action-machine"),
+            _latest_wheel("aoa-ocel"),
             _latest_wheel("aoa-examples"),
         ],
     )
     _run_in_venv(
         vpy,
-        "import importlib.util as u; import aoa.graph; import aoa.action_machine; import aoa.examples; "
+        "import importlib.util as u; import aoa.graph; import aoa.action_machine; "
+        "import aoa.ocel; import aoa.examples; "
         "assert u.find_spec('aoa.maxitor') is None",
     )
     listed = subprocess.run(
