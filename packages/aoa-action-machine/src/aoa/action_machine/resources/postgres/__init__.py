@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/integrations/postgres/__init__.py
+# packages/aoa-action-machine/src/aoa/action_machine/resources/postgres/__init__.py
 """
 PostgreSQL integration package for ActionMachine.
 
@@ -41,10 +41,10 @@ try:
     import asyncpg  # noqa: F401
 except ImportError:
     raise ImportError(
-        "To use action_machine.integrations.postgres, install the optional dependency: "
+        "To use action_machine.resources.postgres, install the optional dependency: "
         "pip install aoa-run[postgres]"
     ) from None
 
-from aoa.action_machine.integrations.postgres.postgres_resource import PostgresResource
+from aoa.action_machine.resources.postgres.postgres_resource import PostgresResource
 
 __all__ = ["PostgresResource"]

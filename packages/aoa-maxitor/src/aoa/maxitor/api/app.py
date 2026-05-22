@@ -9,7 +9,7 @@ PURPOSE
 Expose API endpoints for a separately hosted Vite React SPA. This module does
 not serve React assets or Python-rendered shell HTML.
 
-ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.action_machine.integrations.fastapi.FastApiAdapter`
+ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.action_machine.adapters.fastapi.FastApiAdapter`
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
 Each diagram route reads the same in-process DuckDB snapshot built from the coordinator
 JSON produced alongside the sidebar (avoids desync with a separate HTTP graph-json service).
@@ -24,9 +24,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from aoa.action_machine.adapters.fastapi import FastApiAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.integrations.fastapi import FastApiAdapter
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
