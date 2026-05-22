@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
-## [Unreleased]
+## [1.2.8] – 2026-05-22
 
 ### Documentation
 
-- **ADR — interchange generalization edges.** `archive/docs/architecture/decisions/generalization-edges.md` records the export, DuckDB, and FullGraph contracts; the full specification and PR sequence remain in `archive/plan/generalization_graph_nodes.md`.
+- **OCEL export policy (v1).** `packages/aoa-ocel/README.md` documents E2O-only export, loaded-relation reachability, one-hop peer materialization, and aspect-controlled participation via partial entity loading.
 
 ### Breaking changes
 
@@ -19,15 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OCEL 2.0 export (`aoa-ocel`).** New wheel `aoa-ocel` with `OcelFrame` aspect contract, `OcelPlugin` on `GlobalFinishEvent`, and E2O-only v1 policy (loaded one-hop FK relations, composite peer qualifiers, no O2O). `InMemoryOcelStoreResource` / `OcelStoreResource` accumulate `OcelEvent` DTOs and persist OCEL 2.0 JSON on `close()`; nested actions receive `OcelStoreWrapper`. `ActionProductMachine` exposes `all_aspect_states` on finish events so plugins can scan aspect pipeline state without mutating it. PM4Py smoke validation helpers live under `tests/ocel/`.
+- **Store domain OCEL example.** `aoa-examples` ships StoreDomain lifecycle trace actions (`PublishOrder*OcelAction`), `build_store_ocel_machine` / `run_store_ocel_trace_batch`, and integration coverage writing `archive/logs/ocel.json` with OCPM-friendly `short_names` type labels.
 - **UML generalization edges in the interchange graph.** Direct superclass links on the Action, Role, and Domain axes are exported as `parent_action`, `parent_role`, and `parent_domain` edges with relationship `Generalization` (`GENERALIZATION.archimate_name`). `GeneralizationGraphEdge.collect_direct_parents` in `aoa-graph` is the single parent-resolution algorithm; coordinator `to_json()` and `get_edges_by_type` expose the full edge set with no `include_generalization` flag. Maxitor DuckDB stores these in `parent_action_edges` / `parent_role_edges` / `parent_domain_edges` and in the unified `edges` view. **Exception:** `FullGraphAction` omits generalization links in the G6 full-graph payload only, filtering SQL by `relationship <> 'Generalization'` so the visualization stays sparse while data exports remain complete.
-
 - **UML-style `@depends` mode (Use Case stereotypes).** `UseCase` / `VALID_USE_CASE_MODES`, `DependencyInfo.mode`, decorator validation, `DependsGraphEdge` and `resolved_dependency_infos` round-trip, and interchange JSON Schema (`optional` `mode` enum `include` / `extend` on `@depends` edges). `DependsIntentResolver.resolve_include_dependency_types` lists declared `include` targets. Package docs and READMEs describe semantics; **Maxitor DuckDB `depends_edges` in the default v1 path does not add a `mode` column** — consumers read `mode` from the full graph JSON.
-
 - **Include contract on successful root runs.** `ActionProductMachine` tracks action classes that enter `_run_internal` for the current root session (`ContextVar`) and runs `IncludeContractChecker` before `emit_global_finish` when the aspect pipeline ran (including success paths that return only from `@on_error`). Missing `UseCase.include` executions raise `IncludeContractViolationError` with `missing_include_types`. Root cache hits that skip the pipeline skip this check.
-
 - **Entity lifecycle (finite-state) diagram in Maxitor.** The operator SPA can open an entity’s **Lifecycle view**: Graphviz `dot` renders the automaton as SVG with pan/zoom, LR/TB rank direction, and a **Fit to window** control. The backend exposes the lifecycle payload for the viewer (`GET /api/v1/lifecycle-finite-automaton`).
-
-- **UML use-case diagram in Maxitor.** The operator SPA can render a domain-scoped UML-style use-case slice (actions in the Domain boundary, roles, `@check_roles` associations, action/role generalizations, and `@depends` edges including `UseCase.include` / `UseCase.extend` stereotypes) as Graphviz SVG with pan/zoom, Dot LR/TB and Neato/FDP layout presets, **Fit to window**, optional one-hop narrowing, and a sidebar entry per domain (`use_case_domain`). The payload is produced by **`GetDomainUseCaseDiagramAction`** from the DuckDB graph snapshot (`GET /api/v1/domain-use-case-diagram`).
+- **UML use-case diagram in Maxitor.** The operator SPA can render a domain-scoped UML-style use-case slice (actions in the Domain boundary, roles, `@check_roles` associations, action/role generalizations, and `@depends` edges including `UseCase.include` / `UseCase.extend` stereotypes) as Graphviz SVG with pan/zoom, Dot LR/TB and Neato/FDP layout presets, **Fit to window**, optional one-hop narrowing, and a sidebar entry per domain (`use_case_domain`). The payload is produced by `**GetDomainUseCaseDiagramAction`** from the DuckDB graph snapshot (`GET /api/v1/domain-use-case-diagram`).
 
 ### Fixed
 
@@ -38,7 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Optional action result cache.** `ActionProductMachine` accepts an injected `CacheCoordinator` (in-memory store, namespaced keys, optional `max_size` eviction). `BaseAction` gains `cache_key`, `read_cache`, and `on_cache_write`; the machine orchestrates reads after role/connection gates and `emit_global_start`, and writes only after a clean summary path (handled `@on_error` results are never cached). `CacheContractError` enforces hook return contracts; hook or coordinator failures propagate without `emit_global_finish` in v1.
-
 - **JSON Schema fields in results.** Result schemas can declare explicit JSON-shaped fields so adapters expose the intended wire contract instead of relying on implicit Python object structure.
 - **Entity JSON Schema projections in results.** `BaseEntity` classes can be referenced from result fields through an explicit JSON Schema projection, preserving the entity relationship while returning only the declared wire fields.
 - **Node graph JSON serialization.** `NodeGraphCoordinator.to_json()` exports a stable JSON payload with linear `nodes` and `edges` lists, including node ids/types/labels/properties and edge source/target/type/relationship metadata, so downstream tools can reconstruct the coordinator graph without touching Python runtime objects.
