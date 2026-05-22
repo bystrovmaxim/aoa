@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
-from aoa.action_machine.integrations.fastapi.adapter import FastApiAdapter
+from aoa.action_machine.adapters.fastapi.adapter import FastApiAdapter
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.action_machine.adapters.entity_projection_adapter_fixtures import (
     EntityProjectionAdapterTestAction,

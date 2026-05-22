@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/integrations/postgres/postgres_resource.py
+# packages/aoa-action-machine/src/aoa/action_machine/resources/postgres/postgres_resource.py
 """
 Concrete PostgreSQL connection manager implementation.
 

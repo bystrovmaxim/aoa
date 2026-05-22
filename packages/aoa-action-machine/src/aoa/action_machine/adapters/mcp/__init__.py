@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/integrations/mcp/__init__.py
+# packages/aoa-action-machine/src/aoa/action_machine/adapters/mcp/__init__.py
 """
 MCP integration package for ActionMachine.
 
@@ -50,12 +50,12 @@ try:
     from mcp.server.fastmcp import FastMCP  # noqa: F401
 except ImportError:
     raise ImportError(
-        "To use action_machine.integrations.mcp, "
+        "To use action_machine.adapters.mcp, "
         "install the extra dependency: pip install aoa-run[mcp]"
     ) from None
 
-from aoa.action_machine.integrations.mcp.adapter import McpAdapter
-from aoa.action_machine.integrations.mcp.route_record import McpRouteRecord
+from aoa.action_machine.adapters.mcp.adapter import McpAdapter
+from aoa.action_machine.adapters.mcp.route_record import McpRouteRecord
 
 __all__ = [
     "McpAdapter",

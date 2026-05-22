@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/integrations/fastapi/__init__.py
+# packages/aoa-action-machine/src/aoa/action_machine/adapters/fastapi/__init__.py
 """
 FastAPI integration package for ActionMachine.
 
@@ -51,7 +51,7 @@ QUICK START
 
     from aoa.action_machine.intents.check_roles import NoAuthCoordinator
     from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-    from aoa.action_machine.integrations.fastapi import FastApiAdapter
+    from aoa.action_machine.adapters.fastapi import FastApiAdapter
 
     machine = ActionProductMachine()
 
@@ -118,16 +118,16 @@ try:
     import fastapi  # noqa: F401
 except ImportError:
     raise ImportError(
-        "To use action_machine.integrations.fastapi, install the optional dependency: "
+        "To use action_machine.adapters.fastapi, install the optional dependency: "
         "pip install aoa-run[fastapi]"
     ) from None
 
-from aoa.action_machine.integrations.fastapi.adapter import FastApiAdapter
-from aoa.action_machine.integrations.fastapi.query_field_before import (
+from aoa.action_machine.adapters.fastapi.adapter import FastApiAdapter
+from aoa.action_machine.adapters.fastapi.query_field_before import (
     QUERY_STR_LIST_BEFORE,
     coerce_query_str_list,
 )
-from aoa.action_machine.integrations.fastapi.route_record import FastApiRouteRecord
+from aoa.action_machine.adapters.fastapi.route_record import FastApiRouteRecord
 
 __all__ = [
     "QUERY_STR_LIST_BEFORE",

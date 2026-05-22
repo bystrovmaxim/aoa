@@ -1,5 +1,5 @@
 # tests/action_machine/adapters/fastapi/test_query_field_before.py
-"""Tests for :mod:`aoa.action_machine.integrations.fastapi.query_field_before`."""
+"""Tests for :mod:`aoa.action_machine.adapters.fastapi.query_field_before`."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Annotated
 import pytest
 from pydantic import BaseModel
 
-from aoa.action_machine.integrations.fastapi.query_field_before import (
+from aoa.action_machine.adapters.fastapi.query_field_before import (
     QUERY_STR_LIST_BEFORE,
     coerce_query_str_list,
 )

@@ -27,9 +27,9 @@ This package exports the protocol-agnostic core:
 - ``extract_action_types`` to derive params/result types from action generics.
 
 Concrete adapters overview:
-- ``integrations.fastapi.FastApiAdapter`` registers HTTP routes (``post/get/...``),
+- ``adapters.fastapi.FastApiAdapter`` registers HTTP routes (``post/get/...``),
   builds FastAPI app, and maps machine/domain errors to HTTP responses.
-- ``integrations.mcp.McpAdapter`` registers MCP tools (``tool``), builds MCP server,
+- ``adapters.mcp.McpAdapter`` registers MCP tools (``tool``), builds MCP server,
   and maps machine/domain errors to MCP-compatible error semantics.
 
 Architecture sketch:

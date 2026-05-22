@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/integrations/fastapi/adapter.py
+# packages/aoa-action-machine/src/aoa/action_machine/adapters/fastapi/adapter.py
 """
 FastApiAdapter — HTTP adapter for ActionMachine using FastAPI.
 
@@ -118,6 +118,8 @@ import re
 from collections.abc import Callable, Mapping
 from typing import Annotated, Any, Self, get_origin
 
+from fastapi import FastAPI, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
@@ -128,18 +130,16 @@ from aoa.action_machine.adapters.base_route_record import (
     ensure_machine_params,
     ensure_protocol_response,
 )
+from aoa.action_machine.adapters.fastapi.route_record import FastApiRouteRecord
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.integrations.fastapi.route_record import FastApiRouteRecord
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from fastapi import FastAPI, Query, Request
-from fastapi.responses import JSONResponse
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Module-level helper functions

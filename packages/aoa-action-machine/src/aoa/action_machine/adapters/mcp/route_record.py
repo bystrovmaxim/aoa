@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/integrations/mcp/route_record.py
+# packages/aoa-action-machine/src/aoa/action_machine/adapters/mcp/route_record.py
 """
 McpRouteRecord — frozen route record for MCP adapter.
 
