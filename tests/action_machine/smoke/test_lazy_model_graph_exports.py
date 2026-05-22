@@ -1,4 +1,4 @@
-# tests/action_machine/model/test_lazy_model_graph_exports.py
+# tests/action_machine/smoke/test_lazy_model_graph_exports.py
 """Public model exports and direct graph-model leaf imports."""
 
 from __future__ import annotations
@@ -26,8 +26,14 @@ def test_model_package_exports_core_contracts_only() -> None:
 
 def test_graph_package_reexports_core_symbols() -> None:
     assert graph_pkg.BaseGraphNode.__name__ == "BaseGraphNode"
-    assert graph_pkg.create_node_graph_coordinator.__name__ == "create_node_graph_coordinator"
     assert not hasattr(graph_pkg, "ResultGraphNode")
+    assert not hasattr(graph_pkg, "create_node_graph_coordinator")
+
+
+def test_graph_factory_leaf_import_resolves() -> None:
+    from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+
+    assert create_node_graph_coordinator.__name__ == "create_node_graph_coordinator"
 
 
 def test_graph_leaf_imports_resolve() -> None:

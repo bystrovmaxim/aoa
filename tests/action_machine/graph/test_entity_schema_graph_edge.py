@@ -1,4 +1,4 @@
-# tests/action_machine/graph_model/test_entity_schema_graph_edge.py
+# tests/action_machine/graph/test_entity_schema_graph_edge.py
 """
 ``EntitySchemaGraphEdge`` / ``entity_schema`` links for ``BaseEntity.schema(...)`` fields.
 
@@ -17,12 +17,6 @@ from typing import Any
 
 import pytest
 from pydantic import Field, computed_field
-from tests.action_machine.adapters.entity_projection_adapter_fixtures import (
-    EntityProjectionAdapterTestAction,
-    EntityProjectionParamsMcpTestAction,
-)
-from tests.action_machine.scenarios.domain_model.domains import TestDomain
-from tests.action_machine.scenarios.domain_model.entities import SampleEntity
 
 from aoa.action_machine.domain import BaseEntity
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
@@ -38,6 +32,12 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+from tests.action_machine.adapters.entity_projection_adapter_fixtures import (
+    EntityProjectionAdapterTestAction,
+    EntityProjectionParamsMcpTestAction,
+)
+from tests.action_machine.scenarios.domain_model.domains import TestDomain
+from tests.action_machine.scenarios.domain_model.entities import SampleEntity
 
 _ORPHAN_WIRE: dict[str, object] = {
     "type": "object",

@@ -113,7 +113,7 @@ def test_clean_install_action_machine_provides_graph(tmp_path: Path) -> None:
         vpy,
         "import importlib.util as u; import aoa.action_machine; "
         "from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode; "
-        "from aoa.action_machine.graph import create_node_graph_coordinator; "
+        "from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator; "
         "assert u.find_spec('aoa.ocel') is None; "
         "assert u.find_spec('aoa.maxitor') is None; "
         "assert u.find_spec('aoa.examples') is None",

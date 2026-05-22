@@ -1,14 +1,9 @@
-# tests/action_machine/graph_model/test_graph_node_generalization_edges.py
+# tests/action_machine/graph_host/test_graph_node_generalization_edges.py
 """PR-3: ``parent_*`` edges included in ``get_all_edges()`` on axis graph nodes (plan §I.6)."""
 
 from __future__ import annotations
 
 from pydantic import Field
-from tests.action_machine.graph_model.test_parent_generalization_edges import (
-    _ChildGenDomain,
-    _ChildGenRole,
-)
-from tests.action_machine.scenarios.domain_model.domains import TestDomain
 
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
@@ -23,6 +18,11 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+from tests.action_machine.graph_host.test_parent_generalization_edges import (
+    _ChildGenDomain,
+    _ChildGenRole,
+)
+from tests.action_machine.scenarios.domain_model.domains import TestDomain
 
 
 @meta(description="PR-3 parent action for graph node tests", domain=TestDomain)

@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
+## [1.2.9] – 2026-05-22
+
+### Breaking changes
+
+- **Remove standalone `aoa-graph` wheel.** Interchange primitives and coordinators now ship only inside `aoa-action-machine`. The workspace builds **four** wheels (`aoa-action-machine`, `aoa-ocel`, `aoa-maxitor`, `aoa-examples`); `pip install aoa-graph` is gone. Migrate `from aoa.graph…` → `from aoa.action_machine.graph.core…` (e.g. `NodeGraphCoordinator`, `InvalidGraphError`, `exclude_graph_model`, edge relationship constants).
+- **Fold `graph_model` into `aoa.action_machine.graph`.** Domain projection modules move under one tree: `graph/core/` (former `aoa.graph`), `graph/nodes/`, `graph/edges/`, `graph/inspectors/`, plus leaf modules `graph/node_graph_coordinator_factory.py` and `graph/graph_json_schema.py`. Replace `aoa.action_machine.graph_model.*` imports with the matching `aoa.action_machine.graph.*` path.
+- **Rename `integrations/` to `adapters/` and relocate Postgres.** FastAPI and MCP transport code is `aoa.action_machine.adapters.fastapi` / `adapters.mcp` (was `integrations.*`). `PostgresResource` is `aoa.action_machine.resources.postgres` (was under `integrations.postgres`). Optional extras `[fastapi]`, `[mcp]`, and `[postgres]` are unchanged — only import paths move.
+- **Graph package facade is core-only.** `aoa.action_machine.graph` re-exports interchange primitives from `graph.core` only. Import `create_node_graph_coordinator` from `aoa.action_machine.graph.node_graph_coordinator_factory` and `GRAPH_JSON_SCHEMA` from `aoa.action_machine.graph.graph_json_schema` — lazy `__getattr__` re-exports on the package `__init__` are removed.
+
+### Changed
+
+- **Monorepo layout and boundaries.** `scripts/package_boundaries.toml`, packaging smoke, publish workflow, and `task build-packages` no longer reference `packages/aoa-graph`. `action_machine` is self-contained for graph code; cross-package rules for `ocel`, `maxitor`, and `examples` are updated accordingly.
+- **Root README repositioned as AOA / IOP.** Installation table lists four wheels; quick-start covers OCEL export and Maxitor; link to `docs/intents-and-invariants.md` for decorator semantics and structural invariants.
+
+### Fixed
+
+- **CI import-boundary checks after graph merge.** Test layer rules for `tests/action_machine/graph/` are satisfied by moving runtime-dependent generalization tests to `graph_host/` and lazy graph export smoke to `tests/action_machine/smoke/`; narrow allowlist entries cover `exclude_graph_model` in model-layer cleanup tests.
+- **Maxitor samples public API.** `aoa.examples.model` may import coordinator types from `aoa.action_machine.graph.core.{debug_node_graph_coordinator,exceptions,node_graph_coordinator}` and the factory leaf module — aligned with post-merge paths.
+
+### Removed
+
+- **`packages/aoa-graph`.** Standalone graph wheel and `aoa.graph` namespace package deleted; all graph runtime code lives under `aoa.action_machine.graph`.
+- **`aoa.action_machine.integrations`.** Directory removed after adapter/resource relocation; update any out-of-tree imports before upgrading.
+
+### Documentation
+
+- **`docs/intents-and-invariants.md`.** Human-readable catalog of AOA decorators, structural invariants, and when each is enforced (naming, DAG, roles, domain, summary, compensators, include contract, lifecycle FSM, package boundaries).
+- **`archive/logs/how-to-run-all-services.md`.** Runbook updated for four-wheel workspace, adapter import paths, and current boundary check tasks.
+- **Retired scattered guides.** Removed `docs/packages.md`, `docs/guide/entity-wire-projection.md`, `docs/guide/json-schema-value.md`, and `docs/spikes/json_schema_value_pydantic_v2.md` in favour of package READMEs and the intents doc.
+
 ## [1.2.8] – 2026-05-22
 
 ### Documentation

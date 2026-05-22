@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import json
 
-import tests.action_machine.graph_model.test_graph_node_generalization_edges as pr3_actions
-import tests.action_machine.graph_model.test_parent_generalization_edges as pr2_fixtures
+import tests.action_machine.graph_host.test_graph_node_generalization_edges as pr3_actions
+import tests.action_machine.graph_host.test_parent_generalization_edges as pr2_fixtures
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
