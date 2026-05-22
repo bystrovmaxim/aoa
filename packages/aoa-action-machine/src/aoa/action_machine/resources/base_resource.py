@@ -74,7 +74,7 @@ class BaseResource(ABC, MetaIntent, DependsEligible):
     Base abstract contract for all resource manager implementations.
     """
 
-    def check_rollup_support(self) -> bool:
+    async def check_rollup_support(self) -> bool:
         """
         Check whether this manager supports rollup transaction mode.
 

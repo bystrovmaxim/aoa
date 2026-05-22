@@ -85,7 +85,10 @@ async def test_failed_aspect_without_compensator_runs_empty_rollback_stack() -> 
     await _run_pipeline(machine, action_graph_node)
 
     saga_stack = machine._saga_coordinator.execute.call_args.kwargs["saga_stack"]
-    assert saga_stack == []
+    assert len(saga_stack) == 1
+    assert saga_stack[0].compensator is None
+    assert saga_stack[0].aspect_name == "no_compensator"
+    assert saga_stack[0].state_after is None
 
 
 @pytest.mark.asyncio

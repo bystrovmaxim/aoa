@@ -142,20 +142,23 @@ class TestRollupProperty:
 class TestCheckRollupSupport:
     """Verify that SqlResource always supports rollup."""
 
-    def test_returns_true(self) -> None:
+    @pytest.mark.asyncio
+    async def test_returns_true(self) -> None:
         """check_rollup_support() returns True for any SqlResource."""
         mgr = _TestConnectionManager()
-        assert mgr.check_rollup_support() is True
+        assert await mgr.check_rollup_support() is True
 
-    def test_returns_true_with_rollup_active(self) -> None:
+    @pytest.mark.asyncio
+    async def test_returns_true_with_rollup_active(self) -> None:
         """check_rollup_support() returns True even when rollup is active."""
         mgr = _TestConnectionManager(rollup=True)
-        assert mgr.check_rollup_support() is True
+        assert await mgr.check_rollup_support() is True
 
-    def test_returns_true_without_super_init(self) -> None:
+    @pytest.mark.asyncio
+    async def test_returns_true_without_super_init(self) -> None:
         """check_rollup_support() returns True even without super().__init__."""
         mgr = _NoSuperInitManager()
-        assert mgr.check_rollup_support() is True
+        assert await mgr.check_rollup_support() is True
 
 
 # ═════════════════════════════════════════════════════════════════════════════

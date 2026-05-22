@@ -26,17 +26,17 @@ EXAMPLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     async def charge_aspect(self, params, state, box, connections):
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         txn_id = await payment.charge(params.amount, params.currency)
         return {"txn_id": txn_id}
 
     async def rollback_charge_compensate(self, params, state_before,
                                          state_after, box, connections, error):
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         await payment.refund(state_after["txn_id"])
 
     async def reserve_aspect(self, params, state, box, connections):
-        inventory = box.resolve(InventoryServiceResource).service
+        inventory = (await box.resolve(InventoryServiceResource)).service
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 

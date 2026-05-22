@@ -282,10 +282,14 @@ class GlobalFinishEvent(GlobalLifecycleEvent):
         result: Final frozen ``BaseResult`` (from summary or a matching error handler).
         duration_ms: Wall time for the whole ``_run_internal`` call, in milliseconds
             (from start of ``_run_internal`` until just before this event).
+        all_aspect_states: ``state.to_dict()`` after each regular aspect (in order).
+            Empty on cache hit or when the pipeline did not run. Plugins read OCEL
+            frames from these snapshots without mutating pipeline state.
     """
 
     result: BaseSchema
     duration_ms: float
+    all_aspect_states: tuple[dict[str, object], ...] = ()
 
 
 # ═════════════════════════════════════════════════════════════════════════════

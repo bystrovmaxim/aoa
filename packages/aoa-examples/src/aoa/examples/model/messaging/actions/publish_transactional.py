@@ -90,9 +90,9 @@ class PublishTransactionalOutboxAction(
         box: Any,
         connections: Any,
     ) -> dict[str, Any]:
-        notifier = box.resolve(NotificationGatewayResource)
+        notifier = await box.resolve(NotificationGatewayResource)
         await notifier.service.send(params.body)
-        smtp = box.resolve(SmtpTransportStubResource)
+        smtp = await box.resolve(SmtpTransportStubResource)
         receipt = await smtp.service.send_raw("ops@example.com", params.body)
         oid = f"OB-{params.topic}-1"
         return {"outbound_id": oid, "smtp_receipt": receipt}
@@ -108,7 +108,7 @@ class PublishTransactionalOutboxAction(
         error: Exception,
     ) -> None:
         if state_after is not None:
-            notifier = box.resolve(NotificationGatewayResource)
+            notifier = await box.resolve(NotificationGatewayResource)
             await notifier.service.send(f"UNDO:{state_after.outbound_id}")
 
     @on_error(ValueError, description="Envelope validation failed")

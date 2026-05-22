@@ -6,17 +6,18 @@ Saga compensation stack frame.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Each regular aspect with a compensator graph node contributes one ``SagaFrame``
-before its ``call()`` starts. The initial frame has ``state_after=None`` so a
-mid-call exception can still be compensated. Once the regular aspect step
-succeeds, the pipeline replaces the immutable frame with one carrying the
-returned ``state_after``. Frames are unwound in reverse order when the pipeline fails.
+Each regular aspect contributes one ``SagaFrame`` before its ``call()`` starts.
+The initial frame has ``state_after=None`` so a mid-call exception can still be
+represented. Once the regular aspect step succeeds, the pipeline replaces the
+immutable frame with one carrying the returned ``state_after``. Frames with no
+compensator are skipped during rollback but still expose aspect states to
+``GlobalFinishEvent``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    optional SagaFrame(..., state_after=None) if compensator exists
+    SagaFrame(..., state_after=None)
          |
          v
     regular aspect call() returned dict
@@ -38,7 +39,8 @@ ARCHITECTURE / DATA FLOW
 Frame stores only aspect-unique rollback data:
 - ``state_before``: state before aspect call
 - ``state_after``: state after aspect call (or ``None`` when the call did not finish)
-- ``compensator``: compensator graph node (required for pushed frames; stack holds only actionable undo)
+- ``compensator``: optional compensator graph node; ``None`` frames are read-only
+  aspect-state records and are skipped by rollback.
 - ``aspect_name``: aspect identifier for diagnostics/events
 
 Pipeline-common values (params, connections, context, box) are passed to
@@ -62,8 +64,9 @@ class SagaFrame:
     """
     One immutable compensation-stack frame.
 
-    Appended only for regular aspects that have a compensator; rollback metadata
-    flows to saga coordinator.
+    Appended for every regular aspect. Rollback acts only on frames whose
+    ``compensator`` is not ``None``; finish events reuse ``state_after`` from the
+    same frames instead of maintaining a second aspect-state accumulator.
     """
 
     compensator: CompensatorGraphNode | None
