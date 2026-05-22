@@ -17,7 +17,6 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MEMBERS = (
-    "aoa-graph",
     "aoa-action-machine",
     "aoa-ocel",
     "aoa-maxitor",
@@ -26,7 +25,6 @@ MEMBERS = (
 
 # ``packages/<folder>/pyproject.toml`` for each distribution name.
 _PACKAGE_DIR: dict[str, str] = {
-    "aoa-graph": "aoa-graph",
     "aoa-action-machine": "aoa-action-machine",
     "aoa-ocel": "aoa-ocel",
     "aoa-maxitor": "aoa-maxitor",
@@ -35,15 +33,13 @@ _PACKAGE_DIR: dict[str, str] = {
 
 # Normalized distribution names (hyphenated).
 REQUIRED_MAIN: dict[str, frozenset[str]] = {
-    "aoa-graph": frozenset(),
-    "aoa-action-machine": frozenset({"aoa-graph"}),
+    "aoa-action-machine": frozenset(),
     "aoa-ocel": frozenset({"aoa-action-machine"}),
-    "aoa-maxitor": frozenset({"aoa-graph", "aoa-action-machine"}),
-    "aoa-examples": frozenset({"aoa-graph", "aoa-action-machine", "aoa-ocel"}),
+    "aoa-maxitor": frozenset({"aoa-action-machine"}),
+    "aoa-examples": frozenset({"aoa-action-machine", "aoa-ocel"}),
 }
 
 FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
-    "aoa-graph": frozenset({"aoa-action-machine", "aoa-ocel", "aoa-maxitor", "aoa-examples"}),
     "aoa-action-machine": frozenset({"aoa-ocel", "aoa-maxitor", "aoa-examples"}),
     "aoa-ocel": frozenset({"aoa-maxitor", "aoa-examples"}),
     "aoa-maxitor": frozenset({"aoa-ocel", "aoa-examples"}),

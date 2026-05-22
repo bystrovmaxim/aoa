@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from aoa.action_machine.graph_model.edges.depends_graph_edge import DependsGraphEdge
+from aoa.action_machine.graph.edges.depends_graph_edge import DependsGraphEdge
 from aoa.action_machine.intents.depends import UseCase
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 

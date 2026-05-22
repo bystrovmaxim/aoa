@@ -5,8 +5,8 @@ import pytest
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
-from aoa.action_machine.graph_model.edges.depends_graph_edge import DependsGraphEdge
-from aoa.action_machine.graph_model.graph_json_schema import GRAPH_JSON_SCHEMA
+from aoa.action_machine.graph.edges.depends_graph_edge import DependsGraphEdge
+from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.intents.depends import UseCase
 from tests.action_machine.scenarios.domain_model.depends_mode_host_action import DependsModeHostAction
 

@@ -25,19 +25,19 @@ from tests.action_machine.scenarios.domain_model.domains import TestDomain
 from tests.action_machine.scenarios.domain_model.entities import SampleEntity
 
 from aoa.action_machine.domain import BaseEntity
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
-from aoa.action_machine.graph_model.nodes.params_graph_node import ParamsGraphNode
-from aoa.action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
+from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
+from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNodeInspector
+from aoa.action_machine.graph.core.exceptions import InvalidGraphError
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.graph.nodes.params_graph_node import ParamsGraphNode
+from aoa.action_machine.graph.nodes.result_graph_node import ResultGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from aoa.graph.base_graph_node import BaseGraphNode
-from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
-from aoa.graph.exceptions import InvalidGraphError
-from aoa.graph.exclude_graph_model import exclude_graph_model
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 
 _ORPHAN_WIRE: dict[str, object] = {
     "type": "object",

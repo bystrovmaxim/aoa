@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.graph.exclude_graph_model import exclude_graph_model
 from aoa.ocel.dto.ocel_event import OcelEvent
 from aoa.ocel.exceptions.ocel_resource_access_prohibited_error import (
     OcelResourceAccessProhibitedError,

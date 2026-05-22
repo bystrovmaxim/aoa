@@ -12,8 +12,8 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.ctx_constants import Ctx
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import OnErrorHandlerError
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import NoneRole, check_roles

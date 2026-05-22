@@ -10,6 +10,7 @@ import pytest
 
 from aoa.action_machine.exceptions.missing_summary_aspect_error import MissingSummaryAspectError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
@@ -17,7 +18,6 @@ from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.runtime.aspect_executor import AspectExecutor
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.graph.exclude_graph_model import exclude_graph_model
 
 
 class _RejectingChecker:

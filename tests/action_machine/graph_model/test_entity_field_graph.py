@@ -10,9 +10,9 @@ import json
 from jsonschema import Draft202012Validator
 from tests.action_machine.scenarios.domain_model.entities import RelatedEntity, SampleEntity
 
-from aoa.action_machine.graph_model.graph_json_schema import GRAPH_JSON_SCHEMA
-from aoa.action_machine.graph_model.nodes.entity_field_graph_node import EntityFieldGraphNode
-from aoa.action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
+from aoa.action_machine.graph.nodes.entity_field_graph_node import EntityFieldGraphNode
+from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 
@@ -58,7 +58,7 @@ def test_related_entity_excludes_relation_slots_from_entity_field() -> None:
 
 
 def test_entity_field_export_validates_against_graph_schema() -> None:
-    from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
+    from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 
     coord = create_node_graph_coordinator()
     payload = json.loads(coord.to_json())

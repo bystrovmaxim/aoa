@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.intents.depends.depends_intent_resolver import DependsIntentResolver
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
 from aoa.action_machine.model.base_state import BaseState

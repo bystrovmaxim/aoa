@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 
+from aoa.action_machine.graph.core.edge_relationship import GENERALIZATION
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.examples.model.interchange_demo_coordinator import (
     build_registered_interchange_coordinator,
@@ -12,7 +13,6 @@ from aoa.examples.model.interchange_demo_coordinator import (
 )
 from aoa.examples.model.store.actions.order_lookup import OrderLookupAction
 from aoa.examples.model.store.actions.store_read import StoreReadAction
-from aoa.graph.edge_relationship import GENERALIZATION
 from aoa.maxitor.model.diagrams.actions.full_graph_action import _build_payload_from_duckdb
 from aoa.maxitor.model.diagrams.actions.list_domains_action import _LIST_DOMAINS_DISTINCT_COLORS
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource

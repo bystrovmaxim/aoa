@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.graph.exclude_graph_model import exclude_graph_model
 from aoa.ocel.dto.ocel_event import OcelEvent
 from aoa.ocel.resource.ocel_store_protocol import OcelStoreProtocol
 from aoa.ocel.resource.ocel_store_wrapper import OcelStoreWrapper

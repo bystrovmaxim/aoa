@@ -91,7 +91,7 @@ Class-level decorators validate the marker immediately; method-level decorators
 are validated when the coordinator runs inspectors on the class.
 
 Params / result bindings appear on interchange ``Action`` rows via
-``ParamsGraphEdge`` / ``ResultGraphEdge`` (:class:`~aoa.action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`).
+``ParamsGraphEdge`` / ``ResultGraphEdge`` (:class:`~aoa.action_machine.graph.nodes.action_graph_node.ActionGraphNode`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES
@@ -131,7 +131,7 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.runtime.cache_entry import CacheEntry
-from aoa.graph.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 
 _REQUIRED_SUFFIX = "Action"
 

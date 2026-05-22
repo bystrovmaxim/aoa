@@ -1,19 +1,19 @@
-# tests/model/test_lazy_model_graph_exports.py
+# tests/action_machine/model/test_lazy_model_graph_exports.py
 """Public model exports and direct graph-model leaf imports."""
 
 from __future__ import annotations
 
-import aoa.action_machine.graph_model as graph_model_pkg
-import aoa.action_machine.graph_model.inspectors as inspectors_pkg
+import aoa.action_machine.graph as graph_pkg
+import aoa.action_machine.graph.inspectors as inspectors_pkg
 import aoa.action_machine.model as model_pkg
-from aoa.action_machine.graph_model.inspectors.action_graph_node_inspector import (
+from aoa.action_machine.graph.inspectors.action_graph_node_inspector import (
     ActionGraphNodeInspector,
 )
-from aoa.action_machine.graph_model.inspectors.params_graph_node_inspector import (
+from aoa.action_machine.graph.inspectors.params_graph_node_inspector import (
     ParamsGraphNodeInspector,
 )
-from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
+from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.graph.nodes.result_graph_node import ResultGraphNode
 from tests.action_machine.scenarios.domain_model.child_action import ChildAction
 
 
@@ -24,17 +24,18 @@ def test_model_package_exports_core_contracts_only() -> None:
     assert not hasattr(model_pkg, "ActionGraphNode")
 
 
-def test_graph_model_package_does_not_reexport_leaf_symbols() -> None:
-    assert graph_model_pkg.__all__ == []
-    assert not hasattr(graph_model_pkg, "ResultGraphNode")
+def test_graph_package_reexports_core_symbols() -> None:
+    assert graph_pkg.BaseGraphNode.__name__ == "BaseGraphNode"
+    assert graph_pkg.create_node_graph_coordinator.__name__ == "create_node_graph_coordinator"
+    assert not hasattr(graph_pkg, "ResultGraphNode")
 
 
-def test_graph_model_leaf_imports_resolve() -> None:
+def test_graph_leaf_imports_resolve() -> None:
     assert ActionGraphNode.__name__ == "ActionGraphNode"
     assert ResultGraphNode.__name__ == "ResultGraphNode"
 
 
-def test_graph_model_inspector_leaf_imports_resolve() -> None:
+def test_graph_inspector_leaf_imports_resolve() -> None:
     assert inspectors_pkg.__all__ == []
     assert ActionGraphNodeInspector.__name__ == "ActionGraphNodeInspector"
     assert ParamsGraphNodeInspector.__name__ == "ParamsGraphNodeInspector"

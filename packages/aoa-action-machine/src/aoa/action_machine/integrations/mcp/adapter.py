@@ -138,14 +138,14 @@ from aoa.action_machine.adapters.base_route_record import (
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
-from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
+from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
 from aoa.action_machine.integrations.mcp.route_record import McpRouteRecord
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.tools.base import Tool
 from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase, FuncMetadata

@@ -12,7 +12,7 @@ from typing import Any
 from aoa.action_machine.exceptions.connection_already_open_error import (
     ConnectionAlreadyOpenError,
 )
-from aoa.graph.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.ocel.dto.ocel_event import OcelEvent
 from aoa.ocel.dto.ocel_object import OcelObject
 from aoa.ocel.exceptions.ocel_contract_error import OcelContractError

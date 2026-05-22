@@ -12,14 +12,12 @@ license = { text = "MIT" }
 requires-python = ">=3.12"
 authors = [{ name = "@Bystrov.Maxim" }]
 dependencies = [
-    "aoa-graph==1.0.0",
     "aoa-action-machine==1.0.0",
     "aoa-ocel==1.0.0",
     "pydantic>=2.0,<3.0",
 ]
 
 [tool.uv.sources]
-aoa-graph = { workspace = true }
 aoa-action-machine = { workspace = true }
 aoa-ocel = { workspace = true }
 

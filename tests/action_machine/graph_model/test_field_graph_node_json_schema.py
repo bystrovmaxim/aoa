@@ -6,9 +6,9 @@ FieldGraphNode metadata for ``JsonSchemaValue``-annotated result fields.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Ensures :class:`~aoa.action_machine.graph_model.nodes.result_graph_node.ResultGraphNode`
+Ensures :class:`~aoa.action_machine.graph.nodes.result_graph_node.ResultGraphNode`
 companion field nodes expose ``json_schema_value`` / ``json_schema_name`` /
-``json_schema`` in interchange ``properties`` and :class:`~aoa.action_machine.graph_model.nodes.field_graph_node.FieldGraphPayload`,
+``json_schema`` in interchange ``properties`` and :class:`~aoa.action_machine.graph.nodes.field_graph_node.FieldGraphPayload`,
 including optional unions and deep-copy isolation.
 """
 
@@ -19,8 +19,8 @@ from tests.action_machine.adapters.json_schema_adapter_fixtures import (
     GraphJson,
 )
 
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.graph.nodes.result_graph_node import ResultGraphNode
 from aoa.action_machine.model.base_result import BaseResult
 
 AdapterTestResult = AdapterTestAction.Result

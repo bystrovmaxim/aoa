@@ -7,7 +7,7 @@ import pytest
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
-from aoa.action_machine.graph_model.graph_json_schema import GRAPH_JSON_SCHEMA
+from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 
 _VALIDATOR = Draft202012Validator(GRAPH_JSON_SCHEMA)
 

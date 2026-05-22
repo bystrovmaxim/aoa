@@ -61,7 +61,7 @@ def _lifecycle_nodes_for_entity(graph: Any, entity_id: str) -> list[tuple[str, s
     Return ``(lifecycle_vertex_id, label)`` for lifecycles owned by this entity, sorted.
 
     Only ``lifecycle`` composition edges from the entity are counted (see
-    :class:`~aoa.action_machine.graph_model.edges.lifecycle_graph_edge.LifeCycleGraphEdge`
+    :class:`~aoa.action_machine.graph.edges.lifecycle_graph_edge.LifeCycleGraphEdge`
     and :meth:`LoadGraphAction.prepare_topology_aspect`, which sets ``edge_name`` on
     NetworkX edges). A generic 2-hop scan is unsafe: e.g. ``Entity → Domain`` then
     ``Domain → … → Lifecycle`` can reach another host's lifecycle and duplicate rows.

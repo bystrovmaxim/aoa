@@ -15,10 +15,10 @@ from aoa.action_machine.auth.authenticator import Authenticator
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.none_role import NoneRole
 from aoa.action_machine.auth.system_role import SystemRole
-from aoa.action_machine.graph_model.inspectors.role_graph_node_inspector import (
+from aoa.action_machine.graph.inspectors.role_graph_node_inspector import (
     RoleGraphNodeInspector,
 )
-from aoa.action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
+from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 
 __all__ = [
     "AnyRole",
