@@ -38,6 +38,6 @@ class DependSameDomainAction(BaseAction["DependSameDomainAction.Params", "Depend
         box: Any,
         connections: Any,
     ) -> DependSameDomainAction.Result:
-        peer = box.resolve(SupportPingAction)
+        peer = await box.resolve(SupportPingAction)
         assert isinstance(peer, SupportPingAction)
         return DependSameDomainAction.Result(peer=peer.__class__.__name__)

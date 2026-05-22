@@ -50,9 +50,9 @@ class WrapperExternalServiceResource(BaseResource, ProtocolExternalServiceResour
         """Delegate to the wrapped manager."""
         return self._inner.service
 
-    def check_rollup_support(self) -> bool:
+    async def check_rollup_support(self) -> bool:
         """Delegate to the wrapped manager."""
-        return self._inner.check_rollup_support()
+        return await self._inner.check_rollup_support()
 
     def get_wrapper_class(self) -> type[BaseResource] | None:
         """Return wrapper type for deeper nesting levels."""

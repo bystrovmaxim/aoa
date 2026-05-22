@@ -481,7 +481,7 @@ async def test_resolve_only_does_not_satisfy_include() -> None:
             box: ToolsBox,
             connections: dict[str, BaseResource],
         ) -> ResolveOnlyHostAction.Result:
-            _ = box.resolve(LeafForContractAction)
+            _ = await box.resolve(LeafForContractAction)
             return ResolveOnlyHostAction.Result()
 
     machine = ActionProductMachine()

@@ -102,7 +102,7 @@ class _MockResourceManager(BaseResource):
 class _RollupSupportedManager(BaseResource):
     """Resource manager WITH rollup support."""
 
-    def check_rollup_support(self) -> bool:
+    async def check_rollup_support(self) -> bool:
         return True
 
     def get_wrapper_class(self):
@@ -160,7 +160,7 @@ class TestFactoryCreation:
 class TestResolveDefault:
     """resolve() without factory — default constructor is used."""
 
-    def test_resolve_creates_new_instance(self) -> None:
+    async def test_resolve_creates_new_instance(self) -> None:
         """
         resolve(cls) without factory calls cls() — the default constructor.
 
@@ -173,15 +173,15 @@ class TestResolveDefault:
         ))
 
         # Act — two resolve calls
-        first = factory.resolve(_SimpleService)
-        second = factory.resolve(_SimpleService)
+        first = await factory.resolve(_SimpleService)
+        second = await factory.resolve(_SimpleService)
 
         # Assert — two distinct instances (identity check)
         assert isinstance(first, _SimpleService)
         assert isinstance(second, _SimpleService)
         assert first is not second
 
-    def test_resolve_passes_args_to_constructor(self) -> None:
+    async def test_resolve_passes_args_to_constructor(self) -> None:
         """
         resolve(cls, *args, **kwargs) forwards arguments to the constructor.
 
@@ -193,7 +193,7 @@ class TestResolveDefault:
         ))
 
         # Act — resolve with constructor arguments
-        service = factory.resolve(_ConfigurableService, host="prod.db", port=5432)
+        service = await factory.resolve(_ConfigurableService, host="prod.db", port=5432)
 
         # Assert — arguments passed to constructor
         assert service.host == "prod.db"
@@ -208,7 +208,7 @@ class TestResolveDefault:
 class TestResolveWithFactory:
     """resolve() with factory — user-defined factory is invoked."""
 
-    def test_factory_function_called(self) -> None:
+    async def test_factory_function_called(self) -> None:
         """
         Dependency with factory → resolve() calls factory(), not cls().
 
@@ -225,13 +225,13 @@ class TestResolveWithFactory:
         ))
 
         # Act — resolve invokes factory, not the constructor directly
-        service = factory.resolve(_ConfigurableService)
+        service = await factory.resolve(_ConfigurableService)
 
         # Assert — parameters from factory function
         assert service.host == "factory-host"
         assert service.port == 9999
 
-    def test_lambda_singleton(self) -> None:
+    async def test_lambda_singleton(self) -> None:
         """
         A lambda closure implements singleton semantics: factory=lambda: shared.
 
@@ -249,15 +249,15 @@ class TestResolveWithFactory:
         ))
 
         # Act — two resolve calls
-        first = factory.resolve(_SimpleService)
-        second = factory.resolve(_SimpleService)
+        first = await factory.resolve(_SimpleService)
+        second = await factory.resolve(_SimpleService)
 
         # Assert — same object (singleton via lambda)
         assert first is shared
         assert second is shared
         assert first is second
 
-    def test_factory_receives_args(self) -> None:
+    async def test_factory_receives_args(self) -> None:
         """
         *args and **kwargs from resolve() are passed to factory().
 
@@ -274,7 +274,7 @@ class TestResolveWithFactory:
         ))
 
         # Act — resolve with runtime parameter
-        service = factory.resolve(_ConfigurableService, "staging")
+        service = await factory.resolve(_ConfigurableService, "staging")
 
         # Assert — parameter forwarded through factory
         assert service.host == "staging.db.local"
@@ -288,7 +288,7 @@ class TestResolveWithFactory:
 class TestResolveMissing:
     """resolve() for an unregistered dependency."""
 
-    def test_missing_dependency_raises_value_error(self) -> None:
+    async def test_missing_dependency_raises_value_error(self) -> None:
         """
         resolve(cls) for an unregistered dependency → ValueError.
 
@@ -302,9 +302,9 @@ class TestResolveMissing:
 
         # Act & Assert — request missing dependency
         with pytest.raises(ValueError, match="not declared"):
-            factory.resolve(_SimpleService)
+            await factory.resolve(_SimpleService)
 
-    def test_empty_factory_raises_value_error(self) -> None:
+    async def test_empty_factory_raises_value_error(self) -> None:
         """
         resolve() on an empty factory → ValueError.
         """
@@ -313,7 +313,7 @@ class TestResolveMissing:
 
         # Act & Assert
         with pytest.raises(ValueError, match="not declared"):
-            factory.resolve(_SimpleService)
+            await factory.resolve(_SimpleService)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -324,7 +324,7 @@ class TestResolveMissing:
 class TestResolveRollup:
     """resolve() with rollup — support check for resource managers."""
 
-    def test_rollup_true_for_supported_manager(self) -> None:
+    async def test_rollup_true_for_supported_manager(self) -> None:
         """
         rollup=True for a manager that supports rollup → resolve() succeeds.
 
@@ -338,12 +338,12 @@ class TestResolveRollup:
         ))
 
         # Act — resolve with rollup=True
-        manager = factory.resolve(_RollupSupportedManager, rollup=True)
+        manager = await factory.resolve(_RollupSupportedManager, rollup=True)
 
         # Assert — instance created successfully
         assert isinstance(manager, _RollupSupportedManager)
 
-    def test_rollup_true_for_unsupported_manager_raises(self) -> None:
+    async def test_rollup_true_for_unsupported_manager_raises(self) -> None:
         """
         rollup=True for a manager WITHOUT rollup support → RollupNotSupportedError.
 
@@ -358,9 +358,9 @@ class TestResolveRollup:
 
         # Act & Assert — RollupNotSupportedError
         with pytest.raises(RollupNotSupportedError):
-            factory.resolve(_MockResourceManager, rollup=True)
+            await factory.resolve(_MockResourceManager, rollup=True)
 
-    def test_rollup_true_for_non_resource_manager(self) -> None:
+    async def test_rollup_true_for_non_resource_manager(self) -> None:
         """
         rollup=True for a class that does not inherit BaseResource →
         rollup check is NOT performed.
@@ -374,12 +374,12 @@ class TestResolveRollup:
         ))
 
         # Act — resolve with rollup=True for ordinary service
-        service = factory.resolve(_SimpleService, rollup=True)
+        service = await factory.resolve(_SimpleService, rollup=True)
 
         # Assert — instance created without error
         assert isinstance(service, _SimpleService)
 
-    def test_rollup_false_skips_check(self) -> None:
+    async def test_rollup_false_skips_check(self) -> None:
         """
         rollup=False → check_rollup_support() is NOT called.
 
@@ -392,7 +392,7 @@ class TestResolveRollup:
         ))
 
         # Act — resolve with rollup=False (default)
-        manager = factory.resolve(_MockResourceManager, rollup=False)
+        manager = await factory.resolve(_MockResourceManager, rollup=False)
 
         # Assert — instance created without error
         assert isinstance(manager, _MockResourceManager)
@@ -472,16 +472,16 @@ class TestDomainIntegration:
         # Act & Assert — factory is empty
         assert factory.get_all_classes() == []
 
-    def test_factory_creates_payment_service(self) -> None:
+    async def test_factory_creates_payment_service(self) -> None:
         """
-        factory.resolve(PaymentServiceResource) creates a PaymentServiceResource.
+        await factory.resolve(PaymentServiceResource) creates a PaymentServiceResource.
 
         Real resolve via default factory from ``@depends``, no mocks.
         """
         factory = _dependency_factory_from_class(FullAction)
 
         # Act — resolve real service
-        service = factory.resolve(PaymentServiceResource)
+        service = await factory.resolve(PaymentServiceResource)
 
         # Assert — instance created
         assert isinstance(service, PaymentServiceResource)

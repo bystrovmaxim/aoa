@@ -249,6 +249,7 @@ if __name__ == "__main__":
             "dist",
             "htmlcov",
             "node_modules",
+            ".vite",
         ],
         extensions=[
             # Backend / tooling in this package
@@ -266,25 +267,25 @@ if __name__ == "__main__":
             ".mjs",
             ".cjs",
             # Styles
-            ".css",
-            ".scss",
-            ".sass",
-            ".less",
-            ".styl",
+            #".css",
+            #".scss",
+            #".sass",
+            #".less",
+            #".styl",
             # Config & typed data (package.json, tsconfig, vite, components.json, …)
-            ".json",
-            ".jsonc",
-            ".yaml",
-            ".yml",
+            #".json",
+            #".jsonc",
+            #".yaml",
+            #".yml",
             # Docs / MDX
-            ".md",
-            ".mdx",
+            #".md",
+            #".mdx",
             # GraphQL clients
-            ".graphql",
-            ".gql",
+            #".graphql",
+            #".gql",
             # SVG as text (inline assets / components)
-            ".svg",
+            #".svg",
             # Misc text shipped with the app (LICENSE, robots.txt, …)
-            ".txt",
+            #".txt",
         ],
     ).collect()

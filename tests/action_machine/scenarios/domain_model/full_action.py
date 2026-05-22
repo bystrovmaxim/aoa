@@ -12,14 +12,14 @@ one summary aspect, two service dependencies (``PaymentServiceResource``, ``Noti
 pattern as ``@depends(PaymentServiceResource, factory=...)``; graph merges to one ``resource_manager`` node. Role "manager".
 
 Exercises role checks, connection validation, dependency resolution via
-box.resolve(), per-aspect checkers, and building the result from state.
+await box.resolve(), per-aspect checkers, and building the result from state.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ASPECT PIPELINE
 ═══════════════════════════════════════════════════════════════════════════════
 
     1. process_payment (regular)
-       - Resolves ``PaymentServiceResource`` via ``box.resolve()`` (``.service`` for the client).
+       - Resolves ``PaymentServiceResource`` via ``await box.resolve()`` (``.service`` for the client).
        - Calls payment.charge(amount, currency).
        - Writes txn_id to state.
        - Checker: result_string("txn_id", required=True, min_length=1).
@@ -30,7 +30,7 @@ ASPECT PIPELINE
        - Checker: result_float("total", required=True, min_value=0.0).
 
     3. build_result (summary)
-       - Resolves NotificationService via box.resolve().
+       - Resolves NotificationService via await box.resolve().
        - Sends a notification to the user.
        - Builds Result from state (txn_id, total).
 
@@ -163,7 +163,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         Returns:
             dict with key txn_id — transaction identifier.
         """
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         txn_id = await payment.charge(params.amount, params.currency)
         return {"txn_id": txn_id}
 
@@ -206,7 +206,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         Returns:
             FullAction.Result with order_id, txn_id, total, status.
         """
-        notification = box.resolve(NotificationServiceResource).service
+        notification = (await box.resolve(NotificationServiceResource)).service
         await notification.send(params.user_id, f"Order created: {state['txn_id']}")
 
         return FullAction.Result(

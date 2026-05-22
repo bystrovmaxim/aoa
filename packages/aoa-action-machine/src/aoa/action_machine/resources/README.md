@@ -14,7 +14,7 @@ class ProtocolSqlResource(Protocol):
     @property
     def rollup(self) -> bool: ...
 
-    def check_rollup_support(self) -> bool: ...
+    async def check_rollup_support(self) -> bool: ...
 
     async def open(self) -> None: ...
 
@@ -40,7 +40,7 @@ class SqlResource(BaseResource, ProtocolSqlResource):
     def rollup(self) -> bool:
         return self._rollup
 
-    def check_rollup_support(self) -> bool:
+    async def check_rollup_support(self) -> bool:
         return True
 
     def get_wrapper_class(self) -> type["BaseResource"] | None:
@@ -70,8 +70,8 @@ class WrapperSqlResource(BaseResource, ProtocolSqlResource):
     def rollup(self) -> bool:
         return self._inner.rollup
 
-    def check_rollup_support(self) -> bool:
-        return self._inner.check_rollup_support()
+    async def check_rollup_support(self) -> bool:
+        return await self._inner.check_rollup_support()
 
     async def execute(self, query: str, params=None):
         return await self._inner.execute(query, params)

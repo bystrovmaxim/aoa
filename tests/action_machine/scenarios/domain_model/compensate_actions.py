@@ -139,7 +139,7 @@ class CompensatedOrderAction(
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         """Charge funds via PaymentService."""
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -161,7 +161,7 @@ class CompensatedOrderAction(
         """
         if state_after is None:
             return
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Reserve inventory")
@@ -174,7 +174,7 @@ class CompensatedOrderAction(
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         """Reserve stock via InventoryService."""
-        inventory = box.resolve(InventoryServiceResource).service
+        inventory = (await box.resolve(InventoryServiceResource)).service
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
@@ -196,7 +196,7 @@ class CompensatedOrderAction(
         """
         if state_after is None:
             return
-        inventory = box.resolve(InventoryServiceResource).service
+        inventory = (await box.resolve(InventoryServiceResource)).service
         await inventory.unreserve(state_after["reservation_id"])
 
     @regular_aspect("Finalize order")
@@ -267,7 +267,7 @@ class PartialCompensateAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -283,7 +283,7 @@ class PartialCompensateAction(
     ) -> None:
         if state_after is None:
             return
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Log operation")
@@ -369,7 +369,7 @@ class CompensateErrorAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -395,7 +395,7 @@ class CompensateErrorAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        inventory = box.resolve(InventoryServiceResource).service
+        inventory = (await box.resolve(InventoryServiceResource)).service
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
@@ -412,7 +412,7 @@ class CompensateErrorAction(
         """Compensator that succeeds (does not raise)."""
         if state_after is None:
             return
-        inventory = box.resolve(InventoryServiceResource).service
+        inventory = (await box.resolve(InventoryServiceResource)).service
         await inventory.unreserve(state_after["reservation_id"])
 
     @regular_aspect("Finalize with error")
@@ -481,7 +481,7 @@ class CompensateAndOnErrorAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -497,7 +497,7 @@ class CompensateAndOnErrorAction(
     ) -> None:
         if state_after is None:
             return
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Reserve inventory")
@@ -509,7 +509,7 @@ class CompensateAndOnErrorAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        inventory = box.resolve(InventoryServiceResource).service
+        inventory = (await box.resolve(InventoryServiceResource)).service
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
@@ -525,7 +525,7 @@ class CompensateAndOnErrorAction(
     ) -> None:
         if state_after is None:
             return
-        inventory = box.resolve(InventoryServiceResource).service
+        inventory = (await box.resolve(InventoryServiceResource)).service
         await inventory.unreserve(state_after["reservation_id"])
 
     @regular_aspect("Finalize with error")
@@ -666,7 +666,7 @@ class SecondRegularFailsOnErrorAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -682,7 +682,7 @@ class SecondRegularFailsOnErrorAction(
     ) -> None:
         if state_after is None:
             return
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Second fails")
@@ -762,7 +762,7 @@ class SummaryFailsOnErrorStateAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -778,7 +778,7 @@ class SummaryFailsOnErrorStateAction(
     ) -> None:
         if state_after is None:
             return
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Reserve inventory")
@@ -790,7 +790,7 @@ class SummaryFailsOnErrorStateAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        inventory = box.resolve(InventoryServiceResource).service
+        inventory = (await box.resolve(InventoryServiceResource)).service
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
@@ -806,7 +806,7 @@ class SummaryFailsOnErrorStateAction(
     ) -> None:
         if state_after is None:
             return
-        inventory = box.resolve(InventoryServiceResource).service
+        inventory = (await box.resolve(InventoryServiceResource)).service
         await inventory.unreserve(state_after["reservation_id"])
 
     @regular_aspect("Finalize order")
@@ -889,7 +889,7 @@ class CheckerRejectionSagaAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -905,7 +905,7 @@ class CheckerRejectionSagaAction(
     ) -> None:
         if state_after is None:
             return
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Second step — invalid token length")
@@ -929,7 +929,7 @@ class CheckerRejectionSagaAction(
         connections: dict[str, BaseResource],
         error: Exception,
     ) -> None:
-        trace = box.resolve(SagaCompensateTraceServiceResource).service
+        trace = (await box.resolve(SagaCompensateTraceServiceResource)).service
         await trace.record_second_rollback(state_after_none=(state_after is None))
 
     @summary_aspect("Unreachable summary")
@@ -983,7 +983,7 @@ class CompensateWithContextAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -1007,7 +1007,7 @@ class CompensateWithContextAction(
         _ = ctx.get(Ctx.User.user_id)
         if state_after is None:
             return
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Finalize with error")

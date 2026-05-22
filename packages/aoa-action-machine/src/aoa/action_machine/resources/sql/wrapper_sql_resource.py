@@ -61,9 +61,9 @@ class WrapperSqlResource(BaseResource, ProtocolSqlResource):
         """Delegate rollup to the wrapped connection owner."""
         return self._connection_manager.rollup
 
-    def check_rollup_support(self) -> bool:
+    async def check_rollup_support(self) -> bool:
         """Delegate to the wrapped manager."""
-        return self._connection_manager.check_rollup_support()
+        return await self._connection_manager.check_rollup_support()
 
     async def open(self) -> None:
         """Forbid opening connection from nested action scope."""
