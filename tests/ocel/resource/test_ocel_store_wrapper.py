@@ -23,7 +23,7 @@ def inner() -> MagicMock:
     mock.open = AsyncMock()
     mock.close = AsyncMock()
     mock.add_event = AsyncMock()
-    mock.check_rollup_support = MagicMock(return_value=False)
+    mock.check_rollup_support = AsyncMock(return_value=False)
     mock.get_wrapper_class = MagicMock(return_value=OcelStoreWrapper)
     return mock
 

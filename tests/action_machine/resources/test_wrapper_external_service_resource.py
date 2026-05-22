@@ -40,12 +40,13 @@ class TestConstructor:
         """``service`` reads through to the wrapped manager’s client."""
         assert wrapper.service is client
 
-    def test_delegates_check_rollup_support(
+    @pytest.mark.asyncio
+    async def test_delegates_check_rollup_support(
         self, wrapper: WrapperExternalServiceResource, owner: ExternalServiceResource[object],
     ) -> None:
         """Rollup capability matches the wrapped manager."""
-        assert wrapper.check_rollup_support() == owner.check_rollup_support()
-        assert wrapper.check_rollup_support() is False
+        assert await wrapper.check_rollup_support() == await owner.check_rollup_support()
+        assert await wrapper.check_rollup_support() is False
 
     def test_is_protocol_not_external_service_resource(
         self, wrapper: WrapperExternalServiceResource,

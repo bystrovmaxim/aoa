@@ -107,7 +107,7 @@ class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
         self, params, state_before, state_after, box, connections, error, ctx,
     ):
         user_id = ctx.get(Ctx.User.user_id)
-        payment = box.resolve(PaymentServiceResource).service
+        payment = (await box.resolve(PaymentServiceResource)).service
         await payment.refund(f"refund_for_{user_id}")
 
     @summary_aspect("Summary")

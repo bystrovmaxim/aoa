@@ -105,7 +105,7 @@ class SqlResource(BaseResource, ProtocolSqlResource, ABC):
         """Return current rollup flag with safe fallback for test doubles."""
         return getattr(self, "_rollup", False)
 
-    def check_rollup_support(self) -> bool:
+    async def check_rollup_support(self) -> bool:
         """Confirm rollup support for this manager type."""
         return True
 

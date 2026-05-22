@@ -84,7 +84,7 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         box: Any,
         connections: Any,
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentGatewayResource)
+        payment = await box.resolve(PaymentGatewayResource)
         cents = float(params.gross_cents)
         txn = await payment.service.charge(cents / 100.0)
         return {"capture_txn": txn, "captured_cents": cents}
@@ -100,7 +100,7 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         error: Exception,
     ) -> None:
         if state_after is not None:
-            payment = box.resolve(PaymentGatewayResource)
+            payment = await box.resolve(PaymentGatewayResource)
             await payment.service.refund(state_after.capture_txn)
 
     @on_error(ValueError, description="Invoice validation failed")

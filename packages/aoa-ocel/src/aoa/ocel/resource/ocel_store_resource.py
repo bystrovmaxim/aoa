@@ -22,7 +22,7 @@ class OcelStoreResource(BaseResource, OcelStoreProtocol, ABC):
     AI-CORE-END
     """
 
-    def check_rollup_support(self) -> bool:
+    async def check_rollup_support(self) -> bool:
         return False
 
     def get_wrapper_class(self) -> type[BaseResource] | None:

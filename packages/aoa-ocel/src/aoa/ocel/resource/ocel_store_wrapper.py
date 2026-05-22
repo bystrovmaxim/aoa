@@ -23,8 +23,8 @@ class OcelStoreWrapper(BaseResource, OcelStoreProtocol):
     def __init__(self, resource: OcelStoreProtocol) -> None:
         self._resource = resource
 
-    def check_rollup_support(self) -> bool:
-        return self._resource.check_rollup_support()
+    async def check_rollup_support(self) -> bool:
+        return await self._resource.check_rollup_support()
 
     def get_wrapper_class(self) -> type[BaseResource] | None:
         return OcelStoreWrapper

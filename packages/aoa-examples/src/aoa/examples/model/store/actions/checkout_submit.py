@@ -79,7 +79,7 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         box: Any,
         connections: Any,
     ) -> dict[str, Any]:
-        payment = box.resolve(PaymentGatewayResource)
+        payment = await box.resolve(PaymentGatewayResource)
         txn_id = await payment.service.charge(params.amount)
         return {"txn_id": txn_id, "charged_amount": params.amount}
 
@@ -94,7 +94,7 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         error: Exception,
     ) -> None:
         if state_after is not None:
-            payment = box.resolve(PaymentGatewayResource)
+            payment = await box.resolve(PaymentGatewayResource)
             await payment.service.refund(state_after.txn_id)
 
     @on_error(ValueError, description="Validation branch")

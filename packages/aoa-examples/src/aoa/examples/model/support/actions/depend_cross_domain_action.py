@@ -38,6 +38,6 @@ class DependCrossDomainAction(BaseAction["DependCrossDomainAction.Params", "Depe
         box: Any,
         connections: Any,
     ) -> DependCrossDomainAction.Result:
-        peer = box.resolve(OpsPingAction)
+        peer = await box.resolve(OpsPingAction)
         assert isinstance(peer, OpsPingAction)
         return DependCrossDomainAction.Result(peer=peer.__class__.__name__)

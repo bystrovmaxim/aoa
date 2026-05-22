@@ -44,7 +44,7 @@ AI-CORE-END
         """Whether rollup (commit-as-rollback) mode is active for this manager."""
         ...
 
-    def check_rollup_support(self) -> bool:
+    async def check_rollup_support(self) -> bool:
         """Same contract as ``BaseResource.check_rollup_support`` for SQL managers."""
         ...
 

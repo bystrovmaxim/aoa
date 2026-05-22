@@ -169,7 +169,7 @@ class ToolsBox:
     def rollup(self) -> bool:
         return self.__rollup
 
-    def resolve(self, cls: type[Any], *args: Any, **kwargs: Any) -> Any:
+    async def resolve(self, cls: type[Any], *args: Any, **kwargs: Any) -> Any:
         """
         Return dependency instance for requested class.
 
@@ -179,7 +179,7 @@ class ToolsBox:
         """
         if self.__resources and cls in self.__resources:
             return self.__resources[cls]
-        return self.__factory.resolve(cls, *args, rollup=self.__rollup, **kwargs)
+        return await self.__factory.resolve(cls, *args, rollup=self.__rollup, **kwargs)
 
     def _wrap_connections(
         self, connections: dict[str, BaseResource] | None,

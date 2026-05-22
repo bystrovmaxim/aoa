@@ -66,7 +66,7 @@ AI-CORE-END
         """Runtime client passed into aspects via ``connections``."""
         return self._service
 
-    def check_rollup_support(self) -> bool:
+    async def check_rollup_support(self) -> bool:
         """External clients are not transactional SQL-style rollup targets."""
         return False
 

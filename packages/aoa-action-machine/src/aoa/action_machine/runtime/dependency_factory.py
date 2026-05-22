@@ -68,7 +68,7 @@ AI-CORE-BEGIN
             result[info.cls] = info
         return result
 
-    def resolve(self, klass: type, *args: Any, rollup: bool = False, **kwargs: Any) -> Any:
+    async def resolve(self, klass: type, *args: Any, rollup: bool = False, **kwargs: Any) -> Any:
         """
         Create and return a new dependency instance.
 
@@ -79,7 +79,7 @@ AI-CORE-BEGIN
             2. If ``info.factory`` is set, call ``info.factory(*args, **kwargs)``.
             3. Otherwise, call ``klass(*args, **kwargs)``.
             4. If ``rollup=True`` and the result is a ``BaseResource``,
-               call ``instance.check_rollup_support()``.
+               await ``instance.check_rollup_support()``.
 
         Args:
             klass: Dependency class (the same as passed to ``@depends``).
@@ -110,7 +110,7 @@ AI-CORE-BEGIN
             instance = klass(*args, **kwargs)
 
         if rollup and isinstance(instance, BaseResource):
-            instance.check_rollup_support()
+            await instance.check_rollup_support()
 
         return instance
 

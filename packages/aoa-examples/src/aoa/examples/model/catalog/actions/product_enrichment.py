@@ -80,9 +80,9 @@ class ProductEnrichmentAction(
         box: Any,
         connections: Any,
     ) -> dict[str, Any]:
-        pricing = box.resolve(PricingFeedClientResource)
+        pricing = await box.resolve(PricingFeedClientResource)
         price = await pricing.service.list_price(state.normalized_sku)
-        indexer = box.resolve(IndexSyncClientResource)
+        indexer = await box.resolve(IndexSyncClientResource)
         doc_id = await indexer.service.upsert_document(
             state.normalized_sku,
             {"sku": state.normalized_sku, "locale": params.locale},
@@ -100,7 +100,7 @@ class ProductEnrichmentAction(
         error: Exception,
     ) -> None:
         if state_after is not None:
-            indexer = box.resolve(IndexSyncClientResource)
+            indexer = await box.resolve(IndexSyncClientResource)
             await indexer.service.upsert_document(state_after.doc_id, {"tombstone": "1"})
 
     @on_error(ValueError, description="SKU validation failed")
