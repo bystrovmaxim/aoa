@@ -43,6 +43,6 @@ AI-CORE-END
         """Runtime client instance passed into aspects via ``connections``."""
         ...
 
-    def check_rollup_support(self) -> bool:
+    async def check_rollup_support(self) -> bool:
         """Same meaning as ``BaseResource.check_rollup_support``."""
         ...

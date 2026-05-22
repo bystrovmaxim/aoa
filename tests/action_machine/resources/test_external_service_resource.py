@@ -3,6 +3,8 @@
 Tests for ExternalServiceResource — typed holder for one external client reference.
 """
 
+import pytest
+
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.external_service import (
     ExternalServiceResource,
@@ -17,10 +19,11 @@ def test_stores_service_reference() -> None:
     assert mgr.service is client
 
 
-def test_check_rollup_support_is_false() -> None:
+@pytest.mark.asyncio
+async def test_check_rollup_support_is_false() -> None:
     """External clients do not participate in SQL-style rollup."""
     mgr = ExternalServiceResource(object())
-    assert mgr.check_rollup_support() is False
+    assert await mgr.check_rollup_support() is False
 
 
 def test_get_wrapper_class_returns_wrapper_type() -> None:

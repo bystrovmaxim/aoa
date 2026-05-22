@@ -15,7 +15,8 @@ from tests.action_machine.scenarios.domain_model.child_action import ChildAction
 class TestToolsBoxResolve:
     """ToolsBox.resolve() checks resources, then factory."""
 
-    def test_resolve_from_resources_first(self) -> None:
+    @pytest.mark.asyncio
+    async def test_resolve_from_resources_first(self) -> None:
         mock_service = MagicMock()
         mock_factory = MagicMock()
 
@@ -28,13 +29,14 @@ class TestToolsBoxResolve:
             rollup=False,
         )
 
-        result = box.resolve(str)
+        result = await box.resolve(str)
 
         assert result is mock_service
         mock_factory.resolve.assert_not_called()
 
-    def test_resolve_falls_through_to_factory(self) -> None:
-        mock_factory = MagicMock()
+    @pytest.mark.asyncio
+    async def test_resolve_falls_through_to_factory(self) -> None:
+        mock_factory = AsyncMock()
         mock_factory.resolve.return_value = "factory_result"
 
         box = ToolsBox(
@@ -46,13 +48,14 @@ class TestToolsBoxResolve:
             rollup=False,
         )
 
-        result = box.resolve(str, "arg1", key="val")
+        result = await box.resolve(str, "arg1", key="val")
 
-        mock_factory.resolve.assert_called_once_with(str, "arg1", rollup=False, key="val")
+        mock_factory.resolve.assert_awaited_once_with(str, "arg1", rollup=False, key="val")
         assert result == "factory_result"
 
-    def test_resolve_passes_rollup_to_factory(self) -> None:
-        mock_factory = MagicMock()
+    @pytest.mark.asyncio
+    async def test_resolve_passes_rollup_to_factory(self) -> None:
+        mock_factory = AsyncMock()
         mock_factory.resolve.return_value = "result"
 
         box = ToolsBox(
@@ -64,9 +67,9 @@ class TestToolsBoxResolve:
             rollup=True,
         )
 
-        box.resolve(str)
+        await box.resolve(str)
 
-        mock_factory.resolve.assert_called_once_with(str, rollup=True)
+        mock_factory.resolve.assert_awaited_once_with(str, rollup=True)
 
 
 class TestToolsBoxProperties:

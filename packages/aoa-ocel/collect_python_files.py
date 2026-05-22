@@ -249,7 +249,6 @@ if __name__ == "__main__":
             "dist",
             "htmlcov",
             "node_modules",
-            ".vite",
         ],
         extensions=[
             # Backend / tooling in this package

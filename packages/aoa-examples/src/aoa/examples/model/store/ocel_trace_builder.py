@@ -14,8 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from aoa.action_machine.domain import AssociationOne
-from aoa.action_machine.domain.entity import BaseEntity
+from aoa.action_machine.domain import AssociationOne, BaseEntity
 from aoa.examples.model.catalog.entities.catalog_product_lifecycle import CatalogProductLifecycle
 from aoa.examples.model.catalog.entities.product_row import CatalogProductEntity
 from aoa.examples.model.inventory.entities.inv_dense_lifecycle import InvPipelineLifecycle

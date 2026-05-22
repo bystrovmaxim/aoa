@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 class OcelStoreProtocol(Protocol):
     """Full public protocol for OCEL store (§5.27)."""
 
-    def check_rollup_support(self) -> bool:
+    async def check_rollup_support(self) -> bool:
         """Same contract as ``BaseResource.check_rollup_support``."""
         ...
 
