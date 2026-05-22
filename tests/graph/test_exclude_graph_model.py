@@ -7,10 +7,10 @@ from typing import Any
 
 import pytest
 
-from aoa.graph.base_graph_edge import BaseGraphEdge
-from aoa.graph.base_graph_node import BaseGraphNode
-from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
-from aoa.graph.exclude_graph_model import exclude_graph_model, excluded_from_graph_model
+from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
+from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
+from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNodeInspector
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model, excluded_from_graph_model
 
 
 def test_exclude_graph_model_raises_on_non_class() -> None:

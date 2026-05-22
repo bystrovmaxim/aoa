@@ -19,6 +19,7 @@ from typing import Any, cast
 from pydantic import Field
 
 from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.graph.core.edge_relationship import GENERALIZATION
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
@@ -26,7 +27,6 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.graph.edge_relationship import GENERALIZATION
 from aoa.maxitor.model.diagrams.actions.list_domains_action import (
     _LIST_DOMAINS_DISTINCT_COLORS,
 )
@@ -45,7 +45,7 @@ G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 DAG_CYCLE_VIOLATION_COLOR = "#E41A1C"
 GRAPH_NODE_VISUAL_PX = 24
 
-# DuckDB ``nodes.type`` slug for :class:`~aoa.action_machine.graph_model.nodes.entity_field_graph_node.EntityFieldGraphNode`.
+# DuckDB ``nodes.type`` slug for :class:`~aoa.action_machine.graph.nodes.entity_field_graph_node.EntityFieldGraphNode`.
 FULL_GRAPH_ENTITY_FIELD_DUCK_SLUG = "entity_field"
 
 # Interchange ``node_type`` after :func:`~aoa.maxitor.model.diagrams.actions.list_node_types_action.interchange_node_type_from_duck`.

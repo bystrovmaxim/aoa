@@ -14,7 +14,6 @@ resolution-markers = [
 members = [
     "aoa-action-machine",
     "aoa-examples",
-    "aoa-graph",
     "aoa-maxitor",
     "aoa-ocel",
     "aoa-run",
@@ -56,7 +55,6 @@ name = "aoa-action-machine"
 version = "1.0.0"
 source = { editable = "packages/aoa-action-machine" }
 dependencies = [
-    { name = "aoa-graph" },
     { name = "jsonschema" },
     { name = "pydantic" },
     { name = "simpleeval" },
@@ -76,7 +74,6 @@ postgres = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aoa-graph", editable = "packages/aoa-graph" },
     { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29,<1.0" },
     { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.100,<1.0" },
     { name = "jsonschema", specifier = ">=4.17" },
@@ -93,7 +90,6 @@ version = "1.0.0"
 source = { editable = "packages/aoa-examples" }
 dependencies = [
     { name = "aoa-action-machine" },
-    { name = "aoa-graph" },
     { name = "aoa-ocel" },
     { name = "pydantic" },
 ]
@@ -110,7 +106,6 @@ mcp = [
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
-    { name = "aoa-graph", editable = "packages/aoa-graph" },
     { name = "aoa-ocel", editable = "packages/aoa-ocel" },
     { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.100,<1.0" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.0,<2.0" },
@@ -120,17 +115,11 @@ requires-dist = [
 provides-extras = ["fastapi", "mcp"]
 
 [[package]]
-name = "aoa-graph"
-version = "1.0.0"
-source = { editable = "packages/aoa-graph" }
-
-[[package]]
 name = "aoa-maxitor"
 version = "1.0.0"
 source = { editable = "packages/aoa-maxitor" }
 dependencies = [
     { name = "aoa-action-machine" },
-    { name = "aoa-graph" },
     { name = "duckdb" },
     { name = "fastapi" },
     { name = "httpx" },
@@ -141,7 +130,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
-    { name = "aoa-graph", editable = "packages/aoa-graph" },
     { name = "duckdb", specifier = ">=1.1,<2" },
     { name = "fastapi", specifier = ">=0.115,<1.0" },
     { name = "httpx", specifier = ">=0.27,<1.0" },
@@ -171,7 +159,6 @@ source = { editable = "." }
 dependencies = [
     { name = "aoa-action-machine" },
     { name = "aoa-examples" },
-    { name = "aoa-graph" },
     { name = "aoa-maxitor" },
     { name = "aoa-ocel" },
 ]
@@ -246,7 +233,6 @@ requires-dist = [
     { name = "aoa-examples", extras = ["fastapi"], marker = "extra == 'fastapi'", editable = "packages/aoa-examples" },
     { name = "aoa-examples", extras = ["fastapi", "mcp"], marker = "extra == 'dev'", editable = "packages/aoa-examples" },
     { name = "aoa-examples", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/aoa-examples" },
-    { name = "aoa-graph", editable = "packages/aoa-graph" },
     { name = "aoa-maxitor", editable = "packages/aoa-maxitor" },
     { name = "aoa-ocel", editable = "packages/aoa-ocel" },
     { name = "aoa-run", extras = ["fastapi", "mcp", "postgres", "dev"], marker = "extra == 'all'" },

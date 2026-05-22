@@ -83,8 +83,8 @@ ARCHITECTURE / DATA FLOW
 
 from pydantic import ConfigDict
 
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.model.base_schema import BaseSchema
-from aoa.graph.exclude_graph_model import exclude_graph_model
 
 
 @exclude_graph_model

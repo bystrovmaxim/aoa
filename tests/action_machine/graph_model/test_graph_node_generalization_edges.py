@@ -10,9 +10,9 @@ from tests.action_machine.graph_model.test_parent_generalization_edges import (
 )
 from tests.action_machine.scenarios.domain_model.domains import TestDomain
 
-from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
-from aoa.action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
+from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
+from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import NoneRole, check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta

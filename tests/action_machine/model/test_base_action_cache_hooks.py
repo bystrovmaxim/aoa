@@ -7,10 +7,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.params_stub import ParamsStub
 from aoa.action_machine.model.result_stub import ResultStub
-from aoa.graph.exclude_graph_model import exclude_graph_model
 
 
 @exclude_graph_model

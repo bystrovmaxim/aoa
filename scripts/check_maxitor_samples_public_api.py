@@ -24,7 +24,7 @@ ALLOWED_ACTION_MACHINE_MODULES: frozenset[str] = frozenset(
         f"{_AM}.auth",
         f"{_AM}.context",
         f"{_AM}.domain",
-        f"{_AM}.graph_model.node_graph_coordinator_factory",
+        f"{_AM}.graph.node_graph_coordinator_factory",
         f"{_AM}.integrations.fastapi",
         f"{_AM}.integrations.mcp",
         f"{_AM}.logging",

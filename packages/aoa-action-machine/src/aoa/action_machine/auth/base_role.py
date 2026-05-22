@@ -42,8 +42,8 @@ from abc import ABC
 from typing import Any, ClassVar
 
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
-from aoa.graph.exclude_graph_model import exclude_graph_model
 
 _REQUIRED_SUFFIX = "Role"
 

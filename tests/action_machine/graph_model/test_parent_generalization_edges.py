@@ -8,15 +8,17 @@ from tests.action_machine.scenarios.domain_model.domains import TestDomain
 
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.graph_model.edges.parent_action_graph_edge import (
+from aoa.action_machine.graph.core.edge_relationship import GENERALIZATION
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.graph.edges.parent_action_graph_edge import (
     ParentActionGraphEdge,
     build_parent_action_edges,
 )
-from aoa.action_machine.graph_model.edges.parent_domain_graph_edge import (
+from aoa.action_machine.graph.edges.parent_domain_graph_edge import (
     ParentDomainGraphEdge,
     build_parent_domain_edges,
 )
-from aoa.action_machine.graph_model.edges.parent_role_graph_edge import (
+from aoa.action_machine.graph.edges.parent_role_graph_edge import (
     ParentRoleGraphEdge,
     build_parent_role_edges,
 )
@@ -33,8 +35,6 @@ from aoa.action_machine.model.result_stub import ResultStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from aoa.graph.edge_relationship import GENERALIZATION
-from aoa.graph.exclude_graph_model import exclude_graph_model
 
 
 @meta(description="Parent gen action for PR-2 generalization factory tests", domain=TestDomain)

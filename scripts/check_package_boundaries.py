@@ -20,7 +20,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO_ROOT / "scripts" / "package_boundaries.toml"
 
-CANONICAL = ("graph", "action_machine", "maxitor", "examples")
+CANONICAL = ("action_machine", "maxitor", "examples")
 
 
 @dataclass(frozen=True)

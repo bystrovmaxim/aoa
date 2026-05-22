@@ -1,5 +1,5 @@
 # tests/action_machine/graph/test_node_graph_coordinator_json.py
-"""Tests for :meth:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator.to_json` (graph + action_machine)."""
+"""Tests for :meth:`~aoa.action_machine.graph.core.node_graph_coordinator.NodeGraphCoordinator.to_json` (graph + action_machine)."""
 
 from __future__ import annotations
 
@@ -11,12 +11,12 @@ import pytest
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
-from aoa.action_machine.graph_model.graph_json_schema import GRAPH_JSON_SCHEMA
-from aoa.graph.base_graph_edge import BaseGraphEdge
-from aoa.graph.base_graph_node import BaseGraphNode
-from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
-from aoa.graph.composition_graph_edge import CompositionGraphEdge
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
+from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
+from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
+from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNodeInspector
+from aoa.action_machine.graph.core.composition_graph_edge import CompositionGraphEdge
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
+from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 
 
 class _Axis:
@@ -124,7 +124,7 @@ class _MiniAxisRole:
 
 class _InspectPingAction(BaseGraphNodeInspector[_MiniAxisAction]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+        from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
         from tests.action_machine.scenarios.domain_model.ping_action import PingAction
 
         return ActionGraphNode(PingAction) if cls is _MiniAxisAction else None
@@ -132,7 +132,7 @@ class _InspectPingAction(BaseGraphNodeInspector[_MiniAxisAction]):
 
 class _InspectSystemDomain(BaseGraphNodeInspector[_MiniAxisDomain]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        from aoa.action_machine.graph_model.nodes.domain_graph_node import DomainGraphNode
+        from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
         from tests.action_machine.scenarios.domain_model.domains import SystemDomain
 
         return DomainGraphNode(SystemDomain) if cls is _MiniAxisDomain else None
@@ -141,14 +141,14 @@ class _InspectSystemDomain(BaseGraphNodeInspector[_MiniAxisDomain]):
 class _InspectApplication(BaseGraphNodeInspector[_MiniAxisApplication]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         from aoa.action_machine.application.application import Application
-        from aoa.action_machine.graph_model.nodes.application_graph_node import ApplicationGraphNode
+        from aoa.action_machine.graph.nodes.application_graph_node import ApplicationGraphNode
 
         return ApplicationGraphNode(Application) if cls is _MiniAxisApplication else None
 
 
 class _InspectPingParams(BaseGraphNodeInspector[_MiniAxisParams]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        from aoa.action_machine.graph_model.nodes.params_graph_node import ParamsGraphNode
+        from aoa.action_machine.graph.nodes.params_graph_node import ParamsGraphNode
         from tests.action_machine.scenarios.domain_model.ping_action import PingAction
 
         return ParamsGraphNode(PingAction.Params) if cls is _MiniAxisParams else None
@@ -156,7 +156,7 @@ class _InspectPingParams(BaseGraphNodeInspector[_MiniAxisParams]):
 
 class _InspectPingResult(BaseGraphNodeInspector[_MiniAxisResult]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        from aoa.action_machine.graph_model.nodes.result_graph_node import ResultGraphNode
+        from aoa.action_machine.graph.nodes.result_graph_node import ResultGraphNode
         from tests.action_machine.scenarios.domain_model.ping_action import PingAction
 
         return ResultGraphNode(PingAction.Result) if cls is _MiniAxisResult else None
@@ -165,7 +165,7 @@ class _InspectPingResult(BaseGraphNodeInspector[_MiniAxisResult]):
 class _InspectNoneRole(BaseGraphNodeInspector[_MiniAxisRole]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         from aoa.action_machine.auth.none_role import NoneRole
-        from aoa.action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
+        from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 
         return RoleGraphNode(NoneRole) if cls is _MiniAxisRole else None
 

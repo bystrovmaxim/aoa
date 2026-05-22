@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from aoa.action_machine.exceptions import ConnectionValidationError
-from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.runtime.connection_validator import ConnectionValidator
 from tests.action_machine.scenarios.domain_model.child_action import ChildAction
 from tests.action_machine.scenarios.domain_model.full_action import FullAction

@@ -63,9 +63,9 @@ ARCHITECTURE / DATA FLOW
 from abc import ABC, abstractmethod
 
 from aoa.action_machine.exceptions.rollup_not_supported_error import RollupNotSupportedError
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.depends.depends_eligible import DependsEligible
 from aoa.action_machine.intents.meta.meta_intent import MetaIntent
-from aoa.graph.exclude_graph_model import exclude_graph_model
 
 
 @exclude_graph_model

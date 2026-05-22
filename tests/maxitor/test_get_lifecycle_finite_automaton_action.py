@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.examples.model.billing.entities.billing_sat_acquirer_integrity import AcquirerIntegrityCheckEntity

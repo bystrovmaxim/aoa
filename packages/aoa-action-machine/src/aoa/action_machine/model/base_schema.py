@@ -94,8 +94,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.system_core.dot_path_navigator import _SENTINEL, DotPathNavigator
-from aoa.graph.exclude_graph_model import exclude_graph_model
 
 
 @exclude_graph_model

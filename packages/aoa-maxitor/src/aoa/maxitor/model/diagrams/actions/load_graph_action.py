@@ -6,7 +6,7 @@ LoadGraphAction — materialize a NetworkX view of a coordinator graph.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Read-only action: accept a built :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator`
+Read-only action: accept a built :class:`~aoa.action_machine.graph.core.node_graph_coordinator.NodeGraphCoordinator`
 and expose a :class:`networkx.DiGraph` built from interchange nodes and outbound edges.
 Not wired into the Flet shell yet; call explicitly from tests or future composition.
 
@@ -31,17 +31,17 @@ import networkx as nx
 from pydantic import ConfigDict, Field
 
 from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.graph.base_graph_node import BaseGraphNode
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 from aoa.maxitor.model.core.core_domain import CoreDomain
 
 # Populated on each ``LoadGraphAction`` result graph so downstream actions (e.g. ERD) can recover
-# the built :class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator` while accepting ``nx_graph`` only.
+# the built :class:`~aoa.action_machine.graph.core.node_graph_coordinator.NodeGraphCoordinator` while accepting ``nx_graph`` only.
 MAXITOR_NX_GRAPH_COORDINATOR_KEY = "_maxitor_node_graph_coordinator"
 
 

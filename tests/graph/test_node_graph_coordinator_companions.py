@@ -7,10 +7,10 @@ from typing import Any
 
 import pytest
 
-from aoa.graph.base_graph_node import BaseGraphNode
-from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
-from aoa.graph.exceptions import DuplicateNodeError
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
+from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
+from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNodeInspector
+from aoa.action_machine.graph.core.exceptions import DuplicateNodeError
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 
 
 class _Root:

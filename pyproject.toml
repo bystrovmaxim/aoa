@@ -23,7 +23,6 @@ authors = [
 ]
 
 dependencies = [
-    "aoa-graph",
     "aoa-action-machine",
     "aoa-ocel",
     "aoa-maxitor",
@@ -75,7 +74,6 @@ Repository = "https://github.com/action-machine/action-machine"
 # ============================================================================
 [tool.uv.workspace]
 members = [
-    "packages/aoa-graph",
     "packages/aoa-action-machine",
     "packages/aoa-ocel",
     "packages/aoa-maxitor",
@@ -84,7 +82,6 @@ members = [
 
 # Map distribution names used in member ``dependencies`` to workspace paths.
 [tool.uv.sources]
-aoa-graph = { workspace = true }
 aoa-action-machine = { workspace = true }
 aoa-ocel = { workspace = true }
 aoa-maxitor = { workspace = true }
@@ -104,7 +101,6 @@ testpaths = ["tests", "packages/aoa-examples/aoa_examples_tests"]
 asyncio_mode = "auto"
 # Четыре `…/src` на PYTHONPATH для неймспейса `aoa.*`; `.` — корень репо (conftest/fixtures).
 pythonpath = [
-    "packages/aoa-graph/src",
     "packages/aoa-action-machine/src",
     "packages/aoa-ocel/src",
     "packages/aoa-maxitor/src",
@@ -144,7 +140,7 @@ explicit_package_bases = true
 # Standalone ``collect_python_files.py`` scripts at repo / package roots share the module
 # name ``collect_python_files``; exclude them from ``mypy packages/`` (task ``typecheck``).
 exclude = "collect_python_files\\.py$"
-mypy_path = "packages/aoa-graph/src:packages/aoa-action-machine/src:packages/aoa-ocel/src:packages/aoa-maxitor/src:packages/aoa-examples/src"
+mypy_path = "packages/aoa-action-machine/src:packages/aoa-ocel/src:packages/aoa-maxitor/src:packages/aoa-examples/src"
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -357,7 +353,7 @@ exclude = ["tests/"]
 maxitor-api = "uv run uvicorn aoa.maxitor.api.app:app --reload --host 127.0.0.1 --port 8000"
 test = "pytest tests/ --ignore=tests/packaging -v"
 packaging-smoke = "pytest tests/packaging -v"
-build-packages = "uv run --group dev python -m build packages/aoa-graph && uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-ocel && uv run --group dev python -m build packages/aoa-maxitor && uv run --group dev python -m build packages/aoa-examples"
+build-packages = "uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-ocel && uv run --group dev python -m build packages/aoa-maxitor && uv run --group dev python -m build packages/aoa-examples"
 cov = "pytest tests/ --ignore=tests/packaging --cov=packages/aoa-action-machine/src/aoa/action_machine --cov-report=term-missing"
 # Lint sources under packages/, tests/, scripts/, and the root meta package ``aoa_run``.
 lint = "ruff check packages/ tests/ scripts/ aoa_run/"

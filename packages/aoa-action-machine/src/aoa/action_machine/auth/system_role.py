@@ -32,8 +32,8 @@ from __future__ import annotations
 from abc import ABC
 
 from aoa.action_machine.auth.base_role import BaseRole
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
-from aoa.graph.exclude_graph_model import exclude_graph_model
 
 
 @exclude_graph_model

@@ -25,7 +25,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from aoa.action_machine.auth import NoAuthCoordinator
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.integrations.fastapi import FastApiAdapter
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine

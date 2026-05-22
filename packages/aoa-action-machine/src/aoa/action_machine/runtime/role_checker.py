@@ -8,7 +8,7 @@ PURPOSE
 
 ``RoleChecker.check`` is the machine gate that compares declared role requirements
 (materialized as ``@check_roles`` association edges on
-:class:`~aoa.action_machine.graph_model.nodes.action_graph_node.ActionGraphNode`) to
+:class:`~aoa.action_machine.graph.nodes.action_graph_node.ActionGraphNode`) to
 the authenticated user's role types. Matching uses ``issubclass(user_role, required)``.
 ``RoleMode.SILENCED`` user roles are ignored entirely.
 
@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    action_node.roles (``RoleGraphEdge`` → wired :class:`~aoa.action_machine.graph_model.nodes.role_graph_node.RoleGraphNode`)
+    action_node.roles (``RoleGraphEdge`` → wired :class:`~aoa.action_machine.graph.nodes.role_graph_node.RoleGraphNode`)
               │
               ├── NoneRole → allow
               ├── AnyRole  → require ≥1 non‑SILENCED role type
@@ -42,8 +42,8 @@ from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.none_role import NoneRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
-from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
+from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
 from aoa.action_machine.model.base_action import BaseAction
 
