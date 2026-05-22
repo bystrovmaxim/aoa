@@ -1,10 +1,9 @@
-# tests/action_machine/graph_model/test_parent_generalization_edges.py
+# tests/action_machine/graph_host/test_parent_generalization_edges.py
 """PR-2: ``parent_*`` generalization edges and factories (plan ``generalization_graph_nodes.md`` §PR-2)."""
 
 from __future__ import annotations
 
 from pydantic import Field
-from tests.action_machine.scenarios.domain_model.domains import TestDomain
 
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -35,6 +34,7 @@ from aoa.action_machine.model.result_stub import ResultStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+from tests.action_machine.scenarios.domain_model.domains import TestDomain
 
 
 @meta(description="Parent gen action for PR-2 generalization factory tests", domain=TestDomain)

@@ -48,7 +48,7 @@ def test_domain_getattr_raises_on_unknown_name() -> None:
         _ = domain.DefinitelyNotExported
 
 
-def test_graph_model_leaf_imports_resolve() -> None:
+def test_graph_leaf_imports_resolve() -> None:
     action_node = importlib.import_module("aoa.action_machine.graph.nodes.action_graph_node")
     role_edge = importlib.import_module("aoa.action_machine.graph.edges.role_graph_edge")
     assert action_node.ActionGraphNode is not None

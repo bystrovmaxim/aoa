@@ -9,6 +9,9 @@ PURPOSE
 Provide graph modeling for ActionMachine metadata: generic interchange rows in
 ``core/``, domain-specific nodes/edges/inspectors at this package level.
 
+Import ``create_node_graph_coordinator`` and ``GRAPH_JSON_SCHEMA`` from their leaf
+modules (``node_graph_coordinator_factory``, ``graph_json_schema``).
+
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
@@ -25,8 +28,6 @@ ARCHITECTURE / DATA FLOW
 """
 
 from __future__ import annotations
-
-from typing import Any
 
 from aoa.action_machine.graph.core import (
     ACCESS,
@@ -62,7 +63,6 @@ __all__ = [
     "COMPOSITION",
     "FLOW",
     "GENERALIZATION",
-    "GRAPH_JSON_SCHEMA",
     "REALIZATION",
     "SERVING",
     "SPECIALIZATION",
@@ -75,21 +75,8 @@ __all__ = [
     "GeneralizationGraphEdge",
     "GraphEdge",
     "LineStyle",
-    "create_node_graph_coordinator",
     "exclude_graph_model",
     "excluded_from_graph_model",
     "require_non_empty_str",
     "require_non_null",
 ]
-
-
-def __getattr__(name: str) -> Any:
-    if name == "GRAPH_JSON_SCHEMA":
-        from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
-
-        return GRAPH_JSON_SCHEMA
-    if name == "create_node_graph_coordinator":
-        from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
-
-        return create_node_graph_coordinator
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

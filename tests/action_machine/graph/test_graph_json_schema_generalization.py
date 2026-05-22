@@ -1,4 +1,4 @@
-# tests/action_machine/graph_model/test_graph_json_schema_generalization.py
+# tests/action_machine/graph/test_graph_json_schema_generalization.py
 """PR-4: JSON Schema branches for ``parent_action`` / ``parent_role`` / ``parent_domain`` (plan §PR-4, §I.3)."""
 
 from __future__ import annotations
