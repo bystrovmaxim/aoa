@@ -36,7 +36,9 @@ Maxitor can show four views of the system:
 
 The full graph is an interactive network of all elements in an AOA system. One view shows what used to take days of onboarding.
 
-Full graph of an AOA system
+<p align="center">
+  <img src="../../docs/assets/maxitor-full-graph.png" alt="Full graph of an AOA system" width="900">
+</p>
 
 The graph shows nodes of different types, each with a color label:
 
@@ -61,7 +63,9 @@ The left panel filters by groups: Applications, Domains, Roles, Actions, Entitie
 
 The ERD tab shows entity schemas by domain: fields, types, relations, cardinality.
 
-ERD — entity schema by domain
+<p align="center">
+  <img src="../../docs/assets/maxitor-domain-erd.png" alt="ERD — entity schema by domain" width="900">
+</p>
 
 The left panel navigates domains. For each domain:
 
@@ -84,6 +88,10 @@ The ERD is built from `BaseEntity` classes and `Relation` fields. No YAML schema
 
 The use case view shows roles and Actions they can access via `@check_roles`. This is not hand-written documentation — it is read directly from `@check_roles` annotations in code.
 
+<p align="center">
+  <img src="../../docs/assets/maxitor-use-case.png" alt="Use case diagram — roles and Actions" width="900">
+</p>
+
 Useful for:
 
 - Access audits — see who can run which operations
@@ -95,6 +103,10 @@ Useful for:
 ## 4. Lifecycle: State Machine
 
 For each entity with a `Lifecycle` field, Maxitor builds a finite automaton graph: states, transitions, initial and final vertices.
+
+<p align="center">
+  <img src="../../docs/assets/maxitor-life-cycle.png" alt="Lifecycle finite state machine for an entity" width="900">
+</p>
 
 Especially valuable when an entity lifecycle is non-trivial — e.g. an order with a dozen states. Instead of reading automaton code line by line, you see the full transition graph.
 
