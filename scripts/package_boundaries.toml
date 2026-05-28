@@ -9,9 +9,9 @@ import_prefixes = ["action_machine", "aoa.action_machine"]
 may_import = []
 
 [packages.ocel]
-current_roots = ["packages/aoa-ocel/src/aoa/ocel"]
-future_roots = ["packages/aoa-ocel/src/aoa/ocel"]
-import_prefixes = ["ocel", "aoa.ocel"]
+current_roots = ["packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel"]
+future_roots = ["packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel"]
+import_prefixes = ["aoa.action_machine.plugin.ocel"]
 may_import = ["action_machine"]
 
 [packages.maxitor]

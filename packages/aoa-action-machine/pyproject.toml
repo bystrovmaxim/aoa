@@ -28,6 +28,9 @@ mcp = [
 postgres = [
     "asyncpg>=0.29,<1.0",
 ]
+ocel = [
+    "xxhash>=3.4,<4",
+]
 
 [project.urls]
 Homepage = "https://github.com/action-machine/action-machine"

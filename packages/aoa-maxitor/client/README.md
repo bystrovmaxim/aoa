@@ -1,3 +1,14 @@
+<p align="center">
+  <img src="../../../docs/assets/aoa-logo.png" alt="AOA" width="660"><br><br>
+  <a href="https://github.com/bystrovmaxim/aoa"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT"></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white" alt="React 19"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript&logoColor=white" alt="TypeScript 5.7"></a>
+  <img src="https://img.shields.io/badge/Vite-build-646cff?logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white" alt="Node 22">
+  <a href="https://github.com/bystrovmaxim/aoa/actions/workflows/ci.yml"><img src="https://github.com/bystrovmaxim/aoa/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="../README.md"><img src="https://img.shields.io/badge/backend-aoa--maxitor-blue?logo=python&logoColor=white" alt="aoa-maxitor"></a>
+</p>
+
 # Maxitor client
 
 Vite + React + TypeScript SPA for diagram workspaces (full graph / ERD). Import alias: `@/` → [`src/`](./src/).

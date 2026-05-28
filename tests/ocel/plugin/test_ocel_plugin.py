@@ -19,12 +19,12 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.on import GlobalFinishEvent
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_schema import BaseSchema
-from aoa.ocel import OcelFrame
-from aoa.ocel.dto import OcelAttribute
-from aoa.ocel.exceptions import OcelContractError
-from aoa.ocel.plugin import OCEL_FRAMES_KEY, OcelPlugin
-from aoa.ocel.plugin.ocel_plugin import collect_ocel_frames
-from aoa.ocel.resource import InMemoryOcelStoreResource
+from aoa.action_machine.plugin.ocel import OcelFrame
+from aoa.action_machine.plugin.ocel.dto import OcelAttribute
+from aoa.action_machine.plugin.ocel.exceptions import OcelContractError
+from aoa.action_machine.plugin.ocel.plugin import OCEL_FRAMES_KEY, OcelPlugin
+from aoa.action_machine.plugin.ocel.plugin.ocel_plugin import collect_ocel_frames
+from aoa.action_machine.plugin.ocel.resource import InMemoryOcelStoreResource
 
 
 class _Params(BaseParams):

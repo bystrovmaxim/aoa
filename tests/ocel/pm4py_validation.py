@@ -1,5 +1,5 @@
 # tests/ocel/pm4py_validation.py
-"""PM4Py smoke validation for OCEL 2.0 JSON written by ``aoa-ocel`` resources."""
+"""PM4Py smoke validation for OCEL 2.0 JSON written by ``plugin.ocel`` resources."""
 
 from __future__ import annotations
 

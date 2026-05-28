@@ -28,7 +28,6 @@ jobs:
       - name: Build publishable packages
         run: |
           uv build --package aoa-action-machine
-          uv build --package aoa-ocel
           uv build --package aoa-maxitor
           uv build --package aoa-examples
 
@@ -36,6 +35,5 @@ jobs:
         run: >-
           uv publish --token ${{ secrets.PYPI_API_TOKEN }}
           packages/aoa-action-machine/dist/*
-          packages/aoa-ocel/dist/*
           packages/aoa-maxitor/dist/*
           packages/aoa-examples/dist/*
