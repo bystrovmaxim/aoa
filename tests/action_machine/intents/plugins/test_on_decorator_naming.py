@@ -16,7 +16,7 @@ class TestPluginOnPrefix:
     def test_correct_prefix_passes(self) -> None:
         """Name 'on_track_finish' — decorator applies."""
         from aoa.action_machine.intents.on.on_decorator import on
-        from aoa.action_machine.plugin.events import GlobalFinishEvent
+        from aoa.action_machine.plugin.core.events import GlobalFinishEvent
 
         @on(GlobalFinishEvent)
         async def on_track_finish(self, state, event, log):
@@ -27,7 +27,7 @@ class TestPluginOnPrefix:
     def test_missing_prefix_raises(self) -> None:
         """Name 'track_finish' without 'on_' → NamingPrefixError."""
         from aoa.action_machine.intents.on.on_decorator import on
-        from aoa.action_machine.plugin.events import GlobalFinishEvent
+        from aoa.action_machine.plugin.core.events import GlobalFinishEvent
 
         with pytest.raises(NamingPrefixError, match="on_"):
             @on(GlobalFinishEvent)
@@ -37,7 +37,7 @@ class TestPluginOnPrefix:
     def test_wrong_prefix_raises(self) -> None:
         """Name 'handle_track_finish' → NamingPrefixError (does not start with 'on_')."""
         from aoa.action_machine.intents.on.on_decorator import on
-        from aoa.action_machine.plugin.events import GlobalFinishEvent
+        from aoa.action_machine.plugin.core.events import GlobalFinishEvent
 
         with pytest.raises(NamingPrefixError, match="on_"):
             @on(GlobalFinishEvent)

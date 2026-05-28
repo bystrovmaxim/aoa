@@ -34,8 +34,8 @@ INVARIANTS
 
 from unittest.mock import AsyncMock
 
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.testing import TestBench
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 from tests.action_machine.scenarios.domain_model.services import PaymentService, PaymentServiceResource
 
 

@@ -1,10 +1,10 @@
 # tests/application/test_application_graph_node.py
-"""Unit tests for :class:`~aoa.action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`."""
+"""Unit tests for :class:`~aoa.action_machine.graph.nodes.application_graph_node.ApplicationGraphNode`."""
 
 from __future__ import annotations
 
 from aoa.action_machine.application import Application
-from aoa.action_machine.graph_model.nodes.application_graph_node import ApplicationGraphNode
+from aoa.action_machine.graph.nodes.application_graph_node import ApplicationGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 

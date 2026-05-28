@@ -47,7 +47,7 @@ import asyncio
 
 import pytest
 
-from aoa.action_machine.plugin.plugin_coordinator import PluginCoordinator
+from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 
 from .conftest import (
     FailingPluginIgnore,

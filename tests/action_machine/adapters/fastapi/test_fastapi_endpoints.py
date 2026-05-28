@@ -45,8 +45,8 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
+from aoa.action_machine.adapters.fastapi.adapter import FastApiAdapter
 from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
-from aoa.action_machine.integrations.fastapi.adapter import FastApiAdapter
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.action_machine.resources.test_connections_dict import DummyResourceManager

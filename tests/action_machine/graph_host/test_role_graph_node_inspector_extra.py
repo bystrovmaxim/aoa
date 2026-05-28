@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from aoa.action_machine.auth.base_role import BaseRole
-from aoa.action_machine.graph_model.inspectors.role_graph_node_inspector import RoleGraphNodeInspector
+from aoa.action_machine.graph.inspectors.role_graph_node_inspector import RoleGraphNodeInspector
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 
 

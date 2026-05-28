@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock
 
-from aoa.action_machine.plugin.events import BasePluginEvent
+from aoa.action_machine.plugin.core.events import BasePluginEvent
 
 
 def extract_event_types(mock_plugin_ctx: AsyncMock) -> list[str]:

@@ -38,9 +38,9 @@ from typing import Any
 
 from aoa.action_machine.exceptions.handle_error import HandleError
 from aoa.action_machine.exceptions.transaction_prohibited_error import TransactionProhibitedError
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.sql.protocol_sql_resource import ProtocolSqlResource
-from aoa.graph.exclude_graph_model import exclude_graph_model
 
 
 @exclude_graph_model

@@ -5,8 +5,8 @@ from typing import Generic, Protocol, TypeVar
 
 import pytest
 
-from aoa.graph.edge_relationship import GENERALIZATION
-from aoa.graph.generalization_graph_edge import GeneralizationGraphEdge
+from aoa.action_machine.graph.core.edge_relationship import GENERALIZATION
+from aoa.action_machine.graph.core.generalization_graph_edge import GeneralizationGraphEdge
 
 
 def test_generalization_graph_edge_uses_generalization_relationship() -> None:
@@ -221,6 +221,6 @@ def test_collect_direct_parents_requires_class_arguments() -> None:
 
 
 def test_generalization_graph_edge_exported_from_aoa_graph_package() -> None:
-    import aoa.graph as g
+    import aoa.action_machine.graph.core as g
 
     assert g.GeneralizationGraphEdge is GeneralizationGraphEdge

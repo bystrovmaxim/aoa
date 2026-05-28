@@ -10,7 +10,7 @@ import pytest
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
-from aoa.action_machine.plugin.events import (
+from aoa.action_machine.plugin.core.events import (
     AfterRegularAspectEvent,
     AfterSummaryAspectEvent,
     BeforeRegularAspectEvent,
@@ -18,7 +18,7 @@ from aoa.action_machine.plugin.events import (
     GlobalFinishEvent,
     GlobalStartEvent,
 )
-from aoa.action_machine.plugin.plugin_coordinator import PluginCoordinator
+from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 from tests.action_machine.scenarios.domain_model import PingAction
 
 

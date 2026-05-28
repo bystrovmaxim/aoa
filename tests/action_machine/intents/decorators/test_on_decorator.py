@@ -31,12 +31,12 @@ Scenarios covered:
 import pytest
 
 from aoa.action_machine.intents.on.on_decorator import on
-from aoa.action_machine.plugin.events import (
+from aoa.action_machine.plugin.core.events import (
     BeforeRegularAspectEvent,
     GlobalFinishEvent,
     GlobalStartEvent,
 )
-from aoa.action_machine.plugin.subscription_info import SubscriptionInfo
+from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Valid usage

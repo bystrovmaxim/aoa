@@ -72,8 +72,8 @@ Aspects, compensators, and ``@on_error`` handlers cannot read ``Context`` from
 
 **Graph access**
 
-Protocol adapters and tools should use ``graph_coordinator`` (:class:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator`
-built by :func:`~aoa.action_machine.graph_model.node_graph_coordinator_factory.create_node_graph_coordinator` during machine initialization unless injected).
+Protocol adapters and tools should use ``graph_coordinator`` (:class:`~aoa.action_machine.graph.core.node_graph_coordinator.NodeGraphCoordinator`
+built by :func:`~aoa.action_machine.graph.node_graph_coordinator_factory.create_node_graph_coordinator` during machine initialization unless injected).
 
 ═══════════════════════════════════════════════════════════════════════════════
 CACHE INTEGRATION
@@ -137,8 +137,9 @@ from typing import Any, TypeVar, cast
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
@@ -150,9 +151,9 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.plugin.plugin import Plugin
-from aoa.action_machine.plugin.plugin_coordinator import PluginCoordinator
-from aoa.action_machine.plugin.plugin_run_context import PluginRunContext
+from aoa.action_machine.plugin.core.plugin import Plugin
+from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
+from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.aspect_executor import AspectExecutor
 from aoa.action_machine.runtime.base_action_machine import BaseActionMachine
@@ -166,7 +167,6 @@ from aoa.action_machine.runtime.saga_coordinator import SagaCoordinator
 from aoa.action_machine.runtime.saga_frame import SagaFrame
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)

@@ -8,8 +8,8 @@ from collections.abc import Mapping, Sequence
 
 import pytest
 
-from aoa.graph import GraphEdge
-from aoa.graph._dag import is_dag_slice_acyclic
+from aoa.action_machine.graph import GraphEdge
+from aoa.action_machine.graph.core._dag import is_dag_slice_acyclic
 
 _DAG_EDGE_SLICE = frozenset({"DEPENDS_ON", "CONNECTS_TO"})
 

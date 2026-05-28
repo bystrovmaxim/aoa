@@ -84,8 +84,8 @@ from abc import ABC, abstractmethod
 from typing import Any, Self
 
 from aoa.action_machine.adapters.base_route_record import BaseRouteRecord
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 
 
 class BaseAdapter[R: BaseRouteRecord](ABC):

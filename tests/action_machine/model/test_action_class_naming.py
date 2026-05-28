@@ -8,7 +8,7 @@ Enforced in ``__init_subclass__``. Violations raise ``NamingSuffixError``.
 import pytest
 
 from aoa.action_machine.exceptions import NamingSuffixError
-from aoa.graph.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 
 
 def _exclude_leaked_subclass(parent: type, name: str) -> None:

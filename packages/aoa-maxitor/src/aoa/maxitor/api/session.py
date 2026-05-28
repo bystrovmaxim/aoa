@@ -18,8 +18,8 @@ from typing import Any
 import networkx as nx
 
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 from aoa.maxitor.interchange_demo_coordinator import (
     build_registered_interchange_coordinator,
     import_sample_registration_modules,
@@ -41,7 +41,7 @@ class MaxitorApiSession:
     sidebar_data: Any
     nx_graph: nx.DiGraph[Any]
     coordinator: NodeGraphCoordinator
-    #: :meth:`~aoa.graph.node_graph_coordinator.NodeGraphCoordinator.to_json` after :class:`LoadGraphAction` (same timing as the former ``app`` snapshot).
+    #: :meth:`~aoa.action_machine.graph.core.node_graph_coordinator.NodeGraphCoordinator.to_json` after :class:`LoadGraphAction` (same timing as the former ``app`` snapshot).
     coordinator_json: str
     action_machine: ActionProductMachine
 

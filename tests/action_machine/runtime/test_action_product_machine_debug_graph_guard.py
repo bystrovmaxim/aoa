@@ -7,9 +7,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from aoa.action_machine.graph.core.debug_node_graph_coordinator import DagCycleViolation, DebugNodeGraphCoordinator
+from aoa.action_machine.graph.core.exceptions import InvalidGraphError
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.graph.debug_node_graph_coordinator import DagCycleViolation, DebugNodeGraphCoordinator
-from aoa.graph.exceptions import InvalidGraphError
 from tests.action_machine.scenarios.domain_model import PingAction
 
 

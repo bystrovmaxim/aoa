@@ -12,7 +12,6 @@ license = { text = "MIT" }
 requires-python = ">=3.12"
 authors = [{ name = "@Bystrov.Maxim" }]
 dependencies = [
-    "aoa-graph==1.0.0",
     "aoa-action-machine==1.0.0",
     "duckdb>=1.1,<2",
     "fastapi>=0.115,<1.0",

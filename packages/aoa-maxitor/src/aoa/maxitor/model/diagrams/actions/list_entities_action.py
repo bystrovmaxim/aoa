@@ -21,8 +21,8 @@ from typing import Annotated, Any, cast
 
 from pydantic import Field
 
+from aoa.action_machine.adapters.fastapi.query_field_before import QUERY_STR_LIST_BEFORE
 from aoa.action_machine.auth import NoneRole
-from aoa.action_machine.integrations.fastapi.query_field_before import QUERY_STR_LIST_BEFORE
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection

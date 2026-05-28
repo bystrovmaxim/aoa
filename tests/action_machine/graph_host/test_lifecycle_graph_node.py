@@ -7,8 +7,8 @@ import pytest
 
 from aoa.action_machine.domain.exceptions import LifecycleGraphError
 from aoa.action_machine.domain.lifecycle import Lifecycle
-from aoa.action_machine.graph_model.nodes.lifecycle_graph_node import LifeCycleGraphNode
-from aoa.action_machine.graph_model.nodes.state_graph_node import StateGraphNode
+from aoa.action_machine.graph.nodes.lifecycle_graph_node import LifeCycleGraphNode
+from aoa.action_machine.graph.nodes.state_graph_node import StateGraphNode
 
 
 class _Host:

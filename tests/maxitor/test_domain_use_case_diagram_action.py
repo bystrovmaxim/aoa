@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.graph.core.edge_relationship import GENERALIZATION
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.graph.edge_relationship import GENERALIZATION
 from aoa.maxitor.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,

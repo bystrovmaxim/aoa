@@ -16,7 +16,7 @@ ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     Fixture ``coordinator`` is a built default ``NodeGraphCoordinator`` from
-    ``aoa.action_machine.graph_model.node_graph_coordinator_factory.create_node_graph_coordinator``; checker rows mirror :func:`~aoa.action_machine.testing.bench._checker_rows_from_action_class``.
+    ``aoa.action_machine.graph.node_graph_coordinator_factory.create_node_graph_coordinator``; checker rows mirror :func:`~aoa.action_machine.testing.bench._checker_rows_from_action_class``.
               |
               v
     aspects + checker rows (bench helpers via ``NodeGraphCoordinator``)
@@ -38,7 +38,8 @@ INVARIANTS
 
 import pytest
 
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.testing.bench import (
     _aspect_tuple_from_coordinator,
     _checker_rows_from_action_class,
@@ -49,7 +50,6 @@ from aoa.action_machine.testing.state_validator import (
     validate_state_for_aspect,
     validate_state_for_summary,
 )
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 from tests.action_machine.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────

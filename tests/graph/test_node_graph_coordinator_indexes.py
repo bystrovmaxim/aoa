@@ -7,11 +7,11 @@ from typing import Any
 
 import pytest
 
-from aoa.graph.base_graph_edge import BaseGraphEdge
-from aoa.graph.base_graph_node import BaseGraphNode
-from aoa.graph.base_graph_node_inspector import BaseGraphNodeInspector
-from aoa.graph.composition_graph_edge import CompositionGraphEdge
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
+from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
+from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
+from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNodeInspector
+from aoa.action_machine.graph.core.composition_graph_edge import CompositionGraphEdge
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 
 
 class _Axis:

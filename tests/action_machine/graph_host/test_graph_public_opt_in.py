@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import json
 
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.integrations.mcp.adapter import _build_graph_json
+from aoa.action_machine.adapters.mcp.adapter import _build_graph_json
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 
 
 def _import_test_domain_modules() -> None:

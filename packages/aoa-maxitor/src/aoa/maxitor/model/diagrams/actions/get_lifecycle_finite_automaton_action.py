@@ -4,7 +4,7 @@ GetLifecycleFiniteAutomatonAction — template FSM for one ``Lifecycle`` interch
 
 Interchange lifecycle rows use ids shaped like
 ``<entity_type_qualname>:lifecycle:<field_name>`` (see
-:class:`~aoa.action_machine.graph_model.nodes.lifecycle_graph_node.LifeCycleGraphNode`).
+:class:`~aoa.action_machine.graph.nodes.lifecycle_graph_node.LifeCycleGraphNode`).
 The action resolves the host entity class, loads the lifecycle template, and returns
 states plus explicit directed edges for diagramming clients.
 """

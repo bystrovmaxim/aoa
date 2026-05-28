@@ -39,8 +39,8 @@ from aoa.action_machine.logging.channel import Channel
 from aoa.action_machine.logging.level import Level
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.plugin.events import GlobalFinishEvent
-from aoa.action_machine.plugin.plugin_coordinator import PluginCoordinator
+from aoa.action_machine.plugin.core.events import GlobalFinishEvent
+from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 from tests.action_machine.intents.logging.test_log_coordinator import RecordingLogger
 
 from .conftest import (

@@ -103,12 +103,12 @@ from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.plugin.events import (
+from aoa.action_machine.plugin.core.events import (
     GlobalFinishEvent,
     GlobalStartEvent,
 )
-from aoa.action_machine.plugin.plugin import Plugin
-from aoa.action_machine.plugin.plugin_run_context import PluginRunContext
+from aoa.action_machine.plugin.core.plugin import Plugin
+from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
 from aoa.action_machine.testing import StubTesterRole
 from tests.action_machine.scenarios.domain_model import PingAction
 

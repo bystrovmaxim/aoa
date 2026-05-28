@@ -12,8 +12,8 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.ctx_constants import Ctx
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import OnErrorHandlerError
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import NoneRole, check_roles
@@ -24,12 +24,12 @@ from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.plugin.events import (
+from aoa.action_machine.plugin.core.events import (
     AfterOnErrorAspectEvent,
     BeforeOnErrorAspectEvent,
     UnhandledErrorEvent,
 )
-from aoa.action_machine.plugin.plugin_coordinator import PluginCoordinator
+from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.error_handler_executor import ErrorHandlerExecutor
 from aoa.action_machine.runtime.tools_box import ToolsBox

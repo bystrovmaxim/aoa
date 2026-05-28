@@ -8,6 +8,6 @@ Heavy fixtures that exercise multiple ``action_machine`` packages live under
 Subpackages:
 
 - ``dependencies/`` — factory + legacy graph coordinator integration.
-- ``graph_with_runtime/`` — coordinator/graph tests that need ``runtime`` or ``integrations``.
+- ``graph_with_runtime/`` — coordinator/graph tests that need ``runtime`` or ``adapters``.
 - ``intents_with_runtime/`` — intent-layer flows that need ``graph`` or ``runtime``.
 """

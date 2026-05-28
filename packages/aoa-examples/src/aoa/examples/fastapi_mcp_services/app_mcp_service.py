@@ -78,7 +78,7 @@ def _ensure_examples_package_src_on_path() -> None:
 _ensure_examples_package_src_on_path()
 
 # pylint: disable=wrong-import-position
-from aoa.action_machine.integrations.mcp import McpAdapter
+from aoa.action_machine.adapters.mcp import McpAdapter
 from aoa.examples.fastapi_mcp_services.actions import CreateOrderAction, GetOrderAction, PingAction
 from aoa.examples.fastapi_mcp_services.infrastructure import auth, machine
 
