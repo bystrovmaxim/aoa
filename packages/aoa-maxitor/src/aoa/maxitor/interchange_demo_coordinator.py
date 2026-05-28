@@ -17,14 +17,14 @@ import importlib
 import sys
 from typing import Final
 
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import (
+from aoa.action_machine.graph.core.debug_node_graph_coordinator import DebugNodeGraphCoordinator
+from aoa.action_machine.graph.core.exceptions import InvalidGraphError
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
+from aoa.action_machine.graph.node_graph_coordinator_factory import (
     GRAPH_JSON_SCHEMA,
     all_axis_graph_node_inspectors,
     create_node_graph_coordinator,
 )
-from aoa.graph.debug_node_graph_coordinator import DebugNodeGraphCoordinator
-from aoa.graph.exceptions import InvalidGraphError
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 
 SAMPLE_MODEL_REGISTRATION_MODULE_NAMES: Final[tuple[str, ...]] = (
     "aoa.examples.model.roles",
@@ -130,7 +130,7 @@ def build_registered_interchange_coordinator() -> NodeGraphCoordinator:
     Build interchange graph after intents are registered.
 
     AI-CORE-BEGIN
-    CONTRACT: Mirrors production :func:`aoa.action_machine.graph_model.node_graph_coordinator_factory.create_node_graph_coordinator` when DAG-valid; falls back to
+    CONTRACT: Mirrors production :func:`aoa.action_machine.graph.node_graph_coordinator_factory.create_node_graph_coordinator` when DAG-valid; falls back to
         ``DebugNodeGraphCoordinator`` plus ``build(all_axis_graph_node_inspectors())`` otherwise.
     INVARIANTS: Caller must register samples via :func:`import_sample_registration_modules` first.
     AI-CORE-END

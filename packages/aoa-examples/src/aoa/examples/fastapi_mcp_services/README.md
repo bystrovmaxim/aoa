@@ -1,3 +1,11 @@
+<p align="center">
+  <img src="../../../../../../docs/assets/aoa-logo.png" alt="AOA" width="660"><br><br>
+  <a href="https://github.com/bystrovmaxim/aoa"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" alt="Python 3.12+"></a>
+  <img src="https://img.shields.io/badge/extras-fastapi%20·%20mcp-lightgrey" alt="aoa-examples[fastapi,mcp]">
+  <a href="../../../../README.md"><img src="https://img.shields.io/badge/docs-aoa--examples-blue" alt="aoa-examples"></a>
+</p>
+
 # ActionMachine — FastAPI + MCP from one codebase
 
 This example illustrates a core ActionMachine principle: **the same Actions

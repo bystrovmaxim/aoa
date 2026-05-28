@@ -33,7 +33,7 @@ ARCHITECTURE / DATA FLOW
 ``mask_value`` → masked string in template output.
 
 ``SensitiveIntentResolver.resolve_sensitive_all_fields`` reads the same ``_sensitive_config``
-dicts for interchange graph nodes (e.g. :class:`~aoa.action_machine.graph_model.nodes.sensitive_graph_node.SensitiveGraphNode`).
+dicts for interchange graph nodes (e.g. :class:`~aoa.action_machine.graph.nodes.sensitive_graph_node.SensitiveGraphNode`).
 
 """
 

@@ -84,10 +84,10 @@ ARCHITECTURE / DATA FLOW
 from abc import ABC, abstractmethod
 from typing import Any
 
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.sql.protocol_sql_resource import ProtocolSqlResource
 from aoa.action_machine.resources.sql.wrapper_sql_resource import WrapperSqlResource
-from aoa.graph.exclude_graph_model import exclude_graph_model
 
 
 @exclude_graph_model

@@ -124,7 +124,7 @@ from __future__ import annotations
 
 from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.intents.on.on_intent import OnIntent
-from aoa.action_machine.plugin.events import (
+from aoa.action_machine.plugin.core.events import (
     AfterCompensateAspectEvent,
     AfterOnErrorAspectEvent,
     AfterRegularAspectEvent,

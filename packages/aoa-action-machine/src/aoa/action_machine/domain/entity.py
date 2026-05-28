@@ -119,9 +119,9 @@ from aoa.action_machine.domain.exceptions import FieldNotLoadedError
 from aoa.action_machine.domain.lifecycle import Lifecycle
 from aoa.action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity.entity_intent import EntityIntent
 from aoa.action_machine.model.base_schema import BaseSchema
-from aoa.graph.exclude_graph_model import exclude_graph_model
 
 # Suffix required for every class that inherits BaseEntity (directly or indirectly).
 _REQUIRED_SUFFIX = "Entity"

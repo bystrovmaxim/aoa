@@ -20,6 +20,7 @@ from typing import NamedTuple, cast
 
 from aoa.action_machine.context import Context, RequestInfo
 from aoa.action_machine.model import BaseAction, BaseResult
+from aoa.action_machine.plugin.ocel import OcelPlugin
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.examples.model.interchange_demo_coordinator import (
     build_registered_interchange_coordinator,
@@ -36,7 +37,6 @@ from aoa.examples.model.store.actions.store_ocel_traces import (
     StoreOcelTraceResult,
 )
 from aoa.examples.model.store.resources.ocel_store import StoreOcelStoreResource
-from aoa.ocel import OcelPlugin
 
 type StoreOcelActionClass = type[BaseAction[StoreOcelTraceParams, BaseResult]]
 

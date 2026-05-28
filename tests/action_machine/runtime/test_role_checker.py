@@ -15,10 +15,11 @@ from aoa.action_machine.auth.application_role import ApplicationRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError
-from aoa.action_machine.graph_model.edges.role_graph_edge import RoleGraphEdge
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.graph_model.nodes.role_graph_node import RoleGraphNode
+from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
+from aoa.action_machine.graph.edges.role_graph_edge import RoleGraphEdge
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -31,7 +32,6 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.role_checker import RoleChecker
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core import TypeIntrospection
-from aoa.graph.base_graph_node import BaseGraphNode
 from tests.action_machine.scenarios.domain_model.admin_action import AdminAction
 from tests.action_machine.scenarios.domain_model.domains import SystemDomain
 from tests.action_machine.scenarios.domain_model.ping_action import PingAction

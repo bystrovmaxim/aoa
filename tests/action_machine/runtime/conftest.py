@@ -10,8 +10,8 @@ import pytest
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
-from aoa.action_machine.plugin.plugin_coordinator import PluginCoordinator
-from aoa.action_machine.plugin.plugin_run_context import PluginRunContext
+from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
+from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.action_machine.scenarios.domain_model.roles import AdminRole, ManagerRole
 

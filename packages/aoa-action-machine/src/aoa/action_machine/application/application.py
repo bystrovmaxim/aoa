@@ -7,8 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 One logical application root per interchange graph. Metadata is plain class
-attributes; :class:`~aoa.action_machine.graph_model.inspectors.application_graph_node_inspector.ApplicationGraphNodeInspector`
-emits :class:`~aoa.action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`
+attributes; :class:`~aoa.action_machine.graph.inspectors.application_graph_node_inspector.ApplicationGraphNodeInspector`
+emits :class:`~aoa.action_machine.graph.nodes.application_graph_node.ApplicationGraphNode`
 for this type (and any strict subclasses if present).
 
 ═══════════════════════════════════════════════════════════════════════════════

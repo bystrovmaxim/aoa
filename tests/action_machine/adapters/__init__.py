@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Covers ``BaseAdapter``, ``BaseRouteRecord``, ``extract_action_types``, and the
-concrete integrations: ``FastApiAdapter`` (HTTP) and ``McpAdapter`` (MCP tools).
+concrete adapters: ``FastApiAdapter`` (HTTP) and ``McpAdapter`` (MCP tools).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

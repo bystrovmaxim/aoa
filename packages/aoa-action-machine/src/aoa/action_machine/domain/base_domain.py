@@ -75,7 +75,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
-from aoa.graph.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 
 # Suffix required for every class that inherits BaseDomain (directly or indirectly).
 _REQUIRED_SUFFIX = "Domain"

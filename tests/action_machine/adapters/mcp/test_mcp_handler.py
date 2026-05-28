@@ -84,16 +84,16 @@ import pytest
 from mcp.types import CallToolResult
 from pydantic import BaseModel, Field, field_validator
 
-from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
-from aoa.action_machine.integrations.mcp.adapter import (
+from aoa.action_machine.adapters.mcp.adapter import (
     _build_graph_json,
     _execute_tool_call,
     _make_tool_handler,
     _serialize_result,
     _validate_tool_request_kwargs,
 )
-from aoa.action_machine.integrations.mcp.route_record import McpRouteRecord
+from aoa.action_machine.adapters.mcp.route_record import McpRouteRecord
+from aoa.action_machine.context.user_info import UserInfo
+from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.per_call_connection import PerCallConnection

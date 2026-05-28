@@ -13,7 +13,7 @@ fetches an envelope from a separate ``graph-json`` URL (helpers only). Tests typ
 :meth:`build_from_json` directly.
 :meth:`DuckDBGraphResource._install_database` runs explicit ``CREATE TABLE`` / ``CREATE INDEX`` / ``CREATE VIEW``
 (physical tables plus ``CREATE VIEW nodes`` / ``edges``, then ``nodes_type_counts`` / ``edge_type_counts`` over those views; aligned with
-:data:`~aoa.action_machine.graph_model.graph_json_schema.GRAPH_JSON_SCHEMA`). Scalar entity attributes are
+:data:`~aoa.action_machine.graph.graph_json_schema.GRAPH_JSON_SCHEMA`). Scalar entity attributes are
 ``EntityField`` vertices and ``entity_field`` edges; list-entities reads scalar columns from
 ``entity_field`` + ``entity_field_edges`` (no denormalized field table).
 ``depends_edges`` stores optional ``mode`` (``include`` / ``extend`` from wire ``properties``) as a nullable

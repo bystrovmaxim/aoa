@@ -142,9 +142,10 @@ from unittest.mock import Mock
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.context_view import ContextView
-from aoa.action_machine.graph_model.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.graph_model.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
+from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.graph.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from aoa.action_machine.logging.domain_resolver import resolve_domain
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
@@ -152,7 +153,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.plugin.plugin import Plugin
+from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
@@ -164,7 +165,6 @@ from aoa.action_machine.testing.comparison import compare_results
 from aoa.action_machine.testing.mock_action import MockAction
 from aoa.action_machine.testing.state_validator import validate_state_for_aspect, validate_state_for_summary
 from aoa.action_machine.testing.stubs import RequestInfoStub, RuntimeInfoStub, UserInfoStub
-from aoa.graph.node_graph_coordinator import NodeGraphCoordinator
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)

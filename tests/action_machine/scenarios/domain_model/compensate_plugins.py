@@ -74,14 +74,14 @@ observer.reset() before run().
 """
 from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
-from aoa.action_machine.plugin.events import (
+from aoa.action_machine.plugin.core.events import (
     AfterCompensateAspectEvent,
     BeforeCompensateAspectEvent,
     CompensateFailedEvent,
     SagaRollbackCompletedEvent,
     SagaRollbackStartedEvent,
 )
-from aoa.action_machine.plugin.plugin import Plugin
+from aoa.action_machine.plugin.core.plugin import Plugin
 
 
 class SagaObserverPlugin(Plugin):

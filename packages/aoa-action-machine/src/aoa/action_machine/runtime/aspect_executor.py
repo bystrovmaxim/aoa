@@ -43,9 +43,9 @@ from typing import Any, cast
 from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.exceptions.missing_summary_aspect_error import MissingSummaryAspectError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
-from aoa.action_machine.graph_model.nodes.checker_graph_node import CheckerGraphNode
-from aoa.action_machine.graph_model.nodes.regular_aspect_graph_node import RegularAspectGraphNode
-from aoa.action_machine.graph_model.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
+from aoa.action_machine.graph.nodes.checker_graph_node import CheckerGraphNode
+from aoa.action_machine.graph.nodes.regular_aspect_graph_node import RegularAspectGraphNode
+from aoa.action_machine.graph.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )

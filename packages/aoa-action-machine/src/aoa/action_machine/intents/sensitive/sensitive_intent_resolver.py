@@ -12,7 +12,7 @@ class SensitiveIntentResolver:
     AI-CORE-BEGIN
     ROLE: Collect ``_sensitive_config`` from properties and decorated callables on a host class.
     CONTRACT: ``resolve_sensitive_all_fields`` / ``resolve_sensitive_field`` return rows consumed by
-        :class:`~aoa.action_machine.graph_model.nodes.sensitive_graph_node.SensitiveGraphPayload` / ``properties``
+        :class:`~aoa.action_machine.graph.nodes.sensitive_graph_node.SensitiveGraphPayload` / ``properties``
         (``sensitive_*`` keys); keys match public attribute names on ``host_cls``.
     INVARIANTS: Does not execute property getters; does not validate decorator invariants.
     AI-CORE-END
@@ -27,7 +27,7 @@ class SensitiveIntentResolver:
         (written by :func:`~aoa.action_machine.intents.sensitive.sensitive_decorator.sensitive`).
 
         Values use graph-node keys: ``sensitive_enabled``, ``sensitive_max_chars``, ``sensitive_char``,
-        ``sensitive_max_percent``, as produced by :meth:`resolve_sensitive_field` / :class:`~aoa.action_machine.graph_model.nodes.sensitive_graph_node.SensitiveGraphPayload`.
+        ``sensitive_max_percent``, as produced by :meth:`resolve_sensitive_field` / :class:`~aoa.action_machine.graph.nodes.sensitive_graph_node.SensitiveGraphPayload`.
         """
         out: dict[str, dict[str, Any]] = {}
         for name in dir(host_cls):

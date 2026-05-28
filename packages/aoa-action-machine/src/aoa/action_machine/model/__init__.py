@@ -18,7 +18,7 @@ co-located scalar and structured Pydantic fields unchanged. Adapters and the int
 read the resulting models through normal Pydantic APIs (``model_dump``, ``model_json_schema``,
 ``FieldGraphNode`` metadata).
 Framework exceptions live in :mod:`aoa.action_machine.exceptions`.
-Graph model nodes/inspectors live under :mod:`aoa.action_machine.graph_model` and are
+Graph model nodes/inspectors live under :mod:`aoa.action_machine.graph` and are
 imported from their leaf modules.
 
 ═══════════════════════════════════════════════════════════════════════════════

@@ -24,14 +24,14 @@ ALLOWLIST_PATH = REPO_ROOT / "scripts" / "test_layer_import_allowlist.toml"
 
 # Second path segment under ``tests/action_machine/`` maps to forbidden first subpackages under aoa.action_machine.*
 LAYER_FORBIDDEN: dict[str, frozenset[str]] = {
-    "model": frozenset({"graph", "runtime", "integrations", "testing"}),
+    "model": frozenset({"graph", "runtime", "adapters", "testing"}),
     "resources": frozenset({"graph", "runtime", "intents"}),
-    "intents": frozenset({"graph", "runtime", "adapters", "integrations"}),
-    "graph": frozenset({"runtime", "adapters", "integrations"}),
-    "runtime": frozenset({"integrations"}),
-    "dependencies": frozenset({"graph", "runtime", "integrations"}),
+    "intents": frozenset({"graph", "runtime", "adapters"}),
+    "graph": frozenset({"runtime", "adapters"}),
+    "runtime": frozenset({"adapters"}),
+    "dependencies": frozenset({"graph", "runtime", "adapters"}),
     # Domain package sits on model-ish layer; keep tests from reaching upper tiers.
-    "domain": frozenset({"graph", "runtime", "integrations", "testing", "adapters"}),
+    "domain": frozenset({"graph", "runtime", "testing", "adapters"}),
 }
 
 # Second-level dirs under ``tests/action_machine/`` not subject to layered rules.

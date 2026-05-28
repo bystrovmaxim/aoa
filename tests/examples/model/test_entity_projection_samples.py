@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import pytest
 
-from aoa.action_machine.graph_model.nodes.entity_graph_node import EntityGraphNode
-from aoa.action_machine.graph_model.nodes.field_graph_node import FieldGraphNode
+from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.graph.nodes.field_graph_node import FieldGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.examples.model.entity_projection_demo.actions.order_wire_preview import (
     ProjectionDemoOrderWirePreviewAction,

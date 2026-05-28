@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
+from aoa.action_machine.graph.core.generalization_graph_edge import GeneralizationGraphEdge
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.params_stub import ParamsStub
 from aoa.action_machine.model.result_stub import ResultStub
-from aoa.graph.generalization_graph_edge import GeneralizationGraphEdge
 
 
 def test_collect_direct_parents_base_action_axis_parametrized_root_only_yields_empty() -> None:

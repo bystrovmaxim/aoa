@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Exports :class:`Application` — the class whose graph row is
-:class:`~aoa.action_machine.graph_model.nodes.application_graph_node.ApplicationGraphNode`.
+:class:`~aoa.action_machine.graph.nodes.application_graph_node.ApplicationGraphNode`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
