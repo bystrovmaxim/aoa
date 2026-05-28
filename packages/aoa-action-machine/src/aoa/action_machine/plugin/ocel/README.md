@@ -9,7 +9,15 @@
 
 # OCEL export (`aoa.action_machine.plugin.ocel`)
 
-This module exports data in [OCEL 2.0](https://ocel-standard.org/) format. Install with ``pip install "aoa-action-machine[ocel]"``. It turns Action execution logs into a process map that Process Mining tools can consume.
+This module exports data in [OCEL 2.0](https://ocel-standard.org/) format. Install with ``pip install "aoa-action-machine[ocel]"``. It turns Action execution logs into object-centric event logs that Process Mining tools can consume.
+
+<p align="center">
+  <img src="../../../../../../../docs/assets/ocel-ocdfg.png" alt="Object-centric process graph (OCEL)" width="900">
+</p>
+
+### Viewing logs in OC-PM
+
+After ``await store.close()`` writes JSON, open the file in **[Object-Centric Process Mining (OC-PM)](https://www.ocpm.info/ocel.html)** — a browser app for OCEL JSON/XML logs. Upload the export, then use event/object explorers, OCDFG graphs, filters, and conformance views without extra tooling. See also ``examples/07_ocel.py`` and the Store batch export under ``packages/aoa-examples`` (``archive/logs/ocel.json`` in integration tests).
 
 ## How it works
 

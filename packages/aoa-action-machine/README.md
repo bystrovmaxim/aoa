@@ -887,7 +887,21 @@ Usually intermediate business-process state dissolves into local variables. In A
 
 File: `[examples/07_ocel.py](examples/07_ocel.py)`
 
-AOA can write Action runs to [OCEL 2.0](https://ocel-standard.org/) — an event log format for process mining. On each run, `OcelPlugin` (on `GlobalFinishEvent`) reads `OcelFrame` rows from pipeline `state` and appends one event to the store. No frames → no event.
+AOA can write Action runs to [OCEL 2.0](https://ocel-standard.org/) — an **object-centric** event log format for process mining. Unlike classic event logs (one case ID per trace), OCEL links each event to one or more **objects** (order, customer, payment, …) with typed roles. That matches how business operations actually touch several entities at once.
+
+On each run, `OcelPlugin` (on `GlobalFinishEvent`) reads `OcelFrame` rows from pipeline `state` and appends one event to the store. No frames → no event.
+
+<p align="center">
+  <img src="../../docs/assets/ocel-ocdfg.png" alt="Object-centric process graph (OCEL)" width="900">
+</p>
+
+**Visualizing exported logs — [OC-PM](https://www.ocpm.info/ocel.html).** The open [Object-Centric Process Mining](https://www.ocpm.info/ocel.html) web application ingests OCEL logs in JSON or XML. You upload a file (for example `ocel_log.json` from `examples/07_ocel.py` or `archive/logs/ocel.json` from the Store export tests) and explore:
+
+- **Event list** — activity, timestamp, related objects per type, event attributes; drill into an object lifecycle from any event.
+- **Object-centric graphs (OCDFG)** — object types as nodes, activities on edges; filter by frequency, paths, and link methods (interaction, cobirth, inheritance, and others).
+- **Object features & conformance** — lifecycles per object type, anomalous objects, SQL over `OCEL_EVENTS` / `OCEL_OBJECTS`, and log-skeleton checks.
+
+AOA’s export is the **source**; OC-PM is a practical **viewer** for stakeholders who do not run Python. Standard: [OCEL 2.0](https://ocel-standard.org/). Viewer: [ocpm.info/ocel.html](https://www.ocpm.info/ocel.html).
 
 ```python
 from pathlib import Path
