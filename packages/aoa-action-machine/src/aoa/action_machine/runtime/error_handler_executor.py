@@ -52,12 +52,12 @@ from aoa.action_machine.intents.context_requires.context_requires_resolver impor
     ContextRequiresResolver,
 )
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.plugin.events import (
+from aoa.action_machine.plugin.core.events import (
     AfterOnErrorAspectEvent,
     BeforeOnErrorAspectEvent,
     UnhandledErrorEvent,
 )
-from aoa.action_machine.plugin.plugin_coordinator import PluginCoordinator
+from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 
 
 class ErrorHandlerExecutor:

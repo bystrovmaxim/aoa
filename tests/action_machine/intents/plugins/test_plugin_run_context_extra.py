@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from aoa.action_machine.plugin.events import GlobalStartEvent
-from aoa.action_machine.plugin.plugin import Plugin
-from aoa.action_machine.plugin.plugin_run_context import PluginRunContext
-from aoa.action_machine.plugin.subscription_info import SubscriptionInfo
+from aoa.action_machine.plugin.core.events import GlobalStartEvent
+from aoa.action_machine.plugin.core.plugin import Plugin
+from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
+from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 
 
 class _P(Plugin):

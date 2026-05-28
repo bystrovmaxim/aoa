@@ -15,7 +15,6 @@ members = [
     "aoa-action-machine",
     "aoa-examples",
     "aoa-maxitor",
-    "aoa-ocel",
     "aoa-run",
 ]
 
@@ -68,6 +67,9 @@ fastapi = [
 mcp = [
     { name = "mcp" },
 ]
+ocel = [
+    { name = "xxhash" },
+]
 postgres = [
     { name = "asyncpg" },
 ]
@@ -81,16 +83,16 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.0,<3.0" },
     { name = "simpleeval", specifier = ">=1.0,<2.0" },
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'fastapi'", specifier = ">=0.20,<1.0" },
+    { name = "xxhash", marker = "extra == 'ocel'", specifier = ">=3.4,<4" },
 ]
-provides-extras = ["fastapi", "mcp", "postgres"]
+provides-extras = ["fastapi", "mcp", "postgres", "ocel"]
 
 [[package]]
 name = "aoa-examples"
 version = "1.0.0"
 source = { editable = "packages/aoa-examples" }
 dependencies = [
-    { name = "aoa-action-machine" },
-    { name = "aoa-ocel" },
+    { name = "aoa-action-machine", extra = ["ocel"] },
     { name = "pydantic" },
 ]
 
@@ -105,8 +107,7 @@ mcp = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
-    { name = "aoa-ocel", editable = "packages/aoa-ocel" },
+    { name = "aoa-action-machine", extras = ["ocel"], editable = "packages/aoa-action-machine" },
     { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.100,<1.0" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.0,<2.0" },
     { name = "pydantic", specifier = ">=2.0,<3.0" },
@@ -138,34 +139,18 @@ requires-dist = [
 ]
 
 [[package]]
-name = "aoa-ocel"
-version = "1.0.0"
-source = { editable = "packages/aoa-ocel" }
-dependencies = [
-    { name = "aoa-action-machine" },
-    { name = "xxhash" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
-    { name = "xxhash", specifier = ">=3.4,<4" },
-]
-
-[[package]]
 name = "aoa-run"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [
-    { name = "aoa-action-machine" },
+    { name = "aoa-action-machine", extra = ["ocel"] },
     { name = "aoa-examples" },
     { name = "aoa-maxitor" },
-    { name = "aoa-ocel" },
 ]
 
 [package.optional-dependencies]
 all = [
-    { name = "aoa-action-machine", extra = ["fastapi", "mcp", "postgres"] },
+    { name = "aoa-action-machine", extra = ["fastapi", "mcp", "ocel", "postgres"] },
     { name = "aoa-examples", extra = ["fastapi", "mcp"] },
     { name = "black" },
     { name = "httpx" },
@@ -184,7 +169,7 @@ all = [
     { name = "vulture" },
 ]
 dev = [
-    { name = "aoa-action-machine", extra = ["fastapi", "mcp", "postgres"] },
+    { name = "aoa-action-machine", extra = ["fastapi", "mcp", "ocel", "postgres"] },
     { name = "aoa-examples", extra = ["fastapi", "mcp"] },
     { name = "black" },
     { name = "httpx" },
@@ -224,17 +209,16 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
     { name = "aoa-action-machine", extras = ["fastapi"], marker = "extra == 'fastapi'", editable = "packages/aoa-action-machine" },
-    { name = "aoa-action-machine", extras = ["fastapi", "mcp", "postgres"], marker = "extra == 'dev'", editable = "packages/aoa-action-machine" },
+    { name = "aoa-action-machine", extras = ["fastapi", "mcp", "postgres", "ocel"], marker = "extra == 'dev'", editable = "packages/aoa-action-machine" },
     { name = "aoa-action-machine", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/aoa-action-machine" },
+    { name = "aoa-action-machine", extras = ["ocel"], editable = "packages/aoa-action-machine" },
     { name = "aoa-action-machine", extras = ["postgres"], marker = "extra == 'postgres'", editable = "packages/aoa-action-machine" },
     { name = "aoa-examples", editable = "packages/aoa-examples" },
     { name = "aoa-examples", extras = ["fastapi"], marker = "extra == 'fastapi'", editable = "packages/aoa-examples" },
     { name = "aoa-examples", extras = ["fastapi", "mcp"], marker = "extra == 'dev'", editable = "packages/aoa-examples" },
     { name = "aoa-examples", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/aoa-examples" },
     { name = "aoa-maxitor", editable = "packages/aoa-maxitor" },
-    { name = "aoa-ocel", editable = "packages/aoa-ocel" },
     { name = "aoa-run", extras = ["fastapi", "mcp", "postgres", "dev"], marker = "extra == 'all'" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=24.0,<25.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27,<1.0" },

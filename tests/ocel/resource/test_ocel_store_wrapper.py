@@ -7,14 +7,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.ocel.dto.ocel_event import OcelEvent
-from aoa.ocel.exceptions import OcelResourceAccessProhibitedError
-from aoa.ocel.resource import (
+from aoa.action_machine.plugin.ocel.dto.ocel_event import OcelEvent
+from aoa.action_machine.plugin.ocel.exceptions import OcelResourceAccessProhibitedError
+from aoa.action_machine.plugin.ocel.resource import (
     InMemoryOcelStoreResource,
     OcelStoreResource,
     OcelStoreWrapper,
 )
+from aoa.action_machine.resources.base_resource import BaseResource
 
 
 @pytest.fixture

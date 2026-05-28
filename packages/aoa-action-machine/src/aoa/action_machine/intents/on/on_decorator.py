@@ -100,8 +100,8 @@ from collections.abc import Callable
 from typing import Any
 
 from aoa.action_machine.exceptions.naming_prefix_error import NamingPrefixError
-from aoa.action_machine.plugin.events import BasePluginEvent
-from aoa.action_machine.plugin.subscription_info import SubscriptionInfo
+from aoa.action_machine.plugin.core.events import BasePluginEvent
+from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 
 # Expected @on handler parameter count: self, state, event, log.
 _EXPECTED_PARAM_COUNT = 4

@@ -6,7 +6,7 @@ import pytest
 
 from aoa.action_machine.exceptions import NamingPrefixError
 from aoa.action_machine.intents.on.on_decorator import on
-from aoa.action_machine.plugin.events import GlobalStartEvent
+from aoa.action_machine.plugin.core.events import GlobalStartEvent
 
 
 def test_on_rejects_bad_action_class_and_nest_level_types() -> None:

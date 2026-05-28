@@ -10,11 +10,11 @@ from pathlib import Path
 import pytest
 from tests.ocel.pm4py_validation import assert_ocel2_pm4py_smoke
 
-from aoa.ocel.dto.ocel_attribute import OcelAttribute
-from aoa.ocel.dto.ocel_event import OcelEvent
-from aoa.ocel.dto.ocel_object import OcelObject
-from aoa.ocel.dto.ocel_object_ref import OcelObjectRef
-from aoa.ocel.resource import InMemoryOcelStoreResource
+from aoa.action_machine.plugin.ocel.dto.ocel_attribute import OcelAttribute
+from aoa.action_machine.plugin.ocel.dto.ocel_event import OcelEvent
+from aoa.action_machine.plugin.ocel.dto.ocel_object import OcelObject
+from aoa.action_machine.plugin.ocel.dto.ocel_object_ref import OcelObjectRef
+from aoa.action_machine.plugin.ocel.resource import InMemoryOcelStoreResource
 
 
 @pytest.fixture

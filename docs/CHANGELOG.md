@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- **OCEL export policy (v1).** `packages/aoa-ocel/README.md` documents E2O-only export, loaded-relation reachability, one-hop peer materialization, and aspect-controlled participation via partial entity loading.
+- **OCEL export policy (v1).** `packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/README.md` documents E2O-only export, loaded-relation reachability, one-hop peer materialization, and aspect-controlled participation via partial entity loading.
 
 ### Breaking changes
 

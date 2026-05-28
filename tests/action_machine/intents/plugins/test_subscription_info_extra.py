@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from aoa.action_machine.plugin.events import AspectEvent, BasePluginEvent, GlobalStartEvent
-from aoa.action_machine.plugin.subscription_info import SubscriptionInfo
+from aoa.action_machine.plugin.core.events import AspectEvent, BasePluginEvent, GlobalStartEvent
+from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 
 
 class _AspectEvt(AspectEvent):

@@ -18,7 +18,6 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MEMBERS = (
     "aoa-action-machine",
-    "aoa-ocel",
     "aoa-maxitor",
     "aoa-examples",
 )
@@ -26,7 +25,6 @@ MEMBERS = (
 # ``packages/<folder>/pyproject.toml`` for each distribution name.
 _PACKAGE_DIR: dict[str, str] = {
     "aoa-action-machine": "aoa-action-machine",
-    "aoa-ocel": "aoa-ocel",
     "aoa-maxitor": "aoa-maxitor",
     "aoa-examples": "aoa-examples",
 }
@@ -34,15 +32,13 @@ _PACKAGE_DIR: dict[str, str] = {
 # Normalized distribution names (hyphenated).
 REQUIRED_MAIN: dict[str, frozenset[str]] = {
     "aoa-action-machine": frozenset(),
-    "aoa-ocel": frozenset({"aoa-action-machine"}),
     "aoa-maxitor": frozenset({"aoa-action-machine"}),
-    "aoa-examples": frozenset({"aoa-action-machine", "aoa-ocel"}),
+    "aoa-examples": frozenset({"aoa-action-machine"}),
 }
 
 FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
-    "aoa-action-machine": frozenset({"aoa-ocel", "aoa-maxitor", "aoa-examples"}),
-    "aoa-ocel": frozenset({"aoa-maxitor", "aoa-examples"}),
-    "aoa-maxitor": frozenset({"aoa-ocel", "aoa-examples"}),
+    "aoa-action-machine": frozenset({"aoa-maxitor", "aoa-examples"}),
+    "aoa-maxitor": frozenset({"aoa-examples"}),
     "aoa-examples": frozenset({"aoa-maxitor"}),
 }
 
@@ -133,6 +129,14 @@ def check_all() -> list[str]:
         suspicious = [x for x in extra if x.startswith("aoa-") or x == "aoa"]
         if suspicious:
             errors.append(f"{dist}: unexpected aoa distribution(s) in metadata: {suspicious}")
+        if dist == "aoa-examples":
+            main_deps = project.get("dependencies")
+            if not isinstance(main_deps, list) or not any(
+                "aoa-action-machine" in str(line) and "[ocel]" in str(line) for line in main_deps
+            ):
+                errors.append(
+                    "aoa-examples: main dependencies must include aoa-action-machine[ocel]"
+                )
     return errors
 
 

@@ -151,9 +151,9 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.plugin.plugin import Plugin
-from aoa.action_machine.plugin.plugin_coordinator import PluginCoordinator
-from aoa.action_machine.plugin.plugin_run_context import PluginRunContext
+from aoa.action_machine.plugin.core.plugin import Plugin
+from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
+from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.aspect_executor import AspectExecutor
 from aoa.action_machine.runtime.base_action_machine import BaseActionMachine

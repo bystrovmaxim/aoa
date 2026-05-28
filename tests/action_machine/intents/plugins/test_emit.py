@@ -32,12 +32,12 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
 from aoa.action_machine.model.base_params import BaseParams
-from aoa.action_machine.plugin.events import (
+from aoa.action_machine.plugin.core.events import (
     CompensateFailedEvent,
     SagaRollbackCompletedEvent,
 )
-from aoa.action_machine.plugin.plugin import Plugin
-from aoa.action_machine.plugin.plugin_coordinator import PluginCoordinator
+from aoa.action_machine.plugin.core.plugin import Plugin
+from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 
 from .conftest import (
     RecordingPlugin,

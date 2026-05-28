@@ -6,8 +6,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.plugin.ocel import InMemoryOcelStoreResource
 from aoa.examples.model.store.store_domain import StoreDomain
-from aoa.ocel.resource import InMemoryOcelStoreResource
 
 
 @meta(description="In-memory OCEL 2.0 export target for storefront traces", domain=StoreDomain)
