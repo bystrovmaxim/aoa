@@ -23,7 +23,6 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 
-
 # ---------------------------------------------------------------------------
 # Domain
 # ---------------------------------------------------------------------------
