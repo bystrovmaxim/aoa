@@ -56,7 +56,7 @@ async def main():
 asyncio.run(main())
 ```
 
-← [Full example with all features](../../examples/full_example.py)
+← [Full example with all features](examples/full_example.py)
 
 ---
 
@@ -71,7 +71,7 @@ asyncio.run(main())
 
 ## Guide
 
-> Code examples are in the core documentation [aoa-action-machine](packages/aoa-action-machine/README.md) and in the [examples/](../../examples/) folder. System visualization — in [aoa-maxitor](packages/aoa-maxitor/README.md).
+> Code examples are in the core documentation [aoa-action-machine](packages/aoa-action-machine/README.md) and in the [examples/](examples/) folder. System visualization — in [aoa-maxitor](packages/aoa-maxitor/README.md).
 
 ### Action and Pipeline
 

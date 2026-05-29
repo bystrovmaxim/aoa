@@ -9,15 +9,16 @@
   <img src="https://img.shields.io/badge/version-1.0.0-informational" alt="1.0.0">
 </p>
 
+
 # AOA — Action-Oriented Architecture
 
-**AOA** is a Python framework where business logic becomes an **executable specification**.
+AOA is a Python framework where business logic becomes an executable specification.
 
-In a real application, operations almost never stay pure business logic. Decisions from neighboring layers start leaking in: transport brings the request shape, security brings roles, the database brings transactions, observability brings logs and trace ids, integrations bring retries, and errors bring rollbacks.
+In real applications, business logic rarely stays clean. Adjacent layers seep in — transport dictates request shape, security enforces roles, the DI container injects dependencies, the database wraps transactions, observability adds logs and trace ids, integrations bring retries, error handling triggers rollbacks.
 
-At the same time, hidden dependencies appear: a resource is pulled from an IoC container in the middle of a method, context comes from thread-local, a connection goes through a global singleton. What an operation actually uses is clear only after reading the entire body. At some point you stop understanding where business meaning ends and the infrastructure that serves it begins.
+On top of that: hidden dependencies. A service is pulled from an IoC container via YAML config, context leaks from a thread-local, a connection comes from a global singleton. What an operation actually touches is only visible after reading the entire body — and at some point you can no longer tell where the business logic ends and the infrastructure that serves it begins.
 
-AOA solves this differently: **every system operation becomes a standalone entity** — an `Action`. Open one class and you see its entire contract:
+AOA approaches this differently: every business operation is a self-contained entity, an Action. Open one class and you see roles, steps, compensations, error handlers, cache, dependencies, and context requirements. This is not documentation alongside code: ActionProductMachine reads this contract and executes it literally — driving the pipeline, rolling back completed steps, routing errors, wiring cache and plugins.
 
 ```python
 @meta(description="Create order", domain=StoreDomain)
@@ -396,12 +397,14 @@ Result: order_id=ord-001, reservation_id=res-ord-001
 
 Most service code becomes hard to reason about because every kind of data travels through the same variables: request metadata, business input, temporary calculations, database connections, final response, and logging context. AOA splits those meanings.
 
-| Surface | Lifetime | Role |
-|---------|----------|------|
-| `Context` | one run | Request and runtime metadata: user, roles, trace id, environment. Business code only sees explicitly requested fields. |
-| `Params` | one run | Immutable business input. No transport object, no database session, no hidden globals. |
-| `state` | between aspects | Temporary pipeline memory. It exists only inside one Action run and is rebuilt step by step. |
-| `Result` | final output | Public typed contract returned by the summary aspect. |
+
+| Surface   | Lifetime        | Role                                                                                                                   |
+| --------- | --------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `Context` | one run         | Request and runtime metadata: user, roles, trace id, environment. Business code only sees explicitly requested fields. |
+| `Params`  | one run         | Immutable business input. No transport object, no database session, no hidden globals.                                 |
+| `state`   | between aspects | Temporary pipeline memory. It exists only inside one Action run and is rebuilt step by step.                           |
+| `Result`  | final output    | Public typed contract returned by the summary aspect.                                                                  |
+
 
 This is the key constraint: **an Action object has no internal business state**. If data matters, it must be visible as `Params`, `state`, `connections`, a declared dependency, or `Result`.
 

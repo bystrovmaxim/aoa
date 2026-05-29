@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../../docs/assets/aoa-logo.png" alt="AOA" width="660"><br><br>
+  <img src="assets/aoa-logo.png" alt="AOA" width="660"><br><br>
 </p>
 # Intents and Invariants
 
@@ -17,13 +17,13 @@ But the relationship goes both ways: the system also makes demands of you. You c
 - [What the system guarantees in return](#what-the-system-guarantees-in-return)
 - [When invariants are checked](#when-invariants-are-checked)
 - [Naming invariant](#naming-invariant)
-- [DAG invariant — acyclic dependencies](#dag-invariant--acyclic-dependencies)
+- [DAG invariant — acyclic dependencies](#dag-invariant-acyclic-dependencies)
 - [Required roles invariant](#required-roles-invariant)
 - [Required domain invariant](#required-domain-invariant)
 - [Summary aspect invariant](#summary-aspect-invariant)
 - [Compensator invariant](#compensator-invariant)
 - [Include contract](#include-contract)
-- [State contract invariant — checkers](#state-contract-invariant--checkers)
+- [State contract invariant — checkers](#state-contract-invariant-checkers)
 - [Logging invariants: privacy and masking](#logging-invariants-privacy-and-masking)
 - [Entity relation invariants](#entity-relation-invariants)
 - [Lifecycle FSM invariant](#lifecycle-fsm-invariant)
