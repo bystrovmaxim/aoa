@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="../../docs/assets/aoa-logo.png" alt="AOA" width="660"><br><br>
+</p>
 # Intents and Invariants
 
 In AOA every business operation is described through **intents** — declarations of what must be true: who has access, what the operation depends on, how a step rolls back. An intent is a decorator: `@meta`, `@check_roles`, `@depends`, `@compensate`, `@on_error`, or a result checker.
