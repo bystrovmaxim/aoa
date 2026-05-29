@@ -46,7 +46,7 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
         )
 ```
 
-← [Full example with all features](examples/full_example.py)
+← [Full example with all features](../../examples/full_example.py)
 
 This is not comments and not documentation next to the code. This is the code.
 
@@ -261,7 +261,7 @@ uv run python examples/07_ocel.py
 
 ## 4. First Action
 
-File: `[examples/01_hello_world.py](examples/01_hello_world.py)`
+File: `[examples/01_hello_world.py](../../examples/01_hello_world.py)`
 
 ```python
 import asyncio
@@ -328,13 +328,26 @@ Even in the minimal example, important things are already present:
 
 ## 5. Core: Actions And Pipeline
 
-From here the main route begins. Mechanics needed by almost every Action are collected here: pipeline, state, logs, rollbacks, errors, dependencies, connections, context, cache, plugins, adapters, and testing.
+This is the part where AOA stops being “decorated service code” and becomes a runtime model.
 
-### 5.1. Pipeline: When A Scenario Becomes Visible
+An Action is not a bag of methods. It is a small protocol:
 
-File: `[examples/02_pipeline.py](examples/02_pipeline.py)`
+- `Params` enters from the outside world and carries business input only.
+- `regular_aspect` methods transform that input into typed intermediate `state`.
+- `summary_aspect` is the only place where the final `Result` is assembled.
+- `ActionProductMachine` is the only executor; it checks roles, validates step contracts, invokes plugins, runs compensations, and routes errors.
 
-The pipeline runs top to bottom: first all `@regular_aspect` steps, then one `@summary_aspect`.
+That separation is what makes the operation readable before you inspect implementation details. A reviewer can see the shape of the scenario from the class header and aspect list; the machine can verify that shape before traffic hits it.
+
+### 5.1. Pipeline: A Scenario With A Spine
+
+File: `[examples/02_pipeline.py](../../examples/02_pipeline.py)`
+
+The pipeline runs in declaration order: zero or more `@regular_aspect` steps, then exactly one `@summary_aspect`.
+
+Regular aspects are preparation stages. They validate, load, calculate, reserve, enrich, or call dependencies. They do not return the public result. Instead, each regular aspect returns a mapping that becomes the next `state` snapshot.
+
+The summary aspect closes the scenario. It reads the final state and returns `Result`. This gives every Action a visible shape: **input → ordered steps → state snapshots → one output**.
 
 ```python
 @regular_aspect("Validation")
@@ -359,6 +372,8 @@ async def create_summary(self, params, state, box, connections):
     )
 ```
 
+The decorators are not commentary. `@result_string("validated_id", required=True)` is a contract: after this step, the machine expects that key to exist and match the declared shape. The next step does not guess what the previous step left behind. It receives a checked state.
+
 Run:
 
 ```bash
@@ -377,11 +392,50 @@ Sample 02 pipeline
 Result: order_id=ord-001, reservation_id=res-ord-001
 ```
 
-Note `@result_string`. It is not decoration. It is the `state` contract after the step. The next step does not guess what the previous one left behind. The machine validates the data shape.
+### 5.2. The Four Data Surfaces
+
+Most service code becomes hard to reason about because every kind of data travels through the same variables: request metadata, business input, temporary calculations, database connections, final response, and logging context. AOA splits those meanings.
+
+| Surface | Lifetime | Role |
+|---------|----------|------|
+| `Context` | one run | Request and runtime metadata: user, roles, trace id, environment. Business code only sees explicitly requested fields. |
+| `Params` | one run | Immutable business input. No transport object, no database session, no hidden globals. |
+| `state` | between aspects | Temporary pipeline memory. It exists only inside one Action run and is rebuilt step by step. |
+| `Result` | final output | Public typed contract returned by the summary aspect. |
+
+This is the key constraint: **an Action object has no internal business state**. If data matters, it must be visible as `Params`, `state`, `connections`, a declared dependency, or `Result`.
+
+`Params` answers “what does the operation need?”
+
+```python
+class CreateOrderParams(BaseParams):
+    order_id: str = Field(description="Client-side order ID")
+```
+
+`Result` answers “what does the operation promise to return?”
+
+```python
+class CreateOrderResult(BaseResult):
+    order_id: str = Field(description="Created order ID")
+    reservation_id: str = Field(description="Reservation ID")
+```
+
+`state` answers “what has the pipeline proven so far?”
+
+```python
+return {
+    "validated_id": params.order_id,
+    "reservation_id": f"res-{params.order_id}",
+}
+```
+
+`Context` answers “what surrounds this run?” It belongs to the machine, plugins, adapters, and explicitly declared context readers. It is not a back door for business logic.
+
+This makes code more constrained, but also more inspectable. A machine can build a graph of the scenario because the scenario exposes its surfaces. A test can run the same Action without HTTP because transport data is not mixed into `Params`. A plugin can observe the execution because the machine owns the pipeline.
 
 ### 5.3. Saga: Rollback Without Hidden Magic
 
-File: `[examples/04_saga_compensate.py](examples/04_saga_compensate.py)`
+File: `[examples/04_saga_compensate.py](../../examples/04_saga_compensate.py)`
 
 ```python
 @regular_aspect("Reserve inventory")
@@ -434,7 +488,7 @@ Here the first real “hook” appears: rollback order does not need to be hunte
 
 ### 5.4. Explicit Errors: `@on_error`
 
-File: `[examples/05_on_error.py](examples/05_on_error.py)`
+File: `[examples/05_on_error.py](../../examples/05_on_error.py)`
 
 When an exception is part of the business scenario, it can be described as intent. And this is not necessarily one fallback for all cases: an Action can have several handlers, from specific errors to a general fallback scenario.
 
@@ -686,7 +740,7 @@ One look at the signature and decorators answers the question: this step depends
 
 ### 5.8. Logs That Do Not Clutter Business Code
 
-File: `[examples/03_logging_sensitive.py](examples/03_logging_sensitive.py)`
+File: `[examples/03_logging_sensitive.py](../../examples/03_logging_sensitive.py)`
 
 An Action writes an event to the `box` port: the event has a **channel** (`Channel.business`, `Channel.technical`, ...), a **severity level** (`info`, `warning`, `critical`), the Action domain, and execution scope. Routing is decided externally through `LogCoordinator`.
 
@@ -758,7 +812,7 @@ Business code does not know whether an event goes to console, audit, chat, OTel,
 
 ### 5.9. Cache: Intent, Not An Infrastructure Patch
 
-File: `[examples/06_cache.py](examples/06_cache.py)`
+File: `[examples/06_cache.py](../../examples/06_cache.py)`
 
 In AOA, caching is described at the Action level: how to build a key and under what conditions the result is worth saving. The Action itself does not prepare a separate cache payload — if caching triggers, the machine takes the final `Result` of the entire Action and stores it under the key.
 
@@ -885,7 +939,7 @@ Usually intermediate business-process state dissolves into local variables. In A
 
 ### 5.11. OCEL: Process Mining Out Of The Box
 
-File: `[examples/07_ocel.py](examples/07_ocel.py)`
+File: `[examples/07_ocel.py](../../examples/07_ocel.py)`
 
 AOA can write Action runs to [OCEL 2.0](https://ocel-standard.org/) — an **object-centric** event log format for process mining. Unlike classic event logs (one case ID per trace), OCEL links each event to one or more **objects** (order, customer, payment, …) with typed roles. That matches how business operations actually touch several entities at once.
 
@@ -929,7 +983,7 @@ await machine.run(Context(), CreateOrderAction(), params=...)
 await store.close()  # writes ocel_log.json
 ```
 
-Business aspects return `OcelFrame` when they want process-mining participation; the plugin handles serialization. See `[examples/07_ocel.py](examples/07_ocel.py)`.
+Business aspects return `OcelFrame` when they want process-mining participation; the plugin handles serialization. See `[examples/07_ocel.py](../../examples/07_ocel.py)`.
 
 Testing in AOA becomes a continuation of the same idea: we do not create a separate test version of the scenario, but run the same Action through the same machine, changing only the environment.
 
@@ -1023,7 +1077,7 @@ After this, the Action can be exposed outward. Importantly, transport does not b
 
 ### 5.13. Adapters: HTTP And MCP From One Source
 
-Full examples live here: `[packages/aoa-examples/src/aoa/examples/fastapi_mcp_services/](packages/aoa-examples/src/aoa/examples/fastapi_mcp_services/)`
+Full examples live here: `[packages/aoa-examples/src/aoa/examples/fastapi_mcp_services/](../aoa-examples/src/aoa/examples/fastapi_mcp_services/)`
 
 Shared infrastructure:
 
@@ -1368,12 +1422,12 @@ Packages use the shared namespace `aoa.*`:
 
 ## 10. Where To Read Next
 
-- `[examples/](examples/)` — short runnable examples from hello world to OCEL.
-- `[packages/aoa-action-machine/README.md](packages/aoa-action-machine/README.md)` — Action Machine core.
-- `[packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/README.md](packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/README.md)` — OCEL export policy.
-- `[packages/aoa-maxitor/README.md](packages/aoa-maxitor/README.md)` — visualizer and API.
-- `[packages/aoa-examples/README.md](packages/aoa-examples/README.md)` — domain examples.
-- `[docs/CHANGELOG.md](docs/CHANGELOG.md)` — change history.
+- `[examples/](../../examples/)` — short runnable examples from hello world to OCEL.
+- `[packages/aoa-action-machine/README.md](README.md)` — Action Machine core.
+- `[packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/README.md](src/aoa/action_machine/plugin/ocel/README.md)` — OCEL export policy.
+- `[packages/aoa-maxitor/README.md](../aoa-maxitor/README.md)` — visualizer and API.
+- `[packages/aoa-examples/README.md](../aoa-examples/README.md)` — domain examples.
+- `[docs/CHANGELOG.md](../../docs/CHANGELOG.md)` — change history.
 
 ## 11. FAQ
 
