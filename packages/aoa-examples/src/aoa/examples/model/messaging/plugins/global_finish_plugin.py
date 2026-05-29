@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 from aoa.action_machine.intents.on import GlobalFinishEvent, on
-from aoa.action_machine.plugin import Plugin
+from aoa.action_machine.plugin.core import Plugin
 
 
 class MessagingGlobalFinishPlugin(Plugin):
