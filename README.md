@@ -9,64 +9,13 @@
 
 # AOA — Action-Oriented Architecture
 
-**AOA** is a Python architecture and runtime where business operations are not scattered across controllers, services, repositories, middleware, and background jobs. They are first-class executable objects.
+**AOA** is a Python framework where business logic becomes an executable specification.
 
-In most systems, the real scenario is visible only after a forensic read: open the HTTP handler, follow the service, inspect the repository, check auth middleware, find the transaction boundary, search for cache, and hope rollback is not hidden in a broad `except`.
+In real applications, business logic rarely stays clean. Adjacent layers seep in — transport dictates request shape, security enforces roles, the DI container injects dependencies, the database wraps transactions, observability adds logs and trace ids, integrations bring retries, error handling triggers rollbacks.
 
-AOA turns that inside out. A business operation is an `Action`: typed input, ordered pipeline, explicit roles, declared dependencies, optional compensations, explicit error handlers, cache policy, plugin events, and one typed result.
+On top of that: hidden dependencies. A service is pulled from an IoC container via YAML config, context leaks from a thread-local, a connection comes from a global singleton. What an operation actually touches is only visible after reading the entire body — and at some point you can no longer tell where the business logic ends and the infrastructure that serves it begins.
 
-Open one class and you can answer the questions that usually require a debugging session:
-
-- Who can run this operation?
-- Which steps execute, and in what order?
-- Which intermediate facts does each step promise?
-- Which dependencies and connections can it touch?
-- What rolls back when a later step fails?
-- How does it become HTTP, MCP, a graph, an audit trail, or an OCEL log?
-
-```python
-@meta(description="Place order", domain=StoreDomain)
-@check_roles(ManagerRole)
-@cache_key(lambda p, ctx: f"order:{p.order_id}")
-class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
-
-    @depends(InventoryResource, PaymentGatewayResource)
-    @regular_aspect("Reserve items")
-    @compensate("Release reservation")
-    async def reserve_items(self, params, state, box, deps):
-        ...
-
-    @regular_aspect("Charge payment")
-    @on_error(PaymentGatewayError, description="Gateway error")
-    async def charge_payment(self, params, state, box, deps):
-        ...
-
-    @summary_aspect("Confirm order")
-    async def confirm_order(self, params, state, box, deps):
-        ...
-```
-
-This is not “documentation near the code”. It is the code path itself. `ActionProductMachine` reads the contract and drives execution: checks roles, runs steps in order, validates state, rolls back compensations, routes errors, applies cache, and emits plugin events.
-
-← [Full example with all features](examples/full_example.py)
-
----
-
-## The Invisible Thing AOA Makes Visible
-
-The real product in AOA is not a decorator API. It is a **machine-readable business model**.
-
-Because intent is formalized in code, the system can produce views that normally rot in separate tools:
-
-- **Access matrix** — Actions × Roles from `@check_roles`
-- **Business capability catalog** — domains and Actions from `@meta`
-- **Execution graph** — pipeline steps, dependencies, compensators, error handlers
-- **Transport schemas** — OpenAPI and MCP tools from `Params`, `Result`, and field metadata
-- **Architecture diff** — “fraud check added before payment” instead of “47 files changed”
-- **Process mining log** — OCEL events tied to domain objects
-- **Interactive diagrams** — Maxitor renders full graph, ERD, use case, and lifecycle views from code
-
-That is the disruptive part: the framework does not ask developers to keep diagrams, policies, and runtime behavior synchronized. It makes them consequences of the same executable contract.
+AOA approaches this differently: **every business operation is a self-contained entity**, an `Action`. Open one class and you see roles, steps, compensations, error handlers, cache, dependencies, and context requirements. This is not documentation alongside code: `ActionProductMachine` reads this contract and executes it literally — driving the pipeline, rolling back completed steps, routing errors, wiring cache and plugins.
 
 ---
 
@@ -77,6 +26,7 @@ pip install aoa-action-machine
 ```
 
 ```python
+import asyncio
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -97,132 +47,166 @@ class HelloAction(BaseAction[HelloParams, HelloResult]):
     async def greet(self, params, state, box, deps):
         return HelloResult(message=f"Hello, {params.name}!")
 
-machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
-result = asyncio.run(
-    machine.run(HelloAction, HelloParams(name="World"), NoAuthCoordinator().make_context())
-)
-print(result.message)  # Hello, World!
+async def main():
+    machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
+    ctx = await NoAuthCoordinator().process(None)
+    result = await machine.run(ctx, HelloAction(), HelloParams(name="World"))
+    print(result.message)  # Hello, World!
+
+asyncio.run(main())
 ```
+
+← [Full example with all features](../../examples/full_example.py)
 
 ---
 
 ## Packages
 
-
-| Package                                                       | Contents                                                                    |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `[aoa-action-machine](packages/aoa-action-machine/README.md)` | Framework core: Actions, pipeline, saga, cache, plugins, entities, testing |
-| `[aoa-maxitor](packages/aoa-maxitor/README.md)`               | Visualizer: interactive graph, ERD, use cases, lifecycle from code         |
-
+| Package | Contents |
+| ----------------------------------------------------------- | ------------------------------------------------------------------- |
+| [aoa-action-machine](packages/aoa-action-machine/README.md) | Core: Actions, pipeline, sagas, cache, plugins, entities, testing |
+| [aoa-maxitor](packages/aoa-maxitor/README.md) | Visualizer: interactive graph, ERD, use cases, lifecycle from code |
 
 ---
 
-## ActionProductMachine — The Centerpiece
+## Guide
 
-`ActionProductMachine` is the single entry point for an `Action`. You do not call business methods directly. You pass Action, Params, and Context to the machine, and the machine enforces the contract.
+> Code examples are in the core documentation [aoa-action-machine](packages/aoa-action-machine/README.md) and in the [examples/](../../examples/) folder. System visualization — in [aoa-maxitor](packages/aoa-maxitor/README.md).
 
-That matters because infrastructure stops being ad hoc. The same executor powers production runs, tests, adapters, plugins, cache, logs, and process mining. There is no “real service path” and “test shortcut” drifting apart.
+### Action and Pipeline
 
-On startup and run, the machine can validate things humans usually discover too late: wrong `@on_error` order, missing summary aspect, undeclared connection, cyclic dependency, invalid state shape, impossible include contract.
-
-`TestBench` uses the same machine. Adapters use the same machine. Maxitor reads the same declarations. OCEL uses the same plugin events. The machine does not change; only the surrounding environment changes.
-
----
-
-## How To Read The System
-
-### 1. Start With A Capability
-
-An `Action` is the boundary of a business capability. It has typed `Params`, one typed `Result`, and an ordered pipeline. `regular_aspect` methods build facts in `state`; `summary_aspect` turns the final state into the result.
-
-One Action means one public operation. Not one controller route. Not one service method. One business capability.
+**The entire business operation — in one class.** It reads top to bottom as a straight pipeline with a single entry point and a single result — no jumping between controllers, services, and helpers. Logic is split into steps, each step is a separate method with a clear contract. The contract exists both inside each step and outside the Action — so a step can be changed without fear of breaking its neighbor, and the Action itself can be embedded in another without knowing its internals.
 
 → [Action and Pipeline](packages/aoa-action-machine/README.md#5-core-actions-and-pipeline)
 
 ---
 
-### 2. Look For Reversibility
+### Sagas and Compensations
 
-In most systems, rollbacks hide in `finally` and `except`. Their link to a business step is unclear, and order is accidental. In AOA, compensations are declared next to the step they undo. If something fails later in the pipeline, the machine runs registered compensators in reverse order automatically.
+**Rollback you cannot forget.** Next to every step that changes the outside world, you declare how to undo it. A failure occurs — the machine rolls back the completed steps in reverse order automatically. No more manual `try/finally` blocks where you track what already ran.
 
-→ [Saga and compensations](packages/aoa-action-machine/README.md#53-saga-rollback-without-hidden-magic)
-
----
-
-### 3. Check The Failure Contract
-
-When an error handler lives in a random `except Exception`, nobody validates it until an incident. AOA turns error handling into a contract: `@on_error` declares which error type is caught and what is returned. Handler order matters — the machine checks it at startup.
-
-→ [Explicit error handling](packages/aoa-action-machine/README.md#54-explicit-errors-on_error)
+→ [Sagas and Compensations](packages/aoa-action-machine/README.md#53-saga-rollback-without-hidden-magic)
 
 ---
 
-### 4. Follow The Declared Edges
+### Explicit Error Handling
 
-Dependencies, connections, and context reads are not supposed to appear from nowhere. AOA makes the operation’s edges visible: resources and child Actions through `@depends`, already-open handles through `@connection`, request metadata through `@context_requires`.
+**Errors are part of the contract, not a surprise in production.** Right inside the operation you can see which error is caught and what happens next: a fallback result, a business response, or re-raise. The machine validates handler order at startup — a broad `except` physically cannot swallow what a narrower one should have caught.
 
-That is why Maxitor can draw the graph. The graph is not reverse-engineered from arbitrary Python. It is declared.
+→ [Explicit Error Handling](packages/aoa-action-machine/README.md#54-explicit-errors-on_error)
+
+---
+
+### Dependencies, Connections, Context
+
+**What an operation touches is visible in the first lines.** Resources, child actions, database connections, required context fields — all declared in the class header. No singletons from nowhere, no thread-locals buried in a method body. And since dependencies are declared, the machine builds a graph from them — and checks for cycles before the first request.
 
 → [Dependencies, connections, context](packages/aoa-action-machine/README.md#55-depends-all-dependencies-visible-in-the-header)
 
 ---
 
-### 5. Add Infrastructure Without Smearing It
+### Cache, Logs, Plugins
 
-Infrastructure rules — cache, logs, audit, metrics — in classic services wrap business code. AOA takes another path: cache is declared as intent, logs go through channels without transport coupling, and plugins fill gaps between steps without touching business code.
+**Infrastructure lives outside the business logic, not inside it.** Cache is declared as a policy, logs go through named channels, plugins observe steps without participating in execution — a plugin error does not bring down the request. The same event stream can be assembled into a full execution tree with `state` at every step and handed to an LLM to explain exactly what happened in a specific call.
 
 → [Cache, logs, plugins](packages/aoa-action-machine/README.md#58-logs-that-do-not-clutter-business-code)
 
 ---
 
-### 6. Observe The Business, Not Just The Server
+### OCEL: Process Mining Out of the Box
 
-A plain log says “this function ran”. OCEL says how business objects moved through events over time. With `aoa-action-machine[ocel]`, Action execution can become object-centric process data for tools such as pm4py, ProM, and OC-PM.
+**See how orders actually flow through the system — without separate instrumentation.** The same event stream that provides observability is exported to OCEL — the open process mining standard. Open it in pm4py or ProM and build a map of the real process: where it stalls, where it deviates from the intended flow. The data is already there — no manual collection needed.
 
 → [OCEL](packages/aoa-action-machine/README.md#511-ocel-process-mining-out-of-the-box)
 
 ---
 
-### 7. Model The Domain When It Matters
+### Domain Modeling
 
-Behind Actions sits a data model independent of a specific database. `BaseEntity` describes domain object structure: fields, relations, lifecycle. A resource decides where data comes from and how to build the entity — PostgreSQL, ClickHouse, HTTP API, fixture. Hexagonal style: consumers do not depend on the database; the database does not know consumers.
+**The domain model is not tied to the database.** Order, user, payment — described as business objects with fields, relations, and lifecycle. Where the data comes from is decided by the resource: PostgreSQL, ClickHouse, HTTP API, or a fixture in a test. Change the storage — the model doesn't move, and consumers never know what's underneath.
 
-→ [Domain modeling](packages/aoa-action-machine/README.md#6-extended-domain-modeling)
+→ [Domain Modeling](packages/aoa-action-machine/README.md#6-extended-domain-modeling)
 
 ---
 
-### 8. Test The Same Path
+### Testing: Same Machine, Different Reality
 
-Classic mocked tests drift from reality: a mocked interface changes, or the mock returns what a real resource never would. `TestBench` uses a full `ActionProductMachine` — not a stub. Code and machine stay the same — only the environment changes.
+**In tests, code is not mocked — only data is.** The test runs the same Action that goes to production: real roles, checkers, step order, plugins. What changes is not the logic but the reality around it — resources and external systems return test data. So the test validates exactly the code that will run in production.
 
 → [Testing](packages/aoa-action-machine/README.md#512-testing-the-same-machine-a-different-reality)
 
 ---
 
-### 9. Publish The Same Operation Everywhere
+### Adapters: One Action, Many Transports
 
-A business operation should not know where the call came from. `FastApiAdapter` and `McpAdapter` take an Action with Pydantic Params/Result and expose HTTP endpoints or MCP tools — no duplicated logic, no extra DTOs.
+**Write the operation once — expose it over HTTP, MCP, and CLI.** No logic duplication, no DTO layers. `FastApiAdapter` turns an Action into a REST endpoint with a ready-made OpenAPI spec, `McpAdapter` turns it into an AI-agent tool with a strict schema. The same operation is also callable directly from code. One contract — as many entry points as needed.
 
 → [Adapters](packages/aoa-action-machine/README.md#513-adapters-http-and-mcp-from-one-source)
 
 ---
 
-### 10. See The System
+### Maxitor: The System Visible in a Browser
 
-Architecture diagrams go stale. Maxitor fixes that radically: it generates interactive diagrams from code in the browser. Everything declared via intents lands in the graph — no Miro, no Confluence, no manual updates.
+**Architecture that never goes stale, because it is drawn from code.** The full system graph, entity ERD, use cases by role, lifecycle state machines — Maxitor assembles them from the same declarations the machine executes. No Miro and Confluence drifting from reality the day after you draw them.
 
 → [aoa-maxitor: full documentation](packages/aoa-maxitor/README.md)
 
 ---
 
-## Intent-Oriented Programming
+## Philosophy
 
-In short, AOA is a practical take on Intent-Oriented Programming.
+### A Grammar That Enforces
 
-**Intent is code.** Intent does not describe implementation from the side. It participates in execution: roles are checked, the pipeline runs, checkers validate `state`, compensators are invoked.
+Predictable code is not a matter of team discipline. Agreements hold at the start but erode over time — under deadline pressure, during team changes, in the rush of the moment. What you need is a structure that physically prevents business operations from being written differently every time.
 
-**Intent is observable.** Once intents are explicit, the system can be observed automatically: OpenAPI, MCP schema, graph, ERD, use case, OCEL, structured logs.
+AOA is a grammar. The framework does not recommend — it enforces a single set of rules for every operation. No `@check_roles` — the code will not start. No summary aspect — the machine refuses at startup. A dependency cycle, a broken `@on_error` handler order, a mismatched checker contract — these are all initialization errors, not surprises on review or in production.
 
-**Intent is constrained.** An Action is not infinite room for implicit rules. If a role, step result, error handler, compensation, or cache is not declared, the machine will not pretend it exists.
+All operations share the same shape: one `Params` input, one `Result`, aspects top to bottom. When you open someone else's `Action` — or your own six months later — you do not reconstruct intent from five files. You just read top to bottom.
 
-The developer thinks not “how to write code” but “what is the operation’s intent”. Infrastructure follows intent, not the other way around.
+Complex processes are composed from simple ones: through `deps.run_action()` one `Action` calls another. No base classes, no method overrides. Each operation is small, self-contained, and testable in isolation.
+
+One more rule that annoys at first: class names must end with suffixes — `CreateOrderAction`, `InventoryResource`, `OrderEntity`, `PaymentGatewayPlugin`. It feels like bureaucracy at first. Then the suffixes become visual anchors: `...Resource` means an external system adapter; `...Action` means a business operation. Context is read before the file is even opened.
+
+→ [All intents and invariants](docs/intents-and-invariants.md)
+
+---
+
+### Observability That Stays Out of the Logic
+
+Logs, metrics, tracing, audit, process mining — every project solves this from scratch. And almost always the same way: observability grows into the business code. Methods accumulate `logger.info` calls, timing measurements, metric pushes, audit writes. Eventually you can no longer see where the operation ends and the wrapper around it begins.
+
+AOA starts from the premise that **the observer must not be a participant**. Business logic does not know it is being observed. Plugins attach from the outside and receive events at every step — before and after each aspect, on error, on compensation — with a snapshot of `state` at each point. Full execution context, zero influence on execution: a plugin cannot change the result, and its own error does not bring down the request.
+
+From this separation grows almost everything in the guide: structured logs, OCEL, execution trees for LLMs. One event stream — many ways to look at the system, and none of them mixed into its logic.
+
+---
+
+### AI-First: Readable by Humans and Language Models Alike
+
+AOA does not "add AI features" — it turns out to be convenient for models for the same reason it is convenient for humans: intent is declared explicitly and is machine-readable.
+
+Three things follow from this. Every `Action` is already described by a strict schema — `Params`, `Result`, roles, metadata — so `McpAdapter` delivers it to an AI agent as a tool with a clear contract, not a random function. Any call unfolds into an execution tree with `state` at each step — pass it to a model and it can explain exactly what happened. And when an agent writes code, the grammar holds it to the same rules as a human: no roles — it won't start; broken contract — error at startup, not a silent bug in production.
+
+The stricter the structure, the less room for hallucinations — and the more reliably both humans and models work alongside it.
+
+---
+
+### Intent-Oriented Programming
+
+Why does code written a year ago turn into something nobody dares touch? Not because it was written poorly or the team was weak. Because **intent was lost**. A year later nobody remembers the details. Two years later nobody dares change it, because it is unclear what will break in the neighboring layer. Knowledge lives in comments, Jira, Confluence, in the head of the author who has since left — but the code itself does not hold it.
+
+AOA's answer is simple: **intent must live in the code**. When you write an Action, you declare the contract first: `@check_roles`, `@depends`, `@compensate`, `@on_error`, the order of aspects. That is the design of the operation. The implementation fills the form rather than inventing it on the fly.
+
+At first this breaks a habit: the urge is to write code immediately. But this is exactly where the shift to **intent-first** happens: first you articulate what should happen, who has the right, which steps are mandatory, and what to do on failure. Then you write the step bodies.
+
+The result is **Intent-Oriented Programming**: code does not hide intent inside a mechanism — it starts with intent. Three properties follow:
+
+- **Intent is executed.** Declare a role — it will be checked. Declare a compensation — it will be called. Declare a step contract — the machine validates it after every execution.
+- **Intent documents itself.** The system describes itself automatically: OpenAPI, MCP schema, graph, ERD, use cases, OCEL — all from the same declarations, without manual upkeep.
+- **Intent is protected by fail-fast.** Wrong role — rejected at call time. No summary aspect — rejected at startup. Dependency cycle — rejected at startup. A contract violation never passes silently — it surfaces immediately, rather than becoming a quiet bug in production.
+
+---
+
+## License
+
+[MIT](LICENSE)
