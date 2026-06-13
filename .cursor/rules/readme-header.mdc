@@ -1,0 +1,13 @@
+---
+description: Protect the header/TOC block at the top of the AOA README
+globs: 1-README copy.md
+alwaysApply: false
+---
+
+# Защита шапки README
+
+Файл `1-README copy.md` начинается с HTML-блока (строки 1–13), ограниченного комментариями `<!-- TOC: do not remove or modify this block -->` и `<!-- /TOC -->`.
+
+**Никогда не удалять и не изменять этот блок.** Он содержит логотип, бейджи и оглавление.
+
+При любых правках в начале файла используй `StrReplace` с фрагментом **после** строки 13.
