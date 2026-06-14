@@ -42,7 +42,6 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
-
 # ---------------------------------------------------------------------------
 # Domain
 # ---------------------------------------------------------------------------
@@ -169,7 +168,7 @@ async def main() -> None:
         ProcessInputAction(),
         ProcessParams(raw_input="  Hello World  "),
     )
-    print(f"\nResult:")
+    print("\nResult:")
     print(f"  cleaned  = {result.cleaned!r}")
     print(f"  enriched = {result.enriched!r}")
     print(f"  final    = {result.final!r}")

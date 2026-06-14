@@ -33,6 +33,7 @@ ALLOWED_ACTION_MACHINE_MODULES: frozenset[str] = frozenset(
         f"{_AM}.logging",
         f"{_AM}.model",
         f"{_AM}.plugin",
+        f"{_AM}.plugin.core",
         f"{_AM}.plugin.ocel",
         f"{_AM}.plugin.ocel.dto",
         f"{_AM}.resources",

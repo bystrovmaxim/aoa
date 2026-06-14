@@ -61,29 +61,29 @@ class BaseGraphNodeInspector[TRoot](ABC):
     """
 
     @staticmethod
-    def _is_stale_redefinition(cls: type) -> bool:
-        """Return True when ``cls`` has been superseded by a newer definition in its module.
+    def _is_stale_redefinition(typ: type) -> bool:
+        """Return True when ``typ`` has been superseded by a newer definition in its module.
 
         A class is considered stale only when all of the following hold:
         - its module is present in ``sys.modules``,
         - its ``__qualname__`` contains no ``<locals>`` segment (i.e. not defined inside a function),
         - the qualname resolves to a concrete object in that module,
-        - and that object is *not* ``cls`` itself.
+        - and that object is *not* ``typ`` itself.
 
         In every other case the class is kept, so the filter is purely additive for
         interactive environments (e.g. Jupyter) and is a no-op in production.
         """
-        if "<locals>" in cls.__qualname__:
+        if "<locals>" in typ.__qualname__:
             return False
-        module = sys.modules.get(cls.__module__)
+        module = sys.modules.get(typ.__module__)
         if module is None:
             return False
         obj: object = module
-        for part in cls.__qualname__.split("."):
+        for part in typ.__qualname__.split("."):
             obj = getattr(obj, part, None)
             if obj is None:
                 return False
-        return obj is not cls
+        return obj is not typ
 
     @staticmethod
     def _all_descendant_types(root: type) -> tuple[type, ...]:

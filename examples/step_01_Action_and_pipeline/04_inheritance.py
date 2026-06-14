@@ -48,7 +48,6 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
-
 # ---------------------------------------------------------------------------
 # Domain
 # ---------------------------------------------------------------------------
@@ -157,7 +156,7 @@ class ExtendedOrderAction(BaseOrderAction):
         # Execute parent aspect logic
         result = await super().validate_aspect(params, state, box, connections)
         # Add our own step on top
-        steps = result.get("steps", []) + ["extended_validate"]
+        steps = [*result.get("steps", []), "extended_validate"]
         await box.info(
             Channel.business,
             "[ExtendedOrderAction.validate_aspect] steps: {%var.steps}",
