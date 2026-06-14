@@ -31,18 +31,17 @@ from aoa.action_machine.domain import (
     CompositeMany,
     Inverse,
     Lifecycle,
-    NoInverse,
     Rel,
     build,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-
 
 # ---------------------------------------------------------------------------
 # Domain
