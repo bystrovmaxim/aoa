@@ -4,6 +4,7 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
 
 permissions:
   id-token: write  # required for OIDC Trusted Publishers
@@ -25,12 +26,13 @@ jobs:
       - name: Build packages
         run: |
           uv build --package aoa-action-machine --out-dir packages/aoa-action-machine/dist
-          uv build --package aoa-examples      --out-dir packages/aoa-examples/dist
           uv build                             --out-dir dist
 
-      - name: Publish to PyPI
+      - name: Publish aoa-action-machine
+        run: uv publish packages/aoa-action-machine/dist/*
+        continue-on-error: true
+
+      - name: Publish aoa-run
         run: |
-          uv publish packages/aoa-action-machine/dist/*
-          uv publish packages/aoa-examples/dist/*
           uv publish dist/*
           # uv publish packages/aoa-maxitor/dist/*  # add after registering Pending Publisher on PyPI
