@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aoa-examples"
-version = "1.0.0"
+version = "1.0.0a"
 description = "Example FastAPI and MCP services demonstrating ActionMachine."
 readme = "README.md"
 license = { text = "MIT" }
