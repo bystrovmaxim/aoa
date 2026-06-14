@@ -16,6 +16,8 @@ on its own namespace (via :func:`~aoa.action_machine.graph.core.exclude_graph_mo
 
 Inspectors deliberately **mirror what is already loaded** in the interpreter for the axis (for example every strict subclass under ``root`` that is visited). They are not filters for “junk” vertices: stray test/sample classes that were imported alongside production code belong in the interchange graph until you fix imports, packaging boundaries, or opt hosts out explicitly with ``exclude_graph_model``. A production build surfacing duplicates, cycles, or odd nodes usually means scope pollution to correct upstream.
 
+**One narrow exception** applies to stale redefinitions from interactive environments (e.g. Jupyter). When a class is re-executed in a notebook, Python keeps the old object alive in ``__subclasses__()`` while the module namespace already points to the new one. ``_all_descendant_types`` silently drops such superseded objects via :meth:`_is_stale_redefinition` — this is not “junk filtering” but identity resolution: only the object currently reachable from the module namespace is treated as the live definition.
+
 This ABC is the **typed** contract for :class:`~aoa.action_machine.graph.core.node_graph_coordinator.NodeGraphCoordinator` interchange-node inspectors.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -40,6 +42,7 @@ adds those companions when assembling the full node set.
 
 from __future__ import annotations
 
+import sys
 import typing
 from abc import ABC, abstractmethod
 from typing import Any, get_args, get_origin
@@ -58,8 +61,37 @@ class BaseGraphNodeInspector[TRoot](ABC):
     """
 
     @staticmethod
+    def _is_stale_redefinition(cls: type) -> bool:
+        """Return True when ``cls`` has been superseded by a newer definition in its module.
+
+        A class is considered stale only when all of the following hold:
+        - its module is present in ``sys.modules``,
+        - its ``__qualname__`` contains no ``<locals>`` segment (i.e. not defined inside a function),
+        - the qualname resolves to a concrete object in that module,
+        - and that object is *not* ``cls`` itself.
+
+        In every other case the class is kept, so the filter is purely additive for
+        interactive environments (e.g. Jupyter) and is a no-op in production.
+        """
+        if "<locals>" in cls.__qualname__:
+            return False
+        module = sys.modules.get(cls.__module__)
+        if module is None:
+            return False
+        obj: object = module
+        for part in cls.__qualname__.split("."):
+            obj = getattr(obj, part, None)
+            if obj is None:
+                return False
+        return obj is not cls
+
+    @staticmethod
     def _all_descendant_types(root: type) -> tuple[type, ...]:
-        """Return all transitive strict subclasses of ``root`` (never ``root``), in deterministic order."""
+        """Return all transitive strict subclasses of ``root`` (never ``root``), in deterministic order.
+
+        Stale redefinitions (e.g. from Jupyter cell re-runs) are silently excluded via
+        :meth:`_is_stale_redefinition` before the result is sorted.
+        """
         if not isinstance(root, type):
             msg = f"root must be a type, not {type(root).__name__}"
             raise TypeError(msg)
@@ -73,8 +105,9 @@ class BaseGraphNodeInspector[TRoot](ABC):
             seen.add(cur)
             found.append(cur)
             stack.extend(cur.__subclasses__())
-        found.sort(key=lambda t: (t.__module__, t.__qualname__))
-        return tuple(found)
+        live = [cls for cls in found if not BaseGraphNodeInspector._is_stale_redefinition(cls)]
+        live.sort(key=lambda t: (t.__module__, t.__qualname__))
+        return tuple(live)
 
     def _get_inspector_type(self) -> type:
         """Return the root axis type from ``BaseGraphNodeInspector[TRoot]``."""
