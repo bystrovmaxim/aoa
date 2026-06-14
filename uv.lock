@@ -140,7 +140,7 @@ requires-dist = [
 
 [[package]]
 name = "aoa-run"
-version = "1.0.0"
+version = "1.0.0a0"
 source = { editable = "." }
 dependencies = [
     { name = "aoa-action-machine", extra = ["ocel"] },

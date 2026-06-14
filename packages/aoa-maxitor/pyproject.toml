@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aoa-maxitor"
-version = "1.0.0"
+version = "1.0.0a"
 description = "Visualization and sample domains built on ActionMachine."
 readme = "README.md"
 license = { text = "MIT" }
