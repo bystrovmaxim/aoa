@@ -41,7 +41,6 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
-
 # ---------------------------------------------------------------------------
 # Domain
 # ---------------------------------------------------------------------------

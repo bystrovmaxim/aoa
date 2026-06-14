@@ -32,7 +32,6 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, ParamsStub, ResultStub
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
-
 # ---------------------------------------------------------------------------
 # Step 1 — Declare the domain
 #
