@@ -26,13 +26,13 @@ jobs:
       - name: Build packages
         run: |
           uv build --package aoa-action-machine --out-dir packages/aoa-action-machine/dist
-          uv build                             --out-dir dist
 
       - name: Publish aoa-action-machine
         run: uv publish packages/aoa-action-machine/dist/*
         continue-on-error: true
 
-      - name: Publish aoa-run
-        run: |
-          uv publish dist/*
-          # uv publish packages/aoa-maxitor/dist/*  # add after registering Pending Publisher on PyPI
+      # Uncomment after registering aoa-maxitor Pending Publisher on PyPI:
+      # - name: Publish aoa-maxitor
+      #   run: |
+      #     uv build --package aoa-maxitor --out-dir packages/aoa-maxitor/dist
+      #     uv publish packages/aoa-maxitor/dist/*
