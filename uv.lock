@@ -51,7 +51,7 @@ wheels = [
 
 [[package]]
 name = "aoa-action-machine"
-version = "1.0.0"
+version = "1.0.0a0"
 source = { editable = "packages/aoa-action-machine" }
 dependencies = [
     { name = "jsonschema" },
@@ -89,7 +89,7 @@ provides-extras = ["fastapi", "mcp", "postgres", "ocel"]
 
 [[package]]
 name = "aoa-examples"
-version = "1.0.0"
+version = "1.0.0a0"
 source = { editable = "packages/aoa-examples" }
 dependencies = [
     { name = "aoa-action-machine", extra = ["ocel"] },
@@ -117,7 +117,7 @@ provides-extras = ["fastapi", "mcp"]
 
 [[package]]
 name = "aoa-maxitor"
-version = "1.0.0"
+version = "1.0.0a0"
 source = { editable = "packages/aoa-maxitor" }
 dependencies = [
     { name = "aoa-action-machine" },
