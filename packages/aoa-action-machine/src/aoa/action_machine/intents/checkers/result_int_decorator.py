@@ -57,7 +57,7 @@ class FieldIntChecker:
     Self-contained implementation; runtime uses the usual constructor kwargs and ``.check(result_dict)``.
     """
 
-    __slots__ = ("field_name", "max_value", "min_value", "required")
+    __slots__ = ("field_name", "max_value", "min_value", "opaque", "required")
 
     def __init__(
         self,
@@ -65,17 +65,20 @@ class FieldIntChecker:
         required: bool = True,
         min_value: int | None = None,
         max_value: int | None = None,
+        opaque: bool = False,
     ) -> None:
         self.field_name = field_name
         self.required = required
         self.min_value = min_value
         self.max_value = max_value
+        self.opaque = opaque
 
     def _get_extra_params(self) -> dict[str, Any]:
         """Return checker constructor params for snapshot serialization / tests."""
         return {
             "min_value": self.min_value,
             "max_value": self.max_value,
+            "opaque": self.opaque,
         }
 
     def check(self, result: dict[str, Any]) -> None:
@@ -131,6 +134,7 @@ def result_int(
     required: bool = True,
     min_value: int | None = None,
     max_value: int | None = None,
+    opaque: bool = False,
 ) -> Any:
     """
     Decorator for aspect methods declaring integer result field.
@@ -144,6 +148,7 @@ def result_int(
         required: whether field is required.
         min_value: minimum allowed value (inclusive).
         max_value: maximum allowed value (inclusive).
+        opaque: if True, the field is excluded from OTel state x-ray. Defaults to False.
 
     Returns:
         Decorator function that appends checker metadata to method.
@@ -160,6 +165,7 @@ def result_int(
         "required": required,
         "min_value": min_value,
         "max_value": max_value,
+        "opaque": opaque,
     }
 
     def decorator(func: Any) -> Any:

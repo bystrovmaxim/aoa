@@ -83,9 +83,25 @@ class Plugin(OnIntent, ABC):
 AI-CORE-BEGIN
     ROLE: Plugin contract for per-run state initialization and handler discovery.
     CONTRACT: Implement get_initial_state and declare handlers via @on.
-    INVARIANTS: Per-request state is externalized into PluginRunContext.
+        Optional constructor filters ``watch_actions`` and ``watch_events`` narrow
+        which events reach the plugin's handlers; subclasses that do not call
+        super().__init__() inherit class-level ``None`` defaults (no filtering).
+    INVARIANTS: Per-request state is externalized into PluginRunContext;
+        watch_actions uses issubclass so subclasses of a watched type are included.
     AI-CORE-END
 """
+
+    _watch_actions: frozenset[type] | None = None
+    _watch_events: frozenset[type] | None = None
+
+    def __init__(
+        self,
+        *,
+        watch_actions: frozenset[type] | None = None,
+        watch_events: frozenset[type] | None = None,
+    ) -> None:
+        self._watch_actions = watch_actions
+        self._watch_events = watch_events
 
     @abstractmethod
     async def get_initial_state(self) -> object:
@@ -95,7 +111,22 @@ AI-CORE-BEGIN
         self,
         event: BasePluginEvent,
     ) -> list[tuple[Callable[..., Any], SubscriptionInfo]]:
-        """Return handlers whose event_class prefilter matches incoming event."""
+        """Return handlers whose event_class prefilter matches incoming event.
+
+        Instance-level filters applied first (both default to ``None`` = pass all):
+
+        - ``watch_actions``: keeps event only when ``event.action_class`` is a
+          subclass of at least one type in the set (inheritance-aware).
+        - ``watch_events``: keeps event only when it is an instance of at least
+          one event type in the set (standard ``isinstance`` check).
+        """
+        if self._watch_actions is not None:
+            if not any(issubclass(event.action_class, cls) for cls in self._watch_actions):
+                return []
+        if self._watch_events is not None:
+            if not isinstance(event, tuple(self._watch_events)):
+                return []
+
         handlers: list[tuple[Callable[..., Any], SubscriptionInfo]] = []
 
         for klass in type(self).__mro__:

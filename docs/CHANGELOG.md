@@ -7,7 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
-## [1.2.9] – 2026-05-22
+## [1.0.0a2] – 2026-06-15
+
+### Added
+
+- **OpenTelemetry Traces support (`tracer_provider`).** `OpenTelemetryPlugin(tracer_provider=tp)` emits one root span per `machine.run()` and child spans per aspect, `@on_error` handler, and compensator. Saga rollback events are recorded as timed span events on the root span. Requires `aoa-action-machine[otel]`.
+- **OpenTelemetry Logs support (`logger_provider`).** `OpenTelemetryPlugin(logger_provider=lp)` emits a structured log record for every lifecycle event. After-aspect records carry `aoa.state.<field>` attributes with per-field serialization of `aspect_result` (state x-ray). Self-sufficient without `tracer_provider`; when both providers are configured, logs carry OTel-native `trace_id`/`span_id` for automatic backend correlation.
+- **`opaque=True` on checkers — exclude complex objects from state x-ray.** All `result_*` decorators (`result_string`, `result_int`, `result_float`, `result_bool`, `result_date`, `result_instance`) accept `opaque: bool = False`. Fields marked `opaque=True` are excluded from `aoa.state.*` log attributes. `CheckerGraphPayload` and `CheckerGraphNode` carry `opaque` as a named field symmetric with `required`; the machine computes `opaque_fields` from the graph at emit time and delivers it on `AfterRegularAspectEvent.opaque_fields` — no runtime introspection in the plugin.
+- **`watch_actions` filter on `Plugin`.** `watch_actions=frozenset({MyAction})` limits plugin delivery to the given action classes and their subclasses (`issubclass` check). Implemented in `Plugin` base class; available to all plugins.
+- **`watch_events` filter on `Plugin`.** `watch_events=frozenset({GlobalFinishEvent})` limits plugin delivery to the given event types. Implemented in `Plugin` base class; available to all plugins.
+
+## [1.0.0a1] – 2026-06-15
+
+### Fixed
+
+- **`DuplicateNodeError` on Action class re-definition in interactive environments.** `BaseGraphNodeInspector._all_descendant_types` now silently drops stale class objects that `BaseAction.__subclasses__()` keeps alive after a Jupyter / Colab cell re-run. A class is filtered only when its module is present in `sys.modules`, its `__qualname__` resolves to a *different* object in that module, and no `<locals>` segment appears in the qualname (i.e. not a local class). In every other case the class is kept — making the filter a no-op in production and purely additive for notebook environments.
+
+## [1.0.0a0] – 2026-05-22
 
 ### Breaking changes
 
@@ -37,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`archive/logs/how-to-run-all-services.md`.** Runbook updated for four-wheel workspace, adapter import paths, and current boundary check tasks.
 - **Retired scattered guides.** Removed `docs/packages.md`, `docs/guide/entity-wire-projection.md`, `docs/guide/json-schema-value.md`, and `docs/spikes/json_schema_value_pydantic_v2.md` in favour of package READMEs and the intents doc.
 
-## [1.2.8] – 2026-05-22
+## [0.12.8] – 2026-05-22
 
 ### Documentation
 
@@ -61,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Lifecycle Graphviz auto-fit.** Initial fit, resize refit, and LR/TB toggles now measure the correct SVG geometry (no stale markup, no `visibility: hidden` measurement trap), align `hasFittedRef` with successful fits, and apply a follow-up frame fit to match manual **Fit to window** without visible snapping.
 
-## [1.2.5] – 2026-05-08
+## [0.12.5] – 2026-05-08
 
 ### Added
 
@@ -83,7 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Multiple PyPI packages and `aoa.*` layout.** Runtime code lives under `packages/aoa-*/src/aoa/{graph,action_machine,maxitor,examples}`. Public imports are `**aoa.graph`**, `**aoa.action_machine`**, `**aoa.maxitor**`, and `**aoa.examples**` only. Install `**aoa-graph**`, `**aoa-action-machine**`, `**aoa-maxitor**`, or `**aoa-examples**` as needed; there are no legacy top-level shims (`graph.*`, `action_machine.*`, …). `**aoa-examples**` does not pull `**aoa-maxitor**` as a dependency.
 
-## [1.1.5] – 2026-05-08
+## [0.11.5] – 2026-05-08
 
 ### Changed
 
@@ -98,7 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Legacy ERD package split.** Drops the old `**erd_visualizer_1`** / `**erd_visualizer_2`** layout; `**erd_visualizer`** is now the single graph-backed viewer entry point.
 
-## [1.0.0] – 2026-04-12
+## [0.10.0] – 2026-04-12
 
 ### Breaking changes
 

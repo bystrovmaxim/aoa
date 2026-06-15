@@ -58,7 +58,7 @@ class FieldInstanceChecker:
     Self-contained implementation; runtime uses the usual constructor kwargs and ``.check(result_dict)``.
     """
 
-    __slots__ = ("expected_class", "field_name", "no_none", "required", "value_check")
+    __slots__ = ("expected_class", "field_name", "no_none", "opaque", "required", "value_check")
 
     def __init__(
         self,
@@ -67,23 +67,26 @@ class FieldInstanceChecker:
         required: bool = True,
         no_none: bool = False,
         value_check: Callable[[Any], bool] | None = None,
+        opaque: bool = False,
     ) -> None:
         self.field_name = field_name
         self.required = required
         self.expected_class = expected_class
         self.no_none = no_none
         self.value_check = value_check
+        self.opaque = opaque
 
     def _get_extra_params(self) -> dict[str, Any]:
         """
         Return constructor params for snapshot serialization.
 
         Returns:
-            Dictionary with ``expected_class``, ``no_none``, and optional ``value_check``.
+            Dictionary with ``expected_class``, ``no_none``, ``opaque``, and optional ``value_check``.
         """
         params: dict[str, Any] = {
             "expected_class": self.expected_class,
             "no_none": self.no_none,
+            "opaque": self.opaque,
         }
         if self.value_check is not None:
             params["value_check"] = self.value_check
@@ -134,6 +137,7 @@ def result_instance(
     required: bool = True,
     no_none: bool = False,
     value_check: Callable[[Any], bool] | None = None,
+    opaque: bool = False,
 ) -> Any:
     """
     Decorator for aspect methods declaring class-instance result field.
@@ -149,6 +153,7 @@ def result_instance(
         no_none: when ``True``, reject explicit ``None`` even if the field key is present.
         value_check: optional predicate run after ``isinstance``; ``False`` raises
             ``ValidationFieldError``.
+        opaque: if True, the field is excluded from OTel state x-ray. Defaults to False.
 
     Returns:
         Decorator function that appends checker metadata to method.
@@ -172,6 +177,7 @@ def result_instance(
         "no_none": no_none,
         "expected_class": expected_class,
         "value_check": value_check,
+        "opaque": opaque,
     }
 
     def decorator(func: Any) -> Any:
