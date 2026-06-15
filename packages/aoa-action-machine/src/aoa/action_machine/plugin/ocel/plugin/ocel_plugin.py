@@ -55,6 +55,7 @@ class OcelPlugin(Plugin):
         *,
         short_names: bool = False,
     ) -> None:
+        super().__init__()
         self._store = store
         self._short_names = short_names
 

@@ -218,6 +218,7 @@ AI-CORE-BEGIN
         state_snapshot: dict[str, Any],
         aspect_result: dict[str, Any],
         duration_ms: float,
+        opaque_fields: frozenset[str] = frozenset(),
     ) -> None:
         """Emit ``AfterRegularAspectEvent`` for one regular aspect."""
         base = self.base_fields(action, context, params, nest_level)
@@ -229,6 +230,7 @@ AI-CORE-BEGIN
                 state_snapshot=state_snapshot,
                 aspect_result=aspect_result,
                 duration_ms=duration_ms,
+                opaque_fields=opaque_fields,
             ),
             **kwargs,
         )

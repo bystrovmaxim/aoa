@@ -124,7 +124,7 @@ class CheckerGraphEdge(CompositionGraphEdge):
         extra_props = {
             key: value
             for key, value in row.items()
-            if key not in ("checker_class", "field_name", "required")
+            if key not in ("checker_class", "field_name", "required", "opaque")
         }
         return CheckerGraphNode(
             aspect_callable=aspect_callable,
@@ -132,5 +132,6 @@ class CheckerGraphEdge(CompositionGraphEdge):
             checker_class=checker_class,
             field_name=field_name,
             required=bool(row.get("required", False)),
+            opaque=bool(row.get("opaque", False)),
             properties=extra_props if extra_props else None,
         )

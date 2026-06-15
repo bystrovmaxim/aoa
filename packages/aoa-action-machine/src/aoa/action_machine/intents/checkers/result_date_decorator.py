@@ -58,7 +58,7 @@ class FieldDateChecker:
     Self-contained implementation; runtime uses the usual constructor kwargs and ``.check(result_dict)``.
     """
 
-    __slots__ = ("date_format", "field_name", "max_date", "min_date", "required")
+    __slots__ = ("date_format", "field_name", "max_date", "min_date", "opaque", "required")
 
     def __init__(
         self,
@@ -67,24 +67,27 @@ class FieldDateChecker:
         date_format: str | None = None,
         min_date: datetime | None = None,
         max_date: datetime | None = None,
+        opaque: bool = False,
     ) -> None:
         self.field_name = field_name
         self.required = required
         self.date_format = date_format
         self.min_date = min_date
         self.max_date = max_date
+        self.opaque = opaque
 
     def _get_extra_params(self) -> dict[str, Any]:
         """
         Return checker constructor params for snapshot serialization.
 
         Returns:
-            Dict with ``date_format``, ``min_date``, and ``max_date``.
+            Dict with ``date_format``, ``min_date``, ``max_date``, and ``opaque``.
         """
         return {
             "date_format": self.date_format,
             "min_date": self.min_date,
             "max_date": self.max_date,
+            "opaque": self.opaque,
         }
 
     def check(self, result: dict[str, Any]) -> None:
@@ -153,6 +156,7 @@ def result_date(
     date_format: str | None = None,
     min_date: datetime | None = None,
     max_date: datetime | None = None,
+    opaque: bool = False,
 ) -> Any:
     """
     Decorator for aspect methods declaring a date result field.
@@ -167,6 +171,7 @@ def result_date(
         date_format: string date format (for example ``"%Y-%m-%d"``).
         min_date: minimum allowed date (inclusive).
         max_date: maximum allowed date (inclusive).
+        opaque: if True, the field is excluded from OTel state x-ray. Defaults to False.
 
     Returns:
         Decorator function that appends checker metadata to method.
@@ -184,6 +189,7 @@ def result_date(
         "date_format": date_format,
         "min_date": min_date,
         "max_date": max_date,
+        "opaque": opaque,
     }
 
     def decorator(func: Any) -> Any:
