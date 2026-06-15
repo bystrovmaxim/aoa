@@ -59,11 +59,12 @@ class FieldBoolChecker:
     Self-contained implementation; runtime uses ``(field_name, required=...)`` and ``.check(result_dict)``.
     """
 
-    __slots__ = ("field_name", "required")
+    __slots__ = ("field_name", "opaque", "required")
 
-    def __init__(self, field_name: str, required: bool = True) -> None:
+    def __init__(self, field_name: str, required: bool = True, opaque: bool = False) -> None:
         self.field_name = field_name
         self.required = required
+        self.opaque = opaque
 
     def check(self, result: dict[str, Any]) -> None:
         """Validate one boolean field in ``result`` (same contract as other field checkers)."""
@@ -82,6 +83,7 @@ class FieldBoolChecker:
 def result_bool(
     field_name: str,
     required: bool = True,
+    opaque: bool = False,
 ) -> Any:
     """
     Decorator for an aspect method. Declares a boolean field in the aspect result.
@@ -94,6 +96,7 @@ def result_bool(
     Args:
         field_name: the field name in the aspect result dict.
         required: whether the field is required. Defaults to True.
+        opaque: if True, the field is excluded from OTel state x-ray. Defaults to False.
 
     Returns:
         A decorator that writes _checker_meta to the method.
@@ -108,6 +111,7 @@ def result_bool(
         "checker_class": FieldBoolChecker,
         "field_name": field_name,
         "required": required,
+        "opaque": opaque,
     }
 
     def decorator(func: Any) -> Any:

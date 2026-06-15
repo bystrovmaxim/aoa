@@ -45,7 +45,7 @@ def _type_checker_property_label(checker_class: type) -> str:
 class CheckerGraphPayload:
     """Frozen payload for :attr:`~aoa.action_machine.graph.core.base_graph_node.BaseGraphNode.node_obj` on a checker interchange row.
 
-    :attr:`properties` merges the constructor ``properties`` checker-kwargs dict (if any) with ``"TypeChecker"`` (short kind for ``Field*Checker``) and ``"required"`` (same keys as on :class:`~aoa.action_machine.graph.core.base_graph_node.BaseGraphNode`).
+    :attr:`properties` merges the constructor ``properties`` checker-kwargs dict (if any) with ``"TypeChecker"`` (short kind for ``Field*Checker``), ``"required"``, and ``"opaque"`` (same keys as on :class:`~aoa.action_machine.graph.core.base_graph_node.BaseGraphNode`).
     """
 
     action_cls: type
@@ -53,6 +53,7 @@ class CheckerGraphPayload:
     checker_class: type
     field_name: str
     required: bool
+    opaque: bool
     properties: dict[str, Any]
 
 
@@ -76,6 +77,7 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
         field_name: str,
         *,
         required: bool = False,
+        opaque: bool = False,
         properties: dict[str, Any] | None = None,
     ) -> None:
         aspect_method_name = TypeIntrospection.unwrapped_callable_name(aspect_callable)
@@ -86,6 +88,7 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
             **({} if properties is None else dict(properties)),
             "TypeChecker": _type_checker_property_label(checker_class),
             "required": required,
+            "opaque": opaque,
         }
         node_obj = CheckerGraphPayload(
             action_cls=_action_cls,
@@ -93,6 +96,7 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
             checker_class=checker_class,
             field_name=field_name,
             required=required,
+            opaque=opaque,
             properties=merged_properties,
         )
         action_id = TypeIntrospection.full_qualname(_action_cls)
@@ -109,7 +113,7 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
         p = self.properties
         # Optional Field-metadata kwargs (names vary); fixed interchange keys above.
         extra: dict[str, Any] = {}
-        for name in sorted(k for k in p if k not in ("TypeChecker", "required")):
+        for name in sorted(k for k in p if k not in ("TypeChecker", "required", "opaque")):
             val = p[name]
             if isinstance(val, (str, int, float, bool)) or val is None:
                 extra[name] = val
@@ -124,6 +128,7 @@ class CheckerGraphNode(BaseGraphNode[CheckerGraphPayload]):
             "properties": {
                 "TypeChecker": str(self.properties["TypeChecker"]),
                 "required": bool(self.properties["required"]),
+                "opaque": bool(self.properties["opaque"]),
                 **extra,
             },
         }
