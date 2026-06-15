@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`watch_actions` filter on `Plugin`.** `watch_actions=frozenset({MyAction})` limits plugin delivery to the given action classes and their subclasses (`issubclass` check). Implemented in `Plugin` base class; available to all plugins.
 - **`watch_events` filter on `Plugin`.** `watch_events=frozenset({GlobalFinishEvent})` limits plugin delivery to the given event types. Implemented in `Plugin` base class; available to all plugins.
 
-## [1.0.0a1] – 2026-06-15
+## [1.0.0a1] – 2026-06-14
 
 ### Fixed
 
