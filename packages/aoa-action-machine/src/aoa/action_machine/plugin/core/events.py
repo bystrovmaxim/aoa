@@ -342,10 +342,15 @@ class AfterRegularAspectEvent(RegularAspectEvent):
         aspect_result: Dict that became the next state after checker validation (e.g.
             ``{"txn_id": "TXN-001", "charged_amount": 500.0}``).
         duration_ms: Wall time for the aspect call plus checker work, in milliseconds.
+        opaque_fields: Field names declared ``opaque=True`` on this aspect's checkers.
+            Populated by the machine from the graph at event-creation time.
+            Defaults to ``frozenset()`` for backward compatibility when the event is
+            created without graph access (e.g. in tests).
     """
 
     aspect_result: dict[str, Any]
     duration_ms: float
+    opaque_fields: frozenset[str] = frozenset()
 
 
 # ─────────────────────────────────────────────────────────────────────────────

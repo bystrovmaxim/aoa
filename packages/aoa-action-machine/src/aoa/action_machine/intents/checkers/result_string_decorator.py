@@ -62,7 +62,7 @@ class FieldStringChecker:
     Self-contained implementation; runtime uses the usual constructor kwargs and ``.check(result_dict)``.
     """
 
-    __slots__ = ("field_name", "max_length", "min_length", "not_empty", "required")
+    __slots__ = ("field_name", "max_length", "min_length", "not_empty", "opaque", "required")
 
     def __init__(
         self,
@@ -71,12 +71,14 @@ class FieldStringChecker:
         min_length: int | None = None,
         max_length: int | None = None,
         not_empty: bool = False,
+        opaque: bool = False,
     ) -> None:
         self.field_name = field_name
         self.required = required
         self.min_length = min_length
         self.max_length = max_length
         self.not_empty = not_empty
+        self.opaque = opaque
 
     def _get_extra_params(self) -> dict[str, Any]:
         """Return checker constructor params for snapshot serialization / tests."""
@@ -84,6 +86,7 @@ class FieldStringChecker:
             "min_length": self.min_length,
             "max_length": self.max_length,
             "not_empty": self.not_empty,
+            "opaque": self.opaque,
         }
 
     def check(self, result: dict[str, Any]) -> None:
@@ -156,6 +159,7 @@ def result_string(
     min_length: int | None = None,
     max_length: int | None = None,
     not_empty: bool = False,
+    opaque: bool = False,
 ) -> Any:
     """
     Decorator for aspect methods declaring string result field.
@@ -170,6 +174,7 @@ def result_string(
         min_length: minimum allowed length (inclusive).
         max_length: maximum allowed length (inclusive).
         not_empty: if ``True``, empty string is rejected.
+        opaque: if True, the field is excluded from OTel state x-ray. Defaults to False.
 
     Returns:
         Decorator function that appends checker metadata to method.
@@ -187,6 +192,7 @@ def result_string(
         "min_length": min_length,
         "max_length": max_length,
         "not_empty": not_empty,
+        "opaque": opaque,
     }
 
     def decorator(func: Any) -> Any:

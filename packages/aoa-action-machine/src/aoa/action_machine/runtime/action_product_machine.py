@@ -424,6 +424,11 @@ class ActionProductMachine(BaseActionMachine):
                         state_after=state,
                     )
 
+                opaque_fields = frozenset(
+                    n.node_obj.field_name
+                    for n in getattr(aspect_node, "get_checker_graph_nodes", lambda: [])()
+                    if n.node_obj.opaque
+                )
                 await self._plugin_coordinator.emit_after_regular_aspect(
                     plugin_ctx,
                     action=action,
@@ -434,6 +439,7 @@ class ActionProductMachine(BaseActionMachine):
                     state_snapshot=state.to_dict(),
                     aspect_result=new_state_dict,
                     duration_ms=aspect_duration * 1000,
+                    opaque_fields=opaque_fields,
                 )
 
             failed_aspect_name = "summary aspect is not defined in action"

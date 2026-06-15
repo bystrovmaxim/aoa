@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aoa-action-machine"
-version = "1.0.0a1"
+version = "1.0.0a2"
 description = "Intent-first business logic framework with metadata-driven actions and role-based access control."
 readme = "README.md"
 license = { text = "MIT" }
@@ -30,6 +30,10 @@ postgres = [
 ]
 ocel = [
     "xxhash>=3.4,<4",
+]
+otel = [
+    "opentelemetry-api>=1.20,<2.0",
+    "opentelemetry-sdk>=1.20,<2.0",
 ]
 
 [project.urls]

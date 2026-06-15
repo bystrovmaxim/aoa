@@ -12,7 +12,7 @@ license = { text = "MIT" }
 requires-python = ">=3.12"
 authors = [{ name = "@Bystrov.Maxim" }]
 dependencies = [
-    "aoa-action-machine[ocel]==1.0.0a1",
+    "aoa-action-machine[ocel]==1.0.0a2",
     "pydantic>=2.0,<3.0",
 ]
 
