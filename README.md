@@ -20,7 +20,7 @@
 - [Business Logic: operation as a unit of meaning](#business-logic-operation-as-a-unit-of-meaning)
   - [Action and pipeline](#action-and-pipeline)
   - [State: X-ray of the operation](#state-x-ray-of-the-operation)
-  - [Sagas and compensations](#distributed-transactions---sagas-and-compensations)
+  - [Sagas and compensations](#distributed-transactions--sagas-and-compensations)
   - [Explicit error handling](#explicit-error-handling)
   - [Dependencies as a contract](#dependencies-as-a-contract)
   - [Context](#context-all-runtime-environment-in-one-explicit-object)
@@ -113,8 +113,8 @@ Hello, World!
 
 **What's next:**
 
-- Hello World — [Try in Colab](https://colab.research.google.com/...) · [View in project](examples/hello_world.py)
-- Full example — [Try in Colab](https://colab.research.google.com/...) · [View in project](examples/full_example.py)
+- Hello World — [Try in Colab](https://colab.research.google.com/...) · [View in project](examples/step_01_Action_and_pipeline/01_hello_world.py)
+- Full example — [Try in Colab](https://colab.research.google.com/...) · [View in project](examples/domain_model/01_domain_model.py)
 
 ## Packages
 
@@ -241,7 +241,7 @@ Receives the request object from the transport and builds a `Context` — a tran
 # auth = ApiKeyCoordinator(header="X-Api-Key", resolver=lookup_key)
 ```
 
-→ [Authentication and roles](packages/aoa-action-machine/README.md)
+→ [Authentication and roles](docs/tutorials/step-12-authentication.md)
 
 #### Observability (`plugin_coordinator`)
 
@@ -281,7 +281,7 @@ The `Action` is only responsible for meaning: via `cache_key` it declares what t
 
 All instruments can be connected, disconnected, and replaced depending on the environment — different configurations for production, development, and tests, including dynamic reconfiguration at runtime. They are all extensible: AOA ships a baseline set of implementations, but for a specific project you can write your own cache coordinator (e.g. Redis), your own logger (Kafka, Slack, PagerDuty), or plugin.
 
-→ [ActionProductMachine](packages/aoa-action-machine/README.md)
+→ [ActionProductMachine](docs/tutorials/step-11-machine.md)
 
 ---
 
@@ -315,7 +315,7 @@ server = (
 
 The external schema does not always match the `Action` contract: a new API version shipped, the frontend renamed a field, a partner requires a different format. Changing the `Action` itself is not necessary.
 
-The translation is therefore placed at the adapter boundary: `params_converter` brings the incoming request to `Params`, `result_converter` — the `Result` to the required response format. The `Action` remains untouched.
+The translation is therefore placed at the adapter boundary: `request_model` / `response_model` declare the external shapes, `params_mapper` brings the incoming request to `Params`, and `response_mapper` brings the `Result` to the required response model. The `Action` remains untouched.
 
 ```python
 app = (
@@ -332,15 +332,17 @@ app = (
         "/api/v2/orders",
         CreateOrderAction,
         tags=["orders"],
-        params_converter=lambda raw: CreateOrderParams(
-            items=raw["line_items"],
-            region=raw.get("region", "RU"),
+        request_model=CreateOrderV2Request,    # external request shape (line_items, region)
+        response_model=CreateOrderV2Response,  # external response shape (adds created_at)
+        params_mapper=lambda body: CreateOrderParams(
+            items=body.line_items,
+            region=body.region,
         ),
-        result_converter=lambda r: {
-            "order_id": r.order_id,
-            "status": r.status,
-            "created_at": r.created_at.isoformat(),
-        },
+        response_mapper=lambda r: CreateOrderV2Response(
+            order_id=r.order_id,
+            status=r.status,
+            created_at=r.created_at,
+        ),
     )
     .build()
 )
@@ -358,7 +360,7 @@ In AOA, AI agents are not an add-on but an equal consumer of the system. The sam
 
 As an experimental feature, a `LangGraphAdapter` is planned — a smart transport that moves intelligence into the transport layer itself. Since in AOA an operation is described through intention and result — *what* needs to be obtained, not *how* to obtain it — such a transport only needs a goal, and it will decide which `Action` operations to call and in what order to achieve it. The service declares available results, the transport handles orchestration — and again without a single change to the operations themselves.
 
-→ [Adapters: HTTP and MCP from one source](packages/aoa-action-machine/README.md#513-adapters-http-and-mcp-from-one-source)
+→ [Adapters: HTTP and MCP from one source](docs/tutorials/step-13-fastapi.md)
 
 ---
 
@@ -389,7 +391,7 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
         return CreateOrderResult(order_id=state.reservation_id)
 ```
 
-→ [Action and pipeline](packages/aoa-action-machine/README.md#5-core-actions-and-pipeline)
+→ [Action and pipeline](docs/tutorials/step-01-action-and-pipeline.md)
 
 ---
 
@@ -413,7 +415,7 @@ async def create_order(self, params, state, box, connections):
 
 `reserve_items` declares that it will put a non-empty string into `state.reservation_id` — and `create_order` receives an already-verified value without guessing what the previous step actually returned.
 
-→ [State and four data surfaces](packages/aoa-action-machine/README.md#52-four-data-surfaces) · [Cache, logs, plugins](#cache-logs-plugins) · [Testing](#world-substitution-testing-testing-through-world-replacement)
+→ [State and four data surfaces](docs/tutorials/step-02-state-as-x-ray.md) · [Cache](#cache-a-wrapper-over-the-pipeline) · [logs](#logs-as-business-events) · [plugins](#plugins-observer-not-participant) · [Testing](#world-substitution-testing--replace-the-world-not-the-internals)
 
 ---
 
@@ -435,7 +437,7 @@ async def release_items(self, params, state, box, connections):
     await connections.warehouse.release(state.reservation_id)
 ```
 
-→ [Sagas and compensations](packages/aoa-action-machine/README.md#53-saga-rollback-without-hidden-magic)
+→ [Sagas and compensations](docs/tutorials/step-04-saga-and-compensations.md)
 
 ---
 
@@ -457,7 +459,7 @@ async def handle_unexpected(self, params, state, box, connections, error):
     raise error
 ```
 
-→ [Explicit errors](packages/aoa-action-machine/README.md#54-explicit-errors-on_error)
+→ [Explicit errors](docs/tutorials/step-05-error-handling.md)
 
 ---
 
@@ -478,7 +480,7 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
         ...
 ```
 
-→ [Dependencies](packages/aoa-action-machine/README.md#55-depends-all-dependencies-in-the-header) and [Connections](packages/aoa-action-machine/README.md#56-connection-pass-an-already-open-resource)
+→ [Dependencies](docs/tutorials/step-06-dependencies.md) and [Connections](docs/tutorials/step-17-connections.md)
 
 ---
 
@@ -495,7 +497,7 @@ async def check_limit(self, params, state, box, connections, context):
     state.limit = await get_limit_for(context.user_id)
 ```
 
-→ [Context](packages/aoa-action-machine/README.md#57-context_requires-context-only-on-explicit-request)
+→ [Context](docs/tutorials/step-07-context.md)
 
 ---
 
@@ -515,7 +517,7 @@ class GetPriceAction(BaseAction[GetPriceParams, GetPriceResult]):
         return duration_ms > 50  # only cache what took non-trivial time to compute
 ```
 
-→ [Cache](packages/aoa-action-machine/README.md#59-cache-intention-not-an-infrastructure-patch)
+→ [Cache](docs/tutorials/step-08-cache.md)
 
 ---
 
@@ -532,7 +534,7 @@ class AuditPlugin(BasePlugin):
         await self.storage.write(action=event.action_name, aspect=event.aspect_name, state=event.state)
 ```
 
-→ [Plugins](packages/aoa-action-machine/README.md#510-plugins-infrastructure-between-steps) · [OpenTelemetry](#opentelemetry-out-of-the-box) · [Object-Centric Event Log 2.0](#ocel-process-mining-out-of-the-box)
+→ [Plugins](docs/tutorials/step-09-plugins.md) · [OpenTelemetry](docs/extensions/opentelemetry.md) · [Object-Centric Event Log 2.0](docs/extensions/ocel.md)
 
 ---
 
@@ -553,7 +555,7 @@ async def charge_aspect(self, params, state, box, connections):
 
 Unlike `logger.info()`, `box.info/warning/critical()` carries a severity level and is addressed to a specific **channel** — `business`, `audit`, `debug`, or `client`. The call itself merely produces a structured event with full context; who delivers it and how — DB, queue, SMS, push — is decided by subscribed loggers, not the operation code.
 
-→ [Logs](packages/aoa-action-machine/README.md#58-logs-that-dont-pollute-business-code)
+→ [Logs](docs/tutorials/step-10-logs.md)
 
 ---
 
@@ -584,7 +586,7 @@ assert result.status == "payment_declined"
 
 The same idea applies to access control: simply substitute a user without the required role and the machine will reject the call before any aspects run, without looking at the business logic. Substitution works at any level: the full `Action` — `bench.run()`, a single step — `bench.run_aspect()`, only result assembly — `bench.run_summary()`.
 
-→ [Testing](packages/aoa-action-machine/README.md#512-testing-same-machine-different-reality)
+→ [Testing](docs/tutorials/step-23-testbench.md)
 
 ---
 
@@ -740,8 +742,8 @@ order.lifecycle.available_transitions  # → {"confirmed", "cancelled"}
 order.lifecycle.is_initial             # → True
 ```
 
-→ [Full example: Entity, Resource, Action](examples/08_domain_model.py)
-→ [Advanced domain modeling](packages/aoa-action-machine/README.md#6-advanced-domain-modeling)
+→ [Full example: Entity, Resource, Action](examples/domain_model/01_domain_model.py)
+→ [Advanced domain modeling](docs/tutorials/step-20-entity.md)
 
 ---
 
