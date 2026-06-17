@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
+## [1.0.0a3] – 2026-06-17
+
+### Documentation
+
+- **First complete documentation set for the whole project.** Introduced a full [Diátaxis](https://diataxis.fr/) documentation tree under `docs/`, navigated from a single hub (`docs/index.md`): a step-by-step **tutorial** (getting started through Maxitor, steps 00–26), **how-to guides** (choosing Action / aspect / resource, migrating a legacy codebase, and eight extension-authoring guides), **reference** (FAQ, glossary, formal model, intents & invariants), **explanation** (philosophy / IOP, comparison with other frameworks, system altitudes, “questions AOA answers with code”), **ready-extension cards** (ConsoleLogger, FastAPI, MCP, OCEL 2.0, OpenTelemetry, PostgreSQL), and a **research note** (what the system knows about itself).
+- **Runnable examples in two forms.** Every example under `examples/` now ships both as a plain `.py` and as a Colab `.ipynb` (English, identical logic, `!pip install` cell + top-level `await`), covering the full tutorial set plus the non-tutorial how-to / extension / research examples. Tutorial chapters carry a dual-form “Try in Colab · Open in project” link line.
+- **README rework.** `packages/aoa-action-machine/README.md` becomes a focused quick-start that leads into the tutorial; the root `README.md` links are repointed to the new `docs/` chapters and to current example paths.
+
 ## [1.0.0a2] – 2026-06-15
 
 ### Added
