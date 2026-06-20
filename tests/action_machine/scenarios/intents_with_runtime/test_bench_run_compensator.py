@@ -28,7 +28,7 @@ from pydantic import Field
 
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.checkers import result_string
 from aoa.action_machine.intents.compensate import compensate
 from aoa.action_machine.intents.context_requires import Ctx, context_requires
@@ -85,7 +85,7 @@ class CtxCheckResult(BaseResult):
 
 
 @meta(description="Action to check the context in the compensator", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(
     PaymentServiceResource,
     factory=default_payment_service_resource,

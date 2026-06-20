@@ -31,7 +31,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_string
@@ -45,7 +45,7 @@ from ..orders_domain import OrdersDomain
 
 
 @meta(description="Create new order", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderAction.Result"]):
 
     class Params(BaseParams):

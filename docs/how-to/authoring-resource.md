@@ -95,7 +95,7 @@ A resource is declared on an operation via [`@connection`](../tutorials/step-17-
 from aoa.action_machine.intents.connection import connection
 
 @meta(description="Post a ledger entry", domain=LedgerDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(LedgerResource, key="ledger")
 class PostEntryAction(BaseAction[PostParams, PostResult]):
     @summary_aspect("Post entry")

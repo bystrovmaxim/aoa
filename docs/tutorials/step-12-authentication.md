@@ -98,7 +98,7 @@ The only coordinator ready out of the box today is `NoAuthCoordinator`. It does 
 context = await NoAuthCoordinator().process(None)
 ```
 
-This is the right choice for open endpoints — operations with [`@check_roles(NoneRole)`](step-03-authorization-and-roles.md). Anonymity here is declared explicitly, not obtained "by default".
+This is the right choice for open endpoints — operations with [`@check_roles(GuestRole)`](step-03-authorization-and-roles.md). Anonymity here is declared explicitly, not obtained "by default".
 
 ## One mechanism for any transport
 

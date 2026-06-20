@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -22,7 +22,7 @@ from aoa.examples.model.services.graph_json_service import ExampleModelGraphJson
     description="Return interchange JSON for the example-registered NodeGraphCoordinator.",
     domain=ExampleModelGraphJsonDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class GetExampleModelGraphJsonAction(BaseAction["GetExampleModelGraphJsonAction.Params", "GetExampleModelGraphJsonAction.Result"]):
     class Params(BaseParams):
         """No query or body parameters."""

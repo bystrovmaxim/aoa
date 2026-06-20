@@ -76,7 +76,7 @@ EXAMPLES
 
 from collections.abc import Callable
 
-from aoa.action_machine.auth.none_role import NoneRole
+from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles.check_roles_decorator import check_roles
@@ -105,7 +105,7 @@ class MockActionResult(BaseResult):
 
 
 @meta(description="Mock action for tests.", domain=TestingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class MockAction(BaseAction[MockActionParams, MockActionResult]):  # pylint: disable=too-many-ancestors
     """
     Mock action for tests.

@@ -36,7 +36,7 @@ pip install "aoa-action-machine[ocel]"       # OCEL 2.0 event log
 An operation is an atomic business operation. Let us assemble the simplest one: it takes a name and returns a greeting. Three declarations are mandatory: the domain (`@meta`), access (`@check_roles`), and a single exit point (`@summary_aspect`).
 
 ```python
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -61,7 +61,7 @@ class GreetResult(BaseResult):
 
 
 @meta(description="Greet by name", domain=GreetingDomain)
-@check_roles(NoneRole)            # NoneRole — the operation is open to everyone (declared explicitly)
+@check_roles(GuestRole)            # GuestRole — the operation is open to everyone (declared explicitly)
 class GreetAction(BaseAction[GreetParams, GreetResult]):
 
     @summary_aspect("Assemble the greeting")
@@ -101,7 +101,7 @@ from aoa.action_machine.intents.aspects import regular_aspect
 from aoa.action_machine.intents.checkers import result_string
 
 @meta(description="Greet by name", domain=GreetingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class GreetAction(BaseAction[GreetParams, GreetResult]):
 
     @regular_aspect("Normalise the name")
@@ -127,7 +127,7 @@ from aoa.action_machine.intents.depends import depends
 from aoa.action_machine.logging import Channel
 
 @meta(description="Greet by name", domain=GreetingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(GreeterService)
 class GreetAction(BaseAction[GreetParams, GreetResult]):
 

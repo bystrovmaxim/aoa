@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from pydantic import Field
 
 from aoa.action_machine.adapters.fastapi import FastApiAdapter
-from aoa.action_machine.auth import NoAuthCoordinator, NoneRole
+from aoa.action_machine.auth import NoAuthCoordinator, GuestRole
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -41,7 +41,7 @@ class CreateDraftResult(BaseResult):
 
 
 @meta(description="Create order draft", domain=OrderDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class CreateDraftAction(BaseAction[CreateDraftParams, CreateDraftResult]):
 
     @regular_aspect("Normalise SKU")

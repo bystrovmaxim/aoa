@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -14,7 +14,7 @@ from aoa.examples.model.support.support_domain import SupportDomain
 
 
 @meta(description="Open support ticket stub (support sample)", domain=SupportDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class TicketStubAction(BaseAction["TicketStubAction.Params", "TicketStubAction.Result"]):
     class Params(BaseParams):
         subject: str = Field(description="Ticket subject")

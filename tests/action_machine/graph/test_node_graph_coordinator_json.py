@@ -119,7 +119,7 @@ class _MiniAxisResult:
 
 
 class _MiniAxisRole:
-    """Isolated inspector root: emit ``RoleGraphNode(NoneRole)``."""
+    """Isolated inspector root: emit ``RoleGraphNode(GuestRole)``."""
 
 
 class _InspectPingAction(BaseGraphNodeInspector[_MiniAxisAction]):
@@ -162,12 +162,12 @@ class _InspectPingResult(BaseGraphNodeInspector[_MiniAxisResult]):
         return ResultGraphNode(PingAction.Result) if cls is _MiniAxisResult else None
 
 
-class _InspectNoneRole(BaseGraphNodeInspector[_MiniAxisRole]):
+class _InspectGuestRole(BaseGraphNodeInspector[_MiniAxisRole]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
-        from aoa.action_machine.auth.none_role import NoneRole
+        from aoa.action_machine.auth.guest_role import GuestRole
         from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 
-        return RoleGraphNode(NoneRole) if cls is _MiniAxisRole else None
+        return RoleGraphNode(GuestRole) if cls is _MiniAxisRole else None
 
 
 def test_to_json_ping_action_mini_graph_round_trip() -> None:
@@ -180,7 +180,7 @@ def test_to_json_ping_action_mini_graph_round_trip() -> None:
             _InspectApplication(),
             _InspectPingParams(),
             _InspectPingResult(),
-            _InspectNoneRole(),
+            _InspectGuestRole(),
         ],
         export_json_schema=GRAPH_JSON_SCHEMA,
     )
@@ -254,7 +254,7 @@ def test_networkx_payload_supports_type_filters() -> None:
             _InspectApplication(),
             _InspectPingParams(),
             _InspectPingResult(),
-            _InspectNoneRole(),
+            _InspectGuestRole(),
         ],
         export_json_schema=GRAPH_JSON_SCHEMA,
     )

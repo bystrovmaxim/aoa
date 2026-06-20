@@ -22,7 +22,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain import (
     AssociationMany,
@@ -202,7 +202,7 @@ class CreateOrderResult(BaseResult):
 
 
 @meta(description="Create a new customer order", domain=StoreDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(OrderResource, key="orders")
 class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
 

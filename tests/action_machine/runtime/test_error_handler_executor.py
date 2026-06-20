@@ -16,7 +16,7 @@ from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.checkers import result_string
 from aoa.action_machine.intents.context_requires.context_requires_decorator import context_requires
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -51,7 +51,7 @@ def _wired_action(cls: type) -> ActionGraphNode:
 
 
 @meta(description="Probe @context_requires wiring in ErrorHandlerExecutor", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class _CtxOnErrorProbeAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """Minimal Action whose ``@on_error`` handler pulls ``Ctx.User.user_id`` via ``ContextView``."""
 

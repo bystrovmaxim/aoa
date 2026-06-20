@@ -42,7 +42,7 @@ from pydantic import Field
 
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.checkers import result_string
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.intents.on_error import on_error
@@ -96,7 +96,7 @@ class ErrorTestResult(BaseResult):
 
 
 @meta(description="Action with a single ValueError handler", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """
     Action with one @on_error handler for ValueError.
@@ -150,7 +150,7 @@ class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
 
 
 @meta(description="Action with multiple error handlers", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """
     Action with three @on_error handlers from specific to general.
@@ -234,7 +234,7 @@ class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
 
 
 @meta(description="Action without error handlers", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class NoErrorHandlerAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """
     Action without @on_error — aspect errors propagate to the caller.
@@ -274,7 +274,7 @@ class NoErrorHandlerAction(BaseAction[ErrorTestParams, ErrorTestResult]):
 
 
 @meta(description="Action whose error handler raises", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class HandlerRaisesAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """
     Action whose @on_error handler raises.

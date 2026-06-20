@@ -14,7 +14,7 @@ from typing import Any, Literal, cast
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
@@ -209,7 +209,7 @@ def _group_check_roles_targets_by_action(
     description="Return Action/Role use-case diagram JSON for one interchange Domain id (DuckDB graph)",
     domain=DiagramsDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(
     DuckDBGraphResource,
     key=DUCKDB_GRAPH_CONNECTION_KEY,

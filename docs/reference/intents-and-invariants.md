@@ -49,7 +49,7 @@ AOA will not let a "bare" operation through. Every one must have roles, a domain
 | An exit point with a result | `@summary_aspect` |
 | An acyclic dependency graph | `@depends` checked at startup |
 
-If an operation is open to everyone, you say it out loud — `@check_roles(NoneRole)`. Not a formality but a declared intent, as opposed to a silent absence of a check.
+If an operation is open to everyone, you say it out loud — `@check_roles(GuestRole)`. Not a formality but a declared intent, as opposed to a silent absence of a check.
 
 ---
 
@@ -140,7 +140,7 @@ class DeleteOrderAction(BaseAction[...]): ...
 
 # ✓ open to everyone — said explicitly
 @meta(description="Get status", domain=StoreDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class GetOrderStatusAction(BaseAction[...]): ...
 ```
 

@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Types that carry ``CheckRolesIntent`` in MRO **commit** to expressing access rules via
-``@check_roles`` (or explicit ``NoneRole`` / ``AnyRole``). The decorator checks
+``@check_roles`` (or explicit ``GuestRole`` / ``AnyRole``). The decorator checks
 ``issubclass`` at apply time and writes ``cls._role_info`` for ``ActionGraphNode`` / ``RoleChecker``.
 
 ═══════════════════════════════════════════════════════════════════════════════

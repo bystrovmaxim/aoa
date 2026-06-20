@@ -10,7 +10,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -41,7 +41,7 @@ class ConfigResult(BaseResult):
 
 
 @meta(description="Get config (cached)", domain=RootDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class GetConfigAction(BaseAction[ConfigParams, ConfigResult]):
 
     def cache_key(self, params: ConfigParams) -> str | None:

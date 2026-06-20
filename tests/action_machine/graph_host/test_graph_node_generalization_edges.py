@@ -9,7 +9,7 @@ from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
@@ -26,7 +26,7 @@ from tests.action_machine.scenarios.domain_model.domains import TestDomain
 
 
 @meta(description="PR-3 parent action for graph node tests", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class _Pr3ParentAction(BaseAction["_Pr3ParentAction.Params", "_Pr3ParentAction.Result"]):
     class Params(BaseParams):
         pass
@@ -46,7 +46,7 @@ class _Pr3ParentAction(BaseAction["_Pr3ParentAction.Params", "_Pr3ParentAction.R
 
 
 @meta(description="PR-3 child action", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class _Pr3ChildAction(_Pr3ParentAction):
     @summary_aspect("Summary")
     async def pong_summary(
@@ -79,5 +79,5 @@ def test_domain_graph_node_application_then_parent_domain() -> None:
 
 
 def test_role_graph_node_none_role_no_parent_when_system_role_excluded() -> None:
-    node = RoleGraphNode(NoneRole)
+    node = RoleGraphNode(GuestRole)
     assert [e.edge_name for e in node.get_all_edges()] == ["application"]

@@ -18,7 +18,7 @@ from typing import Any
 from pydantic import Field
 
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
@@ -45,7 +45,7 @@ GraphJson = JsonSchemaValue.define(
 
 
 @meta(description="Adapter test action for JsonSchemaValue transport checks", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class AdapterTestAction(BaseAction["AdapterTestAction.Params", "AdapterTestAction.Result"]):
     """Minimal action: params carry ``label``; result carries a schema-backed ``graph``."""
 

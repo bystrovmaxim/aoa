@@ -29,7 +29,7 @@ from typing import Any, cast
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
@@ -102,7 +102,7 @@ _LIST_DOMAINS_DISTINCT_COLORS: tuple[str, ...] = _unique_color_tuple(_EXTRA_LIST
     description="List interchange domain type qualnames for ERD client (diagrams)",
     domain=DiagramsDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(
     DuckDBGraphResource,
     key=DUCKDB_GRAPH_CONNECTION_KEY,

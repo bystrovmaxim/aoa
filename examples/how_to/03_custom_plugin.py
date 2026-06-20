@@ -30,7 +30,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -78,7 +78,7 @@ class GreetResult(BaseResult):
 
 
 @meta(description="Greet a person", domain=GreetingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class GreetAction(BaseAction[GreetParams, GreetResult]):
     @summary_aspect("Build greeting")
     async def greet_summary(self, params, state, box, connections):

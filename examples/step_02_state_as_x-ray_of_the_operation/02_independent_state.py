@@ -12,7 +12,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
@@ -40,7 +40,7 @@ class ItemResult(BaseResult):
 
 
 @meta(description="Process item through independent state snapshots", domain=ShopDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class ProcessItemAction(BaseAction[ItemParams, ItemResult]):
 
     @regular_aspect("Step 1: Normalise SKU")

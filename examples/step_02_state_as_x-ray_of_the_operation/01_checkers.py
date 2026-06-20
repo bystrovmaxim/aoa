@@ -30,7 +30,7 @@ from datetime import datetime
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
@@ -95,7 +95,7 @@ class OrderResult(BaseResult):
 # ---------------------------------------------------------------------------
 
 @meta(description="Validate and normalise an incoming order", domain=OrderDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class ValidateOrderAction(BaseAction[OrderParams, OrderResult]):
 
     # -----------------------------------------------------------------------

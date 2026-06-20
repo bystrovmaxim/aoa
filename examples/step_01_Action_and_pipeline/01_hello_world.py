@@ -9,7 +9,7 @@ Every line here is required — nothing extra, nothing optional.
 What's new:
   - BaseDomain       — logical grouping of operations in the system
   - @meta            — required class decorator: description and domain
-  - @check_roles     — required access declaration (NoneRole = open to everyone)
+  - @check_roles     — required access declaration (GuestRole = open to everyone)
   - BaseAction[P, R] — base class for all operations
   - ParamsStub       — input data stub (no fields)
   - ResultStub       — result stub (no fields)
@@ -23,7 +23,7 @@ Run:
 
 import asyncio
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -57,14 +57,14 @@ class GreetingDomain(BaseDomain):
 #
 # Two required decorators (the machine refuses to run without them):
 #   @meta(description=..., domain=...)  — what this operation is and where it lives
-#   @check_roles(NoneRole)              — who can call it (NoneRole = everyone)
+#   @check_roles(GuestRole)              — who can call it (GuestRole = everyone)
 #
 # NAMING RULE: the class name must end with "Action".
 # Try writing "SayHello" — you'll get NamingSuffixError at class declaration.
 # ---------------------------------------------------------------------------
 
 @meta(description="Say hello to the world", domain=GreetingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class SayHelloAction(BaseAction[ParamsStub, ResultStub]):
 
     # -----------------------------------------------------------------------

@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -33,7 +33,7 @@ _SupportPingSampleAuditJson = JsonSchemaValue.define(
 
 
 @meta(description="Support slice ping (dependency target for same-domain @depends)", domain=SupportDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class SupportPingAction(BaseAction["SupportPingAction.Params", "SupportPingAction.Result"]):
     class Params(BaseParams):
         label: str = Field(default="support", description="Probe label")
