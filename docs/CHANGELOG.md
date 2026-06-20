@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
+## [1.0.0a4] – 2026-06-20
+
+### Fixed
+
+- **`Level.info` no longer forces white foreground in `ConsoleLogger`.** Removed the explicit `#FFFFFF` truecolor entry from `DEFAULT_LEVEL_FG_PREFIX`. The terminal (or notebook environment) now decides the foreground color for info messages, making them readable on both dark terminals and light-background environments such as Google Colab. `warning` (#FFCC00) and `critical` (#FF2222) colors are unaffected.
+- **Ruff false positives in Jupyter notebooks.** Added `"**/*.ipynb" = ["F404", "E402", "F401", "RUF005"]` under `[tool.ruff.lint.per-file-ignores]` in `pyproject.toml`. Notebook cells share cross-cell scope that ruff cannot see, producing 42 spurious import errors in `examples/`. After the fix `ruff check examples/` passes clean.
+
 ## [1.0.0a3] – 2026-06-17
 
 ### Documentation
