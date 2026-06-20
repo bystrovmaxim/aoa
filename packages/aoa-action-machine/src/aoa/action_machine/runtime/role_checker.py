@@ -20,7 +20,7 @@ ARCHITECTURE / DATA FLOW
 
     action_node.roles (``RoleGraphEdge`` → wired :class:`~aoa.action_machine.graph.nodes.role_graph_node.RoleGraphNode`)
               │
-              ├── NoneRole → allow
+              ├── GuestRole → allow
               ├── AnyRole  → require ≥1 non‑SILENCED role type
               │
               └── type | tuple[type, …]
@@ -39,7 +39,7 @@ from typing import Any
 
 from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.base_role import BaseRole
-from aoa.action_machine.auth.none_role import NoneRole
+from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
@@ -59,7 +59,7 @@ class RoleChecker:
         """
         Reconstruct the ``@check_roles`` spec shape from wired role association edges.
 
-        Returns ``NoneRole``, ``AnyRole``, a single concrete ``BaseRole`` subtype, or
+        Returns ``GuestRole``, ``AnyRole``, a single concrete ``BaseRole`` subtype, or
         a tuple of subtypes (OR semantics), matching :class:`RoleGraphEdge` emission order.
         """
 
@@ -93,13 +93,13 @@ class RoleChecker:
         if not action_node.roles:
             raise TypeError(
                 f"Action {action_node.node_id} does not have a @check_roles "
-                f"decorator. Specify @check_roles(NoneRole) explicitly if "
+                f"decorator. Specify @check_roles(GuestRole) explicitly if "
                 f"the action is accessible without authentication."
             )
         role_spec = self._check_roles_spec_from_action_edges(action_node)
         raw_roles = context.user.roles
 
-        if role_spec is NoneRole:
+        if role_spec is GuestRole:
             return
         if role_spec is AnyRole:
             active = _active_user_roles(raw_roles)

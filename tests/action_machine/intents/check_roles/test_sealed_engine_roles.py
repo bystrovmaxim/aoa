@@ -4,7 +4,7 @@
 import pytest
 
 from aoa.action_machine.auth.any_role import AnyRole
-from aoa.action_machine.auth.none_role import NoneRole
+from aoa.action_machine.auth.guest_role import GuestRole
 
 
 def test_any_role_rejects_subclassing() -> None:
@@ -14,8 +14,8 @@ def test_any_role_rejects_subclassing() -> None:
             pass
 
 
-def test_none_role_rejects_subclassing() -> None:
-    with pytest.raises(TypeError, match="Cannot subclass sealed engine role NoneRole"):
+def test_guest_role_rejects_subclassing() -> None:
+    with pytest.raises(TypeError, match="Cannot subclass sealed engine role GuestRole"):
 
-        class _Bad(NoneRole):
+        class _Bad(GuestRole):
             pass

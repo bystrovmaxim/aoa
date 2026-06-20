@@ -27,7 +27,7 @@ from typing import cast
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
@@ -119,7 +119,7 @@ def fill_color_for_node_type(node_type: str) -> str:
     description="List present graph-node types from DuckDB with interchange disk fill colours (diagrams)",
     domain=DiagramsDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(
     DuckDBGraphResource,
     key=DUCKDB_GRAPH_CONNECTION_KEY,

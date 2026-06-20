@@ -23,7 +23,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 from pydantic import Field
 
 from aoa.action_machine.adapters.mcp import McpAdapter
-from aoa.action_machine.auth import ApplicationRole, NoAuthCoordinator, NoneRole
+from aoa.action_machine.auth import ApplicationRole, NoAuthCoordinator, GuestRole
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -52,7 +52,7 @@ class GreetResult(BaseResult):
 
 # ── Open operation: any agent may call it ────────────────────────────────────
 @meta(description="Greet a person by name", domain=GreetingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class GreetAction(BaseAction[GreetParams, GreetResult]):
 
     @summary_aspect("Build greeting")

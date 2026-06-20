@@ -23,7 +23,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions.transaction_prohibited_error import TransactionProhibitedError
@@ -122,7 +122,7 @@ class EntryResult(BaseResult):
 
 
 @meta(description="Append an audit entry", domain=BillingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(LedgerResource, key="ledger")
 class AppendEntryAction(BaseAction[EntryParams, EntryResult]):
 
@@ -153,7 +153,7 @@ class ChargeResult(BaseResult):
 
 
 @meta(description="Charge for a product", domain=BillingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(PricingService)
 @connection(LedgerResource, key="ledger")
 class ChargeAction(BaseAction[ChargeParams, ChargeResult]):

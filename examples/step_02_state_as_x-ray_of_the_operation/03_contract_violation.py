@@ -12,7 +12,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
@@ -41,7 +41,7 @@ class ItemResult(BaseResult):
 
 
 @meta(description="Aspect that returns an incomplete state dict", domain=ShopDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class BrokenItemAction(BaseAction[ItemParams, ItemResult]):
 
     @regular_aspect("Intentionally broken step")

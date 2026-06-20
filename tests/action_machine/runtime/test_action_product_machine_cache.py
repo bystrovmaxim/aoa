@@ -14,7 +14,7 @@ from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.checkers import result_string
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.intents.on import on
@@ -84,7 +84,7 @@ class _EventNameRecorder(Plugin):
 
 
 @meta(description="Cacheable counting summary", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class CacheableCountingAction(BaseAction["CacheableCountingAction.Params", "CacheableCountingAction.Result"]):
     class Params(BaseParams):
         pass
@@ -116,7 +116,7 @@ class CacheableCountingAction(BaseAction["CacheableCountingAction.Params", "Cach
 
 
 @meta(description="Per-user cache key", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class PerUserOrderCacheAction(BaseAction["PerUserOrderCacheAction.Params", "PerUserOrderCacheAction.Result"]):
     class Params(BaseParams):
         user_id: str = Field(description="user")
@@ -152,7 +152,7 @@ _reject_next_read: ClassVar[bool] = False
 
 
 @meta(description="Stale read once", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class StaleReadCacheAction(BaseAction["StaleReadCacheAction.Params", "StaleReadCacheAction.Result"]):
     class Params(BaseParams):
         pass
@@ -188,7 +188,7 @@ class StaleReadCacheAction(BaseAction["StaleReadCacheAction.Params", "StaleReadC
 
 
 @meta(description="Bad read_cache dict", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class BadDictReadCacheAction(BaseAction["BadDictReadCacheAction.Params", "BadDictReadCacheAction.Result"]):
     class Params(BaseParams):
         pass
@@ -222,7 +222,7 @@ class BadDictReadCacheAction(BaseAction["BadDictReadCacheAction.Params", "BadDic
 
 
 @meta(description="Empty cache key", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class EmptyKeyCacheAction(BaseAction["EmptyKeyCacheAction.Params", "EmptyKeyCacheAction.Result"]):
     class Params(BaseParams):
         pass
@@ -245,7 +245,7 @@ class EmptyKeyCacheAction(BaseAction["EmptyKeyCacheAction.Params", "EmptyKeyCach
 
 
 @meta(description="Invalid on_cache_write type", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class BadWriteDecisionAction(BaseAction["BadWriteDecisionAction.Params", "BadWriteDecisionAction.Result"]):
     class Params(BaseParams):
         pass
@@ -276,7 +276,7 @@ class BadWriteDecisionAction(BaseAction["BadWriteDecisionAction.Params", "BadWri
 
 
 @meta(description="on_cache_write boom", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class BoomWriteCacheAction(BaseAction["BoomWriteCacheAction.Params", "BoomWriteCacheAction.Result"]):
     class Params(BaseParams):
         pass
@@ -307,7 +307,7 @@ class BoomWriteCacheAction(BaseAction["BoomWriteCacheAction.Params", "BoomWriteC
 
 
 @meta(description="read_cache boom on hit", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class BoomReadCacheAction(BaseAction["BoomReadCacheAction.Params", "BoomReadCacheAction.Result"]):
     class Params(BaseParams):
         pass
@@ -372,7 +372,7 @@ class ManagerOnlyCacheAction(BaseAction["ManagerOnlyCacheAction.Params", "Manage
 
 
 @meta(description="Error path + cache write True", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class CacheableErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """Like ``ErrorHandledAction`` with stable ``cache_key`` and ``on_cache_write`` True."""
 

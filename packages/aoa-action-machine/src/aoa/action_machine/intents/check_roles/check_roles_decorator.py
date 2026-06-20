@@ -9,7 +9,7 @@ PURPOSE
 Declare which **role types** are required to execute an action. The decorator
 writes a normalized specification to ``cls._role_info["spec"]``, consumed by
 ``ActionProductMachine`` / :class:`~aoa.action_machine.runtime.role_checker.RoleChecker`. The
-spec must be ``NoneRole``, ``AnyRole``, a ``BaseRole`` subclass, or a
+spec must be ``GuestRole``, ``AnyRole``, a ``BaseRole`` subclass, or a
 non-empty list of ``BaseRole`` subclasses (OR semantics). ``Context.user.roles``
 holds the same ``BaseRole`` subclasses assigned to the user.
 
@@ -48,18 +48,18 @@ from typing import Any
 
 from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.base_role import BaseRole
-from aoa.action_machine.auth.none_role import NoneRole
+from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 
 def _normalize_check_roles_spec(spec: Any) -> Any:
-    if spec is NoneRole or spec is AnyRole:
+    if spec is GuestRole or spec is AnyRole:
         return spec
 
     if isinstance(spec, str):
         raise TypeError(
             "@check_roles does not accept role name strings; pass a BaseRole "
-            f"subclass, not {spec!r}. Use NoneRole or AnyRole for sentinel modes."
+            f"subclass, not {spec!r}. Use GuestRole or AnyRole for sentinel modes."
         )
 
     if isinstance(spec, type):
@@ -73,7 +73,7 @@ def _normalize_check_roles_spec(spec: Any) -> Any:
         if len(spec) == 0:
             raise ValueError(
                 "@check_roles: an empty role list was provided. "
-                "Specify at least one role or use NoneRole."
+                "Specify at least one role or use GuestRole."
             )
         if any(isinstance(x, str) for x in spec):
             raise TypeError(
@@ -94,14 +94,14 @@ def _normalize_check_roles_spec(spec: Any) -> Any:
         return tuple(spec)
 
     raise TypeError(
-        f"@check_roles expects NoneRole, AnyRole, a BaseRole type, or a non-empty "
+        f"@check_roles expects GuestRole, AnyRole, a BaseRole type, or a non-empty "
         f"list of BaseRole types; got {type(spec).__name__}: {spec!r}."
     )
 
 
 def _validate_required_role_modes(normalized: Any) -> None:
     """Reject ``UNUSED``; warn on ``DEPRECATED`` (``RoleChecker`` enforces ``SILENCED``)."""
-    if normalized in (NoneRole, AnyRole):
+    if normalized in (GuestRole, AnyRole):
         return
     reqs: tuple[type[BaseRole], ...] = (
         (normalized,) if isinstance(normalized, type) else normalized

@@ -1,6 +1,6 @@
-# packages/aoa-action-machine/src/aoa/action_machine/auth/none_role.py
+# packages/aoa-action-machine/src/aoa/action_machine/auth/guest_role.py
 """
-``NoneRole`` engine sentinel role.
+``GuestRole`` engine sentinel role.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -13,7 +13,7 @@ This is an engine sentinel role type, not an assignable business role.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
             |
             v
     role checker bypasses authenticated-role requirement
@@ -32,7 +32,7 @@ from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, r
 
 @final
 @role_mode(RoleMode.ALIVE)
-class NoneRole(SystemRole):
+class GuestRole(SystemRole):
     """
 AI-CORE-BEGIN
     ROLE: Public-access check-spec marker.
@@ -41,10 +41,10 @@ AI-CORE-BEGIN
     AI-CORE-END
 """
 
-    name = "engine_none"
+    name = "engine_guest"
     description = "Engine sentinel: no authentication required for the action."
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         raise TypeError(
-            f"Cannot subclass sealed engine role NoneRole (attempt: {cls.__qualname__!r})."
+            f"Cannot subclass sealed engine role GuestRole (attempt: {cls.__qualname__!r})."
         )

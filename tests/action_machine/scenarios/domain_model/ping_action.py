@@ -9,7 +9,7 @@ PURPOSE
 Simplest Action in the test domain: no parameters, no dependencies or
 connections, only a summary aspect returning a fixed "pong" message.
 
-Available to everyone (NoneRole), including anonymous users.
+Available to everyone (GuestRole), including anonymous users.
 Belongs to SystemDomain.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -17,7 +17,7 @@ USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - Smoke tests: machine runs, coordinator builds metadata, pipeline executes.
-- NoneRole tests: anonymous user without roles passes.
+- GuestRole tests: anonymous user without roles passes.
 - TestBench: minimal run without mocks or connections.
 
     result = await bench.run(PingAction(), PingAction.Params(), rollup=False)
@@ -27,7 +27,7 @@ USAGE IN TESTS
 from pydantic import Field
 
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
@@ -40,12 +40,12 @@ from .domains import SystemDomain
 
 
 @meta(description="Service health check", domain=SystemDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
     """
     Minimal Action without parameters or dependencies.
 
-    Summary-only aspect returning a fixed "pong" result. NoneRole.
+    Summary-only aspect returning a fixed "pong" result. GuestRole.
     """
 
     class Params(BaseParams):

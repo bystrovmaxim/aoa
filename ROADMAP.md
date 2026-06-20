@@ -16,7 +16,7 @@ Address key infrastructure needs: observability, security, testability. Prepare 
 
 - [ ] **(High priority)** Add a `condition: Callable[[AuthSession, Params], bool]` parameter to `@check_roles` for flexible authorization (lambda evaluated after role checks)
 
-- [ ] **(High priority)** Rename `NoneRole` → `GuestRole` (keep the old name as a deprecated alias)
+- [x] **Rename `NoneRole` → `GuestRole`** — `NoneRole` removed; `GuestRole` is the canonical name.
 
 - [ ] **(High priority)** Allow compensation to be referenced by function name (as an object) instead of a string — improve type safety and refactoring
 

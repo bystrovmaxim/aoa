@@ -19,12 +19,12 @@ Role hierarchy modules live under ``packages/aoa-action-machine/src/aoa/action_m
 
     BaseRole (ABC)                 → base_role.py
     ├── SystemRole (ABC)           → system_role.py
-    │   ├── NoneRole (sealed)      → none_role.py
+    │   ├── GuestRole (sealed)     → guest_role.py
     │   └── AnyRole (sealed)       → any_role.py
     └── ApplicationRole (ABC)      → application_role.py
         └── …                      → project-specific application roles
 
-- **``SystemRole`` / ``NoneRole`` / ``AnyRole``** — engine sentinels for
+- **``SystemRole`` / ``GuestRole`` / ``AnyRole``** — engine sentinels for
   ``@check_roles`` only. They are **not** placed in ``UserInfo.roles``.
 - **``ApplicationRole``** — abstract root for types that **may** appear in
   ``UserInfo.roles`` (assignable business roles).
@@ -61,7 +61,7 @@ EXAMPLES
     from aoa.action_machine.intents.check_roles import (
         AnyRole,
         BaseRole,
-        NoneRole,
+        GuestRole,
         RoleMode,
         check_roles,
         role_mode,
@@ -76,7 +76,7 @@ EXAMPLES
     class AdminAction(BaseAction[...]):
         ...
 
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
     class PingAction(BaseAction[...]):
         ...
 """
@@ -85,7 +85,7 @@ from __future__ import annotations
 
 from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.base_role import BaseRole
-from aoa.action_machine.auth.none_role import NoneRole
+from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 from aoa.action_machine.intents.check_roles.check_roles_decorator import check_roles
 from aoa.action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
@@ -96,7 +96,7 @@ __all__ = [
     "AnyRole",
     "BaseRole",
     "CheckRolesIntent",
-    "NoneRole",
+    "GuestRole",
     "RoleGraphNode",
     "RoleMode",
     "RoleModeIntent",

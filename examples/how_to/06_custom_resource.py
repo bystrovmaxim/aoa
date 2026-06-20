@@ -30,7 +30,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions import TransactionProhibitedError
@@ -110,7 +110,7 @@ class PostResult(BaseResult):
 
 
 @meta(description="Post a ledger entry", domain=LedgerDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(LedgerResource, key="ledger")
 class PostEntryAction(BaseAction[PostParams, PostResult]):
     @summary_aspect("Post entry")

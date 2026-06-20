@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -14,7 +14,7 @@ from aoa.examples.model.store.store_domain import StoreDomain
 
 
 @meta(description="Fetch loyalty points balance (store sample stub)", domain=StoreDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class LoyaltyPointsStubAction(BaseAction["LoyaltyPointsStubAction.Params", "LoyaltyPointsStubAction.Result"]):
     class Params(BaseParams):
         customer_id: str = Field(description="Customer id")

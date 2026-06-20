@@ -7,7 +7,7 @@ from pydantic import Field
 
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.checkers import result_string
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
@@ -30,7 +30,7 @@ class ChildNestedResult(BaseResult):
 
 
 @meta(description="Child action for nested-run tests", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class ChildNestedTestAction(BaseAction[ChildNestedParams, ChildNestedResult]):
     """Simple child action returning a fixed result via constructor."""
 
@@ -53,7 +53,7 @@ class ParentNestedResult(BaseResult):
 
 
 @meta(description="Parent calling child via box.run()", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class ParentNestedTestAction(BaseAction[ParentNestedParams, ParentNestedResult]):
     """Regular aspect runs ChildNestedTestAction via box.run()."""
 
@@ -72,7 +72,7 @@ class ParentNestedTestAction(BaseAction[ParentNestedParams, ParentNestedResult])
 
 
 @meta(description="Action recording nest_level in result", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class NestLevelTestAction(BaseAction[ChildNestedParams, ChildNestedResult]):
     """Writes current nest_level from ToolsBox into the result."""
 
@@ -82,7 +82,7 @@ class NestLevelTestAction(BaseAction[ChildNestedParams, ChildNestedResult]):
 
 
 @meta(description="Parent calling NestLevelTestAction", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class NestLevelParentAction(BaseAction[ParentNestedParams, ParentNestedResult]):
     """Runs NestLevelTestAction and records parent vs child nest levels."""
 

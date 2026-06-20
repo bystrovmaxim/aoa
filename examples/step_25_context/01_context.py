@@ -23,7 +23,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import ApplicationRole, NoneRole
+from aoa.action_machine.auth import ApplicationRole, GuestRole
 from aoa.action_machine.context import Ctx
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
@@ -75,7 +75,7 @@ class LeakResult(BaseResult):
 
 
 @meta(description="Try to read an undeclared context field", domain=AuditDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class LeakAction(BaseAction[EmptyParams, LeakResult]):
     @summary_aspect("Read only what was declared")
     @context_requires(Ctx.User.user_id)          # client_ip is NOT declared

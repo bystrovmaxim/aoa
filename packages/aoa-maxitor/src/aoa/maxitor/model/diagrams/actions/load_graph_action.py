@@ -30,7 +30,7 @@ from typing import Any
 import networkx as nx
 from pydantic import ConfigDict, Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
@@ -46,7 +46,7 @@ MAXITOR_NX_GRAPH_COORDINATOR_KEY = "_maxitor_node_graph_coordinator"
 
 
 @meta(description="Load interchange graph into a NetworkX DiGraph (diagrams)", domain=CoreDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class LoadGraphAction(BaseAction["LoadGraphAction.Params", "LoadGraphAction.Result"]):
     """
     AI-CORE-BEGIN

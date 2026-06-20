@@ -22,7 +22,7 @@ from typing import Annotated, Any, cast
 from pydantic import Field
 
 from aoa.action_machine.adapters.fastapi.query_field_before import QUERY_STR_LIST_BEFORE
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
@@ -42,7 +42,7 @@ from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
     description="List entities, fields, and relations for interchange domain qualnames (diagrams)",
     domain=DiagramsDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(
     DuckDBGraphResource,
     key=DUCKDB_GRAPH_CONNECTION_KEY,

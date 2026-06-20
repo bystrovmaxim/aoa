@@ -43,7 +43,7 @@ ARCHITECTURE
     ): ...
 
     @meta(description="Create order", domain=OrdersDomain)
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
     class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
         @regular_aspect("Validation")

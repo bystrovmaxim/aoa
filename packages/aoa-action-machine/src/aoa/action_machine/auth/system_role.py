@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Define an abstract hierarchy branch for engine policy roles used in
-``@check_roles`` specifications (for example, ``NoneRole`` and ``AnyRole``).
+``@check_roles`` specifications (for example, ``GuestRole`` and ``AnyRole``).
 These roles are protocol/runtime policy markers, not user-assignable roles.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
        v
     SystemRole (this class)
        |
-       +--> NoneRole (public/no-auth policy)
+       +--> GuestRole (public/no-auth policy)
        |
        +--> AnyRole  (any-assignable-role policy)
        |

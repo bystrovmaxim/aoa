@@ -39,7 +39,7 @@ from pydantic import Field
 
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.checkers import result_string
 from aoa.action_machine.intents.compensate import compensate
 from aoa.action_machine.intents.context_requires import Ctx, context_requires
@@ -96,7 +96,7 @@ class CompensateTestResult(BaseResult):
     description="Order with two compensatable steps: payment and reservation",
     domain=OrdersDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(
     PaymentServiceResource,
     factory=default_payment_service_resource,
@@ -237,7 +237,7 @@ class CompensatedOrderAction(
     description="Action with partial compensation — first aspect only",
     domain=OrdersDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(
     PaymentServiceResource,
     factory=default_payment_service_resource,
@@ -330,7 +330,7 @@ class PartialCompensateAction(
     description="Action whose compensator raises an exception",
     domain=OrdersDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(
     PaymentServiceResource,
     factory=default_payment_service_resource,
@@ -446,7 +446,7 @@ class CompensateErrorAction(
     description="Action with compensators and an @on_error handler",
     domain=OrdersDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(
     PaymentServiceResource,
     factory=default_payment_service_resource,
@@ -583,7 +583,7 @@ class CompensateAndOnErrorAction(
     description="First regular aspect raises; @on_error sees empty incoming state",
     domain=OrdersDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class FirstRegularFailsOnErrorAction(
     BaseAction[CompensateTestParams, CompensateTestResult],
 ):
@@ -641,7 +641,7 @@ class FirstRegularFailsOnErrorAction(
     description="Charge succeeds, second regular raises; @on_error sees charge state",
     domain=OrdersDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(
     PaymentServiceResource,
     factory=default_payment_service_resource,
@@ -732,7 +732,7 @@ class SecondRegularFailsOnErrorAction(
     description="Regular succeeds, summary raises; @on_error reads pipeline state",
     domain=OrdersDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(
     PaymentServiceResource,
     factory=default_payment_service_resource,
@@ -858,7 +858,7 @@ class SummaryFailsOnErrorStateAction(
     description="Two aspects: first succeeds; second fails result checkers",
     domain=OrdersDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(
     PaymentServiceResource,
     factory=default_payment_service_resource,
@@ -952,7 +952,7 @@ class CheckerRejectionSagaAction(
     description="Action with a compensator that uses @context_requires",
     domain=OrdersDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(
     PaymentServiceResource,
     factory=default_payment_service_resource,

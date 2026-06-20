@@ -20,7 +20,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Ctx
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -122,7 +122,7 @@ def _loaded_order_graph(params: StoreOcelTraceParams, *, lifecycle_state: str):
 
 
 @meta(description="Publish order-created trace for OCEL export", domain=StoreDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(StoreOcelStoreResource, key=STORE_OCEL_CONNECTION_KEY, description="OCEL export store")
 class PublishOrderCreatedOcelAction(
     BaseAction["PublishOrderCreatedOcelAction.Params", "PublishOrderCreatedOcelAction.Result"],
@@ -175,7 +175,7 @@ class PublishOrderCreatedOcelAction(
 
 
 @meta(description="Publish payment-captured trace for OCEL export", domain=StoreDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(StoreOcelStoreResource, key=STORE_OCEL_CONNECTION_KEY, description="OCEL export store")
 class PublishOrderPaymentOcelAction(
     BaseAction["PublishOrderPaymentOcelAction.Params", "PublishOrderPaymentOcelAction.Result"],
@@ -234,7 +234,7 @@ class PublishOrderPaymentOcelAction(
 
 
 @meta(description="Publish warehouse pick trace for OCEL export", domain=StoreDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(StoreOcelStoreResource, key=STORE_OCEL_CONNECTION_KEY, description="OCEL export store")
 class PublishOrderLinePickedOcelAction(
     BaseAction["PublishOrderLinePickedOcelAction.Params", "PublishOrderLinePickedOcelAction.Result"],
@@ -301,7 +301,7 @@ class PublishOrderLinePickedOcelAction(
 
 
 @meta(description="Publish order-shipped trace for OCEL export", domain=StoreDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(StoreOcelStoreResource, key=STORE_OCEL_CONNECTION_KEY, description="OCEL export store")
 class PublishOrderShippedOcelAction(
     BaseAction["PublishOrderShippedOcelAction.Params", "PublishOrderShippedOcelAction.Result"],
@@ -361,7 +361,7 @@ class PublishOrderShippedOcelAction(
 
 
 @meta(description="Publish return-opened trace for OCEL export", domain=StoreDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(StoreOcelStoreResource, key=STORE_OCEL_CONNECTION_KEY, description="OCEL export store")
 class PublishOrderReturnOcelAction(
     BaseAction["PublishOrderReturnOcelAction.Params", "PublishOrderReturnOcelAction.Result"],
