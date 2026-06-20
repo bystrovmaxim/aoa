@@ -10,7 +10,7 @@ Address key infrastructure needs: observability, security, testability. Prepare 
 
 - [ ] **(High priority)** Add `Channel.client` to `box.info/warning/critical` for end‑user notifications
 
-- [ ] **(High priority)** Make `ConsoleLogger` colors configurable per severity level (e.g., `info` currently white, invisible on white background in Colab) – allow setting a default dark color for `info`
+- [X] **(High priority)** Make `ConsoleLogger` colors configurable per severity level (e.g., `info` currently white, invisible on white background in Colab) – allow setting a default dark color for `info`
 
 - [ ] **(High priority)** Implement 4 authentication methods: HTTP Basic Auth, Bearer Token (JWT), API Key, OAuth2 (Google/GitHub/Keycloak)
 
