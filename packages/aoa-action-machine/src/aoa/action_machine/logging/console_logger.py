@@ -56,7 +56,6 @@ from aoa.action_machine.model.base_state import BaseState
 _ANSI_RESET: str = "\033[0m"
 
 DEFAULT_LEVEL_FG_PREFIX: dict[Level, str] = {
-    Level.info: "\033[38;2;255;255;255m",  # #FFFFFF
     Level.warning: "\033[38;2;255;204;0m",  # #FFCC00
     Level.critical: "\033[38;2;255;34;34m",  # #FF2222
 }
