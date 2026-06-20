@@ -120,7 +120,7 @@ A security-important detail: on `INTERNAL_ERROR` the message is fixed — `"Unex
 
 ## Authentication
 
-`auth_coordinator` is mandatory — as with [FastAPI](step-13-fastapi.md#authentication-is-mandatory), `None` fails immediately. For an open server it is declared explicitly — `NoAuthCoordinator()` (anonymous `Context`), and then only operations with [`@check_roles(NoneRole)`](step-03-authorization-and-roles.md) work; a protected operation answers the agent `PERMISSION_DENIED`, like `admin_ping` in the example.
+`auth_coordinator` is mandatory — as with [FastAPI](step-13-fastapi.md#authentication-is-mandatory), `None` fails immediately. For an open server it is declared explicitly — `NoAuthCoordinator()` (anonymous `Context`), and then only operations with [`@check_roles(GuestRole)`](step-03-authorization-and-roles.md) work; a protected operation answers the agent `PERMISSION_DENIED`, like `admin_ping` in the example.
 
 Extracting the agent's credentials from the MCP call itself (an api-key or token from the request metadata) is on the roadmap, together with the [four ready methods](step-12-authentication.md#four-ready-methods) of authentication. The mechanism is the same: only the extractor is protocol-dependent, while `@check_roles` checks roles identically for HTTP and MCP — the agent will not get access to what it is not allowed.
 

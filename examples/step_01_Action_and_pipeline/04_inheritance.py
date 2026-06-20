@@ -36,7 +36,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
@@ -78,7 +78,7 @@ class OrderResult(BaseResult):
 # ---------------------------------------------------------------------------
 
 @meta(description="Base order operation", domain=OrderDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class BaseOrderAction(BaseAction[OrderParams, OrderResult]):
 
     @regular_aspect("Validate order identifier")
@@ -115,7 +115,7 @@ class BaseOrderAction(BaseAction[OrderParams, OrderResult]):
 # ---------------------------------------------------------------------------
 
 @meta(description="Child operation — parent aspects do not run", domain=OrderDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class ChildOrderAction(BaseOrderAction):
 
     @summary_aspect("Child result — only this aspect will execute")
@@ -147,7 +147,7 @@ class ChildOrderAction(BaseOrderAction):
 # ---------------------------------------------------------------------------
 
 @meta(description="Extended operation with explicit super() call", domain=OrderDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class ExtendedOrderAction(BaseOrderAction):
 
     @regular_aspect("Validate order identifier")   # explicitly declared — enters the pipeline

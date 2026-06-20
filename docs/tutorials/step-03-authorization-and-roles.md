@@ -35,11 +35,11 @@ AOA treats access as a **mandatory declaration of the operation**, not a string 
 
 `@check_roles` is one of the three mandatory decorators of an operation (alongside `@meta` and `@summary_aspect`, see [Action and the pipeline](step-01-action-and-pipeline.md)). The machine will not build the operation graph without it: at initialization a `MissingCheckRolesError` is raised. Silence does not mean "open to everyone" — the absence of an access check counts as an error, not as permission.
 
-If an operation truly is open to everyone, that is said out loud — through the `NoneRole` sentinel:
+If an operation truly is open to everyone, that is said out loud — through the `GuestRole` sentinel:
 
 ```python
 @meta(description="View an order", domain=StoreDomain)
-@check_roles(NoneRole)              # open to everyone — stated explicitly
+@check_roles(GuestRole)              # open to everyone — stated explicitly
 class GetOrderAction(BaseAction[OrderParams, OrderResult]):
 
     @summary_aspect("Return the order")
@@ -47,7 +47,7 @@ class GetOrderAction(BaseAction[OrderParams, OrderResult]):
         return OrderResult(order_id=params.order_id, action="viewed")
 ```
 
-`NoneRole` is the intent "no authentication required", not a default value. The difference is fundamental: `@check_roles` cannot be forgotten, while the decision "let anyone call it" stays deliberate and visible in the header.
+`GuestRole` is the intent "no authentication required", not a default value. The difference is fundamental: `@check_roles` cannot be forgotten, while the decision "let anyone call it" stays deliberate and visible in the header.
 
 The neighboring sentinel is `AnyRole`: "any authenticated user is required, the specific role does not matter". It lets a call through if the user has at least one (live) role, and rejects an anonymous one:
 
@@ -56,7 +56,7 @@ The neighboring sentinel is `AnyRole`: "any authenticated user is required, the 
 class GetProfileAction(BaseAction[...]): ...
 ```
 
-`NoneRole` and `AnyRole` are "sealed" system roles (`SystemRole`): they can be neither subclassed nor assigned to a user. They exist only as an argument to `@check_roles`.
+`GuestRole` and `AnyRole` are "sealed" system roles (`SystemRole`): they can be neither subclassed nor assigned to a user. They exist only as an argument to `@check_roles`.
 
 ---
 
@@ -103,7 +103,7 @@ It reads like this: **a subclass is a role with greater authority that also coun
 Let's assemble three operations with different policies and run them under three users. The full code is in the [example](../../examples/step_03_authorization_and_roles/01_roles.py); here is the gist:
 
 ```python
-@check_roles(NoneRole)      class GetOrderAction(...):     ...   # everyone
+@check_roles(GuestRole)      class GetOrderAction(...):     ...   # everyone
 @check_roles(ManagerRole)   class CancelOrderAction(...):  ...   # managers and admins
 @check_roles(AdminRole)     class PurgeOrdersAction(...):  ...   # admins only
 ```
@@ -125,17 +125,17 @@ uv run python examples/step_03_authorization_and_roles/01_roles.py
 
 ```text
 User: anonymous
-  GetOrder    [NoneRole]     -> allowed
+  GetOrder    [GuestRole]     -> allowed
   CancelOrder [ManagerRole]  -> denied
   PurgeOrders [AdminRole]    -> denied
 
 User: manager
-  GetOrder    [NoneRole]     -> allowed
+  GetOrder    [GuestRole]     -> allowed
   CancelOrder [ManagerRole]  -> allowed
   PurgeOrders [AdminRole]    -> denied
 
 User: admin
-  GetOrder    [NoneRole]     -> allowed
+  GetOrder    [GuestRole]     -> allowed
   CancelOrder [ManagerRole]  -> allowed
   PurgeOrders [AdminRole]    -> allowed
 ```
@@ -183,7 +183,7 @@ This turns changing the role model from a risky operation into a managed one: a 
 In an upcoming release (see ROADMAP) authorization will become even more expressive while staying declarative:
 
 - **Conditional authorization** — a `condition: Callable[[AuthSession, Params], bool]` parameter on `@check_roles`: a lambda that fires *after* the role check and decides access by the call data itself. So "a manager may cancel only an order from their own region" becomes part of the operation's contract rather than a branch in its body.
-- **`NoneRole` → `GuestRole`** — a rename for clarity (the old name will remain as a deprecated alias).
+- **`NoneRole` renamed to `GuestRole`** — the old name expressed absence; the new name expresses intent: "guest access, declared explicitly". `NoneRole` is removed.
 
 Both items are *planned*; in the current version they do not yet exist.
 
@@ -191,10 +191,10 @@ Both items are *planned*; in the current version they do not yet exist.
 
 ## Invariants
 
-- **Access is mandatory.** No `@check_roles` — no operation: `MissingCheckRolesError` at initialization. Openness is declared explicitly through `NoneRole`.
-- **Classes only.** `@check_roles` accepts `NoneRole`, `AnyRole`, a role class, or a non-empty list of classes. Strings are rejected (`TypeError`), an empty list is a `ValueError`.
+- **Access is mandatory.** No `@check_roles` — no operation: `MissingCheckRolesError` at initialization. Openness is declared explicitly through `GuestRole`.
+- **Classes only.** `@check_roles` accepts `GuestRole`, `AnyRole`, a role class, or a non-empty list of classes. Strings are rejected (`TypeError`), an empty list is a `ValueError`.
 - **Inheritance = authority.** The check is `issubclass(user_role, required_role)`; a subclass satisfies the parent's requirement.
-- **Sentinels are sealed.** `NoneRole`/`AnyRole` cannot be subclassed and cannot be assigned to a user.
+- **Sentinels are sealed.** `GuestRole`/`AnyRole` cannot be subclassed and cannot be assigned to a user.
 - **Check before logic.** Roles are checked before the first aspect; denial is an `AuthorizationError`, the aspects do not run.
 - **Role names.** A role class ends with `Role`, otherwise `NamingSuffixError`; `name`/`description` are mandatory and non-empty.
 
@@ -204,7 +204,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 ## Summary
 
-Authorization in AOA is a declaration, not code in the operation's body. `@check_roles` is mandatory and checked before the first aspect; roles are typed classes with inheritance, where a subclass carries the parent's rights; `NoneRole`/`AnyRole` cover "open to everyone" and "any authenticated user"; a list gives OR-semantics; role modes make changing the model manageable. Who can call what is assembled from the code into an access matrix — without a single "magic string".
+Authorization in AOA is a declaration, not code in the operation's body. `@check_roles` is mandatory and checked before the first aspect; roles are typed classes with inheritance, where a subclass carries the parent's rights; `GuestRole`/`AnyRole` cover "open to everyone" and "any authenticated user"; a list gives OR-semantics; role modes make changing the model manageable. Who can call what is assembled from the code into an access matrix — without a single "magic string".
 
 Next — **[Saga and compensations](../index.md#ii-business-logic)**: what happens when a multi-step operation fails halfway, and how to roll back what was already done.
 
@@ -213,7 +213,7 @@ Next — **[Saga and compensations](../index.md#ii-business-logic)**: what happe
 ## Review questions
 
 1. Why is the absence of `@check_roles` an initialization error and not "the operation is open to everyone"? Which property of the system does this protect?
-2. How does `NoneRole` differ from `AnyRole`? When is each appropriate?
+2. How does `GuestRole` differ from `AnyRole`? When is each appropriate?
 3. An operation declares `@check_roles(ManagerRole)`. Will a user with `AdminRole` pass if `AdminRole(ManagerRole)`? And the other way around? Why?
 4. Why are roles classes and not strings? What does this give review, the graph, and refactoring?
 5. How does a list in `@check_roles([A, B])` differ from a role hierarchy? When do you need a list, and when inheritance?

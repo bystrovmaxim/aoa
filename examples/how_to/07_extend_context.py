@@ -26,7 +26,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context, Ctx
 from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.context.runtime_info import RuntimeInfo
@@ -68,7 +68,7 @@ class WhoamiResult(BaseResult):
 
 
 @meta(description="Report the call environment", domain=TenancyDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class WhoamiAction(BaseAction[WhoamiParams, WhoamiResult]):
     # Mix standard Ctx.* constants with raw string paths for the custom fields.
     @summary_aspect("Read environment")

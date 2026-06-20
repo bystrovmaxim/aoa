@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -16,7 +16,7 @@ from aoa.examples.model.catalog.domain import CatalogDomain
 
 
 @meta(description="Browse catalog (stub)", domain=CatalogDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class BrowseCatalogAction(BaseAction["BrowseCatalogAction.Params", "BrowseCatalogAction.Result"]):
     class Params(BaseParams):
         query: str = Field(default="*", description="Search token")

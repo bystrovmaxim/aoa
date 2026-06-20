@@ -9,7 +9,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
@@ -41,7 +41,7 @@ class CreateDraftResult(BaseResult):
 
 
 @meta(description="Create order draft with business event", domain=OrderDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class CreateDraftWithEventAction(BaseAction[CreateDraftParams, CreateDraftResult]):
 
     @regular_aspect("Normalise SKU")

@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -14,7 +14,7 @@ from aoa.examples.model.messaging.domain import MessagingDomain
 
 
 @meta(description="Render notification template (messaging sample stub)", domain=MessagingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class TemplateRenderStubAction(
     BaseAction["TemplateRenderStubAction.Params", "TemplateRenderStubAction.Result"],
 ):

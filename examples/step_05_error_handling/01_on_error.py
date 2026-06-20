@@ -10,7 +10,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -38,7 +38,7 @@ class LoginResult(BaseResult):
 
 
 @meta(description="Login", domain=RootDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class LoginAction(BaseAction[LoginParams, LoginResult]):
 
     @summary_aspect("Validate credentials")

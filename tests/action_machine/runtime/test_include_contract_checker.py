@@ -13,7 +13,7 @@ from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions.include_contract_violation_error import IncludeContractViolationError
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
@@ -36,7 +36,7 @@ def _ctx() -> Context:
 
 
 @meta(description="leaf A for include gather tests", domain=SystemDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class LeafAForGatherAction(BaseAction["LeafAForGatherAction.Params", "LeafAForGatherAction.Result"]):
     class Params(BaseParams):
         pass
@@ -56,7 +56,7 @@ class LeafAForGatherAction(BaseAction["LeafAForGatherAction.Params", "LeafAForGa
 
 
 @meta(description="leaf B for include gather tests", domain=SystemDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class LeafBForGatherAction(BaseAction["LeafBForGatherAction.Params", "LeafBForGatherAction.Result"]):
     class Params(BaseParams):
         pass
@@ -76,7 +76,7 @@ class LeafBForGatherAction(BaseAction["LeafBForGatherAction.Params", "LeafBForGa
 
 
 @meta(description="leaf for include contract tests", domain=SystemDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class LeafForContractAction(BaseAction["LeafForContractAction.Params", "LeafForContractAction.Result"]):
     class Params(BaseParams):
         pass
@@ -128,7 +128,7 @@ def test_include_contract_checker_multiple_missing() -> None:
 
 
 @meta(description="host single include", domain=SystemDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(LeafForContractAction, mode=UseCase.include, description="d")
 class HostIncludeSingleAction(BaseAction["HostIncludeSingleAction.Params", "HostIncludeSingleAction.Result"]):
     class Params(BaseParams):
@@ -149,7 +149,7 @@ class HostIncludeSingleAction(BaseAction["HostIncludeSingleAction.Params", "Host
 
 
 @meta(description="host two includes", domain=SystemDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(LeafAForGatherAction, mode=UseCase.include, description="a")
 @depends(LeafBForGatherAction, mode=UseCase.include, description="b")
 class HostIncludeTwoAction(BaseAction["HostIncludeTwoAction.Params", "HostIncludeTwoAction.Result"]):
@@ -176,7 +176,7 @@ class HostIncludeTwoAction(BaseAction["HostIncludeTwoAction.Params", "HostInclud
 @pytest.mark.asyncio
 async def test_include_violation_when_peer_never_run() -> None:
     @meta(description="violator", domain=SystemDomain)
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
     @depends(LeafForContractAction, mode=UseCase.include, description="must run leaf")
     class IncludeViolatorAction(
         BaseAction["IncludeViolatorAction.Params", "IncludeViolatorAction.Result"]
@@ -206,7 +206,7 @@ async def test_include_violation_when_peer_never_run() -> None:
 @pytest.mark.asyncio
 async def test_include_ok_when_box_run_peer() -> None:
     @meta(description="runner", domain=SystemDomain)
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
     @depends(LeafForContractAction, mode=UseCase.include, description="must run leaf")
     class IncludeRunnerAction(BaseAction["IncludeRunnerAction.Params", "IncludeRunnerAction.Result"]):
         class Params(BaseParams):
@@ -234,7 +234,7 @@ async def test_include_ok_when_box_run_peer() -> None:
 @pytest.mark.asyncio
 async def test_extend_not_enforced_by_include_checker() -> None:
     @meta(description="extend host", domain=SystemDomain)
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
     @depends(LeafForContractAction, mode=UseCase.extend, description="optional")
     class ExtendHostAction(BaseAction["ExtendHostAction.Params", "ExtendHostAction.Result"]):
         class Params(BaseParams):
@@ -261,7 +261,7 @@ async def test_extend_not_enforced_by_include_checker() -> None:
 @pytest.mark.asyncio
 async def test_include_transitive_success_when_nested_runs_leaf() -> None:
     @meta(description="middle runs leaf", domain=SystemDomain)
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
     class MiddleRunsLeafAction(BaseAction["MiddleRunsLeafAction.Params", "MiddleRunsLeafAction.Result"]):
         class Params(BaseParams):
             pass
@@ -291,7 +291,7 @@ async def test_include_transitive_success_when_nested_runs_leaf() -> None:
             return MiddleRunsLeafAction.Result()
 
     @meta(description="root transitive ok", domain=SystemDomain)
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
     @depends(LeafForContractAction, mode=UseCase.include, description="leaf anywhere in tree")
     class RootTransitiveOkAction(BaseAction["RootTransitiveOkAction.Params", "RootTransitiveOkAction.Result"]):
         class Params(BaseParams):
@@ -329,7 +329,7 @@ async def test_include_transitive_success_when_nested_runs_leaf() -> None:
 @pytest.mark.asyncio
 async def test_include_transitive_fails_when_leaf_never_run() -> None:
     @meta(description="middle skips leaf", domain=SystemDomain)
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
     class MiddleSkipsLeafAction(BaseAction["MiddleSkipsLeafAction.Params", "MiddleSkipsLeafAction.Result"]):
         class Params(BaseParams):
             pass
@@ -358,7 +358,7 @@ async def test_include_transitive_fails_when_leaf_never_run() -> None:
             return MiddleSkipsLeafAction.Result()
 
     @meta(description="root transitive fail", domain=SystemDomain)
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
     @depends(LeafForContractAction, mode=UseCase.include, description="leaf")
     class RootTransitiveFailAction(BaseAction["RootTransitiveFailAction.Params", "RootTransitiveFailAction.Result"]):
         class Params(BaseParams):
@@ -397,7 +397,7 @@ async def test_include_transitive_fails_when_leaf_never_run() -> None:
 @pytest.mark.asyncio
 async def test_gather_merges_nested_machine_runs_into_one_tracker() -> None:
     @meta(description="gather host", domain=SystemDomain)
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
     @depends(LeafAForGatherAction, mode=UseCase.include, description="a")
     @depends(LeafBForGatherAction, mode=UseCase.include, description="b")
     class GatherIncludeHostAction(
@@ -433,7 +433,7 @@ async def test_create_task_awaited_still_shares_root_include_tracker() -> None:
     """CPython asyncio tasks inherit ContextVar values; awaited ``create_task(box.run)`` counts."""
 
     @meta(description="task host", domain=SystemDomain)
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
     @depends(LeafForContractAction, mode=UseCase.include, description="leaf")
     class CreateTaskIncludeHostAction(
         BaseAction["CreateTaskIncludeHostAction.Params", "CreateTaskIncludeHostAction.Result"]
@@ -464,7 +464,7 @@ async def test_create_task_awaited_still_shares_root_include_tracker() -> None:
 @pytest.mark.asyncio
 async def test_resolve_only_does_not_satisfy_include() -> None:
     @meta(description="resolve only host", domain=SystemDomain)
-    @check_roles(NoneRole)
+    @check_roles(GuestRole)
     @depends(LeafForContractAction, mode=UseCase.include, description="leaf")
     class ResolveOnlyHostAction(BaseAction["ResolveOnlyHostAction.Params", "ResolveOnlyHostAction.Result"]):
         class Params(BaseParams):

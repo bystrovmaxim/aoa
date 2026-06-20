@@ -32,7 +32,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
@@ -58,7 +58,7 @@ class PriceResult(BaseResult):
 
 
 @meta(description="Price an order", domain=ShopDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class PriceOrderAction(BaseAction[PriceParams, PriceResult]):
 
     @regular_aspect("Apply tax")

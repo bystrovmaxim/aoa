@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
@@ -21,7 +21,7 @@ from aoa.examples.model.support.support_domain import SupportDomain
     description="Resolves an action from StoreDomain via @depends (graph: cross-domain)",
     domain=SupportDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(OpsPingAction, mode=UseCase.extend, description="Cross-domain action dependency (store)")
 class DependCrossDomainAction(BaseAction["DependCrossDomainAction.Params", "DependCrossDomainAction.Result"]):
     class Params(BaseParams):

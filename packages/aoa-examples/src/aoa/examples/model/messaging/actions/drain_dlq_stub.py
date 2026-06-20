@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -14,7 +14,7 @@ from aoa.examples.model.messaging.domain import MessagingDomain
 
 
 @meta(description="Drain DLQ stub (messaging sample)", domain=MessagingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class DrainDlqStubAction(BaseAction["DrainDlqStubAction.Params", "DrainDlqStubAction.Result"]):
     class Params(BaseParams):
         max_messages: int = Field(default=10, description="Max messages to drain", ge=0, le=1000)

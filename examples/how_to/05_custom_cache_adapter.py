@@ -35,7 +35,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -89,7 +89,7 @@ class QuoteResult(BaseResult):
 
 
 @meta(description="Compute a price quote", domain=PricingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class QuoteAction(BaseAction[QuoteParams, QuoteResult]):
     def cache_key(self, params: QuoteParams) -> str | None:
         return params.sku                       # cache per SKU

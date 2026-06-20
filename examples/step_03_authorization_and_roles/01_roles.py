@@ -4,7 +4,7 @@
 Roles in AOA are classes, not strings. Business roles subclass ApplicationRole;
 privilege inheritance follows Python subclassing — RoleChecker grants access via
 issubclass(user_role, required_role). Two engine sentinels are used only in
-@check_roles: NoneRole (open to everyone) and AnyRole (any authenticated user).
+@check_roles: GuestRole (open to everyone) and AnyRole (any authenticated user).
 
 This example declares a role hierarchy (AdminRole is-a ManagerRole) and three
 actions guarded differently, then runs them under three principals (anonymous,
@@ -20,7 +20,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import ApplicationRole, NoneRole
+from aoa.action_machine.auth import ApplicationRole, GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -68,13 +68,13 @@ class OrderResult(BaseResult):
 
 # ---------------------------------------------------------------------------
 # Three actions, three access policies.
-#   NoneRole     — open to everyone (stated explicitly; silence is not allowed)
+#   GuestRole     — open to everyone (stated explicitly; silence is not allowed)
 #   ManagerRole  — managers and, by inheritance, admins
 #   AdminRole    — admins only
 # ---------------------------------------------------------------------------
 
 @meta(description="View an order", domain=StoreDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class GetOrderAction(BaseAction[OrderParams, OrderResult]):
 
     @summary_aspect("Return the order")
@@ -113,7 +113,7 @@ async def main() -> None:
         ("admin", Context(user=UserInfo(user_id="a1", roles=(AdminRole,)))),
     ]
     actions = [
-        ("GetOrder    [NoneRole]", GetOrderAction),
+        ("GetOrder    [GuestRole]", GetOrderAction),
         ("CancelOrder [ManagerRole]", CancelOrderAction),
         ("PurgeOrders [AdminRole]", PurgeOrdersAction),
     ]

@@ -28,7 +28,7 @@ from fastapi.testclient import TestClient
 from pydantic import Field
 
 from aoa.action_machine.adapters.fastapi import FastApiAdapter
-from aoa.action_machine.auth import NoAuthCoordinator, NoneRole
+from aoa.action_machine.auth import NoAuthCoordinator, GuestRole
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -72,7 +72,7 @@ class RecordResult(BaseResult):
 
 
 @meta(description="Append an entry to the ledger", domain=LedgerDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(LedgerResource, key="ledger")
 class RecordAction(BaseAction[RecordParams, RecordResult]):
 

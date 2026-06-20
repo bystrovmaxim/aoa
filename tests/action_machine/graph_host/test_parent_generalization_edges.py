@@ -22,7 +22,7 @@ from aoa.action_machine.graph.edges.parent_role_graph_edge import (
     build_parent_role_edges,
 )
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 from aoa.action_machine.model.base_action import BaseAction
@@ -38,7 +38,7 @@ from tests.action_machine.scenarios.domain_model.domains import TestDomain
 
 
 @meta(description="Parent gen action for PR-2 generalization factory tests", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class _ParentGenAction(BaseAction["_ParentGenAction.Params", "_ParentGenAction.Result"]):
     """Concrete parent action — not ``@exclude_graph_model`` so it can be a generalization target."""
 

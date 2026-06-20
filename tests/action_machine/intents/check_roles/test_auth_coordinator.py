@@ -257,7 +257,7 @@ class TestNoAuthCoordinator:
     async def test_anonymous_user(self) -> None:
         """NoAuthCoordinator creates an anonymous user.
 
-        UserInfo: user_id=None, roles=(). Actions with @check_roles(NoneRole)
+        UserInfo: user_id=None, roles=(). Actions with @check_roles(GuestRole)
         are checked, actions with specific roles are rejected."""
         # Arrange
         coordinator = NoAuthCoordinator()

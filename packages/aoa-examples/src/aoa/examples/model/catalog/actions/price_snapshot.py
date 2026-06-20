@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -14,7 +14,7 @@ from aoa.examples.model.catalog.domain import CatalogDomain
 
 
 @meta(description="Resolve list price snapshot (catalog sample stub)", domain=CatalogDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class PriceSnapshotAction(BaseAction["PriceSnapshotAction.Params", "PriceSnapshotAction.Result"]):
     class Params(BaseParams):
         sku: str = Field(description="SKU")

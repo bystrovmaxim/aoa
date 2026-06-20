@@ -29,7 +29,7 @@ description comes from ``@meta(description=...)``; aspect description from
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -41,7 +41,7 @@ from ..system_domain import SystemDomain
 
 
 @meta(description="Service liveness check", domain=SystemDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
 
     class Params(BaseParams):

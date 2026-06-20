@@ -27,7 +27,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -72,7 +72,7 @@ class ReserveResult(BaseResult):
 
 
 @meta(description="Reserve stock for a SKU", domain=WarehouseDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(InventoryResource, key="inventory")
 class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
 

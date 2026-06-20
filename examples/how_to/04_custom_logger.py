@@ -34,7 +34,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -76,7 +76,7 @@ class PayResult(BaseResult):
 
 
 @meta(description="Take a payment", domain=RootDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class PayAction(BaseAction[PayParams, PayResult]):
     @summary_aspect("Charge")
     async def charge_summary(self, params, state, box, connections):

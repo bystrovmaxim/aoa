@@ -40,7 +40,7 @@ from pydantic import Field
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.checkers import result_string
 from aoa.action_machine.intents.compensate import compensate
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -70,7 +70,7 @@ class OtelOrderResult(BaseResult):
 
 
 @meta(description="OTel integration order", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class OtelOrderAction(BaseAction[OtelOrderParams, OtelOrderResult]):
     """Two regular aspects (one with an opaque field) + summary. Success path."""
 
@@ -109,7 +109,7 @@ class OtelOrderAction(BaseAction[OtelOrderParams, OtelOrderResult]):
 
 
 @meta(description="OTel integration failing order", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class OtelFailingAction(BaseAction[OtelOrderParams, OtelOrderResult]):
     """A regular aspect raises; no @on_error, no compensator → error propagates."""
 
@@ -135,7 +135,7 @@ class OtelFailingAction(BaseAction[OtelOrderParams, OtelOrderResult]):
 
 
 @meta(description="OTel integration saga", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class OtelSagaAction(BaseAction[OtelOrderParams, OtelOrderResult]):
     """Two compensatable steps; the third regular aspect fails → saga rollback.
 

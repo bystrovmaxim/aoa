@@ -18,7 +18,7 @@ fails fast via check_rollup_support().
 NOTE: box.run(NestedClass) always runs the REAL nested Action — with_mocks does
 NOT replace its result wholesale; mock the nested Action's dependencies instead.
 
-All Actions are @check_roles(NoneRole) (context/roles are ch.25).
+All Actions are @check_roles(GuestRole) (context/roles are ch.25).
 
 Tutorial: ../../docs/tutorials/step-24-substitution_draft.md  ·  topic: environment substitution
 
@@ -31,7 +31,7 @@ from unittest.mock import AsyncMock
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions.rollup_not_supported_error import RollupNotSupportedError
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -78,7 +78,7 @@ class QuoteResult(BaseResult):
 
 
 @meta(description="Quote a price", domain=ShopDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(PricingService)
 class QuoteAction(BaseAction[QuoteParams, QuoteResult]):
     @summary_aspect("Quote")
@@ -97,7 +97,7 @@ class ReserveResult(BaseResult):
 
 
 @meta(description="Reserve stock", domain=ShopDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(StockGateway)
 class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
     @summary_aspect("Reserve")
@@ -116,7 +116,7 @@ class CheckoutResult(BaseResult):
 
 
 @meta(description="Checkout", domain=ShopDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class CheckoutAction(BaseAction[CheckoutParams, CheckoutResult]):
     @summary_aspect("Checkout")
     async def checkout_summary(self, params, state, box, connections):
@@ -159,7 +159,7 @@ class RecordResult(BaseResult):
 
 
 @meta(description="Record a row", domain=ShopDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(JournalResource, key="journal")
 class RecordAction(BaseAction[RecordParams, RecordResult]):
     @summary_aspect("Write and commit")
