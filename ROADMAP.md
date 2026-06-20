@@ -24,6 +24,14 @@ Address key infrastructure needs: observability, security, testability. Prepare 
 
 - [ ] **(High priority)** Initialize `GraphCoordinator` by default in `ActionProductMachine` (remove the need to pass it explicitly in simple cases)
 
+- [ ] **(High priority)** Initialize `ConsoleLogger` by default in `ActionProductMachine` — out-of-the-box logging without explicit setup
+
+- [ ] **(High priority)** Initialize in-memory cache adapter by default in `ActionProductMachine` — caching available without explicit configuration
+
+- [ ] **(High priority)** Add `CacheKeyMixin` for `Action`: injects a `cache_key(params) -> str` method with a default implementation (hash of params fields); caching all aspects by default when the mixin is applied — opt-out per aspect rather than opt-in
+
 - [ ] **(High priority)** `Result` fields are emitted to OTel logs without sensitivity filtering. `OpenTelemetryPlugin._result_attributes` serializes every result field (summary / `@on_error` / finish) verbatim (length-truncated only); `opaque` is not applied to results and `@sensitive` masking from the logging layer is ignored, so tokens/PII in `Result` leak into the log backend. Decide and implement one of: an `include_result_fields: bool = False` safe default, extending the `opaque` / `@sensitive` mechanism to the result projection, or an explicit documented limitation.
 
-*Last updated: June 15, 2026*
+- [ ] **(Medium priority)** LangGraph integration: add `LangGraphNodeMixin` that injects `__call__(self, agentstate, config)` into any Action, making it usable as a LangGraph node directly. Machine and AOA context are passed via `config["configurable"]`; Params fields are extracted from `agentstate` (exception if fields missing). Preserves all Action guarantees (roles, compensations, error handlers) inside the LangGraph graph. Ship as `aoa-action-machine[langgraph]` optional extra.
+
+*Last updated: June 19, 2026*
