@@ -28,7 +28,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.core.association_graph_edge import AssociationGraphEdge
@@ -102,7 +102,7 @@ class ChargeResult(BaseResult):
 
 @criticality("high")
 @meta(description="Charge a card", domain=PaymentsDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class ChargeCardAction(BaseAction[ChargeParams, ChargeResult]):
     @summary_aspect("Charge")
     async def charge_summary(self, params, state, box, connections):
@@ -110,7 +110,7 @@ class ChargeCardAction(BaseAction[ChargeParams, ChargeResult]):
 
 
 @meta(description="Ping", domain=PaymentsDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class PingAction(BaseAction[ChargeParams, ChargeResult]):
     @summary_aspect("Ping")
     async def ping_summary(self, params, state, box, connections):

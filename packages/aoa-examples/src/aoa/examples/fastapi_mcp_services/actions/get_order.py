@@ -29,7 +29,7 @@ comes from ``@meta(description=...)``; aspect description from
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -42,7 +42,7 @@ from ..orders_domain import OrdersDomain
 
 
 @meta(description="Get order by identifier", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"]):
 
     class Params(BaseParams):

@@ -36,7 +36,7 @@ An operation's header is its contract with the environment. `@depends(PricingSer
 
 ```python
 @meta(description="Charge for a product", domain=BillingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(PricingService)
 @connection(LedgerResource, key="ledger")
 class ChargeAction(BaseAction[ChargeParams, ChargeResult]):

@@ -21,7 +21,7 @@ from typing import Any, cast
 
 from pydantic import ConfigDict, Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance
@@ -120,7 +120,7 @@ def _lifecycle_state_machine_row_title(field_name: str) -> str:
 
 
 @meta(description="Build left-menu sidebar NodeEntity lists from NetworkX graph view", domain=DiagramsDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class GetLeftMenuSidebarDataAction(
     BaseAction["GetLeftMenuSidebarDataAction.Params", "GetLeftMenuSidebarDataAction.Result"],
 ):

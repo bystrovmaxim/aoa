@@ -18,7 +18,7 @@ from typing import Any, cast
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.graph.core.edge_relationship import GENERALIZATION
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -248,7 +248,7 @@ def _build_payload_from_duckdb(
     description="Get full interchange graph JSON from DuckDB views (diagrams)",
     domain=DiagramsDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(
     DuckDBGraphResource,
     key=DUCKDB_GRAPH_CONNECTION_KEY,

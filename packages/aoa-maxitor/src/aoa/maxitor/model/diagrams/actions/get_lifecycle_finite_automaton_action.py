@@ -16,7 +16,7 @@ from typing import Any, cast
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.lifecycle import StateType
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -85,7 +85,7 @@ def _parse_lifecycle_interchange_id(lifecycle_graph_node_id: str) -> tuple[str, 
     description="Return lifecycle template states and transitions for one interchange Lifecycle vertex id",
     domain=DiagramsDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @connection(
     DuckDBGraphResource,
     key=DUCKDB_GRAPH_CONNECTION_KEY,

@@ -41,7 +41,7 @@ class GreetingDomain(BaseDomain):
 
 
 @meta(description="Say hello to the world", domain=GreetingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class SayHelloAction(BaseAction[ParamsStub, ResultStub]):
 
     @summary_aspect("Print greeting and return stub")
@@ -54,7 +54,7 @@ That is a fair number of lines for a plain greeting. But none of them is a ritua
 
 It all begins with a **domain**. An operation must belong to one — the domain defines a logical area ("orders", "payments", "greetings") and serves as the anchor for the system graph, the access matrix, and the visualization. A domain class name must end with `Domain`; write `class Greeting(BaseDomain)` and you get a `NamingSuffixError` right at class declaration, at import time. That is the first of the rules AOA guards itself.
 
-Next come two required decorators. **`@meta`** is the operation's passport: its `description` is not a note for a colleague but part of the system contract, and it lands in the OpenAPI schema, the MCP tool description, and the operation graph; `domain` ties the operation to its area. **`@check_roles(NoneRole)`** declares access. Here AOA takes a principled stance: access must be declared explicitly, and silence does not count as a decorator. `NoneRole` is "this operation is open to everyone" said out loud — a conscious decision, not a forgotten check. Skip `@check_roles` entirely and the machine refuses to run the operation.
+Next come two required decorators. **`@meta`** is the operation's passport: its `description` is not a note for a colleague but part of the system contract, and it lands in the OpenAPI schema, the MCP tool description, and the operation graph; `domain` ties the operation to its area. **`@check_roles(GuestRole)`** declares access. Here AOA takes a principled stance: access must be declared explicitly, and silence does not count as a decorator. `GuestRole` is "this operation is open to everyone" said out loud — a conscious decision, not a forgotten check. Skip `@check_roles` entirely and the machine refuses to run the operation.
 
 The class itself inherits `BaseAction[ParamsStub, ResultStub]`; in the brackets are the input and output types, stubs for now. The name must end with `Action`. And finally **`@summary_aspect`** — the single exit point: exactly one such method per operation, and it is the one that assembles and returns the `Result`. Without it — `MissingSummaryAspectError` at startup. The method has a fixed signature: `params`, `state`, `box`, `connections` are passed by the machine itself — respectively the input, the shared pipeline state (the whole next chapter is about it), the structured logger, and the open resources. `print` is here for the moment; the operations' proper output is `box`, and it is one step away.
 
@@ -99,7 +99,7 @@ class GreetResult(BaseResult):
 
 
 @meta(description="Greet a person by name", domain=GreetingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class GreetPersonAction(BaseAction[GreetParams, GreetResult]):
 
     @summary_aspect("Build greeting and return result")
@@ -156,7 +156,7 @@ A pipeline step is called an **aspect**. There are two kinds: intermediate (`@re
 
 ```python
 @meta(description="Process input string through multiple steps", domain=ProcessingDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class ProcessInputAction(BaseAction[ProcessParams, ProcessResult]):
 
     @regular_aspect("Step 1: Strip whitespace and lowercase")
@@ -308,7 +308,7 @@ Suffixes are checked at class declaration or at decorator application. Violation
 | `@check_roles` | `MissingCheckRolesError` |
 | `@summary_aspect` | `MissingSummaryAspectError` |
 
-`NoneRole` in `@check_roles(NoneRole)` is an intent spoken out loud, not a default value. The absence of the decorator is not "open to everyone" — it is `MissingCheckRolesError`.
+`GuestRole` in `@check_roles(GuestRole)` is an intent spoken out loud, not a default value. The absence of the decorator is not "open to everyone" — it is `MissingCheckRolesError`.
 
 ### Non-empty descriptions
 

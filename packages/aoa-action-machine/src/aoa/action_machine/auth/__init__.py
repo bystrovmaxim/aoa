@@ -13,7 +13,7 @@ from aoa.action_machine.auth.auth_coordinator import (
 )
 from aoa.action_machine.auth.authenticator import Authenticator
 from aoa.action_machine.auth.base_role import BaseRole
-from aoa.action_machine.auth.none_role import NoneRole
+from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.auth.system_role import SystemRole
 from aoa.action_machine.graph.inspectors.role_graph_node_inspector import (
     RoleGraphNodeInspector,
@@ -28,8 +28,8 @@ __all__ = [
     "BaseRole",
     "ContextAssembler",
     "CredentialExtractor",
+    "GuestRole",
     "NoAuthCoordinator",
-    "NoneRole",
     "RoleGraphNode",
     "RoleGraphNodeInspector",
     "SystemRole",

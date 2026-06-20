@@ -19,7 +19,7 @@ import asyncio
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context, Ctx
 from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.context.user_info import UserInfo
@@ -50,7 +50,7 @@ class OrderResult(BaseResult):
 
 
 @meta(description="Place an order with an audit step", domain=AuditDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class PlaceOrderAction(BaseAction[OrderParams, OrderResult]):
 
     # The aspect declares the two context fields it needs. The machine injects a

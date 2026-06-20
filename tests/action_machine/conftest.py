@@ -174,7 +174,7 @@ def compensate_bench(
     ``CompensateAndOnErrorAction``, and ``CompensateWithContextAction``.
 
     Default user: ``user_id="test_user"``, ``roles=(StubTesterRole,)``.
-    Compensating actions use ``NoneRole``, so the default user is sufficient.
+    Compensating actions use ``GuestRole``, so the default user is sufficient.
     """
     return TestBench(
         mocks={

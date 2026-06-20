@@ -71,7 +71,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **`@check_roles`** — the mandatory declaration of access. The machine checks roles before the first aspect; the absence of the decorator is an error.
 
-**NoneRole / AnyRole / BaseRole** — `NoneRole` — open to everyone (explicitly); `AnyRole` — any authenticated; `BaseRole` — the root of domain roles, supports inheritance.
+**GuestRole / AnyRole / BaseRole** — `GuestRole` — open to everyone (explicitly); `AnyRole` — any authenticated; `BaseRole` — the root of domain roles, supports inheritance.
 
 **AuthCoordinator** — builds `Context` from a transport request (credential extraction, verification, assembling the environment).
 

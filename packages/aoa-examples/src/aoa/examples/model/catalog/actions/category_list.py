@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -31,7 +31,7 @@ _CatalogCategoryListSampleAuditJson = JsonSchemaValue.define(
 
 
 @meta(description="List catalog categories (sample stub)", domain=CatalogDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class CategoryListAction(BaseAction["CategoryListAction.Params", "CategoryListAction.Result"]):
     class Params(BaseParams):
         root_slug: str = Field(default="all", description="Category root")

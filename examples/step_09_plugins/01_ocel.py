@@ -19,7 +19,7 @@ from pathlib import Path
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.entity import BaseEntity
@@ -54,7 +54,7 @@ class OrderResult(BaseResult):
 
 
 @meta(description="Create order", domain=RootDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
     @regular_aspect("Validation")

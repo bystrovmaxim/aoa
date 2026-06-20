@@ -10,7 +10,7 @@ One regular aspect and one summary aspect. The regular aspect validates the
 input name and writes validated_name to state. result_string ensures
 validated_name is a non-empty string.
 
-No dependencies or connections. NoneRole. Belongs to OrdersDomain.
+No dependencies or connections. GuestRole. Belongs to OrdersDomain.
 
 ═══════════════════════════════════════════════════════════════════════════════
 USAGE IN TESTS
@@ -33,7 +33,7 @@ from pydantic import Field
 
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.checkers import result_string
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
@@ -47,7 +47,7 @@ from .domains import OrdersDomain
 
 
 @meta(description="Simple Action with a single aspect", domain=OrdersDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
     """
     Action with one regular aspect and one checker.

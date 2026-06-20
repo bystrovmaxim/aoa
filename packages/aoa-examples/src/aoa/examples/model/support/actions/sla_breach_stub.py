@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.auth import NoneRole
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -14,7 +14,7 @@ from aoa.examples.model.support.support_domain import SupportDomain
 
 
 @meta(description="Evaluate SLA breach (support sample stub)", domain=SupportDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class SlaBreachStubAction(BaseAction["SlaBreachStubAction.Params", "SlaBreachStubAction.Result"]):
     class Params(BaseParams):
         ticket_id: str = Field(description="Ticket id")

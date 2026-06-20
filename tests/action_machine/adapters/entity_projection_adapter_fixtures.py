@@ -16,7 +16,7 @@ from __future__ import annotations
 from pydantic import Field
 
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
@@ -39,7 +39,7 @@ _SAMPLE_ENTITY_WIRE_SCHEMA: dict[str, object] = {
 
 
 @meta(description="Adapter test action for BaseEntity.schema() transport checks", domain=TestDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class EntityProjectionAdapterTestAction(
     BaseAction["EntityProjectionAdapterTestAction.Params", "EntityProjectionAdapterTestAction.Result"],
 ):
@@ -72,7 +72,7 @@ class EntityProjectionAdapterTestAction(
     description="Adapter test action: Params carry BaseEntity.schema() wire projection",
     domain=TestDomain,
 )
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 class EntityProjectionParamsMcpTestAction(
     BaseAction["EntityProjectionParamsMcpTestAction.Params", "EntityProjectionParamsMcpTestAction.Result"],
 ):

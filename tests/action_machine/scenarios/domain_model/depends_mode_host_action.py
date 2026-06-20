@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import Field
 
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import NoneRole, check_roles
+from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
@@ -23,7 +23,7 @@ from .services import PaymentServiceResource
 
 
 @meta(description="host for depends mode graph tests", domain=SystemDomain)
-@check_roles(NoneRole)
+@check_roles(GuestRole)
 @depends(PingAction, mode=UseCase.include, description="peer action")
 @depends(PaymentServiceResource, description="pay")
 class DependsModeHostAction(BaseAction["DependsModeHostAction.Params", "DependsModeHostAction.Result"]):
