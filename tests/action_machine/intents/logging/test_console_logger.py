@@ -311,7 +311,7 @@ class TestColors:
         assert logger_true.supports_colors is True
         assert logger_false.supports_colors is False
 
-    @pytest.mark.parametrize("level", [Level.info, Level.warning, Level.critical])
+    @pytest.mark.parametrize("level", [Level.warning, Level.critical])
     @pytest.mark.anyio
     async def test_auto_truecolor_wraps_plain_message_by_level(
         self,
@@ -322,7 +322,7 @@ class TestColors:
         empty_params: BaseParams,
         level: Level,
     ) -> None:
-        """Non-ANSI text gets a truecolor wrapper by level."""
+        """Non-ANSI text gets a truecolor wrapper for warning and critical."""
         logger = ConsoleLogger(use_colors=True)
         var = _write_var(level)
         await logger.write(
@@ -333,6 +333,26 @@ class TestColors:
         assert "plain" in out
         assert "\033[0m" in out
         assert out.endswith("\n")
+
+    @pytest.mark.anyio
+    async def test_info_has_no_color_by_default(
+        self,
+        capsys: pytest.CaptureFixture[str],
+        simple_scope: LogScope,
+        empty_context: Context,
+        empty_state: BaseState,
+        empty_params: BaseParams,
+    ) -> None:
+        """info level emits no ANSI color — terminal decides the foreground.
+        This ensures info is readable on both dark terminals and light backgrounds (e.g. Colab)."""
+        logger = ConsoleLogger(use_colors=True)
+        var = _write_var(Level.info)
+        await logger.write(
+            simple_scope, "plain info", var, empty_context, empty_state, empty_params, 0,
+        )
+        out = capsys.readouterr().out
+        assert "plain info" in out
+        assert "\033[38;2;" not in out
 
     @pytest.mark.anyio
     async def test_level_fg_prefixes_override(
@@ -354,7 +374,7 @@ class TestColors:
         )
         out = capsys.readouterr().out
         assert "\033[32m" in out
-        assert DEFAULT_LEVEL_FG_PREFIX[Level.info] not in out
+        assert "\033[38;2;255;255;255m" not in out  # default white no longer applied to info
 
     @pytest.mark.anyio
     async def test_auto_truecolor_wraps_indent_inside_color(
@@ -386,8 +406,8 @@ class TestColors:
     ) -> None:
         """After an explicit span and \\033[0m the tail is back in the level's base color."""
         logger = ConsoleLogger(use_colors=True)
-        base = DEFAULT_LEVEL_FG_PREFIX[Level.info]
-        var = _write_var(Level.info)
+        base = DEFAULT_LEVEL_FG_PREFIX[Level.warning]
+        var = _write_var(Level.warning)
         msg = "before \033[31mRED\033[0m after"
         await logger.write(
             simple_scope, msg, var, empty_context, empty_state, empty_params, 0,
@@ -395,7 +415,6 @@ class TestColors:
         out = capsys.readouterr().out
         assert out.startswith(base)
         assert "\033[31mRED\033[0m" in out
-        #immediately after resetting the explicit red again the base truecolor
         assert f"\033[0m{base} after" in out
         assert out.endswith("\033[0m\n")
 
