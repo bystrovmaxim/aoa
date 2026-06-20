@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking changes
 
-- **`NoneRole` removed; use `GuestRole`.** `NoneRole` expressed absence ("no role"); `GuestRole` expresses intent ("guest / public access, declared explicitly"). The class `aoa.action_machine.auth.none_role.NoneRole` and the file `none_role.py` are deleted. Replace every import and every `@check_roles(NoneRole)` with `GuestRole`. `GuestRole` is exported from `aoa.action_machine.auth` and `aoa.action_machine.intents.check_roles`.
+- **`NoneRole` removed; use `GuestRole`.** `NoneRole` expressed absence ("no role"); `GuestRole` expresses intent ("guest / public access, declared explicitly"). The class `aoa.action_machine.auth.none_role.NoneRole` and the file `none_role.py` are deleted. Replace every import and every `@check_roles(NoneRole)` with `GuestRole`. `GuestRole` is exported from `aoa.action_machine.auth` and `aoa.action_machine.intents.check_roles`. ([#46](https://github.com/bystrovmaxim/aoa/issues/46))
 
 ## [1.0.0a4] – 2026-06-20
 
