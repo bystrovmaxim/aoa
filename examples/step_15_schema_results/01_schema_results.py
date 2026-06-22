@@ -30,7 +30,6 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.model import BaseResult, JsonSchemaValue
 
-
 # ── 1. A complex object as one schema-validated field ────────────────────────
 # Strict schema: objects must list properties + forbid extras; arrays declare items.
 AUDIT_SCHEMA = {
