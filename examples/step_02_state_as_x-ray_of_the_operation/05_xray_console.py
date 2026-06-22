@@ -46,7 +46,6 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
-
 # ---------------------------------------------------------------------------
 # Domain
 # ---------------------------------------------------------------------------
