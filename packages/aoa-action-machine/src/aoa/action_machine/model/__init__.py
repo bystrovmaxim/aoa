@@ -58,6 +58,7 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_schema import BaseSchema
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.model.cache_key_mixin import CacheKeyMixin
 from aoa.action_machine.model.json_schema_value import (
     JsonSchemaValue,
     JsonValue,
@@ -73,6 +74,7 @@ __all__ = [
     "BaseResult",
     "BaseSchema",
     "BaseState",
+    "CacheKeyMixin",
     "JsonSchemaValue",
     "JsonValue",
     "ParamsStub",
