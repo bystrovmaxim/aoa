@@ -11,6 +11,7 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 
 # ---------------------------------------------------------------------------
 # Loggers
@@ -77,3 +78,24 @@ def test_plugin_coordinator_passed_without_plugins_unchanged() -> None:
     machine = ActionProductMachine(plugin_coordinator=pc, cache_coordinator=None)
     assert machine._plugin_coordinator.plugins == []
     assert machine._plugin_coordinator is pc
+
+
+# ---------------------------------------------------------------------------
+# Cache coordinator
+# ---------------------------------------------------------------------------
+
+
+def test_default_cache_coordinator_created_when_nothing_passed() -> None:
+    machine = ActionProductMachine()
+    assert isinstance(machine._cache_coordinator, CacheCoordinator)
+
+
+def test_no_cache_coordinator_when_none_passed_explicitly() -> None:
+    machine = ActionProductMachine(cache_coordinator=None)
+    assert machine._cache_coordinator is None
+
+
+def test_explicit_cache_coordinator_used_when_passed() -> None:
+    cc = CacheCoordinator()
+    machine = ActionProductMachine(cache_coordinator=cc)
+    assert machine._cache_coordinator is cc
