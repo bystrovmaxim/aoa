@@ -197,7 +197,7 @@ async def test_include_violation_when_peer_never_run() -> None:
         ) -> IncludeViolatorAction.Result:
             return IncludeViolatorAction.Result()
 
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     with pytest.raises(IncludeContractViolationError) as excinfo:
         await machine.run(_ctx(), IncludeViolatorAction(), IncludeViolatorAction.Params())
     assert excinfo.value.missing_include_types == frozenset({LeafForContractAction})
@@ -226,7 +226,7 @@ async def test_include_ok_when_box_run_peer() -> None:
             await box.run(LeafForContractAction, LeafForContractAction.Params())
             return IncludeRunnerAction.Result()
 
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     result = await machine.run(_ctx(), IncludeRunnerAction(), IncludeRunnerAction.Params())
     assert result.ok == "yes"
 
@@ -253,7 +253,7 @@ async def test_extend_not_enforced_by_include_checker() -> None:
         ) -> ExtendHostAction.Result:
             return ExtendHostAction.Result()
 
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     result = await machine.run(_ctx(), ExtendHostAction(), ExtendHostAction.Params())
     assert result.ok == "ext"
 
@@ -321,7 +321,7 @@ async def test_include_transitive_success_when_nested_runs_leaf() -> None:
         ) -> RootTransitiveOkAction.Result:
             return RootTransitiveOkAction.Result()
 
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     result = await machine.run(_ctx(), RootTransitiveOkAction(), RootTransitiveOkAction.Params())
     assert result.ok == "root"
 
@@ -388,7 +388,7 @@ async def test_include_transitive_fails_when_leaf_never_run() -> None:
         ) -> RootTransitiveFailAction.Result:
             return RootTransitiveFailAction.Result()
 
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     with pytest.raises(IncludeContractViolationError) as excinfo:
         await machine.run(_ctx(), RootTransitiveFailAction(), RootTransitiveFailAction.Params())
     assert excinfo.value.missing_include_types == frozenset({LeafForContractAction})
@@ -423,7 +423,7 @@ async def test_gather_merges_nested_machine_runs_into_one_tracker() -> None:
             )
             return GatherIncludeHostAction.Result()
 
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     result = await machine.run(_ctx(), GatherIncludeHostAction(), GatherIncludeHostAction.Params())
     assert result.ok == "g"
 
@@ -456,7 +456,7 @@ async def test_create_task_awaited_still_shares_root_include_tracker() -> None:
             await task
             return CreateTaskIncludeHostAction.Result()
 
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     result = await machine.run(_ctx(), CreateTaskIncludeHostAction(), CreateTaskIncludeHostAction.Params())
     assert result.ok == "t"
 
@@ -484,7 +484,7 @@ async def test_resolve_only_does_not_satisfy_include() -> None:
             _ = await box.resolve(LeafForContractAction)
             return ResolveOnlyHostAction.Result()
 
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     with pytest.raises(IncludeContractViolationError) as excinfo:
         await machine.run(_ctx(), ResolveOnlyHostAction(), ResolveOnlyHostAction.Params())
     assert LeafForContractAction in excinfo.value.missing_include_types

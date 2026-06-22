@@ -23,7 +23,7 @@ from tests.action_machine.scenarios.domain_model.test_db_manager import OrdersDb
 
 def test_tools_box_dependency_factory_from_interchange_edges() -> None:
     """ToolsBox uses DependencyFactory built from wired @depends interchange edges."""
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     ctx = MagicMock()
     params = MagicMock()
     action_node = machine.get_action_node_by_id(PingAction)
@@ -64,7 +64,7 @@ def test_tools_box_dependency_factory_from_interchange_edges() -> None:
 
 def test_full_action_dependency_factory_via_graph_matches_declarations() -> None:
     """Wired interchange @depends yields the same factory mapping as decorator metadata."""
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     interchange = machine.get_action_node_by_id(FullAction)
     from_graph = interchange.resolved_dependency_infos()
     cls_order = tuple(i.cls for i in from_graph)

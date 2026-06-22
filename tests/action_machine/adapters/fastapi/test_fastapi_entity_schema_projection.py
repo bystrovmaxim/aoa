@@ -37,7 +37,7 @@ def _result_schema_from_openapi(openapi: dict[str, Any]) -> dict[str, Any]:
 
 @pytest.fixture
 def adapter_and_client() -> tuple[FastApiAdapter, TestClient, ActionProductMachine]:
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     auth = AsyncMock()
     auth.process.return_value = None
     adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
