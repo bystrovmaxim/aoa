@@ -84,13 +84,13 @@ AI-CORE-BEGIN
 
     def __init__(
         self,
-        plugins: list[Plugin],
+        plugins: list[Plugin] | None = None,
         log_coordinator: LogCoordinator | None = None,
     ) -> None:
         """
         Initialize plugin coordinator with registered plugin instances.
         """
-        self._plugins: list[Plugin] = plugins
+        self._plugins: list[Plugin] = list(plugins) if plugins else []
         self._log_coordinator = log_coordinator or LogCoordinator()
 
     @property
@@ -122,6 +122,10 @@ AI-CORE-BEGIN
         Return registered plugin instances.
         """
         return self._plugins
+
+    def add_plugin(self, plugin: Plugin) -> None:
+        """Add a plugin to the coordinator."""
+        self._plugins.append(plugin)
 
     def base_fields(
         self,

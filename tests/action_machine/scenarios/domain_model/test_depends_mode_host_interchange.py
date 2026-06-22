@@ -17,7 +17,7 @@ PAYMENT_CLS = PaymentServiceResource
 
 def test_resource_depend_edge_wire_json_omits_mode_key() -> None:
     """PR-5: canonical check — resource ``@depends`` must not emit ``mode`` in wire JSON."""
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     host_id = machine.get_action_node_by_id(DependsModeHostAction).node_id
     edges = DependsGraphEdge.get_dependency_edges(DependsModeHostAction)
     payment_edge = next(e for e in edges if e.target_node_id.rsplit(".", 1)[-1] == "PaymentServiceResource")
@@ -26,7 +26,7 @@ def test_resource_depend_edge_wire_json_omits_mode_key() -> None:
 
 
 def test_resolved_dependency_infos_round_trips_mode_from_wired_edges() -> None:
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     node = machine.get_action_node_by_id(DependsModeHostAction)
     infos = node.resolved_dependency_infos()
     modes_by_cls = {info.cls: info.mode for info in infos}
