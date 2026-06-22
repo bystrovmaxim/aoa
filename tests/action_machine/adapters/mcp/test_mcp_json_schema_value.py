@@ -21,7 +21,7 @@ from tests.action_machine.adapters.json_schema_adapter_fixtures import AdapterTe
 
 
 def _make_adapter() -> McpAdapter:
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     auth = AsyncMock()
     auth.process.return_value = None
     return McpAdapter(machine=machine, auth_coordinator=auth)
@@ -63,4 +63,4 @@ def test_mcp_serialize_result_raw_graph_dict() -> None:
 def test_second_machine_after_mcp_build_no_duplicate_graph_nodes() -> None:
     """Regression: dynamic MCP arg types must not reuse the same Params graph node id."""
     _make_adapter().tool("adapter_test_dup", AdapterTestAction).build()
-    ActionProductMachine()
+    ActionProductMachine(loggers=[])

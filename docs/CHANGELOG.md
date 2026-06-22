@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
+## [Unreleased]
+
+### Added
+
+- **`ConsoleLogger` added by default to `ActionProductMachine`.** Constructing `ActionProductMachine()` without any logging arguments now attaches a `ConsoleLogger` automatically. Pass `loggers=[]` for silent mode or `loggers=[MyLogger()]` to use a custom logger instead. When an explicit `log_coordinator` is passed, no default logger is added — the coordinator is used as-is.
+- **`loggers` parameter on `ActionProductMachine`.** A new `loggers: list[BaseLogger] | None` keyword argument lets you supply one or more loggers without constructing a `LogCoordinator` manually. Loggers are appended via `add_logger` and compose with an explicit `log_coordinator` when both are provided.
+- **`plugins` and `loggers` no longer compete with their coordinators.** Passing both `plugin_coordinator` and `plugins` (or both `log_coordinator` and `loggers`) previously silenced the content arguments. Both coordinators now expose `add_plugin` / `add_logger` and the machine calls them after coordinator resolution, so all arguments take effect regardless of combination.
+- **`PluginCoordinator.add_plugin`.** New method appends a plugin to an existing coordinator instance. `plugins` constructor argument is now optional (defaults to empty list).
+
 ## [1.0.0a5] – 2026-06-20
 
 ### Breaking changes

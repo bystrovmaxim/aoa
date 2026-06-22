@@ -52,7 +52,7 @@ from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
 
 def _make_adapter(**kwargs) -> FastApiAdapter:
     """Create a FastApiAdapter with sensible test defaults."""
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     auth = AsyncMock()
     auth.process.return_value = None
     return FastApiAdapter(

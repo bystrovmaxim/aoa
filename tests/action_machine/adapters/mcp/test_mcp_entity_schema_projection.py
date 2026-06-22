@@ -24,7 +24,7 @@ from tests.action_machine.adapters.entity_projection_adapter_fixtures import (
 
 
 def _make_adapter() -> McpAdapter:
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
     auth = AsyncMock()
     auth.process.return_value = None
     return McpAdapter(machine=machine, auth_coordinator=auth)
