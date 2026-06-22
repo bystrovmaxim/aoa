@@ -32,6 +32,35 @@ class _RecordingPluginCtx:
         self.emitted.append((event, kwargs))
 
 
+def test_default_empty_plugins() -> None:
+    """PluginCoordinator can be created with no plugins argument."""
+    pc = PluginCoordinator()
+    assert pc.plugins == []
+
+
+def test_add_plugin() -> None:
+    """add_plugin appends a plugin to the coordinator."""
+    from unittest.mock import MagicMock
+    from aoa.action_machine.plugin.core.plugin import Plugin
+
+    pc = PluginCoordinator()
+    plugin = MagicMock(spec=Plugin)
+    pc.add_plugin(plugin)
+    assert plugin in pc.plugins
+
+
+def test_add_plugin_to_coordinator_with_existing_plugins() -> None:
+    """add_plugin appends without removing existing plugins."""
+    from unittest.mock import MagicMock
+    from aoa.action_machine.plugin.core.plugin import Plugin
+
+    p1 = MagicMock(spec=Plugin)
+    p2 = MagicMock(spec=Plugin)
+    pc = PluginCoordinator(plugins=[p1])
+    pc.add_plugin(p2)
+    assert pc.plugins == [p1, p2]
+
+
 def test_base_fields_shape() -> None:
     """base_fields returns action_class, action_name, nest_level, context, params."""
     log = LogCoordinator(loggers=[])

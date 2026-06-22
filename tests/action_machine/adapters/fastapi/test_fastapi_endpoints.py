@@ -67,7 +67,7 @@ def _make_app(
     Returns ``(adapter, machine)`` for extra assertions. By default
     ``machine.run`` returns ``PingAction.Result(message="pong")``.
     """
-    machine = ActionProductMachine()
+    machine = ActionProductMachine(loggers=[])
 
     auth = AsyncMock()
     auth.process.return_value = None

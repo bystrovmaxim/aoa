@@ -143,7 +143,9 @@ from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
 )
+from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import Channel
+from aoa.action_machine.logging.console_logger import ConsoleLogger
 from aoa.action_machine.logging.domain_resolver import resolve_domain
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
@@ -244,6 +246,7 @@ class ActionProductMachine(BaseActionMachine):
         self,
         *,
         plugins: list[Plugin] | None = None,
+        loggers: list[BaseLogger] | None = None,
         plugin_coordinator: PluginCoordinator | None = None,
         log_coordinator: LogCoordinator | None = None,
         graph_coordinator: NodeGraphCoordinator | None = None,
@@ -255,12 +258,13 @@ class ActionProductMachine(BaseActionMachine):
         cache_coordinator: CacheCoordinator | None = None,
     ) -> None:
         """Wire injectable components; ``cache_coordinator`` enables optional in-memory action caching."""
-        plugins = plugins or []
         self._log_coordinator = log_coordinator or LogCoordinator()
-        self._plugin_coordinator = plugin_coordinator or PluginCoordinator(
-            plugins,
-            self._log_coordinator,
-        )
+        default_loggers = [] if log_coordinator else [ConsoleLogger()]
+        for logger in (loggers if loggers is not None else default_loggers):
+            self._log_coordinator.add_logger(logger)
+        self._plugin_coordinator = plugin_coordinator or PluginCoordinator(log_coordinator=self._log_coordinator)
+        for plugin in (plugins or []):
+            self._plugin_coordinator.add_plugin(plugin)
         self.graph_coordinator = graph_coordinator or create_node_graph_coordinator()
         self._role_checker = role_checker or RoleChecker()
         self._connection_validator = connection_validator or ConnectionValidator()
