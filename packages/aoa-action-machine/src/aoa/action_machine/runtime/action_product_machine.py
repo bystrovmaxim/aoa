@@ -173,6 +173,18 @@ from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
 
+# Sentinel used in ActionProductMachine.__init__ to tell apart two distinct caller intents:
+#   ActionProductMachine()                      — cache_coordinator not supplied at all
+#                                                 → create a CacheCoordinator() automatically
+#   ActionProductMachine(cache_coordinator=None) — caller explicitly opted out of caching
+#                                                 → leave _cache_coordinator as None
+#
+# A plain default of None would collapse both cases into the same value, making it
+# impossible to distinguish "user forgot to pass it" from "user deliberately disabled it".
+# A unique object() instance is never equal to anything else, so the identity check
+# ``cache_coordinator is _CACHE_COORDINATOR_DEFAULT`` is always unambiguous.
+_CACHE_COORDINATOR_DEFAULT: object = object()
+
 # Tracks ``type(action)`` for every ``_run_internal`` entry in the current root run
 # (``ContextVar.get()`` is ``None`` only for the outermost call that owns the set).
 _INCLUDE_EXECUTION_TYPES: ContextVar[set[type] | None] = ContextVar(
@@ -255,9 +267,12 @@ class ActionProductMachine(BaseActionMachine):
         aspect_executor: AspectExecutor | None = None,
         error_handler_executor: ErrorHandlerExecutor | None = None,
         saga_coordinator: SagaCoordinator | None = None,
-        cache_coordinator: CacheCoordinator | None = None,
+        cache_coordinator: CacheCoordinator | None = _CACHE_COORDINATOR_DEFAULT,  # type: ignore[assignment]
     ) -> None:
-        """Wire injectable components; ``cache_coordinator`` enables optional in-memory action caching."""
+        """Wire injectable components; an in-memory ``CacheCoordinator`` is created by default.
+
+        Pass ``cache_coordinator=None`` to disable caching explicitly.
+        """
         self._log_coordinator = log_coordinator or LogCoordinator()
         default_loggers = [] if log_coordinator else [ConsoleLogger()]
         for logger in (loggers if loggers is not None else default_loggers):
@@ -277,7 +292,9 @@ class ActionProductMachine(BaseActionMachine):
             self._error_handler_executor,
             self._plugin_coordinator,
         )
-        self._cache_coordinator = cache_coordinator
+        self._cache_coordinator: CacheCoordinator | None = (
+            CacheCoordinator() if cache_coordinator is _CACHE_COORDINATOR_DEFAULT else cache_coordinator
+        )
 
     @staticmethod
     def _validate_cache_key(cache_key: str | None, action: BaseAction[Any, Any]) -> None:
