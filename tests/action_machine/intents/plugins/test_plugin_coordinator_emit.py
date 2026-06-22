@@ -41,6 +41,7 @@ def test_default_empty_plugins() -> None:
 def test_add_plugin() -> None:
     """add_plugin appends a plugin to the coordinator."""
     from unittest.mock import MagicMock
+
     from aoa.action_machine.plugin.core.plugin import Plugin
 
     pc = PluginCoordinator()
@@ -52,6 +53,7 @@ def test_add_plugin() -> None:
 def test_add_plugin_to_coordinator_with_existing_plugins() -> None:
     """add_plugin appends without removing existing plugins."""
     from unittest.mock import MagicMock
+
     from aoa.action_machine.plugin.core.plugin import Plugin
 
     p1 = MagicMock(spec=Plugin)

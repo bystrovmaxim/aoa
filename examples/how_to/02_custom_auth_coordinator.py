@@ -39,7 +39,7 @@ from aoa.action_machine.auth import (
     ContextAssembler,
     CredentialExtractor,
 )
-from aoa.action_machine.context import Context, UserInfo
+from aoa.action_machine.context import UserInfo
 
 
 # ── A role the caller may carry (type-as-capability, name ends in "Role") ────

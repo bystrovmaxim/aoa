@@ -5,8 +5,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.console_logger import ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
@@ -14,17 +12,15 @@ from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
-
 # ---------------------------------------------------------------------------
 # Loggers
 # ---------------------------------------------------------------------------
 
 
 def test_default_console_logger_added_when_nothing_passed() -> None:
-    machine = ActionProductMachine(loggers=[], cache_coordinator=None)
-    machine2 = ActionProductMachine(cache_coordinator=None)
-    assert len(machine2._log_coordinator._loggers) == 1
-    assert isinstance(machine2._log_coordinator._loggers[0], ConsoleLogger)
+    machine = ActionProductMachine(cache_coordinator=None)
+    assert len(machine._log_coordinator._loggers) == 1
+    assert isinstance(machine._log_coordinator._loggers[0], ConsoleLogger)
 
 
 def test_no_default_logger_when_loggers_empty_list() -> None:

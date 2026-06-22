@@ -49,7 +49,6 @@ from aoa.action_machine.plugin.core.events import AfterRegularAspectEvent, Globa
 from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
-
 # ---------------------------------------------------------------------------
 # Domain, Params, Result  (same business logic as 05_xray_console.py)
 # ---------------------------------------------------------------------------
@@ -142,11 +141,11 @@ async def main() -> None:
     print(f"Result: {result.confirmation}")
     print()
     print(f"Traces written to: {traces_path}")
-    print(f"  (root span + 2 child spans — one per @regular_aspect)")
+    print("  (root span + 2 child spans — one per @regular_aspect)")
     print()
     print(f"Logs written to:   {logs_path}")
-    print(f"  (only AfterRegularAspectEvent + GlobalFinishEvent)")
-    print(f"  (Before*/Start events filtered out by watch_events)")
+    print("  (only AfterRegularAspectEvent + GlobalFinishEvent)")
+    print("  (Before*/Start events filtered out by watch_events)")
 
 
 asyncio.run(main())
