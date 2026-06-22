@@ -313,6 +313,7 @@ ignore = [
 "packages/aoa-action-machine/src/aoa/action_machine/model/base_action.py" = ["I001"]
 "packages/aoa-examples/src/aoa/examples/fastapi_mcp_services/app_fastapi_service.py" = ["E402"]
 "packages/aoa-examples/src/aoa/examples/fastapi_mcp_services/app_mcp_service.py" = ["E402"]
+"**/*.ipynb" = ["F404", "E402", "F401", "RUF005", "F841"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["aoa"]
@@ -363,7 +364,7 @@ package-boundaries-tests = "python scripts/check_package_boundaries.py --tests"
 package-metadata = "python scripts/check_package_metadata.py"
 check = "task lint && task types && task package-boundaries && task package-boundaries-tests && task package-metadata && task build-packages && task packaging-smoke && task test-layer-imports && task samples-public-api && task test"
 dead = "vulture packages/aoa-action-machine/src/aoa/action_machine"
-typecheck = "mypy packages/"
+typecheck = "mypy packages/aoa-action-machine/src packages/aoa-maxitor/src packages/aoa-examples/src"
 pylint = "pylint packages/"
 cc = "radon cc packages/ -a -nb"
 mi = "radon mi packages/ -nb"

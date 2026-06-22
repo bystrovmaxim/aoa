@@ -23,22 +23,21 @@ Run:
 """
 
 import asyncio
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
-from collections.abc import Callable, Mapping
 
 from pydantic import Field
 
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
 from aoa.action_machine.adapters.base_route_record import BaseRouteRecord, ensure_machine_params
-from aoa.action_machine.auth import NoAuthCoordinator, GuestRole
+from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 

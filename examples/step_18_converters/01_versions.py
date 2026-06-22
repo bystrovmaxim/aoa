@@ -25,11 +25,11 @@ Run:
     uv run python examples/step_18_converters/01_versions.py
 """
 
-from pydantic import BaseModel, Field
 from fastapi.testclient import TestClient
+from pydantic import BaseModel, Field
 
 from aoa.action_machine.adapters.fastapi import FastApiAdapter
-from aoa.action_machine.auth import NoAuthCoordinator, GuestRole
+from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles

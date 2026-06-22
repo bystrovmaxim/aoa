@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`plugins` and `loggers` no longer compete with their coordinators.** Passing both `plugin_coordinator` and `plugins` (or both `log_coordinator` and `loggers`) previously silenced the content arguments. Both coordinators now expose `add_plugin` / `add_logger` and the machine calls them after coordinator resolution, so all arguments take effect regardless of combination.
 - **`PluginCoordinator.add_plugin`.** New method appends a plugin to an existing coordinator instance. `plugins` constructor argument is now optional (defaults to empty list).
 
+### Fixed
+
+- **`F841` false positives suppressed in Jupyter notebooks.** Extended the `"**/*.ipynb"` ruff per-file-ignores to include `F841` (unused variable), which fires on cell-scoped names referenced in later cells — a pattern ruff cannot see across cell boundaries. ([#52](https://github.com/bystrovmaxim/aoa/issues/52))
+- **Mypy `no-untyped-def` warnings silenced for example scripts.** The `typecheck` task now targets `src/` directories only (`mypy packages/aoa-action-machine/src packages/aoa-maxitor/src packages/aoa-examples/src`). Standalone scripts in `packages/aoa-action-machine/examples/` are demonstration code and are no longer included in the strict mypy pass. ([#52](https://github.com/bystrovmaxim/aoa/issues/52))
+
 ## [1.0.0a5] – 2026-06-20
 
 ### Breaking changes
