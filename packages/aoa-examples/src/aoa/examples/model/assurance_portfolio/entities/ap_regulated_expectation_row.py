@@ -32,17 +32,23 @@ class AssuranceRegulatedExpectationRowEntity(BaseEntity):
     catalog_bucket: Annotated[
         AssociationOne[AssuranceExpectationCatalogStubEntity],
         NoInverse(),
-    ] = Rel(description="Containing catalog")  # type: ignore[assignment]
+    ] = Rel(
+        description="Containing catalog"
+    )  # type: ignore[assignment]
 
     genre_axis: Annotated[
         AssociationOne[AssuranceExpectationGenreAxisEntity],
         NoInverse(),
-    ] = Rel(description="Expectation genre discriminator")  # type: ignore[assignment]
+    ] = Rel(
+        description="Expectation genre discriminator"
+    )  # type: ignore[assignment]
 
     phase_axis: Annotated[
         AssociationOne[AssuranceExpectationPhaseAxisEntity],
         NoInverse(),
-    ] = Rel(description="Expectation lifecycle phase")  # type: ignore[assignment]
+    ] = Rel(
+        description="Expectation lifecycle phase"
+    )  # type: ignore[assignment]
 
 
 AssuranceRegulatedExpectationRowEntity.model_rebuild()

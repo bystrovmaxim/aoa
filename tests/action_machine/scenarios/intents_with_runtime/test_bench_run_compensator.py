@@ -53,7 +53,7 @@ from tests.action_machine.scenarios.domain_model.services import (
 )
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Helper function to create a BaseState with data
+# Helper function to create a BaseState with data
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -70,17 +70,19 @@ def make_state(**kwargs: Any) -> BaseState:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Auxiliary Action for context test in compensator
+# Auxiliary Action for context test in compensator
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class CtxCheckParams(BaseParams):
     """Parameters for Action checking context."""
+
     amount: float = Field(default=1.0, description="Amount for test compensator")
 
 
 class CtxCheckResult(BaseResult):
     """Result for Action checking context."""
+
     status: str = Field(default="ok", description="Execution Status")
 
 
@@ -104,7 +106,14 @@ class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
     @compensate("charge_aspect", "Rollback with context")
     @context_requires(Ctx.User.user_id)
     async def rollback_compensate(
-        self, params, state_before, state_after, box, connections, error, ctx,
+        self,
+        params,
+        state_before,
+        state_after,
+        box,
+        connections,
+        error,
+        ctx,
     ):
         user_id = ctx.get(Ctx.User.user_id)
         payment = (await box.resolve(PaymentServiceResource)).service
@@ -116,7 +125,7 @@ class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#TestRunCompensatorBasic - basic run
+# TestRunCompensatorBasic - basic run
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -246,7 +255,7 @@ class TestRunCompensatorBasic:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#TestRunCompensatorValidation - validations
+# TestRunCompensatorValidation - validations
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -291,9 +300,9 @@ class TestRunCompensatorValidation:
         error = ValueError("test")
 
         # ── Act & Assert ──
-        #bench.run_compensator checks for the presence of _compensate_meta.
-        #If a method is found, but is not a compensator -
-        #The message may be "not a compensator" or "not found".
+        # bench.run_compensator checks for the presence of _compensate_meta.
+        # If a method is found, but is not a compensator -
+        # The message may be "not a compensator" or "not found".
         with pytest.raises(ValueError):
             await bench.run_compensator(
                 action=CompensatedOrderAction(),
@@ -334,7 +343,7 @@ class TestRunCompensatorValidation:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#TestRunCompensatorContext - integration with @context_requires
+# TestRunCompensatorContext - integration with @context_requires
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -386,9 +395,9 @@ class TestRunCompensatorContext:
         mock_payment = AsyncMock(spec=PaymentService)
         mock_payment.refund.reset_mock()
 
-        #with_user() sets the user_id in the machine context.
-        #run_compensator() uses this context to create
-        #ContextView, not the context= argument.
+        # with_user() sets the user_id in the machine context.
+        # run_compensator() uses this context to create
+        # ContextView, not the context= argument.
         bench = TestBench(
             mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
             log_coordinator=AsyncMock(),
@@ -406,6 +415,6 @@ class TestRunCompensatorContext:
         )
 
         # ── Assert ──
-        #refund called with user_id from context
+        # refund called with user_id from context
         mock_payment.refund.assert_awaited_once_with("refund_for_verified_user_42")
         mock_payment.refund.assert_awaited_once_with("refund_for_verified_user_42")

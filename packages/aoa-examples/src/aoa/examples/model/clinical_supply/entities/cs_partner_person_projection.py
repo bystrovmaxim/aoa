@@ -29,7 +29,9 @@ class ClinicalPartnerPersonProjectionEntity(BaseEntity):
     partner_hub: Annotated[
         AssociationOne[ClinicalPartnerHubEntity],
         NoInverse(),
-    ] = Rel(description="Parent partner aggregate")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent partner aggregate"
+    )  # type: ignore[assignment]
 
 
 ClinicalPartnerPersonProjectionEntity.model_rebuild()

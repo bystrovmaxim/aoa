@@ -6,10 +6,7 @@ Tests for ExternalServiceResource — typed holder for one external client refer
 import pytest
 
 from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.resources.external_service import (
-    ExternalServiceResource,
-    WrapperExternalServiceResource,
-)
+from aoa.action_machine.resources.external_service import ExternalServiceResource, WrapperExternalServiceResource
 
 
 def test_stores_service_reference() -> None:

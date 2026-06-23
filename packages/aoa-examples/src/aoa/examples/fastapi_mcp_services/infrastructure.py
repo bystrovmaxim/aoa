@@ -44,10 +44,11 @@ ARCHITECTURE / DATA FLOW
 """
 
 from aoa.action_machine.auth import NoAuthCoordinator
+from aoa.action_machine.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 # Register on the default graph before ``create_node_graph_coordinator()`` runs.
 from aoa.examples.model.actions import GetExampleModelGraphJsonAction  # noqa: F401  # pylint: disable=unused-import
 
 machine = ActionProductMachine()
-auth = NoAuthCoordinator()
+auth = NoAuthCoordinator(context=Context())

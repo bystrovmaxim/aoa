@@ -59,12 +59,12 @@ from typing import Any
 
 class FieldNotLoadedError(AttributeError):
     """
-AI-CORE-BEGIN
-    ROLE: Fail-fast signal for missing fields on partial entities.
-    CONTRACT: Raised only when model field exists but is absent from loaded subset.
-    INVARIANTS: Inherits ``AttributeError`` to align with Python attribute access behavior.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Fail-fast signal for missing fields on partial entities.
+        CONTRACT: Raised only when model field exists but is absent from loaded subset.
+        INVARIANTS: Inherits ``AttributeError`` to align with Python attribute access behavior.
+        AI-CORE-END
+    """
 
     def __init__(
         self,
@@ -176,9 +176,7 @@ class LifecycleValidationError(Exception):
         self.field_name: str = field_name
         self.details: str = details
 
-        super().__init__(
-            f"Lifecycle '{field_name}' on entity '{entity_name}' is invalid: {details}"
-        )
+        super().__init__(f"Lifecycle '{field_name}' on entity '{entity_name}' is invalid: {details}")
 
 
 class LifecycleGraphError(ValueError):

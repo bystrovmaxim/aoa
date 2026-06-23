@@ -26,7 +26,9 @@ class BatchingFenceEntity(BaseEntity):
     throttle_lease: Annotated[
         AssociationOne[ThrottleLeaseEntity],
         NoInverse(),
-    ] = Rel(description="Parent throttle lease row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent throttle lease row"
+    )  # type: ignore[assignment]
 
 
 BatchingFenceEntity.model_rebuild()

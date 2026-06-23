@@ -26,7 +26,9 @@ class AnalyticsCanonicalTelemetryRowEntity(BaseEntity):
     dedup: Annotated[
         AssociationOne[AnalyticsDedupBloomRowEntity],
         NoInverse(),
-    ] = Rel(description="Dedup bloom parent")  # type: ignore[assignment]
+    ] = Rel(
+        description="Dedup bloom parent"
+    )  # type: ignore[assignment]
 
 
 AnalyticsCanonicalTelemetryRowEntity.model_rebuild()

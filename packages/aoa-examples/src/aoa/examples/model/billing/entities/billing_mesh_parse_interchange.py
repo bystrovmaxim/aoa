@@ -24,12 +24,16 @@ class BillingParseInterchangeBridgeEntity(BaseEntity):
     parse_pass: Annotated[
         AssociationOne[BillingParsePassEntity],
         NoInverse(),
-    ] = Rel(description="Parser spine anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parser spine anchor"
+    )  # type: ignore[assignment]
 
     interchange_slice: Annotated[
         AssociationOne[InterchangeAssessmentSliceEntity],
         NoInverse(),
-    ] = Rel(description="Interchange economics anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Interchange economics anchor"
+    )  # type: ignore[assignment]
 
     bridge_quality_tier: str = Field(description="Sync quality tier label")
     last_synced_at_iso: str = Field(description="Last successful bridge refresh (UTC)")

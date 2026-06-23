@@ -81,24 +81,26 @@ _IIF_PATTERN: re.Pattern[str] = re.compile(r"\{iif\((.+?)\)\}")
 
 # pydantic BaseModel class-level attributes that should not be accessed
 # through instances (DeprecationWarning in Pydantic v2.11+).
-_PYDANTIC_CLASS_ATTRS: frozenset[str] = frozenset({
-    "model_fields",
-    "model_computed_fields",
-    "model_config",
-    "model_extra",
-    "model_fields_set",
-    "model_json_schema",
-    "model_parametrized_name",
-    "model_post_init",
-    "model_rebuild",
-    "model_validate",
-    "model_validate_json",
-    "model_validate_strings",
-    "model_construct",
-    "model_copy",
-    "model_dump",
-    "model_dump_json",
-})
+_PYDANTIC_CLASS_ATTRS: frozenset[str] = frozenset(
+    {
+        "model_fields",
+        "model_computed_fields",
+        "model_config",
+        "model_extra",
+        "model_fields_set",
+        "model_json_schema",
+        "model_parametrized_name",
+        "model_post_init",
+        "model_rebuild",
+        "model_validate",
+        "model_validate_json",
+        "model_validate_strings",
+        "model_construct",
+        "model_copy",
+        "model_dump",
+        "model_dump_json",
+    }
+)
 
 
 def _color_marker(color: str, text: Any) -> str:
@@ -127,7 +129,7 @@ def _is_public_data_attribute(obj: Any, name: str) -> bool:
     """
     Return True when name points to a public non-callable data attribute.
     """
-    if name.startswith('_'):
+    if name.startswith("_"):
         return False
     if _is_pydantic_class_attr(obj, name):
         return False
@@ -144,7 +146,7 @@ def _is_public_property(obj: Any, name: str) -> bool:
     """
     Return True when name resolves to a public property descriptor.
     """
-    if name.startswith('_'):
+    if name.startswith("_"):
         return False
     if _is_pydantic_class_attr(obj, name):
         return False
@@ -206,8 +208,13 @@ def _is_custom_object(value: Any) -> bool:
 
 
 def _format_field_line(
-    obj: Any, name: str, value: Any, indent_str: str,
-    visited: set[int], max_depth: int, indent: int,
+    obj: Any,
+    name: str,
+    value: Any,
+    indent_str: str,
+    visited: set[int],
+    max_depth: int,
+    indent: int,
 ) -> str:
     """
     Format one field line for debug output.
@@ -221,7 +228,7 @@ def _format_field_line(
 
     config = _get_sensitive_config(obj, name)
 
-    if config and config.get('enabled', True):
+    if config and config.get("enabled", True):
         masked = mask_value(value, config)
         type_str = type(value).__name__
         suffix = (
@@ -230,7 +237,7 @@ def _format_field_line(
             f"max_percent={config.get('max_percent', 50)})"
         )
         value_str = masked
-    elif config and not config.get('enabled', True):
+    elif config and not config.get("enabled", True):
         type_str = type(value).__name__
         suffix = " (sensitive: disabled)"
         value_str = _format_value(value)
@@ -246,8 +253,12 @@ def _format_field_line(
 
 
 def _inspect_custom(
-    obj: Any, indent_str: str, type_name: str,
-    visited: set[int], max_depth: int, indent: int,
+    obj: Any,
+    indent_str: str,
+    type_name: str,
+    visited: set[int],
+    max_depth: int,
+    indent: int,
 ) -> str:
     """Inspect a custom object (non-builtin collection)."""
     data_attrs = {}
@@ -269,7 +280,7 @@ def _inspect_custom(
     # Extract extra fields from Pydantic models with extra="allow".
     if hasattr(obj, "__pydantic_extra__") and isinstance(obj.__pydantic_extra__, dict):
         for key, value in obj.__pydantic_extra__.items():
-            if key.startswith('_'):
+            if key.startswith("_"):
                 continue
             if key in data_attrs or key in props:
                 continue  # regular attribute has priority
@@ -282,16 +293,16 @@ def _inspect_custom(
 
     lines = [f"{indent_str}{type_name}:"]
     for name, value in all_fields.items():
-        lines.append(
-            _format_field_line(obj, name, value, indent_str, visited, max_depth, indent)
-        )
+        lines.append(_format_field_line(obj, name, value, indent_str, visited, max_depth, indent))
 
     return "\n".join(lines)
 
 
 def _inspect_object(
-    obj: Any, indent: int = 0,
-    visited: set[int] | None = None, max_depth: int = 1,
+    obj: Any,
+    indent: int = 0,
+    visited: set[int] | None = None,
+    max_depth: int = 1,
 ) -> str:
     """Recursively build a formatted view of public object fields."""
     if visited is None:
@@ -423,6 +434,7 @@ class ExpressionEvaluator:
 
     def evaluate(self, expression: str, names: dict[str, Any]) -> Any:
         """Evaluate one expression against the provided names context."""
+
         def exists(name: str) -> bool:
             """Check whether variable name exists in current context."""
             return name in names
@@ -437,13 +449,9 @@ class ExpressionEvaluator:
         try:
             return evaluator.eval(expression)
         except NameNotDefined as e:
-            raise LogTemplateError(
-                f"Variable '{e.name}' not found in expression '{expression}'"
-            ) from e
+            raise LogTemplateError(f"Variable '{e.name}' not found in expression '{expression}'") from e
         except Exception as e:
-            raise LogTemplateError(
-                f"Error evaluating expression '{expression}': {e}"
-            ) from e
+            raise LogTemplateError(f"Error evaluating expression '{expression}': {e}") from e
 
     def evaluate_iif(
         self,
@@ -456,8 +464,7 @@ class ExpressionEvaluator:
 
         if len(parts) != 3:
             raise LogTemplateError(
-                f"iif expects 3 arguments separated by ';', got {len(parts)}. "
-                f"Expression: iif({raw_args})"
+                f"iif expects 3 arguments separated by ';', got {len(parts)}. " f"Expression: iif({raw_args})"
             )
 
         condition_str = parts[0].strip()
@@ -481,6 +488,7 @@ class ExpressionEvaluator:
         names: dict[str, Any],
     ) -> str:
         """Replace all ``{iif(...)} `` occurrences in template string."""
+
         def replacer(match: re.Match[str]) -> str:
             raw_args = match.group(1)
             return self.evaluate_iif(raw_args, names)

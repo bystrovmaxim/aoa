@@ -26,7 +26,9 @@ class GeoShardHintEntity(BaseEntity):
     replay_watermark: Annotated[
         AssociationOne[ReplayWatermarkStubEntity],
         NoInverse(),
-    ] = Rel(description="Upstream replay watermark row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream replay watermark row"
+    )  # type: ignore[assignment]
 
 
 GeoShardHintEntity.model_rebuild()

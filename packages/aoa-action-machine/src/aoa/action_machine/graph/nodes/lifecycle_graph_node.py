@@ -99,9 +99,5 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
         """Attach all state rows and surface every state-row ``lifecycle_transition`` edge."""
         return [
             *(LifeCycleStateGraphEdge(state_node) for state_node in self.states),
-            *(
-                edge
-                for state_row in self.states
-                for edge in state_row.get_all_edges()
-            ),
+            *(edge for state_row in self.states for edge in state_row.get_all_edges()),
         ]

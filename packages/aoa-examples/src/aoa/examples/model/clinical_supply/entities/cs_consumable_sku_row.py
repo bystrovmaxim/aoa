@@ -30,11 +30,16 @@ class ClinicalConsumableSkuEntity(BaseEntity):
     material_anchor: Annotated[
         AssociationOne[ClinicalMaterialAnchorEntity],
         NoInverse(),
-    ] = Rel(description="Compound / sterility anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Compound / sterility anchor"
+    )  # type: ignore[assignment]
 
     inventory_lot_mirror: Annotated[
         AssociationOne[LotSnapshotLedgerEntity],
         NoInverse(),
-    ] = Rel(description="Inventory lot snapshot keyed for sterile consumable traceability")  # type: ignore[assignment]
+    ] = Rel(
+        description="Inventory lot snapshot keyed for sterile consumable traceability"
+    )  # type: ignore[assignment]
+
 
 ClinicalConsumableSkuEntity.model_rebuild()

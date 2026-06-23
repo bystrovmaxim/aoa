@@ -45,11 +45,13 @@ from tests.action_machine.scenarios.domain_model import FullAction, PingAction, 
 
 class _AltRequest(BaseModel):
     """Alternative request model for mapper tests."""
+
     query: str = "test"
 
 
 class _AltResponse(BaseModel):
     """Alternative response model for mapper tests."""
+
     data: str = "ok"
 
 

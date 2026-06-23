@@ -43,10 +43,7 @@ from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.edges.application_graph_edge import ApplicationGraphEdge
-from aoa.action_machine.graph.edges.parent_role_graph_edge import (
-    ParentRoleGraphEdge,
-    build_parent_role_edges,
-)
+from aoa.action_machine.graph.edges.parent_role_graph_edge import ParentRoleGraphEdge, build_parent_role_edges
 from aoa.action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 

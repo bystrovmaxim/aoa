@@ -115,14 +115,15 @@ _COLOR_MARKER_PATTERN: re.Pattern[str] = re.compile(
     re.DOTALL,
 )
 
+
 class VariableSubstitutor:
     """
-AI-CORE-BEGIN
-    ROLE: Template substitution engine used by LogCoordinator.
-    CONTRACT: Resolve namespaces, evaluate iif, apply masking and color markers.
-    INVARIANTS: Strict fail-fast semantics via LogTemplateError.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Template substitution engine used by LogCoordinator.
+        CONTRACT: Resolve namespaces, evaluate iif, apply masking and color markers.
+        INVARIANTS: Strict fail-fast semantics via LogTemplateError.
+        AI-CORE-END
+    """
 
     def __init__(self) -> None:
         """Create evaluator and per-namespace resolver map."""
@@ -189,36 +190,61 @@ AI-CORE-BEGIN
     # ----------------------------------------------------------------
 
     def _resolve_ns_var(
-        self, path: str, var: dict[str, Any], scope: LogScope,
-        ctx: Context, state: BaseState, params: BaseParams,
+        self,
+        path: str,
+        var: dict[str, Any],
+        scope: LogScope,
+        ctx: Context,
+        state: BaseState,
+        params: BaseParams,
     ) -> tuple[object, object | None, str | None]:
         """Resolve variable from var mapping."""
         return self._resolve_path(var, path)
 
     def _resolve_ns_state(
-        self, path: str, var: dict[str, Any], scope: LogScope,
-        ctx: Context, state: BaseState, params: BaseParams,
+        self,
+        path: str,
+        var: dict[str, Any],
+        scope: LogScope,
+        ctx: Context,
+        state: BaseState,
+        params: BaseParams,
     ) -> tuple[object, object | None, str | None]:
         """Resolve variable from BaseState."""
         return self._resolve_path(state, path)
 
     def _resolve_ns_scope(
-        self, path: str, var: dict[str, Any], scope: LogScope,
-        ctx: Context, state: BaseState, params: BaseParams,
+        self,
+        path: str,
+        var: dict[str, Any],
+        scope: LogScope,
+        ctx: Context,
+        state: BaseState,
+        params: BaseParams,
     ) -> tuple[object, object | None, str | None]:
         """Resolve variable from LogScope."""
         return self._resolve_path(scope, path)
 
     def _resolve_ns_context(
-        self, path: str, var: dict[str, Any], scope: LogScope,
-        ctx: Context, state: BaseState, params: BaseParams,
+        self,
+        path: str,
+        var: dict[str, Any],
+        scope: LogScope,
+        ctx: Context,
+        state: BaseState,
+        params: BaseParams,
     ) -> tuple[object, object | None, str | None]:
         """Resolve variable from Context."""
         return self._resolve_path(ctx, path)
 
     def _resolve_ns_params(
-        self, path: str, var: dict[str, Any], scope: LogScope,
-        ctx: Context, state: BaseState, params: BaseParams,
+        self,
+        path: str,
+        var: dict[str, Any],
+        scope: LogScope,
+        ctx: Context,
+        state: BaseState,
+        params: BaseParams,
     ) -> tuple[object, object | None, str | None]:
         """Resolve variable from BaseParams."""
         return self._resolve_path(params, path)
@@ -291,9 +317,7 @@ AI-CORE-BEGIN
         if path is not None:
             self._validate_path_segments(namespace, path)
 
-        raw_value, source, last_segment = self._resolve_variable_raw(
-            namespace, path, var, scope, ctx, state, params
-        )
+        raw_value, source, last_segment = self._resolve_variable_raw(namespace, path, var, scope, ctx, state, params)
 
         if raw_value is _SENTINEL:
             raise LogTemplateError(
@@ -305,7 +329,7 @@ AI-CORE-BEGIN
         if source is not None and last_segment is not None:
             config = self._get_property_config(source, last_segment)
 
-        if config and config.get('enabled', True):
+        if config and config.get("enabled", True):
             masked_str = mask_value(raw_value, config)
         else:
             masked_str = str(raw_value)
@@ -329,9 +353,7 @@ AI-CORE-BEGIN
         """
         Resolve one variable and return its final string representation.
         """
-        _, masked_str, _ = self._resolve_and_mask(
-            namespace, path, var, scope, ctx, state, params
-        )
+        _, masked_str, _ = self._resolve_and_mask(namespace, path, var, scope, ctx, state, params)
         return masked_str
 
     # ----------------------------------------------------------------
@@ -372,20 +394,17 @@ AI-CORE-BEGIN
         """
         Fast path when no iif is present: replace {%...} directly.
         """
+
         def replacer(match: re.Match[str]) -> str:
             namespace = match.group(1)
             path = match.group(2)
             filter_name = match.group(3)
 
             if filter_name == "debug":
-                raw_value, _, _ = self._resolve_and_mask(
-                    namespace, path, var, scope, ctx, state, params
-                )
+                raw_value, _, _ = self._resolve_and_mask(namespace, path, var, scope, ctx, state, params)
                 return debug_value(raw_value)
 
-            _, masked_str, _ = self._resolve_and_mask(
-                namespace, path, var, scope, ctx, state, params
-            )
+            _, masked_str, _ = self._resolve_and_mask(namespace, path, var, scope, ctx, state, params)
 
             if filter_name:
                 return f"__COLOR({filter_name}){masked_str}__COLOR_END__"
@@ -411,9 +430,7 @@ AI-CORE-BEGIN
         path = match.group(2)
         filter_name = match.group(3)
 
-        raw_value, masked_str, _ = self._resolve_and_mask(
-            namespace, path, var, scope, ctx, state, params
-        )
+        raw_value, masked_str, _ = self._resolve_and_mask(namespace, path, var, scope, ctx, state, params)
 
         if inside_iif:
             if isinstance(raw_value, (bool, int, float)):
@@ -443,19 +460,14 @@ AI-CORE-BEGIN
         """
         Slow path with iif detection: format variables by block position.
         """
-        iif_ranges = [
-            (m.start(), m.end())
-            for m in _IIF_BLOCK_PATTERN.finditer(message)
-        ]
+        iif_ranges = [(m.start(), m.end()) for m in _IIF_BLOCK_PATTERN.finditer(message)]
 
         def _inside_iif(pos: int) -> bool:
             return any(start <= pos < end for start, end in iif_ranges)
 
         def replacer(match: re.Match[str]) -> str:
             inside = _inside_iif(match.start())
-            return self._format_variable_for_template(
-                match, var, scope, ctx, state, params, inside
-            )
+            return self._format_variable_for_template(match, var, scope, ctx, state, params, inside)
 
         return _VARIABLE_PATTERN.sub(replacer, message)
 
@@ -473,9 +485,7 @@ AI-CORE-BEGIN
         First-pass dispatcher choosing fast/slow substitution strategy.
         """
         if has_iif:
-            return self._substitute_with_iif_detection(
-                message, var, scope, ctx, state, params
-            )
+            return self._substitute_with_iif_detection(message, var, scope, ctx, state, params)
         return self._substitute_simple(message, var, scope, ctx, state, params)
 
     # ----------------------------------------------------------------
@@ -501,10 +511,7 @@ AI-CORE-BEGIN
         if "_on_" in color_name:
             parts = color_name.split("_on_", 1)
             if len(parts) != 2:
-                raise LogTemplateError(
-                    f"Invalid color format: '{color_name}'. "
-                    f"Use 'foreground_on_background'."
-                )
+                raise LogTemplateError(f"Invalid color format: '{color_name}'. " f"Use 'foreground_on_background'.")
             fg_name, bg_name = parts
             fg_code = _FG_COLORS.get(fg_name)
             bg_code = _BG_COLORS.get(bg_name)
@@ -524,6 +531,7 @@ AI-CORE-BEGIN
         Replace color markers with ANSI codes using inside-out passes.
         """
         while _COLOR_MARKER_PATTERN.search(text):
+
             def replacer(match: re.Match[str]) -> str:
                 color_name = match.group(1)
                 content = match.group(2)
@@ -569,9 +577,7 @@ AI-CORE-BEGIN
         has_iif = "{iif(" in message
 
         # Pass 1: substitute {%...}, keep color markers.
-        resolved = self._substitute_variables(
-            message, var, scope, ctx, state, params, has_iif
-        )
+        resolved = self._substitute_variables(message, var, scope, ctx, state, params, has_iif)
 
         # Pass 2: evaluate {iif(...)}.
         if has_iif:

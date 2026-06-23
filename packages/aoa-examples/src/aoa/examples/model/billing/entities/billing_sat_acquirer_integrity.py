@@ -24,7 +24,9 @@ class AcquirerIntegrityCheckEntity(BaseEntity):
     evidence_bundle: Annotated[
         AssociationOne[RetrievalEvidenceBundleEntity],
         NoInverse(),
-    ] = Rel(description="Parent retrieval submission bundle")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent retrieval submission bundle"
+    )  # type: ignore[assignment]
 
     checkpoint_kind: str = Field(description="Integrity gate kind (PAN, CSC, MID)")
     adjudication_outcome: str = Field(description="Rule outcome shorthand")

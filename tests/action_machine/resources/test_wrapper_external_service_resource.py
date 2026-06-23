@@ -35,28 +35,35 @@ class TestConstructor:
     """Wrapper construction and identity."""
 
     def test_delegates_service_to_inner(
-        self, wrapper: WrapperExternalServiceResource, client: object,
+        self,
+        wrapper: WrapperExternalServiceResource,
+        client: object,
     ) -> None:
         """``service`` reads through to the wrapped manager’s client."""
         assert wrapper.service is client
 
     @pytest.mark.asyncio
     async def test_delegates_check_rollup_support(
-        self, wrapper: WrapperExternalServiceResource, owner: ExternalServiceResource[object],
+        self,
+        wrapper: WrapperExternalServiceResource,
+        owner: ExternalServiceResource[object],
     ) -> None:
         """Rollup capability matches the wrapped manager."""
         assert await wrapper.check_rollup_support() == await owner.check_rollup_support()
         assert await wrapper.check_rollup_support() is False
 
     def test_is_protocol_not_external_service_resource(
-        self, wrapper: WrapperExternalServiceResource,
+        self,
+        wrapper: WrapperExternalServiceResource,
     ) -> None:
         """Wrapper implements the protocol but is not a concrete ExternalServiceResource."""
         assert isinstance(wrapper, ProtocolExternalServiceResource)
         assert not isinstance(wrapper, ExternalServiceResource)
 
     def test_stores_inner_reference(
-        self, wrapper: WrapperExternalServiceResource, owner: ExternalServiceResource[object],
+        self,
+        wrapper: WrapperExternalServiceResource,
+        owner: ExternalServiceResource[object],
     ) -> None:
         assert wrapper._inner is owner
 
@@ -73,14 +80,18 @@ class TestDoubleWrapping:
     """Chained wrappers still expose the same client."""
 
     def test_double_wrap_same_service(
-        self, owner: ExternalServiceResource[object], client: object,
+        self,
+        owner: ExternalServiceResource[object],
+        client: object,
     ) -> None:
         w1 = WrapperExternalServiceResource(owner)
         w2 = WrapperExternalServiceResource(w1)
         assert w2.service is client
 
     def test_triple_wrap_same_service(
-        self, owner: ExternalServiceResource[object], client: object,
+        self,
+        owner: ExternalServiceResource[object],
+        client: object,
     ) -> None:
         w1 = WrapperExternalServiceResource(owner)
         w2 = WrapperExternalServiceResource(w1)
@@ -105,14 +116,18 @@ class TestWrapConnectionsIntegration:
         return wrapped
 
     def test_wraps_owner_in_wrapper(
-        self, owner: ExternalServiceResource[object], client: object,
+        self,
+        owner: ExternalServiceResource[object],
+        client: object,
     ) -> None:
         out = self._wrap_connections({"api": owner})
         assert isinstance(out["api"], WrapperExternalServiceResource)
         assert out["api"].service is client
 
     def test_rewraps_wrapper(
-        self, wrapper: WrapperExternalServiceResource, client: object,
+        self,
+        wrapper: WrapperExternalServiceResource,
+        client: object,
     ) -> None:
         out = self._wrap_connections({"api": wrapper})
         assert isinstance(out["api"], WrapperExternalServiceResource)

@@ -30,12 +30,16 @@ class ClinicalPartnerOrgProjectionEntity(BaseEntity):
     partner_hub: Annotated[
         AssociationOne[ClinicalPartnerHubEntity],
         NoInverse(),
-    ] = Rel(description="Parent partner aggregate")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent partner aggregate"
+    )  # type: ignore[assignment]
 
     ownership_anchor: Annotated[
         AssociationOne[ClinicalOwnershipAnchorEntity],
         NoInverse(),
-    ] = Rel(description="Corporate form catalog")  # type: ignore[assignment]
+    ] = Rel(
+        description="Corporate form catalog"
+    )  # type: ignore[assignment]
 
 
 ClinicalPartnerOrgProjectionEntity.model_rebuild()

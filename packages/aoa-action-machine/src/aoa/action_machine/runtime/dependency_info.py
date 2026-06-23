@@ -35,6 +35,7 @@ class DependencyInfo:
         mode: For action targets, ``UseCase.include`` / ``UseCase.extend`` (PR-2+).
                ``None`` for resource targets or before validation is applied.
     """
+
     cls: type
     factory: Callable[..., Any] | None = None
     description: str = ""

@@ -76,19 +76,13 @@ class RoleMode(Enum):
                 ``_role_mode_info`` / a valid ``mode`` entry.
         """
         if not issubclass(role, RoleModeIntent):
-            raise TypeError(
-                f"{cls.__name__}.declared_for expects a RoleModeIntent subclass, got {role!r}."
-            )
+            raise TypeError(f"{cls.__name__}.declared_for expects a RoleModeIntent subclass, got {role!r}.")
         info = getattr(role, "_role_mode_info", None)
         if not isinstance(info, dict):
-            raise TypeError(
-                f"Role {role.__qualname__} has no _role_mode_info; apply @role_mode(...)."
-            )
+            raise TypeError(f"Role {role.__qualname__} has no _role_mode_info; apply @role_mode(...).")
         raw = info.get("mode")
         if not isinstance(raw, RoleMode):
-            raise TypeError(
-                f"Role {role.__qualname__} has invalid _role_mode_info['mode']: {raw!r}."
-            )
+            raise TypeError(f"Role {role.__qualname__} has invalid _role_mode_info['mode']: {raw!r}.")
         return raw
 
 

@@ -30,12 +30,16 @@ class StoreOrderInvoiceBridgeEntity(BaseEntity):
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Upstream order artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream order artefact"
+    )  # type: ignore[assignment]
 
     invoice: Annotated[
         AssociationOne[InvoiceRecordEntity],
         NoInverse(),
-    ] = Rel(description="Downstream invoicing artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Downstream invoicing artefact"
+    )  # type: ignore[assignment]
 
 
 StoreOrderInvoiceBridgeEntity.model_rebuild()

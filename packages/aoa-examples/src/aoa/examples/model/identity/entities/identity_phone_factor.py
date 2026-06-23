@@ -26,7 +26,9 @@ class IdentityPhoneFactorEntity(BaseEntity):
     person: Annotated[
         AssociationOne[IdentityPersonHubEntity],
         NoInverse(),
-    ] = Rel(description="Owning person identity")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning person identity"
+    )  # type: ignore[assignment]
 
 
 IdentityPhoneFactorEntity.model_rebuild()

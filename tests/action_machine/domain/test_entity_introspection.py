@@ -8,13 +8,7 @@ from typing import Annotated
 import pytest
 from pydantic import Field
 
-from aoa.action_machine.domain import (
-    AssociationOne,
-    BaseEntity,
-    FieldNotLoadedError,
-    NoInverse,
-    Rel,
-)
+from aoa.action_machine.domain import AssociationOne, BaseEntity, FieldNotLoadedError, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from tests.action_machine.scenarios.domain_model.entities import (
     DraftLifecycle,
@@ -105,7 +99,9 @@ class TestRelationForeignKeys:
             policy: Annotated[
                 AssociationOne[OrderEntity] | None,
                 NoInverse(),
-            ] = Rel(description="Policy")  # type: ignore[assignment]
+            ] = Rel(
+                description="Policy"
+            )  # type: ignore[assignment]
 
         policy_ref = AssociationOne(id="pol-9")
         child = ChildEntity(id="1", policy=policy_ref)
@@ -122,7 +118,9 @@ class TestRelationForeignKeys:
             policy: Annotated[
                 AssociationOne[OrderEntity] | None,
                 NoInverse(),
-            ] = Rel(description="Policy")  # type: ignore[assignment]
+            ] = Rel(
+                description="Policy"
+            )  # type: ignore[assignment]
 
         child = ChildEntity(id="1", policy=None)
         assert child.get_foreign_keys() == {}

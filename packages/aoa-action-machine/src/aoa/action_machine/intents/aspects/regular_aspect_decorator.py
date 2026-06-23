@@ -62,32 +62,27 @@ _REQUIRED_SUFFIX = "_aspect"
 
 def _description_type_invariant(description: Any) -> None:
     if not isinstance(description, str):
-        raise TypeError(
-            f"@regular_aspect expects a string description, "
-            f"got {type(description).__name__}."
-        )
+        raise TypeError(f"@regular_aspect expects a string description, " f"got {type(description).__name__}.")
 
 
 def _description_non_empty_invariant(description: str) -> None:
     if not description.strip():
         raise ValueError(
-            "@regular_aspect: description cannot be empty or whitespace. "
-            "Provide a non-empty step description."
+            "@regular_aspect: description cannot be empty or whitespace. " "Provide a non-empty step description."
         )
 
 
 def _method_callable_invariant(func: Any) -> None:
     if not callable(func):
         raise TypeError(
-            f"@regular_aspect can only be applied to methods. "
-            f"Got object of type {type(func).__name__}: {func!r}."
+            f"@regular_aspect can only be applied to methods. " f"Got object of type {type(func).__name__}: {func!r}."
         )
 
 
 def _method_async_invariant(func: Any, description: str) -> None:
     if not asyncio.iscoroutinefunction(func):
         raise TypeError(
-            f"@regular_aspect(\"{description}\"): method {func.__name__} "
+            f'@regular_aspect("{description}"): method {func.__name__} '
             f"must be async (async def). "
             f"Synchronous methods are not supported."
         )
@@ -101,7 +96,7 @@ def _method_params_count_invariant(func: Any, description: str) -> None:
     param_count = len(sig.parameters)
     if param_count != expected_count:
         raise TypeError(
-            f"@regular_aspect(\"{description}\"): method {func.__name__} "
+            f'@regular_aspect("{description}"): method {func.__name__} '
             f"must accept {expected_count} parameters "
             f"({expected_names}), got {param_count}."
         )

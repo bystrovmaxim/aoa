@@ -26,7 +26,9 @@ class PickVarianceRecordEntity(BaseEntity):
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],
         NoInverse(),
-    ] = Rel(description="Owning order line anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning order line anchor"
+    )  # type: ignore[assignment]
 
 
 PickVarianceRecordEntity.model_rebuild()

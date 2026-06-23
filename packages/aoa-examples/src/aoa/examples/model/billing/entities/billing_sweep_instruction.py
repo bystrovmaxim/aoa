@@ -22,7 +22,9 @@ class BillingSweepInstructionEntity(BaseEntity):
     payout_plan: Annotated[
         AssociationOne[BillingPayoutPlanEntity],
         NoInverse(),
-    ] = Rel(description="Parent payout plan")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent payout plan"
+    )  # type: ignore[assignment]
 
     corridor_code: str = Field(description="Treasury corridor identifier")
     priority_rank: int = Field(description="Relative ordering within plan", ge=0)

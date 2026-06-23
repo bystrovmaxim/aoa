@@ -10,6 +10,7 @@ from aoa.action_machine.context.env_entry import EnvEntry
 
 # ── @env registers entry on the class ────────────────────────────────────────
 
+
 def test_env_registers_entry_on_class() -> None:
     @env("region", "eu-west-1")
     class AppContext(Context):
@@ -48,6 +49,7 @@ def test_env_ttl_stored_on_entry() -> None:
 
 # ── multiple stacked decorators ───────────────────────────────────────────────
 
+
 def test_multiple_env_decorators_all_registered() -> None:
     @env("flag", lambda: True, ttl=30)
     @env("region", "eu-west-1")
@@ -60,6 +62,7 @@ def test_multiple_env_decorators_all_registered() -> None:
 
 
 # ── inheritance ───────────────────────────────────────────────────────────────
+
 
 def test_child_inherits_parent_env_entries() -> None:
     @env("region", "eu-west-1")
@@ -101,6 +104,7 @@ def test_child_can_override_parent_entry() -> None:
 
 # ── Context.resolve("env.*") ──────────────────────────────────────────────────
 
+
 def test_resolve_env_prefix_returns_provider_value() -> None:
     @env("region", "eu-west-1")
     class AppContext(Context):
@@ -132,9 +136,9 @@ def test_resolve_env_callable_invoked_lazily() -> None:
         pass
 
     ctx = AppContext()
-    assert len(calls) == 0       # provider NOT called at class/instance creation
+    assert len(calls) == 0  # provider NOT called at class/instance creation
     ctx.resolve("env.k")
-    assert len(calls) == 1       # called only on access
+    assert len(calls) == 1  # called only on access
 
 
 def test_resolve_non_env_path_uses_base_resolve() -> None:
@@ -142,7 +146,7 @@ def test_resolve_non_env_path_uses_base_resolve() -> None:
         pass
 
     ctx = AppContext()
-    assert ctx.resolve("user.user_id") is None   # normal dot-path still works
+    assert ctx.resolve("user.user_id") is None  # normal dot-path still works
 
 
 def test_base_context_has_no_env_entries() -> None:
@@ -152,6 +156,7 @@ def test_base_context_has_no_env_entries() -> None:
 
 def test_env_negative_ttl_raises_at_decoration_time() -> None:
     with pytest.raises(ValueError, match="ttl must be >= 0"):
+
         @env("k", lambda: 1, ttl=-1)
         class AppContext(Context):
             pass

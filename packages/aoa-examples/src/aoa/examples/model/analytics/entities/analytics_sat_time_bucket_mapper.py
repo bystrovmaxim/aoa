@@ -26,7 +26,9 @@ class TimeBucketMapperEntity(BaseEntity):
     sketch_stub: Annotated[
         AssociationOne[AnalyticsAggregateSketchStubEntity],
         NoInverse(),
-    ] = Rel(description="Parent aggregate sketch")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent aggregate sketch"
+    )  # type: ignore[assignment]
 
 
 TimeBucketMapperEntity.model_rebuild()

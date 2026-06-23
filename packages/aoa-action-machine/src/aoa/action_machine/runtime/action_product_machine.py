@@ -140,9 +140,7 @@ from aoa.action_machine.exceptions.cache_contract_error import CacheContractErro
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import (
-    ActionSchemaIntentResolver,
-)
+from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import Channel
 from aoa.action_machine.logging.console_logger import ConsoleLogger
@@ -276,18 +274,16 @@ class ActionProductMachine(BaseActionMachine):
         """
         self._log_coordinator = log_coordinator or LogCoordinator()
         default_loggers = [] if log_coordinator else [ConsoleLogger()]
-        for logger in (loggers if loggers is not None else default_loggers):
+        for logger in loggers if loggers is not None else default_loggers:
             self._log_coordinator.add_logger(logger)
         self._plugin_coordinator = plugin_coordinator or PluginCoordinator(log_coordinator=self._log_coordinator)
-        for plugin in (plugins or []):
+        for plugin in plugins or []:
             self._plugin_coordinator.add_plugin(plugin)
         self.graph_coordinator = graph_coordinator or create_node_graph_coordinator()
         self._role_checker = role_checker or RoleChecker()
         self._connection_validator = connection_validator or ConnectionValidator()
         self._aspect_executor = aspect_executor or AspectExecutor(self._log_coordinator)
-        self._error_handler_executor = error_handler_executor or ErrorHandlerExecutor(
-            self._plugin_coordinator
-        )
+        self._error_handler_executor = error_handler_executor or ErrorHandlerExecutor(self._plugin_coordinator)
         self._saga_coordinator = saga_coordinator or SagaCoordinator(
             self._aspect_executor,
             self._error_handler_executor,
@@ -304,8 +300,7 @@ class ActionProductMachine(BaseActionMachine):
             return
         if not isinstance(cache_key, str):
             raise CacheContractError(
-                f"cache_key in {type(action).__name__!r} must return str | None; "
-                f"got {type(cache_key).__name__!r}.",
+                f"cache_key in {type(action).__name__!r} must return str | None; " f"got {type(cache_key).__name__!r}.",
             )
         if not cache_key.strip():
             raise CacheContractError(
@@ -313,9 +308,7 @@ class ActionProductMachine(BaseActionMachine):
             )
 
     @staticmethod
-    def _validate_cache_invalidate(
-        invalidations: object, action: BaseAction[Any, Any]
-    ) -> None:
+    def _validate_cache_invalidate(invalidations: object, action: BaseAction[Any, Any]) -> None:
         """Ensure ``on_cache_invalidate`` returned ``list[CacheTag] | None`` or raise :exc:`CacheContractError`."""
         if invalidations is None:
             return
@@ -368,9 +361,7 @@ class ActionProductMachine(BaseActionMachine):
     def get_action_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
         """Return the materialized ``Action`` graph node for ``action_cls`` (same id as :class:`ActionGraphNode`)."""
         if not isinstance(action_cls, type) or not issubclass(action_cls, BaseAction):
-            raise TypeError(
-                f"action_cls must be a subclass of BaseAction, got {action_cls!r}."
-            )
+            raise TypeError(f"action_cls must be a subclass of BaseAction, got {action_cls!r}.")
         return cast(
             ActionGraphNode[BaseAction[Any, Any]],
             self.graph_coordinator.get_node_by_id(
@@ -431,9 +422,7 @@ class ActionProductMachine(BaseActionMachine):
                 failed_aspect_name = aspect_node.label
                 state_passed_into_aspect = state
 
-                compensator_node = action_graph_node.compensator_graph_node_for_aspect(
-                    aspect_node.label
-                )
+                compensator_node = action_graph_node.compensator_graph_node_for_aspect(aspect_node.label)
                 saga_stack.append(
                     SagaFrame(
                         compensator=compensator_node,
@@ -453,16 +442,14 @@ class ActionProductMachine(BaseActionMachine):
                     state_snapshot=state_passed_into_aspect.to_dict(),
                 )
 
-                state, new_state_dict, aspect_duration = (
-                    await self._aspect_executor.execute_regular(
-                        action=action,
-                        aspect_node=aspect_node,
-                        params=params,
-                        state=state_passed_into_aspect,
-                        box=box,
-                        connections=connections,
-                        context=context,
-                    )
+                state, new_state_dict, aspect_duration = await self._aspect_executor.execute_regular(
+                    action=action,
+                    aspect_node=aspect_node,
+                    params=params,
+                    state=state_passed_into_aspect,
+                    box=box,
+                    connections=connections,
+                    context=context,
                 )
 
                 if saga_stack:

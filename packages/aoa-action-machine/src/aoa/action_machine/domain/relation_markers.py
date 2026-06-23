@@ -80,12 +80,12 @@ from typing import Any, cast
 
 class Inverse:
     """
-AI-CORE-BEGIN
-    ROLE: Explicit inverse relation pointer.
-    CONTRACT: Bind current relation field to a concrete target entity field.
-    INVARIANTS: target entity must be a type; field name must be non-empty string.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Explicit inverse relation pointer.
+        CONTRACT: Bind current relation field to a concrete target entity field.
+        INVARIANTS: target entity must be a type; field name must be non-empty string.
+        AI-CORE-END
+    """
 
     __slots__ = ("_field_name", "_target_entity")
 
@@ -102,20 +102,14 @@ AI-CORE-BEGIN
         """
         if not isinstance(target_entity, type):
             raise TypeError(
-                f"Inverse: target_entity must be a type, "
-                f"got {type(target_entity).__name__}: {target_entity!r}."
+                f"Inverse: target_entity must be a type, " f"got {type(target_entity).__name__}: {target_entity!r}."
             )
 
         if not isinstance(field_name, str):
-            raise TypeError(
-                f"Inverse: field_name must be str, "
-                f"got {type(field_name).__name__}: {field_name!r}."
-            )
+            raise TypeError(f"Inverse: field_name must be str, " f"got {type(field_name).__name__}: {field_name!r}.")
 
         if not field_name.strip():
-            raise ValueError(
-                "Inverse: field_name cannot be empty or whitespace-only."
-            )
+            raise ValueError("Inverse: field_name cannot be empty or whitespace-only.")
 
         object.__setattr__(self, "_target_entity", target_entity)
         object.__setattr__(self, "_field_name", field_name)
@@ -146,10 +140,7 @@ AI-CORE-BEGIN
             return NotImplemented
         target_entity = cast(type, object.__getattribute__(self, "_target_entity"))
         field_name = cast(str, object.__getattribute__(self, "_field_name"))
-        return (
-            target_entity is other.target_entity
-            and field_name == other.field_name
-        )
+        return target_entity is other.target_entity and field_name == other.field_name
 
     def __hash__(self) -> int:
         target_entity = cast(type, object.__getattribute__(self, "_target_entity"))
@@ -159,12 +150,12 @@ AI-CORE-BEGIN
 
 class NoInverse:
     """
-AI-CORE-BEGIN
-    ROLE: Explicit marker for one-way relation edges.
-    CONTRACT: Signals intentional absence of reverse field mapping.
-    INVARIANTS: Stateless frozen marker object.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Explicit marker for one-way relation edges.
+        CONTRACT: Signals intentional absence of reverse field mapping.
+        INVARIANTS: Stateless frozen marker object.
+        AI-CORE-END
+    """
 
     __slots__ = ()
 
@@ -188,12 +179,12 @@ AI-CORE-BEGIN
 
 class NoGraphEdge:
     """
-AI-CORE-BEGIN
-    ROLE: Explicit opt-out of graph materialization for one relation field.
-    CONTRACT: Stateless frozen marker; combinable with ``Inverse`` or ``NoInverse``.
-    INVARIANTS: No attributes; singleton semantics via ``__eq__`` / ``__hash__``.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Explicit opt-out of graph materialization for one relation field.
+        CONTRACT: Stateless frozen marker; combinable with ``Inverse`` or ``NoInverse``.
+        INVARIANTS: No attributes; singleton semantics via ``__eq__`` / ``__hash__``.
+        AI-CORE-END
+    """
 
     __slots__ = ()
 
@@ -217,12 +208,12 @@ AI-CORE-BEGIN
 
 class Rel:
     """
-AI-CORE-BEGIN
-    ROLE: Mandatory relation description carrier.
-    CONTRACT: Provide non-empty documentation text for one direction of an entity relation edge.
-    INVARIANTS: Description is validated and immutable after construction.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Mandatory relation description carrier.
+        CONTRACT: Provide non-empty documentation text for one direction of an entity relation edge.
+        INVARIANTS: Description is validated and immutable after construction.
+        AI-CORE-END
+    """
 
     __slots__ = ("_description",)
 
@@ -236,15 +227,11 @@ AI-CORE-BEGIN
             ValueError: Empty or whitespace-only ``description``.
         """
         if not isinstance(description, str):
-            raise TypeError(
-                f"Rel: description must be str, "
-                f"got {type(description).__name__}: {description!r}."
-            )
+            raise TypeError(f"Rel: description must be str, " f"got {type(description).__name__}: {description!r}.")
 
         if not description.strip():
             raise ValueError(
-                "Rel: description cannot be empty or whitespace-only. "
-                "Provide a non-empty relation description."
+                "Rel: description cannot be empty or whitespace-only. " "Provide a non-empty relation description."
             )
 
         object.__setattr__(self, "_description", description)

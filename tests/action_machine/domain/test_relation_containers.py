@@ -29,11 +29,7 @@ Not a full hydration suite — see `tests/domain/test_hydration.py` for `build()
 import pytest
 
 from aoa.action_machine.domain.exceptions import RelationNotLoadedError
-from aoa.action_machine.domain.relation_containers import (
-    AssociationMany,
-    AssociationOne,
-    CompositeMany,
-)
+from aoa.action_machine.domain.relation_containers import AssociationMany, AssociationOne, CompositeMany
 
 
 class _Row:

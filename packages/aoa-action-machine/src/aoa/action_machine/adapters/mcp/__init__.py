@@ -50,8 +50,7 @@ try:
     from mcp.server.fastmcp import FastMCP  # noqa: F401
 except ImportError:
     raise ImportError(
-        "To use action_machine.adapters.mcp, "
-        "install the extra dependency: pip install aoa-run[mcp]"
+        "To use action_machine.adapters.mcp, " "install the extra dependency: pip install aoa-run[mcp]"
     ) from None
 
 from aoa.action_machine.adapters.mcp.adapter import McpAdapter

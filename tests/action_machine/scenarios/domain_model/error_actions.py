@@ -62,11 +62,13 @@ from .domains import OrdersDomain
 
 class InsufficientFundsError(Exception):
     """Not enough funds on the account."""
+
     pass
 
 
 class PaymentGatewayError(Exception):
     """Payment gateway failure."""
+
     pass
 
 
@@ -77,6 +79,7 @@ class PaymentGatewayError(Exception):
 
 class ErrorTestParams(BaseParams):
     """Parameters for error-handling test Actions."""
+
     value: str = Field(description="Value to process")
     should_fail: bool = Field(
         default=False,
@@ -86,6 +89,7 @@ class ErrorTestParams(BaseParams):
 
 class ErrorTestResult(BaseResult):
     """Result type for error-handling test Actions."""
+
     status: str = Field(description="Execution status")
     detail: str = Field(default="", description="Result details")
 

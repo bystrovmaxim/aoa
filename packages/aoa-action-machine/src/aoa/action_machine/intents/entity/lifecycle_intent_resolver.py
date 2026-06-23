@@ -50,8 +50,7 @@ def _lifecycle_annotation_denotes_subclass(annotation: Any) -> bool:
     origin = get_origin(annotation)
     if origin is types.UnionType or origin is typing.Union:
         return any(
-            arg is not types.NoneType and _lifecycle_annotation_denotes_subclass(arg)
-            for arg in get_args(annotation)
+            arg is not types.NoneType and _lifecycle_annotation_denotes_subclass(arg) for arg in get_args(annotation)
         )
 
     return False

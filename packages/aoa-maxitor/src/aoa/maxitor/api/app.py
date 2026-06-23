@@ -26,6 +26,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from aoa.action_machine.adapters.fastapi import FastApiAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
+from aoa.action_machine.context import Context
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -37,10 +38,7 @@ from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action im
 from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
 from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
-    DUCKDB_GRAPH_CONNECTION_KEY,
-    DuckDBGraphResource,
-)
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
 
 def create_app() -> FastAPI:
@@ -53,7 +51,7 @@ def create_app() -> FastAPI:
     AI-CORE-END
     """
     machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
-    auth = NoAuthCoordinator()
+    auth = NoAuthCoordinator(context=Context())
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:

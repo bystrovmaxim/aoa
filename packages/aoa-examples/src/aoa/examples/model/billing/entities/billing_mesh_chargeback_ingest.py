@@ -24,12 +24,16 @@ class BillingChargebackIngestCorrelateEntity(BaseEntity):
     dispute: Annotated[
         AssociationOne[ChargebackTicketEntity],
         NoInverse(),
-    ] = Rel(description="Dispute ticket anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Dispute ticket anchor"
+    )  # type: ignore[assignment]
 
     ingest_manifest: Annotated[
         AssociationOne[BillingFileIngestManifestEntity],
         NoInverse(),
-    ] = Rel(description="Ingest workload anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Ingest workload anchor"
+    )  # type: ignore[assignment]
 
     correlate_confidence_bps: int = Field(description="Heuristic linkage confidence basis points", ge=0, le=10000)
     correlate_reason_code: str = Field(description="Why entities were bridged together")

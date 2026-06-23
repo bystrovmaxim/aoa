@@ -42,17 +42,23 @@ class CatalogDirectedCycleTriangleAEntity(BaseEntity):
     follow_b: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleBEntity],
         Inverse(CatalogDirectedCycleTriangleBEntity, "back_from_a"),
-    ] = Rel(description="Perimeter arc A\u2192B")  # type: ignore[assignment]
+    ] = Rel(
+        description="Perimeter arc A\u2192B"
+    )  # type: ignore[assignment]
 
     back_from_c: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleCEntity],
         Inverse(CatalogDirectedCycleTriangleCEntity, "follow_a"),
-    ] = Rel(description="Closing arc C\u2192A (reciprocal pair)")  # type: ignore[assignment]
+    ] = Rel(
+        description="Closing arc C\u2192A (reciprocal pair)"
+    )  # type: ignore[assignment]
 
     anchor_product_row: Annotated[
         AssociationOne[CatalogProductEntity],
         NoInverse(),
-    ] = Rel(description="Bridges vertex A into the primary catalog product table")  # type: ignore[assignment]
+    ] = Rel(
+        description="Bridges vertex A into the primary catalog product table"
+    )  # type: ignore[assignment]
 
 
 @entity(
@@ -72,17 +78,23 @@ class CatalogDirectedCycleTriangleBEntity(BaseEntity):
     back_from_a: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleAEntity],
         Inverse(CatalogDirectedCycleTriangleAEntity, "follow_b"),
-    ] = Rel(description="Arc B\u2192A reciprocal")  # type: ignore[assignment]
+    ] = Rel(
+        description="Arc B\u2192A reciprocal"
+    )  # type: ignore[assignment]
 
     follow_c: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleCEntity],
         Inverse(CatalogDirectedCycleTriangleCEntity, "back_from_b"),
-    ] = Rel(description="Perimeter arc B\u2192C")  # type: ignore[assignment]
+    ] = Rel(
+        description="Perimeter arc B\u2192C"
+    )  # type: ignore[assignment]
 
     anchor_acquisition_channel: Annotated[
         AssociationOne[AcquisitionChannelLedgerEntity],
         NoInverse(),
-    ] = Rel(description="Bridges vertex B into acquisition-channel ledger stubs")  # type: ignore[assignment]
+    ] = Rel(
+        description="Bridges vertex B into acquisition-channel ledger stubs"
+    )  # type: ignore[assignment]
 
 
 @entity(
@@ -102,12 +114,16 @@ class CatalogDirectedCycleTriangleCEntity(BaseEntity):
     back_from_b: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleBEntity],
         Inverse(CatalogDirectedCycleTriangleBEntity, "follow_c"),
-    ] = Rel(description="Arc C\u2192B reciprocal")  # type: ignore[assignment]
+    ] = Rel(
+        description="Arc C\u2192B reciprocal"
+    )  # type: ignore[assignment]
 
     follow_a: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleAEntity],
         Inverse(CatalogDirectedCycleTriangleAEntity, "back_from_c"),
-    ] = Rel(description="Perimeter arc C\u2192A")  # type: ignore[assignment]
+    ] = Rel(
+        description="Perimeter arc C\u2192A"
+    )  # type: ignore[assignment]
 
 
 CatalogDirectedCycleTriangleAEntity.model_rebuild()

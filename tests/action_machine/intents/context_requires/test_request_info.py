@@ -47,6 +47,7 @@ from aoa.action_machine.context.request_info import RequestInfo
 
 class _ExtendedRequestInfo(RequestInfo):
     """RequestInfo subclass with extra fields for tests."""
+
     model_config = ConfigDict(frozen=True)
     correlation_id: str | None = None
     tags: dict[str, str] = {}

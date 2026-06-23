@@ -26,7 +26,9 @@ class ReplayWatermarkStubEntity(BaseEntity):
     rollup_staging: Annotated[
         AssociationOne[AnalyticsMetricRollupStagingEntity],
         NoInverse(),
-    ] = Rel(description="Owning rollup staging row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning rollup staging row"
+    )  # type: ignore[assignment]
 
 
 ReplayWatermarkStubEntity.model_rebuild()

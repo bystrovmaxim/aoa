@@ -25,12 +25,16 @@ class CashApplicationHintEntity(BaseEntity):
     funding_window: Annotated[
         AssociationOne[FundingWindowHintEntity],
         NoInverse(),
-    ] = Rel(description="Upstream funding guidance row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream funding guidance row"
+    )  # type: ignore[assignment]
 
     arbitration_brief: Annotated[
         AssociationOne[ArbitrationBriefStubEntity],
         NoInverse(),
-    ] = Rel(description="Arbitration brief context for disputed cash-application routing")  # type: ignore[assignment]
+    ] = Rel(
+        description="Arbitration brief context for disputed cash-application routing"
+    )  # type: ignore[assignment]
 
     routing_lane: str = Field(description="Cash-application routing lane key")
     tentative_clearing_date_iso: str = Field(description="Target clearing calendar date")

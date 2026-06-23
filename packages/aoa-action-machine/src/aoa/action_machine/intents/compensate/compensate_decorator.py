@@ -127,67 +127,45 @@ Attribute name written by @context_requires decorator.
 def _target_aspect_type_invariant(target_aspect_name: Any) -> None:
     if not isinstance(target_aspect_name, str):
         raise TypeError(
-            f"@compensate: target_aspect_name must be a string, "
-            f"got {type(target_aspect_name).__name__}"
+            f"@compensate: target_aspect_name must be a string, " f"got {type(target_aspect_name).__name__}"
         )
 
 
 def _target_aspect_non_empty_invariant(target_aspect_name: str) -> None:
     if not target_aspect_name.strip():
-        raise ValueError(
-            "@compensate: target_aspect_name cannot be empty"
-        )
+        raise ValueError("@compensate: target_aspect_name cannot be empty")
 
 
 def _description_type_invariant(description: Any) -> None:
     if not isinstance(description, str):
-        raise TypeError(
-            f"@compensate: description must be a string, "
-            f"got {type(description).__name__}"
-        )
+        raise TypeError(f"@compensate: description must be a string, " f"got {type(description).__name__}")
 
 
 def _description_non_empty_invariant(description: str) -> None:
     if not description.strip():
-        raise ValueError(
-            "@compensate: description cannot be empty"
-        )
+        raise ValueError("@compensate: description cannot be empty")
 
 
 def _method_suffix_invariant(method_name: str) -> None:
     if not method_name.endswith(_COMPENSATE_SUFFIX):
-        raise ValueError(
-            f"@compensate: method name '{method_name}' must end with "
-            f"'{_COMPENSATE_SUFFIX}'."
-        )
+        raise ValueError(f"@compensate: method name '{method_name}' must end with " f"'{_COMPENSATE_SUFFIX}'.")
 
 
 def _method_async_invariant(func: Callable[..., Any], method_name: str) -> None:
     if not asyncio.iscoroutinefunction(func):
-        raise TypeError(
-            f"@compensate: method '{method_name}' must be async (async def)."
-        )
+        raise TypeError(f"@compensate: method '{method_name}' must be async (async def).")
 
 
 def _method_params_count_invariant(func: Callable[..., Any], method_name: str) -> None:
     has_context = hasattr(func, _CONTEXT_REQUIRES_ATTR)
-    expected_params = (
-        _EXPECTED_PARAMS_WITH_CTX if has_context
-        else _EXPECTED_PARAMS_WITHOUT_CTX
-    )
+    expected_params = _EXPECTED_PARAMS_WITH_CTX if has_context else _EXPECTED_PARAMS_WITHOUT_CTX
     sig = inspect.signature(func)
     actual_params = len(sig.parameters)
     if actual_params != expected_params:
         if has_context:
-            params_desc = (
-                "self, params, state_before, state_after, "
-                "box, connections, error, ctx"
-            )
+            params_desc = "self, params, state_before, state_after, " "box, connections, error, ctx"
         else:
-            params_desc = (
-                "self, params, state_before, state_after, "
-                "box, connections, error"
-            )
+            params_desc = "self, params, state_before, state_after, " "box, connections, error"
 
         raise TypeError(
             f"@compensate: method '{method_name}' must accept "
@@ -269,10 +247,14 @@ def compensate(
 
         # ── Write method metadata ──────────────────────────────────────────
 
-        setattr(func, _COMPENSATE_META_ATTR, {
-            "target_aspect_name": target_aspect_name.strip(),
-            "description": description.strip(),
-        })
+        setattr(
+            func,
+            _COMPENSATE_META_ATTR,
+            {
+                "target_aspect_name": target_aspect_name.strip(),
+                "description": description.strip(),
+            },
+        )
 
         return func
 

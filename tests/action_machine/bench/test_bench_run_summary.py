@@ -58,7 +58,9 @@ class TestCompleteState:
 
     @pytest.mark.anyio
     async def test_returns_result_from_state(
-        self, manager_bench: TestBench, mock_db: AsyncMock,
+        self,
+        manager_bench: TestBench,
+        mock_db: AsyncMock,
     ) -> None:
         """``build_result`` reads ``txn_id`` and ``total`` and returns ``FullAction.Result``."""
         action = FullAction()
@@ -69,8 +71,11 @@ class TestCompleteState:
         }
 
         result = await manager_bench.run_summary(
-            action, params, state=state,
-            rollup=False, connections={"db": mock_db},
+            action,
+            params,
+            state=state,
+            rollup=False,
+            connections={"db": mock_db},
         )
 
         assert result.order_id == "ORD-u1"
@@ -84,7 +89,9 @@ class TestIncompleteState:
 
     @pytest.mark.anyio
     async def test_missing_second_aspect_fields(
-        self, manager_bench: TestBench, mock_db: AsyncMock,
+        self,
+        manager_bench: TestBench,
+        mock_db: AsyncMock,
     ) -> None:
         """Only ``txn_id`` present — missing ``total`` from ``calc_total_aspect``."""
         action = FullAction()
@@ -92,14 +99,18 @@ class TestIncompleteState:
 
         with pytest.raises(StateValidationError, match="from aspect 'calc_total_aspect'"):
             await manager_bench.run_summary(
-                action, params,
+                action,
+                params,
                 state={"txn_id": "TXN-1"},
-                rollup=False, connections={"db": mock_db},
+                rollup=False,
+                connections={"db": mock_db},
             )
 
     @pytest.mark.anyio
     async def test_missing_first_aspect_fields(
-        self, manager_bench: TestBench, mock_db: AsyncMock,
+        self,
+        manager_bench: TestBench,
+        mock_db: AsyncMock,
     ) -> None:
         """``txn_id`` from ``process_payment_aspect`` missing — error names field."""
         action = FullAction()
@@ -107,9 +118,11 @@ class TestIncompleteState:
 
         with pytest.raises(StateValidationError, match="txn_id"):
             await manager_bench.run_summary(
-                action, params,
+                action,
+                params,
                 state={"total": 100.0},
-                rollup=False, connections={"db": mock_db},
+                rollup=False,
+                connections={"db": mock_db},
             )
 
 
@@ -118,7 +131,9 @@ class TestWrongTypeInState:
 
     @pytest.mark.anyio
     async def test_total_wrong_type(
-        self, manager_bench: TestBench, mock_db: AsyncMock,
+        self,
+        manager_bench: TestBench,
+        mock_db: AsyncMock,
     ) -> None:
         """``total`` must be float; a string fails ``FieldFloatChecker``."""
         action = FullAction()
@@ -126,9 +141,11 @@ class TestWrongTypeInState:
 
         with pytest.raises(StateValidationError, match="total"):
             await manager_bench.run_summary(
-                action, params,
+                action,
+                params,
                 state={"txn_id": "TXN-1", "total": "not-a-number"},
-                rollup=False, connections={"db": mock_db},
+                rollup=False,
+                connections={"db": mock_db},
             )
 
 
@@ -137,14 +154,18 @@ class TestSummaryOnlyAction:
 
     @pytest.mark.anyio
     async def test_ping_accepts_empty_state(
-        self, clean_bench: TestBench,
+        self,
+        clean_bench: TestBench,
     ) -> None:
         """``PingAction`` has no regular aspects — nothing to validate."""
         action = PingAction()
         params = PingAction.Params()
 
         result = await clean_bench.run_summary(
-            action, params, state={}, rollup=False,
+            action,
+            params,
+            state={},
+            rollup=False,
         )
 
         assert result.message == "pong"
@@ -155,7 +176,8 @@ class TestRollupRequired:
 
     @pytest.mark.anyio
     async def test_missing_rollup_raises_type_error(
-        self, clean_bench: TestBench,
+        self,
+        clean_bench: TestBench,
     ) -> None:
         """Omitting ``rollup`` raises ``TypeError``."""
         action = PingAction()
@@ -163,5 +185,7 @@ class TestRollupRequired:
 
         with pytest.raises(TypeError):
             await clean_bench.run_summary(  # type: ignore[call-arg]
-                action, params, state={},
+                action,
+                params,
+                state={},
             )

@@ -879,10 +879,7 @@ def _fill_table_depends_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[st
     _executemany(
         con,
         "INSERT INTO depends_edges (source_id, target_id, relationship, is_dag, description, mode) VALUES (?, ?, ?, ?, ?, ?)",
-        [
-            [*_base_edge_row(edge), *_depends_edge_description_and_mode(edge)]
-            for edge in rows
-        ],
+        [[*_base_edge_row(edge), *_depends_edge_description_and_mode(edge)] for edge in rows],
     )
 
 

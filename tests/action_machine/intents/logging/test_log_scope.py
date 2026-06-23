@@ -39,8 +39,9 @@ import pytest
 from aoa.action_machine.logging.log_scope import LogScope
 
 # ======================================================================
-#TESTS: as_dotpath()
+# TESTS: as_dotpath()
 # ======================================================================
+
 
 class TestAsDotpath:
     """The as_dotpath() method generates a string from all non-empty fields."""
@@ -84,7 +85,7 @@ class TestAsDotpath:
         # Act
         result = scope.as_dotpath()
 
-        #Assert - aspect omitted, extra omitted
+        # Assert - aspect omitted, extra omitted
         assert result == "MyAction.start"
 
     def test_preserves_order(self) -> None:
@@ -149,8 +150,9 @@ class TestAsDotpath:
 
 
 # ======================================================================
-#TESTS: Dict-like access (LogScope)
+# TESTS: Dict-like access (LogScope)
 # ======================================================================
+
 
 class TestDictAccess:
     """LogScope supports dict-like access via __getitem__."""
@@ -230,8 +232,9 @@ class TestDictAccess:
 
 
 # ======================================================================
-#TESTS: to_dict()
+# TESTS: to_dict()
 # ======================================================================
+
 
 class TestToDict:
     """to_dict() returns a copy of all fields."""
@@ -262,8 +265,9 @@ class TestToDict:
 
 
 # ======================================================================
-#TESTS: Various scope configurations
+# TESTS: Various scope configurations
 # ======================================================================
+
 
 class TestDifferentScopes:
     """Various sets of fields for scope."""
@@ -305,7 +309,7 @@ class TestDifferentScopes:
         # Act
         dotpath = scope.as_dotpath()
 
-        #Assert - action is skipped, event remains
+        # Assert - action is skipped, event remains
         assert dotpath == "start"
         assert "action" in scope
         assert scope["action"] == ""
@@ -318,6 +322,6 @@ class TestDifferentScopes:
         # Act
         dotpath = scope.as_dotpath()
 
-        #Assert - aspect omitted
+        # Assert - aspect omitted
         assert dotpath == "MyAction.start"
         assert dotpath == "MyAction.start"

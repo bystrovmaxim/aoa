@@ -53,14 +53,11 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 def _validate_meta_description(description: Any) -> None:
     """Ensure ``description`` is a non-empty string."""
     if not isinstance(description, str):
-        raise TypeError(
-            f"@meta: description must be str, got {type(description).__name__}: "
-            f"{description!r}."
-        )
+        raise TypeError(f"@meta: description must be str, got {type(description).__name__}: " f"{description!r}.")
 
     if not description.strip():
         raise ValueError(
-            '@meta: description cannot be empty or whitespace-only. '
+            "@meta: description cannot be empty or whitespace-only. "
             'Example: @meta(description="Creates a new order", domain=MyDomain).'
         )
 
@@ -69,29 +66,20 @@ def _validate_meta_domain(domain: Any) -> None:
     """Ensure ``domain`` is a ``BaseDomain`` subclass."""
     if domain is None:
         raise TypeError(
-            "@meta: domain is required (keyword-only). "
-            "Pass a BaseDomain subclass, e.g. domain=OrdersDomain."
+            "@meta: domain is required (keyword-only). " "Pass a BaseDomain subclass, e.g. domain=OrdersDomain."
         )
 
     if not isinstance(domain, type):
-        raise TypeError(
-            f"@meta: domain must be a BaseDomain subclass, got "
-            f"{type(domain).__name__}: {domain!r}."
-        )
+        raise TypeError(f"@meta: domain must be a BaseDomain subclass, got " f"{type(domain).__name__}: {domain!r}.")
 
     if not issubclass(domain, BaseDomain):
-        raise TypeError(
-            f"@meta: domain must be a BaseDomain subclass; {domain.__name__!r} "
-            f"is not."
-        )
+        raise TypeError(f"@meta: domain must be a BaseDomain subclass; {domain.__name__!r} " f"is not.")
 
 
 def _validate_meta_target(cls: Any) -> None:
     """Ensure ``@meta`` is applied only to classes."""
     if not isinstance(cls, type):
-        raise TypeError(
-            f"@meta applies only to classes, got {type(cls).__name__}: {cls!r}."
-        )
+        raise TypeError(f"@meta applies only to classes, got {type(cls).__name__}: {cls!r}.")
 
 
 def meta(

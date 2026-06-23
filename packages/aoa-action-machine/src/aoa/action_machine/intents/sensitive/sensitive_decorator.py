@@ -60,45 +60,25 @@ def _validate_sensitive_params(
     Raises ``TypeError`` or ``ValueError`` when contract is violated.
     """
     if not isinstance(enabled, bool):
-        raise TypeError(
-            f"@sensitive: parameter enabled must be bool, "
-            f"got {type(enabled).__name__}."
-        )
+        raise TypeError(f"@sensitive: parameter enabled must be bool, " f"got {type(enabled).__name__}.")
 
     if not isinstance(max_chars, int):
-        raise TypeError(
-            f"@sensitive: parameter max_chars must be int, "
-            f"got {type(max_chars).__name__}."
-        )
+        raise TypeError(f"@sensitive: parameter max_chars must be int, " f"got {type(max_chars).__name__}.")
 
     if max_chars < 0:
-        raise ValueError(
-            f"@sensitive: max_chars cannot be negative, got {max_chars}."
-        )
+        raise ValueError(f"@sensitive: max_chars cannot be negative, got {max_chars}.")
 
     if not isinstance(char, str):
-        raise TypeError(
-            f"@sensitive: parameter char must be a string, "
-            f"got {type(char).__name__}."
-        )
+        raise TypeError(f"@sensitive: parameter char must be a string, " f"got {type(char).__name__}.")
 
     if len(char) != 1:
-        raise ValueError(
-            f"@sensitive: char must be exactly one character, "
-            f"got {len(char)} characters: {char!r}."
-        )
+        raise ValueError(f"@sensitive: char must be exactly one character, " f"got {len(char)} characters: {char!r}.")
 
     if not isinstance(max_percent, int):
-        raise TypeError(
-            f"@sensitive: parameter max_percent must be int, "
-            f"got {type(max_percent).__name__}."
-        )
+        raise TypeError(f"@sensitive: parameter max_percent must be int, " f"got {type(max_percent).__name__}.")
 
     if not 0 <= max_percent <= 100:
-        raise ValueError(
-            f"@sensitive: max_percent must be in range 0..100, "
-            f"got {max_percent}."
-        )
+        raise ValueError(f"@sensitive: max_percent must be in range 0..100, " f"got {max_percent}.")
 
 
 # ============================================================================

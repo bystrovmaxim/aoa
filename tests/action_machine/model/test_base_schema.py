@@ -219,7 +219,7 @@ class TestDictAccess:
         assert result == "TXN-001"
 
     def test_contains_existing_key(self) -> None:
-        """"key" in obj is True when field exists."""
+        """ "key" in obj is True when field exists."""
         # Arrange
         obj = SimpleSchema(name="Alice")
 
@@ -227,7 +227,7 @@ class TestDictAccess:
         assert "name" in obj
 
     def test_contains_missing_key(self) -> None:
-        """"missing" in obj is False when field absent."""
+        """ "missing" in obj is False when field absent."""
         # Arrange
         obj = SimpleSchema(name="Alice")
 

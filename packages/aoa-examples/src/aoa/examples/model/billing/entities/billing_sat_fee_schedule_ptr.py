@@ -22,7 +22,9 @@ class MerchantFeeSchedulePointerEntity(BaseEntity):
     interchange_slice: Annotated[
         AssociationOne[InterchangeAssessmentSliceEntity],
         NoInverse(),
-    ] = Rel(description="Parent interchange economics row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent interchange economics row"
+    )  # type: ignore[assignment]
 
     mcc_bucket_code: str = Field(description="Merchant category bucket key")
     interchange_program_name: str = Field(description="Issuer-branded program moniker")

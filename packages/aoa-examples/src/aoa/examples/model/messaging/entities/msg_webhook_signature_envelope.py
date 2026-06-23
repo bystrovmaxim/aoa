@@ -26,7 +26,9 @@ class WebhookSignatureEnvelopeEntity(BaseEntity):
     receipt: Annotated[
         AssociationOne[WebhookIngressReceiptEntity],
         NoInverse(),
-    ] = Rel(description="Ingress receipt linkage")  # type: ignore[assignment]
+    ] = Rel(
+        description="Ingress receipt linkage"
+    )  # type: ignore[assignment]
 
 
 WebhookSignatureEnvelopeEntity.model_rebuild()

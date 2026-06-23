@@ -26,7 +26,9 @@ class RefundRequestEntity(BaseEntity):
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Refunded order")  # type: ignore[assignment]
+    ] = Rel(
+        description="Refunded order"
+    )  # type: ignore[assignment]
 
 
 RefundRequestEntity.model_rebuild()

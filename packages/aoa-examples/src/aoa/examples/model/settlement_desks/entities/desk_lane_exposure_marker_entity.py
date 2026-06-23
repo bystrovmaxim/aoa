@@ -21,4 +21,6 @@ class DeskLaneExposureMarkerEntity(BaseEntity):
     instruction_anchor: Annotated[
         AssociationOne[ClearingInstructionRowEntity],
         NoInverse(),
-    ] = Rel(description="Clearing instruction slice this marker amortises across")  # type: ignore[assignment]
+    ] = Rel(
+        description="Clearing instruction slice this marker amortises across"
+    )  # type: ignore[assignment]

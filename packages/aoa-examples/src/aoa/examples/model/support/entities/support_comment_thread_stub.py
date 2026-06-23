@@ -26,7 +26,9 @@ class SupportCommentThreadStubEntity(BaseEntity):
     sla_interval: Annotated[
         AssociationOne[SupportSlaIntervalEntity],
         NoInverse(),
-    ] = Rel(description="Parent SLA interval artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent SLA interval artefact"
+    )  # type: ignore[assignment]
 
 
 SupportCommentThreadStubEntity.model_rebuild()

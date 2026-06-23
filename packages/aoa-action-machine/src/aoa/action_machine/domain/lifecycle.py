@@ -107,10 +107,7 @@ class InvalidStateError(ValueError):
         self.lifecycle_class = lifecycle_class
         self.valid_states = valid_states
         sorted_states = ", ".join(sorted(valid_states))
-        super().__init__(
-            f"State '{state_key}' is not defined on {lifecycle_class}. "
-            f"Valid states: {sorted_states}."
-        )
+        super().__init__(f"State '{state_key}' is not defined on {lifecycle_class}. " f"Valid states: {sorted_states}.")
 
 
 class InvalidTransitionError(ValueError):
@@ -252,13 +249,10 @@ class _StateBuilder:
         """
         for key in target_keys:
             if not isinstance(key, str):
-                raise TypeError(
-                    f"Transition target key must be str, got {type(key).__name__}: {key!r}."
-                )
+                raise TypeError(f"Transition target key must be str, got {type(key).__name__}: {key!r}.")
             if not key.strip():
                 raise ValueError(
-                    f"Transition target key cannot be empty or whitespace-only "
-                    f"in state '{self._key}'."
+                    f"Transition target key cannot be empty or whitespace-only " f"in state '{self._key}'."
                 )
             self._transitions.add(key)
         return self
@@ -322,12 +316,12 @@ class _StateBuilder:
 
 class Lifecycle:
     """
-AI-CORE-BEGIN
-    ROLE: Unified template/instance lifecycle object.
-    CONTRACT: Template mode defines graph; instance mode enforces legal transitions.
-    INVARIANTS: ``transition()`` returns a new object and never mutates current instance.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Unified template/instance lifecycle object.
+        CONTRACT: Template mode defines graph; instance mode enforces legal transitions.
+        INVARIANTS: ``transition()`` returns a new object and never mutates current instance.
+        AI-CORE-END
+    """
 
     _template: Lifecycle | None = None
 
@@ -411,25 +405,17 @@ AI-CORE-BEGIN
             )
 
         if not isinstance(key, str):
-            raise TypeError(
-                f"State key must be str, got {type(key).__name__}: {key!r}."
-            )
+            raise TypeError(f"State key must be str, got {type(key).__name__}: {key!r}.")
         if not key.strip():
             raise ValueError("State key cannot be empty or whitespace-only.")
 
         if not isinstance(display_name, str):
-            raise TypeError(
-                f"State display name must be str, got {type(display_name).__name__}: {display_name!r}."
-            )
+            raise TypeError(f"State display name must be str, got {type(display_name).__name__}: {display_name!r}.")
         if not display_name.strip():
-            raise ValueError(
-                f"State display name for '{key}' cannot be empty or whitespace-only."
-            )
+            raise ValueError(f"State display name for '{key}' cannot be empty or whitespace-only.")
 
         if key in self._states:
-            raise ValueError(
-                f"State '{key}' is already defined."
-            )
+            raise ValueError(f"State '{key}' is already defined.")
 
         builder = _StateBuilder(self, key, display_name)
         self._current_builder = builder
@@ -534,17 +520,11 @@ AI-CORE-BEGIN
 
     def get_initial_keys(self) -> set[str]:
         """Keys of all states marked ``INITIAL``."""
-        return {
-            key for key, info in self._states.items()
-            if info.state_type == StateType.INITIAL
-        }
+        return {key for key, info in self._states.items() if info.state_type == StateType.INITIAL}
 
     def get_final_keys(self) -> set[str]:
         """Keys of all states marked ``FINAL``."""
-        return {
-            key for key, info in self._states.items()
-            if info.state_type == StateType.FINAL
-        }
+        return {key for key, info in self._states.items() if info.state_type == StateType.FINAL}
 
     def get_transitions(self) -> dict[str, set[str]]:
         """
@@ -553,10 +533,7 @@ AI-CORE-BEGIN
         Returns:
             Map ``source_key → set(target_keys)``.
         """
-        return {
-            key: set(info.transitions)
-            for key, info in self._states.items()
-        }
+        return {key: set(info.transitions) for key, info in self._states.items()}
 
     def has_state(self, key: str) -> bool:
         """Return whether ``key`` exists in this template."""
@@ -564,9 +541,7 @@ AI-CORE-BEGIN
 
     def __repr__(self) -> str:
         if self._current_state is not None:
-            return (
-                f"{self.__class__.__name__}('{self._current_state}')"
-            )
+            return f"{self.__class__.__name__}('{self._current_state}')"
         return (
             f"Lifecycle(states={len(self._states)}, "
             f"initial={len(self.get_initial_keys())}, "
@@ -576,10 +551,7 @@ AI-CORE-BEGIN
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Lifecycle):
             return NotImplemented
-        return (
-            type(self) is type(other)
-            and self._current_state == other._current_state
-        )
+        return type(self) is type(other) and self._current_state == other._current_state
 
     def __hash__(self) -> int:
         return hash((type(self), self._current_state))

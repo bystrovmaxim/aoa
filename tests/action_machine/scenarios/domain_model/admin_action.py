@@ -70,6 +70,7 @@ class AdminAction(BaseAction["AdminAction.Params", "AdminAction.Result"]):
 
     class Params(BaseParams):
         """Admin Action parameters — operation target."""
+
         target: str = Field(
             description="Target of the administrative operation",
             examples=["user_456"],
@@ -77,6 +78,7 @@ class AdminAction(BaseAction["AdminAction.Params", "AdminAction.Result"]):
 
     class Result(BaseResult):
         """Admin Action result."""
+
         success: bool = Field(description="Whether the operation succeeded")
         target: str = Field(description="Processed target")
 

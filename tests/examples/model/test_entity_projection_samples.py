@@ -16,9 +16,7 @@ import pytest
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.graph.nodes.field_graph_node import FieldGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from aoa.examples.model.entity_projection_demo.actions.order_wire_preview import (
-    ProjectionDemoOrderWirePreviewAction,
-)
+from aoa.examples.model.entity_projection_demo.actions.order_wire_preview import ProjectionDemoOrderWirePreviewAction
 from aoa.examples.model.entity_projection_demo.entities.projection_demo_core import (
     ProjectionDemoCustomerEntity,
     ProjectionDemoOrderEntity,
@@ -36,10 +34,12 @@ def _coordinator_after_samples() -> object:
 
 def test_sample_result_accepts_valid_order_projection() -> None:
     result_cls = ProjectionDemoOrderWirePreviewAction.Result
-    r = result_cls.model_validate({
-        "label": "x",
-        "order": {"id": "ord-1", "status": "confirmed", "total": 10.0},
-    })
+    r = result_cls.model_validate(
+        {
+            "label": "x",
+            "order": {"id": "ord-1", "status": "confirmed", "total": 10.0},
+        }
+    )
     assert r.label == "x"
     assert r.order == {"id": "ord-1", "status": "confirmed", "total": 10.0}
 
@@ -71,8 +71,7 @@ def test_coordinator_contains_demo_action_and_entities() -> None:
     action_ids = {
         n.node_id
         for n in nodes
-        if n.node_type == "Action"
-        and getattr(n.node_obj, "__name__", "") == "ProjectionDemoOrderWirePreviewAction"
+        if n.node_type == "Action" and getattr(n.node_obj, "__name__", "") == "ProjectionDemoOrderWirePreviewAction"
     }
     assert action_ids
 

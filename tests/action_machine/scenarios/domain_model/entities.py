@@ -58,14 +58,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import (
-    AggregateMany,
-    AssociationOne,
-    BaseEntity,
-    Lifecycle,
-    NoInverse,
-    Rel,
-)
+from aoa.action_machine.domain import AggregateMany, AssociationOne, BaseEntity, Lifecycle, NoInverse, Rel
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -97,9 +90,14 @@ class DraftLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("draft", "Draft").to("active").initial()
-        .state("active", "Active").to("archived").intermediate()
-        .state("archived", "Archived").final()
+        .state("draft", "Draft")
+        .to("active")
+        .initial()
+        .state("active", "Active")
+        .to("archived")
+        .intermediate()
+        .state("archived", "Archived")
+        .final()
     )
 
 

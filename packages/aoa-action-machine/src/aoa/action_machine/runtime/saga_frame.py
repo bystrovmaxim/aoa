@@ -54,9 +54,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from aoa.action_machine.graph.nodes.compensator_graph_node import (
-        CompensatorGraphNode,
-    )
+    from aoa.action_machine.graph.nodes.compensator_graph_node import CompensatorGraphNode
 
 
 @dataclass(frozen=True)

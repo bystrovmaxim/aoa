@@ -121,21 +121,16 @@ def context_requires(*keys: str) -> Callable[[Any], Any]:
     # ── Validate at least one key ──
     if not keys:
         raise ValueError(
-            "@context_requires: at least one key is required. "
-            "Example: @context_requires(Ctx.User.user_id)"
+            "@context_requires: at least one key is required. " "Example: @context_requires(Ctx.User.user_id)"
         )
 
     # ── Validate each key ──
     for i, key in enumerate(keys):
         if not isinstance(key, str):
-            raise TypeError(
-                f"@context_requires: key [{i}] must be a string, "
-                f"got {type(key).__name__}: {key!r}."
-            )
+            raise TypeError(f"@context_requires: key [{i}] must be a string, " f"got {type(key).__name__}: {key!r}.")
         if not key.strip():
             raise ValueError(
-                f"@context_requires: key [{i}] cannot be empty. "
-                f"Provide a dot-path such as 'user.user_id'."
+                f"@context_requires: key [{i}] cannot be empty. " f"Provide a dot-path such as 'user.user_id'."
             )
 
     # ── Build validated key set ──

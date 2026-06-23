@@ -40,14 +40,12 @@ from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, r
 @role_mode(RoleMode.ALIVE)
 class SystemRole(BaseRole, ABC):
     """
-AI-CORE-BEGIN
-    ROLE: Parent class for engine policy roles.
-    CONTRACT: Concrete sentinel roles inherit from this branch.
-    INVARIANTS: Not assigned to users; used in authorization declarations.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Parent class for engine policy roles.
+        CONTRACT: Concrete sentinel roles inherit from this branch.
+        INVARIANTS: Not assigned to users; used in authorization declarations.
+        AI-CORE-END
+    """
 
     name = "__system_root__"
-    description = (
-        "Intermediate root for engine sentinel roles (not assignable to UserInfo.roles)."
-    )
+    description = "Intermediate root for engine sentinel roles (not assignable to UserInfo.roles)."

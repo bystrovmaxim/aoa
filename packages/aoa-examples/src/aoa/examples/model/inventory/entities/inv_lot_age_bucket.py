@@ -26,7 +26,9 @@ class LotAgeBucketEntity(BaseEntity):
     quality_hold: Annotated[
         AssociationOne[LotQualityHoldEntity],
         NoInverse(),
-    ] = Rel(description="Upstream hold row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream hold row"
+    )  # type: ignore[assignment]
 
 
 LotAgeBucketEntity.model_rebuild()

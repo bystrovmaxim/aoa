@@ -9,12 +9,13 @@ from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.examples.model.analytics.domain import AnalyticsDomain
 from aoa.examples.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle
-from aoa.examples.model.analytics.entities.analytics_canonical_telemetry_row import (
-    AnalyticsCanonicalTelemetryRowEntity,
+from aoa.examples.model.analytics.entities.analytics_canonical_telemetry_row import AnalyticsCanonicalTelemetryRowEntity
+
+
+@entity(
+    description="Experiment overlay anchored on canonical telemetry spine (distinct from ingest branch)",
+    domain=AnalyticsDomain,
 )
-
-
-@entity(description="Experiment overlay anchored on canonical telemetry spine (distinct from ingest branch)", domain=AnalyticsDomain)
 class ExperimentOverlayEntity(BaseEntity):
     id: str = Field(description="Overlay id")
     lifecycle: AnalyticsFactLifecycle = Field(description="Experiment overlay lifecycle")
@@ -28,7 +29,9 @@ class ExperimentOverlayEntity(BaseEntity):
     canonical_row: Annotated[
         AssociationOne[AnalyticsCanonicalTelemetryRowEntity],
         NoInverse(),
-    ] = Rel(description="Canonical telemetry lineage parent")  # type: ignore[assignment]
+    ] = Rel(
+        description="Canonical telemetry lineage parent"
+    )  # type: ignore[assignment]
 
 
 ExperimentOverlayEntity.model_rebuild()

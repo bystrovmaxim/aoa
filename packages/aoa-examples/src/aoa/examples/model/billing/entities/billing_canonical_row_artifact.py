@@ -22,7 +22,9 @@ class BillingCanonicalRowArtifactEntity(BaseEntity):
     parse_pass: Annotated[
         AssociationOne[BillingParsePassEntity],
         NoInverse(),
-    ] = Rel(description="Originating parse pass")  # type: ignore[assignment]
+    ] = Rel(
+        description="Originating parse pass"
+    )  # type: ignore[assignment]
 
     logical_row_key: str = Field(description="Dedup-stable business key emitted by parser")
     row_revision_no: int = Field(description="Monotonic intra-pass revision counter", ge=0)

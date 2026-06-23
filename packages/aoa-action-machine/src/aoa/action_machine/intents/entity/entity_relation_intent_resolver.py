@@ -38,16 +38,17 @@ class EntityRelationIntentResolver:
 
 
 def _union_contains_relation_container(annotation: Any) -> bool:
-    return any(
-        arg is not types.NoneType and _is_relation_container(arg)
-        for arg in get_args(annotation)
-    )
+    return any(arg is not types.NoneType and _is_relation_container(arg) for arg in get_args(annotation))
 
 
 def _origin_is_relation_container(origin: Any) -> bool:
-    return origin is not None and inspect.isclass(origin) and issubclass(
-        origin,
-        (BaseRelationOne, BaseRelationMany),
+    return (
+        origin is not None
+        and inspect.isclass(origin)
+        and issubclass(
+            origin,
+            (BaseRelationOne, BaseRelationMany),
+        )
     )
 
 
@@ -91,9 +92,13 @@ def _relation_container_pair(base_type: Any) -> tuple[type[Any], type[Any]] | No
     origin_bt = get_origin(base_type)
 
     container_class = None
-    if origin_bt is not None and inspect.isclass(origin_bt) and issubclass(
-        origin_bt,
-        (BaseRelationOne, BaseRelationMany),
+    if (
+        origin_bt is not None
+        and inspect.isclass(origin_bt)
+        and issubclass(
+            origin_bt,
+            (BaseRelationOne, BaseRelationMany),
+        )
     ):
         container_class = origin_bt
     elif isinstance(base_type, type) and issubclass(base_type, (BaseRelationOne, BaseRelationMany)):

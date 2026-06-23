@@ -27,10 +27,7 @@ import pytest
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.logging.channel import Channel, channel_mask_label
-from aoa.action_machine.logging.console_logger import (
-    DEFAULT_LEVEL_FG_PREFIX,
-    ConsoleLogger,
-)
+from aoa.action_machine.logging.console_logger import DEFAULT_LEVEL_FG_PREFIX, ConsoleLogger
 from aoa.action_machine.logging.level import Level, level_label
 from aoa.action_machine.logging.log_scope import LogScope
 from aoa.action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
@@ -77,7 +74,7 @@ def simple_scope() -> LogScope:
 
 
 # ======================================================================
-#TESTS: Basic output
+# TESTS: Basic output
 # ======================================================================
 
 
@@ -94,7 +91,7 @@ class TestBasicOutput:
         empty_params: BaseParams,
     ) -> None:
         """write calls print, printing a message to stdout."""
-        #Arrange - logger without colors for simplicity
+        # Arrange - logger without colors for simplicity
         logger = ConsoleLogger(use_colors=False)
 
         # Act
@@ -108,7 +105,7 @@ class TestBasicOutput:
             indent=0,
         )
 
-        #Assert - the message appeared in stdout, ends with a line feed
+        # Assert - the message appeared in stdout, ends with a line feed
         captured = capsys.readouterr()
         assert "Hello world" in captured.out
         assert captured.out.endswith("\n")
@@ -128,16 +125,34 @@ class TestBasicOutput:
 
         # Act
         await logger.write(
-            simple_scope, "first", {}, empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "first",
+            {},
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         await logger.write(
-            simple_scope, "second", {}, empty_context, empty_state, empty_params, 1,
+            simple_scope,
+            "second",
+            {},
+            empty_context,
+            empty_state,
+            empty_params,
+            1,
         )
         await logger.write(
-            simple_scope, "third", {}, empty_context, empty_state, empty_params, 2,
+            simple_scope,
+            "third",
+            {},
+            empty_context,
+            empty_state,
+            empty_params,
+            2,
         )
 
-        #Assert - three lines, indentations vary
+        # Assert - three lines, indentations vary
         captured = capsys.readouterr()
         lines = captured.out.strip().split("\n")
         assert len(lines) == 3
@@ -147,7 +162,7 @@ class TestBasicOutput:
 
 
 # ======================================================================
-#TESTS: Indentation
+# TESTS: Indentation
 # ======================================================================
 
 
@@ -168,13 +183,18 @@ class TestIndentation:
         # Arrange
         logger = ConsoleLogger(use_colors=False, use_indent=True, indent_size=2)
 
-        #Act - indent=3 → 3*2 = 6 spaces
+        # Act - indent=3 → 3*2 = 6 spaces
         await logger.write(
-            simple_scope, "Indented", {},
-            empty_context, empty_state, empty_params, indent=3,
+            simple_scope,
+            "Indented",
+            {},
+            empty_context,
+            empty_state,
+            empty_params,
+            indent=3,
         )
 
-        #Assert - line starts with 6 spaces
+        # Assert - line starts with 6 spaces
         captured = capsys.readouterr()
         assert captured.out.startswith("      ")
         assert "Indented" in captured.out
@@ -192,13 +212,18 @@ class TestIndentation:
         # Arrange
         logger = ConsoleLogger(use_colors=False, use_indent=False)
 
-        #Act — indent=5, but indents are disabled
+        # Act — indent=5, but indents are disabled
         await logger.write(
-            simple_scope, "No indent", {},
-            empty_context, empty_state, empty_params, indent=5,
+            simple_scope,
+            "No indent",
+            {},
+            empty_context,
+            empty_state,
+            empty_params,
+            indent=5,
         )
 
-        #Assert - the line does not start with spaces
+        # Assert - the line does not start with spaces
         captured = capsys.readouterr()
         assert captured.out.startswith("No indent")
 
@@ -216,10 +241,15 @@ class TestIndentation:
         # Arrange
         logger = ConsoleLogger(use_colors=False, use_indent=True, indent_size=4)
 
-        #Act - indent=2 → 2*4 = 8 spaces
+        # Act - indent=2 → 2*4 = 8 spaces
         await logger.write(
-            simple_scope, "Deep indent", {},
-            empty_context, empty_state, empty_params, indent=2,
+            simple_scope,
+            "Deep indent",
+            {},
+            empty_context,
+            empty_state,
+            empty_params,
+            indent=2,
         )
 
         # Assert
@@ -229,7 +259,7 @@ class TestIndentation:
 
 
 # ======================================================================
-#TESTS: Colors
+# TESTS: Colors
 # ======================================================================
 
 
@@ -256,11 +286,16 @@ class TestColors:
 
         # Act
         await logger.write(
-            simple_scope, colored_message, {},
-            empty_context, empty_state, empty_params, indent=0,
+            simple_scope,
+            colored_message,
+            {},
+            empty_context,
+            empty_state,
+            empty_params,
+            indent=0,
         )
 
-        #Assert - without level in var the basic coloring is not enabled
+        # Assert - without level in var the basic coloring is not enabled
         captured = capsys.readouterr()
         assert "\033[31m" in captured.out
         assert "red text" in captured.out
@@ -283,11 +318,16 @@ class TestColors:
 
         # Act
         await logger.write(
-            simple_scope, colored_message, {},
-            empty_context, empty_state, empty_params, indent=0,
+            simple_scope,
+            colored_message,
+            {},
+            empty_context,
+            empty_state,
+            empty_params,
+            indent=0,
         )
 
-        #Assert - there are no ANSI codes, the text remains
+        # Assert - there are no ANSI codes, the text remains
         captured = capsys.readouterr()
         assert "\033[31m" not in captured.out
         assert "red text" in captured.out
@@ -326,7 +366,13 @@ class TestColors:
         logger = ConsoleLogger(use_colors=True)
         var = _write_var(level)
         await logger.write(
-            simple_scope, "plain", var, empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "plain",
+            var,
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         out = capsys.readouterr().out
         assert DEFAULT_LEVEL_FG_PREFIX[level] in out
@@ -348,7 +394,13 @@ class TestColors:
         logger = ConsoleLogger(use_colors=True)
         var = _write_var(Level.info)
         await logger.write(
-            simple_scope, "plain info", var, empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "plain info",
+            var,
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         out = capsys.readouterr().out
         assert "plain info" in out
@@ -370,7 +422,13 @@ class TestColors:
         )
         var = _write_var(Level.info)
         await logger.write(
-            simple_scope, "hi", var, empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "hi",
+            var,
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         out = capsys.readouterr().out
         assert "\033[32m" in out
@@ -389,7 +447,13 @@ class TestColors:
         logger = ConsoleLogger(use_colors=True, indent_size=2)
         var = _write_var(Level.warning)
         await logger.write(
-            simple_scope, "x", var, empty_context, empty_state, empty_params, indent=2,
+            simple_scope,
+            "x",
+            var,
+            empty_context,
+            empty_state,
+            empty_params,
+            indent=2,
         )
         out = capsys.readouterr().out
         assert out.startswith(DEFAULT_LEVEL_FG_PREFIX[Level.warning])
@@ -410,7 +474,13 @@ class TestColors:
         var = _write_var(Level.warning)
         msg = "before \033[31mRED\033[0m after"
         await logger.write(
-            simple_scope, msg, var, empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            msg,
+            var,
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         out = capsys.readouterr().out
         assert out.startswith(base)
@@ -420,7 +490,7 @@ class TestColors:
 
 
 # ======================================================================
-#TESTS: Boundary Cases
+# TESTS: Boundary Cases
 # ======================================================================
 
 
@@ -442,11 +512,16 @@ class TestEdgeCases:
 
         # Act
         await logger.write(
-            simple_scope, "", {},
-            empty_context, empty_state, empty_params, indent=0,
+            simple_scope,
+            "",
+            {},
+            empty_context,
+            empty_state,
+            empty_params,
+            indent=0,
         )
 
-        #Assert - empty string with translation
+        # Assert - empty string with translation
         captured = capsys.readouterr()
         assert captured.out == "\n"
 
@@ -465,11 +540,16 @@ class TestEdgeCases:
 
         # Act
         await logger.write(
-            empty_scope, "No scope", {},
-            empty_context, empty_state, empty_params, indent=0,
+            empty_scope,
+            "No scope",
+            {},
+            empty_context,
+            empty_state,
+            empty_params,
+            indent=0,
         )
 
-        #Assert - the message is displayed without parentheses, as is
+        # Assert - the message is displayed without parentheses, as is
         captured = capsys.readouterr()
         assert "No scope" in captured.out
         assert "[" not in captured.out
@@ -491,11 +571,16 @@ class TestEdgeCases:
 
         # Act
         await logger.write(
-            simple_scope, message, {},
-            empty_context, empty_state, empty_params, indent=0,
+            simple_scope,
+            message,
+            {},
+            empty_context,
+            empty_state,
+            empty_params,
+            indent=0,
         )
 
-        #Assert - special characters are present
+        # Assert - special characters are present
         captured = capsys.readouterr()
         assert "Special:" in captured.out
         assert "\n" in captured.out

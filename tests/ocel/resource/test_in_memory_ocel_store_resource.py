@@ -10,9 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from aoa.action_machine.exceptions.connection_already_open_error import (
-    ConnectionAlreadyOpenError,
-)
+from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from aoa.action_machine.plugin.ocel.dto.ocel_attribute import OcelAttribute
 from aoa.action_machine.plugin.ocel.dto.ocel_event import OcelEvent
 from aoa.action_machine.plugin.ocel.dto.ocel_object import OcelObject
@@ -94,9 +92,7 @@ def test_double_open_raises(tmp_path: Path) -> None:
     asyncio.run(_double())
 
 
-def test_distinct_object_ids_for_same_pk_different_types(
-    tmp_path: Path, event_time: datetime
-) -> None:
+def test_distinct_object_ids_for_same_pk_different_types(tmp_path: Path, event_time: datetime) -> None:
     output = tmp_path / "types.ocel.json"
     obj_a = OcelObject(
         id="pkg.A.Entity:id=x",

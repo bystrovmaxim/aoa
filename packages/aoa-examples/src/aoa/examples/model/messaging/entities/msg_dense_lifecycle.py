@@ -9,17 +9,18 @@ class MsgDenseLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("queued", "Queued").to("routed").initial()
-        .state("routed", "Routed").to("drained").intermediate()
-        .state("drained", "Drained").final()
+        .state("queued", "Queued")
+        .to("routed")
+        .initial()
+        .state("routed", "Routed")
+        .to("drained")
+        .intermediate()
+        .state("drained", "Drained")
+        .final()
     )
 
 
 class MsgWebhookLifecycle(Lifecycle):
     """received → verified."""
 
-    _template = (
-        Lifecycle()
-        .state("received", "Received").to("verified").initial()
-        .state("verified", "Verified").final()
-    )
+    _template = Lifecycle().state("received", "Received").to("verified").initial().state("verified", "Verified").final()

@@ -45,8 +45,9 @@ from aoa.action_machine.testing.stubs import ContextStub
 from tests.action_machine.scenarios.domain_model import SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
-#General fittings
+# General fittings
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def sub() -> VariableSubstitutor:
@@ -79,8 +80,9 @@ def params() -> BaseParams:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#_quote_if_string - formatting literals for simpleeval
+# _quote_if_string - formatting literals for simpleeval
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestQuoteIfString:
     """Covers _quote_if_string for all value types."""
@@ -90,7 +92,7 @@ class TestQuoteIfString:
         # Arrange / Act
         result = VariableSubstitutor._quote_if_string(True)
 
-        #Assert - boolean values ​​are not wrapped in quotes
+        # Assert - boolean values ​​are not wrapped in quotes
         assert result == "True"
 
     def test_boolean_false_not_quoted(self) -> None:
@@ -130,24 +132,25 @@ class TestQuoteIfString:
         # Arrange / Act
         result = VariableSubstitutor._quote_if_string("it's")
 
-        #Assert - the inner quote is escaped
+        # Assert - the inner quote is escaped
         assert "\\'" in result
 
     def test_color_marker_not_quoted(self) -> None:
         """The color marker is returned without quotes to save the marker."""
-        #Arrange - the line contains __COLOR(...)...__COLOR_END__
+        # Arrange - the line contains __COLOR(...)...__COLOR_END__
         marker = "__COLOR(red)error__COLOR_END__"
 
         # Act
         result = VariableSubstitutor._quote_if_string(marker)
 
-        #Assert - the token is returned as is, without wrapping in quotes
+        # Assert - the token is returned as is, without wrapping in quotes
         assert result == marker
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#_resolve_color_name - all three color name formats
+# _resolve_color_name - all three color name formats
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestResolveColorName:
     """Covers _resolve_color_name: fg, bg_, fg_on_bg and errors."""
@@ -157,7 +160,7 @@ class TestResolveColorName:
         # Arrange / Act
         result = sub._resolve_color_name("green")
 
-        #Assert - green = ANSI code 32
+        # Assert - green = ANSI code 32
         assert result == "\033[32m"
 
     def test_background_color(self, sub) -> None:
@@ -165,7 +168,7 @@ class TestResolveColorName:
         # Arrange / Act
         result = sub._resolve_color_name("bg_red")
 
-        #Assert - bg_red = ANSI code 41
+        # Assert - bg_red = ANSI code 41
         assert result == "\033[41m"
 
     def test_foreground_on_background(self, sub) -> None:
@@ -202,27 +205,28 @@ class TestResolveColorName:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Variables are both inside and outside {iif(...)}
+# Variables are both inside and outside {iif(...)}
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestIifWithMixedVariables:
     """Covers _substitute_with_iif_detection - the slow way."""
 
     def test_var_outside_and_inside_iif(self, sub, scope, ctx, state, params) -> None:
         """The variable outside iif is a plain string, inside iif is a literal."""
-        #Arrange - template contains {%var.label} outside and {%var.x} inside iif
+        # Arrange - template contains {%var.label} outside and {%var.x} inside iif
         template = "Label: {%var.label} Result: {iif({%var.x} > 0; 'pos'; 'neg')}"
 
         # Act
         result = sub.substitute(template, {"label": "test", "x": 5}, scope, ctx, state, params)
 
-        #Assert - both substitutions were performed correctly
+        # Assert - both substitutions were performed correctly
         assert "Label: test" in result
         assert "pos" in result
 
     def test_boolean_var_inside_iif(self, sub, scope, ctx, state, params) -> None:
         """A boolean variable inside iif is formatted without quotes."""
-        #Arrange — flag=True → substituted as True (without quotes)
+        # Arrange — flag=True → substituted as True (without quotes)
         template = "{iif({%var.flag}; 'yes'; 'no')}"
 
         # Act
@@ -233,7 +237,7 @@ class TestIifWithMixedVariables:
 
     def test_integer_var_inside_iif(self, sub, scope, ctx, state, params) -> None:
         """An integer variable inside iif is formatted without quotes."""
-        #Arrange — count=3 → substituted as 3 (a number, not the string '3')
+        # Arrange — count=3 → substituted as 3 (a number, not the string '3')
         template = "{iif({%var.count} > 0; 'some'; 'none')}"
 
         # Act
@@ -244,7 +248,7 @@ class TestIifWithMixedVariables:
 
     def test_string_var_inside_iif(self, sub, scope, ctx, state, params) -> None:
         """A string variable inside iif is wrapped in quotes."""
-        #Arrange — status='ok' → substituted as 'ok' (with quotes)
+        # Arrange — status='ok' → substituted as 'ok' (with quotes)
         template = "{iif({%var.status} == 'ok'; 'good'; 'bad')}"
 
         # Act
@@ -255,7 +259,7 @@ class TestIifWithMixedVariables:
 
     def test_multiple_vars_inside_iif(self, sub, scope, ctx, state, params) -> None:
         """Several variables within one iif."""
-        #Arrange - both variables inside iif
+        # Arrange - both variables inside iif
         template = "{iif({%var.x} + {%var.y} > 10; 'big'; 'small')}"
 
         # Act
@@ -266,15 +270,16 @@ class TestIifWithMixedVariables:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Resolution namespace: state, params, context
+# Resolution namespace: state, params, context
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestNamespaceResolution:
     """Covers resolvers for state, params, context namespace."""
 
     def test_state_variable(self, sub, scope, ctx, params) -> None:
         """Namespace state resolves values ​​from BaseState."""
-        #Arrange - state contains txn_id
+        # Arrange - state contains txn_id
         st = BaseState(txn_id="TXN-001")
 
         # Act
@@ -285,7 +290,7 @@ class TestNamespaceResolution:
 
     def test_params_variable(self, sub, scope, ctx, state) -> None:
         """Namespace params resolves values ​​from Params fields."""
-        #Arrange - SimpleAction.Params has a name field
+        # Arrange - SimpleAction.Params has a name field
         p = SimpleAction.Params(name="Alice")
 
         # Act
@@ -296,7 +301,7 @@ class TestNamespaceResolution:
 
     def test_context_nested_variable(self, sub, scope, state, params) -> None:
         """Namespace context allows nested fields via dot-path."""
-        #Arrange - ContextStub contains user.user_id
+        # Arrange - ContextStub contains user.user_id
         c = ContextStub()
 
         # Act
@@ -307,7 +312,7 @@ class TestNamespaceResolution:
 
     def test_scope_nested_variable(self, sub, ctx, state, params) -> None:
         """Namespace scope allows LogScope fields [3]."""
-        #Arrange — LogScope contains action
+        # Arrange — LogScope contains action
         sc = LogScope(action="MyAction", aspect="a", nest_level=0)
 
         # Act
@@ -318,39 +323,44 @@ class TestNamespaceResolution:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Debug filter next to iif in one template
+# Debug filter next to iif in one template
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestDebugInsideIifTemplate:
     """Covers a pattern with |debug and {iif(...)} at the same time."""
 
     def test_debug_and_iif_together(self, sub, scope, ctx, state, params) -> None:
         """Debug filter and iif in one template are both processed correctly."""
-        #Arrange - |debug outside iif, {iif} with numeric condition
+        # Arrange - |debug outside iif, {iif} with numeric condition
         template = "{%var.obj|debug} - {iif({%var.x} > 0; 'ok'; 'fail')}"
 
         # Act
         result = sub.substitute(
             template,
             {"obj": {"key": "val"}, "x": 1},
-            scope, ctx, state, params,
+            scope,
+            ctx,
+            state,
+            params,
         )
 
-        #Assert — debug output the contents of the object, iif returned 'ok'
+        # Assert — debug output the contents of the object, iif returned 'ok'
         assert "key" in result
         assert "ok" in result
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Navigation - DotPathNavigator for different types of objects
+# Navigation - DotPathNavigator for different types of objects
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestNavigationSteps:
     """Covers navigation via DotPathNavigator for BaseSchema, dict, generic."""
 
     def test_dict_navigation(self, sub, scope, ctx, state, params) -> None:
         """Nested dict navigation via dot-path."""
-        #Arrange - three-level nested dict
+        # Arrange - three-level nested dict
         template = "{%var.a.b.c}"
         var = {"a": {"b": {"c": "deep"}}}
 
@@ -362,7 +372,7 @@ class TestNavigationSteps:
 
     def test_object_navigation_via_getattr(self, sub, scope, ctx, state, params) -> None:
         """Navigation through object attributes via getattr."""
-        #Arrange - context.user is an object with a user_id attribute
+        # Arrange - context.user is an object with a user_id attribute
         c = ContextStub()
 
         # Act
@@ -373,7 +383,7 @@ class TestNavigationSteps:
 
     def test_state_navigation(self, sub, scope, ctx, params) -> None:
         """Navigation through BaseState (BaseSchema) via __getitem__ [2]."""
-        #Arrange - BaseState supports __getitem__
+        # Arrange - BaseState supports __getitem__
         st = BaseState(nested={"key": "value"})
 
         # Act
@@ -384,7 +394,7 @@ class TestNavigationSteps:
 
     def test_missing_intermediate_key(self, sub, scope, ctx, state, params) -> None:
         """Missing intermediate key in dot-path → LogTemplateError."""
-        #Arrange - var.a exists, but var.a.missing does not
+        # Arrange - var.a exists, but var.a.missing does not
         template = "{%var.a.missing.deep}"
 
         # Act / Assert

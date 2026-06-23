@@ -74,10 +74,7 @@ def _find_aspect_index(aspects: Sequence[Any], aspect_name: str) -> int:
             return i
 
     available = [a.method_name for a in aspects]
-    raise StateValidationError(
-        f"Aspect '{aspect_name}' was not found in metadata. "
-        f"Available aspects: {available}."
-    )
+    raise StateValidationError(f"Aspect '{aspect_name}' was not found in metadata. " f"Available aspects: {available}.")
 
 
 def _get_preceding_regular_checkers(
@@ -176,13 +173,18 @@ def validate_state_for_aspect(
     """
     target_index = _find_aspect_index(aspects, aspect_name)
     preceding_checkers = _get_preceding_regular_checkers(
-        aspects, get_checkers_for_aspect, target_index,
+        aspects,
+        get_checkers_for_aspect,
+        target_index,
     )
     target_context = f"Aspect '{aspect_name}'"
 
     for source_aspect, checker_meta in preceding_checkers:
         _validate_checker_against_state(
-            checker_meta, source_aspect, target_context, state,
+            checker_meta,
+            source_aspect,
+            target_context,
+            state,
         )
 
 
@@ -198,5 +200,8 @@ def validate_state_for_summary(
 
     for source_aspect, checker_meta in all_checkers:
         _validate_checker_against_state(
-            checker_meta, source_aspect, "Summary", state,
+            checker_meta,
+            source_aspect,
+            "Summary",
+            state,
         )

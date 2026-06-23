@@ -47,10 +47,7 @@ USAGE IN TESTS
 """
 from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
-from aoa.action_machine.plugin.core.events import (
-    BeforeOnErrorAspectEvent,
-    UnhandledErrorEvent,
-)
+from aoa.action_machine.plugin.core.events import BeforeOnErrorAspectEvent, UnhandledErrorEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
 
 
@@ -91,14 +88,16 @@ class ErrorObserverPlugin(Plugin):
         UnhandledErrorEvent is emitted when no @on_error handler matches.
         After this event, the original exception propagates from machine.run().
         """
-        state["errors"].append({
-            "action": event.action_name,
-            "error_type": type(event.error).__name__,
-            "error_message": str(event.error),
-            "has_handler": False,
-            "event_type": type(event).__name__,
-            "failed_aspect_name": event.failed_aspect_name,
-        })
+        state["errors"].append(
+            {
+                "action": event.action_name,
+                "error_type": type(event.error).__name__,
+                "error_message": str(event.error),
+                "has_handler": False,
+                "event_type": type(event).__name__,
+                "failed_aspect_name": event.failed_aspect_name,
+            }
+        )
         return state
 
     @on(BeforeOnErrorAspectEvent)
@@ -114,14 +113,16 @@ class ErrorObserverPlugin(Plugin):
         BeforeOnErrorAspectEvent is emitted when a handler was found but not yet
         invoked. The observer records the error and handler name.
         """
-        state["errors"].append({
-            "action": event.action_name,
-            "error_type": type(event.error).__name__,
-            "error_message": str(event.error),
-            "has_handler": True,
-            "event_type": type(event).__name__,
-            "handler_name": event.handler_name,
-        })
+        state["errors"].append(
+            {
+                "action": event.action_name,
+                "error_type": type(event.error).__name__,
+                "error_message": str(event.error),
+                "has_handler": True,
+                "event_type": type(event).__name__,
+                "handler_name": event.handler_name,
+            }
+        )
         return state
 
 

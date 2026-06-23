@@ -15,10 +15,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from aoa.action_machine.adapters.fastapi.adapter import FastApiAdapter
+from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from tests.action_machine.adapters.json_schema_adapter_fixtures import (
-    AdapterTestAction,
-)
+from tests.action_machine.adapters.json_schema_adapter_fixtures import AdapterTestAction
 
 
 def _resolve_ref(openapi: dict[str, Any], node: dict[str, Any]) -> dict[str, Any]:
@@ -40,7 +39,7 @@ def _result_schema_from_openapi(openapi: dict[str, Any]) -> dict[str, Any]:
 def adapter_and_client() -> tuple[FastApiAdapter, TestClient, ActionProductMachine]:
     machine = ActionProductMachine(loggers=[])
     auth = AsyncMock()
-    auth.process.return_value = None
+    auth.process.return_value = Context()
     adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
     adapter.post("/test", AdapterTestAction)
     app = adapter.build()

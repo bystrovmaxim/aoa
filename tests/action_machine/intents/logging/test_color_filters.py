@@ -94,7 +94,7 @@ def empty_params() -> BaseParams:
 
 
 # ======================================================================
-#TESTS: Color filters (|color)
+# TESTS: Color filters (|color)
 # ======================================================================
 
 
@@ -102,90 +102,123 @@ class TestColorFilters:
     """Tests of color filters in templates."""
 
     def test_foreground_color(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """{%var.text|red} → ANSI code for red."""
         # Arrange & Act
         result = substitutor.substitute(
             "{%var.text|red}",
             {"text": "hello"},
-            empty_scope, empty_context, empty_state, empty_params,
+            empty_scope,
+            empty_context,
+            empty_state,
+            empty_params,
         )
 
-        #Assert - red foreground code and reset
+        # Assert - red foreground code and reset
         assert "\033[31mhello\033[0m" in result
 
     def test_background_color(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """{%var.text|bg_red} → red background."""
         # Arrange & Act
         result = substitutor.substitute(
             "{%var.text|bg_red}",
             {"text": "hello"},
-            empty_scope, empty_context, empty_state, empty_params,
+            empty_scope,
+            empty_context,
+            empty_state,
+            empty_params,
         )
 
-        #Assert - red background code
+        # Assert - red background code
         assert "\033[41mhello\033[0m" in result
 
     def test_foreground_on_background(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """{%var.text|red_on_blue} → red text on a blue background."""
         # Arrange & Act
         result = substitutor.substitute(
             "{%var.text|red_on_blue}",
             {"text": "hello"},
-            empty_scope, empty_context, empty_state, empty_params,
+            empty_scope,
+            empty_context,
+            empty_state,
+            empty_params,
         )
 
-        #Assert - foreground + background combination
+        # Assert - foreground + background combination
         assert "\033[31;44mhello\033[0m" in result
 
     def test_bright_colors(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """Bright colors: orange (91), bright_blue (94), etc."""
         # Arrange & Act
         result = substitutor.substitute(
             "{%var.text|orange_on_bright_blue}",
             {"text": "hello"},
-            empty_scope, empty_context, empty_state, empty_params,
+            empty_scope,
+            empty_context,
+            empty_state,
+            empty_params,
         )
 
         # Assert — orange = 91, bright_blue background = 104
         assert "\033[91;104mhello\033[0m" in result
 
     def test_multiple_colors_in_one_message(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """Multiple color filters in one message."""
         # Arrange & Act
         result = substitutor.substitute(
             "{%var.a|red} and {%var.b|green}",
             {"a": "red", "b": "green"},
-            empty_scope, empty_context, empty_state, empty_params,
+            empty_scope,
+            empty_context,
+            empty_state,
+            empty_params,
         )
 
-        #Assert - both colors are present
+        # Assert - both colors are present
         assert "\033[31mred\033[0m" in result
         assert "\033[32mgreen\033[0m" in result
 
     def test_unknown_foreground_color_raises(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """Unknown color → LogTemplateError."""
         # Arrange, Act & Assert
@@ -193,13 +226,19 @@ class TestColorFilters:
             substitutor.substitute(
                 "{%var.text|hotpink}",
                 {"text": "hello"},
-                empty_scope, empty_context, empty_state, empty_params,
+                empty_scope,
+                empty_context,
+                empty_state,
+                empty_params,
             )
 
     def test_unknown_foreground_in_combination_raises(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """Unknown foreground in combination → LogTemplateError."""
         # Arrange, Act & Assert
@@ -207,13 +246,19 @@ class TestColorFilters:
             substitutor.substitute(
                 "{%var.text|hotpink_on_blue}",
                 {"text": "hello"},
-                empty_scope, empty_context, empty_state, empty_params,
+                empty_scope,
+                empty_context,
+                empty_state,
+                empty_params,
             )
 
     def test_unknown_background_in_combination_raises(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """Unknown background in combination → LogTemplateError."""
         # Arrange, Act & Assert
@@ -221,13 +266,19 @@ class TestColorFilters:
             substitutor.substitute(
                 "{%var.text|red_on_hotpink}",
                 {"text": "hello"},
-                empty_scope, empty_context, empty_state, empty_params,
+                empty_scope,
+                empty_context,
+                empty_state,
+                empty_params,
             )
 
     def test_malformed_color_name_raises(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """Color name with multiple '_on_' (red_on_blue_on_green) →
         the part after the first '_on_' is interpreted as background,
@@ -237,12 +288,15 @@ class TestColorFilters:
             substitutor.substitute(
                 "{%var.text|red_on_blue_on_green}",
                 {"text": "hello"},
-                empty_scope, empty_context, empty_state, empty_params,
+                empty_scope,
+                empty_context,
+                empty_state,
+                empty_params,
             )
 
 
 # ======================================================================
-#TESTS: Color functions inside iif
+# TESTS: Color functions inside iif
 # ======================================================================
 
 
@@ -250,42 +304,57 @@ class TestColorFunctionsInIif:
     """Color functions (red('text')) inside iif."""
 
     def test_color_function_inside_iif(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """{iif(1 > 0; red('yes'); green('no'))} → red 'yes'."""
         # Arrange & Act
         result = substitutor.substitute(
             "{iif(1 > 0; red('yes'); green('no'))}",
             {},
-            empty_scope, empty_context, empty_state, empty_params,
+            empty_scope,
+            empty_context,
+            empty_state,
+            empty_params,
         )
 
-        #Assert - red code is present, green is not
+        # Assert - red code is present, green is not
         assert "\033[31myes\033[0m" in result
         assert "green" not in result
 
     def test_color_function_with_variable_inside_iif(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """Variable inside iif passed to the color function."""
         # Arrange & Act
         result = substitutor.substitute(
             "{iif({%var.ok}; green('OK'); red('FAIL'))}",
             {"ok": True},
-            empty_scope, empty_context, empty_state, empty_params,
+            empty_scope,
+            empty_context,
+            empty_state,
+            empty_params,
         )
 
-        #Assert - green OK
+        # Assert - green OK
         assert "\033[32mOK\033[0m" in result
 
     def test_nested_color_functions(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """Nested color functions inside iif.
 
@@ -301,17 +370,20 @@ class TestColorFunctionsInIif:
         result = substitutor.substitute(
             "{iif(1 > 0; red('level: ' + green('ok')); 'no')}",
             {},
-            empty_scope, empty_context, empty_state, empty_params,
+            empty_scope,
+            empty_context,
+            empty_state,
+            empty_params,
         )
 
-        #Assert - both ANSI codes are present
-        assert "\033[31m" in result      #red opening
-        assert "\033[32mok\033[0m" in result  #green with full content
-        assert "level: " in result       #text between red and green
+        # Assert - both ANSI codes are present
+        assert "\033[31m" in result  # red opening
+        assert "\033[32mok\033[0m" in result  # green with full content
+        assert "level: " in result  # text between red and green
 
 
 # ======================================================================
-#TESTS: Combining color filters and functions
+# TESTS: Combining color filters and functions
 # ======================================================================
 
 
@@ -319,19 +391,25 @@ class TestCombined:
     """Mixed use of filters and functions."""
 
     def test_color_filter_and_function_together(
-        self, substitutor: VariableSubstitutor,
-        empty_context: Context, empty_scope: LogScope,
-        empty_state: BaseState, empty_params: BaseParams,
+        self,
+        substitutor: VariableSubstitutor,
+        empty_context: Context,
+        empty_scope: LogScope,
+        empty_state: BaseState,
+        empty_params: BaseParams,
     ) -> None:
         """Color filter outside iif and color function inside iif."""
         # Arrange & Act
         result = substitutor.substitute(
             "Static: {%var.static|blue} and {iif(1 > 0; red('dynamic'); '')}",
             {"static": "blue"},
-            empty_scope, empty_context, empty_state, empty_params,
+            empty_scope,
+            empty_context,
+            empty_state,
+            empty_params,
         )
 
-        #Assert - both colors are present
+        # Assert - both colors are present
         assert "\033[34mblue\033[0m" in result
         assert "\033[31mdynamic\033[0m" in result
         assert "\033[31mdynamic\033[0m" in result

@@ -18,10 +18,7 @@ def exclude_graph_model[T: type](cls: T) -> T:
     Repeated application is idempotent (flag remains truthy).
     """
     if not isinstance(cls, type):
-        msg = (
-            f"{exclude_graph_model.__qualname__} applies only to classes, "
-            f"got {type(cls).__qualname__!r}"
-        )
+        msg = f"{exclude_graph_model.__qualname__} applies only to classes, " f"got {type(cls).__qualname__!r}"
         raise TypeError(msg)
     setattr(cls, _EXCLUDE_GRAPH_MODEL_KEY, True)
     return cls

@@ -26,7 +26,9 @@ class AnalyticsDedupBloomRowEntity(BaseEntity):
     batch: Annotated[
         AssociationOne[AnalyticsIngressBatchEntity],
         NoInverse(),
-    ] = Rel(description="Inbound batch linkage")  # type: ignore[assignment]
+    ] = Rel(
+        description="Inbound batch linkage"
+    )  # type: ignore[assignment]
 
 
 AnalyticsDedupBloomRowEntity.model_rebuild()

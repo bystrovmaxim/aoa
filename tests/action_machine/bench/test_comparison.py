@@ -44,12 +44,14 @@ from aoa.action_machine.testing.comparison import ResultMismatchError, compare_r
 
 class _OrderResult(BaseModel):
     """Pydantic model with two fields for comparison tests."""
+
     order_id: str
     total: float
 
 
 class _PingResult(BaseModel):
     """Different pydantic model to trigger type-mismatch branch."""
+
     message: str
 
 
@@ -72,8 +74,10 @@ class TestIdenticalResults:
     def test_identical_plain_objects(self) -> None:
         """Two equal plain dicts produce no error via fallback equality."""
         compare_results(
-            {"key": "value"}, "AsyncMachine",
-            {"key": "value"}, "SyncMachine",
+            {"key": "value"},
+            "AsyncMachine",
+            {"key": "value"},
+            "SyncMachine",
         )
 
     def test_identical_strings(self) -> None:

@@ -26,7 +26,9 @@ class CartMergeTraceEntity(BaseEntity):
     customer: Annotated[
         AssociationOne[CustomerAccountEntity],
         NoInverse(),
-    ] = Rel(description="Parent customer aggregate")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent customer aggregate"
+    )  # type: ignore[assignment]
 
 
 CartMergeTraceEntity.model_rebuild()

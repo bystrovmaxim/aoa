@@ -26,7 +26,9 @@ class UserHashSaltStubEntity(BaseEntity):
     bucket_mapper: Annotated[
         AssociationOne[TimeBucketMapperEntity],
         NoInverse(),
-    ] = Rel(description="Upstream bucket mapper facet")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream bucket mapper facet"
+    )  # type: ignore[assignment]
 
 
 UserHashSaltStubEntity.model_rebuild()

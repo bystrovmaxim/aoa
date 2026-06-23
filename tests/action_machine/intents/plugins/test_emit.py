@@ -32,22 +32,14 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
 from aoa.action_machine.model.base_params import BaseParams
-from aoa.action_machine.plugin.core.events import (
-    CompensateFailedEvent,
-    SagaRollbackCompletedEvent,
-)
+from aoa.action_machine.plugin.core.events import CompensateFailedEvent, SagaRollbackCompletedEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 
-from .conftest import (
-    RecordingPlugin,
-    SelectivePlugin,
-    emit_global_finish,
-    emit_global_start,
-)
+from .conftest import RecordingPlugin, SelectivePlugin, emit_global_finish, emit_global_start
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Helper plugins for compensation events
+# Helper plugins for compensation events
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -67,12 +59,14 @@ class CompensateFailedRecorderPlugin(Plugin):
         event: CompensateFailedEvent,
         log: ScopedLogger | None,
     ) -> dict:
-        state["failed_events"].append({
-            "compensator_name": event.compensator_name,
-            "failed_for_aspect": event.failed_for_aspect,
-            "original_error_type": type(event.original_error).__name__,
-            "compensator_error_type": type(event.compensator_error).__name__,
-        })
+        state["failed_events"].append(
+            {
+                "compensator_name": event.compensator_name,
+                "failed_for_aspect": event.failed_for_aspect,
+                "original_error_type": type(event.original_error).__name__,
+                "compensator_error_type": type(event.compensator_error).__name__,
+            }
+        )
         return state
 
 
@@ -92,23 +86,26 @@ class SagaCompletedRecorderPlugin(Plugin):
         event: SagaRollbackCompletedEvent,
         log: ScopedLogger | None,
     ) -> dict:
-        state["completed_events"].append({
-            "total_frames": event.total_frames,
-            "succeeded": event.succeeded,
-            "failed": event.failed,
-            "skipped": event.skipped,
-        })
+        state["completed_events"].append(
+            {
+                "total_frames": event.total_frames,
+                "succeeded": event.succeeded,
+                "failed": event.failed,
+                "skipped": event.skipped,
+            }
+        )
         return state
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Helper functions for issuing Saga events
+# Helper functions for issuing Saga events
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 def _make_base_event_kwargs() -> dict:
     """Generates common kwargs for creating Saga events."""
     from tests.action_machine.scenarios.domain_model import PingAction
+
     return {
         "action_class": PingAction,
         "action_name": "tests.domain.ping_action.PingAction",
@@ -148,7 +145,7 @@ async def emit_saga_rollback_completed(plugin_ctx) -> None:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Event Delivery Tests
+# Event Delivery Tests
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -160,13 +157,13 @@ class TestEmitEvent:
         """RecordingPlugin is subscribed to GlobalFinishEvent.
         When a GlobalFinishEvent is dispatched, the handler is called and writes
         event in state["events"]."""
-        #Arrange - a plugin that records all events
+        # Arrange - a plugin that records all events
         plugin = RecordingPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
-        #Act - send GlobalFinishEvent
+        # Act - send GlobalFinishEvent
         await emit_global_finish(plugin_ctx)
-        #Assert - one event recorded with the correct type
+        # Assert - one event recorded with the correct type
         state = plugin_ctx.get_plugin_state(plugin)
         assert len(state["events"]) == 1
         assert state["events"][0]["event_type"] == "GlobalFinishEvent"
@@ -176,13 +173,13 @@ class TestEmitEvent:
         """A typed GlobalFinishEvent object passed to the handler,
         contains correct action_name, nest_level and duration_ms values
         from the event constructor arguments."""
-        #Arrange - plugin that writes event fields
+        # Arrange - plugin that writes event fields
         plugin = RecordingPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
-        #Act - send an event with nest_level=3 and duration_ms=42.5
+        # Act - send an event with nest_level=3 and duration_ms=42.5
         await emit_global_finish(plugin_ctx, nest_level=3, duration_ms=42.5)
-        #Assert - event fields are correct
+        # Assert - event fields are correct
         state = plugin_ctx.get_plugin_state(plugin)
         event_record = state["events"][0]
         assert event_record["nest_level"] == 3
@@ -194,15 +191,15 @@ class TestEmitEvent:
         """Three consecutive calls to emit_event() - RecordingPlugin
         writes three events to state["events"]. The handler is called
         for each emit_event(), state is not reset between calls."""
-        #Arrange - recorder plugin
+        # Arrange - recorder plugin
         plugin = RecordingPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
-        #Act - three events in a row
+        # Act - three events in a row
         await emit_global_finish(plugin_ctx)
         await emit_global_finish(plugin_ctx)
         await emit_global_finish(plugin_ctx)
-        #Assert - three entries in state
+        # Assert - three entries in state
         state = plugin_ctx.get_plugin_state(plugin)
         assert len(state["events"]) == 3
 
@@ -212,13 +209,13 @@ class TestEmitEvent:
         Sending GlobalStartEvent not delivered - isinstance(event,
         GlobalFinishEvent) returns False at step 1 of the filter chain.
         state["order_events"] remains empty."""
-        #Arrange - a plugin that responds only to GlobalFinishEvent
+        # Arrange - a plugin that responds only to GlobalFinishEvent
         plugin = SelectivePlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
-        #Act - send GlobalStartEvent (plugin is subscribed to GlobalFinishEvent)
+        # Act - send GlobalStartEvent (plugin is subscribed to GlobalFinishEvent)
         await emit_global_start(plugin_ctx)
-        #Assert - the handler is not called (event_class does not match)
+        # Assert - the handler is not called (event_class does not match)
         state = plugin_ctx.get_plugin_state(plugin)
         assert state["order_events"] == []
 
@@ -227,16 +224,16 @@ class TestEmitEvent:
         """SelectivePlugin is subscribed to GlobalFinishEvent with
         action_name_pattern=".*Order.*". Event with action_name
         containing "Order" is delivered to the handler."""
-        #Arrange - plugin with filter ".*Order.*"
+        # Arrange - plugin with filter ".*Order.*"
         plugin = SelectivePlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
-        #Act - send GlobalFinishEvent with "Order" in action_name
+        # Act - send GlobalFinishEvent with "Order" in action_name
         await emit_global_finish(
             plugin_ctx,
             action_name="app.actions.CreateOrderAction",
         )
-        #Assert - the handler is called (action_name matches the pattern)
+        # Assert - the handler is called (action_name matches the pattern)
         state = plugin_ctx.get_plugin_state(plugin)
         assert len(state["order_events"]) == 1
         assert state["order_events"][0] == "app.actions.CreateOrderAction"
@@ -246,16 +243,16 @@ class TestEmitEvent:
         """SelectivePlugin is subscribed to GlobalFinishEvent with
         action_name_pattern=".*Order.*". Event with action_name
         NOT containing "Order" is not delivered to the handler."""
-        #Arrange - plugin with filter ".*Order.*"
+        # Arrange - plugin with filter ".*Order.*"
         plugin = SelectivePlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
-        #Act - send GlobalFinishEvent without "Order" in action_name
+        # Act - send GlobalFinishEvent without "Order" in action_name
         await emit_global_finish(
             plugin_ctx,
             action_name="app.actions.PingAction",
         )
-        #Assert - the handler is not called (action_name does not match)
+        # Assert - the handler is not called (action_name does not match)
         state = plugin_ctx.get_plugin_state(plugin)
         assert state["order_events"] == []
 
@@ -263,15 +260,15 @@ class TestEmitEvent:
     async def test_empty_plugins_list_no_error(self):
         """Coordinator without plugins. emit_event() completes without errors
         and without side effects - no plugins, no handlers."""
-        #Arrange - coordinator without plugins
+        # Arrange - coordinator without plugins
         coordinator = PluginCoordinator(plugins=[])
         plugin_ctx = await coordinator.create_run_context()
-        #Act + Assert - there should be no exceptions
+        # Act + Assert - there should be no exceptions
         await emit_global_finish(plugin_ctx)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Compensation Event Subscription (Saga)
+# Compensation Event Subscription (Saga)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -288,15 +285,15 @@ class TestEmitCompensationEvents:
         """CompensateFailedRecorderPlugin is subscribed to CompensateFailedEvent.
         When a CompensateFailedEvent is emitted, the handler is called and writes
         compensator failure data in state["failed_events"]."""
-        #Arrange - a plugin that records compensator failures
+        # Arrange - a plugin that records compensator failures
         plugin = CompensateFailedRecorderPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        #Act — emit CompensateFailedEvent
+        # Act — emit CompensateFailedEvent
         await emit_compensate_failed(plugin_ctx)
 
-        #Assert - the event was recorded with the correct fields
+        # Assert - the event was recorded with the correct fields
         state = plugin_ctx.get_plugin_state(plugin)
         assert len(state["failed_events"]) == 1
         failed = state["failed_events"][0]
@@ -310,15 +307,15 @@ class TestEmitCompensationEvents:
         """SagaCompletedRecorderPlugin is subscribed to SagaRollbackCompletedEvent.
         When SagaRollbackCompletedEvent is emitted, the handler is called
         and writes the unwinding results to state["completed_events"]."""
-        #Arrange - a plugin that records the results of unwinding
+        # Arrange - a plugin that records the results of unwinding
         plugin = SagaCompletedRecorderPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        #Act — emit SagaRollbackCompletedEvent
+        # Act — emit SagaRollbackCompletedEvent
         await emit_saga_rollback_completed(plugin_ctx)
 
-        #Assert - the event was recorded with correct results
+        # Assert - the event was recorded with correct results
         state = plugin_ctx.get_plugin_state(plugin)
         assert len(state["completed_events"]) == 1
         completed = state["completed_events"][0]

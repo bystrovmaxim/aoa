@@ -32,9 +32,7 @@ INVARIANTS
 
 from pydantic import BaseModel, Field
 
-from tests.action_machine.adapters.entity_projection_adapter_fixtures import (
-    EntityProjectionParamsMcpTestAction,
-)
+from tests.action_machine.adapters.entity_projection_adapter_fixtures import EntityProjectionParamsMcpTestAction
 from tests.action_machine.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -197,12 +195,14 @@ class TestFullParams:
 
 class _Address(BaseModel):
     """Nested model for schema nesting tests."""
+
     city: str = Field(description="City name")
     zip_code: str = Field(description="Postal code", pattern=r"^\d{5,6}$")
 
 
 class _OrderWithAddress(BaseModel):
     """Model with a nested Pydantic model field."""
+
     order_id: str = Field(description="Order identifier")
     address: _Address = Field(description="Delivery address")
 

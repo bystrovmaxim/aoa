@@ -50,10 +50,12 @@ class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
 
     class Params(BaseParams):
         """PingAction parameters — empty; no input required."""
+
         pass
 
     class Result(BaseResult):
         """PingAction result — pong message."""
+
         message: str = Field(description="Service response message")
 
     @summary_aspect("Build pong response")

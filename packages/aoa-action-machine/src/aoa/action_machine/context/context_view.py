@@ -75,10 +75,7 @@ class ContextView:
         Raises:
             AttributeError: always.
         """
-        raise AttributeError(
-            f"ContextView is a frozen object. "
-            f"Assignment of attribute '{name}' is not allowed."
-        )
+        raise AttributeError(f"ContextView is a frozen object. " f"Assignment of attribute '{name}' is not allowed.")
 
     def __delattr__(self, name: str) -> None:
         """
@@ -87,10 +84,7 @@ class ContextView:
         Raises:
             AttributeError: always.
         """
-        raise AttributeError(
-            f"ContextView is a frozen object. "
-            f"Deletion of attribute '{name}' is not allowed."
-        )
+        raise AttributeError(f"ContextView is a frozen object. " f"Deletion of attribute '{name}' is not allowed.")
 
     def __repr__(self) -> str:
         """Compact string representation for debugging."""

@@ -24,17 +24,23 @@ class BillingParsePassEntity(BaseEntity):
     manifest: Annotated[
         AssociationOne[BillingFileIngestManifestEntity],
         NoInverse(),
-    ] = Rel(description="Source manifest")  # type: ignore[assignment]
+    ] = Rel(
+        description="Source manifest"
+    )  # type: ignore[assignment]
 
     fx_residual_tag: Annotated[
         AssociationOne[FxResidualTagEntity],
         NoInverse(),
-    ] = Rel(description="FX residual tag linked to this parse pass")  # type: ignore[assignment]
+    ] = Rel(
+        description="FX residual tag linked to this parse pass"
+    )  # type: ignore[assignment]
 
     retrieval_evidence_bundle: Annotated[
         AssociationOne[RetrievalEvidenceBundleEntity],
         NoInverse(),
-    ] = Rel(description="Retrieval evidence bundle associated with parse outcome")  # type: ignore[assignment]
+    ] = Rel(
+        description="Retrieval evidence bundle associated with parse outcome"
+    )  # type: ignore[assignment]
 
     parser_semver: str = Field(description="Parser implementation semantic version")
     pass_sequence_no: int = Field(description="Monotonic retry index for same manifest hash", ge=0)

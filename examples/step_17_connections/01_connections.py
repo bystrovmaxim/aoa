@@ -29,6 +29,7 @@ from pydantic import Field
 
 from aoa.action_machine.adapters.fastapi import FastApiAdapter
 from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
+from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -87,7 +88,7 @@ def build_app():
     machine = ActionProductMachine()
     shared_ledger = LedgerResource()              # built ONCE, at app-build time (instance #1)
     return (
-        FastApiAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(), title="Ledger API")
+        FastApiAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), title="Ledger API")
         # Mode 1: one ready resource, reused on every request to this route
         .post("/record/shared", RecordAction, connections={"ledger": shared_ledger})
         # Mode 2: a factory that runs per request -> a fresh resource each call

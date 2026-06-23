@@ -6,12 +6,8 @@ from __future__ import annotations
 import pytest
 
 from aoa.action_machine.context.ctx_constants import Ctx
-from aoa.action_machine.intents.context_requires.context_requires_decorator import (
-    context_requires,
-)
-from aoa.action_machine.intents.context_requires.context_requires_resolver import (
-    ContextRequiresResolver,
-)
+from aoa.action_machine.intents.context_requires.context_requires_decorator import context_requires
+from aoa.action_machine.intents.context_requires.context_requires_resolver import ContextRequiresResolver
 
 
 @pytest.mark.parametrize(
@@ -39,9 +35,7 @@ def test_resolver_matches_decorator_frozenset(
     async def aspect(self, *_a: object) -> None:
         pass
 
-    assert (
-        ContextRequiresResolver.resolve_required_context_keys(aspect) == expected_sorted
-    )
+    assert ContextRequiresResolver.resolve_required_context_keys(aspect) == expected_sorted
 
 
 def test_resolver_accepts_bound_method() -> None:

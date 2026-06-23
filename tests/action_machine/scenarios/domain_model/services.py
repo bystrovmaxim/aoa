@@ -58,9 +58,7 @@ wrapping each client type (formal model: external services are resources).
 
 
 from aoa.action_machine.intents.meta.meta_decorator import meta
-from aoa.action_machine.resources.external_service.external_service_resource import (
-    ExternalServiceResource,
-)
+from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
 
 from .domains import TestDomain
 

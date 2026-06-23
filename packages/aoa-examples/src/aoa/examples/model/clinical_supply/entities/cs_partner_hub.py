@@ -26,7 +26,9 @@ class ClinicalPartnerHubEntity(BaseEntity):
     site_anchor: Annotated[
         AssociationOne[ClinicalGeographicAnchorEntity],
         NoInverse(),
-    ] = Rel(description="Registered geography")  # type: ignore[assignment]
+    ] = Rel(
+        description="Registered geography"
+    )  # type: ignore[assignment]
 
 
 ClinicalPartnerHubEntity.model_rebuild()

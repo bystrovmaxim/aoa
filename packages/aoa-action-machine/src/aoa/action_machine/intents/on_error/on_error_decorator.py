@@ -125,28 +125,20 @@ def _normalize_exception_types(
     """Normalize exception_types argument to tuple of Exception subclasses."""
     if isinstance(exception_types, type):
         if not issubclass(exception_types, Exception):
-            raise TypeError(
-                f"@on_error: type {exception_types.__name__} is not an "
-                f"Exception subclass."
-            )
+            raise TypeError(f"@on_error: type {exception_types.__name__} is not an " f"Exception subclass.")
         return (exception_types,)
 
     if isinstance(exception_types, tuple):
         if len(exception_types) == 0:
-            raise TypeError(
-                "@on_error: empty exception type tuple provided. "
-                "Specify at least one type."
-            )
+            raise TypeError("@on_error: empty exception type tuple provided. " "Specify at least one type.")
         for i, exc_type in enumerate(exception_types):
             if not isinstance(exc_type, type):
                 raise TypeError(
-                    f"@on_error: tuple element [{i}] is not a type, "
-                    f"got {type(exc_type).__name__}: {exc_type!r}."
+                    f"@on_error: tuple element [{i}] is not a type, " f"got {type(exc_type).__name__}: {exc_type!r}."
                 )
             if not issubclass(exc_type, Exception):
                 raise TypeError(
-                    f"@on_error: tuple element [{i}] ({exc_type.__name__}) "
-                    f"is not an Exception subclass."
+                    f"@on_error: tuple element [{i}] ({exc_type.__name__}) " f"is not an Exception subclass."
                 )
         return exception_types
 
@@ -167,14 +159,10 @@ def _validate_description(description: Any) -> None:
     """Validate that description is a non-empty string."""
     if not isinstance(description, str):
         raise TypeError(
-            f"@on_error: parameter description must be a string, "
-            f"got {type(description).__name__}: {description!r}."
+            f"@on_error: parameter description must be a string, " f"got {type(description).__name__}: {description!r}."
         )
     if not description.strip():
-        raise ValueError(
-            "@on_error: description cannot be empty. "
-            "Provide a handler description."
-        )
+        raise ValueError("@on_error: description cannot be empty. " "Provide a handler description.")
 
 
 def _description_invariant(description: Any) -> None:
@@ -193,7 +181,7 @@ def _validate_method(func: Any, description: str) -> None:
     # Handler must be async.
     if not asyncio.iscoroutinefunction(func):
         raise TypeError(
-            f"@on_error(\"{description}\"): method {func.__name__} "
+            f'@on_error("{description}"): method {func.__name__} '
             f"must be async (async def). "
             f"Synchronous handlers are not supported."
         )
@@ -207,7 +195,7 @@ def _validate_method(func: Any, description: str) -> None:
     param_count = len(sig.parameters)
     if param_count != expected_count:
         raise TypeError(
-            f"@on_error(\"{description}\"): method {func.__name__} "
+            f'@on_error("{description}"): method {func.__name__} '
             f"must accept {expected_count} parameters "
             f"({expected_names}), got {param_count}."
         )

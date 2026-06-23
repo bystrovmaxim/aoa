@@ -26,7 +26,9 @@ class HopLatencySampleEntity(BaseEntity):
     ledger: Annotated[
         AssociationOne[CourierAttemptLedgerEntity],
         NoInverse(),
-    ] = Rel(description="Courier ledger parent")  # type: ignore[assignment]
+    ] = Rel(
+        description="Courier ledger parent"
+    )  # type: ignore[assignment]
 
 
 HopLatencySampleEntity.model_rebuild()

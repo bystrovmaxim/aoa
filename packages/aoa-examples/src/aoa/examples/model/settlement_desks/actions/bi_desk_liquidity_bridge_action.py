@@ -22,7 +22,10 @@ from aoa.examples.model.settlement_desks.arbitration_judge_role import Arbitrati
 from aoa.examples.model.settlement_desks.settlement_desks_domain import SettlementDesksDomain
 
 
-@meta(description="Desk bridge reconciliations tying mandatory Atlantic merges to Pacific overlays", domain=SettlementDesksDomain)
+@meta(
+    description="Desk bridge reconciliations tying mandatory Atlantic merges to Pacific overlays",
+    domain=SettlementDesksDomain,
+)
 @check_roles(ArbitrationJudgeRole)
 @depends(
     AtlanticDeskLiquidityForkAction,

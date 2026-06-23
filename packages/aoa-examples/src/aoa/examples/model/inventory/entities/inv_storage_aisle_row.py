@@ -26,7 +26,9 @@ class StorageAisleRowEntity(BaseEntity):
     facility: Annotated[
         AssociationOne[FacilityWarehouseEntity],
         NoInverse(),
-    ] = Rel(description="Parent facility warehouse")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent facility warehouse"
+    )  # type: ignore[assignment]
 
 
 StorageAisleRowEntity.model_rebuild()

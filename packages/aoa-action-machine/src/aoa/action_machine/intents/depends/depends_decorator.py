@@ -46,18 +46,14 @@ from aoa.action_machine.runtime.dependency_info import DependencyInfo
 
 def _is_action_target(klass: type) -> bool:
     """True for concrete ``BaseAction`` subclasses (not ``BaseAction`` itself)."""
-    from aoa.action_machine.model.base_action import (  # pylint: disable=import-outside-toplevel
-        BaseAction,
-    )
+    from aoa.action_machine.model.base_action import BaseAction  # pylint: disable=import-outside-toplevel
 
     return klass is not BaseAction and issubclass(klass, BaseAction)
 
 
 def _is_resource_target(klass: type) -> bool:
     """True for ``BaseResource`` subclasses."""
-    from aoa.action_machine.resources.base_resource import (  # pylint: disable=import-outside-toplevel
-        BaseResource,
-    )
+    from aoa.action_machine.resources.base_resource import BaseResource  # pylint: disable=import-outside-toplevel
 
     return issubclass(klass, BaseResource)
 
@@ -69,9 +65,7 @@ def _validate_dependency_mode(klass: type, mode: str | None) -> str | None:
     Raises:
         ValueError: ``BaseAction`` as target, illegal ``mode`` for target kind.
     """
-    from aoa.action_machine.model.base_action import (  # pylint: disable=import-outside-toplevel
-        BaseAction,
-    )
+    from aoa.action_machine.model.base_action import BaseAction  # pylint: disable=import-outside-toplevel
 
     if klass is BaseAction:
         msg = "@depends(BaseAction): use a concrete action subclass, not BaseAction itself."
@@ -149,10 +143,7 @@ def depends(
         )
 
     if not isinstance(description, str):
-        raise TypeError(
-            f"@depends: parameter 'description' must be a string, "
-            f"got {type(description).__name__}."
-        )
+        raise TypeError(f"@depends: parameter 'description' must be a string, " f"got {type(description).__name__}.")
 
     def decorator(cls: type) -> type:
         """
@@ -170,15 +161,10 @@ def depends(
         # ── Validate target ──
         if not isinstance(cls, type):
             raise TypeError(
-                f"@depends can only be applied to a class. "
-                f"Got object of type {type(cls).__name__}: {cls!r}."
+                f"@depends can only be applied to a class. " f"Got object of type {type(cls).__name__}: {cls!r}."
             )
 
-        allowed: tuple[type, ...] = (
-            cls.get_depends_bounds()
-            if hasattr(cls, "get_depends_bounds")
-            else (object,)
-        )
+        allowed: tuple[type, ...] = cls.get_depends_bounds() if hasattr(cls, "get_depends_bounds") else (object,)
         if not any(issubclass(klass, b) for b in allowed):
             allowed_names = ", ".join(b.__name__ for b in allowed)
             raise TypeError(
@@ -192,8 +178,8 @@ def depends(
         target = cast(Any, cls)
 
         # ── Create own dependency list ──
-        if '_depends_info' not in target.__dict__:
-            target._depends_info = list(getattr(target, '_depends_info', []))
+        if "_depends_info" not in target.__dict__:
+            target._depends_info = list(getattr(target, "_depends_info", []))
 
         # ── Check for duplicates ──
         if any(info.cls is klass for info in target._depends_info):

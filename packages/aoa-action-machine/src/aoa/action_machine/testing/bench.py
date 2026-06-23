@@ -290,9 +290,7 @@ def _checker_rows_from_action_class(
                     field_name=checker_dict.get("field_name", ""),
                     required=checker_dict.get("required", False),
                     extra_params={
-                        k: v
-                        for k, v in checker_dict.items()
-                        if k not in ("checker_class", "field_name", "required")
+                        k: v for k, v in checker_dict.items() if k not in ("checker_class", "field_name", "required")
                     },
                 ),
             )
@@ -454,9 +452,14 @@ class TestBench:
             return Context(user=self._user, request=self._request, runtime=self._runtime)
         dyn_ctx_cls = type("_BenchContext", (Context,), {})
         dyn_ctx_cls.__env_entries__ = dict(self._env)  # type: ignore[attr-defined]
-        return cast("Context", dyn_ctx_cls(
-            user=self._user, request=self._request, runtime=self._runtime,
-        ))
+        return cast(
+            "Context",
+            dyn_ctx_cls(
+                user=self._user,
+                request=self._request,
+                runtime=self._runtime,
+            ),
+        )
 
     def _build_async_machine(self) -> ActionProductMachine:
         """Build async production machine with current settings."""
@@ -557,8 +560,10 @@ class TestBench:
             value: Constant to return for this key.
             ttl: Forwarded to ``EnvEntry``; has no practical effect for constants.
         """
+
         def _const() -> Any:
             return value
+
         entry: EnvEntry[Any] = EnvEntry(key=key, provider=_const, ttl=ttl)
         return self._clone(env={**self._env, key: entry})
 
@@ -617,8 +622,10 @@ class TestBench:
         )
 
         compare_results(
-            async_result, "AsyncMachine",
-            sync_result, "SyncMachine",
+            async_result,
+            "AsyncMachine",
+            sync_result,
+            "SyncMachine",
         )
 
         return async_result
@@ -641,7 +648,9 @@ class TestBench:
 
         def _chk(method_name: str) -> tuple[Any, ...]:
             return _checkers_for_aspect_name(
-                self._coordinator, action_cls, method_name,
+                self._coordinator,
+                action_cls,
+                method_name,
             )
 
         validate_state_for_aspect(aspects, _chk, aspect_name, state)
@@ -655,8 +664,7 @@ class TestBench:
         if target_aspect is None:
             available = [a.method_name for a in aspects]
             raise ValueError(
-                f"Aspect '{aspect_name}' not found in {action.__class__.__name__}. "
-                f"Available: {available}."
+                f"Aspect '{aspect_name}' not found in {action.__class__.__name__}. " f"Available: {available}."
             )
 
         async_machine = self._build_async_machine()
@@ -707,7 +715,9 @@ class TestBench:
 
         def _chk(method_name: str) -> tuple[Any, ...]:
             return _checkers_for_aspect_name(
-                self._coordinator, action_cls, method_name,
+                self._coordinator,
+                action_cls,
+                method_name,
             )
 
         validate_state_for_summary(aspects, _chk, state)
@@ -715,9 +725,7 @@ class TestBench:
         summaries = [a for a in aspects if a.aspect_type == "summary"]
         summary_meta = summaries[0] if summaries else None
         if summary_meta is None:
-            raise ValueError(
-                f"Action {action.__class__.__name__} has no summary aspect."
-            )
+            raise ValueError(f"Action {action.__class__.__name__} has no summary aspect.")
 
         async_machine = self._build_async_machine()
         factory = _dependency_factory_from_coordinator(self._coordinator, action.__class__)
@@ -773,10 +781,7 @@ class TestBench:
         # 1. Locate method on class
         method = getattr(action_class, compensator_name, None)
         if method is None:
-            raise ValueError(
-                f"Method '{compensator_name}' not found in {action_class_name}. "
-                f"Check method name."
-            )
+            raise ValueError(f"Method '{compensator_name}' not found in {action_class_name}. " f"Check method name.")
 
         # 2. Ensure this is a compensator
         if not hasattr(method, _COMPENSATE_META_ATTR):
@@ -829,13 +834,24 @@ class TestBench:
                 )
             ctx_view = ContextView(ctx, frozenset(context_keys))
             await method(
-                action, params, state_before, state_after,
-                box, conns, error, ctx_view,
+                action,
+                params,
+                state_before,
+                state_after,
+                box,
+                conns,
+                error,
+                ctx_view,
             )
         else:
             await method(
-                action, params, state_before, state_after,
-                box, conns, error,
+                action,
+                params,
+                state_before,
+                state_after,
+                box,
+                conns,
+                error,
             )
 
     # ─────────────────────────────────────────────────────────────────────

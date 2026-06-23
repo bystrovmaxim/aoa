@@ -16,11 +16,7 @@ class _Host:
 
 
 class _Lifecycle(Lifecycle):
-    _template = (
-        Lifecycle()
-        .state("recorded", "Recorded").to("settled").initial()
-        .state("settled", "Settled").final()
-    )
+    _template = Lifecycle().state("recorded", "Recorded").to("settled").initial().state("settled", "Settled").final()
 
 
 def test_lifecycle_graph_node_edges_include_initial_state_attachment() -> None:

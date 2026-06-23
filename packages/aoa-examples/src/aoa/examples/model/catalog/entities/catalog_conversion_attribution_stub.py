@@ -26,7 +26,9 @@ class ConversionAttributionStubEntity(BaseEntity):
     touch: Annotated[
         AssociationOne[TouchMomentEntity],
         NoInverse(),
-    ] = Rel(description="Last touch linkage")  # type: ignore[assignment]
+    ] = Rel(
+        description="Last touch linkage"
+    )  # type: ignore[assignment]
 
 
 ConversionAttributionStubEntity.model_rebuild()

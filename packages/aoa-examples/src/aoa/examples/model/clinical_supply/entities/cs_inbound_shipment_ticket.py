@@ -31,17 +31,23 @@ class ClinicalInboundShipmentTicketEntity(BaseEntity):
     partner_hub: Annotated[
         AssociationOne[ClinicalPartnerHubEntity],
         NoInverse(),
-    ] = Rel(description="Fulfillment partner")  # type: ignore[assignment]
+    ] = Rel(
+        description="Fulfillment partner"
+    )  # type: ignore[assignment]
 
     consumable_row: Annotated[
         AssociationOne[ClinicalConsumableSkuEntity],
         NoInverse(),
-    ] = Rel(description="Shipped SKU master")  # type: ignore[assignment]
+    ] = Rel(
+        description="Shipped SKU master"
+    )  # type: ignore[assignment]
 
     packing_anchor: Annotated[
         AssociationOne[ClinicalPackingAnchorEntity],
         NoInverse(),
-    ] = Rel(description="Lot packing profile")  # type: ignore[assignment]
+    ] = Rel(
+        description="Lot packing profile"
+    )  # type: ignore[assignment]
 
 
 ClinicalInboundShipmentTicketEntity.model_rebuild()

@@ -27,11 +27,16 @@ class CrossDockStagingEntity(BaseEntity):
     recall_signal: Annotated[
         AssociationOne[RecallSignalEntity],
         NoInverse(),
-    ] = Rel(description="Upstream recall signal")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream recall signal"
+    )  # type: ignore[assignment]
 
     catalog_product_anchor: Annotated[
         AssociationOne[CatalogProductEntity],
         NoInverse(),
-    ] = Rel(description="Catalog SKU keyed when diverting stock through cross-dock")  # type: ignore[assignment]
+    ] = Rel(
+        description="Catalog SKU keyed when diverting stock through cross-dock"
+    )  # type: ignore[assignment]
+
 
 CrossDockStagingEntity.model_rebuild()

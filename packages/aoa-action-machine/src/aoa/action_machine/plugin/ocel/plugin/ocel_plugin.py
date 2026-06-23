@@ -21,10 +21,7 @@ from datetime import UTC, datetime
 from typing import Annotated, Any, Union, get_args, get_origin
 
 from aoa.action_machine.domain.entity import BaseEntity
-from aoa.action_machine.domain.relation_containers import (
-    BaseRelationMany,
-    BaseRelationOne,
-)
+from aoa.action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
 from aoa.action_machine.intents.on import GlobalFinishEvent, on
 from aoa.action_machine.plugin.core import Plugin
 from aoa.action_machine.plugin.ocel.contracts.ocel_frame import OcelFrame
@@ -121,8 +118,7 @@ class OcelPlugin(Plugin):
                 existing = merged.get(attr.name)
                 if existing is not None and existing.value != attr.value:
                     raise OcelContractError(
-                        f"Conflicting OcelEvent attribute {attr.name!r}: "
-                        f"{existing.value!r} vs {attr.value!r}"
+                        f"Conflicting OcelEvent attribute {attr.name!r}: " f"{existing.value!r} vs {attr.value!r}"
                     )
                 merged[attr.name] = attr
         return list(merged.values())
@@ -219,9 +215,7 @@ class OcelPlugin(Plugin):
         for name, value in entity.get_scalar_fields().items():
             attributes.append(OcelAttribute(name=name, value=value))
         for name, lifecycle in entity.get_lifecycle_fields().items():
-            attributes.append(
-                OcelAttribute(name=name, value=lifecycle.current_state)
-            )
+            attributes.append(OcelAttribute(name=name, value=lifecycle.current_state))
         return OcelObject(
             id=self._entity_object_id(entity),
             type=self._ocel_type_name(type(entity)),
@@ -237,9 +231,7 @@ class OcelPlugin(Plugin):
         pk = entity.get_primary_key()
         entity_id = pk.get("id")
         if entity_id is None:
-            raise OcelContractError(
-                f"Entity {type(entity).__name__} has no loaded primary key 'id' for OCEL export"
-            )
+            raise OcelContractError(f"Entity {type(entity).__name__} has no loaded primary key 'id' for OCEL export")
         return make_oid(entity, entity_id)
 
     @staticmethod

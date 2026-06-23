@@ -50,6 +50,7 @@ class TestInheritance:
         assert hasattr(sync_machine, "_run_internal")
         assert callable(sync_machine._run_internal)
 
+
 def test_public_run_wraps_asyncio_run(
     monkeypatch: pytest.MonkeyPatch,
     sync_machine: SyncActionProductMachine,

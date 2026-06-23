@@ -24,9 +24,7 @@ from typing import Any, get_type_hints
 
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.core.composition_graph_edge import CompositionGraphEdge
-from aoa.action_machine.graph.edges.entity_schema_graph_edge import (
-    entity_schema_projection_target_from_annotation,
-)
+from aoa.action_machine.graph.edges.entity_schema_graph_edge import entity_schema_projection_target_from_annotation
 from aoa.action_machine.graph.nodes.property_field_graph_node import PropertyFieldGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 

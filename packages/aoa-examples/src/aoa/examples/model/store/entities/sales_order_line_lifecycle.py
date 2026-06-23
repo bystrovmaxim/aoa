@@ -11,7 +11,12 @@ class SalesOrderLineLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("open", "Open").to("reserved").initial()
-        .state("reserved", "Reserved").to("fulfilled").intermediate()
-        .state("fulfilled", "Fulfilled").final()
+        .state("open", "Open")
+        .to("reserved")
+        .initial()
+        .state("reserved", "Reserved")
+        .to("fulfilled")
+        .intermediate()
+        .state("fulfilled", "Fulfilled")
+        .final()
     )

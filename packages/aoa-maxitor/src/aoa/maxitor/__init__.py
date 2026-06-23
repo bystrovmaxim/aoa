@@ -20,10 +20,7 @@ from JSON under ``/api/v1`` (see ``aoa.maxitor.api.app``).
 
 from __future__ import annotations
 
-from aoa.maxitor.node_build import (
-    build_sample_node_graph_coordinator,
-    export_samples_graph_html,
-)
+from aoa.maxitor.node_build import build_sample_node_graph_coordinator, export_samples_graph_html
 
 __all__ = [
     "build_sample_node_graph_coordinator",

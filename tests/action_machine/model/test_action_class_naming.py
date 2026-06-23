@@ -41,6 +41,7 @@ class TestActionSuffix:
         from aoa.action_machine.model.result_stub import ResultStub
 
         with pytest.raises(NamingSuffixError, match="Action"):
+
             class MyTask(BaseAction[ParamsStub, ResultStub]):
                 pass
 
@@ -53,6 +54,7 @@ class TestActionSuffix:
         from aoa.action_machine.model.result_stub import ResultStub
 
         with pytest.raises(NamingSuffixError, match="Action"):
+
             class MyTaskHandler(BaseAction[ParamsStub, ResultStub]):
                 pass
 
@@ -69,6 +71,7 @@ class TestActionSuffix:
             pass
 
         with pytest.raises(NamingSuffixError, match="Action"):
+
             class SpecificTask(BaseTaskAction):
                 pass
 

@@ -11,8 +11,8 @@ from aoa.action_machine.intents.meta import meta
 
 # ``ActionSchemaIntentResolver`` resolves ``BaseAction`` ForwardRefs via this module globals.
 # pylint: disable-next=unused-import
-from aoa.examples.model.telemetry_pipeline.actions.stream_ingress_anchor_action import (
-    StreamIngressAnchorAction,  # noqa: F401
+from aoa.examples.model.telemetry_pipeline.actions.stream_ingress_anchor_action import (  # noqa: F401
+    StreamIngressAnchorAction,
 )
 from aoa.examples.model.telemetry_pipeline.actions.stream_normalization_pass_one_action import (
     StreamNormalizationPassOneAction,

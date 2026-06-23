@@ -168,9 +168,7 @@ class TestResolveDefault:
         there is no instance cache.
         """
         # Arrange — factory with one dependency and no factory
-        factory = DependencyFactory((
-            DependencyInfo(cls=_SimpleService, description="Service"),
-        ))
+        factory = DependencyFactory((DependencyInfo(cls=_SimpleService, description="Service"),))
 
         # Act — two resolve calls
         first = await factory.resolve(_SimpleService)
@@ -188,9 +186,7 @@ class TestResolveDefault:
         _ConfigurableService(host, port) → instance with the given parameters.
         """
         # Arrange — factory with ConfigurableService
-        factory = DependencyFactory((
-            DependencyInfo(cls=_ConfigurableService, description="Configurable"),
-        ))
+        factory = DependencyFactory((DependencyInfo(cls=_ConfigurableService, description="Configurable"),))
 
         # Act — resolve with constructor arguments
         service = await factory.resolve(_ConfigurableService, host="prod.db", port=5432)
@@ -216,13 +212,15 @@ class TestResolveWithFactory:
         constructor with parameters, singleton, pool, DI container.
         """
         # Arrange — factory builds ConfigurableService with fixed parameters
-        factory = DependencyFactory((
-            DependencyInfo(
-                cls=_ConfigurableService,
-                factory=lambda: _ConfigurableService(host="factory-host", port=9999),
-                description="Via factory",
-            ),
-        ))
+        factory = DependencyFactory(
+            (
+                DependencyInfo(
+                    cls=_ConfigurableService,
+                    factory=lambda: _ConfigurableService(host="factory-host", port=9999),
+                    description="Via factory",
+                ),
+            )
+        )
 
         # Act — resolve invokes factory, not the constructor directly
         service = await factory.resolve(_ConfigurableService)
@@ -240,13 +238,15 @@ class TestResolveWithFactory:
         """
         # Arrange — one shared instance captured by lambda
         shared = _SimpleService()
-        factory = DependencyFactory((
-            DependencyInfo(
-                cls=_SimpleService,
-                factory=lambda: shared,
-                description="Singleton",
-            ),
-        ))
+        factory = DependencyFactory(
+            (
+                DependencyInfo(
+                    cls=_SimpleService,
+                    factory=lambda: shared,
+                    description="Singleton",
+                ),
+            )
+        )
 
         # Act — two resolve calls
         first = await factory.resolve(_SimpleService)
@@ -265,13 +265,15 @@ class TestResolveWithFactory:
         box.resolve(Client, "production") → factory("production").
         """
         # Arrange — factory accepts env parameter
-        factory = DependencyFactory((
-            DependencyInfo(
-                cls=_ConfigurableService,
-                factory=lambda env: _ConfigurableService(host=f"{env}.db.local"),
-                description="Parameterized factory",
-            ),
-        ))
+        factory = DependencyFactory(
+            (
+                DependencyInfo(
+                    cls=_ConfigurableService,
+                    factory=lambda env: _ConfigurableService(host=f"{env}.db.local"),
+                    description="Parameterized factory",
+                ),
+            )
+        )
 
         # Act — resolve with runtime parameter
         service = await factory.resolve(_ConfigurableService, "staging")
@@ -296,9 +298,7 @@ class TestResolveMissing:
         dependencies for quick diagnosis.
         """
         # Arrange — factory without _SimpleService
-        factory = DependencyFactory((
-            DependencyInfo(cls=_ConfigurableService, description="Only this"),
-        ))
+        factory = DependencyFactory((DependencyInfo(cls=_ConfigurableService, description="Only this"),))
 
         # Act & Assert — request missing dependency
         with pytest.raises(ValueError, match="not declared"):
@@ -333,9 +333,7 @@ class TestResolveRollup:
         and does not raise.
         """
         # Arrange — factory with rollup-capable manager
-        factory = DependencyFactory((
-            DependencyInfo(cls=_RollupSupportedManager, description="With rollup support"),
-        ))
+        factory = DependencyFactory((DependencyInfo(cls=_RollupSupportedManager, description="With rollup support"),))
 
         # Act — resolve with rollup=True
         manager = await factory.resolve(_RollupSupportedManager, rollup=True)
@@ -352,9 +350,7 @@ class TestResolveRollup:
         which raises RollupNotSupportedError.
         """
         # Arrange — factory with manager without rollup support
-        factory = DependencyFactory((
-            DependencyInfo(cls=_MockResourceManager, description="Without rollup"),
-        ))
+        factory = DependencyFactory((DependencyInfo(cls=_MockResourceManager, description="Without rollup"),))
 
         # Act & Assert — RollupNotSupportedError
         with pytest.raises(RollupNotSupportedError):
@@ -369,9 +365,7 @@ class TestResolveRollup:
         Ordinary services resolve without that check.
         """
         # Arrange — factory with ordinary service (not BaseResource)
-        factory = DependencyFactory((
-            DependencyInfo(cls=_SimpleService, description="Ordinary service"),
-        ))
+        factory = DependencyFactory((DependencyInfo(cls=_SimpleService, description="Ordinary service"),))
 
         # Act — resolve with rollup=True for ordinary service
         service = await factory.resolve(_SimpleService, rollup=True)
@@ -387,9 +381,7 @@ class TestResolveRollup:
         the check is skipped and the instance is created normally.
         """
         # Arrange — factory with manager without rollup support
-        factory = DependencyFactory((
-            DependencyInfo(cls=_MockResourceManager, description="Without rollup"),
-        ))
+        factory = DependencyFactory((DependencyInfo(cls=_MockResourceManager, description="Without rollup"),))
 
         # Act — resolve with rollup=False (default)
         manager = await factory.resolve(_MockResourceManager, rollup=False)
@@ -409,9 +401,7 @@ class TestInspection:
     def test_has_returns_true_for_registered(self) -> None:
         """has(cls) → True for a registered dependency."""
         # Arrange
-        factory = DependencyFactory((
-            DependencyInfo(cls=_SimpleService, description="Service"),
-        ))
+        factory = DependencyFactory((DependencyInfo(cls=_SimpleService, description="Service"),))
 
         # Act & Assert
         assert factory.has(_SimpleService) is True
@@ -427,10 +417,12 @@ class TestInspection:
     def test_get_all_classes(self) -> None:
         """get_all_classes() returns all registered classes."""
         # Arrange — factory with two dependencies
-        factory = DependencyFactory((
-            DependencyInfo(cls=_SimpleService, description="A"),
-            DependencyInfo(cls=_ConfigurableService, description="B"),
-        ))
+        factory = DependencyFactory(
+            (
+                DependencyInfo(cls=_SimpleService, description="A"),
+                DependencyInfo(cls=_ConfigurableService, description="B"),
+            )
+        )
 
         # Act
         classes = factory.get_all_classes()

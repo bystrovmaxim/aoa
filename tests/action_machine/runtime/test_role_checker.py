@@ -36,10 +36,7 @@ from tests.action_machine.scenarios.domain_model.admin_action import AdminAction
 from tests.action_machine.scenarios.domain_model.domains import SystemDomain
 from tests.action_machine.scenarios.domain_model.ping_action import PingAction
 from tests.action_machine.scenarios.domain_model.roles import AdminRole, EditorRole, SpyRole, UserRole
-from tests.action_machine.scenarios.intents_with_runtime.test_role_checker_pr2 import (
-    OrderManagerRole,
-    OrderViewerRole,
-)
+from tests.action_machine.scenarios.intents_with_runtime.test_role_checker_pr2 import OrderManagerRole, OrderViewerRole
 
 importlib.import_module("tests.action_machine.scenarios.domain_model.full_action")
 

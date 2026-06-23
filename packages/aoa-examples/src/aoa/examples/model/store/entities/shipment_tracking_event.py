@@ -26,7 +26,9 @@ class ShipmentTrackingEventEntity(BaseEntity):
     parcel: Annotated[
         AssociationOne[ShipmentParcelEntity],
         NoInverse(),
-    ] = Rel(description="Owner parcel")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owner parcel"
+    )  # type: ignore[assignment]
 
 
 ShipmentTrackingEventEntity.model_rebuild()

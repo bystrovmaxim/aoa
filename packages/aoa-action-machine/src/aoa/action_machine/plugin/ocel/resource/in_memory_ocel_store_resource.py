@@ -9,9 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from aoa.action_machine.exceptions.connection_already_open_error import (
-    ConnectionAlreadyOpenError,
-)
+from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.plugin.ocel.dto.ocel_event import OcelEvent
 from aoa.action_machine.plugin.ocel.dto.ocel_object import OcelObject
@@ -25,8 +23,7 @@ def _type_catalog(type_attrs: dict[str, dict[str, str]]) -> list[dict[str, Any]]
         {
             "name": type_name,
             "attributes": [
-                {"name": attr_name, "type": attr_type}
-                for attr_name, attr_type in sorted(type_attrs[type_name].items())
+                {"name": attr_name, "type": attr_type} for attr_name, attr_type in sorted(type_attrs[type_name].items())
             ],
         }
         for type_name in sorted(type_attrs)
@@ -60,9 +57,7 @@ class InMemoryOcelStoreResource(OcelStoreResource):
     async def open(self) -> None:
         async with self._lock:
             if self._open:
-                raise ConnectionAlreadyOpenError(
-                    "InMemoryOcelStoreResource is already open."
-                )
+                raise ConnectionAlreadyOpenError("InMemoryOcelStoreResource is already open.")
             self._open = True
 
     async def close(self) -> None:
@@ -84,9 +79,7 @@ class InMemoryOcelStoreResource(OcelStoreResource):
 
     def _assert_open(self) -> None:
         if not self._open:
-            raise OcelContractError(
-                "Resource is not open. Call await resource.open() first."
-            )
+            raise OcelContractError("Resource is not open. Call await resource.open() first.")
 
     def _merge_object_fact(self, incoming: OcelObject) -> None:
         if incoming.id not in self._objects:
@@ -130,10 +123,7 @@ class InMemoryOcelStoreResource(OcelStoreResource):
             "eventTypes": self._derive_event_types(),
             "objectTypes": self._derive_object_types(),
             "events": [self._serialize_event(ev) for ev in self._events],
-            "objects": [
-                self._serialize_object(obj)
-                for obj in sorted(self._objects.values(), key=lambda o: o.id)
-            ],
+            "objects": [self._serialize_object(obj) for obj in sorted(self._objects.values(), key=lambda o: o.id)],
         }
 
     def _derive_event_types(self) -> list[dict[str, Any]]:
@@ -159,22 +149,14 @@ class InMemoryOcelStoreResource(OcelStoreResource):
             "id": ev.id,
             "type": ev.type,
             "time": ev.time.isoformat(),
-            "attributes": [
-                {"name": a.name, "value": self._serialize_attr_value(a.value)}
-                for a in ev.attributes
-            ],
-            "relationships": [
-                {"objectId": r.object_id, "qualifier": r.qualifier}
-                for r in ev.relationships
-            ],
+            "attributes": [{"name": a.name, "value": self._serialize_attr_value(a.value)} for a in ev.attributes],
+            "relationships": [{"objectId": r.object_id, "qualifier": r.qualifier} for r in ev.relationships],
         }
 
     def _serialize_object(self, obj: OcelObject) -> dict[str, Any]:
         attrs_out: list[dict[str, Any]] = []
         for attr in sorted(obj.attributes, key=lambda a: a.name):
-            attrs_out.append(
-                {"name": attr.name, "value": self._serialize_attr_value(attr.value)}
-            )
+            attrs_out.append({"name": attr.name, "value": self._serialize_attr_value(attr.value)})
         return {
             "id": obj.id,
             "type": obj.type,
