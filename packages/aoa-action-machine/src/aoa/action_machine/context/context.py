@@ -129,12 +129,12 @@ from aoa.action_machine.model.base_schema import BaseSchema
 
 class Context(BaseSchema):
     """
-AI-CORE-BEGIN
-    ROLE: Runtime metadata container (user/request/runtime).
-    CONTRACT: Expose safe defaults and BaseSchema dot-path resolution.
-    INVARIANTS: Frozen object, forbid extra, None inputs normalized to defaults.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Runtime metadata container (user/request/runtime).
+        CONTRACT: Expose safe defaults and BaseSchema dot-path resolution.
+        INVARIANTS: Frozen object, forbid extra, None inputs normalized to defaults.
+        AI-CORE-END
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid", arbitrary_types_allowed=True)
 

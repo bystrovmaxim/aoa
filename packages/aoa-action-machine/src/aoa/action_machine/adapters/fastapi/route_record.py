@@ -50,24 +50,26 @@ from dataclasses import dataclass
 from aoa.action_machine.adapters.base_route_record import BaseRouteRecord
 
 # Allowed HTTP methods.
-_ALLOWED_METHODS: frozenset[str] = frozenset({
-    "GET",
-    "POST",
-    "PUT",
-    "DELETE",
-    "PATCH",
-})
+_ALLOWED_METHODS: frozenset[str] = frozenset(
+    {
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH",
+    }
+)
 
 
 @dataclass(frozen=True)
 class FastApiRouteRecord(BaseRouteRecord):
     """
-AI-CORE-BEGIN
-    ROLE: Binds one action contract to one HTTP/OpenAPI endpoint declaration.
-    CONTRACT: Extends BaseRouteRecord with method/path/tags/docs metadata.
-    INVARIANTS: Frozen instance, validated method, validated path.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Binds one action contract to one HTTP/OpenAPI endpoint declaration.
+        CONTRACT: Extends BaseRouteRecord with method/path/tags/docs metadata.
+        INVARIANTS: Frozen instance, validated method, validated path.
+        AI-CORE-END
+    """
 
     # ── HTTP-specific fields ───────────────────────────────────────────
 
@@ -112,21 +114,11 @@ AI-CORE-BEGIN
         # ── 3. Method validation ──
         if normalized_method not in _ALLOWED_METHODS:
             allowed = ", ".join(sorted(_ALLOWED_METHODS))
-            raise ValueError(
-                f"method must be one of: {allowed}. "
-                f"Got: '{self.method}'."
-            )
+            raise ValueError(f"method must be one of: {allowed}. " f"Got: '{self.method}'.")
 
         # ── 4. Path validation ──
         if not self.path or not self.path.strip():
-            raise ValueError(
-                "path cannot be empty. "
-                "Provide an endpoint path, for example '/api/v1/orders'."
-            )
+            raise ValueError("path cannot be empty. " "Provide an endpoint path, for example '/api/v1/orders'.")
 
         if not self.path.startswith("/"):
-            raise ValueError(
-                f"path must start with '/'. "
-                f"Got: '{self.path}'. "
-                f"Use a path like '/{self.path}'."
-            )
+            raise ValueError(f"path must start with '/'. " f"Got: '{self.path}'. " f"Use a path like '/{self.path}'.")

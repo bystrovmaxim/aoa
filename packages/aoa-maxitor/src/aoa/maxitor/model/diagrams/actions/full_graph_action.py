@@ -27,19 +27,14 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.model.diagrams.actions.list_domains_action import (
-    _LIST_DOMAINS_DISTINCT_COLORS,
-)
+from aoa.maxitor.model.diagrams.actions.list_domains_action import _LIST_DOMAINS_DISTINCT_COLORS
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import (
     DEFAULT_NODE_TYPE_COLOR,
     fill_color_for_node_type,
     interchange_node_type_from_duck,
 )
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
-    DUCKDB_GRAPH_CONNECTION_KEY,
-    DuckDBGraphResource,
-)
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
 G6_CDN_URL = "https://unpkg.com/@antv/g6@5/dist/g6.min.js"
 DAG_CYCLE_VIOLATION_COLOR = "#E41A1C"
@@ -208,10 +203,7 @@ def _build_payload_from_duckdb(
         )
 
     qualnames = [str(r["pk"]) for r in domain_rows]
-    domain_color_map = {
-        q: palette[i % len(palette)]
-        for i, q in enumerate(qualnames)
-    }
+    domain_color_map = {q: palette[i % len(palette)] for i, q in enumerate(qualnames)}
 
     seen_types: dict[str, str] = {}
     for duck_type in node_types:
@@ -219,10 +211,9 @@ def _build_payload_from_duckdb(
         if nt and nt != "unknown" and nt not in seen_types:
             seen_types[nt] = fill_color_for_node_type(str(duck_type))
 
-    legend_items = (
-        [{"type": nt, "color": col} for nt, col in sorted(seen_types.items())]
-        or [{"type": "unknown", "color": DEFAULT_NODE_TYPE_COLOR}]
-    )
+    legend_items = [{"type": nt, "color": col} for nt, col in sorted(seen_types.items())] or [
+        {"type": "unknown", "color": DEFAULT_NODE_TYPE_COLOR}
+    ]
 
     return {
         "title": "Full graph view",

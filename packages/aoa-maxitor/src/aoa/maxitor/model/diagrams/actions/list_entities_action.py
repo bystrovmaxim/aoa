@@ -32,10 +32,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.model.diagrams.actions.list_entities_action_schema import ListEntitiesDomainSlicesJson
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
-    DUCKDB_GRAPH_CONNECTION_KEY,
-    DuckDBGraphResource,
-)
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
 
 @meta(

@@ -48,12 +48,12 @@ from aoa.action_machine.adapters.base_route_record import BaseRouteRecord
 @dataclass(frozen=True)
 class McpRouteRecord(BaseRouteRecord):
     """
-AI-CORE-BEGIN
-    ROLE: Carries validated tool metadata and mapping contracts.
-    CONTRACT: Extends BaseRouteRecord with MCP-specific fields.
-    INVARIANTS: Frozen instance and non-empty tool_name.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Carries validated tool metadata and mapping contracts.
+        CONTRACT: Extends BaseRouteRecord with MCP-specific fields.
+        INVARIANTS: Frozen instance and non-empty tool_name.
+        AI-CORE-END
+    """
 
     # ── MCP-specific fields ─────────────────────────────────────────────
 
@@ -79,7 +79,4 @@ AI-CORE-BEGIN
 
         # ── 2. tool_name validation ──
         if not self.tool_name or not self.tool_name.strip():
-            raise ValueError(
-                "tool_name cannot be empty. "
-                "Provide a tool identifier, for example 'orders.create'."
-            )
+            raise ValueError("tool_name cannot be empty. " "Provide a tool identifier, for example 'orders.create'.")

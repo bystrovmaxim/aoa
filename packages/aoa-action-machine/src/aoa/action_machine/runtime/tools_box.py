@@ -140,14 +140,10 @@ class ToolsBox:
         object.__setattr__(self, "_ToolsBox__rollup", rollup)
 
     def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError(
-            f"ToolsBox is a frozen object. Attribute write for '{name}' is forbidden."
-        )
+        raise AttributeError(f"ToolsBox is a frozen object. Attribute write for '{name}' is forbidden.")
 
     def __delattr__(self, name: str) -> None:
-        raise AttributeError(
-            f"ToolsBox is a frozen object. Attribute deletion for '{name}' is forbidden."
-        )
+        raise AttributeError(f"ToolsBox is a frozen object. Attribute deletion for '{name}' is forbidden.")
 
     @property
     def run_child(self) -> Callable[..., Awaitable[BaseResult]]:
@@ -182,7 +178,8 @@ class ToolsBox:
         return await self.__factory.resolve(cls, *args, rollup=self.__rollup, **kwargs)
 
     def _wrap_connections(
-        self, connections: dict[str, BaseResource] | None,
+        self,
+        connections: dict[str, BaseResource] | None,
     ) -> dict[str, BaseResource] | None:
         """
         Wrap each resource with its wrapper class for child-action propagation.
@@ -193,7 +190,7 @@ class ToolsBox:
         for key, connection in connections.items():
             wrapper_class = connection.get_wrapper_class()
             if wrapper_class is not None:
-                wrapped[key] = wrapper_class(connection) # type: ignore[call-arg]
+                wrapped[key] = wrapper_class(connection)  # type: ignore[call-arg]
             else:
                 wrapped[key] = connection
         return wrapped
@@ -217,16 +214,25 @@ class ToolsBox:
         return cast("R", result)
 
     async def info(
-        self, channels: Channel, message: str, **kwargs: Any,
+        self,
+        channels: Channel,
+        message: str,
+        **kwargs: Any,
     ) -> None:
         await self.__log.info(channels, message, **kwargs)
 
     async def warning(
-        self, channels: Channel, message: str, **kwargs: Any,
+        self,
+        channels: Channel,
+        message: str,
+        **kwargs: Any,
     ) -> None:
         await self.__log.warning(channels, message, **kwargs)
 
     async def critical(
-        self, channels: Channel, message: str, **kwargs: Any,
+        self,
+        channels: Channel,
+        message: str,
+        **kwargs: Any,
     ) -> None:
         await self.__log.critical(channels, message, **kwargs)

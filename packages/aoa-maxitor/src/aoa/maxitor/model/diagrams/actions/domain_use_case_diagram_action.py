@@ -26,10 +26,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.model.diagrams.actions.domain_use_case_diagram_action_schema import DomainUseCaseDiagramJson
 from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
-    DUCKDB_GRAPH_CONNECTION_KEY,
-    DuckDBGraphResource,
-)
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
 
 def _short_qualname(raw: str) -> str:
@@ -92,10 +89,7 @@ def _fetch_id_labels(
     if not entity_ids:
         return {}
     ids = sorted(entity_ids)
-    sql = (
-        f"SELECT id, label FROM {table} "
-        f"WHERE id IN ({_comma_question_placeholders(len(ids))})"
-    )
+    sql = f"SELECT id, label FROM {table} " f"WHERE id IN ({_comma_question_placeholders(len(ids))})"
     rows = duck.execute_fetch_dicts(sql, ids)
     return {str(r["id"]): str(r["label"]) for r in rows}
 
@@ -108,10 +102,7 @@ def _action_generalizations_within_actions(
         return []
     ids = sorted(action_ids)
     ph = _comma_question_placeholders(len(ids))
-    sql = (
-        "SELECT source_id, target_id FROM parent_action_edges "
-        f"WHERE source_id IN ({ph}) AND target_id IN ({ph})"
-    )
+    sql = "SELECT source_id, target_id FROM parent_action_edges " f"WHERE source_id IN ({ph}) AND target_id IN ({ph})"
     return duck.execute_fetch_dicts(sql, ids + ids)
 
 
@@ -123,10 +114,7 @@ def _role_generalizations_within_roles(
         return []
     ids = sorted(role_ids)
     ph = _comma_question_placeholders(len(ids))
-    sql = (
-        "SELECT source_id, target_id FROM parent_role_edges "
-        f"WHERE source_id IN ({ph}) AND target_id IN ({ph})"
-    )
+    sql = "SELECT source_id, target_id FROM parent_role_edges " f"WHERE source_id IN ({ph}) AND target_id IN ({ph})"
     return duck.execute_fetch_dicts(sql, ids + ids)
 
 
