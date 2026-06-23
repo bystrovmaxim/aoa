@@ -102,9 +102,7 @@ from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.context.ctx_constants import Ctx
 from aoa.action_machine.intents.context_requires.context_requires_decorator import context_requires
 from aoa.action_machine.intents.context_requires.context_requires_intent import ContextRequiresIntent
-from aoa.action_machine.intents.context_requires.context_requires_resolver import (
-    ContextRequiresResolver,
-)
+from aoa.action_machine.intents.context_requires.context_requires_resolver import ContextRequiresResolver
 
 __all__ = [
     "ContextRequiresIntent",
