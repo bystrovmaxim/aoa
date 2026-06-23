@@ -142,6 +142,7 @@ from unittest.mock import Mock
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.context_view import ContextView
+from aoa.action_machine.context.env_entry import EnvEntry
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
@@ -409,6 +410,7 @@ class TestBench:
         user: Any | None = None,
         runtime: Any | None = None,
         request: Any | None = None,
+        env: dict[str, EnvEntry[Any]] | None = None,
     ) -> None:
         """
         Initialize TestBench.
@@ -421,6 +423,7 @@ class TestBench:
         self._user = user if user is not None else UserInfoStub()
         self._runtime = runtime if runtime is not None else RuntimeInfoStub()
         self._request = request if request is not None else RequestInfoStub()
+        self._env: dict[str, EnvEntry[Any]] = dict(env) if env else {}
 
     # ─────────────────────────────────────────────────────────────────────
     # Read-only properties
@@ -446,12 +449,14 @@ class TestBench:
     # ─────────────────────────────────────────────────────────────────────
 
     def _build_context(self) -> Context:
-        """Build Context from current user/request/runtime."""
-        return Context(
-            user=self._user,
-            request=self._request,
-            runtime=self._runtime,
-        )
+        """Build Context from current user/request/runtime (and env entries if any)."""
+        if not self._env:
+            return Context(user=self._user, request=self._request, runtime=self._runtime)
+        dyn_ctx_cls = type("_BenchContext", (Context,), {})
+        dyn_ctx_cls.__env_entries__ = dict(self._env)  # type: ignore[attr-defined]
+        return cast("Context", dyn_ctx_cls(
+            user=self._user, request=self._request, runtime=self._runtime,
+        ))
 
     def _build_async_machine(self) -> ActionProductMachine:
         """Build async production machine with current settings."""
@@ -487,6 +492,7 @@ class TestBench:
             user=overrides.get("user", self._user),
             runtime=overrides.get("runtime", self._runtime),
             request=overrides.get("request", self._request),
+            env=overrides.get("env", self._env),
         )
 
     def with_user(
@@ -533,6 +539,28 @@ class TestBench:
                 **kwargs,
             ),
         )
+
+    def with_env(
+        self,
+        key: str,
+        value: Any,
+        ttl: int = 0,
+    ) -> TestBench:
+        """Return new TestBench with ``value`` as the env constant for ``key``.
+
+        In tests, env values are always known upfront.  ``value`` is stored as-is
+        and returned on every ``ctx.get("env.<key>")`` call (no lazy invocation).
+        Successive calls with the same key override the previous value.
+
+        Args:
+            key: Logical name accessed via ``@context_requires("env.<key>")``.
+            value: Constant to return for this key.
+            ttl: Forwarded to ``EnvEntry``; has no practical effect for constants.
+        """
+        def _const() -> Any:
+            return value
+        entry: EnvEntry[Any] = EnvEntry(key=key, provider=_const, ttl=ttl)
+        return self._clone(env={**self._env, key: entry})
 
     def with_mocks(self, mocks: dict[type, Any]) -> TestBench:
         """Return new TestBench with replaced mocks (not merge)."""
