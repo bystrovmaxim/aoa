@@ -18,6 +18,9 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MEMBERS = (
     "aoa-action-machine",
+    "aoa-fastapi-adapter",
+    "aoa-mcp-adapter",
+    "aoa-langgraph-adapter",
     "aoa-maxitor",
     "aoa-examples",
 )
@@ -25,6 +28,9 @@ MEMBERS = (
 # ``packages/<folder>/pyproject.toml`` for each distribution name.
 _PACKAGE_DIR: dict[str, str] = {
     "aoa-action-machine": "aoa-action-machine",
+    "aoa-fastapi-adapter": "aoa-fastapi-adapter",
+    "aoa-mcp-adapter": "aoa-mcp-adapter",
+    "aoa-langgraph-adapter": "aoa-langgraph-adapter",
     "aoa-maxitor": "aoa-maxitor",
     "aoa-examples": "aoa-examples",
 }
@@ -32,14 +38,20 @@ _PACKAGE_DIR: dict[str, str] = {
 # Normalized distribution names (hyphenated).
 REQUIRED_MAIN: dict[str, frozenset[str]] = {
     "aoa-action-machine": frozenset(),
-    "aoa-maxitor": frozenset({"aoa-action-machine"}),
-    "aoa-examples": frozenset({"aoa-action-machine"}),
+    "aoa-fastapi-adapter": frozenset({"aoa-action-machine"}),
+    "aoa-mcp-adapter": frozenset({"aoa-action-machine"}),
+    "aoa-langgraph-adapter": frozenset({"aoa-action-machine"}),
+    "aoa-maxitor": frozenset({"aoa-action-machine", "aoa-fastapi-adapter"}),
+    "aoa-examples": frozenset({"aoa-action-machine", "aoa-fastapi-adapter", "aoa-mcp-adapter"}),
 }
 
 FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
     "aoa-action-machine": frozenset({"aoa-maxitor", "aoa-examples"}),
-    "aoa-maxitor": frozenset({"aoa-examples"}),
-    "aoa-examples": frozenset({"aoa-maxitor"}),
+    "aoa-fastapi-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-mcp-adapter", "aoa-langgraph-adapter"}),
+    "aoa-mcp-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-langgraph-adapter"}),
+    "aoa-langgraph-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-mcp-adapter"}),
+    "aoa-maxitor": frozenset({"aoa-examples", "aoa-mcp-adapter", "aoa-langgraph-adapter"}),
+    "aoa-examples": frozenset({"aoa-maxitor", "aoa-langgraph-adapter"}),
 }
 
 _NAME_RE = re.compile(r"^([A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)")

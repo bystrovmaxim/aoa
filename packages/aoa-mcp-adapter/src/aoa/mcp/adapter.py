@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/adapters/mcp/adapter.py
+# packages/aoa-mcp-adapter/src/aoa/mcp/adapter.py
 """
 McpAdapter — MCP adapter for ActionMachine.
 
@@ -127,16 +127,11 @@ import uuid
 from collections.abc import Callable, Mapping
 from typing import Any, Self
 
-from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.tools.base import Tool
-from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase, FuncMetadata
-from mcp.types import CallToolResult, TextContent
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
 from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
-from aoa.action_machine.adapters.mcp.route_record import McpRouteRecord
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
@@ -146,6 +141,11 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+from aoa.mcp.route_record import McpRouteRecord
+from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.tools.base import Tool
+from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase, FuncMetadata
+from mcp.types import CallToolResult, TextContent
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/adapters/fastapi/query_field_before/__init__.py
+# packages/aoa-fastapi-adapter/src/aoa/fastapi/query_field_before/__init__.py
 """
 Reusable Pydantic ``BeforeValidator`` helpers for FastAPI query-shaped inputs.
 
@@ -6,7 +6,7 @@ Use with action ``Params`` fields typed as ``list[str]``. Prefer :data:`QUERY_ST
 for OpenAPI query arrays (repeated keys, no delimiter splitting inside values).
 """
 
-from aoa.action_machine.adapters.fastapi.query_field_before.query_str_list import (
+from aoa.fastapi.query_field_before.query_str_list import (
     QUERY_STR_LIST_BEFORE,
     coerce_query_str_list,
 )

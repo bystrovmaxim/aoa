@@ -28,7 +28,7 @@ The [machine](step-11-machine.md) gives a single entry into an operation, but on
 
 `FastApiAdapter` publishes an operation as an HTTP endpoint — **without changing its code**. The adapter takes on the whole transport: it validates the request, builds [`Context`](step-12-authentication.md) through the authentication coordinator, runs the operation on the [machine](step-11-machine.md), and turns the `Result` back into JSON. The same `Action` thus reaches both HTTP and (through [MCP](step-14-mcp.md)) an AI agent.
 
-Install: `pip install "aoa-action-machine[fastapi]"`.
+Install: `pip install aoa-fastapi-adapter`.
 
 [▶ Try in Colab](https://drive.google.com/file/d/1b2H35JM9YfR8NxvqBEsO-SniygjlZtBH/view?usp=drive_link) · [Open in project](../../examples/step_13_fastapi/01_service.py)
 
@@ -39,7 +39,7 @@ Install: `pip install "aoa-action-machine[fastapi]"`.
 The adapter is assembled fluently: each `.post/.get/...` call is one endpoint, and `.build()` returns a ready FastAPI app.
 
 ```python
-from aoa.action_machine.adapters.fastapi import FastApiAdapter
+from aoa.fastapi import FastApiAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
@@ -53,7 +53,7 @@ app = (
 # uvicorn module:app
 ```
 
-`GreetAction` stays an ordinary operation — it knows nothing about HTTP. The adapter import is from `aoa.action_machine.adapters.fastapi`.
+`GreetAction` stays an ordinary operation — it knows nothing about HTTP. The adapter import is from `aoa.fastapi`.
 
 ## What the adapter does per request
 

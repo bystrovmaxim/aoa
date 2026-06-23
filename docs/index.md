@@ -125,8 +125,8 @@ What is already in the box. Some is available right away, some installs via `pip
 - **[OpenTelemetry](extensions/opentelemetry.md)** — plugin: traces and the `state` x-ray out of the box; extra `[otel]`
 - **[OCEL 2.0](extensions/ocel.md)** — plugin: an object-centric event log for process mining; extra `[ocel]`
 - **[ConsoleLogger](extensions/console-logger.md)** — logger: business events to the console, color by level; out of the box
-- **[FastAPI](extensions/fastapi.md)** — adapter: HTTP/REST and OpenAPI from an Action; extra `[fastapi]`
-- **[MCP](extensions/mcp.md)** — adapter: an operation as a tool for an AI agent; extra `[mcp]`
+- **[FastAPI](extensions/fastapi.md)** — adapter: HTTP/REST and OpenAPI from an Action; package `aoa-fastapi-adapter`
+- **[MCP](extensions/mcp.md)** — adapter: an operation as a tool for an AI agent; package `aoa-mcp-adapter`
 - **[LangGraph](extensions/langgraph.md)** — adapter: AOA Actions as nodes in a LangGraph agent graph; package `aoa-langgraph-adapter`
 - **[PostgreSQL](extensions/postgresql.md)** — resource: connections and transactions through asyncpg; extra `[postgres]`
 

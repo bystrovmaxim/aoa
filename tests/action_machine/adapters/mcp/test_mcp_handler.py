@@ -84,14 +84,6 @@ import pytest
 from mcp.types import CallToolResult
 from pydantic import BaseModel, Field, field_validator
 
-from aoa.action_machine.adapters.mcp.adapter import (
-    _build_graph_json,
-    _execute_tool_call,
-    _make_tool_handler,
-    _serialize_result,
-    _validate_tool_request_kwargs,
-)
-from aoa.action_machine.adapters.mcp.route_record import McpRouteRecord
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
@@ -99,6 +91,14 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.mcp.adapter import (
+    _build_graph_json,
+    _execute_tool_call,
+    _make_tool_handler,
+    _serialize_result,
+    _validate_tool_request_kwargs,
+)
+from aoa.mcp.route_record import McpRouteRecord
 from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
 from tests.action_machine.scenarios.domain_model.domains import TestDomain
 from tests.action_machine.scenarios.domain_model.roles import AdminRole
