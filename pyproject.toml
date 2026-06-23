@@ -23,7 +23,8 @@ authors = [
 ]
 
 dependencies = [
-    "aoa-action-machine[ocel]",
+    "aoa-action-machine",
+    "aoa-ocel",
     "aoa-maxitor",
     "aoa-examples",
 ]
@@ -53,10 +54,11 @@ dev = [
     "radon>=6.0,<7.0",
     "taskipy>=1.12,<2.0",
     "httpx>=0.27,<1.0",
-    "aoa-action-machine[postgres,ocel,otel]",
+    "aoa-action-machine[postgres,otel]",
     "aoa-fastapi-adapter",
     "aoa-mcp-adapter",
     "aoa-langgraph-adapter",
+    "aoa-ocel",
     "aoa-examples[fastapi,mcp]",
     "types-jsonschema>=4.19,<5",
     "types-networkx>=3.2,<4",
@@ -82,6 +84,7 @@ members = [
     "packages/aoa-langgraph-adapter",
     "packages/aoa-fastapi-adapter",
     "packages/aoa-mcp-adapter",
+    "packages/aoa-ocel",
 ]
 
 # Map distribution names used in member ``dependencies`` to workspace paths.
@@ -92,6 +95,7 @@ aoa-examples = { workspace = true }
 aoa-langgraph-adapter = { workspace = true }
 aoa-fastapi-adapter = { workspace = true }
 aoa-mcp-adapter = { workspace = true }
+aoa-ocel = { workspace = true }
 
 # ============================================================================
 # HATCHLING — meta wheel ``aoa-run`` (workspace root; ``aoa.*`` live in member packages)
@@ -113,6 +117,7 @@ pythonpath = [
     "packages/aoa-langgraph-adapter/src",
     "packages/aoa-fastapi-adapter/src",
     "packages/aoa-mcp-adapter/src",
+    "packages/aoa-ocel/src",
     ".",
 ]
 addopts = [
@@ -153,7 +158,7 @@ explicit_package_bases = true
 # Standalone ``collect_python_files.py`` scripts at repo / package roots share the module
 # name ``collect_python_files``; exclude them from ``mypy packages/`` (task ``typecheck``).
 exclude = "collect_python_files\\.py$"
-mypy_path = "packages/aoa-action-machine/src:packages/aoa-maxitor/src:packages/aoa-examples/src:packages/aoa-langgraph-adapter/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src"
+mypy_path = "packages/aoa-action-machine/src:packages/aoa-maxitor/src:packages/aoa-examples/src:packages/aoa-langgraph-adapter/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src"
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -396,7 +401,7 @@ package-boundaries-tests = "python scripts/check_package_boundaries.py --tests"
 package-metadata = "python scripts/check_package_metadata.py"
 check = "task lint && task types && task package-boundaries && task package-boundaries-tests && task package-metadata && task build-packages && task packaging-smoke && task test-layer-imports && task samples-public-api && task test"
 dead = "vulture packages/aoa-action-machine/src/aoa/action_machine"
-typecheck = "mypy packages/aoa-action-machine/src packages/aoa-maxitor/src packages/aoa-examples/src packages/aoa-langgraph-adapter/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src"
+typecheck = "mypy packages/aoa-action-machine/src packages/aoa-maxitor/src packages/aoa-examples/src packages/aoa-langgraph-adapter/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src"
 pylint = "pylint packages/"
 cc = "radon cc packages/ -a -nb"
 mi = "radon mi packages/ -nb"
