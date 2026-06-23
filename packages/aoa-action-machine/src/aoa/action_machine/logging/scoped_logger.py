@@ -55,10 +55,7 @@ from aoa.action_machine.logging.domain_resolver import domain_label
 from aoa.action_machine.logging.level import Level, level_label, validate_level
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.logging.log_scope import LogScope
-from aoa.action_machine.logging.log_var_payloads import (
-    LogChannelPayload,
-    LogLevelPayload,
-)
+from aoa.action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
 
@@ -72,7 +69,7 @@ class ScopedLogger:
     CONTRACT: Map info/warning/critical calls to one validated emit each.
     INVARIANTS: Reserved system keys are owned by logger, not user kwargs.
     AI-CORE-END
-"""
+    """
 
     def __init__(
         self,
@@ -130,7 +127,8 @@ class ScopedLogger:
         var = dict(kwargs)
         var["level"] = LogLevelPayload(mask=log_level, name=level_label(log_level))
         var["channels"] = LogChannelPayload(
-            mask=channels, names=channel_mask_label(channels),
+            mask=channels,
+            names=channel_mask_label(channels),
         )
         var["domain"] = self._domain
         var["domain_name"] = self._domain_name
@@ -146,16 +144,25 @@ class ScopedLogger:
         )
 
     async def info(
-        self, channels: Channel, message: str, **kwargs: Any,
+        self,
+        channels: Channel,
+        message: str,
+        **kwargs: Any,
     ) -> None:
         await self._emit(Level.info, channels, message, **kwargs)
 
     async def warning(
-        self, channels: Channel, message: str, **kwargs: Any,
+        self,
+        channels: Channel,
+        message: str,
+        **kwargs: Any,
     ) -> None:
         await self._emit(Level.warning, channels, message, **kwargs)
 
     async def critical(
-        self, channels: Channel, message: str, **kwargs: Any,
+        self,
+        channels: Channel,
+        message: str,
+        **kwargs: Any,
     ) -> None:
         await self._emit(Level.critical, channels, message, **kwargs)

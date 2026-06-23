@@ -146,12 +146,12 @@ from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 
 class PluginRunContext:
     """
-AI-CORE-BEGIN
-    ROLE: Runtime dispatcher and state holder for plugin handlers.
-    CONTRACT: Filter subscriptions and execute matched handlers per strategy.
-    INVARIANTS: State is isolated per run and keyed by plugin instance id.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Runtime dispatcher and state holder for plugin handlers.
+        CONTRACT: Filter subscriptions and execute matched handlers per strategy.
+        INVARIANTS: State is isolated per run and keyed by plugin instance id.
+        AI-CORE-END
+    """
 
     def __init__(
         self,
@@ -307,21 +307,25 @@ AI-CORE-BEGIN
         tasks = []
         for plugin, handler, _sub in matched:
             log = self._create_plugin_logger(
-                log_coordinator, plugin, event,
+                log_coordinator,
+                plugin,
+                event,
             )
-            tasks.append(
-                self._run_single_handler(plugin, handler, event, log)
-            )
+            tasks.append(self._run_single_handler(plugin, handler, event, log))
 
         if tasks:
             results = await asyncio.gather(*tasks, return_exceptions=True)
             for (plugin, _handler, sub), result in zip(matched, results, strict=True):
                 if isinstance(result, Exception):
                     log = self._create_plugin_logger(
-                        log_coordinator, plugin, event,
+                        log_coordinator,
+                        plugin,
+                        event,
                     )
                     await self._log_suppressed_handler_exception(
-                        result, log, sub.method_name,
+                        result,
+                        log,
+                        sub.method_name,
                     )
 
     async def _run_sequential(
@@ -333,7 +337,9 @@ AI-CORE-BEGIN
         """Run handlers sequentially when any subscription is critical."""
         for plugin, handler, sub in matched:
             log = self._create_plugin_logger(
-                log_coordinator, plugin, event,
+                log_coordinator,
+                plugin,
+                event,
             )
             try:
                 await self._run_single_handler(plugin, handler, event, log)
@@ -341,7 +347,9 @@ AI-CORE-BEGIN
                 if not sub.ignore_exceptions:
                     raise
                 await self._log_suppressed_handler_exception(
-                    exc, log, sub.method_name,
+                    exc,
+                    log,
+                    sub.method_name,
                 )
 
     # ─────────────────────────────────────────────────────────────────────
@@ -367,11 +375,15 @@ AI-CORE-BEGIN
 
         if all_ignore:
             await self._run_parallel(
-                matched, event, log_coordinator,
+                matched,
+                event,
+                log_coordinator,
             )
         else:
             await self._run_sequential(
-                matched, event, log_coordinator,
+                matched,
+                event,
+                log_coordinator,
             )
 
     # ─────────────────────────────────────────────────────────────────────

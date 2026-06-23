@@ -61,11 +61,7 @@ class DependsGraphEdge(AssociationGraphEdge):
 
     def to_dict(self, *, source_id: str) -> dict[str, Any]:
         props: dict[str, Any] = {
-            "description": (
-                self.properties["description"]
-                if isinstance(self.properties["description"], str)
-                else ""
-            ),
+            "description": (self.properties["description"] if isinstance(self.properties["description"], str) else ""),
         }
         raw_mode = self.properties.get("mode")
         if isinstance(raw_mode, str) and raw_mode in VALID_USE_CASE_MODES:

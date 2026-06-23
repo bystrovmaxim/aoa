@@ -46,9 +46,7 @@ from aoa.action_machine.exceptions.validation_field_error import ValidationField
 from aoa.action_machine.graph.nodes.checker_graph_node import CheckerGraphNode
 from aoa.action_machine.graph.nodes.regular_aspect_graph_node import RegularAspectGraphNode
 from aoa.action_machine.graph.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
-from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import (
-    ActionSchemaIntentResolver,
-)
+from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 from aoa.action_machine.logging.domain_resolver import resolve_domain
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
@@ -77,11 +75,7 @@ class AspectExecutor:
         """Run checker instances from interchange vertices against a regular-aspect state patch."""
         for cn in checker_nodes:
             payload = cn.node_obj
-            extras = {
-                k: v
-                for k, v in payload.properties.items()
-                if k not in ("TypeChecker", "required")
-            }
+            extras = {k: v for k, v in payload.properties.items() if k not in ("TypeChecker", "required")}
             checker_instance = payload.checker_class(
                 payload.field_name,
                 required=payload.required,
@@ -128,10 +122,19 @@ class AspectExecutor:
         if context_keys:
             ctx_view = ContextView(context, context_keys)
             return await aspect_node.node_obj(
-                action, params, state, aspect_box, connections, ctx_view,
+                action,
+                params,
+                state,
+                aspect_box,
+                connections,
+                ctx_view,
             )
         return await aspect_node.node_obj(
-            action, params, state, aspect_box, connections,
+            action,
+            params,
+            state,
+            aspect_box,
+            connections,
         )
 
     async def execute_regular(
@@ -158,10 +161,7 @@ class AspectExecutor:
             context=context,
         )
         if not isinstance(new_state_dict, dict):
-            raise TypeError(
-                f"Aspect {aspect_node.label} must return a dict, "
-                f"got {type(new_state_dict).__name__}"
-            )
+            raise TypeError(f"Aspect {aspect_node.label} must return a dict, " f"got {type(new_state_dict).__name__}")
 
         checker_nodes = aspect_node.get_checker_graph_nodes()
 

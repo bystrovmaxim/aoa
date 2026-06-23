@@ -119,6 +119,8 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, cast
 
+from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.aspects.aspect_intent import AspectIntent
 from aoa.action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
 from aoa.action_machine.intents.checkers.checker_intent import CheckerIntent
@@ -130,15 +132,14 @@ from aoa.action_machine.intents.depends.depends_intent import DependsIntent
 from aoa.action_machine.intents.meta.meta_intent import MetaIntent
 from aoa.action_machine.intents.on_error.on_error_intent import OnErrorIntent
 from aoa.action_machine.intents.sensitive.sensitive_intent import SensitiveIntent
-from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
-from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 _REQUIRED_SUFFIX = "Action"
+
 
 @exclude_graph_model
 class BaseAction[P: BaseParams, R: BaseResult](
@@ -162,7 +163,7 @@ class BaseAction[P: BaseParams, R: BaseResult](
     INVARIANTS: Stateless at instance level regarding metadata.
     CACHE: Optional ``cache_key`` / ``read_cache`` / ``on_cache_write`` / ``on_cache_invalidate``; defaults disable caching. ``cache_key`` returns ``str | None``; ``on_cache_write`` returns ``list[CacheTag] | None`` (None = skip write); ``on_cache_invalidate`` returns ``list[CacheTag] | None`` and is called after every clean pipeline regardless of ``cache_key``.
     AI-CORE-END
-"""
+    """
 
     def cache_key(self, params: P) -> str | None:
         """Return a non-empty string key to participate in caching, or ``None`` to skip read/write."""
@@ -172,9 +173,7 @@ class BaseAction[P: BaseParams, R: BaseResult](
         """Return a typed hit from ``entry``, or ``None`` so the machine invalidates and re-runs."""
         return cast("R", entry.result)
 
-    async def on_cache_write(
-        self, result: R, params: P, duration_ms: float
-    ) -> list[CacheTag] | None:
+    async def on_cache_write(self, result: R, params: P, duration_ms: float) -> list[CacheTag] | None:
         """Return tags to index the result under, or ``None`` to skip the cache write.
 
         Called only when ``cache_key`` returned a non-None key and the pipeline finished cleanly
@@ -188,9 +187,7 @@ class BaseAction[P: BaseParams, R: BaseResult](
         then the new entry lands safely."""
         return None
 
-    async def on_cache_invalidate(
-        self, params: P, result: R
-    ) -> list[CacheTag] | None:
+    async def on_cache_invalidate(self, params: P, result: R) -> list[CacheTag] | None:
         """Return tag matchers to evict before the cache write, or ``None`` to skip.
 
         Called after every clean pipeline regardless of whether ``cache_key`` returned a key,

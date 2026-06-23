@@ -48,12 +48,12 @@ def _is_model_like_mapping(obj: object) -> bool:
 
 class DotPathNavigator:
     """
-AI-CORE-BEGIN
-    ROLE: Single entry point for nested key/attribute walks.
-    CONTRACT: Priority - model-like, ``dict``, ``__getitem__``, ``getattr``.
-    INVARIANTS: Strategies are pure; ``_SENTINEL`` encodes absence.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Single entry point for nested key/attribute walks.
+        CONTRACT: Priority - model-like, ``dict``, ``__getitem__``, ``getattr``.
+        INVARIANTS: Strategies are pure; ``_SENTINEL`` encodes absence.
+        AI-CORE-END
+    """
 
     @staticmethod
     def _step_schema(current: object, segment: str) -> object:

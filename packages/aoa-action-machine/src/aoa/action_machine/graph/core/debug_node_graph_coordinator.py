@@ -54,8 +54,7 @@ class DebugNodeGraphCoordinator(NodeGraphCoordinator):
         if not self._dag_cycle_violations:
             return
         sample = ", ".join(
-            f"{v.source_node_id} -[{v.edge_name}]-> {v.target_node_id}"
-            for v in self._dag_cycle_violations[:3]
+            f"{v.source_node_id} -[{v.edge_name}]-> {v.target_node_id}" for v in self._dag_cycle_violations[:3]
         )
         suffix = "" if len(self._dag_cycle_violations) <= 3 else f" (+{len(self._dag_cycle_violations) - 3} more)"
         raise InvalidGraphError(

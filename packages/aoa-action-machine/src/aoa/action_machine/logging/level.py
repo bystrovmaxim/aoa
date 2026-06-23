@@ -38,12 +38,12 @@ from enum import IntFlag
 
 class Level(IntFlag):
     """
-AI-CORE-BEGIN
-    ROLE: Severity classifier for log routing and display.
-    CONTRACT: Messages carry one bit; subscriptions may combine bits.
-    INVARIANTS: Valid single-bit values are enforced by validate_level.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Severity classifier for log routing and display.
+        CONTRACT: Messages carry one bit; subscriptions may combine bits.
+        INVARIANTS: Valid single-bit values are enforced by validate_level.
+        AI-CORE-END
+    """
 
     info = 1
     warning = 2
@@ -68,6 +68,4 @@ def level_label(level: Level) -> str:
 def validate_level(value: Level) -> None:
     """Require exactly one of info / warning / critical (one bit)."""
     if value not in _SINGLE_LEVELS:
-        raise ValueError(
-            f"level must be exactly one of info/warning/critical, got {value}"
-        )
+        raise ValueError(f"level must be exactly one of info/warning/critical, got {value}")

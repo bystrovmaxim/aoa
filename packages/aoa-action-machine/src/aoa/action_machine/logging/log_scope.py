@@ -35,12 +35,12 @@ from typing import Any
 
 class LogScope:
     """
-AI-CORE-BEGIN
-    ROLE: Runtime scope carrier for ``{%scope.*}`` template namespace.
-    CONTRACT: Preserve insertion order and expose dict-like read API.
-    INVARIANTS: Dynamic attributes are constructor-defined; dotpath is cached.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Runtime scope carrier for ``{%scope.*}`` template namespace.
+        CONTRACT: Preserve insertion order and expose dict-like read API.
+        INVARIANTS: Dynamic attributes are constructor-defined; dotpath is cached.
+        AI-CORE-END
+    """
 
     _key_order: list[str]
     _cached_path: str | None

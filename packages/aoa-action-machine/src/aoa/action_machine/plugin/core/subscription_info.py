@@ -119,12 +119,9 @@ class SubscriptionInfo:
     def __post_init__(self) -> None:
         """Validate config and cache compiled regexes."""
         # 1. event_class validation
-        if not isinstance(self.event_class, type) or not issubclass(
-            self.event_class, BasePluginEvent
-        ):
+        if not isinstance(self.event_class, type) or not issubclass(self.event_class, BasePluginEvent):
             raise TypeError(
-                f"SubscriptionInfo: event_class must be a BasePluginEvent "
-                f"subclass, got {self.event_class!r}."
+                f"SubscriptionInfo: event_class must be a BasePluginEvent " f"subclass, got {self.event_class!r}."
             )
 
         # 2. aspect_name_pattern applicability validation

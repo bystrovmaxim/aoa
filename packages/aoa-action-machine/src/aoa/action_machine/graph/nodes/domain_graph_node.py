@@ -46,10 +46,7 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.edges.application_graph_edge import ApplicationGraphEdge
-from aoa.action_machine.graph.edges.parent_domain_graph_edge import (
-    ParentDomainGraphEdge,
-    build_parent_domain_edges,
-)
+from aoa.action_machine.graph.edges.parent_domain_graph_edge import ParentDomainGraphEdge, build_parent_domain_edges
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 TDomain = TypeVar("TDomain", bound=BaseDomain)
@@ -80,7 +77,9 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
             node_obj=domain_cls,
         )
         object.__setattr__(self, "application", ApplicationGraphEdge(Application))
-        object.__setattr__(self, "parent_domains", cast(list[ParentDomainGraphEdge], build_parent_domain_edges(domain_cls)))
+        object.__setattr__(
+            self, "parent_domains", cast(list[ParentDomainGraphEdge], build_parent_domain_edges(domain_cls))
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
