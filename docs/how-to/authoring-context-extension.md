@@ -1,4 +1,4 @@
-<!-- translated-from: authoring-context-extension_draft.md @ 2026-06-17T11:39:51Z · sha256:c995c285d60f -->
+<!-- translated-from: authoring-context-extension_draft.md @ 2026-06-23T04:16:34Z · sha256:33cc8b44d6c6 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -18,6 +18,7 @@
 - [Step 3. Read it in an aspect](#step-3-read-it-in-an-aspect)
 - [What is important to know](#what-is-important-to-know)
 - [Verification](#verification)
+- [Environment providers via @env](#environment-providers-via-env)
 
 ---
 
@@ -109,6 +110,38 @@ user=u-42 tenant=acme api=v3 region=eu-central
 ```
 
 All three parts are extended with their own fields, the subclass instances are preserved, and the aspect read both standard and custom fields through the declared paths. The whole Context concept, with review questions — [Step 7 — Context](../tutorials/step-07-context.md).
+
+## Environment providers via `@env`
+
+Inheritance is the right approach for fields that come from the request: `tenant_id`, API version, a region from the infrastructure. For configuration values and feature flags that live in the service's environment, there is a different tool: `@env` registers lazy providers directly on a `Context` subclass, without touching `UserInfo`/`RequestInfo`/`RuntimeInfo`:
+
+```python
+from aoa.action_machine.context import Context, env
+
+@env("feature_flag", lambda: read_flag("MY_FEATURE"), ttl=30)
+@env("region", "eu-west-1")   # constant — auto-wrapped in a lambda
+@env("max_retries", 3)
+class AppContext(Context):
+    pass
+```
+
+An aspect reads them through the same `@context_requires`, with an `env.` prefix:
+
+```python
+@context_requires("env.region", "env.max_retries")
+async def config_aspect(self, params, state, box, connections, ctx):
+    region = ctx.get("env.region")        # "eu-west-1"
+    retries = ctx.get("env.max_retries")  # 3
+```
+
+For full examples and TTL semantics — see [Step 7 — Context and environment, @env section](../tutorials/step-07-context.md#environment-variables-via-env).
+
+**What to choose:**
+
+| What you are adding | Approach |
+|---------------------|----------|
+| Field from the request / identity (`tenant_id`, `api_version`, region from infra) | Inherit `UserInfo` / `RequestInfo` / `RuntimeInfo` |
+| Service configuration, feature flags, parameters from the environment | `@env` on the `Context` class |
 
 ---
 
