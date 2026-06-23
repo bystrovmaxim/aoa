@@ -24,6 +24,7 @@ from pydantic import Field
 
 from aoa.action_machine.adapters.mcp import McpAdapter
 from aoa.action_machine.auth import ApplicationRole, GuestRole, NoAuthCoordinator
+from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -73,7 +74,7 @@ class AdminPingAction(BaseAction[GreetParams, GreetResult]):
 def build_server():
     machine = ActionProductMachine()
     return (
-        McpAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(), server_name="Greetings MCP")
+        McpAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), server_name="Greetings MCP")
         .tool("greetings.greet", GreetAction)
         .tool("greetings.admin_ping", AdminPingAction)
         .build()

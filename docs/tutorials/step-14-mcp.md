@@ -46,7 +46,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 machine = ActionProductMachine()
 
 server = (
-    McpAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(), server_name="Greetings MCP")
+    McpAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), server_name="Greetings MCP")
     .tool("greetings.greet", GreetAction)
     .tool("greetings.admin_ping", AdminPingAction)
     .build()
@@ -86,7 +86,7 @@ A tool name is the identifier the agent names when calling. The recommended form
 When you need to expose the whole operation catalog to the agent at once, instead of listing `.tool(...)` by hand there is `.register_all()` — it registers all operations from the graph (those with at least one aspect), deriving the name from the class name in snake_case without the `Action` suffix (`CreateOrderAction → create_order`):
 
 ```python
-server = McpAdapter(machine, NoAuthCoordinator()).register_all().build()
+server = McpAdapter(machine, NoAuthCoordinator(context=Context())).register_all().build()
 ```
 
 ## What happens per call
@@ -120,7 +120,7 @@ A security-important detail: on `INTERNAL_ERROR` the message is fixed — `"Unex
 
 ## Authentication
 
-`auth_coordinator` is mandatory — as with [FastAPI](step-13-fastapi.md#authentication-is-mandatory), `None` fails immediately. For an open server it is declared explicitly — `NoAuthCoordinator()` (anonymous `Context`), and then only operations with [`@check_roles(GuestRole)`](step-03-authorization-and-roles.md) work; a protected operation answers the agent `PERMISSION_DENIED`, like `admin_ping` in the example.
+`auth_coordinator` is mandatory — as with [FastAPI](step-13-fastapi.md#authentication-is-mandatory), `None` fails immediately. For an open server it is declared explicitly — `NoAuthCoordinator(context=Context())` (anonymous `Context`), and then only operations with [`@check_roles(GuestRole)`](step-03-authorization-and-roles.md) work; a protected operation answers the agent `PERMISSION_DENIED`, like `admin_ping` in the example.
 
 Extracting the agent's credentials from the MCP call itself (an api-key or token from the request metadata) is on the roadmap, together with the [four ready methods](step-12-authentication.md#four-ready-methods) of authentication. The mechanism is the same: only the extractor is protocol-dependent, while `@check_roles` checks roles identically for HTTP and MCP — the agent will not get access to what it is not allowed.
 
@@ -149,7 +149,7 @@ MCP tools are tested with the same `ActionProductMachine` as in production, by c
 
 - **The same `Action`, a different transport.** The operation knows nothing of MCP; the tool is built from its contract.
 - **The schema from the contract.** `inputSchema` — from `Params` (`model_json_schema`), the description — from `@meta`.
-- **`auth_coordinator` is mandatory.** An open server is `NoAuthCoordinator()`; `@check_roles` works identically for HTTP and MCP.
+- **`auth_coordinator` is mandatory.** An open server is `NoAuthCoordinator(context=Context())`; `@check_roles` works identically for HTTP and MCP.
 - **Arguments validated at the boundary.** A mismatch with `inputSchema` is rejected as a `ToolError` before the operation runs.
 - **An envelope instead of codes.** Each call returns a `CallToolResult` with a JSON envelope and `isError`; codes `OK` / `PERMISSION_DENIED` / `INVALID_PARAMS` / `INTERNAL_ERROR`.
 - **Internal errors do not leak.** `INTERNAL_ERROR` returns a fixed message; the real exception only to the log.
