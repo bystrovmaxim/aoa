@@ -41,8 +41,7 @@ try:
     import asyncpg  # noqa: F401
 except ImportError:
     raise ImportError(
-        "To use action_machine.resources.postgres, install the optional dependency: "
-        "pip install aoa-run[postgres]"
+        "To use action_machine.resources.postgres, install the optional dependency: " "pip install aoa-run[postgres]"
     ) from None
 
 from aoa.action_machine.resources.postgres.postgres_resource import PostgresResource

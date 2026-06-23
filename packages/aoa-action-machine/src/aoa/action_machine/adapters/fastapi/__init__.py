@@ -57,7 +57,7 @@ QUICK START
 
     adapter = FastApiAdapter(
         machine=machine,
-        auth_coordinator=NoAuthCoordinator(),
+        auth_coordinator=NoAuthCoordinator(context=Context()),
         title="Orders API",
         version="0.1.0",
     )
@@ -118,15 +118,11 @@ try:
     import fastapi  # noqa: F401
 except ImportError:
     raise ImportError(
-        "To use action_machine.adapters.fastapi, install the optional dependency: "
-        "pip install aoa-run[fastapi]"
+        "To use action_machine.adapters.fastapi, install the optional dependency: " "pip install aoa-run[fastapi]"
     ) from None
 
 from aoa.action_machine.adapters.fastapi.adapter import FastApiAdapter
-from aoa.action_machine.adapters.fastapi.query_field_before import (
-    QUERY_STR_LIST_BEFORE,
-    coerce_query_str_list,
-)
+from aoa.action_machine.adapters.fastapi.query_field_before import QUERY_STR_LIST_BEFORE, coerce_query_str_list
 from aoa.action_machine.adapters.fastapi.route_record import FastApiRouteRecord
 
 __all__ = [
