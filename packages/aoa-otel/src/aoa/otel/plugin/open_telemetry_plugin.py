@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/open_telemetry/plugin/open_telemetry_plugin.py
+# packages/aoa-otel/src/aoa/otel/plugin/open_telemetry_plugin.py
 """
 OpenTelemetryPlugin — distributed tracing and state x-ray for ActionMachine.
 
@@ -27,7 +27,7 @@ At least one of ``tracer_provider`` / ``logger_provider`` is required.
 
 Requires ``aoa-action-machine[otel]``::
 
-    pip install "aoa-action-machine[otel]"
+    pip install aoa-otel
 
 ═══════════════════════════════════════════════════════════════════════════════
 DATA FLOW
@@ -88,7 +88,7 @@ Traces only (timing)::
 
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
-    from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
+    from aoa.otel import OpenTelemetryPlugin
 
     tp = TracerProvider()
     tp.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
@@ -98,7 +98,7 @@ Logs only (state x-ray, no timing backend)::
 
     from opentelemetry.sdk._logs import LoggerProvider
     from opentelemetry.sdk._logs.export import ConsoleLogExporter, SimpleLogRecordProcessor
-    from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
+    from aoa.otel import OpenTelemetryPlugin
 
     lp = LoggerProvider()
     lp.add_log_record_processor(SimpleLogRecordProcessor(ConsoleLogExporter()))

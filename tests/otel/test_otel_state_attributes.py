@@ -1,9 +1,9 @@
-# tests/action_machine/plugin/open_telemetry/test_otel_state_attributes.py
+# tests/otel/test_otel_state_attributes.py
 """Unit tests for OpenTelemetryPlugin._state_attributes — opaque field exclusion."""
 
 from unittest.mock import MagicMock
 
-from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
+from aoa.otel import OpenTelemetryPlugin
 
 
 def _plugin() -> OpenTelemetryPlugin:

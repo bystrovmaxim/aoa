@@ -49,7 +49,7 @@ Events are classes with their own hierarchy, not strings: the subscription is ty
 
 AOA ships two plugins out of the box, both observing the same event stream in different ways:
 
-- **`OpenTelemetryPlugin`** — OpenTelemetry traces and logs: one trace per `machine.run()`, a span per aspect, and `state` snapshots in the `aoa.state.*` attributes. This is the **operation's x-ray**, covered in detail in the [State chapter](step-02-state-as-x-ray.md). Requires `pip install "aoa-action-machine[otel]"`.
+- **`OpenTelemetryPlugin`** — OpenTelemetry traces and logs: one trace per `machine.run()`, a span per aspect, and `state` snapshots in the `aoa.state.*` attributes. This is the **operation's x-ray**, covered in detail in the [State chapter](step-02-state-as-x-ray.md). Ships in a separate package: `pip install aoa-otel`.
 - **`OcelPlugin`** — writes the course of execution in **OCEL 2.0** (Object-Centric Event Log) format for process mining. Ships in a separate package: `pip install aoa-ocel`.
 
 They are wired the same way — as a list on the machine; the `Action` business code does not change:
@@ -124,7 +124,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 ## Summary
 
-Plugins are a safe observation layer: they receive typed events for the whole life of a call but change nothing, and their failure is isolated. `OpenTelemetryPlugin` (traces, logs, the `state` x-ray) is in `aoa-action-machine[otel]`; `OcelPlugin` (a log for process mining) is in the separate package `aoa-ocel`. Both are wired as a list without touching the business code and are narrowed via `watch_events`. A custom plugin is written by subscribing to events — but that is a separate topic; the built-in ones are enough for the system to observe itself without a single line of observation in the logic.
+Plugins are a safe observation layer: they receive typed events for the whole life of a call but change nothing, and their failure is isolated. `OpenTelemetryPlugin` (traces, logs, the `state` x-ray) is in the separate package `aoa-otel`; `OcelPlugin` (a log for process mining) is in the separate package `aoa-ocel`. Both are wired as a list without touching the business code and are narrowed via `watch_events`. A custom plugin is written by subscribing to events — but that is a separate topic; the built-in ones are enough for the system to observe itself without a single line of observation in the logic.
 
 Next — **[Logs as business events](../index.md#ii-business-logic)**: the second half of observation — what the operation itself writes through `box`, as opposed to what plugins see.
 
