@@ -26,7 +26,9 @@ class DataQualityTicketEntity(BaseEntity):
     experiment_overlay: Annotated[
         AssociationOne[ExperimentOverlayEntity],
         NoInverse(),
-    ] = Rel(description="Upstream overlay facet")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream overlay facet"
+    )  # type: ignore[assignment]
 
 
 DataQualityTicketEntity.model_rebuild()

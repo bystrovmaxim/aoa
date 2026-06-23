@@ -166,8 +166,7 @@ def _enforce_strict_array_items_branch(items: Any, path: str) -> None:
         for i, sub in enumerate(items):
             if not isinstance(sub, Mapping):
                 msg = (
-                    f"JsonSchemaValue strict schema: {path}.items[{i}] must be a mapping, "
-                    f"got {type(sub).__name__}."
+                    f"JsonSchemaValue strict schema: {path}.items[{i}] must be a mapping, " f"got {type(sub).__name__}."
                 )
                 raise TypeError(msg)
             _enforce_strict_json_schema(sub, path=f"{path}.items[{i}]")
@@ -210,7 +209,7 @@ def _enforce_strict_json_schema(node: Any, *, path: str) -> None:
     if has_properties and not _schema_type_includes(schema_node, "object"):
         msg = (
             f"JsonSchemaValue strict schema: {path} uses 'properties' but must set "
-            f"\"type\": \"object\" (explicit typing)."
+            f'"type": "object" (explicit typing).'
         )
         raise ValueError(msg)
 

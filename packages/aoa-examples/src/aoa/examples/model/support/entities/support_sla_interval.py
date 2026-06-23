@@ -26,7 +26,9 @@ class SupportSlaIntervalEntity(BaseEntity):
     participant: Annotated[
         AssociationOne[SupportParticipantEntity],
         NoInverse(),
-    ] = Rel(description="Upstream participant linkage")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream participant linkage"
+    )  # type: ignore[assignment]
 
 
 SupportSlaIntervalEntity.model_rebuild()

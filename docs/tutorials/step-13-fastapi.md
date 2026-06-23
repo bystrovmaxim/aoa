@@ -46,7 +46,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 machine = ActionProductMachine()
 
 app = (
-    FastApiAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(), title="Greetings API")
+    FastApiAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), title="Greetings API")
     .post("/greet", GreetAction, tags=["greetings"])
     .build()
 )
@@ -79,7 +79,7 @@ Each route has `tags`, `summary`, `operation_id`, `deprecated` for OpenAPI.
 
 ## Authentication is mandatory
 
-`auth_coordinator` is a required argument: `None` fails immediately with `TypeError`, so that authentication cannot be forgotten by oversight. For an open API it is declared explicitly — `NoAuthCoordinator()`. The coordinator builds `Context` at the transport boundary; the machine receives it ready (in detail — in the [Authentication](step-12-authentication.md) chapter).
+`auth_coordinator` is a required argument: `None` fails immediately with `TypeError`, so that authentication cannot be forgotten by oversight. For an open API it is declared explicitly — `NoAuthCoordinator(context=Context())`. The coordinator builds `Context` at the transport boundary; the machine receives it ready (in detail — in the [Authentication](step-12-authentication.md) chapter).
 
 ## OpenAPI from code
 
@@ -139,7 +139,7 @@ Everything is visible at once: the open operation answers 200, the one protected
 ## Invariants
 
 - **Transport in the adapter, not the operation.** The `Action` knows nothing of HTTP; the adapter builds the app from `Params`/`Result` and `@meta`.
-- **`auth_coordinator` is mandatory.** `None` → `TypeError`; open access is declared explicitly via `NoAuthCoordinator()`.
+- **`auth_coordinator` is mandatory.** `None` → `TypeError`; open access is declared explicitly via `NoAuthCoordinator(context=Context())`.
 - **Parameters by method.** POST/PUT/PATCH → body, GET/DELETE → query and path, empty `Params` → no body.
 - **OpenAPI from code.** The schema and `/docs` are derived from the contract; no separate specification is needed.
 - **Schema translation at the boundary.** `request_model`/`response_model` + `params_mapper`/`response_mapper` reconcile the external shape with the contract, without touching the `Action`.

@@ -29,9 +29,7 @@ class EnvEntry[T]:
 
     def __post_init__(self) -> None:
         if self.ttl < 0:
-            raise ValueError(
-                f"EnvEntry '{self.key}': ttl must be >= 0, got {self.ttl}"
-            )
+            raise ValueError(f"EnvEntry '{self.key}': ttl must be >= 0, got {self.ttl}")
 
     def get(self) -> T:
         """Return cached value or call the provider (respecting TTL)."""

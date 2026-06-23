@@ -14,6 +14,7 @@ from pydantic import Field
 
 from aoa.action_machine.adapters.mcp import McpAdapter
 from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
+from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -72,7 +73,7 @@ class CreateDraftAction(BaseAction[CreateDraftParams, CreateDraftResult]):
 def build_server():
     machine = ActionProductMachine()
     return (
-        McpAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(), server_name="Orders MCP")
+        McpAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), server_name="Orders MCP")
         .tool("orders.create_draft", CreateDraftAction)
         .build()
     )

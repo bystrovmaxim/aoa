@@ -80,6 +80,7 @@ from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_mode
 # Suffix required for every class that inherits BaseDomain (directly or indirectly).
 _REQUIRED_SUFFIX = "Domain"
 
+
 @exclude_graph_model
 class BaseDomain(ABC):
     """

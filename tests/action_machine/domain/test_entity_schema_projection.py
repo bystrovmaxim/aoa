@@ -16,10 +16,7 @@ from typing import Annotated, Any, get_args, get_origin
 
 import pytest
 
-from aoa.action_machine.domain.entity_schema_marker import (
-    EntitySchemaMarker,
-    entity_schema_marker_from_annotated,
-)
+from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker, entity_schema_marker_from_annotated
 from tests.action_machine.scenarios.domain_model.entities import SampleEntity
 
 

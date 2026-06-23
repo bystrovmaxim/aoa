@@ -26,7 +26,9 @@ class AddressVerificationTrailEntity(BaseEntity):
     customer: Annotated[
         AssociationOne[CustomerAccountEntity],
         NoInverse(),
-    ] = Rel(description="Parent customer aggregate")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent customer aggregate"
+    )  # type: ignore[assignment]
 
 
 AddressVerificationTrailEntity.model_rebuild()

@@ -27,11 +27,16 @@ class ReplayTicketEntity(BaseEntity):
     watermark: Annotated[
         AssociationOne[DownstreamWatermarkEntity],
         NoInverse(),
-    ] = Rel(description="Parent watermark row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent watermark row"
+    )  # type: ignore[assignment]
 
     billing_parse_pass: Annotated[
         AssociationOne[BillingParsePassEntity],
         NoInverse(),
-    ] = Rel(description="Billing parse artifact correlated with replay bookkeeping")  # type: ignore[assignment]
+    ] = Rel(
+        description="Billing parse artifact correlated with replay bookkeeping"
+    )  # type: ignore[assignment]
+
 
 ReplayTicketEntity.model_rebuild()

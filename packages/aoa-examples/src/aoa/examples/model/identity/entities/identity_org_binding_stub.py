@@ -27,12 +27,16 @@ class IdentityOrgBindingStubEntity(BaseEntity):
     federated_linkage: Annotated[
         AssociationOne[IdentityFederatedLinkageEntity],
         NoInverse(),
-    ] = Rel(description="Parent federated linkage row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent federated linkage row"
+    )  # type: ignore[assignment]
 
     person: Annotated[
         AssociationOne[IdentityPersonHubEntity],
         NoInverse(),
-    ] = Rel(description="Bound person identity")  # type: ignore[assignment]
+    ] = Rel(
+        description="Bound person identity"
+    )  # type: ignore[assignment]
 
 
 IdentityOrgBindingStubEntity.model_rebuild()

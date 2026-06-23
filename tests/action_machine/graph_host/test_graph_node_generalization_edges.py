@@ -18,10 +18,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from tests.action_machine.graph_host.test_parent_generalization_edges import (
-    _ChildGenDomain,
-    _ChildGenRole,
-)
+from tests.action_machine.graph_host.test_parent_generalization_edges import _ChildGenDomain, _ChildGenRole
 from tests.action_machine.scenarios.domain_model.domains import TestDomain
 
 

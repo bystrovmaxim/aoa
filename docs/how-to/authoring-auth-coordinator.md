@@ -34,7 +34,7 @@ A coordinator is an object with one async method:
 async def process(self, request_data) -> Context | None
 ```
 
-`Context` — success (identity + request metadata). `None` — the flow cannot continue (no data, or it is invalid). **`None` is not a hard reject at the boundary:** the shipped adapters substitute an anonymous `Context()` in response, and the real "let in or not" decision is made by [`@check_roles`](../tutorials/step-03-authorization-and-roles.md). Authentication **produces** the identity, authorization **checks** it. For an open API there is `NoAuthCoordinator()` (always returns an anonymous `Context`).
+`Context` — success (identity + request metadata). `None` — the flow cannot continue (no data, or it is invalid). **`None` is not a hard reject at the boundary:** the shipped adapters substitute an anonymous `Context()` in response, and the real "let in or not" decision is made by [`@check_roles`](../tutorials/step-03-authorization-and-roles.md). Authentication **produces** the identity, authorization **checks** it. For an open API there is `NoAuthCoordinator(context=Context())` (always returns an anonymous `Context`).
 
 ## Path 1. Three parts on top of the ready AuthCoordinator
 
@@ -110,7 +110,7 @@ class SsoCoordinator:
 
 - **`None` ≠ a block.** The adapter replaces `None` with an anonymous `Context()`; the access denial is already `@check_roles`. Need a hard reject right at the boundary (an expired token, for example) — **raise an exception** from `process`, then the request will not reach the machine.
 - **Invalid data is `None`, not an exception** (the `Authenticator` contract): "wrong key" is a regular path, not a failure.
-- **Where it is wired:** the coordinator is passed to the constructor of any adapter — `FastApiAdapter(machine, auth_coordinator=...)`, `McpAdapter(...)`, [your own adapter](authoring-adapter.md). The argument is mandatory (it cannot be forgotten), so for a public API you put `NoAuthCoordinator()` explicitly.
+- **Where it is wired:** the coordinator is passed to the constructor of any adapter — `FastApiAdapter(machine, auth_coordinator=...)`, `McpAdapter(...)`, [your own adapter](authoring-adapter.md). The argument is mandatory (it cannot be forgotten), so for a public API you put `NoAuthCoordinator(context=Context())` explicitly.
 - **One mechanism — any transport:** the same coordinator serves HTTP, MCP, and your transport; `request_data` is what the specific adapter passes (a FastAPI request object, `None` for MCP).
 
 ## Verification

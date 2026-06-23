@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field, ValidationError
 from aoa.action_machine.adapters.fastapi import FastApiAdapter
 from aoa.action_machine.adapters.mcp import McpAdapter
 from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
+from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -111,7 +112,7 @@ def main() -> None:
     # 2) Over HTTP: the same complex JSON body is accepted by the FastAPI adapter.
     print("\n2) Over HTTP (FastAPI TestClient):")
     app = (
-        FastApiAdapter(machine=ActionProductMachine(), auth_coordinator=NoAuthCoordinator(), title="Orders API")
+        FastApiAdapter(machine=ActionProductMachine(), auth_coordinator=NoAuthCoordinator(context=Context()), title="Orders API")
         .post("/orders", CreateOrderAction, tags=["orders"])
         .build()
     )
@@ -121,7 +122,7 @@ def main() -> None:
     # 3) To an agent: MCP derives the nested inputSchema from Params.
     print("\n3) To an agent (MCP inputSchema):")
     server = (
-        McpAdapter(machine=ActionProductMachine(), auth_coordinator=NoAuthCoordinator(), server_name="Orders MCP")
+        McpAdapter(machine=ActionProductMachine(), auth_coordinator=NoAuthCoordinator(context=Context()), server_name="Orders MCP")
         .tool("orders.create", CreateOrderAction)
         .build()
     )

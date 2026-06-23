@@ -48,14 +48,9 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import (
-    ActionSchemaIntentResolver,
-)
+from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 from aoa.action_machine.model.base_action import BaseAction
-from aoa.action_machine.resources.per_call_connection import (
-    ConnectionValue,
-    validate_connection_entries,
-)
+from aoa.action_machine.resources.per_call_connection import ConnectionValue, validate_connection_entries
 
 
 def extract_action_types(action_class: type) -> tuple[type | None, type | None]:
@@ -116,15 +111,16 @@ def ensure_protocol_response(
 # BaseRouteRecord
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 @dataclass(frozen=True)
 class BaseRouteRecord:
     """
-AI-CORE-BEGIN
-    ROLE: Frozen per-route contract shared by adapter integrations.
-    CONTRACT: Derive action P/R types, cache them, and enforce mapper requirements.
-    INVARIANTS: mapper is mandatory when effective wire model differs from action type.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Frozen per-route contract shared by adapter integrations.
+        CONTRACT: Derive action P/R types, cache them, and enforce mapper requirements.
+        INVARIANTS: mapper is mandatory when effective wire model differs from action type.
+        AI-CORE-END
+    """
 
     action_class: type[BaseAction[Any, Any]]
     request_model: type | None = None
@@ -144,34 +140,23 @@ AI-CORE-BEGIN
             )
 
         if not isinstance(self.action_class, type) or not issubclass(self.action_class, BaseAction):
-            raise TypeError(
-                f"action_class must be a subclass of BaseAction, got {self.action_class!r}."
-            )
+            raise TypeError(f"action_class must be a subclass of BaseAction, got {self.action_class!r}.")
 
         p_type, r_type = extract_action_types(self.action_class)
         if p_type is None or r_type is None:
             raise TypeError(
-                f"{self.action_class.__name__}: could not resolve BaseParams / BaseResult "
-                "from BaseAction[P, R].",
+                f"{self.action_class.__name__}: could not resolve BaseParams / BaseResult " "from BaseAction[P, R].",
             )
         object.__setattr__(self, "_cached_params_type", p_type)
         object.__setattr__(self, "_cached_result_type", r_type)
 
-        if (
-            self.request_model is not None
-            and self.request_model is not p_type
-            and self.params_mapper is None
-        ):
+        if self.request_model is not None and self.request_model is not p_type and self.params_mapper is None:
             raise ValueError(
                 f"request_model ({self.request_model.__name__}) differs from "
                 f"params_type ({p_type.__name__}); params_mapper is required."
             )
 
-        if (
-            self.response_model is not None
-            and self.response_model is not r_type
-            and self.response_mapper is None
-        ):
+        if self.response_model is not None and self.response_model is not r_type and self.response_mapper is None:
             raise ValueError(
                 f"response_model ({self.response_model.__name__}) differs from "
                 f"result_type ({r_type.__name__}); response_mapper is required."

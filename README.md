@@ -100,7 +100,7 @@ class HelloAction(BaseAction[HelloParams, HelloResult]):
 # 3. The machine handles the entire execution path
 async def main():
     machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
-    ctx = await NoAuthCoordinator().process(None)
+    ctx = await NoAuthCoordinator(context=Context()).process(None)
     result = await machine.run(ctx, HelloAction(), HelloParams(name="World"))
     print(result.message)
 

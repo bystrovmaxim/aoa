@@ -9,18 +9,9 @@ from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.core.edge_relationship import GENERALIZATION
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
-from aoa.action_machine.graph.edges.parent_action_graph_edge import (
-    ParentActionGraphEdge,
-    build_parent_action_edges,
-)
-from aoa.action_machine.graph.edges.parent_domain_graph_edge import (
-    ParentDomainGraphEdge,
-    build_parent_domain_edges,
-)
-from aoa.action_machine.graph.edges.parent_role_graph_edge import (
-    ParentRoleGraphEdge,
-    build_parent_role_edges,
-)
+from aoa.action_machine.graph.edges.parent_action_graph_edge import ParentActionGraphEdge, build_parent_action_edges
+from aoa.action_machine.graph.edges.parent_domain_graph_edge import ParentDomainGraphEdge, build_parent_domain_edges
+from aoa.action_machine.graph.edges.parent_role_graph_edge import ParentRoleGraphEdge, build_parent_role_edges
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta

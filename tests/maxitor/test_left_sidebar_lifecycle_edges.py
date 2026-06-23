@@ -44,12 +44,6 @@ def test_diagram_view_label_idempotent() -> None:
 
 def test_lifecycle_state_machine_sidebar_title() -> None:
     assert _lifecycle_state_machine_row_title("lifecycle") == "Lifecycle view"
-    assert (
-        _lifecycle_state_machine_row_title("counterparty_linkage_lifecycle")
-        == "Counterparty linkage lifecycle view"
-    )
-    assert (
-        _lifecycle_state_machine_row_title("scheme_dispute_clock_lifecycle")
-        == "Scheme dispute clock lifecycle view"
-    )
+    assert _lifecycle_state_machine_row_title("counterparty_linkage_lifecycle") == "Counterparty linkage lifecycle view"
+    assert _lifecycle_state_machine_row_title("scheme_dispute_clock_lifecycle") == "Scheme dispute clock lifecycle view"
     assert _lifecycle_state_machine_row_title("") == "Lifecycle view"

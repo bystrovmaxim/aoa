@@ -26,7 +26,9 @@ class TaxLineEntity(BaseEntity):
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Taxed order")  # type: ignore[assignment]
+    ] = Rel(
+        description="Taxed order"
+    )  # type: ignore[assignment]
 
 
 TaxLineEntity.model_rebuild()

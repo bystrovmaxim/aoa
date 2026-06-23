@@ -5,9 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import (
-    ActionSchemaIntentResolver,
-)
+from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 
 
 def test_resolve_result_type_plain_class_raises_value_error() -> None:

@@ -135,12 +135,8 @@ from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
-from aoa.action_machine.adapters.base_route_record import (
-    ensure_machine_params,
-    ensure_protocol_response,
-)
+from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
 from aoa.action_machine.adapters.mcp.route_record import McpRouteRecord
-from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
@@ -283,13 +279,15 @@ def _build_graph_json(coordinator: NodeGraphCoordinator) -> str:
             target_node = edge_data.target_node
             target_node_type = getattr(target_node, "node_type", "unknown")
             edge_type = _mcp_edge_type_from_payload(edge_data)
-            edges.append({
-                "from": graph_node.node_id,
-                "to": edge_data.target_node_id,
-                "source_key": f"{graph_node.node_type}:{graph_node.node_id}",
-                "target_key": f"{target_node_type}:{edge_data.target_node_id}",
-                "type": edge_type,
-            })
+            edges.append(
+                {
+                    "from": graph_node.node_id,
+                    "to": edge_data.target_node_id,
+                    "source_key": f"{graph_node.node_type}:{graph_node.node_id}",
+                    "target_key": f"{target_node_type}:{edge_data.target_node_id}",
+                    "type": edge_type,
+                }
+            )
 
     result = {
         "nodes": nodes,
@@ -319,9 +317,13 @@ def _make_tool_handler(
         """One tool invocation; JSON text + ``isError`` from outcome."""
         try:
             payload = await _execute_tool_call(
-                kwargs, req_model, record, machine,
+                kwargs,
+                req_model,
+                record,
+                machine,
                 auth_coordinator,
-                has_params_mapper, has_response_mapper,
+                has_params_mapper,
+                has_response_mapper,
             )
             return CallToolResult(
                 content=[TextContent(type="text", text=_envelope_ok(payload))],
@@ -329,34 +331,40 @@ def _make_tool_handler(
             )
         except AuthorizationError as exc:
             return CallToolResult(
-                content=[TextContent(
-                    type="text",
-                    text=_envelope_error("PERMISSION_DENIED", str(exc)),
-                )],
+                content=[
+                    TextContent(
+                        type="text",
+                        text=_envelope_error("PERMISSION_DENIED", str(exc)),
+                    )
+                ],
                 isError=True,
             )
         except ValidationFieldError as exc:
             return CallToolResult(
-                content=[TextContent(
-                    type="text",
-                    text=_envelope_error(
-                        "INVALID_PARAMS",
-                        exc.message,
-                        exc.details,
-                    ),
-                )],
+                content=[
+                    TextContent(
+                        type="text",
+                        text=_envelope_error(
+                            "INVALID_PARAMS",
+                            exc.message,
+                            exc.details,
+                        ),
+                    )
+                ],
                 isError=True,
             )
         except Exception:  # no `as exc`: response text is fixed; traceback is in logs
             logger.exception("MCP tool call failed: %s", record.tool_name)
             return CallToolResult(
-                content=[TextContent(
-                    type="text",
-                    text=_envelope_error(
-                        "INTERNAL_ERROR",
-                        "Unexpected failure",
-                    ),
-                )],
+                content=[
+                    TextContent(
+                        type="text",
+                        text=_envelope_error(
+                            "INTERNAL_ERROR",
+                            "Unexpected failure",
+                        ),
+                    )
+                ],
                 isError=True,
             )
 
@@ -392,7 +400,7 @@ async def _execute_tool_call(
 
     context = await auth_coordinator.process(None)
     if context is None:
-        context = Context()
+        raise AuthorizationError("Authentication required")
 
     connections = resolve_connections(record.connections)
 
@@ -427,12 +435,12 @@ def _serialize_result(
 
 class McpAdapter(BaseAdapter[McpRouteRecord]):
     """
-AI-CORE-BEGIN
-    ROLE: Exposes ActionMachine actions as MCP tools/resources.
-    CONTRACT: BaseAdapter[McpRouteRecord] with tool(), register_all(), build().
-    INVARIANTS: auth coordinator required; tool text is JSON envelope.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Exposes ActionMachine actions as MCP tools/resources.
+        CONTRACT: BaseAdapter[McpRouteRecord] with tool(), register_all(), build().
+        INVARIANTS: auth coordinator required; tool text is JSON envelope.
+        AI-CORE-END
+    """
 
     def __init__(
         self,
@@ -510,8 +518,7 @@ AI-CORE-BEGIN
         action_nodes = [
             node
             for node in coordinator.get_all_nodes()
-            if isinstance(node, ActionGraphNode)
-            and (node.regular_aspect or node.summary_aspect)
+            if isinstance(node, ActionGraphNode) and (node.regular_aspect or node.summary_aspect)
         ]
         for node in action_nodes:
             cls = node.node_obj

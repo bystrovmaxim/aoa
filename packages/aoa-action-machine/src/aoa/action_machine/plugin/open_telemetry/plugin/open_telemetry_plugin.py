@@ -172,9 +172,7 @@ class OpenTelemetryPlugin(Plugin):
         watch_events: frozenset[type] | None = None,
     ) -> None:
         if tracer_provider is None and logger_provider is None:
-            raise ValueError(
-                "OpenTelemetryPlugin requires at least one of tracer_provider or logger_provider."
-            )
+            raise ValueError("OpenTelemetryPlugin requires at least one of tracer_provider or logger_provider.")
         super().__init__(watch_actions=watch_actions, watch_events=watch_events)
         self._tracer = tracer_provider.get_tracer(service_name) if tracer_provider else None
         self._otel_logger = logger_provider.get_logger(service_name) if logger_provider else None
@@ -489,7 +487,9 @@ class OpenTelemetryPlugin(Plugin):
         log: Any,
     ) -> dict[str, Any]:
         """Close compensator span with OK (Traces) and emit after-log (Logs)."""
-        aspect_span: Span | None = state.get(_ASPECT_SPANS_KEY, {}).get(event.compensator_name) if self._tracer else None
+        aspect_span: Span | None = (
+            state.get(_ASPECT_SPANS_KEY, {}).get(event.compensator_name) if self._tracer else None
+        )
         new_state = _end_aspect_span(state, event.compensator_name, event.duration_ms) if self._tracer else state
 
         self._emit_log(
@@ -676,10 +676,7 @@ class OpenTelemetryPlugin(Plugin):
             data = result.__dict__
         if not data:
             return {}
-        return {
-            f"aoa.result.{key}": _serialize_value(value, self._max_field_length)
-            for key, value in data.items()
-        }
+        return {f"aoa.result.{key}": _serialize_value(value, self._max_field_length) for key, value in data.items()}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

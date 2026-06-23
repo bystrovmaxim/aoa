@@ -11,10 +11,7 @@ from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 def _missing_regular_aspect_description_message(func: Callable[..., Any]) -> str:
     qual = TypeIntrospection.qualname_of(func)
-    return (
-        f"{qual} has no usable @regular_aspect description "
-        "required for graph metadata resolution."
-    )
+    return f"{qual} has no usable @regular_aspect description " "required for graph metadata resolution."
 
 
 class RegularAspectIntentResolver:
@@ -32,8 +29,7 @@ class RegularAspectIntentResolver:
         return TypeIntrospection.collect_own_class_callables(
             action_cls,
             lambda fn: (
-                isinstance(meta := getattr(fn, "_new_aspect_meta", None), dict)
-                and meta.get("type") == "regular"
+                isinstance(meta := getattr(fn, "_new_aspect_meta", None), dict) and meta.get("type") == "regular"
             ),
         )
 

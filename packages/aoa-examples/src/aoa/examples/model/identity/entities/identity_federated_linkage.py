@@ -27,12 +27,16 @@ class IdentityFederatedLinkageEntity(BaseEntity):
     email_factor: Annotated[
         AssociationOne[IdentityEmailFactorEntity],
         NoInverse(),
-    ] = Rel(description="Upstream email credential row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream email credential row"
+    )  # type: ignore[assignment]
 
     person: Annotated[
         AssociationOne[IdentityPersonHubEntity],
         NoInverse(),
-    ] = Rel(description="Federated account owner")  # type: ignore[assignment]
+    ] = Rel(
+        description="Federated account owner"
+    )  # type: ignore[assignment]
 
 
 IdentityFederatedLinkageEntity.model_rebuild()

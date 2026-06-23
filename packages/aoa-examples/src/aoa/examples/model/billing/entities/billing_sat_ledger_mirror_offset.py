@@ -23,7 +23,9 @@ class LedgerMirrorOffsetEntity(BaseEntity):
     fee_schedule_pointer: Annotated[
         AssociationOne[MerchantFeeSchedulePointerEntity],
         NoInverse(),
-    ] = Rel(description="Upstream fee schedule pointer")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream fee schedule pointer"
+    )  # type: ignore[assignment]
 
     mirror_partition_id: str = Field(description="Sharding partition for mirrored ledger")
     observation_lag_seconds: int = Field(description="Replication lag observed at capture", ge=0)

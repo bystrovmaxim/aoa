@@ -65,10 +65,7 @@ _BARE_NAME = "summary"
 
 def _description_type_invariant(description: Any) -> None:
     if not isinstance(description, str):
-        raise TypeError(
-            f"@summary_aspect expects a string description, "
-            f"got {type(description).__name__}."
-        )
+        raise TypeError(f"@summary_aspect expects a string description, " f"got {type(description).__name__}.")
 
 
 def _description_non_empty_invariant(description: str) -> None:
@@ -82,15 +79,14 @@ def _description_non_empty_invariant(description: str) -> None:
 def _method_callable_invariant(func: Any) -> None:
     if not callable(func):
         raise TypeError(
-            f"@summary_aspect can only be applied to methods. "
-            f"Got object of type {type(func).__name__}: {func!r}."
+            f"@summary_aspect can only be applied to methods. " f"Got object of type {type(func).__name__}: {func!r}."
         )
 
 
 def _method_async_invariant(func: Any, description: str) -> None:
     if not asyncio.iscoroutinefunction(func):
         raise TypeError(
-            f"@summary_aspect(\"{description}\"): method {func.__name__} "
+            f'@summary_aspect("{description}"): method {func.__name__} '
             f"must be async (async def). "
             f"Synchronous methods are not supported."
         )
@@ -104,7 +100,7 @@ def _method_params_count_invariant(func: Any, description: str) -> None:
     param_count = len(sig.parameters)
     if param_count != expected_count:
         raise TypeError(
-            f"@summary_aspect(\"{description}\"): method {func.__name__} "
+            f'@summary_aspect("{description}"): method {func.__name__} '
             f"must accept {expected_count} parameters "
             f"({expected_names}), got {param_count}."
         )

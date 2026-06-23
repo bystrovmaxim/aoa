@@ -64,32 +64,22 @@ def _normalize_check_roles_spec(spec: Any) -> Any:
 
     if isinstance(spec, type):
         if not issubclass(spec, BaseRole):
-            raise TypeError(
-                f"@check_roles expected a BaseRole subclass, got {spec!r}."
-            )
+            raise TypeError(f"@check_roles expected a BaseRole subclass, got {spec!r}.")
         return spec
 
     if isinstance(spec, list):
         if len(spec) == 0:
             raise ValueError(
-                "@check_roles: an empty role list was provided. "
-                "Specify at least one role or use GuestRole."
+                "@check_roles: an empty role list was provided. " "Specify at least one role or use GuestRole."
             )
         if any(isinstance(x, str) for x in spec):
-            raise TypeError(
-                "@check_roles does not accept list[str]; use a list of BaseRole "
-                "subclasses only."
-            )
+            raise TypeError("@check_roles does not accept list[str]; use a list of BaseRole " "subclasses only.")
         if not all(isinstance(x, type) for x in spec):
-            raise TypeError(
-                "@check_roles: role list must contain only BaseRole subclasses; "
-                f"got {spec!r}."
-            )
+            raise TypeError("@check_roles: role list must contain only BaseRole subclasses; " f"got {spec!r}.")
         bad = [x for x in spec if not issubclass(x, BaseRole)]
         if bad:
             raise TypeError(
-                "@check_roles: every list element must be a BaseRole "
-                f"subclass; offending values: {bad!r}."
+                "@check_roles: every list element must be a BaseRole " f"subclass; offending values: {bad!r}."
             )
         return tuple(spec)
 
@@ -103,16 +93,11 @@ def _validate_required_role_modes(normalized: Any) -> None:
     """Reject ``UNUSED``; warn on ``DEPRECATED`` (``RoleChecker`` enforces ``SILENCED``)."""
     if normalized in (GuestRole, AnyRole):
         return
-    reqs: tuple[type[BaseRole], ...] = (
-        (normalized,) if isinstance(normalized, type) else normalized
-    )
+    reqs: tuple[type[BaseRole], ...] = (normalized,) if isinstance(normalized, type) else normalized
     for r in reqs:
         mode = RoleMode.declared_for(r)
         if mode is RoleMode.UNUSED:
-            raise ValueError(
-                f"@check_roles cannot require role {r.__qualname__!r}: "
-                f"it is marked RoleMode.UNUSED."
-            )
+            raise ValueError(f"@check_roles cannot require role {r.__qualname__!r}: " f"it is marked RoleMode.UNUSED.")
         if mode is RoleMode.DEPRECATED:
             warnings.warn(
                 f"@check_roles references deprecated role {r.__qualname__!r}.",
@@ -124,8 +109,7 @@ def _validate_required_role_modes(normalized: Any) -> None:
 def _target_is_class_invariant(cls: Any) -> None:
     if not isinstance(cls, type):
         raise TypeError(
-            f"@check_roles can only be applied to a class. "
-            f"Got object of type {type(cls).__name__}: {cls!r}."
+            f"@check_roles can only be applied to a class. " f"Got object of type {type(cls).__name__}: {cls!r}."
         )
 
 

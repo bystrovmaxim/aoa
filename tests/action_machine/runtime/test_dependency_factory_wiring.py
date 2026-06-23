@@ -14,10 +14,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from tests.action_machine.scenarios.domain_model import FullAction, PingAction
-from tests.action_machine.scenarios.domain_model.services import (
-    NotificationServiceResource,
-    PaymentServiceResource,
-)
+from tests.action_machine.scenarios.domain_model.services import NotificationServiceResource, PaymentServiceResource
 from tests.action_machine.scenarios.domain_model.test_db_manager import OrdersDbManager
 
 

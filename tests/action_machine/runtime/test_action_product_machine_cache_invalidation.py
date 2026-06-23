@@ -27,6 +27,7 @@ from tests.action_machine.scenarios.domain_model.domains import OrdersDomain
 
 # ─── Domain types used as CacheTag.type ───────────────────────────────────────
 
+
 class _Report:
     pass
 
@@ -37,8 +38,8 @@ class _Invoice:
 
 # ─── Call counters ────────────────────────────────────────────────────────────
 
-_inv_calls: list[str] = []   # records action name each time on_cache_invalidate fires
-_write_calls: list[str] = [] # records action name each time on_cache_write fires
+_inv_calls: list[str] = []  # records action name each time on_cache_invalidate fires
+_write_calls: list[str] = []  # records action name each time on_cache_write fires
 _pipeline_runs: list[str] = []  # records action name each time summary aspect runs
 
 
@@ -63,9 +64,7 @@ class WriteReportAction(BaseAction["WriteReportAction.Params", "WriteReportActio
     def cache_key(self, params: Params) -> str | None:
         return str(params.report_id)
 
-    async def on_cache_write(
-        self, result: Result, params: Params, duration_ms: float
-    ) -> list[CacheTag] | None:
+    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
         _write_calls.append("WriteReportAction")
         return [CacheTag(type=_Report, key=params.report_id)]
 
@@ -93,9 +92,7 @@ class InvalidateReportsAction(BaseAction["InvalidateReportsAction.Params", "Inva
     def cache_key(self, params: Params) -> str | None:
         return None  # write-like action; does not cache itself
 
-    async def on_cache_invalidate(
-        self, params: Params, result: Result
-    ) -> list[CacheTag] | None:
+    async def on_cache_invalidate(self, params: Params, result: Result) -> list[CacheTag] | None:
         _inv_calls.append("InvalidateReportsAction")
         return [CacheTag(type=_Report)]  # wildcard: evict all reports
 
@@ -129,15 +126,11 @@ class WriteInvoiceInvalidatesReportAction(
     def cache_key(self, params: Params) -> str | None:
         return str(params.invoice_id)
 
-    async def on_cache_invalidate(
-        self, params: Params, result: Result
-    ) -> list[CacheTag] | None:
+    async def on_cache_invalidate(self, params: Params, result: Result) -> list[CacheTag] | None:
         _inv_calls.append("WriteInvoiceInvalidatesReportAction")
         return [CacheTag(type=_Report, key=params.report_id)]
 
-    async def on_cache_write(
-        self, result: Result, params: Params, duration_ms: float
-    ) -> list[CacheTag] | None:
+    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
         _write_calls.append("WriteInvoiceInvalidatesReportAction")
         return [CacheTag(type=_Invoice, key=params.invoice_id)]
 
@@ -150,9 +143,7 @@ class WriteInvoiceInvalidatesReportAction(
         connections: dict[str, BaseResource],
     ) -> Result:
         _pipeline_runs.append("WriteInvoiceInvalidatesReportAction")
-        return WriteInvoiceInvalidatesReportAction.Result(
-            value=f"invoice:{params.invoice_id}"
-        )
+        return WriteInvoiceInvalidatesReportAction.Result(value=f"invoice:{params.invoice_id}")
 
 
 @meta(description="No cache_key, still has invalidation", domain=OrdersDomain)
@@ -169,9 +160,7 @@ class NoCacheKeyButInvalidatesAction(
     def cache_key(self, params: Params) -> str | None:
         return None
 
-    async def on_cache_invalidate(
-        self, params: Params, result: Result
-    ) -> list[CacheTag] | None:
+    async def on_cache_invalidate(self, params: Params, result: Result) -> list[CacheTag] | None:
         _inv_calls.append("NoCacheKeyButInvalidatesAction")
         return [CacheTag(type=_Report)]
 
@@ -199,9 +188,7 @@ class NoneWriteAction(BaseAction["NoneWriteAction.Params", "NoneWriteAction.Resu
     def cache_key(self, params: Params) -> str | None:
         return "none-write"
 
-    async def on_cache_write(
-        self, result: Result, params: Params, duration_ms: float
-    ) -> list[CacheTag] | None:
+    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
         return None  # explicitly skip write
 
     @summary_aspect("s")
@@ -228,9 +215,7 @@ class BadWriteTypeAction(BaseAction["BadWriteTypeAction.Params", "BadWriteTypeAc
     def cache_key(self, params: Params) -> str | None:
         return "bad-write-type"
 
-    async def on_cache_write(
-        self, result: Result, params: Params, duration_ms: float
-    ) -> list[CacheTag] | None:
+    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
         return True  # type: ignore[return-value]  — bool is not a list
 
     @summary_aspect("s")
@@ -256,9 +241,7 @@ class BadWriteItemAction(BaseAction["BadWriteItemAction.Params", "BadWriteItemAc
     def cache_key(self, params: Params) -> str | None:
         return "bad-write-item"
 
-    async def on_cache_write(
-        self, result: Result, params: Params, duration_ms: float
-    ) -> list[CacheTag] | None:
+    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
         return ["not-a-cache-tag"]  # type: ignore[list-item]
 
     @summary_aspect("s")
@@ -274,18 +257,14 @@ class BadWriteItemAction(BaseAction["BadWriteItemAction.Params", "BadWriteItemAc
 
 @meta(description="on_cache_invalidate returns bad type", domain=OrdersDomain)
 @check_roles(GuestRole)
-class BadInvalidateTypeAction(
-    BaseAction["BadInvalidateTypeAction.Params", "BadInvalidateTypeAction.Result"]
-):
+class BadInvalidateTypeAction(BaseAction["BadInvalidateTypeAction.Params", "BadInvalidateTypeAction.Result"]):
     class Params(BaseParams):
         pass
 
     class Result(BaseResult):
         x: int = Field(default=1)
 
-    async def on_cache_invalidate(
-        self, params: Params, result: Result
-    ) -> list[CacheTag] | None:
+    async def on_cache_invalidate(self, params: Params, result: Result) -> list[CacheTag] | None:
         return "bad"  # type: ignore[return-value]
 
     @summary_aspect("s")
@@ -301,18 +280,14 @@ class BadInvalidateTypeAction(
 
 @meta(description="on_cache_invalidate returns list with bad item", domain=OrdersDomain)
 @check_roles(GuestRole)
-class BadInvalidateItemAction(
-    BaseAction["BadInvalidateItemAction.Params", "BadInvalidateItemAction.Result"]
-):
+class BadInvalidateItemAction(BaseAction["BadInvalidateItemAction.Params", "BadInvalidateItemAction.Result"]):
     class Params(BaseParams):
         pass
 
     class Result(BaseResult):
         x: int = Field(default=1)
 
-    async def on_cache_invalidate(
-        self, params: Params, result: Result
-    ) -> list[CacheTag] | None:
+    async def on_cache_invalidate(self, params: Params, result: Result) -> list[CacheTag] | None:
         return [42]  # type: ignore[list-item]  — int is not a CacheTag
 
     @summary_aspect("s")
@@ -338,15 +313,11 @@ class ErrorPathCachedAction(BaseAction["ErrorPathCachedAction.Params", "ErrorPat
     def cache_key(self, params: Params) -> str | None:
         return "error-path"
 
-    async def on_cache_write(
-        self, result: Result, params: Params, duration_ms: float
-    ) -> list[CacheTag] | None:
+    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
         _write_calls.append("ErrorPathCachedAction")
         return [CacheTag(type=_Report, key="error-path")]
 
-    async def on_cache_invalidate(
-        self, params: Params, result: Result
-    ) -> list[CacheTag] | None:
+    async def on_cache_invalidate(self, params: Params, result: Result) -> list[CacheTag] | None:
         _inv_calls.append("ErrorPathCachedAction")
         return [CacheTag(type=_Report)]
 

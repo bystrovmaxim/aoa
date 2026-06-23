@@ -77,12 +77,12 @@ from aoa.action_machine.model.base_schema import BaseSchema
 
 class UserInfo(BaseSchema):
     """
-AI-CORE-BEGIN
-    ROLE: Principal metadata contract for authorization and audit.
-    CONTRACT: Store ``user_id`` and a normalized tuple of role classes.
-    INVARIANTS: Frozen model, forbid-extra fields, roles are BaseRole subclasses.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Principal metadata contract for authorization and audit.
+        CONTRACT: Store ``user_id`` and a normalized tuple of role classes.
+        INVARIANTS: Frozen model, forbid-extra fields, roles are BaseRole subclasses.
+        AI-CORE-END
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -98,14 +98,11 @@ AI-CORE-BEGIN
             items = tuple(v)
         else:
             raise TypeError(
-                "UserInfo.roles must be a list or tuple of BaseRole subclasses, "
-                f"got {type(v).__name__}: {v!r}."
+                "UserInfo.roles must be a list or tuple of BaseRole subclasses, " f"got {type(v).__name__}: {v!r}."
             )
         for i, x in enumerate(items):
             if not isinstance(x, type) or not issubclass(x, BaseRole):
-                raise TypeError(
-                    f"UserInfo.roles[{i}] must be a BaseRole subclass, got {x!r}."
-                )
+                raise TypeError(f"UserInfo.roles[{i}] must be a BaseRole subclass, got {x!r}.")
         return items
 
     @field_serializer("roles", when_used="json")

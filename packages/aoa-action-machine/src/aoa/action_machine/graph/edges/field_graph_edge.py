@@ -25,9 +25,7 @@ from typing import Any, get_args, get_origin, get_type_hints
 
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.core.composition_graph_edge import CompositionGraphEdge
-from aoa.action_machine.graph.edges.entity_schema_graph_edge import (
-    entity_schema_projection_target_from_annotation,
-)
+from aoa.action_machine.graph.edges.entity_schema_graph_edge import entity_schema_projection_target_from_annotation
 from aoa.action_machine.graph.nodes.field_graph_node import FieldGraphNode
 from aoa.action_machine.model.json_schema_value import get_json_schema_value_metadata
 

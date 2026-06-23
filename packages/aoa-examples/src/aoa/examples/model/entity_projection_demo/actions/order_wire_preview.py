@@ -15,9 +15,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.examples.model.entity_projection_demo.domain import EntityProjectionDemoDomain
-from aoa.examples.model.entity_projection_demo.entities.projection_demo_core import (
-    ProjectionDemoOrderEntity,
-)
+from aoa.examples.model.entity_projection_demo.entities.projection_demo_core import ProjectionDemoOrderEntity
 
 _ORDER_WIRE_SCHEMA: dict[str, object] = {
     "type": "object",

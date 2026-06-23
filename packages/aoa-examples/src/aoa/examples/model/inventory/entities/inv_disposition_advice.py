@@ -27,12 +27,16 @@ class DispositionAdviceEntity(BaseEntity):
     freeze_flag: Annotated[
         AssociationOne[LotFreezeFlagEntity],
         NoInverse(),
-    ] = Rel(description="Upstream freeze flag")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream freeze flag"
+    )  # type: ignore[assignment]
 
     facility: Annotated[
         AssociationOne[FacilityWarehouseEntity],
         NoInverse(),
-    ] = Rel(description="Facility execution context")  # type: ignore[assignment]
+    ] = Rel(
+        description="Facility execution context"
+    )  # type: ignore[assignment]
 
 
 DispositionAdviceEntity.model_rebuild()

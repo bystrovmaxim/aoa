@@ -46,7 +46,8 @@ class TestRollupRequired:
 
     @pytest.mark.anyio
     async def test_missing_rollup_raises_type_error(
-        self, clean_bench: TestBench,
+        self,
+        clean_bench: TestBench,
     ) -> None:
         """A default ``rollup`` would hide which comparison mode a test uses."""
         action = PingAction()

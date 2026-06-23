@@ -3,9 +3,7 @@ from __future__ import annotations
 
 from aoa.examples.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle, AnalyticsPipelineLifecycle
 from aoa.examples.model.analytics.entities.analytics_aggregate_sketch_stub import AnalyticsAggregateSketchStubEntity
-from aoa.examples.model.analytics.entities.analytics_canonical_telemetry_row import (
-    AnalyticsCanonicalTelemetryRowEntity,
-)
+from aoa.examples.model.analytics.entities.analytics_canonical_telemetry_row import AnalyticsCanonicalTelemetryRowEntity
 from aoa.examples.model.analytics.entities.analytics_dedup_bloom_row import AnalyticsDedupBloomRowEntity
 from aoa.examples.model.analytics.entities.analytics_er_cycle_quad_stub import (
     AnalyticsDirectedCycleQuadAEntity,

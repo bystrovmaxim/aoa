@@ -18,14 +18,7 @@ from aoa.examples.model.billing.domain import BillingDomain
 class CounterpartyLinkageLifecycle(Lifecycle):
     """Two states, **one** transition: counterparty still needs KYC ring alignment."""
 
-    _template = (
-        Lifecycle()
-        .state("unlinked", "Unlinked")
-        .to("verified")
-        .initial()
-        .state("verified", "Verified")
-        .final()
-    )
+    _template = Lifecycle().state("unlinked", "Unlinked").to("verified").initial().state("verified", "Verified").final()
 
 
 class LedgerPostingWaveLifecycle(Lifecycle):

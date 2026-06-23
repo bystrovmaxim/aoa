@@ -9,7 +9,12 @@ class SupportSparseLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("intake", "Intake").to("working").initial()
-        .state("working", "Working").to("done").intermediate()
-        .state("done", "Done").final()
+        .state("intake", "Intake")
+        .to("working")
+        .initial()
+        .state("working", "Working")
+        .to("done")
+        .intermediate()
+        .state("done", "Done")
+        .final()
     )

@@ -103,8 +103,7 @@ def validate_entity_description(description: Any) -> None:
     """
     if not isinstance(description, str):
         raise EntityDecoratorError(
-            f"@entity: parameter 'description' must be str, "
-            f"got {type(description).__name__}: {description!r}."
+            f"@entity: parameter 'description' must be str, " f"got {type(description).__name__}: {description!r}."
         )
 
     if not description.strip():
@@ -136,7 +135,7 @@ def validate_entity_domain(domain: Any) -> None:
         raise EntityDecoratorError(
             f"@entity: parameter 'domain' must inherit BaseDomain, "
             f"got {domain.__name__}. Define a domain class such as "
-            f"class {domain.__name__}Domain(BaseDomain): name = \"...\"."
+            f'class {domain.__name__}Domain(BaseDomain): name = "...".'
         )
 
 
@@ -148,10 +147,7 @@ def validate_entity_decorator_target(cls: Any) -> None:
         EntityDecoratorError: not a class.
     """
     if not isinstance(cls, type):
-        raise EntityDecoratorError(
-            f"@entity applies only to a class. "
-            f"Got {type(cls).__name__}: {cls!r}."
-        )
+        raise EntityDecoratorError(f"@entity applies only to a class. " f"Got {type(cls).__name__}: {cls!r}.")
 
 
 def entity_info_dict(host_cls: type) -> dict[str, Any]:

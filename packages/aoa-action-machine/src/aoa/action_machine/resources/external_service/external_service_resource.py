@@ -48,12 +48,12 @@ from aoa.action_machine.resources.external_service.wrapper_external_service_reso
 @exclude_graph_model
 class ExternalServiceResource[TService](BaseResource, ProtocolExternalServiceResource, ABC):
     """
-AI-CORE-BEGIN
-    ROLE: Resource manager exposing a single typed external service reference.
-    CONTRACT: ``service`` holds the injected client; nested actions use WrapperExternalServiceResource.
-    INVARIANTS: Generic parameter matches the runtime type stored in ``_service``.
-AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Resource manager exposing a single typed external service reference.
+        CONTRACT: ``service`` holds the injected client; nested actions use WrapperExternalServiceResource.
+        INVARIANTS: Generic parameter matches the runtime type stored in ``_service``.
+    AI-CORE-END
+    """
 
     _service: TService
 

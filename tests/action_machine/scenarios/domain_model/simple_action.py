@@ -60,6 +60,7 @@ class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
 
     class Params(BaseParams):
         """SimpleAction parameters — name to validate."""
+
         name: str = Field(
             description="Name to process",
             min_length=1,
@@ -68,6 +69,7 @@ class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
 
     class Result(BaseResult):
         """SimpleAction result — greeting message."""
+
         greeting: str = Field(description="Greeting message")
 
     @regular_aspect("Validate name")

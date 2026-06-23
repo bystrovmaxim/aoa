@@ -38,9 +38,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel
 
-from aoa.action_machine.adapters.base_route_record import (
-    BaseRouteRecord,
-)
+from aoa.action_machine.adapters.base_route_record import BaseRouteRecord
 from tests.action_machine.scenarios.domain_model import PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -51,16 +49,19 @@ from tests.action_machine.scenarios.domain_model import PingAction
 @dataclass(frozen=True)
 class _TestRecord(BaseRouteRecord):
     """Concrete ``BaseRouteRecord`` for tests."""
+
     pass
 
 
 class _AltRequest(BaseModel):
     """Request model distinct from any ``Params`` on the action."""
+
     query: str = "test"
 
 
 class _AltResponse(BaseModel):
     """Response model distinct from any ``Result`` on the action."""
+
     data: str = "ok"
 
 

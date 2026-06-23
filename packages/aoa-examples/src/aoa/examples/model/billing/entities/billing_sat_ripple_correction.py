@@ -22,7 +22,9 @@ class SettlementRippleCorrectionEntity(BaseEntity):
     sweep: Annotated[
         AssociationOne[BillingSweepInstructionEntity],
         NoInverse(),
-    ] = Rel(description="Parent sweep instruction")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent sweep instruction"
+    )  # type: ignore[assignment]
 
     ripple_sequence: int = Field(description="Monotonic ripple attempt within sweep", ge=0)
     ripple_amount_minor: int = Field(description="Memoized adjustment in minor units")

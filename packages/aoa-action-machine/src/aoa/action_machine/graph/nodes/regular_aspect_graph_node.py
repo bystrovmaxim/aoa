@@ -56,7 +56,11 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
             node_obj=aspect_func,
         )
         object.__setattr__(self, "checkers", CheckerGraphEdge.get_checker_edges(aspect_func, _action_cls, self))
-        object.__setattr__(self, "required_context", RequiredContextGraphEdge.get_required_context_edges(aspect_func, _action_cls, self))
+        object.__setattr__(
+            self,
+            "required_context",
+            RequiredContextGraphEdge.get_required_context_edges(aspect_func, _action_cls, self),
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {

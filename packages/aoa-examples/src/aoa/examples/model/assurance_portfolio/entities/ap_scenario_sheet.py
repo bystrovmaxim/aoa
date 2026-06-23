@@ -28,7 +28,9 @@ class AssuranceScenarioSheetEntity(BaseEntity):
     workspace_program: Annotated[
         AssociationOne[AssuranceWorkspaceProgramStubEntity],
         NoInverse(),
-    ] = Rel(description="Owning assurance workspace")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning assurance workspace"
+    )  # type: ignore[assignment]
 
 
 AssuranceScenarioSheetEntity.model_rebuild()

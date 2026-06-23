@@ -58,8 +58,9 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.testing.stubs import ContextStub
 
 # ─────────────────────────────────────────────────────────────────────────────
-#Auxiliary models
+# Auxiliary models
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class _NullableSchema(BaseSchema):
     """A scheme with nullable fields for testing None values."""
@@ -82,8 +83,9 @@ class _FalsySchema(BaseSchema):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#General fittings
+# General fittings
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def sub() -> VariableSubstitutor:
@@ -110,8 +112,9 @@ def params() -> BaseParams:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#String values ​​- resolve and substitutor give the same result
+# String values ​​- resolve and substitutor give the same result
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestStringValueConsistency:
     """String value: resolve() and substitutor are consistent."""
@@ -121,15 +124,13 @@ class TestStringValueConsistency:
         # Arrange
         ctx = ContextStub()
 
-        #Act - via resolve
+        # Act - via resolve
         result_resolve = ctx.resolve("user.user_id")
 
-        #Act - via substitutor
-        result_sub = sub.substitute(
-            "{%context.user.user_id}", {}, scope, ctx, state, params
-        )
+        # Act - via substitutor
+        result_sub = sub.substitute("{%context.user.user_id}", {}, scope, ctx, state, params)
 
-        #Assert - both return the same value
+        # Assert - both return the same value
         assert result_resolve == "test_user"
         assert result_resolve in result_sub
 
@@ -140,9 +141,7 @@ class TestStringValueConsistency:
 
         # Act
         result_resolve = ctx.resolve("user.roles")
-        result_sub = sub.substitute(
-            "{%context.user.roles}", {}, scope, ctx, state, params
-        )
+        result_sub = sub.substitute("{%context.user.roles}", {}, scope, ctx, state, params)
 
         # Assert
         assert result_resolve is not None
@@ -150,8 +149,9 @@ class TestStringValueConsistency:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Numeric values
+# Numeric values
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestNumericValueConsistency:
     """Numeric value: resolve() and substitutor are consistent."""
@@ -175,8 +175,9 @@ class TestNumericValueConsistency:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#None values ​​are a key scenario (error #1)
+# None values ​​are a key scenario (error #1)
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestNoneValueConsistency:
     """None as field value: resolve() and substitutor are consistent [7]."""
@@ -189,36 +190,28 @@ class TestNoneValueConsistency:
         # Act
         result = schema.resolve("optional_field", default="fallback")
 
-        #Assert - None is a valid value, not absence
+        # Assert - None is a valid value, not absence
         assert result is None
 
-    def test_none_field_substitutor_returns_none_string(
-        self, sub, scope, state, params
-    ) -> None:
+    def test_none_field_substitutor_returns_none_string(self, sub, scope, state, params) -> None:
         """substitutor for a field with None outputs 'None', does not crash."""
         # Arrange
         st = BaseState(optional_field=None)
 
         # Act
-        result = sub.substitute(
-            "{%state.optional_field}", {}, scope, ContextStub(), st, params
-        )
+        result = sub.substitute("{%state.optional_field}", {}, scope, ContextStub(), st, params)
 
-        #Assert - substitutor converts None to the string "None"
+        # Assert - substitutor converts None to the string "None"
         assert "None" in result
 
-    def test_none_consistency_between_resolve_and_substitutor(
-        self, sub, scope, params
-    ) -> None:
+    def test_none_consistency_between_resolve_and_substitutor(self, sub, scope, params) -> None:
         """resolve() returns None, substitutor outputs str(None) - agreed."""
         # Arrange
         st = BaseState(value=None)
 
         # Act
         result_resolve = st.resolve("value")
-        result_sub = sub.substitute(
-            "{%state.value}", {}, scope, ContextStub(), st, params
-        )
+        result_sub = sub.substitute("{%state.value}", {}, scope, ContextStub(), st, params)
 
         # Assert
         assert result_resolve is None
@@ -226,8 +219,9 @@ class TestNoneValueConsistency:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Missing path - resolve returns default, substitutor throws an error
+# Missing path - resolve returns default, substitutor throws an error
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestMissingPathBehavior:
     """Missing path: different behavior - and this is correct."""
@@ -248,16 +242,15 @@ class TestMissingPathBehavior:
         # Arrange
         ctx = ContextStub()
 
-        #Act & Assert - strict error policy
+        # Act & Assert - strict error policy
         with pytest.raises(LogTemplateError, match="not found"):
-            sub.substitute(
-                "{%context.user.nonexistent}", {}, scope, ctx, state, params
-            )
+            sub.substitute("{%context.user.nonexistent}", {}, scope, ctx, state, params)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Nested dict - navigation via DotPathNavigator
+# Nested dict - navigation via DotPathNavigator
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestNestedDictConsistency:
     """Nested dict: resolve() and substitutor through one navigator."""
@@ -267,10 +260,8 @@ class TestNestedDictConsistency:
         # Arrange
         data: dict[str, Any] = {"a": {"b": {"c": "deep"}}}
 
-        #Act - via substitutor (var namespace - dict)
-        result_sub = sub.substitute(
-            "{%var.a.b.c}", data, scope, ContextStub(), state, params
-        )
+        # Act - via substitutor (var namespace - dict)
+        result_sub = sub.substitute("{%var.a.b.c}", data, scope, ContextStub(), state, params)
 
         # Assert
         assert "deep" in result_sub
@@ -282,9 +273,7 @@ class TestNestedDictConsistency:
 
         # Act
         result_resolve = st.resolve("nested.key")
-        result_sub = sub.substitute(
-            "{%state.nested.key}", {}, scope, ContextStub(), st, params
-        )
+        result_sub = sub.substitute("{%state.nested.key}", {}, scope, ContextStub(), st, params)
 
         # Assert
         assert result_resolve == "value"
@@ -292,8 +281,9 @@ class TestNestedDictConsistency:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Falsy values ​​- 0, False, "" are not replaced by default
+# Falsy values ​​- 0, False, "" are not replaced by default
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestFalsyValueConsistency:
     """Falsy values: resolve() and substitutor are not confused with absence [8]."""
@@ -305,9 +295,7 @@ class TestFalsyValueConsistency:
 
         # Act
         result_resolve = st.resolve("count", default="MISSING")
-        result_sub = sub.substitute(
-            "{%state.count}", {}, scope, ContextStub(), st, params
-        )
+        result_sub = sub.substitute("{%state.count}", {}, scope, ContextStub(), st, params)
 
         # Assert
         assert result_resolve == 0
@@ -320,9 +308,7 @@ class TestFalsyValueConsistency:
 
         # Act
         result_resolve = st.resolve("flag", default="MISSING")
-        result_sub = sub.substitute(
-            "{%state.flag}", {}, scope, ContextStub(), st, params
-        )
+        result_sub = sub.substitute("{%state.flag}", {}, scope, ContextStub(), st, params)
 
         # Assert
         assert result_resolve is False
@@ -335,9 +321,7 @@ class TestFalsyValueConsistency:
 
         # Act
         result_resolve = st.resolve("label", default="MISSING")
-        result_sub = sub.substitute(
-            "{%state.label}", {}, scope, ContextStub(), st, params
-        )
+        result_sub = sub.substitute("{%state.label}", {}, scope, ContextStub(), st, params)
 
         # Assert
         assert result_resolve == ""
@@ -345,8 +329,9 @@ class TestFalsyValueConsistency:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#LogScope - navigation via duck-typed __getitem__
+# LogScope - navigation via duck-typed __getitem__
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestLogScopeConsistency:
     """LogScope: substitutor navigates correctly via __getitem__ [3]."""
@@ -355,13 +340,13 @@ class TestLogScopeConsistency:
         """The scope field is accessible via {%scope.action}."""
         # Arrange
         sc = LogScope(
-            action="MyAction", aspect="my_aspect", nest_level=0,
+            action="MyAction",
+            aspect="my_aspect",
+            nest_level=0,
         )
 
         # Act
-        result = sub.substitute(
-            "{%scope.action}", {}, sc, ContextStub(), state, params
-        )
+        result = sub.substitute("{%scope.action}", {}, sc, ContextStub(), state, params)
 
         # Assert
         assert "MyAction" in result

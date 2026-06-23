@@ -8,9 +8,7 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.examples.model.clinical_supply.domain import ClinicalSupplyDomain
-from aoa.examples.model.clinical_supply.entities.cs_inbound_shipment_ticket import (
-    ClinicalInboundShipmentTicketEntity,
-)
+from aoa.examples.model.clinical_supply.entities.cs_inbound_shipment_ticket import ClinicalInboundShipmentTicketEntity
 from aoa.examples.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 from aoa.examples.model.clinical_supply.entities.cs_transport_anchor import ClinicalTransportAnchorEntity
 
@@ -32,12 +30,16 @@ class ClinicalInboundTransportBindingEntity(BaseEntity):
     inbound_ticket: Annotated[
         AssociationOne[ClinicalInboundShipmentTicketEntity],
         NoInverse(),
-    ] = Rel(description="Subject inbound lot")  # type: ignore[assignment]
+    ] = Rel(
+        description="Subject inbound lot"
+    )  # type: ignore[assignment]
 
     transport_anchor: Annotated[
         AssociationOne[ClinicalTransportAnchorEntity],
         NoInverse(),
-    ] = Rel(description="Chosen modality snapshot")  # type: ignore[assignment]
+    ] = Rel(
+        description="Chosen modality snapshot"
+    )  # type: ignore[assignment]
 
 
 ClinicalInboundTransportBindingEntity.model_rebuild()

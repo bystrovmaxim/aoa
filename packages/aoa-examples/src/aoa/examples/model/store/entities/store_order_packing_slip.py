@@ -26,7 +26,9 @@ class PackingSlipEntity(BaseEntity):
     parcel: Annotated[
         AssociationOne[ShipmentParcelEntity],
         NoInverse(),
-    ] = Rel(description="Parent shipment parcel artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent shipment parcel artefact"
+    )  # type: ignore[assignment]
 
 
 PackingSlipEntity.model_rebuild()

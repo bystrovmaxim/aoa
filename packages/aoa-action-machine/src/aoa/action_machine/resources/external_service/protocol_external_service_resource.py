@@ -31,12 +31,12 @@ from typing import Any, Protocol, runtime_checkable
 @runtime_checkable
 class ProtocolExternalServiceResource(Protocol):
     """
-AI-CORE-BEGIN
-    ROLE: Typed contract for managers that expose one external client reference.
-    CONTRACT: ``service`` accessor and ``check_rollup_support`` per BaseResource.
-    INVARIANTS: Structural subtyping for concrete and wrapper implementations.
-AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Typed contract for managers that expose one external client reference.
+        CONTRACT: ``service`` accessor and ``check_rollup_support`` per BaseResource.
+        INVARIANTS: Structural subtyping for concrete and wrapper implementations.
+    AI-CORE-END
+    """
 
     @property
     def service(self) -> Any:

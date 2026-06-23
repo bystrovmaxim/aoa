@@ -90,12 +90,12 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 
 class BaseAdapter[R: BaseRouteRecord](ABC):
     """
-AI-CORE-BEGIN
-    ROLE: Protocol-agnostic adapter contract and shared state holder.
-    CONTRACT: Validates constructor dependencies, stores route records, and exposes abstract ``build()``.
-    INVARIANTS: machine type is strict; auth coordinator is mandatory; route registration preserves order.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Protocol-agnostic adapter contract and shared state holder.
+        CONTRACT: Validates constructor dependencies, stores route records, and exposes abstract ``build()``.
+        INVARIANTS: machine type is strict; auth coordinator is mandatory; route registration preserves order.
+        AI-CORE-END
+    """
 
     def __init__(
         self,
@@ -110,15 +110,12 @@ AI-CORE-BEGIN
             TypeError: if auth_coordinator is None.
         """
         if not isinstance(machine, ActionProductMachine):
-            raise TypeError(
-                f"BaseAdapter expects ActionProductMachine, "
-                f"got {type(machine).__name__}: {machine!r}."
-            )
+            raise TypeError(f"BaseAdapter expects ActionProductMachine, " f"got {type(machine).__name__}: {machine!r}.")
 
         if auth_coordinator is None:
             raise TypeError(
                 "auth_coordinator is required. Pass AuthCoordinator "
-                "for authenticated APIs or NoAuthCoordinator() for open APIs."
+                "for authenticated APIs or NoAuthCoordinator(context=Context()) for open APIs."
             )
 
         self._machine: ActionProductMachine = machine

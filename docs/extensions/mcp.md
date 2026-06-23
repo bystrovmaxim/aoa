@@ -38,7 +38,7 @@ from aoa.action_machine.adapters.mcp import McpAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
 
 server = (
-    McpAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(), server_name="Orders MCP")
+    McpAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), server_name="Orders MCP")
     .tool("orders.create", CreateOrderAction)
     .build()                                  # -> FastMCP
 )
@@ -46,7 +46,7 @@ server = (
 
 - A fluent builder `.tool(name, ActionClass, ...)` → `.build()` → an MCP server (`FastMCP`); `.register_all()` publishes the whole catalog of operations.
 - **The tool's `inputSchema` comes from `Params`**, the description — from `@meta`: the agent receives an exact contract, no schema to write.
-- **`auth_coordinator` is mandatory** (as in [FastAPI](fastapi.md)); use `NoAuthCoordinator()` for an open server.
+- **`auth_coordinator` is mandatory** (as in [FastAPI](fastapi.md)); use `NoAuthCoordinator(context=Context())` for an open server.
 - **The response is not an HTTP code but a JSON envelope** with an `isError` flag and a stable code: `OK` / `PERMISSION_DENIED` / `INVALID_PARAMS` / `INTERNAL_ERROR`; on `INTERNAL_ERROR` the traceback is written to the log but **not handed to the agent**.
 - Reconciling external schemas (`request_model`/`response_model` + mappers) — [Schema converters](../tutorials/step-18-converters.md); per-call resources — the `connections=` argument.
 

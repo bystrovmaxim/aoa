@@ -102,4 +102,3 @@ def test_intents_connection_lazy_symbols_resolve() -> None:
 def test_application_package_exports_resolve() -> None:
     app = importlib.import_module("aoa.action_machine.application")
     assert app.Application is not None
-

@@ -26,7 +26,9 @@ class AssuranceScenarioInstructionLineEntity(BaseEntity):
     scenario_sheet: Annotated[
         AssociationOne[AssuranceScenarioSheetEntity],
         NoInverse(),
-    ] = Rel(description="Parent scenario sheet")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent scenario sheet"
+    )  # type: ignore[assignment]
 
 
 AssuranceScenarioInstructionLineEntity.model_rebuild()

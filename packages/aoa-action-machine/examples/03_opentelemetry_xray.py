@@ -109,11 +109,7 @@ async def main() -> None:
     print("State x-ray logs:")
     for record in log_exporter.get_finished_logs():
         attrs = dict(record.log_record.attributes or {})
-        state_attrs = {
-            key: value
-            for key, value in attrs.items()
-            if str(key).startswith("aoa.state.")
-        }
+        state_attrs = {key: value for key, value in attrs.items() if str(key).startswith("aoa.state.")}
         if state_attrs:
             aspect = attrs.get("aoa.aspect")
             print(f"  {aspect}: {state_attrs}")

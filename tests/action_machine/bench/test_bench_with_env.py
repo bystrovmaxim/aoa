@@ -63,6 +63,7 @@ from tests.action_machine.scenarios.domain_model.domains import SystemDomain
 # Minimal action that reads env values via @context_requires in the summary
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class _EnvResult(BaseResult):
     region: str | None
     max_retries: int | None
@@ -93,6 +94,7 @@ class _EnvAction(BaseAction["_EnvAction.Params", _EnvResult]):
 # ─────────────────────────────────────────────────────────────────────────────
 # Unit tests — _build_context() resolution without a full run
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TestWithEnvRegistration:
     """``with_env`` stores the constant so ``_build_context().resolve()`` returns it."""
@@ -148,12 +150,7 @@ class TestWithEnvRegistration:
 
     def test_multiple_keys_all_resolve(self) -> None:
         """Multiple ``with_env`` calls register independent entries."""
-        bench = (
-            TestBench()
-            .with_env("region", "eu-west-1")
-            .with_env("max_retries", 3)
-            .with_env("flag", True)
-        )
+        bench = TestBench().with_env("region", "eu-west-1").with_env("max_retries", 3).with_env("flag", True)
         ctx = bench._build_context()
 
         assert ctx.resolve("env.region") == "eu-west-1"
@@ -162,11 +159,7 @@ class TestWithEnvRegistration:
 
     def test_later_call_overrides_same_key(self) -> None:
         """A second ``with_env`` for the same key replaces the first."""
-        bench = (
-            TestBench()
-            .with_env("region", "eu-west-1")
-            .with_env("region", "ap-southeast-1")
-        )
+        bench = TestBench().with_env("region", "eu-west-1").with_env("region", "ap-southeast-1")
         ctx = bench._build_context()
 
         assert ctx.resolve("env.region") == "ap-southeast-1"
@@ -181,11 +174,7 @@ class TestWithEnvRegistration:
 
     def test_env_context_still_resolves_user(self) -> None:
         """Dynamic context subclass still resolves normal dot-paths."""
-        bench = (
-            TestBench()
-            .with_user(user_id="u-42")
-            .with_env("region", "eu-west-1")
-        )
+        bench = TestBench().with_user(user_id="u-42").with_env("region", "eu-west-1")
         ctx = bench._build_context()
 
         assert ctx.resolve("user.user_id") == "u-42"
@@ -195,6 +184,7 @@ class TestWithEnvRegistration:
 # ─────────────────────────────────────────────────────────────────────────────
 # Immutability
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TestWithEnvImmutability:
     """``with_env`` is immutable — returns new bench, leaves original unchanged."""
@@ -231,17 +221,14 @@ class TestWithEnvImmutability:
 # Integration — full bench.run() with @context_requires("env.*")
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestWithEnvIntegration:
     """Env constants registered via ``with_env`` are available inside the action run."""
 
     @pytest.mark.anyio
     async def test_env_values_received_in_action(self, clean_bench: TestBench) -> None:
         """Action reads ``env.region`` and ``env.max_retries`` via ``ctx.get``."""
-        bench = (
-            clean_bench
-            .with_env("region", "eu-west-1")
-            .with_env("max_retries", 3)
-        )
+        bench = clean_bench.with_env("region", "eu-west-1").with_env("max_retries", 3)
 
         result = await bench.run(_EnvAction(), _EnvAction.Params(), rollup=False)
 
@@ -251,11 +238,7 @@ class TestWithEnvIntegration:
     @pytest.mark.anyio
     async def test_env_bool_constant_in_action(self, clean_bench: TestBench) -> None:
         """Boolean env constant is received correctly in action (region is a required key too)."""
-        bench = (
-            clean_bench
-            .with_env("region", "test-eu")
-            .with_env("max_retries", 0)
-        )
+        bench = clean_bench.with_env("region", "test-eu").with_env("max_retries", 0)
 
         result = await bench.run(_EnvAction(), _EnvAction.Params(), rollup=False)
 
@@ -266,10 +249,7 @@ class TestWithEnvIntegration:
     async def test_env_override_reaches_action(self, clean_bench: TestBench) -> None:
         """Later ``with_env`` for the same key wins in the action."""
         bench = (
-            clean_bench
-            .with_env("region", "eu-west-1")
-            .with_env("region", "test-override")
-            .with_env("max_retries", 0)
+            clean_bench.with_env("region", "eu-west-1").with_env("region", "test-override").with_env("max_retries", 0)
         )
 
         result = await bench.run(_EnvAction(), _EnvAction.Params(), rollup=False)

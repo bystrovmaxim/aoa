@@ -57,11 +57,7 @@ import pytest
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions import HandleError, TransactionProhibitedError
 from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.resources.sql import (
-    ProtocolSqlResource,
-    SqlResource,
-    WrapperSqlResource,
-)
+from aoa.action_machine.resources.sql import ProtocolSqlResource, SqlResource, WrapperSqlResource
 
 
 class _WrapperSqlResourceTestDomain(BaseDomain):
@@ -78,9 +74,11 @@ def meta(description: str, domain: type[BaseDomain]):
 
     return decorator
 
+
 # ======================================================================
 # Mock connection manager for tests
 # ======================================================================
+
 
 @meta(description="Wrapper SQL resource mock manager", domain=_WrapperSqlResourceTestDomain)
 class MockConnectionManager(SqlResource):
@@ -119,6 +117,7 @@ class MockConnectionManager(SqlResource):
 # Fixtures
 # ======================================================================
 
+
 @pytest.fixture
 def mock_manager() -> MockConnectionManager:
     """Mock connection manager."""
@@ -141,6 +140,7 @@ def double_wrapper(wrapper: WrapperSqlResource) -> WrapperSqlResource:
 # TESTS: Constructor
 # ======================================================================
 
+
 class TestConstructor:
     """WrapperSqlResource is constructed successfully."""
 
@@ -161,13 +161,16 @@ class TestConstructor:
 
     @pytest.mark.asyncio
     async def test_check_rollup_support_is_delegated(
-        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager,
+        self,
+        wrapper: WrapperSqlResource,
+        mock_manager: MockConnectionManager,
     ) -> None:
         """check_rollup_support() forwards to the wrapped manager."""
         assert await wrapper.check_rollup_support() == await mock_manager.check_rollup_support()
 
     def test_is_instance_of_protocol_sql_resource(
-        self, wrapper: WrapperSqlResource,
+        self,
+        wrapper: WrapperSqlResource,
     ) -> None:
         """Is an instance of ProtocolSqlResource (not SqlResource)."""
         assert isinstance(wrapper, ProtocolSqlResource)
@@ -177,6 +180,7 @@ class TestConstructor:
 # ======================================================================
 # TESTS: Transaction prohibition
 # ======================================================================
+
 
 class TestTransactionProhibited:
     """The wrapper forbids transaction management."""
@@ -206,28 +210,36 @@ class TestTransactionProhibited:
             await wrapper.begin()
 
     @pytest.mark.anyio
-    async def test_open_does_not_call_original(self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager) -> None:
+    async def test_open_does_not_call_original(
+        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager
+    ) -> None:
         """open() does not call the original manager."""
         with pytest.raises(TransactionProhibitedError):
             await wrapper.open()
         mock_manager.open.assert_not_called()
 
     @pytest.mark.anyio
-    async def test_commit_does_not_call_original(self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager) -> None:
+    async def test_commit_does_not_call_original(
+        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager
+    ) -> None:
         """commit() does not call the original manager."""
         with pytest.raises(TransactionProhibitedError):
             await wrapper.commit()
         mock_manager.commit.assert_not_called()
 
     @pytest.mark.anyio
-    async def test_rollback_does_not_call_original(self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager) -> None:
+    async def test_rollback_does_not_call_original(
+        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager
+    ) -> None:
         """rollback() does not call the original manager."""
         with pytest.raises(TransactionProhibitedError):
             await wrapper.rollback()
         mock_manager.rollback.assert_not_called()
 
     @pytest.mark.anyio
-    async def test_begin_does_not_call_original(self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager) -> None:
+    async def test_begin_does_not_call_original(
+        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager
+    ) -> None:
         """begin() does not call the original manager."""
         with pytest.raises(TransactionProhibitedError):
             await wrapper.begin()
@@ -238,12 +250,15 @@ class TestTransactionProhibited:
 # TESTS: Execute delegation
 # ======================================================================
 
+
 class TestExecuteDelegation:
     """execute() delegates to the original manager."""
 
     @pytest.mark.anyio
     async def test_execute_delegates_to_original(
-        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager,
+        self,
+        wrapper: WrapperSqlResource,
+        mock_manager: MockConnectionManager,
     ) -> None:
         """execute() calls the original manager's execute."""
         result = await wrapper.execute("SELECT 1")
@@ -252,17 +267,19 @@ class TestExecuteDelegation:
 
     @pytest.mark.anyio
     async def test_execute_passes_params(
-        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager,
+        self,
+        wrapper: WrapperSqlResource,
+        mock_manager: MockConnectionManager,
     ) -> None:
         """execute() forwards parameters."""
         await wrapper.execute("SELECT * FROM users WHERE id = $1", (42,))
-        mock_manager.execute.assert_called_once_with(
-            "SELECT * FROM users WHERE id = $1", (42,)
-        )
+        mock_manager.execute.assert_called_once_with("SELECT * FROM users WHERE id = $1", (42,))
 
     @pytest.mark.anyio
     async def test_execute_wraps_error_in_handle_error(
-        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager,
+        self,
+        wrapper: WrapperSqlResource,
+        mock_manager: MockConnectionManager,
     ) -> None:
         """execute() wraps the original error in HandleError."""
         mock_manager.execute.side_effect = RuntimeError("connection lost")
@@ -272,7 +289,9 @@ class TestExecuteDelegation:
 
     @pytest.mark.anyio
     async def test_execute_preserves_original_error_as_cause(
-        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager,
+        self,
+        wrapper: WrapperSqlResource,
+        mock_manager: MockConnectionManager,
     ) -> None:
         """HandleError keeps the original error in __cause__."""
         original_error = RuntimeError("timeout")
@@ -288,6 +307,7 @@ class TestExecuteDelegation:
 # TESTS: get_wrapper_class
 # ======================================================================
 
+
 class TestGetWrapperClass:
     """get_wrapper_class() returns WrapperSqlResource."""
 
@@ -302,7 +322,8 @@ class TestGetWrapperClass:
         assert isinstance(result, type)
 
     def test_returned_class_is_wrapper_and_resource_manager(
-        self, wrapper: WrapperSqlResource,
+        self,
+        wrapper: WrapperSqlResource,
     ) -> None:
         """Returned class is WrapperSqlResource (Protocol forbids issubclass here)."""
         result = wrapper.get_wrapper_class()
@@ -315,6 +336,7 @@ class TestGetWrapperClass:
 # TESTS: Double wrapping (nesting level 2+)
 # ======================================================================
 
+
 class TestDoubleWrapping:
     """WrapperSqlResource can be wrapped again correctly."""
 
@@ -324,7 +346,9 @@ class TestDoubleWrapping:
         assert double is not None
 
     def test_double_wrapper_stores_inner_wrapper(
-        self, double_wrapper: WrapperSqlResource, wrapper: WrapperSqlResource,
+        self,
+        double_wrapper: WrapperSqlResource,
+        wrapper: WrapperSqlResource,
     ) -> None:
         """Double wrap holds a reference to the inner wrapper."""
         assert double_wrapper._connection_manager is wrapper
@@ -355,7 +379,9 @@ class TestDoubleWrapping:
 
     @pytest.mark.anyio
     async def test_double_wrapper_delegates_execute_to_original(
-        self, double_wrapper: WrapperSqlResource, mock_manager: MockConnectionManager,
+        self,
+        double_wrapper: WrapperSqlResource,
+        mock_manager: MockConnectionManager,
     ) -> None:
         """execute() through double wrap reaches the original manager."""
         result = await double_wrapper.execute("SELECT 1")
@@ -364,7 +390,9 @@ class TestDoubleWrapping:
 
     @pytest.mark.anyio
     async def test_triple_wrapper_works(
-        self, double_wrapper: WrapperSqlResource, mock_manager: MockConnectionManager,
+        self,
+        double_wrapper: WrapperSqlResource,
+        mock_manager: MockConnectionManager,
     ) -> None:
         """Triple wrap also works — execute reaches the original."""
         triple = WrapperSqlResource(double_wrapper)
@@ -376,6 +404,7 @@ class TestDoubleWrapping:
 # ======================================================================
 # TESTS: Integration with _wrap_connections
 # ======================================================================
+
 
 class TestWrapConnectionsIntegration:
     """
@@ -421,9 +450,7 @@ class TestWrapConnectionsIntegration:
         wrapped = self._wrap_connections(connections)
 
         result = await wrapped["db"].execute("INSERT INTO orders VALUES ($1)", (1,))
-        mock_manager.execute.assert_called_once_with(
-            "INSERT INTO orders VALUES ($1)", (1,)
-        )
+        mock_manager.execute.assert_called_once_with("INSERT INTO orders VALUES ($1)", (1,))
         assert result == "query_result"
 
     @pytest.mark.anyio

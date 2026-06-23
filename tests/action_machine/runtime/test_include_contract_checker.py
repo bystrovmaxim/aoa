@@ -178,9 +178,7 @@ async def test_include_violation_when_peer_never_run() -> None:
     @meta(description="violator", domain=SystemDomain)
     @check_roles(GuestRole)
     @depends(LeafForContractAction, mode=UseCase.include, description="must run leaf")
-    class IncludeViolatorAction(
-        BaseAction["IncludeViolatorAction.Params", "IncludeViolatorAction.Result"]
-    ):
+    class IncludeViolatorAction(BaseAction["IncludeViolatorAction.Params", "IncludeViolatorAction.Result"]):
         class Params(BaseParams):
             pass
 
@@ -400,9 +398,7 @@ async def test_gather_merges_nested_machine_runs_into_one_tracker() -> None:
     @check_roles(GuestRole)
     @depends(LeafAForGatherAction, mode=UseCase.include, description="a")
     @depends(LeafBForGatherAction, mode=UseCase.include, description="b")
-    class GatherIncludeHostAction(
-        BaseAction["GatherIncludeHostAction.Params", "GatherIncludeHostAction.Result"]
-    ):
+    class GatherIncludeHostAction(BaseAction["GatherIncludeHostAction.Params", "GatherIncludeHostAction.Result"]):
         class Params(BaseParams):
             pass
 

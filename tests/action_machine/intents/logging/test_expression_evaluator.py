@@ -60,8 +60,9 @@ def evaluator() -> ExpressionEvaluator:
 
 
 # ======================================================================
-#TESTS: evaluate() - simple expressions
+# TESTS: evaluate() - simple expressions
 # ======================================================================
+
 
 class TestEvaluateSimple:
     """Basic arithmetic and logical expressions."""
@@ -134,8 +135,9 @@ class TestEvaluateBuiltins:
 
 
 # ======================================================================
-#TESTS: evaluate_iif() - iif construct
+# TESTS: evaluate_iif() - iif construct
 # ======================================================================
+
 
 class TestEvaluateIifBasic:
     """Basic designs iif."""
@@ -205,8 +207,9 @@ class TestEvaluateIifStringHandling:
 
 
 # ======================================================================
-#TESTS: process_template() - replacing iif in line
+# TESTS: process_template() - replacing iif in line
 # ======================================================================
+
 
 class TestProcessTemplate:
     """Replace all {iif(...)} in a string."""
@@ -242,8 +245,9 @@ class TestProcessTemplate:
 
 
 # ======================================================================
-#TESTS: Parsing iif arguments (_IifArgSplitter)
+# TESTS: Parsing iif arguments (_IifArgSplitter)
 # ======================================================================
+
 
 class TestIifArgSplitter:
     """Parse the iif argument string, taking into account nested parentheses and quotes."""
@@ -280,8 +284,9 @@ class TestIifArgSplitter:
 
 
 # ======================================================================
-#TESTS: Error Handling
+# TESTS: Error Handling
 # ======================================================================
+
 
 class TestErrorHandling:
     """ExpressionEvaluator throws LogTemplateError on errors."""

@@ -26,7 +26,9 @@ class RecipientDeviceSeenEntity(BaseEntity):
     hop_sample: Annotated[
         AssociationOne[HopLatencySampleEntity],
         NoInverse(),
-    ] = Rel(description="Upstream hop sample")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream hop sample"
+    )  # type: ignore[assignment]
 
 
 RecipientDeviceSeenEntity.model_rebuild()

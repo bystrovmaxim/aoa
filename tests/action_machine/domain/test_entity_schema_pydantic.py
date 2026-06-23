@@ -14,9 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from tests.action_machine.adapters.entity_projection_adapter_fixtures import (
-    EntityProjectionAdapterTestAction,
-)
+from tests.action_machine.adapters.entity_projection_adapter_fixtures import EntityProjectionAdapterTestAction
 from tests.action_machine.scenarios.domain_model.entities import SampleEntity
 
 

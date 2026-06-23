@@ -26,7 +26,9 @@ class IdentityEmailFactorEntity(BaseEntity):
     person: Annotated[
         AssociationOne[IdentityPersonHubEntity],
         NoInverse(),
-    ] = Rel(description="Owning person identity")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning person identity"
+    )  # type: ignore[assignment]
 
 
 IdentityEmailFactorEntity.model_rebuild()

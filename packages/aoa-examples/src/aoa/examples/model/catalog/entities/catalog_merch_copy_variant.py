@@ -26,7 +26,9 @@ class MerchCopyVariantEntity(BaseEntity):
     shelf_hint: Annotated[
         AssociationOne[ShelfPlacementHintEntity],
         NoInverse(),
-    ] = Rel(description="Owning shelf placement artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning shelf placement artefact"
+    )  # type: ignore[assignment]
 
 
 MerchCopyVariantEntity.model_rebuild()

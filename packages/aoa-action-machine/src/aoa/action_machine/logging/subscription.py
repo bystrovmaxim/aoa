@@ -58,34 +58,25 @@ def _validate_subscription_levels(levels: Level | None) -> None:
 
 
 def _normalize_subscription_domains(
-    domains: type[BaseDomain]
-    | list[type[BaseDomain]]
-    | tuple[type[BaseDomain], ...]
-    | None,
+    domains: type[BaseDomain] | list[type[BaseDomain]] | tuple[type[BaseDomain], ...] | None,
 ) -> tuple[type[BaseDomain], ...] | None:
     if isinstance(domains, type):
         if not issubclass(domains, BaseDomain):
-            raise TypeError(
-                f"each domain must be a BaseDomain subclass, got {domains!r}"
-            )
+            raise TypeError(f"each domain must be a BaseDomain subclass, got {domains!r}")
         return (domains,)
     if isinstance(domains, list):
         if len(domains) == 0:
             raise ValueError("domains list cannot be empty")
         for d in domains:
             if not isinstance(d, type) or not issubclass(d, BaseDomain):
-                raise TypeError(
-                    f"each domain must be a BaseDomain subclass, got {d!r}"
-                )
+                raise TypeError(f"each domain must be a BaseDomain subclass, got {d!r}")
         return tuple(domains)
     if isinstance(domains, tuple):
         if len(domains) == 0:
             raise ValueError("domains tuple cannot be empty")
         for d in domains:
             if not isinstance(d, type) or not issubclass(d, BaseDomain):
-                raise TypeError(
-                    f"each domain must be a BaseDomain subclass, got {d!r}"
-                )
+                raise TypeError(f"each domain must be a BaseDomain subclass, got {d!r}")
         return domains
     return None
 
@@ -93,30 +84,22 @@ def _normalize_subscription_domains(
 @dataclass(frozen=True)
 class LogSubscription:
     """
-AI-CORE-BEGIN
-    ROLE: Immutable per-rule predicate for logger-side filtering.
-    CONTRACT: Validate on construction, evaluate channel/level/domain on match.
-    INVARIANTS: Rule dimensions are AND-combined inside one subscription.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Immutable per-rule predicate for logger-side filtering.
+        CONTRACT: Validate on construction, evaluate channel/level/domain on match.
+        INVARIANTS: Rule dimensions are AND-combined inside one subscription.
+        AI-CORE-END
+    """
 
     key: str
     channels: Channel | None = None
     levels: Level | None = None
-    _domains_raw: InitVar[
-        type[BaseDomain]
-        | list[type[BaseDomain]]
-        | tuple[type[BaseDomain], ...]
-        | None
-    ] = None
+    _domains_raw: InitVar[type[BaseDomain] | list[type[BaseDomain]] | tuple[type[BaseDomain], ...] | None] = None
     domains: tuple[type[BaseDomain], ...] | None = field(init=False, default=None)
 
     def __post_init__(
         self,
-        _domains_raw: type[BaseDomain]
-        | list[type[BaseDomain]]
-        | tuple[type[BaseDomain], ...]
-        | None,
+        _domains_raw: type[BaseDomain] | list[type[BaseDomain]] | tuple[type[BaseDomain], ...] | None,
     ) -> None:
         if not isinstance(self.key, str) or not self.key.strip():
             raise ValueError("subscription key must be a non-empty string")

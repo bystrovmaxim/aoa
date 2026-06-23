@@ -95,7 +95,7 @@ class JwtAuthenticator(Authenticator):
 The only coordinator ready out of the box today is `NoAuthCoordinator`. It does not authenticate but always returns a fresh **anonymous** `Context` (`user_id=None`, `roles=()`):
 
 ```python
-context = await NoAuthCoordinator().process(None)
+context = await NoAuthCoordinator(context=Context()).process(None)
 ```
 
 This is the right choice for open endpoints — operations with [`@check_roles(GuestRole)`](step-03-authorization-and-roles.md). Anonymity here is declared explicitly, not obtained "by default".

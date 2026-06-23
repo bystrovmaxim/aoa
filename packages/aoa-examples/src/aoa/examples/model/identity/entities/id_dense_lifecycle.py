@@ -7,7 +7,12 @@ class IdentityDenseLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("registered", "Registered").to("active").initial()
-        .state("active", "Active").to("dormant").intermediate()
-        .state("dormant", "Dormant").final()
+        .state("registered", "Registered")
+        .to("active")
+        .initial()
+        .state("active", "Active")
+        .to("dormant")
+        .intermediate()
+        .state("dormant", "Dormant")
+        .final()
     )

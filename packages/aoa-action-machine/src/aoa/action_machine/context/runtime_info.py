@@ -65,12 +65,12 @@ from aoa.action_machine.model.base_schema import BaseSchema
 
 class RuntimeInfo(BaseSchema):
     """
-AI-CORE-BEGIN
-    ROLE: Runtime metadata node in Context.
-    CONTRACT: Expose optional deployment/environment fields.
-    INVARIANTS: Frozen instance with forbid-extra schema policy.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Runtime metadata node in Context.
+        CONTRACT: Expose optional deployment/environment fields.
+        INVARIANTS: Frozen instance with forbid-extra schema policy.
+        AI-CORE-END
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

@@ -26,7 +26,4 @@ class CoreDomain(BaseDomain):
     """
 
     name = "core"
-    description = (
-        "Core domain: user management, authentication, authorization, "
-        "and other core functionalities"
-    )
+    description = "Core domain: user management, authentication, authorization, " "and other core functionalities"

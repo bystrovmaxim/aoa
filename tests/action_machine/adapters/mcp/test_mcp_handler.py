@@ -92,6 +92,7 @@ from aoa.action_machine.adapters.mcp.adapter import (
     _validate_tool_request_kwargs,
 )
 from aoa.action_machine.adapters.mcp.route_record import McpRouteRecord
+from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -134,6 +135,7 @@ def _tool_result_envelope(result: CallToolResult) -> dict[str, Any]:
 
 class _MockResult(BaseModel):
     """Simple pydantic result for serialization tests."""
+
     message: str = "ok"
     count: int = 1
 
@@ -147,6 +149,7 @@ class _ResultWithWhen(BaseModel):
 
 class _PlainResult:
     """Non-pydantic result for fallback serialization."""
+
     def __init__(self, value: str) -> None:
         self.value = value
 
@@ -166,6 +169,7 @@ class _ProbeMcpRequest(BaseModel):
 
 class _AltResponse(BaseModel):
     """Alternative response model for mapper tests."""
+
     data: str = "mapped"
 
 
@@ -202,9 +206,9 @@ def _make_machine() -> ActionProductMachine:
 
 
 def _make_auth(context=None) -> AsyncMock:
-    """Create a mock auth coordinator."""
+    """Create a mock auth coordinator returning ``Context()`` by default."""
     auth = AsyncMock()
-    auth.process.return_value = context
+    auth.process.return_value = Context() if context is None else context
     return auth
 
 
@@ -370,7 +374,10 @@ class TestHandlerSuccess:
         machine.run = AsyncMock(return_value=mock_result)
 
         handler = _make_tool_handler(
-            record, machine, auth, machine.graph_coordinator,
+            record,
+            machine,
+            auth,
+            machine.graph_coordinator,
         )
         result = await handler()
 
@@ -390,7 +397,10 @@ class TestHandlerSuccess:
         machine.run = AsyncMock(return_value=PingAction.Result(message="pong"))
 
         handler = _make_tool_handler(
-            record, machine, auth, machine.graph_coordinator,
+            record,
+            machine,
+            auth,
+            machine.graph_coordinator,
         )
         result = await handler()
         env = _tool_result_envelope(result)
@@ -404,7 +414,10 @@ class TestHandlerSuccess:
         record = _make_record(tool_name="orders.create")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
 
         assert handler.__name__ == "orders_create"
@@ -416,7 +429,10 @@ class TestHandlerSuccess:
         record = _make_record(tool_name="my-tool-name")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
 
         assert handler.__name__ == "my_tool_name"
@@ -438,7 +454,10 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
         result = await handler()
 
@@ -460,7 +479,10 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
         result = await handler()
 
@@ -478,7 +500,10 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
         result = await handler()
 
@@ -496,7 +521,10 @@ class TestHandlerErrors:
         record = _make_record(action_class=SimpleAction, tool_name="simple.run")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
         result = await handler()
 
@@ -521,7 +549,10 @@ class TestHandlerErrors:
         record = _make_record(action_class=SimpleAction, tool_name="simple.run")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
         result = await handler(name=[])
 
@@ -541,7 +572,10 @@ class TestHandlerErrors:
         record = _make_record(action_class=SimpleAction, tool_name="simple.run")
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
         result = await handler(name="")
 
@@ -565,7 +599,10 @@ class TestHandlerErrors:
         record = _make_record()
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
         result = await handler()
 
@@ -604,7 +641,10 @@ class TestHandlerWithMappers:
         )
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
         await handler()
 
@@ -624,7 +664,10 @@ class TestHandlerWithMappers:
         )
 
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
         result = await handler()
 
@@ -644,7 +687,10 @@ class TestHandlerWithMappers:
             params_mapper=lambda _p: PingAction.Params(),  # not SimpleAction.Params
         )
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
         result = await handler(name="Alice")
 
@@ -670,7 +716,10 @@ class TestHandlerWithMappers:
             response_mapper=lambda _r: "not-alt-response",  # type: ignore[return-value]
         )
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
         result = await handler(name="Bob")
 
@@ -708,7 +757,10 @@ class TestHandlerWithConnections:
             connections={"db": PerCallConnection(factory=factory)},
         )
         handler = _make_tool_handler(
-            record, machine, _make_auth(), machine.graph_coordinator,
+            record,
+            machine,
+            _make_auth(),
+            machine.graph_coordinator,
         )
         await handler()
 
@@ -758,11 +810,7 @@ class TestBuildGraphJson:
         action_nodes = [n for n in parsed["nodes"] if n.get("type") == "Action"]
         # Disambiguate from sample actions whose ids also contain "PingAction" (e.g. ``OpsPingAction``).
         ping_action = next(
-            (
-                n
-                for n in action_nodes
-                if "scenarios.domain_model.ping_action.PingAction" in n.get("id", "")
-            ),
+            (n for n in action_nodes if "scenarios.domain_model.ping_action.PingAction" in n.get("id", "")),
             None,
         )
         assert ping_action is not None

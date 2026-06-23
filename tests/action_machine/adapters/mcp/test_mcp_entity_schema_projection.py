@@ -16,6 +16,7 @@ import pytest
 
 from aoa.action_machine.adapters.mcp.adapter import McpAdapter, _serialize_result
 from aoa.action_machine.adapters.mcp.route_record import McpRouteRecord
+from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.action_machine.adapters.entity_projection_adapter_fixtures import (
     EntityProjectionAdapterTestAction,
@@ -26,7 +27,7 @@ from tests.action_machine.adapters.entity_projection_adapter_fixtures import (
 def _make_adapter() -> McpAdapter:
     machine = ActionProductMachine(loggers=[])
     auth = AsyncMock()
-    auth.process.return_value = None
+    auth.process.return_value = Context()
     return McpAdapter(machine=machine, auth_coordinator=auth)
 
 

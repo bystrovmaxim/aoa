@@ -63,12 +63,12 @@ DEFAULT_LEVEL_FG_PREFIX: dict[Level, str] = {
 
 class ConsoleLogger(BaseLogger):
     """
-AI-CORE-BEGIN
-    ROLE: Default interactive sink implementation for logging subsystem.
-    CONTRACT: Emit one line per accepted message via ``print``.
-    INVARIANTS: Reuses BaseLogger filtering pipeline and subscription rules.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Default interactive sink implementation for logging subsystem.
+        CONTRACT: Emit one line per accepted message via ``print``.
+        INVARIANTS: Reuses BaseLogger filtering pipeline and subscription rules.
+        AI-CORE-END
+    """
 
     def __init__(
         self,
@@ -128,6 +128,7 @@ AI-CORE-BEGIN
             level = var.get("level")
             if isinstance(level, LogLevelPayload) and level.mask in self._level_fg:
                 line = self._wrap_line_with_level_base(
-                    line, self._level_fg[level.mask],
+                    line,
+                    self._level_fg[level.mask],
                 )
         print(line)

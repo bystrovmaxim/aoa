@@ -68,6 +68,7 @@ class ConnectionInfo:
         key: Non-empty string key for ``connections[key]`` inside aspects.
         description: Human-readable label for introspection and docs.
     """
+
     cls: type
     key: str
     description: str = ""
@@ -84,8 +85,7 @@ def _validate_connection_args(klass: Any, key: str, description: str) -> None:
     """
     if not isinstance(klass, type):
         raise TypeError(
-            f"@connection expects a class, got {type(klass).__name__}: {klass!r}. "
-            f"Pass a resource manager class."
+            f"@connection expects a class, got {type(klass).__name__}: {klass!r}. " f"Pass a resource manager class."
         )
 
     if not issubclass(klass, BaseResource):
@@ -95,22 +95,13 @@ def _validate_connection_args(klass: Any, key: str, description: str) -> None:
         )
 
     if not isinstance(key, str):
-        raise TypeError(
-            f"@connection: key must be a string, "
-            f"got {type(key).__name__}: {key!r}."
-        )
+        raise TypeError(f"@connection: key must be a string, " f"got {type(key).__name__}: {key!r}.")
 
     if not key.strip():
-        raise ValueError(
-            "@connection: key cannot be empty. "
-            "Provide a key identifier, for example 'db'."
-        )
+        raise ValueError("@connection: key cannot be empty. " "Provide a key identifier, for example 'db'.")
 
     if not isinstance(description, str):
-        raise TypeError(
-            f"@connection: description must be a string, "
-            f"got {type(description).__name__}."
-        )
+        raise TypeError(f"@connection: description must be a string, " f"got {type(description).__name__}.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -132,27 +123,24 @@ def connection(klass: Any, *, key: str, description: str = "") -> Callable[[type
         # Target must be a class
         if not isinstance(cls, type):
             raise TypeError(
-                f"@connection can only be applied to classes. "
-                f"Got object of type {type(cls).__name__}: {cls!r}."
+                f"@connection can only be applied to classes. " f"Got object of type {type(cls).__name__}: {cls!r}."
             )
 
         target = cast(Any, cls)
 
         # Ensure subclass-local declaration list on first use
-        if '_connection_info' not in target.__dict__:
-            target._connection_info = list(getattr(target, '_connection_info', []))
+        if "_connection_info" not in target.__dict__:
+            target._connection_info = list(getattr(target, "_connection_info", []))
 
         # Duplicate key check
         if any(info.key == key for info in target._connection_info):
             raise ValueError(
-                f"@connection(key=\"{key}\"): key \"{key}\" is already declared "
+                f'@connection(key="{key}"): key "{key}" is already declared '
                 f"for class {cls.__name__}. Each key must be unique."
             )
 
         # Register connection declaration
-        target._connection_info.append(
-            ConnectionInfo(cls=klass, key=key, description=description)
-        )
+        target._connection_info.append(ConnectionInfo(cls=klass, key=key, description=description))
 
         return cls
 

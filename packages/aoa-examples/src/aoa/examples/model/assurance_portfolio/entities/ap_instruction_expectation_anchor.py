@@ -34,12 +34,16 @@ class AssuranceInstructionExpectationAnchorEntity(BaseEntity):
     instruction_line: Annotated[
         AssociationOne[AssuranceScenarioInstructionLineEntity],
         NoInverse(),
-    ] = Rel(description="Scenario choreography row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Scenario choreography row"
+    )  # type: ignore[assignment]
 
     expectation_row: Annotated[
         AssociationOne[AssuranceRegulatedExpectationRowEntity],
         NoInverse(),
-    ] = Rel(description="Validated expectation corpus entry")  # type: ignore[assignment]
+    ] = Rel(
+        description="Validated expectation corpus entry"
+    )  # type: ignore[assignment]
 
 
 AssuranceInstructionExpectationAnchorEntity.model_rebuild()

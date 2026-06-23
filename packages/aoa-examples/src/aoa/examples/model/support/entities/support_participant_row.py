@@ -26,7 +26,9 @@ class SupportParticipantEntity(BaseEntity):
     ticket: Annotated[
         AssociationOne[SupportTicketAggregateEntity],
         NoInverse(),
-    ] = Rel(description="Parent ticket aggregate")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent ticket aggregate"
+    )  # type: ignore[assignment]
 
 
 SupportParticipantEntity.model_rebuild()

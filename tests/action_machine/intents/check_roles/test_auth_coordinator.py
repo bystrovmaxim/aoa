@@ -57,7 +57,7 @@ from aoa.action_machine.context.user_info import UserInfo
 from tests.action_machine.scenarios.domain_model.roles import AdminRole, SpyRole
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Mock implementations of authentication components
+# Mock implementations of authentication components
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -105,7 +105,7 @@ class _MockAssembler(ContextAssembler):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#AuthCoordinator - successful authentication
+# AuthCoordinator - successful authentication
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -121,15 +121,17 @@ class TestAuthCoordinatorSuccess:
         2. Authenticator.authenticate(credentials) → UserInfo(user_id="u1", roles=(AdminRole,))
         3. Assembler.assemble() → {"trace_id": "t1", "request_path": "/api"}
         4. Result → Context(user=UserInfo, request=RequestInfo)"""
-        #Arrange - three components with valid data
+        # Arrange - three components with valid data
         extractor = _MockExtractor({"api_key": "secret-123"})
         authenticator = _MockAuthenticator(
             UserInfo(user_id="u1", roles=(AdminRole,)),
         )
-        assembler = _MockAssembler({
-            "trace_id": "trace-full",
-            "request_path": "/api/v1/orders",
-        })
+        assembler = _MockAssembler(
+            {
+                "trace_id": "trace-full",
+                "request_path": "/api/v1/orders",
+            }
+        )
 
         coordinator = AuthCoordinator(
             extractor=extractor,
@@ -137,10 +139,10 @@ class TestAuthCoordinatorSuccess:
             assembler=assembler,
         )
 
-        #Act - full authentication cycle
+        # Act - full authentication cycle
         result = await coordinator.process({"raw_request": "data"})
 
-        #Assert - Context contains the authenticated user
+        # Assert - Context contains the authenticated user
         assert result is not None
         assert isinstance(result, Context)
         assert result.user.user_id == "u1"
@@ -152,7 +154,7 @@ class TestAuthCoordinatorSuccess:
     async def test_user_info_preserved_in_context(self) -> None:
         """UserInfo from Authenticator is passed to Context unchanged.
         All UserInfo fields (user_id, roles) are accessible through context.user."""
-        #Arrange - UserInfo with user_id and roles
+        # Arrange - UserInfo with user_id and roles
         user = UserInfo(user_id="agent_007", roles=(SpyRole,))
         extractor = _MockExtractor({"token": "valid"})
         authenticator = _MockAuthenticator(user)
@@ -166,14 +168,14 @@ class TestAuthCoordinatorSuccess:
         # Act
         result = await coordinator.process(None)
 
-        #Assert - UserInfo is completely saved
+        # Assert - UserInfo is completely saved
         assert result is not None
         assert result.user.user_id == "agent_007"
         assert result.user.roles == (SpyRole,)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#AuthCoordinator - failed authentication
+# AuthCoordinator - failed authentication
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -187,7 +189,7 @@ class TestAuthCoordinatorFailure:
         Empty credentials mean the request contains no data
         authentication (no Authorization header, no cookie, etc.).
         Authenticator is not called."""
-        #Arrange - extractor returns empty dict
+        # Arrange - extractor returns empty dict
         extractor = _MockExtractor({})
         authenticator = _MockAuthenticator(UserInfo(user_id="should_not_reach"))
         assembler = _MockAssembler()
@@ -198,10 +200,10 @@ class TestAuthCoordinatorFailure:
             assembler=assembler,
         )
 
-        #Act - the process is interrupted at the first step
+        # Act - the process is interrupted at the first step
         result = await coordinator.process(None)
 
-        #Assert - None, authentication failed
+        # Assert - None, authentication failed
         assert result is None
 
     @pytest.mark.asyncio
@@ -210,7 +212,7 @@ class TestAuthCoordinatorFailure:
 
         Credentials have been transferred, but are invalid (expired token,
         incorrect password, blocked account). Assembler is not called."""
-        #Arrange — extractor returns credentials, authenticator → None
+        # Arrange — extractor returns credentials, authenticator → None
         extractor = _MockExtractor({"token": "expired-token"})
         authenticator = _MockAuthenticator(None)
         assembler = _MockAssembler()
@@ -221,10 +223,10 @@ class TestAuthCoordinatorFailure:
             assembler=assembler,
         )
 
-        #Act - the process is interrupted at the second step
+        # Act - the process is interrupted at the second step
         result = await coordinator.process(None)
 
-        #Assert — None, credentials are invalid
+        # Assert — None, credentials are invalid
         assert result is None
 
 
@@ -244,12 +246,12 @@ class TestNoAuthCoordinator:
         if authentication fails, NoAuthCoordinator guarantees
         Context for each request."""
         # Arrange
-        coordinator = NoAuthCoordinator()
+        coordinator = NoAuthCoordinator(context=Context())
 
         # Act
         result = await coordinator.process({"any": "data"})
 
-        #Assert - always Context, not None
+        # Assert - always Context, not None
         assert result is not None
         assert isinstance(result, Context)
 
@@ -260,12 +262,12 @@ class TestNoAuthCoordinator:
         UserInfo: user_id=None, roles=(). Actions with @check_roles(GuestRole)
         are checked, actions with specific roles are rejected."""
         # Arrange
-        coordinator = NoAuthCoordinator()
+        coordinator = NoAuthCoordinator(context=Context())
 
         # Act
         result = await coordinator.process(None)
 
-        #Assert - anonymous user
+        # Assert - anonymous user
         assert result.user.user_id is None
         assert result.user.roles == ()
 
@@ -276,36 +278,37 @@ class TestNoAuthCoordinator:
         Call process() with any argument (None, dict, string)
         returns the same anonymous Context."""
         # Arrange
-        coordinator = NoAuthCoordinator()
+        coordinator = NoAuthCoordinator(context=Context())
 
-        #Act - different types of request_data
+        # Act - different types of request_data
         result_none = await coordinator.process(None)
         result_dict = await coordinator.process({"key": "value"})
         result_str = await coordinator.process("raw_request")
 
-        #Assert - all three return an anonymous Context
+        # Assert - all three return an anonymous Context
         assert result_none.user.user_id is None
         assert result_dict.user.user_id is None
         assert result_str.user.user_id is None
 
     @pytest.mark.asyncio
-    async def test_each_call_returns_new_context(self) -> None:
-        """Each call to process() returns a new Context instance.
+    async def test_same_context_returned_on_each_call(self) -> None:
+        """Each call to process() returns the same Context instance.
 
-        Contexts are not shared between requests - complete isolation."""
+        NoAuthCoordinator holds a fixed context and returns it unchanged
+        on every request — the caller owns the object."""
         # Arrange
-        coordinator = NoAuthCoordinator()
+        coordinator = NoAuthCoordinator(context=Context())
 
-        #Act - two calls
+        # Act - two calls
         ctx1 = await coordinator.process(None)
         ctx2 = await coordinator.process(None)
 
-        #Assert - two different objects
-        assert ctx1 is not ctx2
+        # Assert - same object
+        assert ctx1 is ctx2
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Interface compatibility
+# Interface compatibility
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -321,16 +324,16 @@ class TestInterfaceCompatibility:
             assembler=_MockAssembler(),
         )
 
-        #Act & Assert - the method exists
+        # Act & Assert - the method exists
         assert hasattr(coordinator, "process")
         assert callable(coordinator.process)
 
     def test_no_auth_coordinator_has_process(self) -> None:
         """NoAuthCoordinator has an asynchronous process() method."""
         # Arrange
-        coordinator = NoAuthCoordinator()
+        coordinator = NoAuthCoordinator(context=Context())
 
-        #Act & Assert - the method exists
+        # Act & Assert - the method exists
         assert hasattr(coordinator, "process")
         assert callable(coordinator.process)
 
@@ -346,13 +349,13 @@ class TestInterfaceCompatibility:
             auth_instance=_MockAuthenticator(UserInfo(user_id="u1")),
             assembler=_MockAssembler(),
         )
-        no_auth = NoAuthCoordinator()
+        no_auth = NoAuthCoordinator(context=Context())
 
-        #Act - both accept None
+        # Act - both accept None
         auth_result = await auth.process(None)
         no_auth_result = await no_auth.process(None)
 
-        #Assert - both returned a result
+        # Assert - both returned a result
         assert auth_result is not None
         assert no_auth_result is not None
         assert no_auth_result is not None

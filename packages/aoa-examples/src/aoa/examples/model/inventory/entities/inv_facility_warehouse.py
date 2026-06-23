@@ -9,7 +9,9 @@ from aoa.examples.model.inventory.domain import InventoryDomain
 from aoa.examples.model.inventory.entities.inv_dense_lifecycle import InvPipelineLifecycle
 
 
-@entity(description="Warehouse / facility hub for inventory locations and cross-dock operations", domain=InventoryDomain)
+@entity(
+    description="Warehouse / facility hub for inventory locations and cross-dock operations", domain=InventoryDomain
+)
 class FacilityWarehouseEntity(BaseEntity):
     id: str = Field(description="Facility id")
     lifecycle: InvPipelineLifecycle = Field(description="Facility lifecycle")

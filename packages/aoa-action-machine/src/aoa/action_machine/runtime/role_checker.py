@@ -104,38 +104,23 @@ class RoleChecker:
         if role_spec is AnyRole:
             active = _active_user_roles(raw_roles)
             if not active:
-                raise AuthorizationError(
-                    "Authentication required: user must have at least one role"
-                )
+                raise AuthorizationError("Authentication required: user must have at least one role")
             return
 
         active = _active_user_roles(raw_roles)
 
         if isinstance(role_spec, tuple):
-            if any(
-                _user_role_grants_requirement(ur, req)
-                for ur in active
-                for req in role_spec
-            ):
+            if any(_user_role_grants_requirement(ur, req) for ur in active for req in role_spec):
                 return
             names = [r.name for r in role_spec]
             user_names = [r.name for r in raw_roles]
-            raise AuthorizationError(
-                f"Access denied. Required one of the roles: {names}, "
-                f"user roles: {user_names}"
-            )
+            raise AuthorizationError(f"Access denied. Required one of the roles: {names}, " f"user roles: {user_names}")
         if isinstance(role_spec, type) and issubclass(role_spec, BaseRole):
             if any(_user_role_grants_requirement(ur, role_spec) for ur in active):
                 return
             user_names = [r.name for r in raw_roles]
-            raise AuthorizationError(
-                f"Access denied. Required role: '{role_spec.name}', "
-                f"user roles: {user_names}"
-            )
-        raise TypeError(
-            f"Invalid reconstructed @check_roles spec: {role_spec!r} "
-            f"({type(role_spec).__name__})."
-        )
+            raise AuthorizationError(f"Access denied. Required role: '{role_spec.name}', " f"user roles: {user_names}")
+        raise TypeError(f"Invalid reconstructed @check_roles spec: {role_spec!r} " f"({type(role_spec).__name__}).")
 
 
 def _active_user_roles(
@@ -150,9 +135,7 @@ def _active_user_roles(
     return out
 
 
-def _user_role_grants_requirement(
-    user_role: type[BaseRole], required: type[BaseRole]
-) -> bool:
+def _user_role_grants_requirement(user_role: type[BaseRole], required: type[BaseRole]) -> bool:
     if RoleMode.declared_for(user_role) is RoleMode.SILENCED:
         return False
     return issubclass(user_role, required)

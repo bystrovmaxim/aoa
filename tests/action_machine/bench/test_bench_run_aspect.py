@@ -55,14 +55,18 @@ class TestFirstAspect:
 
     @pytest.mark.anyio
     async def test_empty_state_accepted(
-        self, manager_bench: TestBench, mock_db: AsyncMock,
+        self,
+        manager_bench: TestBench,
+        mock_db: AsyncMock,
     ) -> None:
         """No preceding aspects -> no checkers -> empty ``state`` is valid."""
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=100.0)
 
         result = await manager_bench.run_aspect(
-            action, "process_payment_aspect", params,
+            action,
+            "process_payment_aspect",
+            params,
             state={},
             rollup=False,
             connections={"db": mock_db},
@@ -77,14 +81,18 @@ class TestSecondAspect:
 
     @pytest.mark.anyio
     async def test_valid_state_from_first_aspect(
-        self, manager_bench: TestBench, mock_db: AsyncMock,
+        self,
+        manager_bench: TestBench,
+        mock_db: AsyncMock,
     ) -> None:
         """``calc_total_aspect`` requires ``txn_id`` from ``process_payment_aspect``."""
         action = FullAction()
         params = FullAction.Params(user_id="u1", amount=250.0)
 
         result = await manager_bench.run_aspect(
-            action, "calc_total_aspect", params,
+            action,
+            "calc_total_aspect",
+            params,
             state={"txn_id": "TXN-001"},
             rollup=False,
             connections={"db": mock_db},
@@ -98,7 +106,9 @@ class TestInvalidState:
 
     @pytest.mark.anyio
     async def test_missing_required_field(
-        self, manager_bench: TestBench, mock_db: AsyncMock,
+        self,
+        manager_bench: TestBench,
+        mock_db: AsyncMock,
     ) -> None:
         """Empty state before ``calc_total_aspect`` -> missing ``txn_id``."""
         action = FullAction()
@@ -106,7 +116,9 @@ class TestInvalidState:
 
         with pytest.raises(StateValidationError, match="txn_id"):
             await manager_bench.run_aspect(
-                action, "calc_total_aspect", params,
+                action,
+                "calc_total_aspect",
+                params,
                 state={},
                 rollup=False,
                 connections={"db": mock_db},
@@ -114,7 +126,9 @@ class TestInvalidState:
 
     @pytest.mark.anyio
     async def test_wrong_type_in_state(
-        self, manager_bench: TestBench, mock_db: AsyncMock,
+        self,
+        manager_bench: TestBench,
+        mock_db: AsyncMock,
     ) -> None:
         """``txn_id`` must be a string; ``int`` fails ``FieldStringChecker``."""
         action = FullAction()
@@ -122,7 +136,9 @@ class TestInvalidState:
 
         with pytest.raises(StateValidationError, match="must be a string"):
             await manager_bench.run_aspect(
-                action, "calc_total_aspect", params,
+                action,
+                "calc_total_aspect",
+                params,
                 state={"txn_id": 123},
                 rollup=False,
                 connections={"db": mock_db},
@@ -134,7 +150,9 @@ class TestNonexistentAspect:
 
     @pytest.mark.anyio
     async def test_raises_state_validation_error(
-        self, manager_bench: TestBench, mock_db: AsyncMock,
+        self,
+        manager_bench: TestBench,
+        mock_db: AsyncMock,
     ) -> None:
         """``nonexistent`` is not registered on ``FullAction``."""
         action = FullAction()
@@ -142,7 +160,9 @@ class TestNonexistentAspect:
 
         with pytest.raises(StateValidationError, match="was not found"):
             await manager_bench.run_aspect(
-                action, "nonexistent", params,
+                action,
+                "nonexistent",
+                params,
                 state={},
                 rollup=False,
                 connections={"db": mock_db},

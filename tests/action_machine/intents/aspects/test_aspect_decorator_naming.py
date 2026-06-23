@@ -29,6 +29,7 @@ class TestRegularAspectSuffix:
         from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 
         with pytest.raises(NamingSuffixError, match="_aspect"):
+
             @regular_aspect("Data validation")
             async def validate_data(self, params, state, box, connections):
                 return {}
@@ -38,6 +39,7 @@ class TestRegularAspectSuffix:
         from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 
         with pytest.raises(NamingSuffixError, match="_aspect"):
+
             @regular_aspect("Data validation")
             async def validate_data_step(self, params, state, box, connections):
                 return {}
@@ -61,6 +63,7 @@ class TestSummaryAspectSuffix:
         from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 
         with pytest.raises(NamingSuffixError, match="_summary"):
+
             @summary_aspect("Building result")
             async def build_result(self, params, state, box, connections):
                 pass
@@ -74,6 +77,7 @@ class TestAspectDescriptionRequired:
         from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 
         with pytest.raises(ValueError, match="cannot be empty"):
+
             @regular_aspect("")
             async def validate_aspect(self, params, state, box, connections):
                 return {}
@@ -83,6 +87,7 @@ class TestAspectDescriptionRequired:
         from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 
         with pytest.raises(ValueError, match="cannot be empty"):
+
             @summary_aspect("")
             async def result_summary(self, params, state, box, connections):
                 pass
@@ -92,6 +97,7 @@ class TestAspectDescriptionRequired:
         from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 
         with pytest.raises(ValueError, match="cannot be empty"):
+
             @regular_aspect("   ")
             async def validate_aspect(self, params, state, box, connections):
                 return {}

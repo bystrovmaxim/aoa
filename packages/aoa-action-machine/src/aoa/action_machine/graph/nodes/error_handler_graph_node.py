@@ -60,19 +60,12 @@ class ErrorHandlerGraphNode(BaseGraphNode[Callable[..., Any]]):
             "type": self.node_type,
             "label": self.label,
             "properties": {
-                **(
-                    {"description": str(self.properties["description"])}
-                    if "description" in self.properties
-                    else {}
-                ),
+                **({"description": str(self.properties["description"])} if "description" in self.properties else {}),
                 **(
                     {
-                        "exception_types": [
-                            str(x) for x in self.properties["exception_types"]
-                        ],
+                        "exception_types": [str(x) for x in self.properties["exception_types"]],
                     }
-                    if "exception_types" in self.properties
-                    and isinstance(self.properties["exception_types"], list)
+                    if "exception_types" in self.properties and isinstance(self.properties["exception_types"], list)
                     else {}
                 ),
             },

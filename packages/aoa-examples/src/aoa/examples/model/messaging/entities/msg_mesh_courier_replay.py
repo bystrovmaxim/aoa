@@ -13,7 +13,9 @@ from aoa.examples.model.messaging.entities.msg_dense_lifecycle import MsgDenseLi
 from aoa.examples.model.messaging.entities.msg_replay_ticket import ReplayTicketEntity
 
 
-@entity(description="Short-circuit between courier delivery spine and replay coordination queue", domain=MessagingDomain)
+@entity(
+    description="Short-circuit between courier delivery spine and replay coordination queue", domain=MessagingDomain
+)
 class MsgCourierReplayCorrelateEntity(BaseEntity):
     id: str = Field(description="Correlator id")
     lifecycle: MsgDenseLifecycle = Field(description="Correlator lifecycle")
@@ -27,12 +29,16 @@ class MsgCourierReplayCorrelateEntity(BaseEntity):
     courier_ledger: Annotated[
         AssociationOne[CourierAttemptLedgerEntity],
         NoInverse(),
-    ] = Rel(description="Courier attempt ledger linkage")  # type: ignore[assignment]
+    ] = Rel(
+        description="Courier attempt ledger linkage"
+    )  # type: ignore[assignment]
 
     replay_ticket: Annotated[
         AssociationOne[ReplayTicketEntity],
         NoInverse(),
-    ] = Rel(description="Replay ticket linkage")  # type: ignore[assignment]
+    ] = Rel(
+        description="Replay ticket linkage"
+    )  # type: ignore[assignment]
 
 
 MsgCourierReplayCorrelateEntity.model_rebuild()

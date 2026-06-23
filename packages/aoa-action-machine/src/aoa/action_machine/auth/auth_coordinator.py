@@ -70,22 +70,25 @@ class ContextAssembler(ABC):
 
 class AuthCoordinator:
     """
-AI-CORE-BEGIN
-    ROLE: Authentication orchestration coordinator.
-    CONTRACT: extract credentials -> authenticate user -> assemble request metadata.
-    INVARIANTS: returns Context on success or None when flow cannot continue.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Authentication orchestration coordinator.
+        CONTRACT: extract credentials -> authenticate user -> assemble request metadata.
+        INVARIANTS: returns Context on success or None when flow cannot continue.
+        AI-CORE-END
+    """
 
     def __init__(
         self,
         extractor: CredentialExtractor,
         auth_instance: Authenticator,
         assembler: ContextAssembler,
+        *,
+        context_class: type[Context] = Context,
     ) -> None:
         self.extractor = extractor
         self.authenticator = auth_instance
         self.assembler = assembler
+        self._context_class = context_class
 
     async def process(self, request_data: Any) -> Context | None:
         """Execute extract/auth/assemble flow and return ``Context`` or ``None``."""
@@ -104,7 +107,7 @@ AI-CORE-BEGIN
         req_info = RequestInfo(**metadata)
 
         # Step 4: build context
-        return Context(user=authenticated_user, request=req_info)
+        return self._context_class(user=authenticated_user, request=req_info)
 
 
 class NoAuthCoordinator:
@@ -112,9 +115,17 @@ class NoAuthCoordinator:
     Explicit open-access coordinator that bypasses authentication.
 
     Keeps ``process(request_data)`` API compatibility with ``AuthCoordinator``
-    and always returns a fresh anonymous ``Context``.
+    and always returns the provided ``Context``, ignoring request data.
+
+    The ``context`` argument is required so the caller declares the context
+    explicitly rather than relying on an implicit anonymous default::
+
+        auth_coordinator=NoAuthCoordinator(context=Context())
     """
 
+    def __init__(self, context: Context) -> None:
+        self._context = context
+
     async def process(self, request_data: Any) -> Context:
-        """Return a fresh anonymous ``Context`` for every call."""
-        return Context()
+        """Return the fixed ``Context`` for every call, ignoring ``request_data``."""
+        return self._context

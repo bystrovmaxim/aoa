@@ -23,9 +23,7 @@ from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNod
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.inspectors.action_graph_node_inspector import ActionGraphNodeInspector
-from aoa.action_machine.graph.inspectors.application_graph_node_inspector import (
-    ApplicationGraphNodeInspector,
-)
+from aoa.action_machine.graph.inspectors.application_graph_node_inspector import ApplicationGraphNodeInspector
 from aoa.action_machine.graph.inspectors.domain_graph_node_inspector import DomainGraphNodeInspector
 from aoa.action_machine.graph.inspectors.entity_graph_node_inspector import EntityGraphNodeInspector
 from aoa.action_machine.graph.inspectors.params_graph_node_inspector import ParamsGraphNodeInspector

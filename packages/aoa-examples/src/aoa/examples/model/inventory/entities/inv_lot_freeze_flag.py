@@ -27,12 +27,16 @@ class LotFreezeFlagEntity(BaseEntity):
     bin_coordinate: Annotated[
         AssociationOne[BinCoordinateStubEntity],
         NoInverse(),
-    ] = Rel(description="Owning bin coordinate")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning bin coordinate"
+    )  # type: ignore[assignment]
 
     facility: Annotated[
         AssociationOne[FacilityWarehouseEntity],
         NoInverse(),
-    ] = Rel(description="Facility where the frozen lot is held")  # type: ignore[assignment]
+    ] = Rel(
+        description="Facility where the frozen lot is held"
+    )  # type: ignore[assignment]
 
 
 LotFreezeFlagEntity.model_rebuild()

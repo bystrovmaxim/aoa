@@ -27,6 +27,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 # ToolsBox fixture
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 def _make_toolsbox() -> ToolsBox:
     """
     Build ToolsBox with minimal stubs for testing.
@@ -47,6 +48,7 @@ def _make_toolsbox() -> ToolsBox:
 # ═════════════════════════════════════════════════════════════════════════════
 # Context privacy
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestToolsBoxContextPrivacy:
     """No public Context access through ToolsBox."""
@@ -114,9 +116,7 @@ class TestToolsBoxContextPrivacy:
 
         # Assert
         for val in public_values:
-            assert not isinstance(val, Context), (
-                f"Public property returned Context: {val!r}"
-            )
+            assert not isinstance(val, Context), f"Public property returned Context: {val!r}"
 
     def test_context_not_stored_on_box_instance(self) -> None:
         """
@@ -134,6 +134,7 @@ class TestToolsBoxContextPrivacy:
 # ═════════════════════════════════════════════════════════════════════════════
 # ToolsBox frozen semantics
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestToolsBoxFrozen:
     """ToolsBox immutability after creation."""
@@ -178,6 +179,7 @@ class TestToolsBoxFrozen:
 # ═════════════════════════════════════════════════════════════════════════════
 # Public properties behave correctly
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestToolsBoxPublicAPI:
     """Public ToolsBox properties."""

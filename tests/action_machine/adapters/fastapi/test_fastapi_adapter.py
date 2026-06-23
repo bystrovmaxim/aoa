@@ -41,6 +41,7 @@ from fastapi.testclient import TestClient
 
 from aoa.action_machine.adapters.fastapi.adapter import FastApiAdapter
 from aoa.action_machine.adapters.fastapi.route_record import FastApiRouteRecord
+from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.action_machine.resources.test_connections_dict import DummyResourceManager
 from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
@@ -54,7 +55,7 @@ def _make_adapter(**kwargs) -> FastApiAdapter:
     """Create a FastApiAdapter with sensible test defaults."""
     machine = ActionProductMachine(loggers=[])
     auth = AsyncMock()
-    auth.process.return_value = None
+    auth.process.return_value = Context()
     return FastApiAdapter(
         machine=machine,
         auth_coordinator=auth,
@@ -204,8 +205,7 @@ class TestFluentChain:
         adapter = _make_adapter()
 
         result = (
-            adapter
-            .get("/ping", PingAction, tags=["system"])
+            adapter.get("/ping", PingAction, tags=["system"])
             .post("/orders", SimpleAction, tags=["orders"])
             .delete("/orders/{id}", PingAction, tags=["orders"])
         )

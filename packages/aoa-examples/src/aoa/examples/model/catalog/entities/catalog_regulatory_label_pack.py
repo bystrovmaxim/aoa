@@ -26,7 +26,9 @@ class RegulatoryLabelPackEntity(BaseEntity):
     merch_copy: Annotated[
         AssociationOne[MerchCopyVariantEntity],
         NoInverse(),
-    ] = Rel(description="Parent merch variant row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent merch variant row"
+    )  # type: ignore[assignment]
 
 
 RegulatoryLabelPackEntity.model_rebuild()

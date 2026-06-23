@@ -26,7 +26,9 @@ class AnalyticsAggregateSketchStubEntity(BaseEntity):
     policy: Annotated[
         AssociationOne[AnalyticsSamplingPolicyEntity],
         NoInverse(),
-    ] = Rel(description="Parent sampling policy")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent sampling policy"
+    )  # type: ignore[assignment]
 
 
 AnalyticsAggregateSketchStubEntity.model_rebuild()

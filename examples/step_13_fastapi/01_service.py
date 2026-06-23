@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 from aoa.action_machine.adapters.fastapi import FastApiAdapter
 from aoa.action_machine.auth import ApplicationRole, GuestRole, NoAuthCoordinator
+from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -78,7 +79,7 @@ class GreetV2Response(BaseModel):
 def build_app():
     machine = ActionProductMachine()
     return (
-        FastApiAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(), title="Greetings API")
+        FastApiAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), title="Greetings API")
         .post("/greet", GreetAction, tags=["greetings"])
         .post("/admin/ping", AdminPingAction, tags=["admin"])
         # v2: external shape (to/greeting) bridged to the operation's Params/Result

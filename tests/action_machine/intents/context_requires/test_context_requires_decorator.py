@@ -138,6 +138,7 @@ class TestInvalidNoKeys:
     def test_no_keys_raises_value_error(self) -> None:
         # Arrange / Act / Assert — empty call with no arguments
         with pytest.raises(ValueError, match="at least one key"):
+
             @context_requires()
             async def my_method(self, params, state, box, connections, ctx):
                 pass
@@ -149,6 +150,7 @@ class TestInvalidKeyType:
     def test_int_key_raises_type_error(self) -> None:
         # Arrange / Act / Assert — int instead of string
         with pytest.raises(TypeError, match="must be a string"):
+
             @context_requires(42)  # type: ignore[arg-type]
             async def my_method(self, params, state, box, connections, ctx):
                 pass
@@ -156,6 +158,7 @@ class TestInvalidKeyType:
     def test_none_key_raises_type_error(self) -> None:
         # Arrange / Act / Assert — None instead of string
         with pytest.raises(TypeError, match="must be a string"):
+
             @context_requires(None)  # type: ignore[arg-type]
             async def my_method(self, params, state, box, connections, ctx):
                 pass
@@ -163,6 +166,7 @@ class TestInvalidKeyType:
     def test_list_key_raises_type_error(self) -> None:
         # Arrange / Act / Assert — list instead of string
         with pytest.raises(TypeError, match="must be a string"):
+
             @context_requires(["user.user_id"])  # type: ignore[arg-type]
             async def my_method(self, params, state, box, connections, ctx):
                 pass
@@ -174,6 +178,7 @@ class TestInvalidEmptyKey:
     def test_empty_string_raises_value_error(self) -> None:
         # Arrange / Act / Assert
         with pytest.raises(ValueError, match="cannot be empty"):
+
             @context_requires("")
             async def my_method(self, params, state, box, connections, ctx):
                 pass
@@ -181,6 +186,7 @@ class TestInvalidEmptyKey:
     def test_whitespace_only_raises_value_error(self) -> None:
         # Arrange / Act / Assert — whitespace-only string
         with pytest.raises(ValueError, match="cannot be empty"):
+
             @context_requires("   ")
             async def my_method(self, params, state, box, connections, ctx):
                 pass
@@ -188,6 +194,7 @@ class TestInvalidEmptyKey:
     def test_mixed_valid_and_empty_raises(self) -> None:
         # Arrange / Act / Assert — one valid key, one empty
         with pytest.raises(ValueError, match="cannot be empty"):
+
             @context_requires(Ctx.User.user_id, "")
             async def my_method(self, params, state, box, connections, ctx):
                 pass

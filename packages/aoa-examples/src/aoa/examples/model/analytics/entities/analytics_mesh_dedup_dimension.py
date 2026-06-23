@@ -27,12 +27,16 @@ class AnalyticsDedupDimensionCorrelateEntity(BaseEntity):
     dedup_row: Annotated[
         AssociationOne[AnalyticsDedupBloomRowEntity],
         NoInverse(),
-    ] = Rel(description="Dedup bloom anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Dedup bloom anchor"
+    )  # type: ignore[assignment]
 
     dimension_stub: Annotated[
         AssociationOne[DimensionSliceStubEntity],
         NoInverse(),
-    ] = Rel(description="Dimension slice anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Dimension slice anchor"
+    )  # type: ignore[assignment]
 
 
 AnalyticsDedupDimensionCorrelateEntity.model_rebuild()

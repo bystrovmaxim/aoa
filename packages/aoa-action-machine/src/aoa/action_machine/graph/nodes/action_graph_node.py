@@ -101,7 +101,9 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         object.__setattr__(self, "summary_aspect", SummaryAspectGraphEdge.get_summary_aspect_edges(action_cls))
         object.__setattr__(self, "compensators", CompensatorGraphEdge.get_compensator_edges(action_cls))
         object.__setattr__(self, "on_error_handlers", ErrorHandlerGraphEdge.get_on_error_handlers_edges(action_cls))
-        object.__setattr__(self, "parent_actions", cast(list[ParentActionGraphEdge], build_parent_action_edges(action_cls)))
+        object.__setattr__(
+            self, "parent_actions", cast(list[ParentActionGraphEdge], build_parent_action_edges(action_cls))
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -136,7 +138,9 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 raise RuntimeError(msg)
             host = target.node_obj
             if not isinstance(host, type):
-                msg = f"@depends target {edge.target_node_id!r} must resolve to a host type, got {type(host).__name__!r}"
+                msg = (
+                    f"@depends target {edge.target_node_id!r} must resolve to a host type, got {type(host).__name__!r}"
+                )
                 raise TypeError(msg)
             raw_fac = edge.properties.get("factory")
             factory = raw_fac if raw_fac is None or callable(raw_fac) else None

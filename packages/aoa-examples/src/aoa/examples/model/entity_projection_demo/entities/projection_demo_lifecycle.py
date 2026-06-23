@@ -11,11 +11,7 @@ from aoa.action_machine.domain import Lifecycle
 class ProjectionDemoCustomerLifecycle(Lifecycle):
     """Two-state customer lifecycle for graph inspectors."""
 
-    _template = (
-        Lifecycle()
-        .state("active", "Active").to("archived").initial()
-        .state("archived", "Archived").final()
-    )
+    _template = Lifecycle().state("active", "Active").to("archived").initial().state("archived", "Archived").final()
 
 
 class ProjectionDemoOrderLifecycle(Lifecycle):
@@ -23,7 +19,12 @@ class ProjectionDemoOrderLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("draft", "Draft").to("confirmed").initial()
-        .state("confirmed", "Confirmed").to("cancelled").intermediate()
-        .state("cancelled", "Cancelled").final()
+        .state("draft", "Draft")
+        .to("confirmed")
+        .initial()
+        .state("confirmed", "Confirmed")
+        .to("cancelled")
+        .intermediate()
+        .state("cancelled", "Cancelled")
+        .final()
     )

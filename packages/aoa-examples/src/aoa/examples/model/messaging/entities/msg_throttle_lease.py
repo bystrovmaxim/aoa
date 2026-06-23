@@ -26,7 +26,9 @@ class ThrottleLeaseEntity(BaseEntity):
     replay_ticket: Annotated[
         AssociationOne[ReplayTicketEntity],
         NoInverse(),
-    ] = Rel(description="Upstream replay ticket")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream replay ticket"
+    )  # type: ignore[assignment]
 
 
 ThrottleLeaseEntity.model_rebuild()

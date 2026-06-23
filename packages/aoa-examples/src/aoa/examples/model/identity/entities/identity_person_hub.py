@@ -26,6 +26,9 @@ class IdentityPersonHubEntity(BaseEntity):
     acquisition_channel_anchor: Annotated[
         AssociationOne[AcquisitionChannelLedgerEntity],
         NoInverse(),
-    ] = Rel(description="Acquisition ledger bridge for federation and marketing checks")  # type: ignore[assignment]
+    ] = Rel(
+        description="Acquisition ledger bridge for federation and marketing checks"
+    )  # type: ignore[assignment]
+
 
 IdentityPersonHubEntity.model_rebuild()

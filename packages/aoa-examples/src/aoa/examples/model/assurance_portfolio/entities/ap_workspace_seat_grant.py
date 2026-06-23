@@ -29,12 +29,16 @@ class AssuranceWorkspaceSeatGrantEntity(BaseEntity):
     actor: Annotated[
         AssociationOne[AssuranceFacilityActorEntity],
         NoInverse(),
-    ] = Rel(description="Seated actor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Seated actor"
+    )  # type: ignore[assignment]
 
     workspace_program: Annotated[
         AssociationOne[AssuranceWorkspaceProgramStubEntity],
         NoInverse(),
-    ] = Rel(description="Subject workspace capsule")  # type: ignore[assignment]
+    ] = Rel(
+        description="Subject workspace capsule"
+    )  # type: ignore[assignment]
 
 
 AssuranceWorkspaceSeatGrantEntity.model_rebuild()

@@ -26,12 +26,16 @@ class LineShipmentPieceEntity(BaseEntity):
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],
         NoInverse(),
-    ] = Rel(description="Line anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Line anchor"
+    )  # type: ignore[assignment]
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Parent order duplicate anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent order duplicate anchor"
+    )  # type: ignore[assignment]
 
 
 LineShipmentPieceEntity.model_rebuild()

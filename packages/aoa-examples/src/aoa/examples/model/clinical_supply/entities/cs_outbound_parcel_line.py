@@ -30,12 +30,16 @@ class ClinicalOutboundParcelLineEntity(BaseEntity):
     parcel_wave: Annotated[
         AssociationOne[ClinicalOutboundParcelWaveEntity],
         NoInverse(),
-    ] = Rel(description="Parent parcel wave")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent parcel wave"
+    )  # type: ignore[assignment]
 
     consumable_row: Annotated[
         AssociationOne[ClinicalConsumableSkuEntity],
         NoInverse(),
-    ] = Rel(description="Issued SKU")  # type: ignore[assignment]
+    ] = Rel(
+        description="Issued SKU"
+    )  # type: ignore[assignment]
 
 
 ClinicalOutboundParcelLineEntity.model_rebuild()

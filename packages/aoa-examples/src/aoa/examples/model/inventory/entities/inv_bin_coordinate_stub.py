@@ -27,12 +27,16 @@ class BinCoordinateStubEntity(BaseEntity):
     aisle: Annotated[
         AssociationOne[StorageAisleRowEntity],
         NoInverse(),
-    ] = Rel(description="Parent aisle")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent aisle"
+    )  # type: ignore[assignment]
 
     facility: Annotated[
         AssociationOne[FacilityWarehouseEntity],
         NoInverse(),
-    ] = Rel(description="Owning warehouse facility")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning warehouse facility"
+    )  # type: ignore[assignment]
 
 
 BinCoordinateStubEntity.model_rebuild()

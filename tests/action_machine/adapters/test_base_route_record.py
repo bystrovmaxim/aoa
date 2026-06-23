@@ -64,6 +64,7 @@ from tests.action_machine.scenarios.domain_model import FullAction, PingAction, 
 @dataclass(frozen=True)
 class _TestRouteRecord(BaseRouteRecord):
     """Concrete route record with no transport-specific fields."""
+
     pass
 
 
@@ -74,16 +75,19 @@ class _TestRouteRecord(BaseRouteRecord):
 
 class _NotAnAction:
     """Plain class that is not a ``BaseAction`` subclass."""
+
     pass
 
 
 class _AltRequest(BaseModel):
     """Alternative request model differing from the action's ``Params``."""
+
     query: str = "test"
 
 
 class _AltResponse(BaseModel):
     """Alternative response model differing from the action's ``Result``."""
+
     data: str = "ok"
 
 

@@ -132,12 +132,12 @@ _SCALAR_TYPES = (str, int, float, bool, bytes)
 @exclude_graph_model
 class BaseEntity(BaseSchema, ABC, EntityIntent):
     """
-AI-CORE-BEGIN
-    ROLE: Shared entity base with strict runtime access semantics.
-    CONTRACT: Provides immutable model behavior plus controlled partial-load mechanics.
-    INVARIANTS: Missing model fields on partial instances fail fast via ``FieldNotLoadedError``.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Shared entity base with strict runtime access semantics.
+        CONTRACT: Provides immutable model behavior plus controlled partial-load mechanics.
+        INVARIANTS: Missing model fields on partial instances fail fast via ``FieldNotLoadedError``.
+        AI-CORE-END
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -247,9 +247,7 @@ AI-CORE-BEGIN
                     loaded_fields=loaded,
                 )
 
-        raise AttributeError(
-            f"'{self.__class__.__name__}' object has no attribute '{name}'"
-        )
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
     def is_field_loaded(self, field_name: str) -> bool:
         """True when ``field_name`` is declared and present on this instance."""
@@ -267,9 +265,7 @@ AI-CORE-BEGIN
     def get_field_value(self, field_name: str) -> Any:
         """Return a loaded field value without triggering hidden lazy-load."""
         if field_name not in self.__class__.model_fields:
-            raise AttributeError(
-                f"'{self.__class__.__name__}' has no field '{field_name}'"
-            )
+            raise AttributeError(f"'{self.__class__.__name__}' has no field '{field_name}'")
         if not self.is_field_loaded(field_name):
             loaded_fields: frozenset[str] = frozenset()
             try:

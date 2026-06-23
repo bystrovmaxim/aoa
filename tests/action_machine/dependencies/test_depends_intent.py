@@ -53,41 +53,49 @@ from tests.action_machine.scenarios.domain_model import FullAction, PingAction
 
 class _AnyDepsHost(DependsIntent[object]):
     """Host with bound ``object`` — any dependency type allowed."""
+
     pass
 
 
 class _ResourceOnlyHost(DependsIntent[BaseResource]):
     """Host with bound ``BaseResource`` — resource managers only."""
+
     pass
 
 
 class _ChildOfResourceHost(_ResourceOnlyHost):
     """Subclass without its own generic — bound inherited from parent."""
+
     pass
 
 
 class _GrandchildOfResourceHost(_ChildOfResourceHost):
     """Grandchild — bound inherited through the MRO chain."""
+
     pass
 
 
 class _BranchA:
     """First branch for union-bound tests."""
+
     pass
 
 
 class _BranchB:
     """Second branch for union-bound tests."""
+
     pass
 
 
 class _UnionABHost(DependsIntent[_BranchA | _BranchB]):
     """Host allowing dependencies that subclass either branch type."""
+
     pass
 
 
 class _PlainClass:
     """Plain class with no ``DependsIntent`` in the MRO."""
+
     pass
 
 

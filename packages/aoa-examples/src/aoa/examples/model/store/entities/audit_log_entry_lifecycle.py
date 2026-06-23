@@ -11,7 +11,12 @@ class AuditLogEntryLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("written", "Written").to("indexed").initial()
-        .state("indexed", "Indexed").to("retained").intermediate()
-        .state("retained", "Retained").final()
+        .state("written", "Written")
+        .to("indexed")
+        .initial()
+        .state("indexed", "Indexed")
+        .to("retained")
+        .intermediate()
+        .state("retained", "Retained")
+        .final()
     )

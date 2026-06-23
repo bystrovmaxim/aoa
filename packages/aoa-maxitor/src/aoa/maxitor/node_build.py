@@ -20,10 +20,7 @@ from pathlib import Path
 
 from aoa.action_machine.graph.core.debug_node_graph_coordinator import DebugNodeGraphCoordinator
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
-from aoa.action_machine.graph.node_graph_coordinator_factory import (
-    GRAPH_JSON_SCHEMA,
-    all_axis_graph_node_inspectors,
-)
+from aoa.action_machine.graph.node_graph_coordinator_factory import GRAPH_JSON_SCHEMA, all_axis_graph_node_inspectors
 from aoa.maxitor.interchange_demo_coordinator import SAMPLE_MODEL_REGISTRATION_MODULE_NAMES
 
 

@@ -22,7 +22,9 @@ class RegulatorySubmissionPointerEntity(BaseEntity):
     brief: Annotated[
         AssociationOne[ArbitrationBriefStubEntity],
         NoInverse(),
-    ] = Rel(description="Upstream arbitration artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream arbitration artefact"
+    )  # type: ignore[assignment]
 
     regulator_code: str = Field(description="Regulator identifier")
     submission_channel: str = Field(description="Portal or batch channel code")

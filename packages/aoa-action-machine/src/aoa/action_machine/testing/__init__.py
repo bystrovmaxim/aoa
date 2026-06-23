@@ -74,13 +74,7 @@ from aoa.action_machine.testing.bench import TestBench
 from aoa.action_machine.testing.comparison import compare_results
 from aoa.action_machine.testing.mock_action import MockAction
 from aoa.action_machine.testing.state_validator import validate_state_for_aspect, validate_state_for_summary
-from aoa.action_machine.testing.stubs import (
-    ContextStub,
-    RequestInfoStub,
-    RuntimeInfoStub,
-    StubTesterRole,
-    UserInfoStub,
-)
+from aoa.action_machine.testing.stubs import ContextStub, RequestInfoStub, RuntimeInfoStub, StubTesterRole, UserInfoStub
 
 __all__ = [
     "ContextStub",

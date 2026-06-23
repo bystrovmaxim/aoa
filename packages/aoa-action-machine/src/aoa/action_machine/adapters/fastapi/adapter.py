@@ -33,7 +33,7 @@ use ``NoAuthCoordinator`` explicitly:
 
     adapter = FastApiAdapter(
         machine=machine,
-        auth_coordinator=NoAuthCoordinator(),
+        auth_coordinator=NoAuthCoordinator(context=Context()),
     )
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -126,12 +126,8 @@ from starlette.requests import Request as StarletteRequest
 from starlette.responses import Response as StarletteResponse
 
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
-from aoa.action_machine.adapters.base_route_record import (
-    ensure_machine_params,
-    ensure_protocol_response,
-)
+from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
 from aoa.action_machine.adapters.fastapi.route_record import FastApiRouteRecord
-from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
@@ -296,7 +292,7 @@ def _make_endpoint_with_body(
 
         context = await auth_coordinator.process(request)
         if context is None:
-            context = Context()
+            raise AuthorizationError("Authentication required")
 
         connections = resolve_connections(record.connections)
 
@@ -366,7 +362,7 @@ def _make_endpoint_with_query(
 
         context = await auth_coordinator.process(request)
         if context is None:
-            context = Context()
+            raise AuthorizationError("Authentication required")
 
         connections = resolve_connections(record.connections)
 
@@ -393,21 +389,32 @@ def _make_endpoint_with_query(
 
         if field_name in path_params:
             if field_info.default is not None and not field_info.is_required():
-                sig_params.append(inspect.Parameter(
-                    field_name, inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    annotation=annotation, default=field_info.default,
-                ))
+                sig_params.append(
+                    inspect.Parameter(
+                        field_name,
+                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                        annotation=annotation,
+                        default=field_info.default,
+                    )
+                )
             else:
-                sig_params.append(inspect.Parameter(
-                    field_name, inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    annotation=annotation,
-                ))
+                sig_params.append(
+                    inspect.Parameter(
+                        field_name,
+                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                        annotation=annotation,
+                    )
+                )
         else:
             default = field_info.default if not field_info.is_required() else inspect.Parameter.empty
-            sig_params.append(inspect.Parameter(
-                field_name, inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                annotation=annotation, default=default,
-            ))
+            sig_params.append(
+                inspect.Parameter(
+                    field_name,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    annotation=annotation,
+                    default=default,
+                )
+            )
 
     endpoint.__signature__ = inspect.Signature(sig_params)  # type: ignore[attr-defined]
 
@@ -454,7 +461,7 @@ def _make_endpoint_no_params(
 
         context = await auth_coordinator.process(request)
         if context is None:
-            context = Context()
+            raise AuthorizationError("Authentication required")
 
         connections = resolve_connections(record.connections)
 
@@ -521,7 +528,9 @@ class _CatchAllErrorsMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(
-        self, request: StarletteRequest, call_next: Callable[..., Any],
+        self,
+        request: StarletteRequest,
+        call_next: Callable[..., Any],
     ) -> StarletteResponse:
         try:
             response: StarletteResponse = await call_next(request)
@@ -548,7 +557,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     chain and creates FastAPI application.
 
     ``auth_coordinator`` is required (inherited from ``BaseAdapter``). For open
-    APIs, use ``NoAuthCoordinator()`` explicitly.
+    APIs, use ``NoAuthCoordinator(context=Context())`` explicitly.
 
     Attributes:
         _title : str
@@ -576,7 +585,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         Args:
             machine: action execution machine (required).
             auth_coordinator: authentication coordinator (required).
-                For open APIs use ``NoAuthCoordinator()``. ``None`` is invalid.
+                For open APIs use ``NoAuthCoordinator(context=Context())``. ``None`` is invalid.
             title: API title for OpenAPI/Swagger UI.
             version: API version for OpenAPI.
             description: API description for OpenAPI (Markdown supported).
@@ -678,9 +687,19 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     ) -> Self:
         """Register POST endpoint. Returns self for fluent chain."""
         return self._register(
-            "POST", path, action_class, request_model, response_model,
-            params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated, connections=connections,
+            "POST",
+            path,
+            action_class,
+            request_model,
+            response_model,
+            params_mapper,
+            response_mapper,
+            tags,
+            summary,
+            description,
+            operation_id,
+            deprecated,
+            connections=connections,
         )
 
     def get(
@@ -701,9 +720,19 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     ) -> Self:
         """Register GET endpoint. Returns self for fluent chain."""
         return self._register(
-            "GET", path, action_class, request_model, response_model,
-            params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated, connections=connections,
+            "GET",
+            path,
+            action_class,
+            request_model,
+            response_model,
+            params_mapper,
+            response_mapper,
+            tags,
+            summary,
+            description,
+            operation_id,
+            deprecated,
+            connections=connections,
         )
 
     def put(
@@ -724,9 +753,19 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     ) -> Self:
         """Register PUT endpoint. Returns self for fluent chain."""
         return self._register(
-            "PUT", path, action_class, request_model, response_model,
-            params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated, connections=connections,
+            "PUT",
+            path,
+            action_class,
+            request_model,
+            response_model,
+            params_mapper,
+            response_mapper,
+            tags,
+            summary,
+            description,
+            operation_id,
+            deprecated,
+            connections=connections,
         )
 
     def delete(
@@ -747,9 +786,19 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     ) -> Self:
         """Register DELETE endpoint. Returns self for fluent chain."""
         return self._register(
-            "DELETE", path, action_class, request_model, response_model,
-            params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated, connections=connections,
+            "DELETE",
+            path,
+            action_class,
+            request_model,
+            response_model,
+            params_mapper,
+            response_mapper,
+            tags,
+            summary,
+            description,
+            operation_id,
+            deprecated,
+            connections=connections,
         )
 
     def patch(
@@ -770,9 +819,19 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     ) -> Self:
         """Register PATCH endpoint. Returns self for fluent chain."""
         return self._register(
-            "PATCH", path, action_class, request_model, response_model,
-            params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated, connections=connections,
+            "PATCH",
+            path,
+            action_class,
+            request_model,
+            response_model,
+            params_mapper,
+            response_mapper,
+            tags,
+            summary,
+            description,
+            operation_id,
+            deprecated,
+            connections=connections,
         )
 
     # ─────────────────────────────────────────────────────────────────────
@@ -849,7 +908,8 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
         @app.exception_handler(AuthorizationError)
         async def handle_authorization_error(
-            request: Request, exc: AuthorizationError,
+            request: Request,
+            exc: AuthorizationError,
         ) -> JSONResponse:
             return JSONResponse(
                 status_code=403,
@@ -858,7 +918,8 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
         @app.exception_handler(ValidationFieldError)
         async def handle_validation_error(
-            request: Request, exc: ValidationFieldError,
+            request: Request,
+            exc: ValidationFieldError,
         ) -> JSONResponse:
             return JSONResponse(
                 status_code=422,

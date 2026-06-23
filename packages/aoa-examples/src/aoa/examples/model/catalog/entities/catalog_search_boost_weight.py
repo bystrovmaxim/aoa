@@ -26,7 +26,9 @@ class SearchBoostWeightEntity(BaseEntity):
     availability_projection: Annotated[
         AssociationOne[AvailabilityProjectionEntity],
         NoInverse(),
-    ] = Rel(description="Parent availability projection")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent availability projection"
+    )  # type: ignore[assignment]
 
 
 SearchBoostWeightEntity.model_rebuild()

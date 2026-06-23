@@ -40,6 +40,7 @@ def meta(description: str, domain: type[BaseDomain]):
 
     return decorator
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Concrete subclass for testing — SqlResource is abstract.
 # ─────────────────────────────────────────────────────────────────────────────

@@ -22,17 +22,23 @@ class ChargebackTicketEntity(BaseEntity):
     payment_event: Annotated[
         AssociationOne[PaymentEventLogEntity],
         NoInverse(),
-    ] = Rel(description="Funding payment event anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Funding payment event anchor"
+    )  # type: ignore[assignment]
 
     interchange_assessment_slice: Annotated[
         AssociationOne[InterchangeAssessmentSliceEntity],
         NoInverse(),
-    ] = Rel(description="Associated interchange assessment economics slice")  # type: ignore[assignment]
+    ] = Rel(
+        description="Associated interchange assessment economics slice"
+    )  # type: ignore[assignment]
 
     tax_remit_advice: Annotated[
         AssociationOne[TaxRemittanceAdviceEntity],
         NoInverse(),
-    ] = Rel(description="Associated tax remittance advice stub row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Associated tax remittance advice stub row"
+    )  # type: ignore[assignment]
 
     issuer_case_id: str = Field(description="Issuer or acquirer case identifier")
     network_reason_code: str = Field(description="Network standardized dispute reason code")
@@ -44,5 +50,6 @@ class ChargebackTicketEntity(BaseEntity):
     representment_deadline_iso: str = Field(description="Last date to assemble counter-evidence")
     disputed_amount_minor: int = Field(description="Disputed amount in minor transactional currency", ge=0)
     cardholder_contact_locale: str = Field(description="Locale hint for outbound comms")
+
 
 ChargebackTicketEntity.model_rebuild()

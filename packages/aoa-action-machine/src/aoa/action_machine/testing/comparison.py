@@ -100,10 +100,7 @@ def _format_differences(
     """
     lines: list[str] = []
     for field, left_val, right_val in differences:
-        lines.append(
-            f"  {left_name}.{field}={left_val!r} vs "
-            f"{right_name}.{field}={right_val!r}"
-        )
+        lines.append(f"  {left_name}.{field}={left_val!r} vs " f"{right_name}.{field}={right_val!r}")
     return "\n".join(lines)
 
 
@@ -135,7 +132,10 @@ def compare_results(
             return
 
         differences = _find_dict_differences(
-            left_dict, right_dict, left_name, right_name,
+            left_dict,
+            right_dict,
+            left_name,
+            right_name,
         )
         diff_text = _format_differences(differences, left_name, right_name)
 
@@ -151,8 +151,7 @@ def compare_results(
         return
 
     raise ResultMismatchError(
-        f"Machine results diverged: "
-        f"{left_name}={left!r} vs {right_name}={right!r}",
+        f"Machine results diverged: " f"{left_name}={left!r} vs {right_name}={right!r}",
         left_name=left_name,
         right_name=right_name,
     )

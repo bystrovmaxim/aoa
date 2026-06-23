@@ -30,22 +30,30 @@ class AssuranceDelegatedWorkTicketEntity(BaseEntity):
     assignee_actor: Annotated[
         AssociationOne[AssuranceFacilityActorEntity],
         NoInverse(),
-    ] = Rel(description="Actor owed the deliverable")  # type: ignore[assignment]
+    ] = Rel(
+        description="Actor owed the deliverable"
+    )  # type: ignore[assignment]
 
     delegator_actor: Annotated[
         AssociationOne[AssuranceFacilityActorEntity],
         NoInverse(),
-    ] = Rel(description="Actor dispatching workload")  # type: ignore[assignment]
+    ] = Rel(
+        description="Actor dispatching workload"
+    )  # type: ignore[assignment]
 
     intent_axis: Annotated[
         AssociationOne[AssuranceDelegationIntentAxisEntity],
         NoInverse(),
-    ] = Rel(description="Delegation intent flavour")  # type: ignore[assignment]
+    ] = Rel(
+        description="Delegation intent flavour"
+    )  # type: ignore[assignment]
 
     checkpoint_tone: Annotated[
         AssociationOne[AssuranceCheckpointToneAxisEntity],
         NoInverse(),
-    ] = Rel(description="Current checkpoint disposition")  # type: ignore[assignment]
+    ] = Rel(
+        description="Current checkpoint disposition"
+    )  # type: ignore[assignment]
 
 
 AssuranceDelegatedWorkTicketEntity.model_rebuild()
