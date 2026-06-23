@@ -38,9 +38,7 @@ import time
 from typing import Any, cast
 
 from aoa.action_machine.context.context_view import ContextView
-from aoa.action_machine.intents.context_requires.context_requires_resolver import (
-    ContextRequiresResolver,
-)
+from aoa.action_machine.intents.context_requires.context_requires_resolver import ContextRequiresResolver
 from aoa.action_machine.logging.domain_resolver import resolve_domain
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
 from aoa.action_machine.model.base_state import BaseState
@@ -148,11 +146,7 @@ class SagaCoordinator:
                     action_name=action.get_full_class_name(),
                     aspect_name=compensator_name,
                     context=context,
-                    state=(
-                        frame.state_before
-                        if isinstance(frame.state_before, BaseState)
-                        else BaseState()
-                    ),
+                    state=(frame.state_before if isinstance(frame.state_before, BaseState) else BaseState()),
                     params=params,
                     domain=resolve_domain(type(action)),
                 )

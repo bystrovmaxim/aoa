@@ -73,9 +73,7 @@ def UserInfoStub(
     """
     Create ``UserInfo`` stub with sensible defaults.
     """
-    resolved: tuple[type[BaseRole], ...] = (
-        (StubTesterRole,) if roles is None else tuple(roles)
-    )
+    resolved: tuple[type[BaseRole], ...] = (StubTesterRole,) if roles is None else tuple(roles)
     return UserInfo(user_id=user_id, roles=resolved)
 
 

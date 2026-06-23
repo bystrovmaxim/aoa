@@ -41,12 +41,12 @@ if TYPE_CHECKING:
 
 class Authenticator(ABC):
     """
-AI-CORE-BEGIN
-    ROLE: Extension point for credential verification implementations.
-    CONTRACT: Implement async ``authenticate(credentials) -> UserInfo | None``.
-    INVARIANTS: Return ``None`` for invalid credentials instead of exceptions.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Extension point for credential verification implementations.
+        CONTRACT: Implement async ``authenticate(credentials) -> UserInfo | None``.
+        INVARIANTS: Return ``None`` for invalid credentials instead of exceptions.
+        AI-CORE-END
+    """
 
     @abstractmethod
     async def authenticate(self, credentials: Any) -> UserInfo | None:

@@ -90,7 +90,7 @@ def _validate_role_class_attr(cls: type, attr_name: str) -> None:
         raise ValueError(
             f"Class '{cls.__name__}' inherits from BaseRole but does not define "
             f"the class attribute '{attr_name}'. "
-            f"Set e.g. {attr_name} = \"...\" in the class body."
+            f'Set e.g. {attr_name} = "..." in the class body.'
         )
 
     raw_value = cls.__dict__[attr_name]
@@ -102,7 +102,4 @@ def _validate_role_class_attr(cls: type, attr_name: str) -> None:
         )
 
     if not raw_value.strip():
-        raise ValueError(
-            f"Class attribute '{attr_name}' on '{cls.__name__}' cannot be empty "
-            f"or whitespace-only."
-        )
+        raise ValueError(f"Class attribute '{attr_name}' on '{cls.__name__}' cannot be empty " f"or whitespace-only.")

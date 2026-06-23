@@ -133,7 +133,9 @@ class GetLeftMenuSidebarDataAction(
     """
 
     class Params(BaseParams):
-        nx_graph: Any = Field(description="networkx.DiGraph from LoadGraphAction (node = node_id, attrs node_type/label)")
+        nx_graph: Any = Field(
+            description="networkx.DiGraph from LoadGraphAction (node = node_id, attrs node_type/label)"
+        )
 
         model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -141,8 +143,12 @@ class GetLeftMenuSidebarDataAction(
         """Four ``NodeEntity`` layers: roots, diagrams under roots, interchange nodes under roots, diagram rows under domains and entities."""
 
         level1_nodes: list[NodeEntity] = Field(default_factory=list, description="Root buckets (parent_id unset)")
-        level2_diagrams: list[NodeEntity] = Field(default_factory=list, description="Diagram rows under a root id (parent_id = root key)")
-        level2_nodes: list[NodeEntity] = Field(default_factory=list, description="Interchange nodes grouped under a root (parent_id = root key)")
+        level2_diagrams: list[NodeEntity] = Field(
+            default_factory=list, description="Diagram rows under a root id (parent_id = root key)"
+        )
+        level2_nodes: list[NodeEntity] = Field(
+            default_factory=list, description="Interchange nodes grouped under a root (parent_id = root key)"
+        )
         level3_diagrams: list[NodeEntity] = Field(
             default_factory=list,
             description=(
@@ -165,10 +171,7 @@ class GetLeftMenuSidebarDataAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
-        rows = [
-            {"id": s[0], "parent_id": None, "label": s[1], "type": s[2]}
-            for s in _ROOT_SECTIONS
-        ]
+        rows = [{"id": s[0], "parent_id": None, "label": s[1], "type": s[2]} for s in _ROOT_SECTIONS]
         return {"level1_rows": rows}
 
     @result_instance("level1_rows", list, required=True)  # type: ignore[untyped-decorator]
@@ -290,7 +293,9 @@ class GetLeftMenuSidebarDataAction(
                     },
                 )
                 ordinal += 1
-        rows.sort(key=lambda r: (str(r["parent_id"]).lower(), int(r.get("ordinal", 10**9)), r["label"].lower(), r["id"]))
+        rows.sort(
+            key=lambda r: (str(r["parent_id"]).lower(), int(r.get("ordinal", 10**9)), r["label"].lower(), r["id"])
+        )
         return {
             "level1_rows": _sidebar_row_dicts(state, "level1_rows"),
             "level2_diagram_rows": _sidebar_row_dicts(state, "level2_diagram_rows"),

@@ -25,6 +25,4 @@ class DiagramsDomain(BaseDomain):
     """
 
     name = "diagrams"
-    description = (
-        "Diagrams surface: sidebar menu, interchange graph, ERD rows, and related composition"
-    )
+    description = "Diagrams surface: sidebar menu, interchange graph, ERD rows, and related composition"

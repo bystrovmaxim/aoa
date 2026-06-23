@@ -69,9 +69,7 @@ class PythonFileCollector:
         exclude_dirs: list[str] | None = None,
         extensions: list[str] | None = None,
     ) -> None:
-        self.exclude_dirs: set[str] = (
-            set(exclude_dirs) if exclude_dirs else set(self.DEFAULT_EXCLUDE)
-        )
+        self.exclude_dirs: set[str] = set(exclude_dirs) if exclude_dirs else set(self.DEFAULT_EXCLUDE)
         self.extensions: frozenset[str] = _normalize_extensions(
             extensions if extensions is not None else list(self.DEFAULT_EXTENSIONS),
         )
@@ -267,25 +265,25 @@ if __name__ == "__main__":
             ".mjs",
             ".cjs",
             # Styles
-            #".css",
-            #".scss",
-            #".sass",
-            #".less",
-            #".styl",
+            # ".css",
+            # ".scss",
+            # ".sass",
+            # ".less",
+            # ".styl",
             # Config & typed data (package.json, tsconfig, vite, components.json, …)
-            #".json",
-            #".jsonc",
-            #".yaml",
-            #".yml",
+            # ".json",
+            # ".jsonc",
+            # ".yaml",
+            # ".yml",
             # Docs / MDX
-            #".md",
-            #".mdx",
+            # ".md",
+            # ".mdx",
             # GraphQL clients
-            #".graphql",
-            #".gql",
+            # ".graphql",
+            # ".gql",
             # SVG as text (inline assets / components)
-            #".svg",
+            # ".svg",
             # Misc text shipped with the app (LICENSE, robots.txt, …)
-            #".txt",
+            # ".txt",
         ],
     ).collect()

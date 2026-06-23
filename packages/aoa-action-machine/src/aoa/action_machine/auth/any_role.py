@@ -34,17 +34,15 @@ from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, r
 @role_mode(RoleMode.ALIVE)
 class AnyRole(SystemRole):
     """
-AI-CORE-BEGIN
-    ROLE: Check-spec marker for permissive role requirement.
-    CONTRACT: Used only in ``@check_roles`` declarations.
-    INVARIANTS: non-instantiable policy role; not stored in user role payload.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Check-spec marker for permissive role requirement.
+        CONTRACT: Used only in ``@check_roles`` declarations.
+        INVARIANTS: non-instantiable policy role; not stored in user role payload.
+        AI-CORE-END
+    """
 
     name = "engine_any"
     description = "Engine sentinel: at least one assignable role required."
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
-        raise TypeError(
-            f"Cannot subclass sealed engine role AnyRole (attempt: {cls.__qualname__!r})."
-        )
+        raise TypeError(f"Cannot subclass sealed engine role AnyRole (attempt: {cls.__qualname__!r}).")
