@@ -28,7 +28,7 @@ In AOA an AI agent is an equal consumer of the system, on a par with a human beh
 
 [MCP](https://modelcontextprotocol.io) (Model Context Protocol) is the transport by which an agent calls external tools. The adapter derives the tool schema from `Params`, the description from `@meta`, and builds a handler that delegates to the [machine](step-11-machine.md).
 
-Install: `pip install "aoa-action-machine[mcp]"`.
+Install: `pip install aoa-mcp-adapter`.
 
 [▶ Try in Colab](https://drive.google.com/file/d/1MQBDfiix8uyixiQbbDnS-g_FWz0pdp2R/view?usp=drive_link) · [Open in project](../../examples/step_14_mcp/01_tool.py)
 
@@ -39,7 +39,7 @@ Install: `pip install "aoa-action-machine[mcp]"`.
 The adapter is assembled the same fluent way as [FastAPI](step-13-fastapi.md): `.tool(...)` per tool, `.build()` returns a ready MCP server (`FastMCP`).
 
 ```python
-from aoa.action_machine.adapters.mcp import McpAdapter
+from aoa.mcp import McpAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 

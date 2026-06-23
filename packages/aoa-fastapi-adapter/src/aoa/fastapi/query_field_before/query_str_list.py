@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/adapters/fastapi/query_field_before/query_str_list.py
+# packages/aoa-fastapi-adapter/src/aoa/fastapi/query_field_before/query_str_list.py
 """
 Query array → ``list[str]`` coercion (OpenAPI ``explode``, no delimiter splitting).
 

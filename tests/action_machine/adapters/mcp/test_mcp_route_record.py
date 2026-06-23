@@ -34,7 +34,7 @@ INVARIANTS
 import pytest
 from pydantic import BaseModel
 
-from aoa.action_machine.adapters.mcp.route_record import McpRouteRecord
+from aoa.mcp.route_record import McpRouteRecord
 from tests.action_machine.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────

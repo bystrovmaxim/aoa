@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/adapters/fastapi/route_record.py
+# packages/aoa-fastapi-adapter/src/aoa/fastapi/route_record.py
 """
 FastApiRouteRecord — frozen route record for FastAPI adapter.
 
