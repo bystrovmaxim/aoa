@@ -8,6 +8,7 @@ import asyncio
 import pytest
 
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
+from aoa.action_machine.runtime.cache_tag import CacheTag
 
 
 class _OrderAction:
@@ -15,6 +16,14 @@ class _OrderAction:
 
 
 class _PaymentAction:
+    pass
+
+
+class _Order:
+    pass
+
+
+class _Payment:
     pass
 
 
@@ -183,3 +192,151 @@ async def test_put_overwrite_at_capacity_does_not_evict_other_entry() -> None:
     assert (await coord.get_entry(_OrderAction, "b")) is not None
     assert (await coord.get_entry(_OrderAction, "a")) is not None
     assert (await coord.get_entry(_OrderAction, "a")).result == "va2"
+
+
+# ─── Tag index tests ──────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_put_with_tags_populates_index() -> None:
+    coord = CacheCoordinator()
+    tag = CacheTag(type=_Order, key=1)
+    await coord.put(_OrderAction, "1", "result", 100.0, tags=[tag])
+    internal = CacheCoordinator._make_key(_OrderAction, "1")
+    assert tag in coord._tag_to_keys
+    assert internal in coord._tag_to_keys[tag]
+    assert internal in coord._key_to_tags
+    assert tag in coord._key_to_tags[internal]
+
+
+@pytest.mark.asyncio
+async def test_put_without_tags_does_not_populate_index() -> None:
+    coord = CacheCoordinator()
+    await coord.put(_OrderAction, "1", "result", 100.0, tags=None)
+    assert len(coord._tag_to_keys) == 0
+    assert len(coord._key_to_tags) == 0
+
+
+@pytest.mark.asyncio
+async def test_evict_by_exact_tag_removes_entry() -> None:
+    coord = CacheCoordinator()
+    tag = CacheTag(type=_Order, key=1)
+    await coord.put(_OrderAction, "1", "result", 100.0, tags=[tag])
+    evicted = await coord.evict_by_tags(frozenset({tag}))
+    assert evicted == 1
+    assert await coord.get_entry(_OrderAction, "1") is None
+
+
+@pytest.mark.asyncio
+async def test_evict_by_exact_tag_cleans_both_index_directions() -> None:
+    coord = CacheCoordinator()
+    tag = CacheTag(type=_Order, key=1)
+    await coord.put(_OrderAction, "1", "result", 100.0, tags=[tag])
+    await coord.evict_by_tags(frozenset({tag}))
+    assert tag not in coord._tag_to_keys
+    internal = CacheCoordinator._make_key(_OrderAction, "1")
+    assert internal not in coord._key_to_tags
+
+
+@pytest.mark.asyncio
+async def test_evict_by_type_wildcard_removes_all_of_type() -> None:
+    coord = CacheCoordinator()
+    await coord.put(_OrderAction, "1", "r1", 100.0, tags=[CacheTag(type=_Order, key=1)])
+    await coord.put(_OrderAction, "2", "r2", 100.0, tags=[CacheTag(type=_Order, key=2)])
+    await coord.put(_PaymentAction, "p", "rp", 100.0, tags=[CacheTag(type=_Payment, key=1)])
+    evicted = await coord.evict_by_tags(frozenset({CacheTag(type=_Order)}))
+    assert evicted == 2
+    assert await coord.get_entry(_OrderAction, "1") is None
+    assert await coord.get_entry(_OrderAction, "2") is None
+    assert await coord.get_entry(_PaymentAction, "p") is not None
+
+
+@pytest.mark.asyncio
+async def test_evict_by_key_wildcard_removes_all_with_key() -> None:
+    coord = CacheCoordinator()
+    await coord.put(_OrderAction, "o42", "ro", 100.0, tags=[CacheTag(type=_Order, key=42)])
+    await coord.put(_PaymentAction, "p42", "rp", 100.0, tags=[CacheTag(type=_Payment, key=42)])
+    await coord.put(_OrderAction, "o99", "r99", 100.0, tags=[CacheTag(type=_Order, key=99)])
+    evicted = await coord.evict_by_tags(frozenset({CacheTag(key=42)}))
+    assert evicted == 2
+    assert await coord.get_entry(_OrderAction, "o42") is None
+    assert await coord.get_entry(_PaymentAction, "p42") is None
+    assert await coord.get_entry(_OrderAction, "o99") is not None
+
+
+@pytest.mark.asyncio
+async def test_evict_by_empty_frozenset_evicts_nothing() -> None:
+    coord = CacheCoordinator()
+    await coord.put(_OrderAction, "1", "result", 100.0, tags=[CacheTag(type=_Order, key=1)])
+    evicted = await coord.evict_by_tags(frozenset())
+    assert evicted == 0
+    assert coord.size == 1
+
+
+@pytest.mark.asyncio
+async def test_evict_does_not_affect_untagged_entries() -> None:
+    coord = CacheCoordinator()
+    await coord.put(_OrderAction, "untagged", "result", 100.0, tags=None)
+    evicted = await coord.evict_by_tags(frozenset({CacheTag(type=_Order)}))
+    assert evicted == 0
+    assert await coord.get_entry(_OrderAction, "untagged") is not None
+
+
+@pytest.mark.asyncio
+async def test_evict_returns_count_of_removed_entries() -> None:
+    coord = CacheCoordinator()
+    for i in range(5):
+        await coord.put(_OrderAction, str(i), f"r{i}", 100.0, tags=[CacheTag(type=_Order, key=i)])
+    evicted = await coord.evict_by_tags(frozenset({CacheTag(type=_Order)}))
+    assert evicted == 5
+    assert coord.size == 0
+
+
+@pytest.mark.asyncio
+async def test_put_overwrite_updates_tag_index() -> None:
+    coord = CacheCoordinator()
+    old_tag = CacheTag(type=_Order, key=1)
+    new_tag = CacheTag(type=_Payment, key=99)
+    await coord.put(_OrderAction, "x", "v1", 100.0, tags=[old_tag])
+    await coord.put(_OrderAction, "x", "v2", 100.0, tags=[new_tag])
+    internal = CacheCoordinator._make_key(_OrderAction, "x")
+    assert old_tag not in coord._tag_to_keys
+    assert new_tag in coord._tag_to_keys
+    assert internal in coord._tag_to_keys[new_tag]
+
+
+@pytest.mark.asyncio
+async def test_invalidate_removes_entry_from_tag_index() -> None:
+    coord = CacheCoordinator()
+    tag = CacheTag(type=_Order, key=5)
+    await coord.put(_OrderAction, "5", "result", 100.0, tags=[tag])
+    await coord.invalidate(_OrderAction, "5")
+    assert tag not in coord._tag_to_keys
+    internal = CacheCoordinator._make_key(_OrderAction, "5")
+    assert internal not in coord._key_to_tags
+
+
+@pytest.mark.asyncio
+async def test_clear_removes_all_tag_indexes() -> None:
+    coord = CacheCoordinator()
+    await coord.put(_OrderAction, "1", "r1", 100.0, tags=[CacheTag(type=_Order, key=1)])
+    await coord.put(_PaymentAction, "2", "r2", 100.0, tags=[CacheTag(type=_Payment, key=2)])
+    await coord.clear()
+    assert len(coord._tag_to_keys) == 0
+    assert len(coord._key_to_tags) == 0
+
+
+@pytest.mark.asyncio
+async def test_evict_multiple_directives_combined() -> None:
+    coord = CacheCoordinator()
+    await coord.put(_OrderAction, "o1", "r1", 100.0, tags=[CacheTag(type=_Order, key=1)])
+    await coord.put(_PaymentAction, "p2", "r2", 100.0, tags=[CacheTag(type=_Payment, key=2)])
+    await coord.put(_OrderAction, "o3", "r3", 100.0, tags=[CacheTag(type=_Order, key=3)])
+    evicted = await coord.evict_by_tags(frozenset({
+        CacheTag(type=_Order, key=1),
+        CacheTag(type=_Payment, key=2),
+    }))
+    assert evicted == 2
+    assert await coord.get_entry(_OrderAction, "o1") is None
+    assert await coord.get_entry(_PaymentAction, "p2") is None
+    assert await coord.get_entry(_OrderAction, "o3") is not None
