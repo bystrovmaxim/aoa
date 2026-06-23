@@ -123,7 +123,7 @@ class GreetAction(BaseAction[GreetParams, GreetResult]):
 
 async def main() -> None:
     call = (
-        DictAdapter(machine=ActionProductMachine(), auth_coordinator=NoAuthCoordinator())
+        DictAdapter(machine=ActionProductMachine(), auth_coordinator=NoAuthCoordinator(context=Context()))
         .command("greet", GreetAction)
         .build()
     )

@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 
 from aoa.action_machine.adapters.fastapi import FastApiAdapter
 from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
+from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -76,7 +77,7 @@ class OrderV2Response(BaseModel):
 
 def build_app():
     return (
-        FastApiAdapter(machine=ActionProductMachine(), auth_coordinator=NoAuthCoordinator(), title="Orders API")
+        FastApiAdapter(machine=ActionProductMachine(), auth_coordinator=NoAuthCoordinator(context=Context()), title="Orders API")
         # v1 — native contract: Params and Result go through as-is, no converter
         .post("/api/v1/orders", CreateOrderAction, tags=["orders"])
         # v2 — different schema outside, same operation inside
@@ -106,7 +107,7 @@ def main() -> None:
 
     print("\nRegistration guard (differing model without its mapper):")
     try:
-        FastApiAdapter(machine=ActionProductMachine(), auth_coordinator=NoAuthCoordinator()).post(
+        FastApiAdapter(machine=ActionProductMachine(), auth_coordinator=NoAuthCoordinator(context=Context())).post(
             "/bad", CreateOrderAction, response_model=OrderV2Response,  # no response_mapper
         )
     except ValueError as exc:
