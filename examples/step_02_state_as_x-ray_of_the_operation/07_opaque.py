@@ -24,7 +24,7 @@ but NOT aoa.state.payment_token — even though the value is present in state
 and is used by the summary to build the confirmation message.
 
 Requires:
-    pip install "aoa-action-machine[otel]"
+    pip install aoa-otel
 
 Run:
     uv run python examples/step_02_state_as_x-ray_of_the_operation/07_opaque.py
@@ -44,8 +44,8 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_string
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.otel import OpenTelemetryPlugin
 
 # ---------------------------------------------------------------------------
 # Domain

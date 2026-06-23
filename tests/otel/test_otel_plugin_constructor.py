@@ -1,11 +1,11 @@
-# tests/action_machine/plugin/open_telemetry/test_otel_plugin_constructor.py
+# tests/otel/test_otel_plugin_constructor.py
 """Unit tests for OpenTelemetryPlugin constructor validation and provider wiring."""
 
 from unittest.mock import MagicMock
 
 import pytest
 
-from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
+from aoa.otel import OpenTelemetryPlugin
 
 
 def _mock_tracer_provider() -> MagicMock:

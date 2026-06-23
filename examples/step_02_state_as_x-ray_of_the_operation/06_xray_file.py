@@ -46,8 +46,8 @@ from aoa.action_machine.intents.checkers import result_float, result_int, result
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.plugin.core.events import AfterRegularAspectEvent, GlobalFinishEvent
-from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.otel import OpenTelemetryPlugin
 
 # ---------------------------------------------------------------------------
 # Domain, Params, Result  (same business logic as 05_xray_console.py)

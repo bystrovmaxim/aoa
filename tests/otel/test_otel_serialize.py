@@ -1,11 +1,11 @@
-# tests/action_machine/plugin/open_telemetry/test_otel_serialize.py
+# tests/otel/test_otel_serialize.py
 """Unit tests for _serialize_value — OTel-safe serialization of state fields."""
 
 import json
 
 from pydantic import BaseModel
 
-from aoa.action_machine.plugin.open_telemetry.plugin.open_telemetry_plugin import _serialize_value
+from aoa.otel.plugin.open_telemetry_plugin import _serialize_value
 
 _MAX = 500
 

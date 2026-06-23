@@ -238,7 +238,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import ConsoleLogRecordExporter, SimpleLogRecordProcessor
-from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
+from aoa.otel import OpenTelemetryPlugin
 
 tp = TracerProvider()
 tp.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))

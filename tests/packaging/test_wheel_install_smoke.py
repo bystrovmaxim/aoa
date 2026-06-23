@@ -22,6 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 _PACKAGE_DIRS: dict[str, str] = {
     "aoa-action-machine": "aoa-action-machine",
     "aoa-ocel": "aoa-ocel",
+    "aoa-otel": "aoa-otel",
     "aoa-maxitor": "aoa-maxitor",
     "aoa-examples": "aoa-examples",
 }
@@ -30,15 +31,17 @@ _PACKAGE_DIRS: dict[str, str] = {
 _REQUIRED_AOA_PREFIXES: dict[str, tuple[str, ...]] = {
     "aoa-action-machine": ("aoa/action_machine/",),
     "aoa-ocel": ("aoa/ocel/",),
+    "aoa-otel": ("aoa/otel/",),
     "aoa-maxitor": ("aoa/maxitor/",),
     "aoa-examples": ("aoa/examples/",),
 }
 
 # No other ``aoa.*`` subtree may appear inside the wheel archive.
 _FORBIDDEN_AOA_PREFIXES: dict[str, tuple[str, ...]] = {
-    "aoa-action-machine": ("aoa/ocel/", "aoa/maxitor/", "aoa/examples/"),
-    "aoa-ocel": ("aoa/action_machine/", "aoa/maxitor/", "aoa/examples/"),
-    "aoa-maxitor": ("aoa/ocel/", "aoa/examples/"),
+    "aoa-action-machine": ("aoa/ocel/", "aoa/otel/", "aoa/maxitor/", "aoa/examples/"),
+    "aoa-ocel": ("aoa/action_machine/", "aoa/otel/", "aoa/maxitor/", "aoa/examples/"),
+    "aoa-otel": ("aoa/action_machine/", "aoa/ocel/", "aoa/maxitor/", "aoa/examples/"),
+    "aoa-maxitor": ("aoa/ocel/", "aoa/otel/", "aoa/examples/"),
     "aoa-examples": ("aoa/maxitor/",),
 }
 
@@ -115,6 +118,7 @@ def test_clean_install_action_machine_provides_graph(tmp_path: Path) -> None:
         "from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator; "
         "assert u.find_spec('aoa.action_machine.plugin.ocel') is None; "
         "assert u.find_spec('aoa.ocel') is None; "
+        "assert u.find_spec('aoa.otel') is None; "
         "assert u.find_spec('aoa.maxitor') is None; "
         "assert u.find_spec('aoa.examples') is None",
     )

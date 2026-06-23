@@ -1,17 +1,17 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/open_telemetry/__init__.py
+# packages/aoa-otel/src/aoa/otel/__init__.py
 """
-OpenTelemetry plugin for ActionMachine — optional extra ``aoa-action-machine[otel]``.
+OpenTelemetry plugin for AOA.
 
 Install::
 
-    pip install "aoa-action-machine[otel]"
+    pip install aoa-otel
 
 Usage::
 
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 
-    from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
+    from aoa.otel import OpenTelemetryPlugin
 
     provider = TracerProvider()
     provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
@@ -21,6 +21,6 @@ Usage::
 
 from __future__ import annotations
 
-from aoa.action_machine.plugin.open_telemetry.plugin import OpenTelemetryPlugin
+from aoa.otel.plugin import OpenTelemetryPlugin
 
 __all__ = ["OpenTelemetryPlugin"]

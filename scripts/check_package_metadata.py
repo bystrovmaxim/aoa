@@ -22,6 +22,7 @@ MEMBERS = (
     "aoa-mcp-adapter",
     "aoa-langgraph-adapter",
     "aoa-ocel",
+    "aoa-otel",
     "aoa-maxitor",
     "aoa-examples",
 )
@@ -33,6 +34,7 @@ _PACKAGE_DIR: dict[str, str] = {
     "aoa-mcp-adapter": "aoa-mcp-adapter",
     "aoa-langgraph-adapter": "aoa-langgraph-adapter",
     "aoa-ocel": "aoa-ocel",
+    "aoa-otel": "aoa-otel",
     "aoa-maxitor": "aoa-maxitor",
     "aoa-examples": "aoa-examples",
 }
@@ -44,17 +46,19 @@ REQUIRED_MAIN: dict[str, frozenset[str]] = {
     "aoa-mcp-adapter": frozenset({"aoa-action-machine"}),
     "aoa-langgraph-adapter": frozenset({"aoa-action-machine"}),
     "aoa-ocel": frozenset({"aoa-action-machine"}),
+    "aoa-otel": frozenset({"aoa-action-machine"}),
     "aoa-maxitor": frozenset({"aoa-action-machine", "aoa-fastapi-adapter"}),
     "aoa-examples": frozenset({"aoa-action-machine", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel"}),
 }
 
 FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
     "aoa-action-machine": frozenset({"aoa-maxitor", "aoa-examples"}),
-    "aoa-fastapi-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-mcp-adapter", "aoa-langgraph-adapter", "aoa-ocel"}),
-    "aoa-mcp-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-langgraph-adapter", "aoa-ocel"}),
-    "aoa-langgraph-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel"}),
-    "aoa-ocel": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph-adapter"}),
-    "aoa-maxitor": frozenset({"aoa-examples", "aoa-mcp-adapter", "aoa-langgraph-adapter", "aoa-ocel"}),
+    "aoa-fastapi-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-mcp-adapter", "aoa-langgraph-adapter", "aoa-ocel", "aoa-otel"}),
+    "aoa-mcp-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-langgraph-adapter", "aoa-ocel", "aoa-otel"}),
+    "aoa-langgraph-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel", "aoa-otel"}),
+    "aoa-ocel": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph-adapter", "aoa-otel"}),
+    "aoa-otel": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph-adapter", "aoa-ocel"}),
+    "aoa-maxitor": frozenset({"aoa-examples", "aoa-mcp-adapter", "aoa-langgraph-adapter", "aoa-ocel", "aoa-otel"}),
     "aoa-examples": frozenset({"aoa-maxitor", "aoa-langgraph-adapter"}),
 }
 

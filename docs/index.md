@@ -122,7 +122,7 @@ The materials below are not a continuation of the linear I–VII route. They are
 
 What is already in the box. Some is available right away, some installs as a separate package.
 
-- **[OpenTelemetry](extensions/opentelemetry.md)** — plugin: traces and the `state` x-ray out of the box; `pip install "aoa-action-machine[otel]"`
+- **[OpenTelemetry](extensions/opentelemetry.md)** — plugin: traces and the `state` x-ray out of the box; `pip install aoa-otel`
 - **[OCEL 2.0](extensions/ocel.md)** — plugin: an object-centric event log for process mining; `pip install aoa-ocel`
 - **[ConsoleLogger](extensions/console-logger.md)** — logger: business events to the console, color by level; out of the box
 - **[FastAPI](extensions/fastapi.md)** — adapter: HTTP/REST and OpenAPI from an Action; `pip install aoa-fastapi-adapter`

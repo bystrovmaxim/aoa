@@ -19,6 +19,7 @@ members = [
     "aoa-maxitor",
     "aoa-mcp-adapter",
     "aoa-ocel",
+    "aoa-otel",
     "aoa-run",
 ]
 
@@ -64,10 +65,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-otel = [
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-sdk" },
-]
 postgres = [
     { name = "asyncpg" },
 ]
@@ -76,12 +73,10 @@ postgres = [
 requires-dist = [
     { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29,<1.0" },
     { name = "jsonschema", specifier = ">=4.17" },
-    { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.20,<2.0" },
-    { name = "opentelemetry-sdk", marker = "extra == 'otel'", specifier = ">=1.20,<2.0" },
     { name = "pydantic", specifier = ">=2.0,<3.0" },
     { name = "simpleeval", specifier = ">=1.0,<2.0" },
 ]
-provides-extras = ["postgres", "otel"]
+provides-extras = ["postgres"]
 
 [[package]]
 name = "aoa-examples"
@@ -195,6 +190,23 @@ requires-dist = [
 ]
 
 [[package]]
+name = "aoa-otel"
+version = "1.0.0a0"
+source = { editable = "packages/aoa-otel" }
+dependencies = [
+    { name = "aoa-action-machine" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-sdk" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
+    { name = "opentelemetry-api", specifier = ">=1.20,<2.0" },
+    { name = "opentelemetry-sdk", specifier = ">=1.20,<2.0" },
+]
+
+[[package]]
 name = "aoa-run"
 version = "1.0.0a0"
 source = { editable = "." }
@@ -207,12 +219,13 @@ dependencies = [
 
 [package.optional-dependencies]
 all = [
-    { name = "aoa-action-machine", extra = ["otel", "postgres"] },
+    { name = "aoa-action-machine", extra = ["postgres"] },
     { name = "aoa-examples", extra = ["fastapi", "mcp"] },
     { name = "aoa-fastapi-adapter" },
     { name = "aoa-langgraph-adapter" },
     { name = "aoa-mcp-adapter" },
     { name = "aoa-ocel" },
+    { name = "aoa-otel" },
     { name = "black" },
     { name = "httpx" },
     { name = "isort" },
@@ -230,12 +243,13 @@ all = [
     { name = "vulture" },
 ]
 dev = [
-    { name = "aoa-action-machine", extra = ["otel", "postgres"] },
+    { name = "aoa-action-machine", extra = ["postgres"] },
     { name = "aoa-examples", extra = ["fastapi", "mcp"] },
     { name = "aoa-fastapi-adapter" },
     { name = "aoa-langgraph-adapter" },
     { name = "aoa-mcp-adapter" },
     { name = "aoa-ocel" },
+    { name = "aoa-otel" },
     { name = "black" },
     { name = "httpx" },
     { name = "isort" },
@@ -277,8 +291,8 @@ requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
     { name = "aoa-action-machine", extras = ["fastapi"], marker = "extra == 'fastapi'", editable = "packages/aoa-action-machine" },
     { name = "aoa-action-machine", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/aoa-action-machine" },
+    { name = "aoa-action-machine", extras = ["postgres"], marker = "extra == 'dev'", editable = "packages/aoa-action-machine" },
     { name = "aoa-action-machine", extras = ["postgres"], marker = "extra == 'postgres'", editable = "packages/aoa-action-machine" },
-    { name = "aoa-action-machine", extras = ["postgres", "otel"], marker = "extra == 'dev'", editable = "packages/aoa-action-machine" },
     { name = "aoa-examples", editable = "packages/aoa-examples" },
     { name = "aoa-examples", extras = ["fastapi"], marker = "extra == 'fastapi'", editable = "packages/aoa-examples" },
     { name = "aoa-examples", extras = ["fastapi", "mcp"], marker = "extra == 'dev'", editable = "packages/aoa-examples" },
@@ -289,6 +303,7 @@ requires-dist = [
     { name = "aoa-mcp-adapter", marker = "extra == 'dev'", editable = "packages/aoa-mcp-adapter" },
     { name = "aoa-ocel", editable = "packages/aoa-ocel" },
     { name = "aoa-ocel", marker = "extra == 'dev'", editable = "packages/aoa-ocel" },
+    { name = "aoa-otel", marker = "extra == 'dev'", editable = "packages/aoa-otel" },
     { name = "aoa-run", extras = ["fastapi", "mcp", "postgres", "dev"], marker = "extra == 'all'" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=24.0,<25.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27,<1.0" },
