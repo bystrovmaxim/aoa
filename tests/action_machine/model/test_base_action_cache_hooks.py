@@ -11,6 +11,7 @@ from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_mode
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.params_stub import ParamsStub
 from aoa.action_machine.model.result_stub import ResultStub
+from aoa.action_machine.runtime.cache_tag import CacheTag
 
 
 @exclude_graph_model
@@ -39,8 +40,8 @@ class AllowWriteAction(BaseAction[ParamsStub, ResultStub]):
         result: ResultStub,
         params: ParamsStub,
         duration_ms: float,
-    ) -> bool:
-        return True
+    ) -> list[CacheTag] | None:
+        return [CacheTag(key="result")]
 
 
 class TestDefaultCacheHooks:
@@ -56,10 +57,10 @@ class TestDefaultCacheHooks:
         assert got is result
 
     @pytest.mark.asyncio
-    async def test_default_on_cache_write_returns_false(self) -> None:
+    async def test_default_on_cache_write_returns_none(self) -> None:
         params = ParamsStub()
         result = ResultStub()
-        assert await DefaultHooksAction().on_cache_write(result, params, 3.0) is False
+        assert await DefaultHooksAction().on_cache_write(result, params, 3.0) is None
 
 
 class TestSubclassCacheHooks:
@@ -72,7 +73,9 @@ class TestSubclassCacheHooks:
         assert await RejectStaleReadAction().read_cache(ParamsStub(), entry) is None
 
     @pytest.mark.asyncio
-    async def test_subclass_can_allow_write_via_on_cache_write_true(self) -> None:
+    async def test_subclass_can_allow_write_via_on_cache_write_tags(self) -> None:
         params = ParamsStub()
         result = ResultStub()
-        assert await AllowWriteAction().on_cache_write(result, params, 7.0) is True
+        tags = await AllowWriteAction().on_cache_write(result, params, 7.0)
+        assert isinstance(tags, list) and len(tags) == 1
+        assert isinstance(tags[0], CacheTag)

@@ -21,6 +21,7 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
+from aoa.action_machine.runtime.cache_tag import CacheTag
 
 # Cache only when the pipeline took at least this long (ms)
 HEAVY_MIN_MS = 50.0
@@ -52,13 +53,12 @@ class GetConfigAction(BaseAction[ConfigParams, ConfigResult]):
         result: ConfigResult,
         params: ConfigParams,
         duration_ms: float,
-    ) -> bool:
-        write = duration_ms >= HEAVY_MIN_MS
-        print(
-            f"  on_cache_write: duration_ms={duration_ms:.1f}, "
-            f"write={'yes' if write else 'no (too light)'}"
-        )
-        return write
+    ) -> list[CacheTag] | None:
+        if duration_ms < HEAVY_MIN_MS:
+            print(f"  on_cache_write: duration_ms={duration_ms:.1f}, write=no (too light)")
+            return None
+        print(f"  on_cache_write: duration_ms={duration_ms:.1f}, write=yes")
+        return [CacheTag(key=f"{params.tenant_id}:{params.name}")]
 
     @summary_aspect("Load config")
     async def load_summary(self, params, state, box, connections):

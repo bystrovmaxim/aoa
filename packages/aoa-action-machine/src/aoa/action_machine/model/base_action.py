@@ -55,12 +55,16 @@ Subclasses may override:
 - ``read_cache(params, entry) -> R | None`` — interpret ``entry``; return ``None``
   to treat the row as stale or unusable (the machine invalidates that key and runs
   the pipeline).
-- ``on_cache_write(result, params, duration_ms) -> bool`` — return whether the
-  machine should **persist** ``result`` after a successful pipeline. The action does
-  **not** write to the coordinator itself.
+- ``on_cache_write(result, params, duration_ms) -> list[CacheTag] | None`` — return
+  tags to index the result under, or ``None`` to skip writing. Called only when
+  ``cache_key`` returned a non-None key and the pipeline finished cleanly.
+- ``on_cache_invalidate(params, result) -> list[CacheTag] | None`` — return wildcard
+  tag matchers to evict stale entries, or ``None`` to skip. Called after every clean
+  pipeline regardless of ``cache_key``. Runs **before** ``on_cache_write`` so the
+  action's own fresh entry is never caught by its own eviction directives.
 
 Results produced only via a matching ``@on_error`` handler (**handled error path**)
-are **not** written to the cache, even when ``on_cache_write`` would return ``True``.
+are **not** written to the cache and do not trigger ``on_cache_invalidate``.
 
 If a cache hook, validation of its return value, or a coordinator method raises,
 the exception propagates to the caller. In v1 the machine does **not** emit
@@ -131,6 +135,7 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.runtime.cache_entry import CacheEntry
+from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 
 _REQUIRED_SUFFIX = "Action"
@@ -155,21 +160,50 @@ class BaseAction[P: BaseParams, R: BaseResult](
     ROLE: Public base type for all async/sync actions.
     CONTRACT: Subclasses end with ``Action``; carry marker mixins; use required decorators.
     INVARIANTS: Stateless at instance level regarding metadata.
-    CACHE: Optional ``cache_key`` / ``read_cache`` / ``on_cache_write``; defaults disable caching writes and leave keying to ``None``.
+    CACHE: Optional ``cache_key`` / ``read_cache`` / ``on_cache_write`` / ``on_cache_invalidate``; defaults disable caching. ``cache_key`` returns ``str | None``; ``on_cache_write`` returns ``list[CacheTag] | None`` (None = skip write); ``on_cache_invalidate`` returns ``list[CacheTag] | None`` and is called after every clean pipeline regardless of ``cache_key``.
     AI-CORE-END
 """
 
     def cache_key(self, params: P) -> str | None:
-        """User key segment for this run; ``None`` skips cache read/write for the call."""
+        """Return a non-empty string key to participate in caching, or ``None`` to skip read/write."""
         return None
 
     async def read_cache(self, params: P, entry: CacheEntry) -> R | None:
         """Return a typed hit from ``entry``, or ``None`` so the machine invalidates and re-runs."""
         return cast("R", entry.result)
 
-    async def on_cache_write(self, result: R, params: P, duration_ms: float) -> bool:
-        """Whether the machine should ``put`` ``result`` after a clean summary (not ``@on_error``-only)."""
-        return False
+    async def on_cache_write(
+        self, result: R, params: P, duration_ms: float
+    ) -> list[CacheTag] | None:
+        """Return tags to index the result under, or ``None`` to skip the cache write.
+
+        Called only when ``cache_key`` returned a non-None key and the pipeline finished cleanly
+        (not via ``@on_error``). Tags are
+        :class:`~aoa.action_machine.runtime.cache_tag.CacheTag` instances stored alongside the
+        entry for later tag-based lookup and invalidation.
+
+        **Ordering guarantee**: ``on_cache_invalidate`` always runs before ``on_cache_write``
+        within the same pipeline cycle. This means the fresh entry written here is never caught
+        by the eviction directives issued in the same call — stale entries are cleared first,
+        then the new entry lands safely."""
+        return None
+
+    async def on_cache_invalidate(
+        self, params: P, result: R
+    ) -> list[CacheTag] | None:
+        """Return tag matchers to evict before the cache write, or ``None`` to skip.
+
+        Called after every clean pipeline regardless of whether ``cache_key`` returned a key,
+        including write-only actions that do not cache their own result.
+
+        Each :class:`~aoa.action_machine.runtime.cache_tag.CacheTag` is a wildcard matcher:
+        a ``None`` field matches any value in the stored tag (e.g. ``CacheTag(type=Order)``
+        evicts all entries tagged with ``type=Order``, regardless of their ``key``).
+
+        **Ordering guarantee**: runs before ``on_cache_write`` so that the action's own fresh
+        entry is never evicted by its own directives. If both hooks return non-None, the sequence
+        is: evict matching stale entries → write new entry under the returned tags."""
+        return None
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Enforce the ``"Action"`` name suffix for every concrete subclass."""
