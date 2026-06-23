@@ -160,6 +160,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.aspect_executor import AspectExecutor
 from aoa.action_machine.runtime.base_action_machine import BaseActionMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
+from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.connection_validator import ConnectionValidator
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 from aoa.action_machine.runtime.error_handler_executor import ErrorHandlerExecutor
@@ -298,7 +299,7 @@ class ActionProductMachine(BaseActionMachine):
 
     @staticmethod
     def _validate_cache_key(cache_key: str | None, action: BaseAction[Any, Any]) -> None:
-        """Ensure ``cache_key`` is ``None``, a non-empty ``str``, or raise :exc:`CacheContractError`."""
+        """Ensure ``cache_key`` is ``None`` or a non-empty ``str``, or raise :exc:`CacheContractError`."""
         if cache_key is None:
             return
         if not isinstance(cache_key, str):
@@ -310,6 +311,25 @@ class ActionProductMachine(BaseActionMachine):
             raise CacheContractError(
                 f"cache_key in {type(action).__name__!r} must not be empty or whitespace-only.",
             )
+
+    @staticmethod
+    def _validate_cache_invalidate(
+        invalidations: object, action: BaseAction[Any, Any]
+    ) -> None:
+        """Ensure ``on_cache_invalidate`` returned ``list[CacheTag] | None`` or raise :exc:`CacheContractError`."""
+        if invalidations is None:
+            return
+        if not isinstance(invalidations, list):
+            raise CacheContractError(
+                f"on_cache_invalidate in {type(action).__name__!r} must return "
+                f"list[CacheTag] | None; got {type(invalidations).__name__!r}.",
+            )
+        for item in invalidations:
+            if not isinstance(item, CacheTag):
+                raise CacheContractError(
+                    f"on_cache_invalidate in {type(action).__name__!r}: each item must be "
+                    f"CacheTag; got {type(item).__name__!r}.",
+                )
 
     @staticmethod
     def _validate_cached_result(
@@ -327,15 +347,23 @@ class ActionProductMachine(BaseActionMachine):
 
     @staticmethod
     def _validate_cache_write_decision(
-        should_write: object,
+        write_tags: object,
         action: BaseAction[Any, Any],
     ) -> None:
-        """Ensure ``on_cache_write`` returned a ``bool`` or raise :exc:`CacheContractError`."""
-        if not isinstance(should_write, bool):
+        """Ensure ``on_cache_write`` returned ``list[CacheTag] | None`` or raise :exc:`CacheContractError`."""
+        if write_tags is None:
+            return
+        if not isinstance(write_tags, list):
             raise CacheContractError(
-                f"on_cache_write in {type(action).__name__!r} must return bool; "
-                f"got {type(should_write).__name__!r}.",
+                f"on_cache_write in {type(action).__name__!r} must return list[CacheTag] | None; "
+                f"got {type(write_tags).__name__!r}.",
             )
+        for item in write_tags:
+            if not isinstance(item, CacheTag):
+                raise CacheContractError(
+                    f"on_cache_write in {type(action).__name__!r}: each item must be CacheTag; "
+                    f"got {type(item).__name__!r}.",
+                )
 
     def get_action_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
         """Return the materialized ``Action`` graph node for ``action_cls`` (same id as :class:`ActionGraphNode`)."""
@@ -635,14 +663,14 @@ class ActionProductMachine(BaseActionMachine):
                 nest_level=current_nest,
             )
 
-            cache_key: str | None = None
+            cache_key_str: str | None = None
             cache_hit = False
 
             if self._cache_coordinator is not None:
-                cache_key = action.cache_key(params)
-                self._validate_cache_key(cache_key, action)
-                if cache_key is not None:
-                    entry = await self._cache_coordinator.get_entry(action_cls, cache_key)
+                cache_key_str = action.cache_key(params)
+                self._validate_cache_key(cache_key_str, action)
+                if cache_key_str is not None:
+                    entry = await self._cache_coordinator.get_entry(action_cls, cache_key_str)
                     if entry is not None:
                         cached_result = await action.read_cache(params, entry)
                         if cached_result is not None:
@@ -650,28 +678,40 @@ class ActionProductMachine(BaseActionMachine):
                             result = cached_result
                             cache_hit = True
                         else:
-                            await self._cache_coordinator.invalidate(action_cls, cache_key)
+                            await self._cache_coordinator.invalidate(action_cls, cache_key_str)
 
             if not cache_hit:
                 outcome = await self._execute_pipeline_aspects(
                     action, params, box, conns, context, plugin_ctx, action_node
                 )
                 result = outcome.result
-                if (
-                    self._cache_coordinator is not None
-                    and cache_key is not None
-                    and not outcome.from_error_handler
-                ):
+                if self._cache_coordinator is not None and not outcome.from_error_handler:
                     total_duration_ms = (time.time() - start_time) * 1000
-                    should_write = await action.on_cache_write(result, params, total_duration_ms)
-                    self._validate_cache_write_decision(should_write, action)
-                    if should_write:
-                        await self._cache_coordinator.put(
-                            action_cls,
-                            cache_key,
-                            result,
-                            total_duration_ms,
-                        )
+                    # ORDER: invalidate first, then write.
+                    #
+                    # Invalidation must precede the write so that the new entry is never
+                    # evicted by its own directives. Consider an action that both evicts
+                    # CacheTag(type=Order, key=42) AND writes a fresh entry under that same
+                    # tag: if the write came first, the subsequent eviction pass would
+                    # immediately remove the entry it just stored, leaving the cache empty
+                    # after every run. By inverting the order — evict stale entries, then
+                    # write the fresh result — the new entry always survives the current cycle.
+                    invalidations = await action.on_cache_invalidate(params, result)
+                    self._validate_cache_invalidate(invalidations, action)
+                    if invalidations:
+                        await self._cache_coordinator.evict_by_tags(frozenset(invalidations))
+                    # Write only when cache_key returned a non-None key for this call.
+                    if cache_key_str is not None:
+                        write_tags = await action.on_cache_write(result, params, total_duration_ms)
+                        self._validate_cache_write_decision(write_tags, action)
+                        if write_tags is not None:
+                            await self._cache_coordinator.put(
+                                action_cls,
+                                cache_key_str,
+                                result,
+                                total_duration_ms,
+                                tags=write_tags,
+                            )
 
             if owns_include_tracker and not cache_hit:
                 IncludeContractChecker.verify(action, frozenset(active_include_types))

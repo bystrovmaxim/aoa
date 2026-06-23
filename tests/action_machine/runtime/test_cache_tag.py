@@ -83,5 +83,6 @@ def test_cache_tag_wildcard_type_not_equal_to_typed() -> None:
 
 
 def test_cache_tag_key_none_field_means_wildcard_only_in_matching_not_equality() -> None:
-    # Equality is field-level; wildcard semantics are a CacheCoordinator concern.
-    assert CacheTag(type=_Order) != CacheTag(type=_Order, key=None)
+    # key=None is the dataclass default, so CacheTag(type=_Order) is identical to
+    # CacheTag(type=_Order, key=None). Wildcard semantics are a CacheCoordinator concern.
+    assert CacheTag(type=_Order) == CacheTag(type=_Order, key=None)
