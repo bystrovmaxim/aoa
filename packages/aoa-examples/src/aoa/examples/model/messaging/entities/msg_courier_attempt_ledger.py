@@ -26,7 +26,9 @@ class CourierAttemptLedgerEntity(BaseEntity):
     batching_fence: Annotated[
         AssociationOne[BatchingFenceEntity],
         NoInverse(),
-    ] = Rel(description="Owning batch coordination fence row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning batch coordination fence row"
+    )  # type: ignore[assignment]
 
 
 CourierAttemptLedgerEntity.model_rebuild()

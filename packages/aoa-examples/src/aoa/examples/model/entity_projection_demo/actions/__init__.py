@@ -3,9 +3,7 @@
 
 from __future__ import annotations
 
-from aoa.examples.model.entity_projection_demo.actions.order_wire_preview import (
-    ProjectionDemoOrderWirePreviewAction,
-)
+from aoa.examples.model.entity_projection_demo.actions.order_wire_preview import ProjectionDemoOrderWirePreviewAction
 
 ProjectionDemoOrderWirePreviewParams = ProjectionDemoOrderWirePreviewAction.Params
 ProjectionDemoOrderWirePreviewResult = ProjectionDemoOrderWirePreviewAction.Result

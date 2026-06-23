@@ -31,7 +31,9 @@ class OrderDualEntryOriginTraceEntity(BaseEntity):
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Related order aggregate for this origin trace")  # type: ignore[assignment]
+    ] = Rel(
+        description="Related order aggregate for this origin trace"
+    )  # type: ignore[assignment]
 
 
 OrderDualEntryOriginTraceEntity.model_rebuild()

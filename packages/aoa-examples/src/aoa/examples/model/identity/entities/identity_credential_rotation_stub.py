@@ -27,12 +27,16 @@ class IdentityCredentialRotationStubEntity(BaseEntity):
     phone_factor: Annotated[
         AssociationOne[IdentityPhoneFactorEntity],
         NoInverse(),
-    ] = Rel(description="Upstream phone factor row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream phone factor row"
+    )  # type: ignore[assignment]
 
     person: Annotated[
         AssociationOne[IdentityPersonHubEntity],
         NoInverse(),
-    ] = Rel(description="Credential owner")  # type: ignore[assignment]
+    ] = Rel(
+        description="Credential owner"
+    )  # type: ignore[assignment]
 
 
 IdentityCredentialRotationStubEntity.model_rebuild()

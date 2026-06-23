@@ -8,9 +8,7 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.examples.model.assurance_portfolio.domain import AssurancePortfolioDomain
-from aoa.examples.model.assurance_portfolio.entities.ap_campaign_wave_banner import (
-    AssuranceCampaignWaveBannerEntity,
-)
+from aoa.examples.model.assurance_portfolio.entities.ap_campaign_wave_banner import AssuranceCampaignWaveBannerEntity
 from aoa.examples.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorEntity
 from aoa.examples.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 
@@ -29,12 +27,16 @@ class AssuranceWaveSeatCouplingEntity(BaseEntity):
     actor: Annotated[
         AssociationOne[AssuranceFacilityActorEntity],
         NoInverse(),
-    ] = Rel(description="Duty-bound actor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Duty-bound actor"
+    )  # type: ignore[assignment]
 
     campaign_wave: Annotated[
         AssociationOne[AssuranceCampaignWaveBannerEntity],
         NoInverse(),
-    ] = Rel(description="Subject wave banner")  # type: ignore[assignment]
+    ] = Rel(
+        description="Subject wave banner"
+    )  # type: ignore[assignment]
 
 
 AssuranceWaveSeatCouplingEntity.model_rebuild()

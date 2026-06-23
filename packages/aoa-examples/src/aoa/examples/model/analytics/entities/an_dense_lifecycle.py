@@ -7,9 +7,14 @@ class AnalyticsPipelineLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("ingest", "Ingest").to("hydrate").initial()
-        .state("hydrate", "Hydrate").to("commit").intermediate()
-        .state("commit", "Committed").final()
+        .state("ingest", "Ingest")
+        .to("hydrate")
+        .initial()
+        .state("hydrate", "Hydrate")
+        .to("commit")
+        .intermediate()
+        .state("commit", "Committed")
+        .final()
     )
 
 
@@ -18,7 +23,12 @@ class AnalyticsFactLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("open", "Open").to("indexed").initial()
-        .state("indexed", "Indexed").to("frozen").intermediate()
-        .state("frozen", "Frozen").final()
+        .state("open", "Open")
+        .to("indexed")
+        .initial()
+        .state("indexed", "Indexed")
+        .to("frozen")
+        .intermediate()
+        .state("frozen", "Frozen")
+        .final()
     )

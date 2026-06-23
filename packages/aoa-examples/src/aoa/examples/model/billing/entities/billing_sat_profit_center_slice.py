@@ -22,7 +22,9 @@ class ProfitCenterContributionEntity(BaseEntity):
     ingest_manifest: Annotated[
         AssociationOne[BillingFileIngestManifestEntity],
         NoInverse(),
-    ] = Rel(description="Owning ingest manifest")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning ingest manifest"
+    )  # type: ignore[assignment]
 
     cost_center_code: str = Field(description="Finance cost center key")
     allocation_ratio: float = Field(description="Allocated share of manifest totals", gt=0.0, le=1.0)

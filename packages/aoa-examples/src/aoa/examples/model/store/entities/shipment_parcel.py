@@ -27,11 +27,16 @@ class ShipmentParcelEntity(BaseEntity):
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Shipped order")  # type: ignore[assignment]
+    ] = Rel(
+        description="Shipped order"
+    )  # type: ignore[assignment]
 
     origin_facility: Annotated[
         AssociationOne[FacilityWarehouseEntity],
         NoInverse(),
-    ] = Rel(description="Inventory facility staging this shipment")  # type: ignore[assignment]
+    ] = Rel(
+        description="Inventory facility staging this shipment"
+    )  # type: ignore[assignment]
+
 
 ShipmentParcelEntity.model_rebuild()

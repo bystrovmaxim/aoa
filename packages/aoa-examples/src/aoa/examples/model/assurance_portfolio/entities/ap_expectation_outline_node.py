@@ -12,9 +12,7 @@ from aoa.examples.model.assurance_portfolio.entities.ap_expectation_catalog_stub
     AssuranceExpectationCatalogStubEntity,
 )
 from aoa.examples.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
-from aoa.examples.model.assurance_portfolio.entities.ap_reference_axes import (
-    AssuranceSpecificationDepthAxisEntity,
-)
+from aoa.examples.model.assurance_portfolio.entities.ap_reference_axes import AssuranceSpecificationDepthAxisEntity
 
 
 @entity(
@@ -34,12 +32,16 @@ class AssuranceExpectationOutlineNodeEntity(BaseEntity):
     catalog_bucket: Annotated[
         AssociationOne[AssuranceExpectationCatalogStubEntity],
         NoInverse(),
-    ] = Rel(description="Parent catalog capsule")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent catalog capsule"
+    )  # type: ignore[assignment]
 
     depth_axis: Annotated[
         AssociationOne[AssuranceSpecificationDepthAxisEntity],
         NoInverse(),
-    ] = Rel(description="Depth posture on catalog spine")  # type: ignore[assignment]
+    ] = Rel(
+        description="Depth posture on catalog spine"
+    )  # type: ignore[assignment]
 
 
 AssuranceExpectationOutlineNodeEntity.model_rebuild()

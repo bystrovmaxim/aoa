@@ -7,7 +7,12 @@ class AssurancePortfolioLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("intake", "Intake").to("steady").initial()
-        .state("steady", "Steady").to("frozen").intermediate()
-        .state("frozen", "Frozen").final()
+        .state("intake", "Intake")
+        .to("steady")
+        .initial()
+        .state("steady", "Steady")
+        .to("frozen")
+        .intermediate()
+        .state("frozen", "Frozen")
+        .final()
     )

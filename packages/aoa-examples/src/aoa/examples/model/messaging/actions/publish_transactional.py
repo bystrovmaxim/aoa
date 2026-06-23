@@ -21,10 +21,7 @@ from aoa.action_machine.logging import sensitive
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.examples.model.messaging.domain import MessagingDomain
 from aoa.examples.model.messaging.resources import MessagingDeadLetterStore, OutboxPrimaryDatabase
-from aoa.examples.model.messaging.resources.notification_gateway import (
-    NotificationGateway,
-    NotificationGatewayResource,
-)
+from aoa.examples.model.messaging.resources.notification_gateway import NotificationGateway, NotificationGatewayResource
 from aoa.examples.model.messaging.resources.smtp_transport import SmtpTransportStub, SmtpTransportStubResource
 from aoa.examples.model.messaging.resources.webhook_fanout import WebhookFanoutStub, WebhookFanoutStubResource
 from aoa.examples.model.roles import EditorRole

@@ -26,7 +26,9 @@ class AssuranceFacilityActorEntity(BaseEntity):
     account_phase_axis: Annotated[
         AssociationOne[AssuranceAccountPhaseAxisEntity],
         NoInverse(),
-    ] = Rel(description="Credential posture snapshot")  # type: ignore[assignment]
+    ] = Rel(
+        description="Credential posture snapshot"
+    )  # type: ignore[assignment]
 
 
 AssuranceFacilityActorEntity.model_rebuild()

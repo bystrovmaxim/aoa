@@ -22,7 +22,9 @@ class RetrievalEvidenceBundleEntity(BaseEntity):
     chargeback_ticket: Annotated[
         AssociationOne[ChargebackTicketEntity],
         NoInverse(),
-    ] = Rel(description="Parent dispute ticket")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent dispute ticket"
+    )  # type: ignore[assignment]
 
     bundle_kind: str = Field(description="Evidence bundle category")
     retrieval_deadline_iso: str = Field(description="Cutoff for representment package (UTC)")

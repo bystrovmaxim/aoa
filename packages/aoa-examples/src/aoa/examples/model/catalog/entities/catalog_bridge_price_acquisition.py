@@ -13,7 +13,9 @@ from aoa.examples.model.catalog.entities.catalog_dense_lifecycle import CatalogD
 from aoa.examples.model.catalog.entities.catalog_price_ribbon_snapshot import PriceRibbonSnapshotEntity
 
 
-@entity(description="Associative stitching between attribution ledger and elasticity ribbon subgraph", domain=CatalogDomain)
+@entity(
+    description="Associative stitching between attribution ledger and elasticity ribbon subgraph", domain=CatalogDomain
+)
 class CatalogPriceAcquisitionLinkEntity(BaseEntity):
     id: str = Field(description="Link id")
     lifecycle: CatalogDenseLifecycle = Field(description="Stitch lifecycle")
@@ -27,12 +29,16 @@ class CatalogPriceAcquisitionLinkEntity(BaseEntity):
     price_ribbon: Annotated[
         AssociationOne[PriceRibbonSnapshotEntity],
         NoInverse(),
-    ] = Rel(description="Ribbon spine anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Ribbon spine anchor"
+    )  # type: ignore[assignment]
 
     acquisition_ledger: Annotated[
         AssociationOne[AcquisitionChannelLedgerEntity],
         NoInverse(),
-    ] = Rel(description="Acquisition ledger anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Acquisition ledger anchor"
+    )  # type: ignore[assignment]
 
 
 CatalogPriceAcquisitionLinkEntity.model_rebuild()

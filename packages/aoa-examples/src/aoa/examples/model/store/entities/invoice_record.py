@@ -27,11 +27,16 @@ class InvoiceRecordEntity(BaseEntity):
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Invoiced order")  # type: ignore[assignment]
+    ] = Rel(
+        description="Invoiced order"
+    )  # type: ignore[assignment]
 
     invoice_outbox_row: Annotated[
         AssociationOne[OutboxMessageEntity],
         NoInverse(),
-    ] = Rel(description="Transactional outbox publish for invoice side-effects")  # type: ignore[assignment]
+    ] = Rel(
+        description="Transactional outbox publish for invoice side-effects"
+    )  # type: ignore[assignment]
+
 
 InvoiceRecordEntity.model_rebuild()

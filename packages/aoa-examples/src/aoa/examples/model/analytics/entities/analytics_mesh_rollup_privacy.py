@@ -13,7 +13,9 @@ from aoa.examples.model.analytics.entities.analytics_metric_rollup_staging impor
 from aoa.examples.model.analytics.entities.analytics_sat_privacy_budget_slice import PrivacyBudgetSliceEntity
 
 
-@entity(description="Associates heavyweight rollup egress with sovereign privacy budgeting island", domain=AnalyticsDomain)
+@entity(
+    description="Associates heavyweight rollup egress with sovereign privacy budgeting island", domain=AnalyticsDomain
+)
 class AnalyticsRollupPrivacyCorrelateEntity(BaseEntity):
     id: str = Field(description="Correlator id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Correlator lifecycle")
@@ -27,12 +29,16 @@ class AnalyticsRollupPrivacyCorrelateEntity(BaseEntity):
     rollup_staging: Annotated[
         AssociationOne[AnalyticsMetricRollupStagingEntity],
         NoInverse(),
-    ] = Rel(description="Rollup staging anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Rollup staging anchor"
+    )  # type: ignore[assignment]
 
     privacy_slice: Annotated[
         AssociationOne[PrivacyBudgetSliceEntity],
         NoInverse(),
-    ] = Rel(description="Isolated privacy budget anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Isolated privacy budget anchor"
+    )  # type: ignore[assignment]
 
 
 AnalyticsRollupPrivacyCorrelateEntity.model_rebuild()

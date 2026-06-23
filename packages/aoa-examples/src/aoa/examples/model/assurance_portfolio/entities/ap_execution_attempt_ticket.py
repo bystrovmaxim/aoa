@@ -26,6 +26,9 @@ class AssuranceExecutionAttemptTicketEntity(BaseEntity):
     actor_person_hub: Annotated[
         AssociationOne[IdentityPersonHubEntity],
         NoInverse(),
-    ] = Rel(description="Identity hub for executor attribution and segregation boundaries")  # type: ignore[assignment]
+    ] = Rel(
+        description="Identity hub for executor attribution and segregation boundaries"
+    )  # type: ignore[assignment]
+
 
 AssuranceExecutionAttemptTicketEntity.model_rebuild()

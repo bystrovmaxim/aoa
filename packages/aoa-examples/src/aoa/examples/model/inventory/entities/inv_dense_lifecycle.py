@@ -7,9 +7,14 @@ class InvDenseLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("available", "Available").to("committed").initial()
-        .state("committed", "Committed").to("depleted").intermediate()
-        .state("depleted", "Depleted").final()
+        .state("available", "Available")
+        .to("committed")
+        .initial()
+        .state("committed", "Committed")
+        .to("depleted")
+        .intermediate()
+        .state("depleted", "Depleted")
+        .final()
     )
 
 
@@ -18,7 +23,12 @@ class InvPipelineLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("receipt", "Receipt").to("staging").initial()
-        .state("staging", "Staging").to("anchored").intermediate()
-        .state("anchored", "Anchored").final()
+        .state("receipt", "Receipt")
+        .to("staging")
+        .initial()
+        .state("staging", "Staging")
+        .to("anchored")
+        .intermediate()
+        .state("anchored", "Anchored")
+        .final()
     )

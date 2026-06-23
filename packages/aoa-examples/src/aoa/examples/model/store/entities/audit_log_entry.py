@@ -26,7 +26,9 @@ class AuditLogEntryEntity(BaseEntity):
     target_order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Related order")  # type: ignore[assignment]
+    ] = Rel(
+        description="Related order"
+    )  # type: ignore[assignment]
 
 
 AuditLogEntryEntity.model_rebuild()

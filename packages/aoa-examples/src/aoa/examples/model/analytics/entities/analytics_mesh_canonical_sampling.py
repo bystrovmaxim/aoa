@@ -9,13 +9,14 @@ from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.examples.model.analytics.domain import AnalyticsDomain
 from aoa.examples.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.examples.model.analytics.entities.analytics_canonical_telemetry_row import (
-    AnalyticsCanonicalTelemetryRowEntity,
-)
+from aoa.examples.model.analytics.entities.analytics_canonical_telemetry_row import AnalyticsCanonicalTelemetryRowEntity
 from aoa.examples.model.analytics.entities.analytics_sampling_policy import AnalyticsSamplingPolicyEntity
 
 
-@entity(description="Short-circuit between canonical telemetry egress and exploratory sampling subgraph", domain=AnalyticsDomain)
+@entity(
+    description="Short-circuit between canonical telemetry egress and exploratory sampling subgraph",
+    domain=AnalyticsDomain,
+)
 class AnalyticsCanonicalSamplingCorrelateEntity(BaseEntity):
     id: str = Field(description="Correlator id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Correlator lifecycle")
@@ -29,12 +30,16 @@ class AnalyticsCanonicalSamplingCorrelateEntity(BaseEntity):
     canonical_row: Annotated[
         AssociationOne[AnalyticsCanonicalTelemetryRowEntity],
         NoInverse(),
-    ] = Rel(description="Canonical telemetry anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Canonical telemetry anchor"
+    )  # type: ignore[assignment]
 
     sampling_policy: Annotated[
         AssociationOne[AnalyticsSamplingPolicyEntity],
         NoInverse(),
-    ] = Rel(description="Sampling workload anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Sampling workload anchor"
+    )  # type: ignore[assignment]
 
 
 AnalyticsCanonicalSamplingCorrelateEntity.model_rebuild()

@@ -27,11 +27,16 @@ class FulfillmentTaskEntity(BaseEntity):
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],
         NoInverse(),
-    ] = Rel(description="Target order line")  # type: ignore[assignment]
+    ] = Rel(
+        description="Target order line"
+    )  # type: ignore[assignment]
 
     lot_inventory_slice: Annotated[
         AssociationOne[LotSnapshotLedgerEntity],
         NoInverse(),
-    ] = Rel(description="Inventory lot snapshot consulted for allocation")  # type: ignore[assignment]
+    ] = Rel(
+        description="Inventory lot snapshot consulted for allocation"
+    )  # type: ignore[assignment]
+
 
 FulfillmentTaskEntity.model_rebuild()

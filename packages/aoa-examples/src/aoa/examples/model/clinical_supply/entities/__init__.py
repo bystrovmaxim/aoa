@@ -4,9 +4,7 @@ from __future__ import annotations
 from aoa.examples.model.clinical_supply.entities.cs_care_site_unit import ClinicalCareSiteUnitEntity
 from aoa.examples.model.clinical_supply.entities.cs_consumable_sku_row import ClinicalConsumableSkuEntity
 from aoa.examples.model.clinical_supply.entities.cs_geographic_anchor import ClinicalGeographicAnchorEntity
-from aoa.examples.model.clinical_supply.entities.cs_inbound_shipment_ticket import (
-    ClinicalInboundShipmentTicketEntity,
-)
+from aoa.examples.model.clinical_supply.entities.cs_inbound_shipment_ticket import ClinicalInboundShipmentTicketEntity
 from aoa.examples.model.clinical_supply.entities.cs_inbound_transport_binding import (
     ClinicalInboundTransportBindingEntity,
 )
@@ -17,9 +15,7 @@ from aoa.examples.model.clinical_supply.entities.cs_outbound_parcel_wave import 
 from aoa.examples.model.clinical_supply.entities.cs_ownership_anchor import ClinicalOwnershipAnchorEntity
 from aoa.examples.model.clinical_supply.entities.cs_packing_anchor import ClinicalPackingAnchorEntity
 from aoa.examples.model.clinical_supply.entities.cs_partner_hub import ClinicalPartnerHubEntity
-from aoa.examples.model.clinical_supply.entities.cs_partner_org_projection import (
-    ClinicalPartnerOrgProjectionEntity,
-)
+from aoa.examples.model.clinical_supply.entities.cs_partner_org_projection import ClinicalPartnerOrgProjectionEntity
 from aoa.examples.model.clinical_supply.entities.cs_partner_person_projection import (
     ClinicalPartnerPersonProjectionEntity,
 )

@@ -26,7 +26,9 @@ class SubstitutionHistoryEntity(BaseEntity):
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],
         NoInverse(),
-    ] = Rel(description="Owning order line anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning order line anchor"
+    )  # type: ignore[assignment]
 
 
 SubstitutionHistoryEntity.model_rebuild()

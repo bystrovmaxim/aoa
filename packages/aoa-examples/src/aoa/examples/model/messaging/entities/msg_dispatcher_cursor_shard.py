@@ -26,7 +26,9 @@ class DispatcherCursorShardEntity(BaseEntity):
     outbox_row: Annotated[
         AssociationOne[OutboxMessageEntity],
         NoInverse(),
-    ] = Rel(description="Parent outbox envelope")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent outbox envelope"
+    )  # type: ignore[assignment]
 
 
 DispatcherCursorShardEntity.model_rebuild()

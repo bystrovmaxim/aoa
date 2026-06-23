@@ -26,7 +26,9 @@ class DedupeCorrelationEntity(BaseEntity):
     dispatcher_cursor: Annotated[
         AssociationOne[DispatcherCursorShardEntity],
         NoInverse(),
-    ] = Rel(description="Owning dispatcher shard")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning dispatcher shard"
+    )  # type: ignore[assignment]
 
 
 DedupeCorrelationEntity.model_rebuild()

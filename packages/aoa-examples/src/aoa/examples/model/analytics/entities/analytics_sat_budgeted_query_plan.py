@@ -26,7 +26,9 @@ class BudgetedQueryPlanEntity(BaseEntity):
     sampling_policy: Annotated[
         AssociationOne[AnalyticsSamplingPolicyEntity],
         NoInverse(),
-    ] = Rel(description="Owning sampling policy")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning sampling policy"
+    )  # type: ignore[assignment]
 
 
 BudgetedQueryPlanEntity.model_rebuild()

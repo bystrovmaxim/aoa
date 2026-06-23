@@ -13,7 +13,9 @@ from aoa.examples.model.messaging.entities.msg_webhook_signature_envelope import
 from aoa.examples.model.messaging.entities.outbox_message import OutboxMessageEntity
 
 
-@entity(description="Correlates isolated webhook verification path with transactional outbox rows", domain=MessagingDomain)
+@entity(
+    description="Correlates isolated webhook verification path with transactional outbox rows", domain=MessagingDomain
+)
 class MsgOutboxWebhookCorrelateEntity(BaseEntity):
     id: str = Field(description="Correlator id")
     lifecycle: MsgDenseLifecycle = Field(description="Correlator lifecycle")
@@ -27,12 +29,16 @@ class MsgOutboxWebhookCorrelateEntity(BaseEntity):
     outbox_row: Annotated[
         AssociationOne[OutboxMessageEntity],
         NoInverse(),
-    ] = Rel(description="Upstream outbox linkage")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream outbox linkage"
+    )  # type: ignore[assignment]
 
     signature_envelope: Annotated[
         AssociationOne[WebhookSignatureEnvelopeEntity],
         NoInverse(),
-    ] = Rel(description="Verified webhook linkage")  # type: ignore[assignment]
+    ] = Rel(
+        description="Verified webhook linkage"
+    )  # type: ignore[assignment]
 
 
 MsgOutboxWebhookCorrelateEntity.model_rebuild()

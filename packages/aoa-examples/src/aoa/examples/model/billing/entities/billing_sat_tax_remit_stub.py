@@ -22,7 +22,9 @@ class TaxRemittanceAdviceEntity(BaseEntity):
     cash_apply_hint: Annotated[
         AssociationOne[CashApplicationHintEntity],
         NoInverse(),
-    ] = Rel(description="Upstream cash-application hint")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream cash-application hint"
+    )  # type: ignore[assignment]
 
     jurisdiction_code: str = Field(description="Tax authority region code")
     filing_period_id: str = Field(description="Closed reporting period key")

@@ -30,12 +30,16 @@ class StoreOrderParcelHandoffEntity(BaseEntity):
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Referenced order aggregate")  # type: ignore[assignment]
+    ] = Rel(
+        description="Referenced order aggregate"
+    )  # type: ignore[assignment]
 
     parcel: Annotated[
         AssociationOne[ShipmentParcelEntity],
         NoInverse(),
-    ] = Rel(description="Referenced shipment parcel artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Referenced shipment parcel artefact"
+    )  # type: ignore[assignment]
 
 
 StoreOrderParcelHandoffEntity.model_rebuild()

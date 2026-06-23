@@ -22,4 +22,6 @@ class RoutedObservationSliceEntity(BaseEntity):
     source_envelope: Annotated[
         AssociationOne[TelemetryIngestEnvelopeEntity],
         NoInverse(),
-    ] = Rel(description="Source envelope powering this routed slice")  # type: ignore[assignment]
+    ] = Rel(
+        description="Source envelope powering this routed slice"
+    )  # type: ignore[assignment]

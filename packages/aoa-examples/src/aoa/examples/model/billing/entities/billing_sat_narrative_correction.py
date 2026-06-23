@@ -22,7 +22,9 @@ class NarrativeCorrectionEntity(BaseEntity):
     canonical_row: Annotated[
         AssociationOne[BillingCanonicalRowArtifactEntity],
         NoInverse(),
-    ] = Rel(description="Parent canonical ingest artifact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent canonical ingest artifact"
+    )  # type: ignore[assignment]
 
     correction_reason_code: str = Field(description="Reason vocabulary key")
     editor_actor_id: str = Field(description="Actor approving narrative delta")

@@ -23,4 +23,6 @@ class CustodyAuditEventEntity(BaseEntity):
     subject_sku_row: Annotated[
         AssociationOne[RegulatedStockKeepingUnitRowEntity],
         NoInverse(),
-    ] = Rel(description="Regulated SKU row this audit references")  # type: ignore[assignment]
+    ] = Rel(
+        description="Regulated SKU row this audit references"
+    )  # type: ignore[assignment]

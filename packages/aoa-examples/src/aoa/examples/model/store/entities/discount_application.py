@@ -27,11 +27,16 @@ class DiscountApplicationEntity(BaseEntity):
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Discounted order")  # type: ignore[assignment]
+    ] = Rel(
+        description="Discounted order"
+    )  # type: ignore[assignment]
 
     acquisition_attribution_head: Annotated[
         AssociationOne[AcquisitionChannelLedgerEntity],
         NoInverse(),
-    ] = Rel(description="Catalog acquisition ledger head for attributed demand")  # type: ignore[assignment]
+    ] = Rel(
+        description="Catalog acquisition ledger head for attributed demand"
+    )  # type: ignore[assignment]
+
 
 DiscountApplicationEntity.model_rebuild()

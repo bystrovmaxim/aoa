@@ -52,6 +52,7 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         """
         Order creation input parameters.
         """
+
         user_id: str = Field(
             description="Identifier of the user creating the order",
             min_length=1,
@@ -71,6 +72,7 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
 
     class Result(BaseResult):
         """Order creation result payload."""
+
         order_id: str = Field(
             description="Unique identifier of created order",
             examples=["ORD-user_123-001"],

@@ -9,7 +9,12 @@ class CatalogProductLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("draft", "Draft").to("active").initial()
-        .state("active", "Active").to("retired").intermediate()
-        .state("retired", "Retired").final()
+        .state("draft", "Draft")
+        .to("active")
+        .initial()
+        .state("active", "Active")
+        .to("retired")
+        .intermediate()
+        .state("retired", "Retired")
+        .final()
     )

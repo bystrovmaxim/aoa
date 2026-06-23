@@ -27,12 +27,16 @@ class LotSnapshotLedgerEntity(BaseEntity):
     facility: Annotated[
         AssociationOne[FacilityWarehouseEntity],
         NoInverse(),
-    ] = Rel(description="Facility lineage anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Facility lineage anchor"
+    )  # type: ignore[assignment]
 
     bin_coordinate: Annotated[
         AssociationOne[BinCoordinateStubEntity],
         NoInverse(),
-    ] = Rel(description="Bin coordinate lineage anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Bin coordinate lineage anchor"
+    )  # type: ignore[assignment]
 
 
 LotSnapshotLedgerEntity.model_rebuild()

@@ -22,7 +22,9 @@ class FxResidualTagEntity(BaseEntity):
     narrative: Annotated[
         AssociationOne[NarrativeCorrectionEntity],
         NoInverse(),
-    ] = Rel(description="Upstream narrative correction")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream narrative correction"
+    )  # type: ignore[assignment]
 
     quote_currency_iso: str = Field(description="Currency used for hedge quote")
     base_amount_minor: int = Field(description="Amount in transactional currency minors", ge=0)

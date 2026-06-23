@@ -1,12 +1,8 @@
 # packages/aoa-examples/src/aoa/examples/model/support/actions/__init__.py
 from aoa.examples.model.support.actions.depend_cross_domain_action import DependCrossDomainAction
-from aoa.examples.model.support.actions.depend_cross_domain_include_action import (
-    DependCrossDomainIncludeAction,
-)
+from aoa.examples.model.support.actions.depend_cross_domain_include_action import DependCrossDomainIncludeAction
 from aoa.examples.model.support.actions.depend_same_domain_action import DependSameDomainAction
-from aoa.examples.model.support.actions.depend_same_domain_include_action import (
-    DependSameDomainIncludeAction,
-)
+from aoa.examples.model.support.actions.depend_same_domain_include_action import DependSameDomainIncludeAction
 from aoa.examples.model.support.actions.sla_breach_stub import SlaBreachStubAction
 from aoa.examples.model.support.actions.support_ping import SupportPingAction
 from aoa.examples.model.support.actions.ticket_stub import TicketStubAction

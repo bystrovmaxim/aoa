@@ -27,11 +27,16 @@ class TouchMomentEntity(BaseEntity):
     channel_ledger: Annotated[
         AssociationOne[AcquisitionChannelLedgerEntity],
         NoInverse(),
-    ] = Rel(description="Acquisition ledger segment")  # type: ignore[assignment]
+    ] = Rel(
+        description="Acquisition ledger segment"
+    )  # type: ignore[assignment]
 
     replay_ticket: Annotated[
         AssociationOne[ReplayTicketEntity],
         NoInverse(),
-    ] = Rel(description="Messaging replay ticket for deterministic touch lineage")  # type: ignore[assignment]
+    ] = Rel(
+        description="Messaging replay ticket for deterministic touch lineage"
+    )  # type: ignore[assignment]
+
 
 TouchMomentEntity.model_rebuild()

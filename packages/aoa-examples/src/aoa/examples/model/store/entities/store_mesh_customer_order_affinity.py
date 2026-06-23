@@ -12,7 +12,9 @@ from aoa.examples.model.store.entities.sales_order_lifecycle import SalesOrderLi
 from aoa.examples.model.store.store_domain import StoreDomain
 
 
-@entity(description="Many-to-many style affinity row bridging buyer subgraph and transactional orders", domain=StoreDomain)
+@entity(
+    description="Many-to-many style affinity row bridging buyer subgraph and transactional orders", domain=StoreDomain
+)
 class StoreCustomerOrderAffinityEntity(BaseEntity):
     id: str = Field(description="Affinity id")
     lifecycle: SalesOrderLifecycle = Field(description="Affinity lifecycle")
@@ -26,12 +28,16 @@ class StoreCustomerOrderAffinityEntity(BaseEntity):
     customer: Annotated[
         AssociationOne[CustomerAccountEntity],
         NoInverse(),
-    ] = Rel(description="Buyer profile anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Buyer profile anchor"
+    )  # type: ignore[assignment]
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Order aggregate anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Order aggregate anchor"
+    )  # type: ignore[assignment]
 
 
 StoreCustomerOrderAffinityEntity.model_rebuild()

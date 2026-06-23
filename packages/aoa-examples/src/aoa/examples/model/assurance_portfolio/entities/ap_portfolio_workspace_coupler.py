@@ -29,12 +29,16 @@ class AssurancePortfolioWorkspaceCouplerEntity(BaseEntity):
     portfolio_lane: Annotated[
         AssociationOne[AssurancePortfolioLaneStubEntity],
         NoInverse(),
-    ] = Rel(description="Owning lane headline")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning lane headline"
+    )  # type: ignore[assignment]
 
     workspace_program: Annotated[
         AssociationOne[AssuranceWorkspaceProgramStubEntity],
         NoInverse(),
-    ] = Rel(description="Contained workspace capsule")  # type: ignore[assignment]
+    ] = Rel(
+        description="Contained workspace capsule"
+    )  # type: ignore[assignment]
 
 
 AssurancePortfolioWorkspaceCouplerEntity.model_rebuild()
