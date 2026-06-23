@@ -29,8 +29,6 @@ from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.plugin.ocel import OCEL_FRAMES_KEY, OcelFrame
-from aoa.action_machine.plugin.ocel.dto import OcelAttribute
 from aoa.examples.model.store.ocel_trace_builder import (
     build_catalog_product,
     build_customer_account,
@@ -46,6 +44,8 @@ from aoa.examples.model.store.ocel_trace_builder import (
 )
 from aoa.examples.model.store.resources.ocel_store import StoreOcelStoreResource
 from aoa.examples.model.store.store_domain import StoreDomain
+from aoa.ocel import OCEL_FRAMES_KEY, OcelFrame
+from aoa.ocel.dto import OcelAttribute
 
 STORE_OCEL_CONNECTION_KEY = "ocel"
 

@@ -21,6 +21,7 @@ MEMBERS = (
     "aoa-fastapi-adapter",
     "aoa-mcp-adapter",
     "aoa-langgraph-adapter",
+    "aoa-ocel",
     "aoa-maxitor",
     "aoa-examples",
 )
@@ -31,6 +32,7 @@ _PACKAGE_DIR: dict[str, str] = {
     "aoa-fastapi-adapter": "aoa-fastapi-adapter",
     "aoa-mcp-adapter": "aoa-mcp-adapter",
     "aoa-langgraph-adapter": "aoa-langgraph-adapter",
+    "aoa-ocel": "aoa-ocel",
     "aoa-maxitor": "aoa-maxitor",
     "aoa-examples": "aoa-examples",
 }
@@ -41,16 +43,18 @@ REQUIRED_MAIN: dict[str, frozenset[str]] = {
     "aoa-fastapi-adapter": frozenset({"aoa-action-machine"}),
     "aoa-mcp-adapter": frozenset({"aoa-action-machine"}),
     "aoa-langgraph-adapter": frozenset({"aoa-action-machine"}),
+    "aoa-ocel": frozenset({"aoa-action-machine"}),
     "aoa-maxitor": frozenset({"aoa-action-machine", "aoa-fastapi-adapter"}),
-    "aoa-examples": frozenset({"aoa-action-machine", "aoa-fastapi-adapter", "aoa-mcp-adapter"}),
+    "aoa-examples": frozenset({"aoa-action-machine", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel"}),
 }
 
 FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
     "aoa-action-machine": frozenset({"aoa-maxitor", "aoa-examples"}),
-    "aoa-fastapi-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-mcp-adapter", "aoa-langgraph-adapter"}),
-    "aoa-mcp-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-langgraph-adapter"}),
-    "aoa-langgraph-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-mcp-adapter"}),
-    "aoa-maxitor": frozenset({"aoa-examples", "aoa-mcp-adapter", "aoa-langgraph-adapter"}),
+    "aoa-fastapi-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-mcp-adapter", "aoa-langgraph-adapter", "aoa-ocel"}),
+    "aoa-mcp-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-langgraph-adapter", "aoa-ocel"}),
+    "aoa-langgraph-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel"}),
+    "aoa-ocel": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph-adapter"}),
+    "aoa-maxitor": frozenset({"aoa-examples", "aoa-mcp-adapter", "aoa-langgraph-adapter", "aoa-ocel"}),
     "aoa-examples": frozenset({"aoa-maxitor", "aoa-langgraph-adapter"}),
 }
 
@@ -141,14 +145,6 @@ def check_all() -> list[str]:
         suspicious = [x for x in extra if x.startswith("aoa-") or x == "aoa"]
         if suspicious:
             errors.append(f"{dist}: unexpected aoa distribution(s) in metadata: {suspicious}")
-        if dist == "aoa-examples":
-            main_deps = project.get("dependencies")
-            if not isinstance(main_deps, list) or not any(
-                "aoa-action-machine" in str(line) and "[ocel]" in str(line) for line in main_deps
-            ):
-                errors.append(
-                    "aoa-examples: main dependencies must include aoa-action-machine[ocel]"
-                )
     return errors
 
 

@@ -1,6 +1,6 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/__init__.py
+# packages/aoa-ocel/src/aoa/ocel/__init__.py
 """
-OCEL 2.0 export for ActionMachine — optional extra ``aoa-action-machine[ocel]``.
+OCEL 2.0 export plugin for AOA — install with ``pip install aoa-ocel``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -8,7 +8,7 @@ PURPOSE
 
 Aspects return ``list[OcelFrame]``; ``OcelPlugin`` builds ``OcelEvent`` on
 ``GlobalFinishEvent``. Export policy (loaded FK → E2O, one hop, no O2O v1):
-``packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/README.md``.
+``packages/aoa-ocel/src/aoa/ocel/README.md``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -24,10 +24,10 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from aoa.action_machine.plugin.ocel.contracts import OcelFrame
-from aoa.action_machine.plugin.ocel.plugin import OCEL_FRAMES_KEY, OcelPlugin
-from aoa.action_machine.plugin.ocel.resource import InMemoryOcelStoreResource, OcelStoreResource
-from aoa.action_machine.plugin.ocel.type_id import make_oid
+from aoa.ocel.contracts import OcelFrame
+from aoa.ocel.plugin import OCEL_FRAMES_KEY, OcelPlugin
+from aoa.ocel.resource import InMemoryOcelStoreResource, OcelStoreResource
+from aoa.ocel.type_id import make_oid
 
 __all__ = [
     "OCEL_FRAMES_KEY",

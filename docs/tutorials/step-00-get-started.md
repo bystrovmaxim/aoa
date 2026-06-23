@@ -69,7 +69,7 @@ This is enough to write and run operations. Everything else — transport adapte
 pip install aoa-fastapi-adapter   # HTTP API via FastAPI
 pip install aoa-mcp-adapter       # MCP tools for AI agents
 pip install "aoa-action-machine[postgres]"   # asyncpg connections
-pip install "aoa-action-machine[ocel]"       # OCEL 2.0 event log
+pip install aoa-ocel                  # OCEL 2.0 event log
 ```
 
 ### Option B — the repository with examples
