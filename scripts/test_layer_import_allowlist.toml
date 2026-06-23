@@ -13,3 +13,7 @@ prefix = "aoa.action_machine.graph.core.exclude_graph_model"
 [[allow_prefix]]
 path = "tests/action_machine/model/test_base_action_cache_hooks.py"
 prefix = "aoa.action_machine.graph.core.exclude_graph_model"
+
+[[allow_prefix]]
+path = "tests/action_machine/model/test_base_action_cache_hooks.py"
+prefix = "aoa.action_machine.runtime.cache_tag"
