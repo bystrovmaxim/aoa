@@ -31,10 +31,10 @@ Together they turn an agent from a blind caller into an **understanding particip
 
 ## The essentials
 
-Installation: `pip install "aoa-action-machine[mcp]"`.
+Installation: `pip install aoa-mcp-adapter`.
 
 ```python
-from aoa.action_machine.adapters.mcp import McpAdapter
+from aoa.mcp import McpAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
 
 server = (

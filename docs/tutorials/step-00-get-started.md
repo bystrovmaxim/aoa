@@ -66,8 +66,8 @@ pip install aoa-action-machine
 This is enough to write and run operations. Everything else — transport adapters, observability plugins, ready-made resources — is wired in as needed and collected in the **[Ready extensions](../index.md#ready-extensions)** reference. The most common ones install like this:
 
 ```bash
-pip install "aoa-action-machine[fastapi]"   # HTTP API via FastAPI
-pip install "aoa-action-machine[mcp]"        # MCP tools for AI agents
+pip install aoa-fastapi-adapter   # HTTP API via FastAPI
+pip install aoa-mcp-adapter       # MCP tools for AI agents
 pip install "aoa-action-machine[postgres]"   # asyncpg connections
 pip install "aoa-action-machine[ocel]"       # OCEL 2.0 event log
 ```

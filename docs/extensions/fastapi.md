@@ -17,14 +17,14 @@
 
 This page is a short extension card; the **full guide is the chapter [Step 13 — FastAPI adapter](../tutorials/step-13-fastapi.md)**. Example: [01_service.py](../../examples/step_13_fastapi/01_service.py).
 
-Installation: `pip install "aoa-action-machine[fastapi]"`.
+Installation: `pip install aoa-fastapi-adapter`.
 
 ---
 
 ## The essentials
 
 ```python
-from aoa.action_machine.adapters.fastapi import FastApiAdapter
+from aoa.fastapi import FastApiAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
 
 app = (
