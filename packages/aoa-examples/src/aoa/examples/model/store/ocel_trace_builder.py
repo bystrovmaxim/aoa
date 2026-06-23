@@ -15,8 +15,6 @@ from __future__ import annotations
 from typing import Any
 
 from aoa.action_machine.domain import AssociationOne, BaseEntity
-from aoa.action_machine.plugin.ocel import OcelFrame
-from aoa.action_machine.plugin.ocel.dto import OcelAttribute
 from aoa.examples.model.catalog.entities.catalog_product_lifecycle import CatalogProductLifecycle
 from aoa.examples.model.catalog.entities.product_row import CatalogProductEntity
 from aoa.examples.model.inventory.entities.inv_dense_lifecycle import InvPipelineLifecycle
@@ -31,6 +29,8 @@ from aoa.examples.model.store.entities.return_request import ReturnRequestEntity
 from aoa.examples.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.examples.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
 from aoa.examples.model.store.entities.shipment_parcel import ShipmentParcelEntity
+from aoa.ocel import OcelFrame
+from aoa.ocel.dto import OcelAttribute
 
 
 def build_customer_account(
