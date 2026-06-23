@@ -3,13 +3,13 @@
   <a href="https://github.com/bystrovmaxim/aoa"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" alt="Python 3.12+"></a>
   <img src="https://img.shields.io/badge/tests-26-brightgreen" alt="26 tests">
-  <a href="https://pypi.org/project/aoa-action-machine/"><img src="https://img.shields.io/badge/install-aoa--action--machine%5Bocel%5D-blue?logo=pypi&logoColor=white" alt="pip install aoa-action-machine[ocel]"></a>
+  <a href="https://pypi.org/project/aoa-ocel/"><img src="https://img.shields.io/badge/install-aoa--ocel--plugin-blue?logo=pypi&logoColor=white" alt="pip install aoa-ocel"></a>
   <img src="https://img.shields.io/badge/OCEL-2.0-orange" alt="OCEL 2.0">
 </p>
 
-# OCEL export (`aoa.action_machine.plugin.ocel`)
+# OCEL export (`aoa.ocel`)
 
-This module exports data in [OCEL 2.0](https://ocel-standard.org/) format. Install with ``pip install "aoa-action-machine[ocel]"``. It turns Action execution logs into object-centric event logs that Process Mining tools can consume.
+This module exports data in [OCEL 2.0](https://ocel-standard.org/) format. Install with ``pip install aoa-ocel``. It turns Action execution logs into object-centric event logs that Process Mining tools can consume.
 
 <p align="center">
   <img src="../../../../../../../docs/assets/ocel-ocdfg.png" alt="Object-centric process graph (OCEL)" width="900">
@@ -97,7 +97,7 @@ Participation is **not** inferred from SQL or undeclared fields — only from wh
 Register on ``ActionProductMachine(plugins=[OcelPlugin(store=resource)])``. The store must be opened by the owning action connection; the plugin only calls ``add_event``.
 
 ```python
-from aoa.action_machine.plugin.ocel import OCEL_FRAMES_KEY, OcelFrame, OcelPlugin
+from aoa.ocel import OCEL_FRAMES_KEY, OcelFrame, OcelPlugin
 
 @regular_aspect("Export")
 @result_instance(OCEL_FRAMES_KEY, OcelFrame, required=False)

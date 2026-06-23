@@ -21,16 +21,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 _PACKAGE_DIRS: dict[str, str] = {
     "aoa-action-machine": "aoa-action-machine",
+    "aoa-ocel": "aoa-ocel",
     "aoa-maxitor": "aoa-maxitor",
     "aoa-examples": "aoa-examples",
 }
 
 # Wheel must ship these prefixes under ``aoa/`` (namespace); ``*.dist-info`` etc. are ignored.
 _REQUIRED_AOA_PREFIXES: dict[str, tuple[str, ...]] = {
-    "aoa-action-machine": (
-        "aoa/action_machine/",
-        "aoa/action_machine/plugin/ocel/",
-    ),
+    "aoa-action-machine": ("aoa/action_machine/",),
+    "aoa-ocel": ("aoa/ocel/",),
     "aoa-maxitor": ("aoa/maxitor/",),
     "aoa-examples": ("aoa/examples/",),
 }
@@ -38,6 +37,7 @@ _REQUIRED_AOA_PREFIXES: dict[str, tuple[str, ...]] = {
 # No other ``aoa.*`` subtree may appear inside the wheel archive.
 _FORBIDDEN_AOA_PREFIXES: dict[str, tuple[str, ...]] = {
     "aoa-action-machine": ("aoa/ocel/", "aoa/maxitor/", "aoa/examples/"),
+    "aoa-ocel": ("aoa/action_machine/", "aoa/maxitor/", "aoa/examples/"),
     "aoa-maxitor": ("aoa/ocel/", "aoa/examples/"),
     "aoa-examples": ("aoa/maxitor/",),
 }
@@ -113,7 +113,7 @@ def test_clean_install_action_machine_provides_graph(tmp_path: Path) -> None:
         "import importlib.util as u; import aoa.action_machine; "
         "from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode; "
         "from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator; "
-        "assert u.find_spec('aoa.action_machine.plugin.ocel') is not None; "
+        "assert u.find_spec('aoa.action_machine.plugin.ocel') is None; "
         "assert u.find_spec('aoa.ocel') is None; "
         "assert u.find_spec('aoa.maxitor') is None; "
         "assert u.find_spec('aoa.examples') is None",
@@ -124,11 +124,11 @@ def test_clean_install_examples_does_not_pull_maxitor(tmp_path: Path) -> None:
     venv = tmp_path / "venv"
     subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
     vpy = _venv_python(venv)
-    machine_whl = _latest_wheel("aoa-action-machine")
     _uv_pip_install(
         vpy,
         [
-            f"{machine_whl}[ocel]",
+            _latest_wheel("aoa-action-machine"),
+            _latest_wheel("aoa-ocel"),
             _latest_wheel("aoa-examples"),
         ],
     )
@@ -136,8 +136,8 @@ def test_clean_install_examples_does_not_pull_maxitor(tmp_path: Path) -> None:
         vpy,
         "import importlib.util as u; import aoa.action_machine; "
         "import aoa.examples; "
-        "assert u.find_spec('aoa.action_machine.plugin.ocel') is not None; "
-        "assert u.find_spec('aoa.ocel') is None; "
+        "assert u.find_spec('aoa.action_machine.plugin.ocel') is None; "
+        "assert u.find_spec('aoa.ocel') is not None; "
         "assert u.find_spec('aoa.maxitor') is None",
     )
     listed = subprocess.run(

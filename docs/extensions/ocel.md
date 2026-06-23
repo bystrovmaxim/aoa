@@ -74,7 +74,7 @@ Example for this article: [01_ocel.py](../../examples/step_09_plugins/01_ocel.py
 ## Installation
 
 ```bash
-pip install "aoa-action-machine[ocel]"
+pip install aoa-ocel
 ```
 
 ## How an operation emits an event
@@ -82,7 +82,7 @@ pip install "aoa-action-machine[ocel]"
 The data flow: an aspect returns `list[OcelFrame]` → on `GlobalFinishEvent` `OcelPlugin` assembles an `OcelEvent` (with E2O links and object attributes) → writes it to the store. The aspect puts "frames" into `state` under the key `OCEL_FRAMES_KEY`; each `OcelFrame(object=entity, qualifier="...")` links the operation-event to a domain object:
 
 ```python
-from aoa.action_machine.plugin.ocel import OCEL_FRAMES_KEY, OcelFrame, OcelPlugin, InMemoryOcelStoreResource
+from aoa.ocel import OCEL_FRAMES_KEY, OcelFrame, OcelPlugin, InMemoryOcelStoreResource
 
 @regular_aspect("Validation")
 @result_string("validated_id", required=True)
