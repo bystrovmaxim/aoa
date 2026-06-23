@@ -18,14 +18,15 @@ dependencies = [
 
 [tool.uv.sources]
 aoa-action-machine = { workspace = true }
+aoa-fastapi-adapter = { workspace = true }
+aoa-mcp-adapter = { workspace = true }
 
 [project.optional-dependencies]
 fastapi = [
-    "fastapi>=0.100,<1.0",
-    "uvicorn[standard]>=0.20,<1.0",
+    "aoa-fastapi-adapter>=1.0.0a0",
 ]
 mcp = [
-    "mcp>=1.0,<2.0",
+    "aoa-mcp-adapter>=1.0.0a0",
 ]
 
 [project.urls]

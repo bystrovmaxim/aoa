@@ -73,10 +73,10 @@ def _ensure_examples_package_src_on_path() -> None:
 _ensure_examples_package_src_on_path()
 
 # pylint: disable=wrong-import-position
-from aoa.action_machine.adapters.fastapi import FastApiAdapter
 from aoa.examples.fastapi_mcp_services.actions import CreateOrderAction, GetOrderAction, PingAction
 from aoa.examples.fastapi_mcp_services.infrastructure import auth, machine
 from aoa.examples.model.actions import GetExampleModelGraphJsonAction
+from aoa.fastapi import FastApiAdapter
 
 # pylint: enable=wrong-import-position
 
