@@ -26,7 +26,7 @@ Optional extensions are installed as needed:
 pip install "aoa-action-machine[fastapi]"   # HTTP API
 pip install "aoa-action-machine[mcp]"        # tools for AI agents
 pip install "aoa-action-machine[postgres]"   # asyncpg connections
-pip install "aoa-action-machine[ocel]"       # OCEL 2.0 event log
+pip install aoa-ocel                  # OCEL 2.0 event log
 ```
 
 ---

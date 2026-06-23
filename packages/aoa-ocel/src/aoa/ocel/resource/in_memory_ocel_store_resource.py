@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/resource/in_memory_ocel_store_resource.py
+# packages/aoa-ocel/src/aoa/ocel/resource/in_memory_ocel_store_resource.py
 """InMemoryOcelStoreResource — in-memory OCEL 2.0 backend."""
 
 from __future__ import annotations
@@ -11,10 +11,10 @@ from typing import Any
 
 from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
-from aoa.action_machine.plugin.ocel.dto.ocel_event import OcelEvent
-from aoa.action_machine.plugin.ocel.dto.ocel_object import OcelObject
-from aoa.action_machine.plugin.ocel.exceptions.ocel_contract_error import OcelContractError
-from aoa.action_machine.plugin.ocel.resource.ocel_store_resource import OcelStoreResource
+from aoa.ocel.dto.ocel_event import OcelEvent
+from aoa.ocel.dto.ocel_object import OcelObject
+from aoa.ocel.exceptions.ocel_contract_error import OcelContractError
+from aoa.ocel.resource.ocel_store_resource import OcelStoreResource
 
 
 def _type_catalog(type_attrs: dict[str, dict[str, str]]) -> list[dict[str, Any]]:

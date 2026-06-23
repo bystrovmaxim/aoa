@@ -8,9 +8,9 @@ from dataclasses import FrozenInstanceError
 import pytest
 from tests.action_machine.scenarios.domain_model.entities import SampleEntity
 
-from aoa.action_machine.plugin.ocel import OcelFrame
-from aoa.action_machine.plugin.ocel.dto import OcelAttribute
-from aoa.action_machine.plugin.ocel.exceptions import OcelContractError
+from aoa.ocel import OcelFrame
+from aoa.ocel.dto import OcelAttribute
+from aoa.ocel.exceptions import OcelContractError
 
 
 def test_ocel_frame_holds_entity() -> None:

@@ -120,15 +120,15 @@ The materials below are not a continuation of the linear I–VII route. They are
 
 ### Ready extensions
 
-What is already in the box. Some is available right away, some installs via `pip install "aoa-action-machine[...]"`.
+What is already in the box. Some is available right away, some installs as a separate package.
 
-- **[OpenTelemetry](extensions/opentelemetry.md)** — plugin: traces and the `state` x-ray out of the box; extra `[otel]`
-- **[OCEL 2.0](extensions/ocel.md)** — plugin: an object-centric event log for process mining; extra `[ocel]`
+- **[OpenTelemetry](extensions/opentelemetry.md)** — plugin: traces and the `state` x-ray out of the box; `pip install "aoa-action-machine[otel]"`
+- **[OCEL 2.0](extensions/ocel.md)** — plugin: an object-centric event log for process mining; `pip install aoa-ocel`
 - **[ConsoleLogger](extensions/console-logger.md)** — logger: business events to the console, color by level; out of the box
-- **[FastAPI](extensions/fastapi.md)** — adapter: HTTP/REST and OpenAPI from an Action; package `aoa-fastapi-adapter`
-- **[MCP](extensions/mcp.md)** — adapter: an operation as a tool for an AI agent; package `aoa-mcp-adapter`
-- **[LangGraph](extensions/langgraph.md)** — adapter: AOA Actions as nodes in a LangGraph agent graph; package `aoa-langgraph-adapter`
-- **[PostgreSQL](extensions/postgresql.md)** — resource: connections and transactions through asyncpg; extra `[postgres]`
+- **[FastAPI](extensions/fastapi.md)** — adapter: HTTP/REST and OpenAPI from an Action; `pip install aoa-fastapi-adapter`
+- **[MCP](extensions/mcp.md)** — adapter: an operation as a tool for an AI agent; `pip install aoa-mcp-adapter`
+- **[LangGraph](extensions/langgraph.md)** — adapter: AOA Actions as nodes in a LangGraph agent graph; `pip install aoa-langgraph-adapter`
+- **[PostgreSQL](extensions/postgresql.md)** — resource: connections and transactions through asyncpg; `pip install "aoa-action-machine[postgres]"`
 
 ### How to write your own extension
 

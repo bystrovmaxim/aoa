@@ -1,10 +1,10 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/dto/ocel_object.py
+# packages/aoa-ocel/src/aoa/ocel/dto/ocel_object.py
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from aoa.action_machine.plugin.ocel.dto.ocel_attribute import OcelAttribute
-from aoa.action_machine.plugin.ocel.dto.ocel_object_relationship import OcelObjectRelationship
+from aoa.ocel.dto.ocel_attribute import OcelAttribute
+from aoa.ocel.dto.ocel_object_relationship import OcelObjectRelationship
 
 
 @dataclass(slots=True)

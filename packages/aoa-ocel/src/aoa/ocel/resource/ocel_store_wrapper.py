@@ -1,15 +1,15 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/resource/ocel_store_wrapper.py
+# packages/aoa-ocel/src/aoa/ocel/resource/ocel_store_wrapper.py
 """OcelStoreWrapper — proxy for nested actions (mirrors WrapperSqlResource)."""
 
 from __future__ import annotations
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
-from aoa.action_machine.plugin.ocel.dto.ocel_event import OcelEvent
-from aoa.action_machine.plugin.ocel.exceptions.ocel_resource_access_prohibited_error import (
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.ocel.dto.ocel_event import OcelEvent
+from aoa.ocel.exceptions.ocel_resource_access_prohibited_error import (
     OcelResourceAccessProhibitedError,
 )
-from aoa.action_machine.plugin.ocel.resource.ocel_store_protocol import OcelStoreProtocol
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.ocel.resource.ocel_store_protocol import OcelStoreProtocol
 
 
 @exclude_graph_model

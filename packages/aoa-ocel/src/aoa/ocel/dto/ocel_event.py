@@ -1,12 +1,12 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/dto/ocel_event.py
+# packages/aoa-ocel/src/aoa/ocel/dto/ocel_event.py
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from aoa.action_machine.plugin.ocel.dto.ocel_attribute import OcelAttribute
-from aoa.action_machine.plugin.ocel.dto.ocel_object import OcelObject
-from aoa.action_machine.plugin.ocel.dto.ocel_object_ref import OcelObjectRef
+from aoa.ocel.dto.ocel_attribute import OcelAttribute
+from aoa.ocel.dto.ocel_object import OcelObject
+from aoa.ocel.dto.ocel_object_ref import OcelObjectRef
 
 
 @dataclass(slots=True)
@@ -41,7 +41,7 @@ class OcelEvent:
     v1 builder policy (E2O only): ``relationships`` are built from ``OcelFrame`` rows
     plus one-hop **loaded** relation peers on each ``frame.object``; composite
     peer qualifier ``{frame.qualifier}.{field_name}``. No O2O export; see
-    ``packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/README.md`` — **Export policy (v1)**.
+    ``packages/aoa-ocel/src/aoa/ocel/README.md`` — **Export policy (v1)**.
 
     AI-CORE-BEGIN
     ROLE: Single composite payload for one ``OcelStoreResource.add_event()`` call.

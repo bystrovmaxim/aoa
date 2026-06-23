@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/type_id.py
+# packages/aoa-ocel/src/aoa/ocel/type_id.py
 """Short OCEL type prefixes and object IDs."""
 
 from __future__ import annotations

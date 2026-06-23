@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/plugin/ocel_plugin.py
+# packages/aoa-ocel/src/aoa/ocel/plugin/ocel_plugin.py
 """
 OcelPlugin — OCEL 2.0 export on ``GlobalFinishEvent``.
 
@@ -10,7 +10,7 @@ Read ``OcelFrame`` rows from ``GlobalFinishEvent.all_aspect_states`` (and
 optional frames on ``result``), build one ``OcelEvent`` (E2O-only v1), append via
 ``OcelStoreProtocol.add_event``. Does not mutate pipeline state or the event.
 
-Export policy: ``packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/README.md`` — **Export policy (v1)**.
+Export policy: ``packages/aoa-ocel/src/aoa/ocel/README.md`` — **Export policy (v1)**.
 """
 
 from __future__ import annotations
@@ -24,14 +24,14 @@ from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
 from aoa.action_machine.intents.on import GlobalFinishEvent, on
 from aoa.action_machine.plugin.core import Plugin
-from aoa.action_machine.plugin.ocel.contracts.ocel_frame import OcelFrame
-from aoa.action_machine.plugin.ocel.dto.ocel_attribute import OcelAttribute
-from aoa.action_machine.plugin.ocel.dto.ocel_event import OcelEvent
-from aoa.action_machine.plugin.ocel.dto.ocel_object import OcelObject
-from aoa.action_machine.plugin.ocel.dto.ocel_object_ref import OcelObjectRef
-from aoa.action_machine.plugin.ocel.exceptions.ocel_contract_error import OcelContractError
-from aoa.action_machine.plugin.ocel.resource.ocel_store_protocol import OcelStoreProtocol
-from aoa.action_machine.plugin.ocel.type_id import make_oid
+from aoa.ocel.contracts.ocel_frame import OcelFrame
+from aoa.ocel.dto.ocel_attribute import OcelAttribute
+from aoa.ocel.dto.ocel_event import OcelEvent
+from aoa.ocel.dto.ocel_object import OcelObject
+from aoa.ocel.dto.ocel_object_ref import OcelObjectRef
+from aoa.ocel.exceptions.ocel_contract_error import OcelContractError
+from aoa.ocel.resource.ocel_store_protocol import OcelStoreProtocol
+from aoa.ocel.type_id import make_oid
 
 OCEL_FRAMES_KEY = "ocel_frames"
 _OCEL_TYPE_SUFFIXES = ("Action", "Entity", "Lifecycle")

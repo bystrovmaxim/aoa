@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/dto/ocel_attribute.py
+# packages/aoa-ocel/src/aoa/ocel/dto/ocel_attribute.py
 from __future__ import annotations
 
 from dataclasses import dataclass

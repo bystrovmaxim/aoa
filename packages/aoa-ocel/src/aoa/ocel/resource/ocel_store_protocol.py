@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/resource/ocel_store_protocol.py
+# packages/aoa-ocel/src/aoa/ocel/resource/ocel_store_protocol.py
 # pylint: disable=unnecessary-ellipsis  # Protocol member bodies use ellipsis per PEP 544 stubs.
 """OcelStoreProtocol — full public OCEL store interface."""
 
@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from aoa.action_machine.plugin.ocel.dto.ocel_event import OcelEvent
+    from aoa.ocel.dto.ocel_event import OcelEvent
 
 
 class OcelStoreProtocol(Protocol):
