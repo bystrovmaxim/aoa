@@ -30,6 +30,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.cache_entry import CacheEntry
+from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from tests.action_machine.scenarios.domain_model.domains import OrdersDomain
 from tests.action_machine.scenarios.domain_model.error_actions import ErrorTestParams, ErrorTestResult
@@ -100,8 +101,8 @@ class CacheableCountingAction(BaseAction["CacheableCountingAction.Params", "Cach
         result: Result,
         params: Params,
         duration_ms: float,
-    ) -> bool:
-        return True
+    ) -> list[CacheTag] | None:
+        return [CacheTag(key="count")]
 
     @summary_aspect("count")
     async def summary(
@@ -133,8 +134,8 @@ class PerUserOrderCacheAction(BaseAction["PerUserOrderCacheAction.Params", "PerU
         result: Result,
         params: Params,
         duration_ms: float,
-    ) -> bool:
-        return True
+    ) -> list[CacheTag] | None:
+        return [CacheTag(key=f"{params.user_id}:{params.order_id}")]
 
     @summary_aspect("sum")
     async def summary(
@@ -173,8 +174,8 @@ class StaleReadCacheAction(BaseAction["StaleReadCacheAction.Params", "StaleReadC
         result: Result,
         params: Params,
         duration_ms: float,
-    ) -> bool:
-        return True
+    ) -> list[CacheTag] | None:
+        return [CacheTag(key="stale")]
 
     @summary_aspect("s")
     async def summary(
@@ -207,8 +208,8 @@ class BadDictReadCacheAction(BaseAction["BadDictReadCacheAction.Params", "BadDic
         result: Result,
         params: Params,
         duration_ms: float,
-    ) -> bool:
-        return True
+    ) -> list[CacheTag] | None:
+        return [CacheTag(key="dict-bad")]
 
     @summary_aspect("s")
     async def summary(
@@ -261,8 +262,8 @@ class BadWriteDecisionAction(BaseAction["BadWriteDecisionAction.Params", "BadWri
         result: Result,
         params: Params,
         duration_ms: float,
-    ) -> bool:
-        return 1  # type: ignore[return-value]
+    ) -> list[CacheTag] | None:
+        return 1  # type: ignore[return-value]  — not a list, triggers CacheContractError
 
     @summary_aspect("s")
     async def summary(
@@ -292,7 +293,7 @@ class BoomWriteCacheAction(BaseAction["BoomWriteCacheAction.Params", "BoomWriteC
         result: Result,
         params: Params,
         duration_ms: float,
-    ) -> bool:
+    ) -> list[CacheTag] | None:
         raise RuntimeError("write boom")
 
     @summary_aspect("s")
@@ -326,8 +327,8 @@ class BoomReadCacheAction(BaseAction["BoomReadCacheAction.Params", "BoomReadCach
         result: Result,
         params: Params,
         duration_ms: float,
-    ) -> bool:
-        return True
+    ) -> list[CacheTag] | None:
+        return [CacheTag(key="boom-read")]
 
     @summary_aspect("s")
     async def summary(
@@ -357,8 +358,8 @@ class ManagerOnlyCacheAction(BaseAction["ManagerOnlyCacheAction.Params", "Manage
         result: Result,
         params: Params,
         duration_ms: float,
-    ) -> bool:
-        return True
+    ) -> list[CacheTag] | None:
+        return [CacheTag(key="mgr-secret")]
 
     @summary_aspect("s")
     async def summary(
@@ -384,8 +385,8 @@ class CacheableErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         result: ErrorTestResult,
         params: ErrorTestParams,
         duration_ms: float,
-    ) -> bool:
-        return True
+    ) -> list[CacheTag] | None:
+        return [CacheTag(key=f"err:{params.value}:{params.should_fail}")]
 
     @regular_aspect("Process value")
     @result_string("processed", required=True)
@@ -566,7 +567,7 @@ async def test_empty_cache_key_raises_cache_contract_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_on_cache_write_non_bool_raises_cache_contract_error() -> None:
+async def test_on_cache_write_non_list_raises_cache_contract_error() -> None:
     machine = _machine()
     ctx = _ctx_manager()
     with pytest.raises(CacheContractError, match="on_cache_write"):
