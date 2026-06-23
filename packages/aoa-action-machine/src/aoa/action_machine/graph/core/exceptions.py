@@ -104,12 +104,5 @@ class PayloadValidationError(TypeError):
         self.field_name: str = field_name
         self.detail: str = detail
 
-        class_name = (
-            node_class.__qualname__
-            if isinstance(node_class, type)
-            else repr(node_class)
-        )
-        super().__init__(
-            f"Invalid inspector graph node payload for {class_name}: "
-            f"field '{field_name}' — {detail}"
-        )
+        class_name = node_class.__qualname__ if isinstance(node_class, type) else repr(node_class)
+        super().__init__(f"Invalid inspector graph node payload for {class_name}: " f"field '{field_name}' — {detail}")

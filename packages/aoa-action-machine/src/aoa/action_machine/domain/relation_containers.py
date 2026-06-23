@@ -149,12 +149,12 @@ class RelationType(Enum):
 
 class BaseRelationOne[T]:
     """
-AI-CORE-BEGIN
-    ROLE: Base immutable to-one relation wrapper.
-    CONTRACT: Always store id; optionally hold hydrated entity and proxy attributes to it.
-    INVARIANTS: id is mandatory; missing hydrated entity triggers RelationNotLoadedError for proxied access.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Base immutable to-one relation wrapper.
+        CONTRACT: Always store id; optionally hold hydrated entity and proxy attributes to it.
+        INVARIANTS: id is mandatory; missing hydrated entity triggers RelationNotLoadedError for proxied access.
+        AI-CORE-END
+    """
 
     __slots__ = ("_entity", "_id")
 
@@ -220,14 +220,10 @@ AI-CORE-BEGIN
         return getattr(entity, name)
 
     def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError(
-            f"{self.__class__.__name__} is frozen; assigning to '{name}' is not allowed."
-        )
+        raise AttributeError(f"{self.__class__.__name__} is frozen; assigning to '{name}' is not allowed.")
 
     def __delattr__(self, name: str) -> None:
-        raise AttributeError(
-            f"{self.__class__.__name__} is frozen; deleting '{name}' is not allowed."
-        )
+        raise AttributeError(f"{self.__class__.__name__} is frozen; deleting '{name}' is not allowed.")
 
     def __repr__(self) -> str:
         entity = object.__getattribute__(self, "_entity")
@@ -246,12 +242,12 @@ AI-CORE-BEGIN
 
 class BaseRelationMany[T]:
     """
-AI-CORE-BEGIN
-    ROLE: Base immutable to-many relation wrapper.
-    CONTRACT: Track ids plus optional hydrated entities with explicit loaded-state semantics.
-    INVARIANTS: Index/iteration require loaded entities; unloaded access fails fast.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Base immutable to-many relation wrapper.
+        CONTRACT: Track ids plus optional hydrated entities with explicit loaded-state semantics.
+        INVARIANTS: Index/iteration require loaded entities; unloaded access fails fast.
+        AI-CORE-END
+    """
 
     __slots__ = ("_entities", "_entities_loaded", "_ids")
 
@@ -350,14 +346,10 @@ AI-CORE-BEGIN
         return iter(self.entities)
 
     def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError(
-            f"{self.__class__.__name__} is frozen; assigning to '{name}' is not allowed."
-        )
+        raise AttributeError(f"{self.__class__.__name__} is frozen; assigning to '{name}' is not allowed.")
 
     def __delattr__(self, name: str) -> None:
-        raise AttributeError(
-            f"{self.__class__.__name__} is frozen; deleting '{name}' is not allowed."
-        )
+        raise AttributeError(f"{self.__class__.__name__} is frozen; deleting '{name}' is not allowed.")
 
     def __repr__(self) -> str:
         count = len(self.ids)

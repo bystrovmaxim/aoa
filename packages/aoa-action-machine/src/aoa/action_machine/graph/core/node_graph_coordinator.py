@@ -379,6 +379,5 @@ class NodeGraphCoordinator:
             return
         if not _dag.is_dag_slice_acyclic(dag_adjacency, ids):
             raise InvalidGraphError(
-                "Edges with is_dag=True form a directed cycle. "
-                "Review interchange link wiring.",
+                "Edges with is_dag=True form a directed cycle. " "Review interchange link wiring.",
             )

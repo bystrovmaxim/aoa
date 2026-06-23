@@ -60,11 +60,7 @@ class CompensatorGraphNode(BaseGraphNode[Callable[..., Any]]):
             "type": self.node_type,
             "label": self.label,
             "properties": {
-                **(
-                    {"description": str(self.properties["description"])}
-                    if "description" in self.properties
-                    else {}
-                ),
+                **({"description": str(self.properties["description"])} if "description" in self.properties else {}),
                 **(
                     {"target_aspect_name": str(self.properties["target_aspect_name"])}
                     if "target_aspect_name" in self.properties

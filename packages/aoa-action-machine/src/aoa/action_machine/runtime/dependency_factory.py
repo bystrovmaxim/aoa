@@ -22,12 +22,12 @@ from aoa.action_machine.runtime.dependency_info import DependencyInfo
 
 class DependencyFactory:
     """
-AI-CORE-BEGIN
-    ROLE: Stateless constructor/validator for declared dependencies.
-    CONTRACT: Resolve only declared classes, with optional factory override and rollup checks.
-    INVARIANTS: No instance reuse inside the factory; ``_deps`` is built once and read-only by convention.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Stateless constructor/validator for declared dependencies.
+        CONTRACT: Resolve only declared classes, with optional factory override and rollup checks.
+        INVARIANTS: No instance reuse inside the factory; ``_deps`` is built once and read-only by convention.
+        AI-CORE-END
+    """
 
     def __init__(self, dependencies: tuple[Any, ...] | list[dict[str, Any]]) -> None:
         """
@@ -99,10 +99,7 @@ AI-CORE-BEGIN
         info = self._deps.get(klass)
         if info is None:
             available = list(self._deps.keys())
-            raise ValueError(
-                f"Dependency {klass.__name__} not declared in @depends. "
-                f"Available: {available}"
-            )
+            raise ValueError(f"Dependency {klass.__name__} not declared in @depends. " f"Available: {available}")
 
         if info.factory:
             instance = info.factory(*args, **kwargs)

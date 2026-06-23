@@ -50,12 +50,12 @@ from aoa.action_machine.resources.sql import SqlResource
 
 class PostgresResource(SqlResource):
     """
-AI-CORE-BEGIN
-    ROLE: Concrete SQL manager for Postgres runtime operations.
-    CONTRACT: Implements open/begin/execute/commit/rollback over asyncpg.
-    INVARIANTS: commit uses rollback when rollup=True.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Concrete SQL manager for Postgres runtime operations.
+        CONTRACT: Implements open/begin/execute/commit/rollback over asyncpg.
+        INVARIANTS: commit uses rollback when rollup=True.
+        AI-CORE-END
+    """
 
     def __init__(
         self,

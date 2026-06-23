@@ -67,12 +67,12 @@ from aoa.action_machine.model.base_schema import BaseSchema
 
 class RequestInfo(BaseSchema):
     """
-AI-CORE-BEGIN
-    ROLE: Request metadata node in Context.
-    CONTRACT: Expose typed optional fields for transport-level request details.
-    INVARIANTS: Frozen instance with forbid-extra schema policy.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Request metadata node in Context.
+        CONTRACT: Expose typed optional fields for transport-level request details.
+        INVARIANTS: Frozen instance with forbid-extra schema policy.
+        AI-CORE-END
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

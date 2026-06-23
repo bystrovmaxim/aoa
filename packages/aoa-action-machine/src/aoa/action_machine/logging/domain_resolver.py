@@ -52,8 +52,7 @@ def resolve_domain(action_cls: type) -> type[BaseDomain] | None:
         return None
     if not isinstance(domain, type) or not issubclass(domain, BaseDomain):
         raise TypeError(
-            f"@meta on {action_cls.__name__} has invalid domain: {domain!r}. "
-            f"Expected a BaseDomain subclass."
+            f"@meta on {action_cls.__name__} has invalid domain: {domain!r}. " f"Expected a BaseDomain subclass."
         )
     return domain
 

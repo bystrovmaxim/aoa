@@ -94,12 +94,12 @@ def _record_logger_handle_failure(logger: BaseLogger, exc: BaseException) -> Non
 
 class LogCoordinator:
     """
-AI-CORE-BEGIN
-    ROLE: Central logging bus and validation gate.
-    CONTRACT: Validate+substitute once, then fan-out to all registered loggers.
-    INVARIANTS: Sink failures are isolated and do not abort emit caller flow.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Central logging bus and validation gate.
+        CONTRACT: Validate+substitute once, then fan-out to all registered loggers.
+        INVARIANTS: Sink failures are isolated and do not abort emit caller flow.
+        AI-CORE-END
+    """
 
     def __init__(
         self,
@@ -185,13 +185,9 @@ AI-CORE-BEGIN
         lvl = var["level"]
         ch = var["channels"]
         if not isinstance(lvl, LogLevelPayload):
-            raise TypeError(
-                f"var['level'] must be LogLevelPayload, got {type(lvl).__name__}"
-            )
+            raise TypeError(f"var['level'] must be LogLevelPayload, got {type(lvl).__name__}")
         if not isinstance(ch, LogChannelPayload):
-            raise TypeError(
-                f"var['channels'] must be LogChannelPayload, got {type(ch).__name__}"
-            )
+            raise TypeError(f"var['channels'] must be LogChannelPayload, got {type(ch).__name__}")
 
         validate_level(lvl.mask)
         validate_channels(ch.mask)
@@ -200,20 +196,14 @@ AI-CORE-BEGIN
         if raw_domain is not None:
             if not isinstance(raw_domain, type):
                 raise TypeError(
-                    f"var['domain'] must be a type or None, "
-                    f"got {type(raw_domain).__name__}: {raw_domain!r}"
+                    f"var['domain'] must be a type or None, " f"got {type(raw_domain).__name__}: {raw_domain!r}"
                 )
             if not issubclass(raw_domain, BaseDomain):
-                raise TypeError(
-                    f"var['domain'] must be a BaseDomain subclass, "
-                    f"got {raw_domain.__name__}"
-                )
+                raise TypeError(f"var['domain'] must be a BaseDomain subclass, " f"got {raw_domain.__name__}")
 
         # Step 1: variable substitution and iif evaluation.
         # LogTemplateError propagates upward if the template is invalid.
-        resolved_message = self._substitutor.substitute(
-            message, var, scope, ctx, state, params
-        )
+        resolved_message = self._substitutor.substitute(message, var, scope, ctx, state, params)
 
         # Step 2: broadcast to all loggers (concurrent fan-out for I/O sinks).
         async def _dispatch(logger: BaseLogger) -> None:

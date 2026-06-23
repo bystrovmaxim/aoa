@@ -75,12 +75,12 @@ from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
 
 class PluginCoordinator:
     """
-AI-CORE-BEGIN
-    ROLE: Runtime coordinator for plugin context creation and machine-owned event emissions.
-    CONTRACT: Build context with initial states for registered plugins; build and emit shared lifecycle event payloads.
-    INVARIANTS: Coordinator stores no mutable per-run plugin state.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Runtime coordinator for plugin context creation and machine-owned event emissions.
+        CONTRACT: Build context with initial states for registered plugins; build and emit shared lifecycle event payloads.
+        INVARIANTS: Coordinator stores no mutable per-run plugin state.
+        AI-CORE-END
+    """
 
     def __init__(
         self,

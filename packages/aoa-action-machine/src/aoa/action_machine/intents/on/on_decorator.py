@@ -120,9 +120,7 @@ _REQUIRED_PREFIX = "on_"
 
 def _validate_event_class(event_class: Any) -> None:
     """Validate event_class as BasePluginEvent subclass."""
-    if not isinstance(event_class, type) or not issubclass(
-        event_class, BasePluginEvent
-    ):
+    if not isinstance(event_class, type) or not issubclass(event_class, BasePluginEvent):
         raise TypeError(
             f"@on: first argument event_class must be a BasePluginEvent subclass, "
             f"got {event_class!r}. Example: @on(GlobalFinishEvent)"
@@ -142,10 +140,7 @@ def _normalize_action_class(
     if isinstance(action_class, tuple):
         for i, item in enumerate(action_class):
             if not isinstance(item, type):
-                raise TypeError(
-                    f"@on: action_class[{i}] must be a type, "
-                    f"got {type(item).__name__}: {item!r}."
-                )
+                raise TypeError(f"@on: action_class[{i}] must be a type, " f"got {type(item).__name__}: {item!r}.")
         return action_class
 
     raise TypeError(
@@ -157,10 +152,7 @@ def _normalize_action_class(
 def _validate_string_or_none(value: Any, param_name: str) -> None:
     """Validate value as string or None."""
     if value is not None and not isinstance(value, str):
-        raise TypeError(
-            f"@on: {param_name} must be a string or None, "
-            f"got {type(value).__name__}: {value!r}."
-        )
+        raise TypeError(f"@on: {param_name} must be a string or None, " f"got {type(value).__name__}: {value!r}.")
 
 
 def _normalize_nest_level(
@@ -172,54 +164,39 @@ def _normalize_nest_level(
 
     if isinstance(nest_level, int):
         if nest_level < 0:
-            raise ValueError(
-                f"@on: nest_level cannot be negative, got {nest_level}."
-            )
+            raise ValueError(f"@on: nest_level cannot be negative, got {nest_level}.")
         return (nest_level,)
 
     if isinstance(nest_level, tuple):
         for i, item in enumerate(nest_level):
             if not isinstance(item, int):
-                raise TypeError(
-                    f"@on: nest_level[{i}] must be int, "
-                    f"got {type(item).__name__}: {item!r}."
-                )
+                raise TypeError(f"@on: nest_level[{i}] must be int, " f"got {type(item).__name__}: {item!r}.")
             if item < 0:
-                raise ValueError(
-                    f"@on: nest_level[{i}] cannot be negative, got {item}."
-                )
+                raise ValueError(f"@on: nest_level[{i}] cannot be negative, got {item}.")
         return nest_level
 
     raise TypeError(
-        f"@on: nest_level must be int, tuple[int, ...], or None, "
-        f"got {type(nest_level).__name__}: {nest_level!r}."
+        f"@on: nest_level must be int, tuple[int, ...], or None, " f"got {type(nest_level).__name__}: {nest_level!r}."
     )
 
 
 def _validate_domain(domain: Any) -> None:
     """Validate domain as type or None."""
     if domain is not None and not isinstance(domain, type):
-        raise TypeError(
-            f"@on: domain must be a domain type or None, "
-            f"got {type(domain).__name__}: {domain!r}."
-        )
+        raise TypeError(f"@on: domain must be a domain type or None, " f"got {type(domain).__name__}: {domain!r}.")
 
 
 def _validate_predicate(predicate: Any) -> None:
     """Validate predicate as callable or None."""
     if predicate is not None and not callable(predicate):
-        raise TypeError(
-            f"@on: predicate must be callable or None, "
-            f"got {type(predicate).__name__}: {predicate!r}."
-        )
+        raise TypeError(f"@on: predicate must be callable or None, " f"got {type(predicate).__name__}: {predicate!r}.")
 
 
 def _validate_method(func: Any, event_class_name: str) -> None:
     """Validate decorated method contract: callable, async, signature, prefix."""
     if not callable(func):
         raise TypeError(
-            f"@on can only be applied to methods/callables. "
-            f"Got object of type {type(func).__name__}: {func!r}."
+            f"@on can only be applied to methods/callables. " f"Got object of type {type(func).__name__}: {func!r}."
         )
 
     if not asyncio.iscoroutinefunction(func):

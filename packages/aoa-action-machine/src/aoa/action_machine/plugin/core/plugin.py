@@ -80,16 +80,16 @@ from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 
 class Plugin(OnIntent, ABC):
     """
-AI-CORE-BEGIN
-    ROLE: Plugin contract for per-run state initialization and handler discovery.
-    CONTRACT: Implement get_initial_state and declare handlers via @on.
-        Optional constructor filters ``watch_actions`` and ``watch_events`` narrow
-        which events reach the plugin's handlers; subclasses that do not call
-        super().__init__() inherit class-level ``None`` defaults (no filtering).
-    INVARIANTS: Per-request state is externalized into PluginRunContext;
-        watch_actions uses issubclass so subclasses of a watched type are included.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Plugin contract for per-run state initialization and handler discovery.
+        CONTRACT: Implement get_initial_state and declare handlers via @on.
+            Optional constructor filters ``watch_actions`` and ``watch_events`` narrow
+            which events reach the plugin's handlers; subclasses that do not call
+            super().__init__() inherit class-level ``None`` defaults (no filtering).
+        INVARIANTS: Per-request state is externalized into PluginRunContext;
+            watch_actions uses issubclass so subclasses of a watched type are included.
+        AI-CORE-END
+    """
 
     _watch_actions: frozenset[type] | None = None
     _watch_events: frozenset[type] | None = None

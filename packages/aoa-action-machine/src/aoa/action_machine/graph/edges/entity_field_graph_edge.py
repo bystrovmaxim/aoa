@@ -63,9 +63,7 @@ class EntityFieldGraphEdge(CompositionGraphEdge):
         """Return ``entity_field`` composition edges with wired :class:`EntityFieldGraphNode` targets (scalar fields only)."""
         relation_names = {rel.field_name for rel in EntityIntentResolver.resolve_entity_relations(entity_cls)}
         items: list[tuple[str, Any]] = [
-            (name, fld.annotation)
-            for name, fld in entity_cls.model_fields.items()
-            if name not in relation_names
+            (name, fld.annotation) for name, fld in entity_cls.model_fields.items() if name not in relation_names
         ]
         if not any(name == "id" for name, _ in items):
             items.insert(0, ("id", str))

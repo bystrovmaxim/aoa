@@ -122,9 +122,7 @@ class CheckerGraphEdge(CompositionGraphEdge):
         raw_field_name = row.get("field_name", "")
         field_name = raw_field_name if isinstance(raw_field_name, str) else str(raw_field_name)
         extra_props = {
-            key: value
-            for key, value in row.items()
-            if key not in ("checker_class", "field_name", "required", "opaque")
+            key: value for key, value in row.items() if key not in ("checker_class", "field_name", "required", "opaque")
         }
         return CheckerGraphNode(
             aspect_callable=aspect_callable,

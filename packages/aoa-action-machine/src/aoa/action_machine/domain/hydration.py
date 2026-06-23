@@ -89,12 +89,12 @@ from aoa.action_machine.domain.entity import BaseEntity
 
 class EntityProxy[T]:
     """
-AI-CORE-BEGIN
-    ROLE: Typed field-name provider for mapper functions.
-    CONTRACT: Return field name strings only for declared entity fields.
-    INVARIANTS: No value lookup, no mutation, no fallback for unknown fields.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Typed field-name provider for mapper functions.
+        CONTRACT: Return field name strings only for declared entity fields.
+        INVARIANTS: No value lookup, no mutation, no fallback for unknown fields.
+        AI-CORE-END
+    """
 
     def __init__(self, cls: type[BaseEntity]) -> None:
         self._cls = cls
@@ -120,7 +120,9 @@ AI-CORE-BEGIN
         raise AttributeError(f"'{self._cls.__name__}' has no field '{name}'")
 
 
-def build[T](
+def build[
+    T
+](
     data: dict[str, Any],
     entity_cls: type[T],
     mapper: Callable[[EntityProxy[T], dict[str, Any]], dict[str, Any]] | None = None,

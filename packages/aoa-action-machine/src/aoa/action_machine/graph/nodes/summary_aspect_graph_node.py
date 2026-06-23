@@ -51,7 +51,11 @@ class SummaryAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
             properties={"description": SummaryAspectIntentResolver.resolve_description(summary_func)},
             node_obj=summary_func,
         )
-        object.__setattr__(self, "required_context", RequiredContextGraphEdge.get_required_context_edges(summary_func, _action_cls, self))
+        object.__setattr__(
+            self,
+            "required_context",
+            RequiredContextGraphEdge.get_required_context_edges(summary_func, _action_cls, self),
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {

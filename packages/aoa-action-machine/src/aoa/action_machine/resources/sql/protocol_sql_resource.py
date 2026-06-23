@@ -32,12 +32,12 @@ from typing import Any, Protocol, runtime_checkable
 @runtime_checkable
 class ProtocolSqlResource(Protocol):
     """
-AI-CORE-BEGIN
-    ROLE: Typed contract for async SQL connection lifecycle and execution.
-    CONTRACT: Implementations expose rollup, open/begin/commit/rollback, execute.
-    INVARIANTS: Structural subtyping only; no runtime enforcement beyond isinstance.
-AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Typed contract for async SQL connection lifecycle and execution.
+        CONTRACT: Implementations expose rollup, open/begin/commit/rollback, execute.
+        INVARIANTS: Structural subtyping only; no runtime enforcement beyond isinstance.
+    AI-CORE-END
+    """
 
     @property
     def rollup(self) -> bool:

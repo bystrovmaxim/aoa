@@ -70,12 +70,12 @@ _ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 class BaseLogger(ABC):
     """
-AI-CORE-BEGIN
-    ROLE: Logging sink base class used by coordinator fan-out.
-    CONTRACT: Provide ``write``; reuse built-in subscribe/match/handle pipeline.
-    INVARIANTS: Filtering semantics are stable and deterministic per call.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Logging sink base class used by coordinator fan-out.
+        CONTRACT: Provide ``write``; reuse built-in subscribe/match/handle pipeline.
+        INVARIANTS: Filtering semantics are stable and deterministic per call.
+        AI-CORE-END
+    """
 
     def __init__(self) -> None:
         super().__init__()
@@ -127,10 +127,7 @@ AI-CORE-BEGIN
         *,
         channels: Channel | None = None,
         levels: Level | None = None,
-        domains: type[BaseDomain]
-        | list[type[BaseDomain]]
-        | tuple[type[BaseDomain], ...]
-        | None = None,
+        domains: type[BaseDomain] | list[type[BaseDomain]] | tuple[type[BaseDomain], ...] | None = None,
     ) -> Self:
         """
         Add a subscription with a unique key (validated in ``LogSubscription``).
@@ -203,7 +200,13 @@ AI-CORE-BEGIN
     ) -> None:
         """Run ``match_filters``; if True, call ``write``."""
         matched = await self.match_filters(
-            scope, message, var, ctx, state, params, indent,
+            scope,
+            message,
+            var,
+            ctx,
+            state,
+            params,
+            indent,
         )
         if not matched:
             return

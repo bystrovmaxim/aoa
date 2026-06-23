@@ -37,12 +37,12 @@ from enum import IntFlag
 
 class Channel(IntFlag):
     """
-AI-CORE-BEGIN
-    ROLE: Topic classifier for log routing/filtering.
-    CONTRACT: Compose topics with bitwise OR and test via bitwise AND.
-    INVARIANTS: Only declared enum bits are legal for validated masks.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Topic classifier for log routing/filtering.
+        CONTRACT: Compose topics with bitwise OR and test via bitwise AND.
+        INVARIANTS: Only declared enum bits are legal for validated masks.
+        AI-CORE-END
+    """
 
     debug = 1
     business = 2
@@ -51,13 +51,7 @@ AI-CORE-BEGIN
     error = 16
 
 
-_ALL_CHANNELS = (
-    Channel.debug
-    | Channel.business
-    | Channel.security
-    | Channel.compliance
-    | Channel.error
-)
+_ALL_CHANNELS = Channel.debug | Channel.business | Channel.security | Channel.compliance | Channel.error
 
 # IntFlag: ``~_ALL_CHANNELS`` is not a usable unrestricted mask; use int bits.
 _ALL_CHANNELS_MASK = int(_ALL_CHANNELS)
@@ -79,13 +73,7 @@ def channel_mask_label(mask: Channel) -> str:
     Call after ``validate_channels`` (or on any mask with only defined bits).
     """
     v = int(mask)
-    return ", ".join(
-        name
-        for c in _CHANNEL_LABEL_ORDER
-        if (v & int(c)) != 0
-        for name in (c.name,)
-        if name is not None
-    )
+    return ", ".join(name for c in _CHANNEL_LABEL_ORDER if (v & int(c)) != 0 for name in (c.name,) if name is not None)
 
 
 def validate_channels(value: Channel) -> None:

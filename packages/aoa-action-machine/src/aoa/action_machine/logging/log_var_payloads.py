@@ -37,12 +37,12 @@ from aoa.action_machine.logging.level import Level
 @dataclass(frozen=True, slots=True)
 class LogLevelPayload:
     """
-AI-CORE-BEGIN
-    ROLE: Encapsulate per-message severity in var payload.
-    CONTRACT: ``mask`` for logic, ``name`` for templates.
-    INVARIANTS: Immutable value object.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Encapsulate per-message severity in var payload.
+        CONTRACT: ``mask`` for logic, ``name`` for templates.
+        INVARIANTS: Immutable value object.
+        AI-CORE-END
+    """
 
     mask: Level
     name: str
@@ -51,12 +51,12 @@ AI-CORE-BEGIN
 @dataclass(frozen=True, slots=True)
 class LogChannelPayload:
     """
-AI-CORE-BEGIN
-    ROLE: Encapsulate channel mask for matching and template rendering.
-    CONTRACT: ``mask`` for routing, ``names`` for display.
-    INVARIANTS: Immutable value object.
-    AI-CORE-END
-"""
+    AI-CORE-BEGIN
+        ROLE: Encapsulate channel mask for matching and template rendering.
+        CONTRACT: ``mask`` for routing, ``names`` for display.
+        INVARIANTS: Immutable value object.
+        AI-CORE-END
+    """
 
     mask: Channel
     names: str
