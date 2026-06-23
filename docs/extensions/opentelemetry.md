@@ -38,7 +38,7 @@ The `state` x-ray is exactly that [observability of state](../tutorials/step-02-
 ## Installation
 
 ```bash
-pip install "aoa-action-machine[otel]"
+pip install aoa-otel
 ```
 
 ## Two signals
@@ -58,7 +58,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
+from aoa.otel import OpenTelemetryPlugin
 
 provider = TracerProvider()
 provider.add_span_processor(SimpleSpanProcessor(InMemorySpanExporter()))   # or ConsoleSpanExporter / OTLP

@@ -14,6 +14,12 @@ future_roots = ["packages/aoa-ocel/src/aoa/ocel"]
 import_prefixes = ["aoa.ocel"]
 may_import = ["action_machine"]
 
+[packages.otel]
+current_roots = ["packages/aoa-otel/src/aoa/otel"]
+future_roots = ["packages/aoa-otel/src/aoa/otel"]
+import_prefixes = ["aoa.otel"]
+may_import = ["action_machine"]
+
 [packages.maxitor]
 current_roots = ["packages/aoa-maxitor/src/aoa/maxitor"]
 future_roots = ["packages/aoa-maxitor/src/aoa/maxitor"]
@@ -43,6 +49,10 @@ may_import = ["action_machine", "maxitor", "examples"]
 [tests.zones.ocel]
 roots = ["tests/ocel"]
 may_import = ["action_machine", "ocel"]
+
+[tests.zones.otel]
+roots = ["tests/otel"]
+may_import = ["action_machine", "otel"]
 
 [tests.zones.examples]
 roots = ["tests/examples"]

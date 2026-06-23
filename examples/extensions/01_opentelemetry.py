@@ -14,7 +14,7 @@ The plugin contains NO export logic — you choose the backend (console, file, o
 any of 50+ OTel backends). Here we use in-memory exporters so the run is
 deterministic and needs no collector.
 
-Install:  pip install "aoa-action-machine[otel]"
+Install:  pip install aoa-otel
 
 Extension page: ../../docs/extensions/opentelemetry_draft.md
 Concept (plugins / state x-ray): ../../docs/tutorials/step-09-plugins_draft.md , step-02
@@ -40,8 +40,8 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_float
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.otel import OpenTelemetryPlugin
 
 
 class ShopDomain(BaseDomain):

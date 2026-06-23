@@ -5,7 +5,7 @@ Run from repository root:
     uv run python packages/aoa-action-machine/examples/03_opentelemetry_xray.py
 
 Requires:
-    pip install "aoa-action-machine[otel]"
+    pip install aoa-otel
 """
 
 import asyncio
@@ -25,8 +25,8 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_float, result_int, result_string
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.otel import OpenTelemetryPlugin
 
 
 class OrderDomain(BaseDomain):
