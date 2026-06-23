@@ -409,14 +409,18 @@ class TestValueCheck:
     def test_value_check_true_passes(self):
         """value_check returning True accepts valid instance."""
         checker = FieldInstanceChecker(
-            "x", _User, value_check=_always_true_value_check,
+            "x",
+            _User,
+            value_check=_always_true_value_check,
         )
         checker.check({"x": _User(1, "Alice")})
 
     def test_value_check_false_raises(self):
         """value_check returning False raises ValidationFieldError."""
         checker = FieldInstanceChecker(
-            "x", _User, value_check=_always_false_value_check,
+            "x",
+            _User,
+            value_check=_always_false_value_check,
         )
         with pytest.raises(ValidationFieldError, match="failed value_check"):
             checker.check({"x": _User(1, "Alice")})
@@ -592,6 +596,7 @@ class TestDecorator:
 
     def test_no_none_default_false(self):
         """Default no_none=False in metadata."""
+
         @result_instance("user", _User)
         async def aspect(self, params, state, box, connections):
             return {"user": _User(1, "Alice")}
@@ -601,6 +606,7 @@ class TestDecorator:
 
     def test_no_none_true_recorded(self):
         """Explicit no_none=True stored in metadata."""
+
         @result_instance("ocel", _User, required=True, no_none=True)
         async def aspect(self, params, state, box, connections):
             return {"ocel": _User(1, "Alice")}
@@ -610,6 +616,7 @@ class TestDecorator:
 
     def test_value_check_recorded_in_meta(self):
         """value_check callable stored in decorator metadata."""
+
         @result_instance("ocel", _User, value_check=_bool_value_check)
         async def aspect(self, params, state, box, connections):
             return {"ocel": _User(1, "Alice")}
@@ -619,6 +626,7 @@ class TestDecorator:
 
     def test_value_check_default_none_in_meta(self):
         """Default value_check=None in metadata."""
+
         @result_instance("user", _User)
         async def aspect(self, params, state, box, connections):
             return {"user": _User(1, "Alice")}

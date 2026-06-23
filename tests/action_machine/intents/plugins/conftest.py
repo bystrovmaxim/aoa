@@ -103,26 +103,25 @@ from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.plugin.core.events import (
-    GlobalFinishEvent,
-    GlobalStartEvent,
-)
+from aoa.action_machine.plugin.core.events import GlobalFinishEvent, GlobalStartEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
 from aoa.action_machine.testing import StubTesterRole
 from tests.action_machine.scenarios.domain_model import PingAction
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Custom exception for tests
+# Custom exception for tests
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class CustomPluginError(Exception):
     """Custom exception for plugin error throwing tests."""
+
     pass
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Test context and parameters for helpers
+# Test context and parameters for helpers
 # ═════════════════════════════════════════════════════════════════════════════
 
 _TEST_CONTEXT = Context(user=UserInfo(user_id="test_user", roles=(StubTesterRole,)))
@@ -132,8 +131,9 @@ _TEST_ACTION_NAME = "tests.domain.ping_action.PingAction"
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Event Emission Helpers
+# Event Emission Helpers
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 async def emit_global_finish(
     plugin_ctx: PluginRunContext,
@@ -257,8 +257,9 @@ def make_global_start_event(
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Plugins for test_handlers.py
+# Plugins for test_handlers.py
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class CounterPlugin(Plugin):
     """Minimal counter plugin.
@@ -316,8 +317,9 @@ class CustomInitPlugin(Plugin):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Plugins for test_emit.py
+# Plugins for test_emit.py
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class RecordingPlugin(Plugin):
     """Recorder plugin.
@@ -331,12 +333,14 @@ class RecordingPlugin(Plugin):
 
     @on(GlobalFinishEvent)
     async def on_record(self, state: dict, event: GlobalFinishEvent, log) -> dict:
-        state["events"].append({
-            "event_type": type(event).__name__,
-            "action_name": event.action_name,
-            "nest_level": event.nest_level,
-            "duration_ms": event.duration_ms,
-        })
+        state["events"].append(
+            {
+                "event_type": type(event).__name__,
+                "action_name": event.action_name,
+                "nest_level": event.nest_level,
+                "duration_ms": event.duration_ms,
+            }
+        )
         return state
 
 
@@ -356,8 +360,9 @@ class SelectivePlugin(Plugin):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Plugins for test_find_plugin.py
+# Plugins for test_find_plugin.py
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class AlphaPlugin(Plugin):
     """Plugin with GlobalFinishEvent handler - reacts to all actions."""
@@ -425,8 +430,9 @@ class MultiEventPlugin(Plugin):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Plugins for test_exceptions.py
+# Plugins for test_exceptions.py
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class IgnoredErrorPlugin(Plugin):
     """Plugin with ignore_exceptions=True, which mutates state before raise.
@@ -442,7 +448,7 @@ class IgnoredErrorPlugin(Plugin):
     async def on_error_handler(self, state: dict, event: GlobalFinishEvent, log) -> dict:
         state["before_error"] = True
         raise RuntimeError("Ignored error")
-        #state["after_error"] = True # will not execute
+        # state["after_error"] = True # will not execute
 
 
 class PropagatedErrorPlugin(Plugin):
@@ -488,8 +494,9 @@ class SuccessAfterFailPlugin(Plugin):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Plugins for test_concurrency.py
+# Plugins for test_concurrency.py
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class SlowParallelPlugin(Plugin):
     """Plugin with 0.1s delay. ignore_exceptions=True.
@@ -525,8 +532,9 @@ class SlowSequentialPlugin(Plugin):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Plugins for test_concurrency.py (parameterized delays)
+# Plugins for test_concurrency.py (parameterized delays)
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class SlowPluginIgnore(Plugin):
     """Plugin with parameterized delay. ignore_exceptions=True.

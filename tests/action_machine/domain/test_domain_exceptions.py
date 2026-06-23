@@ -5,11 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from aoa.action_machine.domain.exceptions import (
-    FieldNotLoadedError,
-    LifecycleValidationError,
-    RelationNotLoadedError,
-)
+from aoa.action_machine.domain.exceptions import FieldNotLoadedError, LifecycleValidationError, RelationNotLoadedError
 
 
 def test_field_not_loaded_error_with_loaded_fields() -> None:

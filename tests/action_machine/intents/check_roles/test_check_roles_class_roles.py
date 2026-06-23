@@ -16,9 +16,7 @@ from aoa.action_machine.exceptions import MissingCheckRolesError
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles.check_roles_decorator import check_roles
 from aoa.action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
-from aoa.action_machine.intents.check_roles.check_roles_intent_resolver import (
-    CheckRolesIntentResolver,
-)
+from aoa.action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 from aoa.action_machine.model.base_action import BaseAction
@@ -141,4 +139,3 @@ class TestCheckRolesIntentResolver:
         with pytest.raises(MissingCheckRolesError) as excinfo:
             CheckRolesIntentResolver.resolve_check_roles(_NoDecorator)
         assert excinfo.value.host_cls is _NoDecorator
-

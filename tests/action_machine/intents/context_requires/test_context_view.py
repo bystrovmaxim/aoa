@@ -67,12 +67,14 @@ from tests.action_machine.scenarios.domain_model.roles import AdminRole, Manager
 
 class _BillingUserInfo(UserInfo):
     """UserInfo subclass with billing_plan for tests."""
+
     model_config = ConfigDict(frozen=True)
     billing_plan: str | None = None
 
 
 class _TaggedRequestInfo(RequestInfo):
     """RequestInfo subclass with ab_variant for tests."""
+
     model_config = ConfigDict(frozen=True)
     ab_variant: str | None = None
 

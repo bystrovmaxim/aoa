@@ -28,6 +28,7 @@ class TestDomainSuffix:
         from aoa.action_machine.domain.base_domain import BaseDomain
 
         with pytest.raises(NamingSuffixError, match="Domain"):
+
             class Shipping(BaseDomain):
                 name = "shipping"
                 description = "Shipping domain without suffix"
@@ -48,6 +49,7 @@ class TestDomainSuffix:
         from aoa.action_machine.domain.base_domain import BaseDomain
 
         with pytest.raises(NamingSuffixError, match="Domain"):
+
             class ExternalService(BaseDomain):
                 description = "External service without suffix"
                 is_external = True

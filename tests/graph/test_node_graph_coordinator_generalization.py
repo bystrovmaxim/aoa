@@ -125,9 +125,5 @@ def test_pr8_single_node_graph_has_no_parent_generalization_edges() -> None:
     coord = NodeGraphCoordinator()
     coord.build([_Insp()])
     payload = json.loads(coord.to_json())
-    parentish = {
-        e["type"]
-        for e in payload["edges"]
-        if e["type"] in {"parent_action", "parent_role", "parent_domain"}
-    }
+    parentish = {e["type"] for e in payload["edges"] if e["type"] in {"parent_action", "parent_role", "parent_domain"}}
     assert not parentish

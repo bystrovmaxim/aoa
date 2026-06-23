@@ -1,6 +1,4 @@
-from aoa.action_machine.intents.on_error.on_error_intent_resolver import (
-    OnErrorIntentResolver,
-)
+from aoa.action_machine.intents.on_error.on_error_intent_resolver import OnErrorIntentResolver
 from tests.action_machine.scenarios.domain_model.compensate_actions import CompensateAndOnErrorAction
 
 

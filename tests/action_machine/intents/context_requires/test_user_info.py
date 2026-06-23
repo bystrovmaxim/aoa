@@ -56,6 +56,7 @@ from tests.action_machine.scenarios.domain_model.roles import AdminRole, GuestRo
 
 class _ExtendedUserInfo(UserInfo):
     """UserInfo subclass with extra fields for tests."""
+
     model_config = ConfigDict(frozen=True)
     org: str | None = None
     department: str | None = None

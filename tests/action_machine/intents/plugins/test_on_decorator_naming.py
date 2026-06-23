@@ -30,6 +30,7 @@ class TestPluginOnPrefix:
         from aoa.action_machine.plugin.core.events import GlobalFinishEvent
 
         with pytest.raises(NamingPrefixError, match="on_"):
+
             @on(GlobalFinishEvent)
             async def track_finish(self, state, event, log):
                 return state
@@ -40,6 +41,7 @@ class TestPluginOnPrefix:
         from aoa.action_machine.plugin.core.events import GlobalFinishEvent
 
         with pytest.raises(NamingPrefixError, match="on_"):
+
             @on(GlobalFinishEvent)
             async def handle_track_finish(self, state, event, log):
                 return state

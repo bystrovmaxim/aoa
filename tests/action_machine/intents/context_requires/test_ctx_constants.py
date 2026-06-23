@@ -137,10 +137,14 @@ class TestRequestFields:
         """All Ctx.Request constants are str."""
         # Arrange
         fields = [
-            Ctx.Request.trace_id, Ctx.Request.request_timestamp,
-            Ctx.Request.request_path, Ctx.Request.request_method,
-            Ctx.Request.full_url, Ctx.Request.client_ip,
-            Ctx.Request.protocol, Ctx.Request.user_agent,
+            Ctx.Request.trace_id,
+            Ctx.Request.request_timestamp,
+            Ctx.Request.request_path,
+            Ctx.Request.request_method,
+            Ctx.Request.full_url,
+            Ctx.Request.client_ip,
+            Ctx.Request.protocol,
+            Ctx.Request.user_agent,
         ]
 
         # Act / Assert
@@ -151,10 +155,14 @@ class TestRequestFields:
         """All Ctx.Request constants start with "request."."""
         # Arrange
         fields = [
-            Ctx.Request.trace_id, Ctx.Request.request_timestamp,
-            Ctx.Request.request_path, Ctx.Request.request_method,
-            Ctx.Request.full_url, Ctx.Request.client_ip,
-            Ctx.Request.protocol, Ctx.Request.user_agent,
+            Ctx.Request.trace_id,
+            Ctx.Request.request_timestamp,
+            Ctx.Request.request_path,
+            Ctx.Request.request_method,
+            Ctx.Request.full_url,
+            Ctx.Request.client_ip,
+            Ctx.Request.protocol,
+            Ctx.Request.user_agent,
         ]
 
         # Act / Assert
@@ -199,8 +207,10 @@ class TestRuntimeFields:
         """All Ctx.Runtime constants are str."""
         # Arrange
         fields = [
-            Ctx.Runtime.hostname, Ctx.Runtime.service_name,
-            Ctx.Runtime.service_version, Ctx.Runtime.container_id,
+            Ctx.Runtime.hostname,
+            Ctx.Runtime.service_name,
+            Ctx.Runtime.service_version,
+            Ctx.Runtime.container_id,
             Ctx.Runtime.pod_name,
         ]
 
@@ -212,8 +222,10 @@ class TestRuntimeFields:
         """All Ctx.Runtime constants start with "runtime."."""
         # Arrange
         fields = [
-            Ctx.Runtime.hostname, Ctx.Runtime.service_name,
-            Ctx.Runtime.service_version, Ctx.Runtime.container_id,
+            Ctx.Runtime.hostname,
+            Ctx.Runtime.service_name,
+            Ctx.Runtime.service_version,
+            Ctx.Runtime.container_id,
             Ctx.Runtime.pod_name,
         ]
 

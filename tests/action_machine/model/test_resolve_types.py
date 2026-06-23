@@ -64,6 +64,7 @@ from tests.action_machine.scenarios.domain_model.roles import AdminRole, UserRol
 
 class _ExtendedUserInfo(UserInfo):
     """UserInfo subclass with dict field for nested navigation tests."""
+
     model_config = ConfigDict(frozen=True)
     settings: dict[str, Any] = {}
 
@@ -77,6 +78,7 @@ class TypedParams(BaseParams):
     """
     Params with mixed field types for resolve tests.
     """
+
     int_val: int = Field(default=42, description="Integer")
     float_val: float = Field(default=3.14, description="Float")
     str_val: str = Field(default="hello", description="String")

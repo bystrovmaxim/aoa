@@ -13,10 +13,7 @@ class TestConnectionWrapping:
     """ToolsBox._wrap_connections wraps managers for child actions."""
 
     def test_wrap_connections_with_wrapper_class(self) -> None:
-        from aoa.action_machine.resources.sql import (
-            SqlResource,
-            WrapperSqlResource,
-        )
+        from aoa.action_machine.resources.sql import SqlResource, WrapperSqlResource
 
         mock_manager = MagicMock(spec=SqlResource)
         mock_manager.get_wrapper_class.return_value = WrapperSqlResource

@@ -41,6 +41,7 @@ from mcp.server.fastmcp import FastMCP
 
 from aoa.action_machine.adapters.mcp.adapter import McpAdapter, _class_name_to_snake_case
 from aoa.action_machine.adapters.mcp.route_record import McpRouteRecord
+from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.action_machine.scenarios.domain_model import FullAction, PingAction, SimpleAction
 
@@ -53,7 +54,7 @@ def _make_adapter(**kwargs) -> McpAdapter:
     """Create an McpAdapter with sensible test defaults."""
     machine = ActionProductMachine(loggers=[])
     auth = AsyncMock()
-    auth.process.return_value = None
+    auth.process.return_value = Context()
     return McpAdapter(
         machine=machine,
         auth_coordinator=auth,
@@ -158,10 +159,7 @@ class TestFluentChain:
         adapter = _make_adapter()
 
         result = (
-            adapter
-            .tool("system.ping", PingAction)
-            .tool("orders.create", FullAction)
-            .tool("simple.run", SimpleAction)
+            adapter.tool("system.ping", PingAction).tool("orders.create", FullAction).tool("simple.run", SimpleAction)
         )
 
         assert result is adapter

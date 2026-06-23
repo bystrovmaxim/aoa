@@ -24,11 +24,7 @@ from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.plugin.core.events import (
-    AfterOnErrorAspectEvent,
-    BeforeOnErrorAspectEvent,
-    UnhandledErrorEvent,
-)
+from aoa.action_machine.plugin.core.events import AfterOnErrorAspectEvent, BeforeOnErrorAspectEvent, UnhandledErrorEvent
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.error_handler_executor import ErrorHandlerExecutor

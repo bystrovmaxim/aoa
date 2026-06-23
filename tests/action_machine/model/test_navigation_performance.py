@@ -56,9 +56,7 @@ class TestNavigationPerformance:
             ),
         )
 
-        assert elapsed < _RESOLVE_BUDGET_SEC, (
-            f"10k resolve() took {elapsed:.3f}s (limit {_RESOLVE_BUDGET_SEC}s)"
-        )
+        assert elapsed < _RESOLVE_BUDGET_SEC, f"10k resolve() took {elapsed:.3f}s (limit {_RESOLVE_BUDGET_SEC}s)"
 
     def test_substitute_1k_calls_under_500ms(self, capsys: pytest.CaptureFixture[str]) -> None:
         """1,000 substitute() calls complete within 500 ms."""
@@ -86,12 +84,13 @@ class TestNavigationPerformance:
             ),
         )
 
-        assert elapsed < _SUBSTITUTE_BUDGET_SEC, (
-            f"1k substitute() took {elapsed:.3f}s (limit {_SUBSTITUTE_BUDGET_SEC}s)"
-        )
+        assert (
+            elapsed < _SUBSTITUTE_BUDGET_SEC
+        ), f"1k substitute() took {elapsed:.3f}s (limit {_SUBSTITUTE_BUDGET_SEC}s)"
 
     def test_resolve_falsy_values_same_speed_as_regular(
-        self, capsys: pytest.CaptureFixture[str],
+        self,
+        capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Falsy values (0, False, None) do not slow navigation."""
         st_regular = BaseState(value="hello")

@@ -28,6 +28,7 @@ class TestOnErrorSuffix:
         from aoa.action_machine.intents.on_error import on_error
 
         with pytest.raises(NamingSuffixError, match="_on_error"):
+
             @on_error(ValueError, description="Validation error")
             async def handle_validation(self, params, state, box, connections, error):
                 pass

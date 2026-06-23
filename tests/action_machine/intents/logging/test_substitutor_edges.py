@@ -76,12 +76,16 @@ class TestSubstitutorSuccess:
     """Verify successful variable substitution edge cases."""
 
     def test_multiple_variables(self, substitutor, scope, ctx, state, params) -> None:
-        result = substitutor.substitute("{%var.a} and {%var.b}", {"a": "first", "b": "second"}, scope, ctx, state, params)
+        result = substitutor.substitute(
+            "{%var.a} and {%var.b}", {"a": "first", "b": "second"}, scope, ctx, state, params
+        )
         assert "first" in result
         assert "second" in result
 
     def test_nested_dot_path(self, substitutor, scope, ctx, state, params) -> None:
-        result = substitutor.substitute("{%var.outer.inner}", {"outer": {"inner": "deep_value"}}, scope, ctx, state, params)
+        result = substitutor.substitute(
+            "{%var.outer.inner}", {"outer": {"inner": "deep_value"}}, scope, ctx, state, params
+        )
         assert "deep_value" in result
 
     def test_color_filter_on_integer(self, substitutor, scope, ctx, state, params) -> None:
@@ -117,11 +121,15 @@ class TestSubstitutorIif:
         assert "small" in result
 
     def test_iif_equality(self, substitutor, scope, ctx, state, params) -> None:
-        result = substitutor.substitute("{iif({%var.status} == 'ok'; 'good'; 'bad')}", {"status": "ok"}, scope, ctx, state, params)
+        result = substitutor.substitute(
+            "{iif({%var.status} == 'ok'; 'good'; 'bad')}", {"status": "ok"}, scope, ctx, state, params
+        )
         assert "good" in result
 
     def test_iif_boolean_and(self, substitutor, scope, ctx, state, params) -> None:
-        result = substitutor.substitute("{iif({%var.x} > 0 and {%var.x} < 10; 'in range'; 'out')}", {"x": 5}, scope, ctx, state, params)
+        result = substitutor.substitute(
+            "{iif({%var.x} > 0 and {%var.x} < 10; 'in range'; 'out')}", {"x": 5}, scope, ctx, state, params
+        )
         assert "in range" in result
 
     def test_iif_with_upper(self, substitutor, scope, ctx, state, params) -> None:
@@ -129,7 +137,9 @@ class TestSubstitutorIif:
         assert "YES" in result
 
     def test_iif_arithmetic(self, substitutor, scope, ctx, state, params) -> None:
-        result = substitutor.substitute("{iif({%var.x} > 0; {%var.x} + {%var.y}; 0)}", {"x": 10, "y": 20}, scope, ctx, state, params)
+        result = substitutor.substitute(
+            "{iif({%var.x} > 0; {%var.x} + {%var.y}; 0)}", {"x": 10, "y": 20}, scope, ctx, state, params
+        )
         assert "30" in result
 
 
@@ -246,7 +256,9 @@ class TestProcessTemplate:
         assert evaluator.process_template("Hello world", {}) == "Hello world"
 
     def test_multiple_iifs(self, evaluator) -> None:
-        result = evaluator.process_template("{iif(a > 0; 'pos'; 'neg')} and {iif(b > 0; 'pos'; 'neg')}", {"a": 1, "b": -1})
+        result = evaluator.process_template(
+            "{iif(a > 0; 'pos'; 'neg')} and {iif(b > 0; 'pos'; 'neg')}", {"a": 1, "b": -1}
+        )
         assert "pos" in result
         assert "neg" in result
 

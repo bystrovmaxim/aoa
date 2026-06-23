@@ -70,6 +70,7 @@ class ChildAction(BaseAction["ChildAction.Params", "ChildAction.Result"]):
 
     class Params(BaseParams):
         """Child Action parameters — string to process."""
+
         value: str = Field(
             description="Value to process",
             examples=["test_value"],
@@ -77,6 +78,7 @@ class ChildAction(BaseAction["ChildAction.Params", "ChildAction.Result"]):
 
     class Result(BaseResult):
         """Child Action result — processed value."""
+
         processed: str = Field(description="Processed value with prefix")
 
     @regular_aspect("Process value")

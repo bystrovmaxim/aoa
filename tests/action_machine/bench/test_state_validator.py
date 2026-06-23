@@ -40,10 +40,7 @@ import pytest
 
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.testing.bench import (
-    _aspect_tuple_from_coordinator,
-    _checker_rows_from_action_class,
-)
+from aoa.action_machine.testing.bench import _aspect_tuple_from_coordinator, _checker_rows_from_action_class
 from aoa.action_machine.testing.checker_interchange_snapshot import CheckerInterchangeSnapshot
 from aoa.action_machine.testing.state_validator import (
     StateValidationError,

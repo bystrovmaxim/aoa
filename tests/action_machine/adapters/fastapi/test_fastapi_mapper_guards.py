@@ -41,6 +41,7 @@ from fastapi.testclient import TestClient
 from pydantic import BaseModel, Field
 
 from aoa.action_machine.adapters.fastapi.adapter import FastApiAdapter
+from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
 
@@ -48,7 +49,7 @@ from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
 @pytest.fixture()
 def auth() -> AsyncMock:
     a = AsyncMock()
-    a.process.return_value = None
+    a.process.return_value = Context()
     return a
 
 

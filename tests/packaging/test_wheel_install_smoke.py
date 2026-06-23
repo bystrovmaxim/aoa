@@ -55,8 +55,7 @@ def _latest_wheel(dist_key: str) -> Path:
     dist_dir = REPO_ROOT / "packages" / folder / "dist"
     if not dist_dir.is_dir():
         pytest.fail(
-            f"Missing {dist_dir}; build wheels first, e.g.:\n"
-            f"  uv run --group dev python -m build packages/{folder}"
+            f"Missing {dist_dir}; build wheels first, e.g.:\n" f"  uv run --group dev python -m build packages/{folder}"
         )
     wheels = sorted(dist_dir.glob(f"{dist_key.replace('-', '_')}-*.whl"))
     if not wheels:

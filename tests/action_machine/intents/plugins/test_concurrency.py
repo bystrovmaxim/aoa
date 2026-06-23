@@ -49,16 +49,10 @@ import pytest
 
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 
-from .conftest import (
-    FailingPluginIgnore,
-    FastPluginIgnore,
-    SlowPluginIgnore,
-    SlowPluginNoIgnore,
-    emit_global_finish,
-)
+from .conftest import FailingPluginIgnore, FastPluginIgnore, SlowPluginIgnore, SlowPluginNoIgnore, emit_global_finish
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Concurrency tests (all ignore_exceptions=True)
+# Concurrency tests (all ignore_exceptions=True)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -73,7 +67,7 @@ class TestParallelExecution:
         """Two SlowPluginIgnores, 50ms each. When executed in parallel
         total time ~50ms (slowest time), not ~100ms (sum).
         The threshold is 90ms with a margin for the overhead event loop."""
-        #Arrange - two slow plugins + one fast
+        # Arrange - two slow plugins + one fast
         slow1 = SlowPluginIgnore(delay=0.05)
         slow2 = SlowPluginIgnore(delay=0.05)
         fast = FastPluginIgnore()
@@ -81,18 +75,15 @@ class TestParallelExecution:
         coordinator = PluginCoordinator(plugins=[slow1, slow2, fast])
         plugin_ctx = await coordinator.create_run_context()
 
-        #Act - measure execution time
+        # Act - measure execution time
         start = asyncio.get_event_loop().time()
         await emit_global_finish(plugin_ctx)
         elapsed = asyncio.get_event_loop().time() - start
 
-        #Assert - parallel: ~50ms, not ~100ms
-        assert elapsed < 0.09, (
-            f"Parallel run took {elapsed:.3f}s, expected < 0.09s "
-            f"(two 0.05s plugins in parallel)"
-        )
+        # Assert - parallel: ~50ms, not ~100ms
+        assert elapsed < 0.09, f"Parallel run took {elapsed:.3f}s, expected < 0.09s " f"(two 0.05s plugins in parallel)"
 
-        #Assert - all handlers have completed and updated states
+        # Assert - all handlers have completed and updated states
         assert plugin_ctx.get_plugin_state(slow1)["calls"] == ["slow"]
         assert plugin_ctx.get_plugin_state(slow2)["calls"] == ["slow"]
         assert plugin_ctx.get_plugin_state(fast)["calls"] == ["fast"]
@@ -102,7 +93,7 @@ class TestParallelExecution:
         """FailingPluginIgnore throws RuntimeError with ignore_exceptions=True.
         The error is suppressed, other plugins (SlowPluginIgnore, FastPluginIgnore)
         complete successfully and update their states."""
-        #Arrange - slow, fast and crashing plugins (all ignore=True)
+        # Arrange - slow, fast and crashing plugins (all ignore=True)
         slow = SlowPluginIgnore(delay=0.05)
         fast = FastPluginIgnore()
         failing = FailingPluginIgnore()
@@ -110,16 +101,16 @@ class TestParallelExecution:
         coordinator = PluginCoordinator(plugins=[slow, fast, failing])
         plugin_ctx = await coordinator.create_run_context()
 
-        #Act - emit_event should not throw an exception
+        # Act - emit_event should not throw an exception
         await emit_global_finish(plugin_ctx)
 
-        #Assert - successful plugins have updated states
+        # Assert - successful plugins have updated states
         assert plugin_ctx.get_plugin_state(slow)["calls"] == ["slow"]
         assert plugin_ctx.get_plugin_state(fast)["calls"] == ["fast"]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Sequential execution tests (at least one ignore_exceptions=False)
+# Sequential execution tests (at least one ignore_exceptions=False)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -134,25 +125,24 @@ class TestSequentialExecution:
         """Two SlowPluginNoIgnore of 50ms each. With sequential
         the total execution time is ~100ms (sum), not ~50ms (in parallel).
         Threshold: elapsed >= 0.09s (including overhead)."""
-        #Arrange - two slow plugins with ignore=False
+        # Arrange - two slow plugins with ignore=False
         slow1 = SlowPluginNoIgnore(delay=0.05)
         slow2 = SlowPluginNoIgnore(delay=0.05)
 
         coordinator = PluginCoordinator(plugins=[slow1, slow2])
         plugin_ctx = await coordinator.create_run_context()
 
-        #Act - measure execution time
+        # Act - measure execution time
         start = asyncio.get_event_loop().time()
         await emit_global_finish(plugin_ctx)
         elapsed = asyncio.get_event_loop().time() - start
 
-        #Assert - sequentially: ~100ms, threshold >= 90ms
+        # Assert - sequentially: ~100ms, threshold >= 90ms
         assert elapsed >= 0.09, (
-            f"Sequential run took {elapsed:.3f}s, expected >= 0.09s "
-            f"(two 0.05s plugins sequentially)"
+            f"Sequential run took {elapsed:.3f}s, expected >= 0.09s " f"(two 0.05s plugins sequentially)"
         )
 
-        #Assert - both handlers were executed
+        # Assert - both handlers were executed
         assert plugin_ctx.get_plugin_state(slow1)["calls"] == ["slow"]
         assert plugin_ctx.get_plugin_state(slow2)["calls"] == ["slow"]
 
@@ -161,16 +151,16 @@ class TestSequentialExecution:
         """SlowPluginNoIgnore (ignore=False) + FastPluginIgnore (ignore=True).
         Having one ignore=False switches to sequential
         execution. Both handlers complete and update the states."""
-        #Arrange - critical slow + non-critical fast
+        # Arrange - critical slow + non-critical fast
         critical = SlowPluginNoIgnore(delay=0.01)
         metrics = FastPluginIgnore()
 
         coordinator = PluginCoordinator(plugins=[critical, metrics])
         plugin_ctx = await coordinator.create_run_context()
 
-        #Act - sequential execution due to ignore=False
+        # Act - sequential execution due to ignore=False
         await emit_global_finish(plugin_ctx)
 
-        #Assert - both handlers were executed
+        # Assert - both handlers were executed
         assert plugin_ctx.get_plugin_state(critical)["calls"] == ["slow"]
         assert plugin_ctx.get_plugin_state(metrics)["calls"] == ["fast"]

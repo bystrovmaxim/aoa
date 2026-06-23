@@ -23,8 +23,10 @@ from aoa.action_machine.model.base_result import BaseResult
 # Test subclass of BaseResult
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 class OrderResult(BaseResult):
     """Test result with three explicitly declared fields."""
+
     order_id: str = Field(description="Order ID")
     status: str = Field(description="Order status")
     total: float = Field(description="Total amount", ge=0)
@@ -32,12 +34,14 @@ class OrderResult(BaseResult):
 
 class EmptyResult(BaseResult):
     """Test result with no fields — smoke tests."""
+
     pass
 
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Creation and reads
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestBaseResultCreation:
     """Creation and reads from BaseResult."""
@@ -114,6 +118,7 @@ class TestBaseResultCreation:
 # Frozen semantics: writes forbidden
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 class TestBaseResultFrozen:
     """Immutability of BaseResult after creation."""
 
@@ -165,6 +170,7 @@ class TestBaseResultFrozen:
 # ═════════════════════════════════════════════════════════════════════════════
 # Update pattern — model_copy
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestBaseResultImmutableUpdate:
     """Updates via model_copy (pydantic)."""

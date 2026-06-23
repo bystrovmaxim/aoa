@@ -27,10 +27,7 @@ from typing import Any
 
 import pytest
 from opentelemetry.sdk._logs import LoggerProvider
-from opentelemetry.sdk._logs.export import (
-    InMemoryLogRecordExporter,
-    SimpleLogRecordProcessor,
-)
+from opentelemetry.sdk._logs.export import InMemoryLogRecordExporter, SimpleLogRecordProcessor
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
@@ -348,9 +345,7 @@ class TestPerStepSpanCorrelation:
     async def test_after_log_span_id_matches_aspect_span(self) -> None:
         tp, span_exporter = _tracer_setup()
         lp, log_exporter = _logger_setup()
-        machine = ActionProductMachine(
-            plugins=[OpenTelemetryPlugin(tracer_provider=tp, logger_provider=lp)]
-        )
+        machine = ActionProductMachine(plugins=[OpenTelemetryPlugin(tracer_provider=tp, logger_provider=lp)])
 
         await machine.run(Context(), OtelOrderAction(), OtelOrderParams(order_id="ORD-1"))
         spans = span_exporter.get_finished_spans()
@@ -358,9 +353,7 @@ class TestPerStepSpanCorrelation:
         root_span_id = _root_spans(spans)[0].context.span_id
 
         after_logs = [
-            ld.log_record
-            for ld in log_exporter.get_finished_logs()
-            if ld.log_record.body == "aoa.aspect.regular.after"
+            ld.log_record for ld in log_exporter.get_finished_logs() if ld.log_record.body == "aoa.aspect.regular.after"
         ]
         assert after_logs, "expected regular after-logs"
 
@@ -375,9 +368,7 @@ class TestPerStepSpanCorrelation:
     async def test_before_log_correlated_with_root_span(self) -> None:
         tp, span_exporter = _tracer_setup()
         lp, log_exporter = _logger_setup()
-        machine = ActionProductMachine(
-            plugins=[OpenTelemetryPlugin(tracer_provider=tp, logger_provider=lp)]
-        )
+        machine = ActionProductMachine(plugins=[OpenTelemetryPlugin(tracer_provider=tp, logger_provider=lp)])
 
         await machine.run(Context(), OtelOrderAction(), OtelOrderParams(order_id="ORD-1"))
 

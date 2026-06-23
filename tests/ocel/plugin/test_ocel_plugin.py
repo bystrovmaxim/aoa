@@ -9,10 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from pydantic import Field
-from tests.action_machine.scenarios.domain_model.entities import (
-    SampleEntity,
-    TestDomain,
-)
+from tests.action_machine.scenarios.domain_model.entities import SampleEntity, TestDomain
 
 from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
@@ -137,7 +134,9 @@ def test_build_ocel_event_one_hop_loaded_relation(event_time: datetime) -> None:
         policy: Annotated[
             AssociationOne[PolicyEntity] | None,
             NoInverse(),
-        ] = Rel(description="Policy")  # type: ignore[assignment]
+        ] = Rel(
+            description="Policy"
+        )  # type: ignore[assignment]
 
     policy = PolicyEntity(id="pol-9", code="P9")
     child = ChildEntity(id="c1", policy=AssociationOne(id="pol-9", entity=policy))

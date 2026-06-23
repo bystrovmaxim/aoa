@@ -61,12 +61,7 @@ from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.resources.external_service.wrapper_external_service_resource import (
     WrapperExternalServiceResource,
 )
-from aoa.action_machine.testing.bench import (
-    TestBench,
-    _prepare_all_mocks,
-    _prepare_mock,
-    _reset_all_mocks,
-)
+from aoa.action_machine.testing.bench import TestBench, _prepare_all_mocks, _prepare_mock, _reset_all_mocks
 from aoa.action_machine.testing.mock_action import MockAction, MockActionResult
 from tests.action_machine.scenarios.domain_model import PingAction
 from tests.action_machine.scenarios.domain_model.roles import AdminRole
@@ -148,10 +143,12 @@ class TestPrepareAllMocks:
         mock_payment = AsyncMock(spec=PaymentService)
         result_obj = BaseResult()
 
-        prepared = _prepare_all_mocks({
-            PaymentServiceResource: mock_payment,
-            str: result_obj,
-        })
+        prepared = _prepare_all_mocks(
+            {
+                PaymentServiceResource: mock_payment,
+                str: result_obj,
+            }
+        )
 
         assert prepared[PaymentServiceResource] is mock_payment
         assert isinstance(prepared[str], MockAction)
@@ -192,11 +189,13 @@ class TestResetAllMocks:
         mock = AsyncMock()
         mock.some_method.call_count = 1
 
-        _reset_all_mocks({
-            PaymentServiceResource: mock,
-            str: "plain_value",
-            int: 42,
-        })
+        _reset_all_mocks(
+            {
+                PaymentServiceResource: mock,
+                str: "plain_value",
+                int: 42,
+            }
+        )
 
         assert mock.some_method.call_count == 0
 
@@ -290,6 +289,7 @@ class TestBenchLogCoordinator:
     def test_custom_log_coordinator(self) -> None:
         """Custom log_coordinator is passed to the machine."""
         from aoa.action_machine.logging.log_coordinator import LogCoordinator
+
         log_coord = LogCoordinator()
 
         bench = TestBench(log_coordinator=log_coord)

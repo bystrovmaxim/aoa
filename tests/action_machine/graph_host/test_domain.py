@@ -193,11 +193,13 @@ class TestMissingName:
 
     def test_no_name_raises(self):
         with pytest.raises(ValueError, match="does not define"):
+
             class NoNameDomain(BaseDomain):
                 pass
 
     def test_no_name_with_other_attrs_raises(self):
         with pytest.raises(ValueError, match="does not define"):
+
             class NoNameOtherDomain(BaseDomain):
                 version = 2
 
@@ -212,6 +214,7 @@ class TestMissingDescription:
 
     def test_no_description_raises(self):
         with pytest.raises(ValueError, match="does not define"):
+
             class NoDescDomain(BaseDomain):
                 name = "no_desc"
 
@@ -226,21 +229,25 @@ class TestEmptyName:
 
     def test_empty_string_raises(self):
         with pytest.raises(ValueError, match="cannot be empty"):
+
             class EmptyDomain(BaseDomain):
                 name = ""
 
     def test_whitespace_only_raises(self):
         with pytest.raises(ValueError, match="cannot be empty"):
+
             class WhitespaceDomain(BaseDomain):
                 name = "   "
 
     def test_tab_only_raises(self):
         with pytest.raises(ValueError, match="cannot be empty"):
+
             class TabDomain(BaseDomain):
                 name = "\t"
 
     def test_newline_only_raises(self):
         with pytest.raises(ValueError, match="cannot be empty"):
+
             class NewlineDomain(BaseDomain):
                 name = "\n"
 
@@ -255,12 +262,14 @@ class TestEmptyDescription:
 
     def test_empty_description_raises(self):
         with pytest.raises(ValueError, match="cannot be empty"):
+
             class EmptyDescDomain(BaseDomain):
                 name = "x"
                 description = ""
 
     def test_whitespace_only_description_raises(self):
         with pytest.raises(ValueError, match="cannot be empty"):
+
             class WsDescDomain(BaseDomain):
                 name = "x"
                 description = "   \t"
@@ -276,42 +285,49 @@ class TestWrongTypeName:
 
     def test_int_name_raises(self):
         with pytest.raises(TypeError, match="must be str"):
+
             class IntNameDomain(BaseDomain):
                 name = 42
                 description = "ok"
 
     def test_none_name_raises(self):
         with pytest.raises(TypeError, match="must be str"):
+
             class NoneNameDomain(BaseDomain):
                 name = None
                 description = "ok"
 
     def test_list_name_raises(self):
         with pytest.raises(TypeError, match="must be str"):
+
             class ListNameDomain(BaseDomain):
                 name = ["orders"]
                 description = "ok"
 
     def test_bool_name_raises(self):
         with pytest.raises(TypeError, match="must be str"):
+
             class BoolNameDomain(BaseDomain):
                 name = True
                 description = "ok"
 
     def test_dict_name_raises(self):
         with pytest.raises(TypeError, match="must be str"):
+
             class DictNameDomain(BaseDomain):
                 name = {"name": "orders"}
                 description = "ok"
 
     def test_tuple_name_raises(self):
         with pytest.raises(TypeError, match="must be str"):
+
             class TupleNameDomain(BaseDomain):
                 name = ("orders",)
                 description = "ok"
 
     def test_float_name_raises(self):
         with pytest.raises(TypeError, match="must be str"):
+
             class FloatNameDomain(BaseDomain):
                 name = 3.14
                 description = "ok"
@@ -327,6 +343,7 @@ class TestWrongTypeDescription:
 
     def test_int_description_raises(self):
         with pytest.raises(TypeError, match="must be str"):
+
             class IntDescDomain(BaseDomain):
                 name = "x"
                 description = 99

@@ -609,4 +609,3 @@ async def test_handled_on_error_result_not_cached_second_run_runs_pipeline() -> 
     r2 = await machine.run(ctx, CacheableErrorHandledAction(), params)
     assert r2.status == "handled"
     assert _error_aspect_calls["n"] == 2
-
