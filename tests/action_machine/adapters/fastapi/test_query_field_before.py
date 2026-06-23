@@ -8,7 +8,7 @@ from typing import Annotated
 import pytest
 from pydantic import BaseModel
 
-from aoa.action_machine.adapters.fastapi.query_field_before import QUERY_STR_LIST_BEFORE, coerce_query_str_list
+from aoa.fastapi.query_field_before import QUERY_STR_LIST_BEFORE, coerce_query_str_list
 
 
 def test_coerce_query_str_list() -> None:

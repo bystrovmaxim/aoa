@@ -22,7 +22,6 @@ import asyncio
 from mcp.server.fastmcp.exceptions import ToolError
 from pydantic import Field
 
-from aoa.action_machine.adapters.mcp import McpAdapter
 from aoa.action_machine.auth import ApplicationRole, GuestRole, NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -31,6 +30,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.mcp import McpAdapter
 
 
 class GreetingDomain(BaseDomain):
