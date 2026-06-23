@@ -21,7 +21,7 @@ This example uses ConsoleSpanExporter and ConsoleLogExporter — both write
 to stdout so you can see spans and logs side by side without any backend.
 
 Requires:
-    pip install "aoa-action-machine[otel]"
+    pip install aoa-otel
 
 Run:
     uv run python examples/step_02_state_as_x-ray_of_the_operation/05_xray_console.py
@@ -43,8 +43,8 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_float, result_int, result_string
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.otel import OpenTelemetryPlugin
 
 # ---------------------------------------------------------------------------
 # Domain

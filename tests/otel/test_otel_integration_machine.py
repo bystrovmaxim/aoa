@@ -1,4 +1,4 @@
-# tests/action_machine/plugin/open_telemetry/test_otel_integration_machine.py
+# tests/otel/test_otel_integration_machine.py
 """
 End-to-end integration tests: OpenTelemetryPlugin driven by a real ActionProductMachine.
 
@@ -46,10 +46,10 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core.events import GlobalFinishEvent
-from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.otel import OpenTelemetryPlugin
 from tests.action_machine.scenarios.domain_model.domains import TestDomain
 from tests.action_machine.scenarios.domain_model.ping_action import PingAction
 

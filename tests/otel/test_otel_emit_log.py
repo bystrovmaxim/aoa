@@ -1,4 +1,4 @@
-# tests/action_machine/plugin/open_telemetry/test_otel_emit_log.py
+# tests/otel/test_otel_emit_log.py
 """Unit tests for OpenTelemetryPlugin._emit_log — OTel log record emission."""
 
 from unittest.mock import MagicMock
@@ -7,7 +7,7 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.plugin.core.events import GlobalStartEvent
-from aoa.action_machine.plugin.open_telemetry import OpenTelemetryPlugin
+from aoa.otel import OpenTelemetryPlugin
 from tests.action_machine.scenarios.domain_model import PingAction
 
 
