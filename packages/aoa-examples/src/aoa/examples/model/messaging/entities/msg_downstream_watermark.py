@@ -26,7 +26,9 @@ class DownstreamWatermarkEntity(BaseEntity):
     dedupe: Annotated[
         AssociationOne[DedupeCorrelationEntity],
         NoInverse(),
-    ] = Rel(description="Upstream dedupe correlation row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream dedupe correlation row"
+    )  # type: ignore[assignment]
 
 
 DownstreamWatermarkEntity.model_rebuild()

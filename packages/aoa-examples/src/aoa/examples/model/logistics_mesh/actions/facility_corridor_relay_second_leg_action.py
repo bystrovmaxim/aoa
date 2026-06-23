@@ -14,8 +14,8 @@ from aoa.examples.model.logistics_mesh.actions.facility_corridor_relay_first_leg
 
 # ``ActionSchemaIntentResolver`` resolves ``BaseAction`` ForwardRefs via this module globals.
 # pylint: disable-next=unused-import
-from aoa.examples.model.logistics_mesh.actions.facility_handoff_origin_action import (
-    FacilityHandoffOriginAction,  # noqa: F401
+from aoa.examples.model.logistics_mesh.actions.facility_handoff_origin_action import (  # noqa: F401
+    FacilityHandoffOriginAction,
 )
 from aoa.examples.model.logistics_mesh.freight_network_director_role import FreightNetworkDirectorRole
 from aoa.examples.model.logistics_mesh.logistics_mesh_domain import LogisticsMeshDomain

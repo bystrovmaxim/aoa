@@ -51,6 +51,7 @@ class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"
 
         ``order_id`` is bound from the FastAPI path parameter.
         """
+
         order_id: str = Field(
             description="Unique order identifier",
             min_length=1,
@@ -59,6 +60,7 @@ class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"
 
     class Result(BaseResult):
         """Order fetch result payload."""
+
         order_id: str = Field(
             description="Order identifier",
             examples=["ORD-user_123-001"],

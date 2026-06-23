@@ -40,12 +40,16 @@ class MsgDirectedCycleTriangleAEntity(BaseEntity):
     follow_b: Annotated[
         AssociationOne[MsgDirectedCycleTriangleBEntity],
         Inverse(MsgDirectedCycleTriangleBEntity, "back_from_a"),
-    ] = Rel(description="Forward hop A\u2192B")  # type: ignore[assignment]
+    ] = Rel(
+        description="Forward hop A\u2192B"
+    )  # type: ignore[assignment]
 
     back_from_c: Annotated[
         AssociationOne[MsgDirectedCycleTriangleCEntity],
         Inverse(MsgDirectedCycleTriangleCEntity, "follow_a"),
-    ] = Rel(description="Return hop C\u2192A pair")  # type: ignore[assignment]
+    ] = Rel(
+        description="Return hop C\u2192A pair"
+    )  # type: ignore[assignment]
 
 
 @entity(
@@ -65,17 +69,23 @@ class MsgDirectedCycleTriangleBEntity(BaseEntity):
     back_from_a: Annotated[
         AssociationOne[MsgDirectedCycleTriangleAEntity],
         Inverse(MsgDirectedCycleTriangleAEntity, "follow_b"),
-    ] = Rel(description="Reciprocal B\u2192A")  # type: ignore[assignment]
+    ] = Rel(
+        description="Reciprocal B\u2192A"
+    )  # type: ignore[assignment]
 
     follow_c: Annotated[
         AssociationOne[MsgDirectedCycleTriangleCEntity],
         Inverse(MsgDirectedCycleTriangleCEntity, "back_from_b"),
-    ] = Rel(description="Forward hop B\u2192C")  # type: ignore[assignment]
+    ] = Rel(
+        description="Forward hop B\u2192C"
+    )  # type: ignore[assignment]
 
     anchor_replay_ticket: Annotated[
         AssociationOne[ReplayTicketEntity],
         NoInverse(),
-    ] = Rel(description="Ties hop B into watermark replay stub chain")  # type: ignore[assignment]
+    ] = Rel(
+        description="Ties hop B into watermark replay stub chain"
+    )  # type: ignore[assignment]
 
 
 @entity(
@@ -95,12 +105,16 @@ class MsgDirectedCycleTriangleCEntity(BaseEntity):
     back_from_b: Annotated[
         AssociationOne[MsgDirectedCycleTriangleBEntity],
         Inverse(MsgDirectedCycleTriangleBEntity, "follow_c"),
-    ] = Rel(description="Reciprocal C\u2192B")  # type: ignore[assignment]
+    ] = Rel(
+        description="Reciprocal C\u2192B"
+    )  # type: ignore[assignment]
 
     follow_a: Annotated[
         AssociationOne[MsgDirectedCycleTriangleAEntity],
         Inverse(MsgDirectedCycleTriangleAEntity, "back_from_c"),
-    ] = Rel(description="Forward hop C\u2192A")  # type: ignore[assignment]
+    ] = Rel(
+        description="Forward hop C\u2192A"
+    )  # type: ignore[assignment]
 
 
 MsgDirectedCycleTriangleAEntity.model_rebuild()

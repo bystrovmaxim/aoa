@@ -9,7 +9,12 @@ class OutboxMessageLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("pending", "Pending").to("published").initial()
-        .state("published", "Published").to("consumed").intermediate()
-        .state("consumed", "Consumed").final()
+        .state("pending", "Pending")
+        .to("published")
+        .initial()
+        .state("published", "Published")
+        .to("consumed")
+        .intermediate()
+        .state("consumed", "Consumed")
+        .final()
     )

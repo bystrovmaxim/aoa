@@ -9,7 +9,12 @@ class CatalogDenseLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("draft", "Draft").to("staged").initial()
-        .state("staged", "Staged").to("archived").intermediate()
-        .state("archived", "Archived").final()
+        .state("draft", "Draft")
+        .to("staged")
+        .initial()
+        .state("staged", "Staged")
+        .to("archived")
+        .intermediate()
+        .state("archived", "Archived")
+        .final()
     )

@@ -26,7 +26,9 @@ class SplitBillAllocationEntity(BaseEntity):
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Parent sales order anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent sales order anchor"
+    )  # type: ignore[assignment]
 
 
 SplitBillAllocationEntity.model_rebuild()

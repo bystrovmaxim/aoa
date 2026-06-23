@@ -26,7 +26,9 @@ class PaymentAuthorizationEntity(BaseEntity):
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Authorized order")  # type: ignore[assignment]
+    ] = Rel(
+        description="Authorized order"
+    )  # type: ignore[assignment]
 
 
 PaymentAuthorizationEntity.model_rebuild()

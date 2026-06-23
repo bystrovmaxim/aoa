@@ -22,7 +22,9 @@ class ArbitrationBriefStubEntity(BaseEntity):
     integrity_checkpoint: Annotated[
         AssociationOne[AcquirerIntegrityCheckEntity],
         NoInverse(),
-    ] = Rel(description="Upstream acquirer integrity artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream acquirer integrity artefact"
+    )  # type: ignore[assignment]
 
     dispute_stage: str = Field(description="Arbitration stage label")
     claimant_reference: str = Field(description="Internal claimant handle")

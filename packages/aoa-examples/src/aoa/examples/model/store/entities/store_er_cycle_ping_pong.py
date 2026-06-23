@@ -41,7 +41,9 @@ class StoreDirectedCyclePingEntity(BaseEntity):
     pong_peer: Annotated[
         AssociationOne[StoreDirectedCyclePongEntity],
         Inverse(StoreDirectedCyclePongEntity, "ping_peer"),
-    ] = Rel(description="Points at pong counterpart; closes a 2-node cycle")  # type: ignore[assignment]
+    ] = Rel(
+        description="Points at pong counterpart; closes a 2-node cycle"
+    )  # type: ignore[assignment]
 
     storefront_customer_anchor: Annotated[
         AssociationOne[CustomerAccountEntity],
@@ -68,7 +70,9 @@ class StoreDirectedCyclePongEntity(BaseEntity):
     ping_peer: Annotated[
         AssociationOne[StoreDirectedCyclePingEntity],
         Inverse(StoreDirectedCyclePingEntity, "pong_peer"),
-    ] = Rel(description="Points at ping counterpart; completes mutual reference")  # type: ignore[assignment]
+    ] = Rel(
+        description="Points at ping counterpart; completes mutual reference"
+    )  # type: ignore[assignment]
 
     storefront_order_anchor: Annotated[
         AssociationOne[SalesOrderEntity],

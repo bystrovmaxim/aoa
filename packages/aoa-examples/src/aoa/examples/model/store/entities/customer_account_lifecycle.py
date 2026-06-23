@@ -11,7 +11,12 @@ class CustomerAccountLifecycle(Lifecycle):
 
     _template = (
         Lifecycle()
-        .state("provisioned", "Provisioned").to("active").initial()
-        .state("active", "Active").to("closed").intermediate()
-        .state("closed", "Closed").final()
+        .state("provisioned", "Provisioned")
+        .to("active")
+        .initial()
+        .state("active", "Active")
+        .to("closed")
+        .intermediate()
+        .state("closed", "Closed")
+        .final()
     )

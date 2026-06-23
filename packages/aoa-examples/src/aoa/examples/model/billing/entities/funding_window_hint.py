@@ -22,7 +22,9 @@ class FundingWindowHintEntity(BaseEntity):
     sweep: Annotated[
         AssociationOne[BillingSweepInstructionEntity],
         NoInverse(),
-    ] = Rel(description="Parent sweep instruction surface")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent sweep instruction surface"
+    )  # type: ignore[assignment]
 
     window_label: str = Field(description="Human-visible liquidity lane label")
     opens_at_iso: str = Field(description="Window opens (UTC ISO-8601)")

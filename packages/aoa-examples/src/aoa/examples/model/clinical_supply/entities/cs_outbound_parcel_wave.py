@@ -26,7 +26,9 @@ class ClinicalOutboundParcelWaveEntity(BaseEntity):
     issuing_site: Annotated[
         AssociationOne[ClinicalCareSiteUnitEntity],
         NoInverse(),
-    ] = Rel(description="Care unit authoring wave")  # type: ignore[assignment]
+    ] = Rel(
+        description="Care unit authoring wave"
+    )  # type: ignore[assignment]
 
 
 ClinicalOutboundParcelWaveEntity.model_rebuild()

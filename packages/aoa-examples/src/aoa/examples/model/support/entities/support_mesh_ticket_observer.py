@@ -13,7 +13,10 @@ from aoa.examples.model.support.entities.support_ticket_aggregate import Support
 from aoa.examples.model.support.support_domain import SupportDomain
 
 
-@entity(description="Associative pairing on sparse support graph (triangle completion on ticket spine)", domain=SupportDomain)
+@entity(
+    description="Associative pairing on sparse support graph (triangle completion on ticket spine)",
+    domain=SupportDomain,
+)
 class SupportTicketParticipantPairEntity(BaseEntity):
     id: str = Field(description="Assoc id")
     lifecycle: SupportSparseLifecycle = Field(description="Pair lifecycle")
@@ -27,12 +30,16 @@ class SupportTicketParticipantPairEntity(BaseEntity):
     ticket: Annotated[
         AssociationOne[SupportTicketAggregateEntity],
         NoInverse(),
-    ] = Rel(description="Ticket aggregate anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Ticket aggregate anchor"
+    )  # type: ignore[assignment]
 
     participant: Annotated[
         AssociationOne[SupportParticipantEntity],
         NoInverse(),
-    ] = Rel(description="Participant row anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Participant row anchor"
+    )  # type: ignore[assignment]
 
 
 SupportTicketParticipantPairEntity.model_rebuild()

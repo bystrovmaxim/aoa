@@ -26,7 +26,9 @@ class FanoutReplayCursorEntity(BaseEntity):
     signature_envelope: Annotated[
         AssociationOne[WebhookSignatureEnvelopeEntity],
         NoInverse(),
-    ] = Rel(description="Verified webhook signature row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Verified webhook signature row"
+    )  # type: ignore[assignment]
 
 
 FanoutReplayCursorEntity.model_rebuild()

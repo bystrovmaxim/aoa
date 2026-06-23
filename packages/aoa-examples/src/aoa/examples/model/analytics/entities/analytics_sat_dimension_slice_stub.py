@@ -26,7 +26,9 @@ class DimensionSliceStubEntity(BaseEntity):
     ingress_batch: Annotated[
         AssociationOne[AnalyticsIngressBatchEntity],
         NoInverse(),
-    ] = Rel(description="Owning ingest workload batch")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning ingest workload batch"
+    )  # type: ignore[assignment]
 
 
 DimensionSliceStubEntity.model_rebuild()

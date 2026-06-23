@@ -12,7 +12,9 @@ from aoa.examples.model.analytics.entities.an_dense_lifecycle import AnalyticsFa
 from aoa.examples.model.analytics.entities.analytics_sat_dimension_slice_stub import DimensionSliceStubEntity
 
 
-@entity(description="Derived metric concurrency fence stacking on dimension slice ingress branch", domain=AnalyticsDomain)
+@entity(
+    description="Derived metric concurrency fence stacking on dimension slice ingress branch", domain=AnalyticsDomain
+)
 class DerivedMetricFenceEntity(BaseEntity):
     id: str = Field(description="Fence id")
     lifecycle: AnalyticsFactLifecycle = Field(description="DerivedMetricFenceEntity lifecycle")
@@ -26,7 +28,9 @@ class DerivedMetricFenceEntity(BaseEntity):
     slice_stub: Annotated[
         AssociationOne[DimensionSliceStubEntity],
         NoInverse(),
-    ] = Rel(description="Upstream dimension slice facet")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream dimension slice facet"
+    )  # type: ignore[assignment]
 
 
 DerivedMetricFenceEntity.model_rebuild()

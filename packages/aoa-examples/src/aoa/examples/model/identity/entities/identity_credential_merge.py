@@ -28,17 +28,23 @@ class IdentityCredentialMergeCorrelateEntity(BaseEntity):
     email_factor: Annotated[
         AssociationOne[IdentityEmailFactorEntity],
         NoInverse(),
-    ] = Rel(description="Email credential anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Email credential anchor"
+    )  # type: ignore[assignment]
 
     phone_factor: Annotated[
         AssociationOne[IdentityPhoneFactorEntity],
         NoInverse(),
-    ] = Rel(description="Phone credential anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Phone credential anchor"
+    )  # type: ignore[assignment]
 
     person: Annotated[
         AssociationOne[IdentityPersonHubEntity],
         NoInverse(),
-    ] = Rel(description="Merged person identity")  # type: ignore[assignment]
+    ] = Rel(
+        description="Merged person identity"
+    )  # type: ignore[assignment]
 
 
 IdentityCredentialMergeCorrelateEntity.model_rebuild()

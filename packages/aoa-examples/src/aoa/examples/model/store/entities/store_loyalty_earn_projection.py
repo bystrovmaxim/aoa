@@ -12,7 +12,9 @@ from aoa.examples.model.store.entities.sales_order_lifecycle import SalesOrderLi
 from aoa.examples.model.store.store_domain import StoreDomain
 
 
-@entity(description="Loyalty earn projection keyed off invoicing artefacts (distinct from header mesh)", domain=StoreDomain)
+@entity(
+    description="Loyalty earn projection keyed off invoicing artefacts (distinct from header mesh)", domain=StoreDomain
+)
 class LoyaltyEarnProjectionEntity(BaseEntity):
     id: str = Field(description="Projection id")
     lifecycle: SalesOrderLifecycle = Field(description="Projection lifecycle")
@@ -26,7 +28,9 @@ class LoyaltyEarnProjectionEntity(BaseEntity):
     invoice: Annotated[
         AssociationOne[InvoiceRecordEntity],
         NoInverse(),
-    ] = Rel(description="Owning invoice artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning invoice artefact"
+    )  # type: ignore[assignment]
 
 
 LoyaltyEarnProjectionEntity.model_rebuild()

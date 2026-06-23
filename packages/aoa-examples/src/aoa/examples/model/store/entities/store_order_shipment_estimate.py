@@ -12,7 +12,9 @@ from aoa.examples.model.store.entities.shipment_parcel import ShipmentParcelEnti
 from aoa.examples.model.store.store_domain import StoreDomain
 
 
-@entity(description="Shipment ETA heuristic hanging off parcels instead of repeating order centroid", domain=StoreDomain)
+@entity(
+    description="Shipment ETA heuristic hanging off parcels instead of repeating order centroid", domain=StoreDomain
+)
 class ShipmentEstimateEntity(BaseEntity):
     id: str = Field(description="Estimate id")
     lifecycle: SalesOrderLifecycle = Field(description="Estimate lifecycle")
@@ -26,7 +28,9 @@ class ShipmentEstimateEntity(BaseEntity):
     parcel: Annotated[
         AssociationOne[ShipmentParcelEntity],
         NoInverse(),
-    ] = Rel(description="Parent parcel artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent parcel artefact"
+    )  # type: ignore[assignment]
 
 
 ShipmentEstimateEntity.model_rebuild()

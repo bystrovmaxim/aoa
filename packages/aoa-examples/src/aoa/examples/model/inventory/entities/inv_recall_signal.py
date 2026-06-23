@@ -26,7 +26,9 @@ class RecallSignalEntity(BaseEntity):
     disposition: Annotated[
         AssociationOne[DispositionAdviceEntity],
         NoInverse(),
-    ] = Rel(description="Owning disposition artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning disposition artefact"
+    )  # type: ignore[assignment]
 
 
 RecallSignalEntity.model_rebuild()

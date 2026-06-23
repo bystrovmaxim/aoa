@@ -27,12 +27,16 @@ class StoreInvoiceLineTieEntity(BaseEntity):
     invoice: Annotated[
         AssociationOne[InvoiceRecordEntity],
         NoInverse(),
-    ] = Rel(description="Owning invoice artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning invoice artefact"
+    )  # type: ignore[assignment]
 
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],
         NoInverse(),
-    ] = Rel(description="Owning order line artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning order line artefact"
+    )  # type: ignore[assignment]
 
 
 StoreInvoiceLineTieEntity.model_rebuild()

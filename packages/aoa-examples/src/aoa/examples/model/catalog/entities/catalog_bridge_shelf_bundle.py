@@ -27,12 +27,16 @@ class CatalogShelfBundleLinkEntity(BaseEntity):
     shelf_hint: Annotated[
         AssociationOne[ShelfPlacementHintEntity],
         NoInverse(),
-    ] = Rel(description="Planogram spine anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Planogram spine anchor"
+    )  # type: ignore[assignment]
 
     bundle_rule: Annotated[
         AssociationOne[BundleCardinalityRuleEntity],
         NoInverse(),
-    ] = Rel(description="Bundle cardinality anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Bundle cardinality anchor"
+    )  # type: ignore[assignment]
 
 
 CatalogShelfBundleLinkEntity.model_rebuild()

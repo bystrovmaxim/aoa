@@ -107,10 +107,7 @@ def main() -> None:
         # Optional ``aoa-run[fastapi]`` dependency.
         import uvicorn  # pylint: disable=import-outside-toplevel
     except ImportError as exc:
-        msg = (
-            "uvicorn is required to run this example. Install with: "
-            "pip install 'aoa-run[fastapi]'"
-        )
+        msg = "uvicorn is required to run this example. Install with: " "pip install 'aoa-run[fastapi]'"
         raise SystemExit(msg) from exc
 
     parser = argparse.ArgumentParser(description="Orders API example (FastAPI)")

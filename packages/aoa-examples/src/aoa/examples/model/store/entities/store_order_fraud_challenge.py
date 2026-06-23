@@ -26,7 +26,9 @@ class FraudChallengeTicketEntity(BaseEntity):
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Parent sales order anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent sales order anchor"
+    )  # type: ignore[assignment]
 
 
 FraudChallengeTicketEntity.model_rebuild()

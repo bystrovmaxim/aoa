@@ -13,7 +13,9 @@ from aoa.examples.model.inventory.entities.inv_dense_lifecycle import InvDenseLi
 from aoa.examples.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseEntity
 
 
-@entity(description="Associates upstream facility footprints with lateral cross-dock staging gates", domain=InventoryDomain)
+@entity(
+    description="Associates upstream facility footprints with lateral cross-dock staging gates", domain=InventoryDomain
+)
 class InvFacilityCrossdockBridgeEntity(BaseEntity):
     id: str = Field(description="Bridge id")
     lifecycle: InvDenseLifecycle = Field(description="Bridge lifecycle")
@@ -27,12 +29,16 @@ class InvFacilityCrossdockBridgeEntity(BaseEntity):
     facility: Annotated[
         AssociationOne[FacilityWarehouseEntity],
         NoInverse(),
-    ] = Rel(description="Owning facility artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning facility artefact"
+    )  # type: ignore[assignment]
 
     crossdock_gate: Annotated[
         AssociationOne[CrossDockStagingEntity],
         NoInverse(),
-    ] = Rel(description="Cross-dock staging gate anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Cross-dock staging gate anchor"
+    )  # type: ignore[assignment]
 
 
 InvFacilityCrossdockBridgeEntity.model_rebuild()

@@ -27,12 +27,16 @@ class StoreLineParcelPickEntity(BaseEntity):
     order_line: Annotated[
         AssociationOne[SalesOrderLineEntity],
         NoInverse(),
-    ] = Rel(description="Fulfilling order line artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Fulfilling order line artefact"
+    )  # type: ignore[assignment]
 
     parcel: Annotated[
         AssociationOne[ShipmentParcelEntity],
         NoInverse(),
-    ] = Rel(description="Target parcel artefact")  # type: ignore[assignment]
+    ] = Rel(
+        description="Target parcel artefact"
+    )  # type: ignore[assignment]
 
 
 StoreLineParcelPickEntity.model_rebuild()

@@ -12,7 +12,10 @@ from aoa.examples.model.assurance_portfolio.entities.ap_lifecycle import Assuran
 from aoa.examples.model.assurance_portfolio.entities.ap_reference_axes import AssuranceEvidenceKindAxisEntity
 
 
-@entity(description="Polymorphic-lite attachment header (fk_table analogue omitted deliberately)", domain=AssurancePortfolioDomain)
+@entity(
+    description="Polymorphic-lite attachment header (fk_table analogue omitted deliberately)",
+    domain=AssurancePortfolioDomain,
+)
 class AssuranceEvidenceCarrierStubEntity(BaseEntity):
     id: str = Field(description="Evidence carrier row id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Evidence carrier lifecycle")
@@ -26,7 +29,9 @@ class AssuranceEvidenceCarrierStubEntity(BaseEntity):
     evidence_kind_axis: Annotated[
         AssociationOne[AssuranceEvidenceKindAxisEntity],
         NoInverse(),
-    ] = Rel(description="Evidence media format")  # type: ignore[assignment]
+    ] = Rel(
+        description="Evidence media format"
+    )  # type: ignore[assignment]
 
 
 AssuranceEvidenceCarrierStubEntity.model_rebuild()

@@ -26,7 +26,9 @@ class LotQualityHoldEntity(BaseEntity):
     crossdock: Annotated[
         AssociationOne[CrossDockStagingEntity],
         NoInverse(),
-    ] = Rel(description="Parent staging row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent staging row"
+    )  # type: ignore[assignment]
 
 
 LotQualityHoldEntity.model_rebuild()

@@ -22,7 +22,9 @@ class DuplicateSuppressionLedgerEntity(BaseEntity):
     parse_pass: Annotated[
         AssociationOne[BillingParsePassEntity],
         NoInverse(),
-    ] = Rel(description="Owning parse pass")  # type: ignore[assignment]
+    ] = Rel(
+        description="Owning parse pass"
+    )  # type: ignore[assignment]
 
     suppression_scope: str = Field(description="Scope key (merchant, MID, PAN prefix)")
     fingerprint_hex: str = Field(description="Payload fingerprint sampled for duplicate probes")

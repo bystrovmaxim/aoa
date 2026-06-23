@@ -48,12 +48,16 @@ class CustomerAccountEntity(BaseEntity):
     identity_party: Annotated[
         AssociationOne[IdentityPersonHubEntity],
         NoInverse(),
-    ] = Rel(description="Canonical person aggregate in the identity bounded context")  # type: ignore[assignment]
+    ] = Rel(
+        description="Canonical person aggregate in the identity bounded context"
+    )  # type: ignore[assignment]
 
     orders: Annotated[
         AssociationMany[SalesOrderEntity],
         Inverse(SalesOrderEntity, "customer"),
-    ] = Rel(description="Orders")  # type: ignore[assignment]
+    ] = Rel(
+        description="Orders"
+    )  # type: ignore[assignment]
 
 
 @entity(description="Customer order", domain=StoreDomain)
@@ -70,17 +74,23 @@ class SalesOrderEntity(BaseEntity):
     customer: Annotated[
         AssociationOne[CustomerAccountEntity],
         Inverse(CustomerAccountEntity, "orders"),
-    ] = Rel(description="Customer")  # type: ignore[assignment]
+    ] = Rel(
+        description="Customer"
+    )  # type: ignore[assignment]
 
     order_lines: Annotated[
         CompositeMany[SalesOrderLineEntity],
         Inverse(SalesOrderLineEntity, "order"),
-    ] = Rel(description="Line items")  # type: ignore[assignment]
+    ] = Rel(
+        description="Line items"
+    )  # type: ignore[assignment]
 
     payment_capture_audit: Annotated[
         AssociationOne[PaymentEventLogEntity],
         NoInverse(),
-    ] = Rel(description="Settlement-side payment telemetry for this storefront order")  # type: ignore[assignment]
+    ] = Rel(
+        description="Settlement-side payment telemetry for this storefront order"
+    )  # type: ignore[assignment]
 
 
 @entity(description="Order line", domain=StoreDomain)
@@ -97,12 +107,16 @@ class SalesOrderLineEntity(BaseEntity):
     catalog_product: Annotated[
         AssociationOne[CatalogProductEntity],
         NoInverse(),
-    ] = Rel(description="Anchored SKU row from the commerce catalog")  # type: ignore[assignment]
+    ] = Rel(
+        description="Anchored SKU row from the commerce catalog"
+    )  # type: ignore[assignment]
 
     order: Annotated[
         AssociationOne[SalesOrderEntity],
         Inverse(SalesOrderEntity, "order_lines"),
-    ] = Rel(description="Parent order")  # type: ignore[assignment]
+    ] = Rel(
+        description="Parent order"
+    )  # type: ignore[assignment]
 
 
 CustomerAccountEntity.model_rebuild()

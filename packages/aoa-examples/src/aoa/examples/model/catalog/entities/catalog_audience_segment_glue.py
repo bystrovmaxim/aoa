@@ -13,7 +13,10 @@ from aoa.examples.model.catalog.entities.catalog_conversion_attribution_stub imp
 from aoa.examples.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 
 
-@entity(description="Diamond bridge: merges acquisition funnel with assortment island (still no SKU star)", domain=CatalogDomain)
+@entity(
+    description="Diamond bridge: merges acquisition funnel with assortment island (still no SKU star)",
+    domain=CatalogDomain,
+)
 class AudienceSegmentGlueEntity(BaseEntity):
     id: str = Field(description="Glue id")
     lifecycle: CatalogDenseLifecycle = Field(description="Glue lifecycle")
@@ -27,12 +30,16 @@ class AudienceSegmentGlueEntity(BaseEntity):
     conversion_stub: Annotated[
         AssociationOne[ConversionAttributionStubEntity],
         NoInverse(),
-    ] = Rel(description="Attribution conversion stub row")  # type: ignore[assignment]
+    ] = Rel(
+        description="Attribution conversion stub row"
+    )  # type: ignore[assignment]
 
     bundle_rule: Annotated[
         AssociationOne[BundleCardinalityRuleEntity],
         NoInverse(),
-    ] = Rel(description="Cardinality island anchor")  # type: ignore[assignment]
+    ] = Rel(
+        description="Cardinality island anchor"
+    )  # type: ignore[assignment]
 
 
 AudienceSegmentGlueEntity.model_rebuild()

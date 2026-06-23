@@ -9,9 +9,7 @@ from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.examples.model.analytics.domain import AnalyticsDomain
 from aoa.examples.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.examples.model.analytics.entities.analytics_canonical_telemetry_row import (
-    AnalyticsCanonicalTelemetryRowEntity,
-)
+from aoa.examples.model.analytics.entities.analytics_canonical_telemetry_row import AnalyticsCanonicalTelemetryRowEntity
 
 
 @entity(description="Metric rollup staging chained from canonical row", domain=AnalyticsDomain)
@@ -28,7 +26,9 @@ class AnalyticsMetricRollupStagingEntity(BaseEntity):
     canonical_row: Annotated[
         AssociationOne[AnalyticsCanonicalTelemetryRowEntity],
         NoInverse(),
-    ] = Rel(description="Canonical telemetry parent")  # type: ignore[assignment]
+    ] = Rel(
+        description="Canonical telemetry parent"
+    )  # type: ignore[assignment]
 
 
 AnalyticsMetricRollupStagingEntity.model_rebuild()

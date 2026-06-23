@@ -23,7 +23,9 @@ from aoa.examples.model.services.graph_json_service import ExampleModelGraphJson
     domain=ExampleModelGraphJsonDomain,
 )
 @check_roles(GuestRole)
-class GetExampleModelGraphJsonAction(BaseAction["GetExampleModelGraphJsonAction.Params", "GetExampleModelGraphJsonAction.Result"]):
+class GetExampleModelGraphJsonAction(
+    BaseAction["GetExampleModelGraphJsonAction.Params", "GetExampleModelGraphJsonAction.Result"]
+):
     class Params(BaseParams):
         """No query or body parameters."""
 

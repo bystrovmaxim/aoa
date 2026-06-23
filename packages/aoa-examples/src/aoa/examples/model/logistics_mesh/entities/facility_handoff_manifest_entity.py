@@ -20,4 +20,6 @@ class FacilityHandoffManifestEntity(BaseEntity):
     next_leg_placeholder: Annotated[
         AssociationOne[FreightWaypointLegEntity],
         NoInverse(),
-    ] = Rel(description="Next relay leg reserved for cargo slice")  # type: ignore[assignment]
+    ] = Rel(
+        description="Next relay leg reserved for cargo slice"
+    )  # type: ignore[assignment]

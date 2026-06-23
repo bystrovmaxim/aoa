@@ -26,6 +26,9 @@ class SupportTicketAggregateEntity(BaseEntity):
     related_commerce_order: Annotated[
         AssociationOne[SalesOrderEntity],
         NoInverse(),
-    ] = Rel(description="Linked storefront sales order motivating the ticket")  # type: ignore[assignment]
+    ] = Rel(
+        description="Linked storefront sales order motivating the ticket"
+    )  # type: ignore[assignment]
+
 
 SupportTicketAggregateEntity.model_rebuild()

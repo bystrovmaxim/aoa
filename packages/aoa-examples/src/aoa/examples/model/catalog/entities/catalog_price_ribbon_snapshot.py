@@ -26,7 +26,9 @@ class PriceRibbonSnapshotEntity(BaseEntity):
     search_boost: Annotated[
         AssociationOne[SearchBoostWeightEntity],
         NoInverse(),
-    ] = Rel(description="Upstream search/boost facet")  # type: ignore[assignment]
+    ] = Rel(
+        description="Upstream search/boost facet"
+    )  # type: ignore[assignment]
 
 
 PriceRibbonSnapshotEntity.model_rebuild()

@@ -26,6 +26,9 @@ class AnalyticsIngressBatchEntity(BaseEntity):
     billing_manifest_correlation: Annotated[
         AssociationOne[BillingFileIngestManifestEntity],
         NoInverse(),
-    ] = Rel(description="Billing ingest manifest keyed for analytic batch lineage")  # type: ignore[assignment]
+    ] = Rel(
+        description="Billing ingest manifest keyed for analytic batch lineage"
+    )  # type: ignore[assignment]
+
 
 AnalyticsIngressBatchEntity.model_rebuild()

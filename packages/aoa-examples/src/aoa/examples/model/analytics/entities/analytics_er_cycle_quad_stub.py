@@ -15,9 +15,7 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseEntity, Inverse, Lifecycle, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.examples.model.analytics.domain import AnalyticsDomain
-from aoa.examples.model.analytics.entities.analytics_canonical_telemetry_row import (
-    AnalyticsCanonicalTelemetryRowEntity,
-)
+from aoa.examples.model.analytics.entities.analytics_canonical_telemetry_row import AnalyticsCanonicalTelemetryRowEntity
 
 
 class _AnDirectedCycleSketchLifecycle(Lifecycle):
@@ -38,12 +36,16 @@ class AnalyticsDirectedCycleQuadAEntity(BaseEntity):
     follow_b: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadBEntity],
         Inverse(AnalyticsDirectedCycleQuadBEntity, "back_from_a"),
-    ] = Rel(description="Perimeter A\u2192B")  # type: ignore[assignment]
+    ] = Rel(
+        description="Perimeter A\u2192B"
+    )  # type: ignore[assignment]
 
     back_from_d: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadDEntity],
         Inverse(AnalyticsDirectedCycleQuadDEntity, "follow_a"),
-    ] = Rel(description="Closing hop D\u2192A pair")  # type: ignore[assignment]
+    ] = Rel(
+        description="Closing hop D\u2192A pair"
+    )  # type: ignore[assignment]
 
 
 @entity(description="Analytics quad vertex B (\u2190A / \u2192C reciprocal)", domain=AnalyticsDomain)
@@ -60,17 +62,23 @@ class AnalyticsDirectedCycleQuadBEntity(BaseEntity):
     back_from_a: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadAEntity],
         Inverse(AnalyticsDirectedCycleQuadAEntity, "follow_b"),
-    ] = Rel(description="Reciprocal B\u2192A")  # type: ignore[assignment]
+    ] = Rel(
+        description="Reciprocal B\u2192A"
+    )  # type: ignore[assignment]
 
     follow_c: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadCEntity],
         Inverse(AnalyticsDirectedCycleQuadCEntity, "back_from_b"),
-    ] = Rel(description="Perimeter B\u2192C")  # type: ignore[assignment]
+    ] = Rel(
+        description="Perimeter B\u2192C"
+    )  # type: ignore[assignment]
 
     anchor_canonical_telemetry_row: Annotated[
         AssociationOne[AnalyticsCanonicalTelemetryRowEntity],
         NoInverse(),
-    ] = Rel(description="Connects quad vertex B to canonical telemetry facet chain")  # type: ignore[assignment]
+    ] = Rel(
+        description="Connects quad vertex B to canonical telemetry facet chain"
+    )  # type: ignore[assignment]
 
 
 @entity(description="Analytics quad vertex C (\u2190B / \u2192D reciprocal)", domain=AnalyticsDomain)
@@ -87,12 +95,16 @@ class AnalyticsDirectedCycleQuadCEntity(BaseEntity):
     back_from_b: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadBEntity],
         Inverse(AnalyticsDirectedCycleQuadBEntity, "follow_c"),
-    ] = Rel(description="Reciprocal C\u2192B")  # type: ignore[assignment]
+    ] = Rel(
+        description="Reciprocal C\u2192B"
+    )  # type: ignore[assignment]
 
     follow_d: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadDEntity],
         Inverse(AnalyticsDirectedCycleQuadDEntity, "back_from_c"),
-    ] = Rel(description="Perimeter C\u2192D")  # type: ignore[assignment]
+    ] = Rel(
+        description="Perimeter C\u2192D"
+    )  # type: ignore[assignment]
 
 
 @entity(description="Analytics quad vertex D (\u2190C / \u2192A reciprocal)", domain=AnalyticsDomain)
@@ -109,12 +121,16 @@ class AnalyticsDirectedCycleQuadDEntity(BaseEntity):
     back_from_c: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadCEntity],
         Inverse(AnalyticsDirectedCycleQuadCEntity, "follow_d"),
-    ] = Rel(description="Reciprocal D\u2192C")  # type: ignore[assignment]
+    ] = Rel(
+        description="Reciprocal D\u2192C"
+    )  # type: ignore[assignment]
 
     follow_a: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadAEntity],
         Inverse(AnalyticsDirectedCycleQuadAEntity, "back_from_d"),
-    ] = Rel(description="Perimeter D\u2192A")  # type: ignore[assignment]
+    ] = Rel(
+        description="Perimeter D\u2192A"
+    )  # type: ignore[assignment]
 
 
 AnalyticsDirectedCycleQuadAEntity.model_rebuild()

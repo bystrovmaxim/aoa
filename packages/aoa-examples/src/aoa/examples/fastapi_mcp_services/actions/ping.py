@@ -46,10 +46,12 @@ class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
 
     class Params(BaseParams):
         """Ping request parameters — empty; no input required."""
+
         pass
 
     class Result(BaseResult):
         """Ping response payload."""
+
         message: str = Field(description="Response message", examples=["pong"])
 
     @summary_aspect("Build pong response")
