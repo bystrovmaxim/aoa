@@ -81,8 +81,7 @@ def test_10k_scoped_logger_constructions_under_budget(capsys: pytest.CaptureFixt
     )
 
     assert elapsed < _SCOPED_LOGGER_10K_SEC, (
-        f"10k ScopedLogger constructions took {elapsed:.3f}s "
-        f"(limit {_SCOPED_LOGGER_10K_SEC}s)"
+        f"10k ScopedLogger constructions took {elapsed:.3f}s " f"(limit {_SCOPED_LOGGER_10K_SEC}s)"
     )
 
 
@@ -110,6 +109,5 @@ def test_50k_log_scope_only_under_budget(capsys: pytest.CaptureFixture[str]) -> 
     )
 
     assert elapsed < _LOG_SCOPE_50K_SEC, (
-        f"50k LogScope constructions took {elapsed:.3f}s "
-        f"(limit {_LOG_SCOPE_50K_SEC}s)"
+        f"50k LogScope constructions took {elapsed:.3f}s " f"(limit {_LOG_SCOPE_50K_SEC}s)"
     )

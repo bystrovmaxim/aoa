@@ -3,10 +3,7 @@
 
 from tests.action_machine.scenarios.domain_model.full_action import FullAction
 from tests.action_machine.scenarios.domain_model.ping_action import PingAction
-from tests.action_machine.scenarios.domain_model.services import (
-    NotificationServiceResource,
-    PaymentServiceResource,
-)
+from tests.action_machine.scenarios.domain_model.services import NotificationServiceResource, PaymentServiceResource
 from tests.action_machine.scenarios.domain_model.test_db_manager import OrdersDbManager
 
 from aoa.action_machine.intents.depends import UseCase, depends

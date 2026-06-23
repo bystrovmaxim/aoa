@@ -154,7 +154,9 @@ async def test_execute_regular_rejects_extra_fields_not_backed_by_checkers() -> 
     aspect_node = MagicMock()
     aspect_node.label = "extra_field_aspect"
     allowed_checker = _checker_node("allowed")
-    allowed_checker.node_obj.checker_class = lambda field_name, required=True: SimpleNamespace(check=lambda result: None)
+    allowed_checker.node_obj.checker_class = lambda field_name, required=True: SimpleNamespace(
+        check=lambda result: None
+    )
     aspect_node.get_checker_graph_nodes.return_value = [allowed_checker]
 
     with pytest.raises(ValidationFieldError, match="returned extra fields"):

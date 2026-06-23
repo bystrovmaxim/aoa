@@ -60,15 +60,16 @@ from aoa.action_machine.context.user_info import UserInfo
 from tests.action_machine.scenarios.domain_model.roles import AdminRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Descendants of Info classes for testing three-level navigation.
+# Descendants of Info classes for testing three-level navigation.
 #
-#UserInfo, RequestInfo, RuntimeInfo do not have an extra field (extra="forbid").
-#Extension is only through inheritance with explicitly declared fields.
+# UserInfo, RequestInfo, RuntimeInfo do not have an extra field (extra="forbid").
+# Extension is only through inheritance with explicitly declared fields.
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class _ExtendedUserInfo(UserInfo):
     """A successor to UserInfo with additional fields for tests."""
+
     model_config = ConfigDict(frozen=True)
     org: str | None = None
     settings: dict[str, Any] = {}
@@ -76,18 +77,20 @@ class _ExtendedUserInfo(UserInfo):
 
 class _ExtendedRequestInfo(RequestInfo):
     """Descendant of RequestInfo with an additional field for tests."""
+
     model_config = ConfigDict(frozen=True)
     correlation_id: str | None = None
 
 
 class _ExtendedRuntimeInfo(RuntimeInfo):
     """A successor to RuntimeInfo with an additional field for tests."""
+
     model_config = ConfigDict(frozen=True)
     region: str | None = None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Creation and initialization
+# Creation and initialization
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -99,15 +102,15 @@ class TestContextCreation:
 
         AuthCoordinator.process() creates a Context with the authenticated
         user, request metadata, and environment information."""
-        #Arrange - all three components
+        # Arrange - all three components
         user = UserInfo(user_id="agent_007", roles=(AdminRole,))
         request = RequestInfo(trace_id="trace-123", request_path="/api/v1/orders")
         runtime = RuntimeInfo(hostname="pod-xyz", service_name="order-service")
 
-        #Act - creating a full context
+        # Act - creating a full context
         ctx = Context(user=user, request=request, runtime=runtime)
 
-        #Assert - all components are installed
+        # Assert - all components are installed
         assert ctx.user is user
         assert ctx.request is request
         assert ctx.runtime is runtime
@@ -117,10 +120,10 @@ class TestContextCreation:
 
         Ensures that ctx.user, ctx.request, ctx.runtime never
         are not equal to None - always valid objects with default values."""
-        #Arrange & Act - no arguments
+        # Arrange & Act - no arguments
         ctx = Context()
 
-        #Assert - components are not None, but default instances
+        # Assert - components are not None, but default instances
         assert ctx.user is not None
         assert ctx.request is not None
         assert ctx.runtime is not None
@@ -134,7 +137,7 @@ class TestContextCreation:
         # Arrange & Act
         ctx = Context()
 
-        #Assert - default UserInfo
+        # Assert - default UserInfo
         assert ctx.user.user_id is None
         assert ctx.user.roles == ()
 
@@ -143,10 +146,10 @@ class TestContextCreation:
         # Arrange
         user = UserInfo(user_id="u1", roles=(ManagerRole,))
 
-        #Act - user only
+        # Act - user only
         ctx = Context(user=user)
 
-        #Assert - user is specified, the rest is default
+        # Assert - user is specified, the rest is default
         assert ctx.user.user_id == "u1"
         assert ctx.request is not None
         assert ctx.runtime is not None
@@ -159,10 +162,10 @@ class TestContextCreation:
         Context(user=None) is equivalent to Context() - user will be
         UserInfo() with defaults, not None. Implemented via
         field_validator("user", mode="before") in the Context model."""
-        #Arrange & Act - explicit None
+        # Arrange & Act - explicit None
         ctx = Context(user=None, request=None, runtime=None)
 
-        #Assert - None replaced with default objects
+        # Assert - None replaced with default objects
         assert ctx.user is not None
         assert ctx.request is not None
         assert ctx.runtime is not None
@@ -172,7 +175,7 @@ class TestContextCreation:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#BaseSchema - dict-like access
+# BaseSchema - dict-like access
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -187,7 +190,7 @@ class TestContextDictAccess:
         user = UserInfo(user_id="u1")
         ctx = Context(user=user)
 
-        #Act & Assert - access through brackets returns the same object
+        # Act & Assert - access through brackets returns the same object
         assert ctx["user"] is user
 
     def test_getitem_request(self) -> None:
@@ -245,14 +248,14 @@ class TestContextDictAccess:
         # Act
         keys = ctx.keys()
 
-        #Assert - three components are present
+        # Assert - three components are present
         assert "user" in keys
         assert "request" in keys
         assert "runtime" in keys
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Navigation through resolve - two levels
+# Navigation through resolve - two levels
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -334,7 +337,7 @@ class TestContextResolveTwoLevels:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Navigation through resolve - three levels (via inheritors of Info classes)
+# Navigation through resolve - three levels (via inheritors of Info classes)
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -351,7 +354,7 @@ class TestContextResolveThreeLevels:
 
         Three levels: BaseSchema (Context) → BaseSchema (_ExtendedUserInfo)
         → field value."""
-        #Arrange is a successor to UserInfo with the org field
+        # Arrange is a successor to UserInfo with the org field
         ctx = Context(user=_ExtendedUserInfo(org="acme"))
 
         # Act
@@ -365,7 +368,7 @@ class TestContextResolveThreeLevels:
         resolve("request.correlation_id") — Context → _ExtendedRequestInfo
         → correlation_id.
         """
-        #Arrange - successor of RequestInfo with the correlation_id field
+        # Arrange - successor of RequestInfo with the correlation_id field
         ctx = Context(request=_ExtendedRequestInfo(correlation_id="corr-001"))
 
         # Act
@@ -378,7 +381,7 @@ class TestContextResolveThreeLevels:
         """
         resolve("runtime.region") — Context → _ExtendedRuntimeInfo → region.
         """
-        #Arrange is a successor of RuntimeInfo with the region field
+        # Arrange is a successor of RuntimeInfo with the region field
         ctx = Context(runtime=_ExtendedRuntimeInfo(region="eu-west-1"))
 
         # Act
@@ -393,10 +396,12 @@ class TestContextResolveThreeLevels:
         Context → _ExtendedUserInfo → settings (dict) → theme (value).
         Navigation switches from __getitem__ (BaseSchema) strategy
         for direct access by key (dict)."""
-        #Arrange is a successor to UserInfo with a settings (dict) field
-        ctx = Context(user=_ExtendedUserInfo(
-            settings={"theme": "dark", "lang": "ru"},
-        ))
+        # Arrange is a successor to UserInfo with a settings (dict) field
+        ctx = Context(
+            user=_ExtendedUserInfo(
+                settings={"theme": "dark", "lang": "ru"},
+            )
+        )
 
         # Act
         result = ctx.resolve("user.settings.theme")
@@ -406,7 +411,7 @@ class TestContextResolveThreeLevels:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Navigation via resolve - missing paths
+# Navigation via resolve - missing paths
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -443,10 +448,12 @@ class TestContextResolveMissing:
 
         _ExtendedUserInfo has a settings: dict field. Navigation reaches
         to dict, but the key "missing_key" is missing → default."""
-        #Arrange - successor to UserInfo with the settings field
-        ctx = Context(user=_ExtendedUserInfo(
-            settings={"org": "acme"},
-        ))
+        # Arrange - successor to UserInfo with the settings field
+        ctx = Context(
+            user=_ExtendedUserInfo(
+                settings={"org": "acme"},
+            )
+        )
 
         # Act
         result = ctx.resolve("user.settings.missing_key", default="none")
@@ -462,7 +469,7 @@ class TestContextResolveMissing:
         # Act
         result = ctx.resolve("nonexistent")
 
-        #Assert - None by default
+        # Assert - None by default
         assert result is None
 
     def test_missing_without_default(self) -> None:

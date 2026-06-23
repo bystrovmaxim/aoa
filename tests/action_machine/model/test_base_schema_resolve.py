@@ -53,7 +53,7 @@ from aoa.action_machine.model.base_state import BaseState
 from tests.action_machine.scenarios.domain_model.roles import AdminRole, AgentRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Helper classes
+# Helper classes
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -66,7 +66,7 @@ class NestedSchema(BaseSchema):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Two levels of nesting
+# Two levels of nesting
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -131,7 +131,7 @@ class TestTwoLevels:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Three or more levels of nesting
+# Three or more levels of nesting
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -141,7 +141,7 @@ class TestThreeOrMoreLevels:
     def test_deep_schema_chain(self) -> None:
         """resolve("level1.level2.level3.value") - a chain of three
         nested BaseSchema objects to the final value."""
-        #Arrange - three levels of nested NestedSchema
+        # Arrange - three levels of nested NestedSchema
         level3 = NestedSchema(value="deep")
         level2 = NestedSchema(level3=level3)
         level1 = NestedSchema(level2=level2)
@@ -158,7 +158,7 @@ class TestThreeOrMoreLevels:
 
         BaseState with extra="allow" stores arbitrary values,
         including nested dictionaries."""
-        #Arrange - BaseState with deeply nested dictionaries
+        # Arrange - BaseState with deeply nested dictionaries
         state = BaseState(level1={"level2": {"value": "deep"}})
 
         # Act
@@ -180,7 +180,7 @@ class TestThreeOrMoreLevels:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Navigation through dictionaries
+# Navigation through dictionaries
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -254,7 +254,7 @@ class TestDictNavigation:
         # Act
         result = state.resolve("data.key")
 
-        #Assert — None from the dictionary, not default
+        # Assert — None from the dictionary, not default
         assert result is None
 
     def test_state_empty_dict_returns_default(self) -> None:
@@ -270,7 +270,7 @@ class TestDictNavigation:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Mixed types in a chain
+# Mixed types in a chain
 # ═════════════════════════════════════════════════════════════════════════════
 
 
@@ -309,7 +309,7 @@ class TestMixedTypes:
         # Arrange
         ctx = Context(user=UserInfo(user_id="42"))
 
-        #Act - "nonexistent" is not among the UserInfo fields
+        # Act - "nonexistent" is not among the UserInfo fields
         result = ctx.resolve("user.nonexistent.deep", default="N/A")
 
         # Assert
@@ -320,7 +320,7 @@ class TestMixedTypes:
         # Arrange
         state = BaseState(data={"existing": "value"})
 
-        #Act - key "missing" does not exist in dict
+        # Act - key "missing" does not exist in dict
         result = state.resolve("data.missing.deep", default="not found")
 
         # Assert

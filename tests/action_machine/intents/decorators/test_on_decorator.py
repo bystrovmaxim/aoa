@@ -31,16 +31,13 @@ Scenarios covered:
 import pytest
 
 from aoa.action_machine.intents.on.on_decorator import on
-from aoa.action_machine.plugin.core.events import (
-    BeforeRegularAspectEvent,
-    GlobalFinishEvent,
-    GlobalStartEvent,
-)
+from aoa.action_machine.plugin.core.events import BeforeRegularAspectEvent, GlobalFinishEvent, GlobalStartEvent
 from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Valid usage
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestValidUsage:
     """Verify @on decorator on correctly defined async methods."""
@@ -157,12 +154,14 @@ class TestValidUsage:
 # event_class validation
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 class TestEventClassValidation:
     """Verify event_class argument validation."""
 
     def test_non_class_int_raises_type_error(self) -> None:
         """Non-class event_class (int) raises TypeError."""
         with pytest.raises(TypeError, match="BasePluginEvent"):
+
             @on(123)  # type: ignore[arg-type]
             async def on_handler(self, state, event, log):
                 return state
@@ -170,6 +169,7 @@ class TestEventClassValidation:
     def test_none_raises_type_error(self) -> None:
         """None event_class raises TypeError."""
         with pytest.raises(TypeError, match="BasePluginEvent"):
+
             @on(None)  # type: ignore[arg-type]
             async def on_handler(self, state, event, log):
                 return state
@@ -177,6 +177,7 @@ class TestEventClassValidation:
     def test_string_raises_type_error(self) -> None:
         """String event_class raises TypeError (old API rejected)."""
         with pytest.raises(TypeError, match="BasePluginEvent"):
+
             @on("global_finish")  # type: ignore[arg-type]
             async def on_handler(self, state, event, log):
                 return state
@@ -184,6 +185,7 @@ class TestEventClassValidation:
     def test_non_base_plugin_event_class_raises(self) -> None:
         """A regular class (not BasePluginEvent subclass) raises TypeError."""
         with pytest.raises(TypeError, match="BasePluginEvent"):
+
             @on(dict)  # type: ignore[arg-type]
             async def on_handler(self, state, event, log):
                 return state
@@ -191,6 +193,7 @@ class TestEventClassValidation:
     def test_list_raises_type_error(self) -> None:
         """List event_class raises TypeError."""
         with pytest.raises(TypeError, match="BasePluginEvent"):
+
             @on([GlobalFinishEvent])  # type: ignore[arg-type]
             async def on_handler(self, state, event, log):
                 return state
@@ -200,12 +203,14 @@ class TestEventClassValidation:
 # Filter argument validation
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 class TestFilterValidation:
     """Verify filter argument validation in @on."""
 
     def test_non_string_action_name_pattern_raises(self) -> None:
         """Non-string action_name_pattern raises TypeError."""
         with pytest.raises(TypeError, match="action_name_pattern"):
+
             @on(GlobalFinishEvent, action_name_pattern=123)  # type: ignore[arg-type]
             async def on_handler(self, state, event, log):
                 return state
@@ -213,6 +218,7 @@ class TestFilterValidation:
     def test_negative_nest_level_raises(self) -> None:
         """Negative nest_level raises ValueError."""
         with pytest.raises(ValueError, match="negative"):
+
             @on(GlobalFinishEvent, nest_level=-1)
             async def on_handler(self, state, event, log):
                 return state
@@ -220,6 +226,7 @@ class TestFilterValidation:
     def test_non_callable_predicate_raises(self) -> None:
         """Non-callable predicate raises TypeError."""
         with pytest.raises(TypeError, match="predicate"):
+
             @on(GlobalFinishEvent, predicate="not_callable")  # type: ignore[arg-type]
             async def on_handler(self, state, event, log):
                 return state
@@ -227,6 +234,7 @@ class TestFilterValidation:
     def test_non_type_domain_raises(self) -> None:
         """Non-type domain raises TypeError."""
         with pytest.raises(TypeError, match="domain"):
+
             @on(GlobalFinishEvent, domain="not_a_type")  # type: ignore[arg-type]
             async def on_handler(self, state, event, log):
                 return state
@@ -234,6 +242,7 @@ class TestFilterValidation:
     def test_aspect_name_pattern_on_non_aspect_event_raises(self) -> None:
         """aspect_name_pattern on non-AspectEvent raises ValueError."""
         with pytest.raises(ValueError, match="AspectEvent"):
+
             @on(GlobalFinishEvent, aspect_name_pattern="validate_.*")
             async def on_handler(self, state, event, log):
                 return state
@@ -253,6 +262,7 @@ class TestFilterValidation:
 # Target validation
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 class TestTargetValidation:
     """Verify that @on rejects invalid targets."""
 
@@ -264,6 +274,7 @@ class TestTargetValidation:
     def test_sync_method_raises_type_error(self) -> None:
         """Applying @on to a synchronous method raises TypeError."""
         with pytest.raises(TypeError, match="async"):
+
             @on(GlobalFinishEvent)
             def on_handler(self, state, event, log):
                 return state
@@ -271,6 +282,7 @@ class TestTargetValidation:
     def test_wrong_param_count_raises_type_error(self) -> None:
         """A method with != 4 parameters raises TypeError."""
         with pytest.raises(TypeError, match="4"):
+
             @on(GlobalFinishEvent)
             async def on_handler(self, state, event):
                 return state
@@ -278,6 +290,7 @@ class TestTargetValidation:
     def test_too_many_params_raises_type_error(self) -> None:
         """A method with 5 parameters raises TypeError."""
         with pytest.raises(TypeError, match="4"):
+
             @on(GlobalFinishEvent)
             async def on_handler(self, state, event, log, extra):
                 return state
@@ -285,6 +298,7 @@ class TestTargetValidation:
     def test_no_params_raises_type_error(self) -> None:
         """A method with 0 parameters raises TypeError."""
         with pytest.raises(TypeError, match="4"):
+
             @on(GlobalFinishEvent)
             async def on_handler():
                 pass
@@ -294,6 +308,7 @@ class TestTargetValidation:
 # Naming prefix validation
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 class TestNamingPrefixValidation:
     """Verify that @on rejects methods without on_ prefix."""
 
@@ -302,6 +317,7 @@ class TestNamingPrefixValidation:
         from aoa.action_machine.exceptions import NamingPrefixError
 
         with pytest.raises(NamingPrefixError, match="on_"):
+
             @on(GlobalFinishEvent)
             async def handler(self, state, event, log):
                 return state
@@ -311,6 +327,7 @@ class TestNamingPrefixValidation:
         from aoa.action_machine.exceptions import NamingPrefixError
 
         with pytest.raises(NamingPrefixError, match="on_"):
+
             @on(GlobalFinishEvent)
             async def handle_finish(self, state, event, log):
                 return state
@@ -319,6 +336,7 @@ class TestNamingPrefixValidation:
 # ═════════════════════════════════════════════════════════════════════════════
 # SubscriptionInfo immutability
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestSubscriptionInfoFrozen:
     """Verify that SubscriptionInfo is a frozen dataclass."""

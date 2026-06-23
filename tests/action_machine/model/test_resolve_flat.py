@@ -181,6 +181,7 @@ class TestResolveFlatDifferentObjects:
         BaseParams subclasses BaseSchema. resolve uses __getitem__ → getattr
         like other BaseSchema types.
         """
+
         # Arrange
         class TestParams(BaseParams):
             name: str = Field(description="Name")

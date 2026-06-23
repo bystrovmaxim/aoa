@@ -46,6 +46,7 @@ from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 
 from aoa.action_machine.adapters.fastapi.adapter import FastApiAdapter
+from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -70,7 +71,7 @@ def _make_app(
     machine = ActionProductMachine(loggers=[])
 
     auth = AsyncMock()
-    auth.process.return_value = None
+    auth.process.return_value = Context()
 
     if run_return is not None:
         machine.run = AsyncMock(return_value=run_return)

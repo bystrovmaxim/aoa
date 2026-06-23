@@ -55,14 +55,14 @@ class TestPluginGetHandlers:
     def test_find_handler_for_any_action(self):
         """AlphaPlugin is subscribed to GlobalFinishEvent without additional filters.
         For any GlobalFinishEvent there must be exactly one on_finish handler."""
-        #Arrange - create a plugin with a handler for all actions
+        # Arrange - create a plugin with a handler for all actions
         plugin = AlphaPlugin()
         event = make_global_finish_event()
 
-        #Act - look for handlers by event type
+        # Act - look for handlers by event type
         handlers = plugin.get_handlers(event)
 
-        #Assert - one handler with the correct name was found
+        # Assert - one handler with the correct name was found
         assert len(handlers) == 1
         handler_func, _sub = handlers[0]
         assert handler_func.__name__ == "on_finish"
@@ -74,20 +74,20 @@ class TestPluginGetHandlers:
 
         Therefore get_handlers() returns a candidate for ANY GlobalFinishEvent,
         and filtering by action_name occurs later."""
-        #Arrange - plugin with action_name_pattern (step 3, not step 1)
+        # Arrange - plugin with action_name_pattern (step 3, not step 1)
         plugin = BetaPlugin()
         event_order = make_global_finish_event(action_name="app.actions.CreateOrderAction")
         event_ping = make_global_finish_event(action_name="app.actions.PingAction")
 
-        #Act - get_handlers only checks event_class
+        # Act - get_handlers only checks event_class
         handlers_order = plugin.get_handlers(event_order)
         handlers_ping = plugin.get_handlers(event_ping)
 
-        #Assert - both return a candidate (step 1 passes for both)
+        # Assert - both return a candidate (step 1 passes for both)
         assert len(handlers_order) == 1
         assert len(handlers_ping) == 1
 
-        #Assert - action_name_pattern saved in SubscriptionInfo for step 3
+        # Assert - action_name_pattern saved in SubscriptionInfo for step 3
         _, sub = handlers_order[0]
         assert sub.action_name_pattern == ".*Order.*"
 
@@ -98,41 +98,41 @@ class TestPluginGetHandlers:
         plugin = BetaPlugin()
         event = make_global_finish_event(action_name="app.actions.CreateOrderAction")
 
-        #Act - get_handlers returns the candidate
+        # Act - get_handlers returns the candidate
         handlers = plugin.get_handlers(event)
         _, sub = handlers[0]
 
-        #Assert - matches_action_name checks regex
+        # Assert - matches_action_name checks regex
         assert sub.matches_action_name("app.actions.CreateOrderAction") is True
         assert sub.matches_action_name("app.actions.PingAction") is False
 
     def test_two_plugins_both_match_event_class(self):
         """AlphaPlugin and BetaPlugin are both subscribed to GlobalFinishEvent.
         get_handlers() returns candidates for both - event_class matches."""
-        #Arrange - two plugins with different action_name_pattern
+        # Arrange - two plugins with different action_name_pattern
         alpha = AlphaPlugin()
         beta = BetaPlugin()
         event = make_global_finish_event(action_name="test.CreateOrderAction")
 
-        #Act - both find candidates by event_class
+        # Act - both find candidates by event_class
         alpha_handlers = alpha.get_handlers(event)
         beta_handlers = beta.get_handlers(event)
 
-        #Assert - both returned one candidate each
+        # Assert - both returned one candidate each
         assert len(alpha_handlers) == 1
         assert len(beta_handlers) == 1
 
     def test_wrong_event_type_returns_empty(self):
         """GammaPlugin is subscribed to GlobalStartEvent, not to GlobalFinishEvent.
         Searching for GlobalFinishEvent returns an empty list - isinstance fails."""
-        #Arrange - the plugin is subscribed only to GlobalStartEvent
+        # Arrange - the plugin is subscribed only to GlobalStartEvent
         plugin = GammaPlugin()
         event = make_global_finish_event()
 
-        #Act - looking for GlobalFinishEvent handlers
+        # Act - looking for GlobalFinishEvent handlers
         handlers = plugin.get_handlers(event)
 
-        #Assert - no handlers found (event_class does not match)
+        # Assert - no handlers found (event_class does not match)
         assert len(handlers) == 0
 
     def test_gamma_plugin_found_for_start_event(self):
@@ -145,7 +145,7 @@ class TestPluginGetHandlers:
         # Act
         handlers = plugin.get_handlers(event)
 
-        #Assert - one on_start handler
+        # Assert - one on_start handler
         assert len(handlers) == 1
         assert handlers[0][0].__name__ == "on_start"
 
@@ -158,14 +158,14 @@ class TestPluginGetHandlers:
         For GlobalFinishEvent get_handlers() returns TWO candidates:
         on_finish and on_order_finish (both subscribed to GlobalFinishEvent).
         action_name_pattern is checked later in the PluginRunContext."""
-        #Arrange - a plugin with three subscriptions for different events
+        # Arrange - a plugin with three subscriptions for different events
         plugin = MultiEventPlugin()
         event = make_global_finish_event(action_name="test.CreateOrderAction")
 
-        #Act - looking for GlobalFinishEvent handlers
+        # Act - looking for GlobalFinishEvent handlers
         handlers = plugin.get_handlers(event)
 
-        #Assert - two handlers: on_finish and on_order_finish
+        # Assert - two handlers: on_finish and on_order_finish
         assert len(handlers) == 2
         handler_names = {h[0].__name__ for h in handlers}
         assert handler_names == {"on_finish", "on_order_finish"}
@@ -177,10 +177,10 @@ class TestPluginGetHandlers:
         plugin = MultiEventPlugin()
         event = make_global_start_event()
 
-        #Act - looking for GlobalStartEvent handlers
+        # Act - looking for GlobalStartEvent handlers
         handlers = plugin.get_handlers(event)
 
-        #Assert - one on_start handler
+        # Assert - one on_start handler
         assert len(handlers) == 1
         assert handlers[0][0].__name__ == "on_start"
 
@@ -196,7 +196,7 @@ class TestPluginGetHandlers:
         handlers = plugin.get_handlers(event)
         _handler_func, sub = handlers[0]
 
-        #Assert — SubscriptionInfo contains correct data
+        # Assert — SubscriptionInfo contains correct data
         from aoa.action_machine.plugin.core.events import GlobalFinishEvent
         from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 
@@ -209,14 +209,14 @@ class TestPluginGetHandlers:
     def test_empty_coordinator_has_no_plugins(self):
         """Coordinator without plugins. A plugin that exists separately
         still finds its handlers via get_handlers()."""
-        #Arrange - the coordinator is empty, the plugin exists separately
+        # Arrange - the coordinator is empty, the plugin exists separately
         coordinator = PluginCoordinator(plugins=[])
         alpha = AlphaPlugin()
         event = make_global_finish_event()
 
-        #Act + Assert - coordinator is empty
+        # Act + Assert - coordinator is empty
         assert len(coordinator.plugins) == 0
 
-        #Act + Assert - the plugin finds handlers on its own
+        # Act + Assert - the plugin finds handlers on its own
         assert len(alpha.get_handlers(event)) == 1
         assert len(alpha.get_handlers(event)) == 1

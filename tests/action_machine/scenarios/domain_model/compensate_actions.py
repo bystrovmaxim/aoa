@@ -567,10 +567,7 @@ class CompensateAndOnErrorAction(
         """
         return CompensateTestResult(
             status="handled_after_compensate",
-            detail=(
-                f"{error}|pipeline_txn={state.get('txn_id')!r}|"
-                f"pipeline_res={state.get('reservation_id')!r}"
-            ),
+            detail=(f"{error}|pipeline_txn={state.get('txn_id')!r}|" f"pipeline_res={state.get('reservation_id')!r}"),
         )
 
 
@@ -625,10 +622,7 @@ class FirstRegularFailsOnErrorAction(
     ) -> CompensateTestResult:
         return CompensateTestResult(
             status="handled_first_regular",
-            detail=(
-                f"txn={state.get('txn_id')!r}|"
-                f"res={state.get('reservation_id')!r}|err={error!s}"
-            ),
+            detail=(f"txn={state.get('txn_id')!r}|" f"res={state.get('reservation_id')!r}|err={error!s}"),
         )
 
 
@@ -716,10 +710,7 @@ class SecondRegularFailsOnErrorAction(
     ) -> CompensateTestResult:
         return CompensateTestResult(
             status="handled_second_regular",
-            detail=(
-                f"txn={state.get('txn_id')!r}|"
-                f"res={state.get('reservation_id')!r}|err={error!s}"
-            ),
+            detail=(f"txn={state.get('txn_id')!r}|" f"res={state.get('reservation_id')!r}|err={error!s}"),
         )
 
 
@@ -841,11 +832,7 @@ class SummaryFailsOnErrorStateAction(
     ) -> CompensateTestResult:
         return CompensateTestResult(
             status="handled_summary_error",
-            detail=(
-                f"txn={state.get('txn_id')!s}|"
-                f"order={state.get('order_id')!s}|"
-                f"err={error!s}"
-            ),
+            detail=(f"txn={state.get('txn_id')!s}|" f"order={state.get('order_id')!s}|" f"err={error!s}"),
         )
 
 

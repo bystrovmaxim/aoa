@@ -6,12 +6,8 @@ from __future__ import annotations
 import aoa.action_machine.graph as graph_pkg
 import aoa.action_machine.graph.inspectors as inspectors_pkg
 import aoa.action_machine.model as model_pkg
-from aoa.action_machine.graph.inspectors.action_graph_node_inspector import (
-    ActionGraphNodeInspector,
-)
-from aoa.action_machine.graph.inspectors.params_graph_node_inspector import (
-    ParamsGraphNodeInspector,
-)
+from aoa.action_machine.graph.inspectors.action_graph_node_inspector import ActionGraphNodeInspector
+from aoa.action_machine.graph.inspectors.params_graph_node_inspector import ParamsGraphNodeInspector
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.result_graph_node import ResultGraphNode
 from tests.action_machine.scenarios.domain_model.child_action import ChildAction

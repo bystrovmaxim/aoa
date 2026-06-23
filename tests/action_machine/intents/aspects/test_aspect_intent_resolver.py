@@ -1,12 +1,8 @@
 import pytest
 from tests.action_machine.scenarios.domain_model.child_action import ChildAction
 
-from aoa.action_machine.intents.aspects.regular_aspect_intent_resolver import (
-    RegularAspectIntentResolver,
-)
-from aoa.action_machine.intents.aspects.summary_aspect_intent_resolver import (
-    SummaryAspectIntentResolver,
-)
+from aoa.action_machine.intents.aspects.regular_aspect_intent_resolver import RegularAspectIntentResolver
+from aoa.action_machine.intents.aspects.summary_aspect_intent_resolver import SummaryAspectIntentResolver
 
 
 def test_resolve_regular_aspects_returns_own_regular_aspects() -> None:
@@ -34,10 +30,7 @@ def test_resolve_summary_aspects_returns_own_summary_aspects() -> None:
 
 
 def test_resolve_summary_description_returns_decorator_string() -> None:
-    assert (
-        SummaryAspectIntentResolver.resolve_description(ChildAction.build_result_summary)
-        == "Build result"
-    )
+    assert SummaryAspectIntentResolver.resolve_description(ChildAction.build_result_summary) == "Build result"
 
 
 def test_resolve_summary_description_raises_when_not_summary_aspect() -> None:

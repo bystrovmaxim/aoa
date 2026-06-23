@@ -35,6 +35,7 @@ from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 
 from aoa.action_machine.adapters.fastapi.adapter import FastApiAdapter
+from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
 
@@ -47,7 +48,7 @@ def _build_app_with_routes(**adapter_kwargs) -> TestClient:
     """Build a FastAPI app with standard test routes and return a TestClient."""
     machine = ActionProductMachine(loggers=[])
     auth = AsyncMock()
-    auth.process.return_value = None
+    auth.process.return_value = Context()
 
     adapter = FastApiAdapter(
         machine=machine,
@@ -223,7 +224,7 @@ class TestDeprecatedFlag:
         """A route registered with deprecated=True shows deprecated in schema."""
         machine = ActionProductMachine(loggers=[])
         auth = AsyncMock()
-        auth.process.return_value = None
+        auth.process.return_value = Context()
 
         adapter = FastApiAdapter(
             machine=machine,

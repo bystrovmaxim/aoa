@@ -36,12 +36,7 @@ from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.context.runtime_info import RuntimeInfo
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.testing import StubTesterRole
-from aoa.action_machine.testing.stubs import (
-    ContextStub,
-    RequestInfoStub,
-    RuntimeInfoStub,
-    UserInfoStub,
-)
+from aoa.action_machine.testing.stubs import ContextStub, RequestInfoStub, RuntimeInfoStub, UserInfoStub
 from tests.action_machine.scenarios.domain_model.roles import AdminRole, ManagerRole
 
 # ═════════════════════════════════════════════════════════════════════════════

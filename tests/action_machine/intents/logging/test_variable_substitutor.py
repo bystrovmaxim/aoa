@@ -46,8 +46,9 @@ from aoa.action_machine.testing.stubs import ContextStub
 from tests.action_machine.scenarios.domain_model import SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
-#Auxiliary models for tests
+# Auxiliary models for tests
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class _SensitiveUser:
     """An object with a @sensitive property for masking tests."""
@@ -59,7 +60,7 @@ class _SensitiveUser:
     def token(self) -> str:
         return self._token
 
-    #Imitating the @sensitive decorator - hanging _sensitive_config on the getter
+    # Imitating the @sensitive decorator - hanging _sensitive_config on the getter
     token.fget._sensitive_config = {  # type: ignore[attr-defined]
         "enabled": True,
         "max_chars": 3,
@@ -87,8 +88,9 @@ class _SensitiveDisabledUser:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#General fittings
+# General fittings
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def sub() -> VariableSubstitutor:
@@ -121,15 +123,16 @@ def params() -> BaseParams:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#_validate_path_segments - checks all segments for '_'
+# _validate_path_segments - checks all segments for '_'
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestValidatePathSegments:
     """Validate _validate_path_segments for all segment positions."""
 
     def test_normal_path_passes(self) -> None:
         """The usual way without underscores - the check passes."""
-        #Act/Assert - should not throw an exception
+        # Act/Assert - should not throw an exception
         VariableSubstitutor._validate_path_segments("context", "user.user_id")
 
     def test_single_segment_passes(self) -> None:
@@ -163,8 +166,9 @@ class TestValidatePathSegments:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Security - attacks via intermediate '_' segments
+# Security - attacks via intermediate '_' segments
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestUnderscoreSecurityAllPaths:
     """Checking for underscore blocking through a full substitute() loop."""
@@ -195,13 +199,17 @@ class TestUnderscoreSecurityAllPaths:
             sub.substitute(
                 "{iif({%var._flag}; 'yes'; 'no')}",
                 {"_flag": True},
-                scope, ctx, state, params,
+                scope,
+                ctx,
+                state,
+                params,
             )
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Namespace resolution: var, state, scope, context, params
+# Namespace resolution: var, state, scope, context, params
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestNamespaceResolution:
     """Resolving variables from all five namespaces."""
@@ -247,8 +255,9 @@ class TestNamespaceResolution:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Navigate through nested objects
+# Navigate through nested objects
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestNestedNavigation:
     """Navigation via DotPathNavigator for different types of objects."""
@@ -283,8 +292,9 @@ class TestNestedNavigation:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#_quote_if_string - formatting literals for simpleeval
+# _quote_if_string - formatting literals for simpleeval
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestQuoteIfString:
     """Formatting values ​​for substitution within iif [11]."""
@@ -321,8 +331,9 @@ class TestQuoteIfString:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#_resolve_color_name - three color formats
+# _resolve_color_name - three color formats
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestResolveColorName:
     """Convert color name to ANSI code."""
@@ -361,8 +372,9 @@ class TestResolveColorName:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Color filters - |color and marker post-processing
+# Color filters - |color and marker post-processing
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestColorFilters:
     """Color filters via |color and replacing markers with ANSI."""
@@ -394,8 +406,9 @@ class TestColorFilters:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Debug filter - |debug
+# Debug filter - |debug
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestDebugFilter:
     """The |debug filter outputs an introspection of an object [11]."""
@@ -419,8 +432,9 @@ class TestDebugFilter:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Masking @sensitive properties
+# Masking @sensitive properties
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestSensitiveMasking:
     """Masking property values ​​with @sensitive [12]."""
@@ -429,7 +443,7 @@ class TestSensitiveMasking:
         """A property with @sensitive is masked in the output."""
         user = _SensitiveUser(token="super_secret_token_123")
         result = sub.substitute("{%var.user.token}", {"user": user}, scope, ctx, state, params)
-        #The value is masked - the full token is not visible
+        # The value is masked - the full token is not visible
         assert "super_secret_token_123" not in result
         assert "*" in result
 
@@ -446,8 +460,9 @@ class TestSensitiveMasking:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#iif - variables inside and outside {iif(...)}
+# iif - variables inside and outside {iif(...)}
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestIifSubstitution:
     """Two-pass substitution: variables → iif [11]."""
@@ -471,12 +486,16 @@ class TestIifSubstitution:
 
     def test_string_inside_iif(self, sub, scope, ctx, state, params) -> None:
         """The string inside iif is in quotes."""
-        result = sub.substitute("{iif({%var.status} == 'ok'; 'good'; 'bad')}", {"status": "ok"}, scope, ctx, state, params)
+        result = sub.substitute(
+            "{iif({%var.status} == 'ok'; 'good'; 'bad')}", {"status": "ok"}, scope, ctx, state, params
+        )
         assert "good" in result
 
     def test_multiple_vars_inside_iif(self, sub, scope, ctx, state, params) -> None:
         """Several variables within one iif."""
-        result = sub.substitute("{iif({%var.x} + {%var.y} > 10; 'big'; 'small')}", {"x": 7, "y": 5}, scope, ctx, state, params)
+        result = sub.substitute(
+            "{iif({%var.x} + {%var.y} > 10; 'big'; 'small')}", {"x": 7, "y": 5}, scope, ctx, state, params
+        )
         assert "big" in result
 
     def test_iif_false_branch(self, sub, scope, ctx, state, params) -> None:
@@ -486,8 +505,9 @@ class TestIifSubstitution:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#substitute() - full cycle of public API
+# substitute() - full cycle of public API
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestSubstitutePublicAPI:
     """Full cycle through the only public method substitute()."""
@@ -508,7 +528,11 @@ class TestSubstitutePublicAPI:
         sc = LogScope(action="Act", aspect="a", nest_level=0)
         result = sub.substitute(
             "var={%var.x} state={%state.txn} scope={%scope.action}",
-            {"x": 42}, sc, ctx, st, params,
+            {"x": 42},
+            sc,
+            ctx,
+            st,
+            params,
         )
         assert "42" in result
         assert "TXN-1" in result
@@ -529,8 +553,9 @@ class TestSubstitutePublicAPI:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#Error Handling - LogTemplateError
+# Error Handling - LogTemplateError
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 class TestErrorHandling:
     """All scenarios leading to LogTemplateError."""

@@ -5,9 +5,7 @@ from tests.action_machine.scenarios.domain_model.full_action import FullAction
 from tests.action_machine.scenarios.domain_model.ping_action import PingAction
 from tests.action_machine.scenarios.domain_model.test_db_manager import OrdersDbManager
 
-from aoa.action_machine.intents.connection.connection_intent_resolver import (
-    ConnectionIntentResolver,
-)
+from aoa.action_machine.intents.connection.connection_intent_resolver import ConnectionIntentResolver
 
 
 def test_resolve_connection_types_returns_declared_resource_types() -> None:

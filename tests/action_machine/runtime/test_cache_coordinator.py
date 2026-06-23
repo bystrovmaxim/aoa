@@ -332,10 +332,14 @@ async def test_evict_multiple_directives_combined() -> None:
     await coord.put(_OrderAction, "o1", "r1", 100.0, tags=[CacheTag(type=_Order, key=1)])
     await coord.put(_PaymentAction, "p2", "r2", 100.0, tags=[CacheTag(type=_Payment, key=2)])
     await coord.put(_OrderAction, "o3", "r3", 100.0, tags=[CacheTag(type=_Order, key=3)])
-    evicted = await coord.evict_by_tags(frozenset({
-        CacheTag(type=_Order, key=1),
-        CacheTag(type=_Payment, key=2),
-    }))
+    evicted = await coord.evict_by_tags(
+        frozenset(
+            {
+                CacheTag(type=_Order, key=1),
+                CacheTag(type=_Payment, key=2),
+            }
+        )
+    )
     assert evicted == 2
     assert await coord.get_entry(_OrderAction, "o1") is None
     assert await coord.get_entry(_PaymentAction, "p2") is None

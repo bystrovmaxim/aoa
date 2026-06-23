@@ -12,10 +12,7 @@ from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action im
     GetLifecycleFiniteAutomatonAction,
     _parse_lifecycle_interchange_id,
 )
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
-    DUCKDB_GRAPH_CONNECTION_KEY,
-    DuckDBGraphResource,
-)
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
 
 def test_parse_lifecycle_interchange_id() -> None:

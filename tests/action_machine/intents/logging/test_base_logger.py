@@ -110,8 +110,13 @@ class TestWithoutSubscriptions:
         var = _v(key="value")
 
         await logger.handle(
-            simple_scope, "test message", var,
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "test message",
+            var,
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
 
         assert len(logger.records) == 1
@@ -149,8 +154,13 @@ class TestSubscriptionByChannel:
         logger.subscribe("c", channels=Channel.business)
 
         await logger.handle(
-            simple_scope, "x", _v(channels=Channel.business),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "x",
+            _v(channels=Channel.business),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         assert len(logger.records) == 1
 
@@ -166,8 +176,13 @@ class TestSubscriptionByChannel:
         logger.subscribe("c", channels=Channel.business)
 
         await logger.handle(
-            simple_scope, "x", _v(channels=Channel.debug),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "x",
+            _v(channels=Channel.debug),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         assert len(logger.records) == 0
 
@@ -183,8 +198,13 @@ class TestSubscriptionByChannel:
         logger.subscribe("c", channels=Channel.debug | Channel.business)
 
         await logger.handle(
-            simple_scope, "x", _v(channels=Channel.debug),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "x",
+            _v(channels=Channel.debug),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         assert len(logger.records) == 1
 
@@ -202,8 +222,13 @@ class TestSubscriptionByLevel:
         logger.subscribe("l", levels=Level.warning)
 
         await logger.handle(
-            simple_scope, "x", _v(level=Level.warning),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "x",
+            _v(level=Level.warning),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         assert len(logger.records) == 1
 
@@ -219,16 +244,31 @@ class TestSubscriptionByLevel:
         logger.subscribe("l", levels=Level.warning | Level.critical)
 
         await logger.handle(
-            simple_scope, "w", _v(level=Level.warning),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "w",
+            _v(level=Level.warning),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         await logger.handle(
-            simple_scope, "c", _v(level=Level.critical),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "c",
+            _v(level=Level.critical),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         await logger.handle(
-            simple_scope, "i", _v(level=Level.info),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "i",
+            _v(level=Level.info),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
 
         assert len(logger.records) == 2
@@ -293,8 +333,13 @@ class TestSubscriptionByDomain:
         logger.subscribe("d", domains=OrdersDomain)
 
         await logger.handle(
-            simple_scope, "x", _v(domain=None, domain_name=None),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "x",
+            _v(domain=None, domain_name=None),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         assert len(logger.records) == 0
 
@@ -312,12 +357,22 @@ class TestSubscriptionAndOr:
         logger.subscribe("both", channels=Channel.business, levels=Level.info)
 
         await logger.handle(
-            simple_scope, "ok", _v(channels=Channel.business, level=Level.info),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "ok",
+            _v(channels=Channel.business, level=Level.info),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         await logger.handle(
-            simple_scope, "bad", _v(channels=Channel.debug, level=Level.info),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "bad",
+            _v(channels=Channel.debug, level=Level.info),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
 
         assert len(logger.records) == 1
@@ -336,8 +391,13 @@ class TestSubscriptionAndOr:
         logger.subscribe("b", channels=Channel.compliance)
 
         await logger.handle(
-            simple_scope, "d", _v(channels=Channel.debug),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "d",
+            _v(channels=Channel.debug),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         assert len(logger.records) == 1
 
@@ -345,8 +405,13 @@ class TestSubscriptionAndOr:
         logger2.subscribe("a", channels=Channel.debug)
         logger2.subscribe("b", channels=Channel.compliance)
         await logger2.handle(
-            simple_scope, "c", _v(channels=Channel.compliance),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "c",
+            _v(channels=Channel.compliance),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         assert len(logger2.records) == 1
 
@@ -409,7 +474,8 @@ class TestSubscribeValidation:
     def test_subscribe_chain_returns_self(self) -> None:
         logger = RecordingLogger()
         out = logger.subscribe("a", channels=Channel.debug).subscribe(
-            "b", channels=Channel.business,
+            "b",
+            channels=Channel.business,
         )
         assert out is logger
         assert len(logger._subscriptions) == 2
@@ -441,8 +507,13 @@ class TestUnsubscribe:
         logger.subscribe("k", channels=Channel.business)
 
         await logger.handle(
-            simple_scope, "x", _v(channels=Channel.business),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "x",
+            _v(channels=Channel.business),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         assert len(logger.records) == 1
 
@@ -462,8 +533,13 @@ class TestParameterPassing:
         indent = 3
 
         await logger.handle(
-            simple_scope, "test message", var,
-            empty_context, state, empty_params, indent,
+            simple_scope,
+            "test message",
+            var,
+            empty_context,
+            state,
+            empty_params,
+            indent,
         )
 
         record = logger.records[0]
@@ -488,8 +564,13 @@ class TestParameterPassing:
         var_copy = original_var.copy()
 
         await logger.handle(
-            simple_scope, "test", original_var,
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "test",
+            original_var,
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
 
         assert original_var == var_copy
@@ -507,8 +588,13 @@ class TestParameterPassing:
         original_dict = original_state.to_dict()
 
         await logger.handle(
-            simple_scope, "test", _v(),
-            empty_context, original_state, empty_params, 0,
+            simple_scope,
+            "test",
+            _v(),
+            empty_context,
+            original_state,
+            empty_params,
+            0,
         )
 
         assert original_state.to_dict() == original_dict
@@ -525,8 +611,13 @@ class TestEdgeCases:
     ) -> None:
         logger = RecordingLogger()
         await logger.handle(
-            simple_scope, "", _v(),
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "",
+            _v(),
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         assert len(logger.records) == 1
         assert logger.records[0]["message"] == ""
@@ -542,12 +633,20 @@ class TestEdgeCases:
         logger = RecordingLogger()
         var = _v()
         await logger.handle(
-            simple_scope, "test", var,
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "test",
+            var,
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
         assert len(logger.records) == 1
         assert set(logger.records[0]["var"].keys()) >= {
-            "level", "channels", "domain", "domain_name",
+            "level",
+            "channels",
+            "domain",
+            "domain_name",
         }
 
     @pytest.mark.anyio
@@ -572,8 +671,13 @@ class TestEdgeCases:
         )
 
         await logger.handle(
-            simple_scope, "complex", var,
-            empty_context, empty_state, empty_params, 0,
+            simple_scope,
+            "complex",
+            var,
+            empty_context,
+            empty_state,
+            empty_params,
+            0,
         )
 
         assert len(logger.records) == 1

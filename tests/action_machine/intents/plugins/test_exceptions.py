@@ -64,12 +64,12 @@ class TestIgnoreExceptionsTrue:
     async def test_error_suppressed_no_exception(self):
         """IgnoredErrorPlugin throws RuntimeError with ignore_exceptions=True.
         emit_event() completes without throwing an exception - the error is suppressed."""
-        #Arrange - plugin with a crash handler (ignore=True)
+        # Arrange - plugin with a crash handler (ignore=True)
         plugin = IgnoredErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        #Act + Assert - there should be no exception
+        # Act + Assert - there should be no exception
         await emit_global_finish(plugin_ctx)
 
     @pytest.mark.anyio
@@ -77,15 +77,15 @@ class TestIgnoreExceptionsTrue:
         """IgnoredErrorPlugin mutates state["before_error"]=True to raise.
         Since state is a dict (mutable object, passed by reference),
         An in-place mutation remains visible even when the error is suppressed."""
-        #Arrange is a plugin that mutates state to raise
+        # Arrange is a plugin that mutates state to raise
         plugin = IgnoredErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        #Act - the event is processed, the error is suppressed
+        # Act - the event is processed, the error is suppressed
         await emit_global_finish(plugin_ctx)
 
-        #Assert - mutation to raise is visible
+        # Assert - mutation to raise is visible
         state = plugin_ctx.get_plugin_state(plugin)
         assert state["before_error"] is True
 
@@ -93,15 +93,15 @@ class TestIgnoreExceptionsTrue:
     async def test_code_after_raise_not_executed(self):
         """IgnoredErrorPlugin: the code after raise is not executed.
         state["after_error"] remains False (initial value)."""
-        #Arrange - plugin with code after raise (which will not be executed)
+        # Arrange - plugin with code after raise (which will not be executed)
         plugin = IgnoredErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        #Act - the event is being processed
+        # Act - the event is being processed
         await emit_global_finish(plugin_ctx)
 
-        #Assert - the code after raise was not executed
+        # Assert - the code after raise was not executed
         state = plugin_ctx.get_plugin_state(plugin)
         assert state["after_error"] is False
 
@@ -172,12 +172,12 @@ class TestIgnoreExceptionsFalse:
     async def test_runtime_error_propagates(self):
         """PropagatedErrorPlugin throws RuntimeError with ignore_exceptions=False.
         The error is thrown from emit_event() with the correct message."""
-        #Arrange - a plugin with a critical handler
+        # Arrange - a plugin with a critical handler
         plugin = PropagatedErrorPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        #Act + Assert - RuntimeError is thrown
+        # Act + Assert - RuntimeError is thrown
         with pytest.raises(RuntimeError, match="Strict error must propagate"):
             await emit_global_finish(plugin_ctx)
 
@@ -186,12 +186,12 @@ class TestIgnoreExceptionsFalse:
         """CustomExceptionPlugin throws CustomPluginException.
         The type of custom exception is saved when forwarding -
         the calling code can catch a specific type."""
-        #Arrange - plugin with custom exclusion
+        # Arrange - plugin with custom exclusion
         plugin = CustomExceptionPlugin()
         coordinator = PluginCoordinator(plugins=[plugin])
         plugin_ctx = await coordinator.create_run_context()
 
-        #Act + Assert - CustomPluginException is thrown with a message
+        # Act + Assert - CustomPluginException is thrown with a message
         with pytest.raises(CustomPluginError, match="Custom plugin error"):
             await emit_global_finish(plugin_ctx)
             await emit_global_finish(plugin_ctx)

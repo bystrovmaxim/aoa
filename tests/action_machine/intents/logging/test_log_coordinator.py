@@ -98,15 +98,17 @@ class RecordingLogger(BaseLogger):
         indent: int,
     ) -> None:
         """Append one ``write`` call to ``records``."""
-        self.records.append({
-            "scope": scope,
-            "message": message,
-            "var": var.copy(),
-            "ctx": ctx,
-            "state": state.to_dict(),
-            "params": params,
-            "indent": indent,
-        })
+        self.records.append(
+            {
+                "scope": scope,
+                "message": message,
+                "var": var.copy(),
+                "ctx": ctx,
+                "state": state.to_dict(),
+                "params": params,
+                "indent": indent,
+            }
+        )
 
 
 class FailingLogger(BaseLogger):
@@ -205,6 +207,7 @@ class TestVariableSubstitution:
         """
         # Arrange
         from aoa.action_machine.context.user_info import UserInfo
+
         ctx = Context(user=UserInfo(user_id="agent_007"))
         logger = RecordingLogger()
         coordinator = LogCoordinator(loggers=[logger])
@@ -235,6 +238,7 @@ class TestVariableSubstitution:
         """
         # Arrange
         from pydantic import Field
+
         class TestParams(BaseParams):
             amount: float = Field(default=999.99, description="Amount")
 
@@ -625,8 +629,7 @@ class TestLoggerHandleFailureIsolation:
             )
 
         assert any(
-            "LogCoordinator" in r.getMessage() and "raised during emit" in r.getMessage()
-            for r in caplog.records
+            "LogCoordinator" in r.getMessage() and "raised during emit" in r.getMessage() for r in caplog.records
         )
 
 
@@ -806,9 +809,12 @@ class TestErrorHandling:
         with pytest.raises(ValueError, match="var must contain"):
             await coordinator.emit(
                 message="x",
-                var={"channels": LogChannelPayload(
-                    mask=Channel.debug, names=channel_mask_label(Channel.debug),
-                )},
+                var={
+                    "channels": LogChannelPayload(
+                        mask=Channel.debug,
+                        names=channel_mask_label(Channel.debug),
+                    )
+                },
                 scope=simple_scope,
                 ctx=empty_context,
                 state=empty_state,

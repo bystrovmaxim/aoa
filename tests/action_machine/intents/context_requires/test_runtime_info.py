@@ -47,6 +47,7 @@ from aoa.action_machine.context.runtime_info import RuntimeInfo
 
 class _CloudRuntimeInfo(RuntimeInfo):
     """RuntimeInfo subclass with cloud environment fields."""
+
     model_config = ConfigDict(frozen=True)
     region: str | None = None
     cluster: str | None = None

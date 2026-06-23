@@ -28,12 +28,7 @@ Coordinator-level lifecycle integrity validation is tested elsewhere.
 
 import pytest
 
-from aoa.action_machine.domain.lifecycle import (
-    InvalidStateError,
-    InvalidTransitionError,
-    Lifecycle,
-    StateType,
-)
+from aoa.action_machine.domain.lifecycle import InvalidStateError, InvalidTransitionError, Lifecycle, StateType
 
 
 class TestLifecycleTemplate:
@@ -65,9 +60,14 @@ class TestLifecycleTemplate:
         """Several states with different classifications."""
         lifecycle = (
             Lifecycle()
-            .state("draft", "Draft").to("active").initial()
-            .state("active", "Active").to("archived").intermediate()
-            .state("archived", "Archived").final()
+            .state("draft", "Draft")
+            .to("active")
+            .initial()
+            .state("active", "Active")
+            .to("archived")
+            .intermediate()
+            .state("archived", "Archived")
+            .final()
         )
         assert len(lifecycle._states) == 3
         assert lifecycle._states["draft"].state_type == StateType.INITIAL
@@ -78,10 +78,16 @@ class TestLifecycleTemplate:
         """Transition graph on the template."""
         lifecycle = (
             Lifecycle()
-            .state("draft", "Draft").to("active", "cancelled").initial()
-            .state("active", "Active").to("archived").intermediate()
-            .state("archived", "Archived").final()
-            .state("cancelled", "Cancelled").final()
+            .state("draft", "Draft")
+            .to("active", "cancelled")
+            .initial()
+            .state("active", "Active")
+            .to("archived")
+            .intermediate()
+            .state("archived", "Archived")
+            .final()
+            .state("cancelled", "Cancelled")
+            .final()
         )
         transitions = lifecycle.get_transitions()
         assert transitions["draft"] == {"active", "cancelled"}
@@ -93,9 +99,14 @@ class TestLifecycleTemplate:
         """Collect initial state keys."""
         lifecycle = (
             Lifecycle()
-            .state("new", "New").to("active").initial()
-            .state("imported", "Imported").to("active").initial()
-            .state("active", "Active").final()
+            .state("new", "New")
+            .to("active")
+            .initial()
+            .state("imported", "Imported")
+            .to("active")
+            .initial()
+            .state("active", "Active")
+            .final()
         )
         assert lifecycle.get_initial_keys() == {"new", "imported"}
 
@@ -103,9 +114,13 @@ class TestLifecycleTemplate:
         """Collect final state keys."""
         lifecycle = (
             Lifecycle()
-            .state("draft", "Draft").to("done", "cancelled").initial()
-            .state("done", "Done").final()
-            .state("cancelled", "Cancelled").final()
+            .state("draft", "Draft")
+            .to("done", "cancelled")
+            .initial()
+            .state("done", "Done")
+            .final()
+            .state("cancelled", "Cancelled")
+            .final()
         )
         assert lifecycle.get_final_keys() == {"done", "cancelled"}
 
@@ -123,11 +138,7 @@ class TestLifecycleTemplate:
     def test_duplicate_state_raises(self):
         """Duplicate state key is rejected."""
         with pytest.raises(ValueError, match="already defined"):
-            (
-                Lifecycle()
-                .state("draft", "Draft").initial()
-                .state("draft", "Duplicate").initial()
-            )
+            (Lifecycle().state("draft", "Draft").initial().state("draft", "Duplicate").initial())
 
     def test_uncompleted_state_raises(self):
         """Starting a new state before finalizing the previous one fails."""
@@ -151,9 +162,14 @@ class TestSpecializedLifecycle:
         class TestLC(Lifecycle):
             _template = (
                 Lifecycle()
-                .state("draft", "Draft").to("active").initial()
-                .state("active", "Active").to("archived").intermediate()
-                .state("archived", "Archived").final()
+                .state("draft", "Draft")
+                .to("active")
+                .initial()
+                .state("active", "Active")
+                .to("archived")
+                .intermediate()
+                .state("archived", "Archived")
+                .final()
             )
 
         self.TestLC = TestLC

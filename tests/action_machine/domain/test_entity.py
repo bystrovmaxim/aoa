@@ -42,6 +42,7 @@ class TestEntityDecorator:
 
     def test_valid_entity_creation(self):
         """Happy path: decorated entity gets `_entity_info`."""
+
         @entity(description="Test entity fixture", domain=TestDomain)
         class ValidEntity(BaseEntity):
             id: str
@@ -54,6 +55,7 @@ class TestEntityDecorator:
     def test_missing_description(self):
         """Empty description is rejected."""
         with pytest.raises(EntityDecoratorError, match="description cannot be empty"):
+
             @entity(description="", domain=TestDomain)
             class InvalidEntity:
                 id: str
@@ -61,12 +63,14 @@ class TestEntityDecorator:
     def test_invalid_domain(self):
         """Non-domain `domain` argument is rejected."""
         with pytest.raises(EntityDecoratorError):
+
             @entity(description="Test", domain="not_a_domain")
             class InvalidEntity:
                 id: str
 
     def test_plain_class_without_base_entity_allowed(self):
         """``@entity`` does not require ``BaseEntity``; inspector/graph may still filter."""
+
         @entity(description="Test")
         class LooseEntity:
             id: str

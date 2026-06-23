@@ -38,7 +38,9 @@ def context() -> Context:
 class TestAspectLogger:
     @pytest.fixture
     def aspect_logger(
-        self, mock_coordinator: AsyncMock, context: Context,
+        self,
+        mock_coordinator: AsyncMock,
+        context: Context,
     ) -> ScopedLogger:
         return ScopedLogger(
             coordinator=mock_coordinator,
@@ -51,19 +53,26 @@ class TestAspectLogger:
 
     @pytest.mark.anyio
     async def test_info_adds_level_and_channels(
-        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        aspect_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await aspect_logger.info(
-            Channel.business, "Test message", user="john", count=42,
+            Channel.business,
+            "Test message",
+            user="john",
+            count=42,
         )
 
         mock_coordinator.emit.assert_awaited_once()
         var = mock_coordinator.emit.call_args.kwargs["var"]
         assert var["level"] == LogLevelPayload(
-            mask=Level.info, name=level_label(Level.info),
+            mask=Level.info,
+            name=level_label(Level.info),
         )
         assert var["channels"] == LogChannelPayload(
-            mask=Channel.business, names=channel_mask_label(Channel.business),
+            mask=Channel.business,
+            names=channel_mask_label(Channel.business),
         )
         assert var["domain"] is None
         assert var["domain_name"] is None
@@ -72,7 +81,9 @@ class TestAspectLogger:
 
     @pytest.mark.anyio
     async def test_warning_adds_level_warning(
-        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        aspect_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await aspect_logger.warning(Channel.debug, "Warning message")
 
@@ -82,7 +93,9 @@ class TestAspectLogger:
 
     @pytest.mark.anyio
     async def test_critical_adds_level_critical(
-        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        aspect_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await aspect_logger.critical(Channel.error, "Critical message")
 
@@ -92,7 +105,9 @@ class TestAspectLogger:
 
     @pytest.mark.anyio
     async def test_user_kwargs_are_passed(
-        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        aspect_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await aspect_logger.info(
             Channel.debug,
@@ -110,14 +125,17 @@ class TestAspectLogger:
 
     @pytest.mark.anyio
     async def test_reserved_level_in_kwargs_raises(
-        self, aspect_logger: ScopedLogger,
+        self,
+        aspect_logger: ScopedLogger,
     ) -> None:
         with pytest.raises(ValueError, match="Reserved keys"):
             await aspect_logger.info(Channel.debug, "msg", level="user_level")
 
     @pytest.mark.anyio
     async def test_scope_has_correct_keys(
-        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        aspect_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await aspect_logger.info(Channel.debug, "msg")
 
@@ -127,7 +145,9 @@ class TestAspectLogger:
         assert scope["aspect"] == "test_aspect"
         assert scope["nest_level"] == 2
         assert list(scope.keys()) == [
-            "action", "aspect", "nest_level",
+            "action",
+            "aspect",
+            "nest_level",
         ]
 
     @pytest.mark.anyio
@@ -144,7 +164,9 @@ class TestAspectLogger:
 
     @pytest.mark.anyio
     async def test_passes_empty_state_and_params(
-        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        aspect_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await aspect_logger.info(Channel.debug, "msg")
 
@@ -156,7 +178,9 @@ class TestAspectLogger:
 
     @pytest.mark.anyio
     async def test_passes_indent(
-        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        aspect_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await aspect_logger.info(Channel.debug, "msg")
 
@@ -165,7 +189,9 @@ class TestAspectLogger:
 
     @pytest.mark.anyio
     async def test_multiple_calls(
-        self, aspect_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        aspect_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await aspect_logger.info(Channel.debug, "First")
         await aspect_logger.warning(Channel.business, "Second")
@@ -177,7 +203,9 @@ class TestAspectLogger:
 class TestPluginLogger:
     @pytest.fixture
     def plugin_logger(
-        self, mock_coordinator: AsyncMock, context: Context,
+        self,
+        mock_coordinator: AsyncMock,
+        context: Context,
     ) -> ScopedLogger:
         return ScopedLogger(
             coordinator=mock_coordinator,
@@ -192,7 +220,9 @@ class TestPluginLogger:
 
     @pytest.mark.anyio
     async def test_scope_has_correct_keys(
-        self, plugin_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        plugin_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await plugin_logger.info(Channel.debug, "Plugin message")
 
@@ -203,13 +233,18 @@ class TestPluginLogger:
         assert scope["event"] == "global_finish"
         assert scope["nest_level"] == 1
         assert list(scope.keys()) == [
-            "plugin", "action", "event", "nest_level",
+            "plugin",
+            "action",
+            "event",
+            "nest_level",
         ]
         assert "aspect" not in scope
 
     @pytest.mark.anyio
     async def test_plugin_scope_dotpath(
-        self, plugin_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        plugin_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await plugin_logger.info(Channel.debug, "msg")
 
@@ -220,7 +255,9 @@ class TestPluginLogger:
 
     @pytest.mark.anyio
     async def test_passes_indent(
-        self, plugin_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        plugin_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await plugin_logger.info(Channel.debug, "msg")
 
@@ -229,7 +266,9 @@ class TestPluginLogger:
 
     @pytest.mark.anyio
     async def test_level_in_var(
-        self, plugin_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        plugin_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await plugin_logger.warning(Channel.security, "Warning from plugin")
 
@@ -239,7 +278,9 @@ class TestPluginLogger:
 
     @pytest.mark.anyio
     async def test_user_kwargs(
-        self, plugin_logger: ScopedLogger, mock_coordinator: AsyncMock,
+        self,
+        plugin_logger: ScopedLogger,
+        mock_coordinator: AsyncMock,
     ) -> None:
         await plugin_logger.info(
             Channel.debug,
@@ -257,7 +298,9 @@ class TestPluginLogger:
 class TestWithStateAndParams:
     @pytest.mark.anyio
     async def test_custom_state_and_params_passed(
-        self, mock_coordinator: AsyncMock, context: Context,
+        self,
+        mock_coordinator: AsyncMock,
+        context: Context,
     ) -> None:
         state = BaseState(total=1500.0, count=5)
         params = BaseParams()
@@ -284,7 +327,9 @@ class TestWithStateAndParams:
 
     @pytest.mark.anyio
     async def test_nest_level_zero_in_scope(
-        self, mock_coordinator: AsyncMock, context: Context,
+        self,
+        mock_coordinator: AsyncMock,
+        context: Context,
     ) -> None:
         logger = ScopedLogger(
             coordinator=mock_coordinator,
