@@ -28,7 +28,7 @@ Address key infrastructure needs: observability, security, testability. Prepare 
 
 - [X] **(High priority)** Initialize in-memory cache adapter by default in `ActionProductMachine` — caching available without explicit configuration
 
-- [X] **(High priority)** Add `CacheKeyMixin` for `Action`: injects a `cache_key(params) -> str` method with a default implementation (hash of params fields); caching all aspects by default when the mixin is applied — opt-out per aspect rather than opt-in
+- [X] **(High priority)** Tag-based cache invalidation: `on_cache_write` returns `list[CacheTag] | None` (tags indexed alongside the entry); new `on_cache_invalidate` hook (called after every clean pipeline) returns `list[CacheTag] | None` — wildcard-aware matchers (`None` field = wildcard); `CacheCoordinator` gains a tag index and `evict_by_tags`; invalidation happens before write. `CacheKeyMixin` removed — produced un-invalidatable entries.
 
 - [ ] **(High priority)** `Result` fields are emitted to OTel logs without sensitivity filtering. `OpenTelemetryPlugin._result_attributes` serializes every result field (summary / `@on_error` / finish) verbatim (length-truncated only); `opaque` is not applied to results and `@sensitive` masking from the logging layer is ignored, so tokens/PII in `Result` leak into the log backend. Decide and implement one of: an `include_result_fields: bool = False` safe default, extending the `opaque` / `@sensitive` mechanism to the result projection, or an explicit documented limitation.
 
