@@ -1,9 +1,9 @@
-<!-- translated-from: step-07-context_draft.md @ 2026-06-17T17:53:37Z · sha256:1be52733cb97 -->
+<!-- translated-from: step-07-context_draft.md @ 2026-06-23T04:14:50Z · sha256:9f4d1bb70348 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 07 — Context
+# Step 07 — Context and environment
 
 <table width="100%"><tr>
   <td align="left"><a href="step-06-dependencies.md">← Step 06 — Dependencies</a></td>
@@ -17,6 +17,7 @@
 - [Invisibility of the rest](#invisibility-of-the-rest)
 - [Transport independence](#transport-independence)
 - [Extending the context](#extending-the-context)
+- [Environment variables via @env](#environment-variables-via-env)
 - [Invariants](#invariants)
 - [Review questions](#review-questions)
 
@@ -32,7 +33,7 @@ AOA does not make the context an ambient environment you can reach into from any
 
 ## The call environment
 
-`Context` is assembled once per call — by the authentication coordinator (about this — in the [Service](../index.md#iii-service) part) — and consists of three parts:
+`Context` is assembled once per call — by the authentication coordinator (about this — in the [Service](../index.md#iv-service) part) — and consists of three parts:
 
 - **UserInfo** — who is calling: `user_id`, roles;
 - **RequestInfo** — request data: `trace_id`, path, method, `client_ip`, `user_agent`, …;
@@ -105,21 +106,85 @@ async def billing_aspect(self, params, state, box, connections, ctx):
 
 How to wire such an extended environment into the service is the topic of the [«Extending Context»](../index.md#how-to-write-your-own-extension) extension point.
 
+## Environment variables via `@env`
+
+Some environment data is not tied to the user or the request — it is service configuration: the deployment region, a maximum retry count, a feature flag. Such values must not be pulled directly from `os.environ` or module-level constants inside aspects — that is the same hidden dependency as reading `Context` freely.
+
+`@env` registers lazy providers directly on a `Context` subclass. A provider is any `Callable[[], T]`; a constant is auto-wrapped:
+
+```python
+from aoa.action_machine.context import Context, env
+
+@env("feature_flag", lambda: read_flag("MY_FEATURE"), ttl=30)
+@env("region", "eu-west-1")   # constant — auto-wrapped
+@env("max_retries", 3)
+class AppContext(Context):
+    pass
+```
+
+An aspect declares the needed keys via `@context_requires("env.<key>")` and reads them via `ctx.get(...)` — just like any other environment field:
+
+```python
+@regular_aspect("Apply regional settings")
+@context_requires("env.region", "env.max_retries")
+async def config_aspect(self, params, state, box, connections, ctx):
+    region = ctx.get("env.region")        # "eu-west-1"
+    retries = ctx.get("env.max_retries")  # 3
+    ...
+```
+
+Keys with the `env.` prefix obey the same rules: an undeclared key → `ContextAccessError`; a key not registered in `@env` → returns the `default` (by default `None`).
+
+**TTL semantics:**
+
+| TTL | Behavior |
+|-----|----------|
+| `0` (default) | Provider called once, value cached forever |
+| `> 0` | Value lives N seconds; after expiry, the next `ctx.get` re-calls the provider |
+| `< 0` | `ValueError` at decorator declaration |
+
+**Inheritance:** a subclass gets all parent entries and can add its own or override existing ones — the parent dict is not touched:
+
+```python
+@env("region", "ap-southeast-1")   # overrides "eu-west-1" only in AsiaPacificContext
+class AsiaPacificContext(AppContext):
+    pass
+```
+
+[▶ Colab notebook](../../examples/step_07_context/02_env.ipynb) · [Open in project](../../examples/step_07_context/02_env.py)
+
+**Run:**
+
+```bash
+uv run python examples/step_07_context/02_env.py
+```
+
+**Output:**
+
+```text
+  shipping config: region=eu-west-1  max_retries=3  feature_flag=False
+
+Result: order_id=ord-007  status=shipped
+```
+
 ## Invariants
 
 - **Nothing by default.** Without `@context_requires` an aspect has no access to the context; `box` does not hold it.
 - **Only the declared.** `ctx.get(key)` returns a value only if `key` is declared in `@context_requires`; otherwise — `ContextAccessError`, even when the field is present.
 - **Signature.** `@context_requires` adds a `ctx` parameter: 6 for an aspect, 7 for `@on_error`; the count is checked at declaration.
 - **At least one key.** An empty `@context_requires()` is a `ValueError`; a key is a non-empty string.
-- **The whole context — to plugins.** The full `Context` is visible to observer [plugins](../index.md#ii-business-logic) and to role checking, but not to business code.
+- **The whole context — to plugins.** The full `Context` is visible to observer [plugins](../index.md#iii-business-logic) and to role checking, but not to business code.
+- **`@env` — on the class, not the instance.** Providers are declared via `@env` on a `Context` subclass; the base `Context` has no entries.
+- **Laziness.** A provider is called only on the first `ctx.get("env.<key>")`, not when the class or instance is created.
+- **TTL.** `ttl=0` — infinite cache; `ttl>0` — in seconds; `ttl<0` — `ValueError` at declaration.
 
 The full list is in [Intents and invariants](../reference/intents-and-invariants.md); the terms are in the [Glossary](../reference/glossary.md). Why the context is made an explicit slice is in the [Philosophy](../explanation/philosophy.md).
 
 ## Summary
 
-The context in AOA is not an ambient environment but a declared slice. An aspect does not see it by default; `@context_requires` opens exactly the needed fields, the machine hands them over through `ContextView`, and the undeclared is unavailable even if present. Hence least access and transport independence: the operation reads the environment the same way no matter where the call came from, and cannot secretly grow onto delivery details.
+The context in AOA is not an ambient environment but a declared slice. An aspect does not see it by default; `@context_requires` opens exactly the needed fields, the machine hands them over through `ContextView`, and the undeclared is unavailable even if present. Configuration and feature flags fit in too: `@env` registers lazy providers directly on the `Context` class, and an aspect reads them through the same `@context_requires("env.<key>")` — no globals or thread-locals. Hence least access and transport independence: the operation reads the environment the same way no matter where the call came from, and cannot secretly grow onto delivery details.
 
-Next — **[Cache](../index.md#ii-business-logic)**: a layer over the pipeline that can return a result without running the steps.
+Next — **[Cache](../index.md#iii-business-logic)**: a layer over the pipeline that can return a result without running the steps.
 
 ---
 
@@ -131,8 +196,15 @@ Next — **[Cache](../index.md#ii-business-logic)**: a layer over the pipeline t
 4. How does `@context_requires` provide the operation's transport independence?
 5. Who sees the full `Context`, and who — only a slice? Why is it split this way?
 6. How do you add your own field to the environment, and how does an aspect read it?
+7. How does `@env("region", "eu-west-1")` differ from a module-level constant? Why does this matter in testing?
+8. What happens if an aspect tries to read `ctx.get("env.region")` without declaring that key in `@context_requires`?
+9. When is the provider passed to `@env` called: at class declaration, at `Context` instance creation, or at the first `ctx.get`?
+10. How do you override `@env("region", ...)` in a subclass without changing the parent `Context`?
+11. How does `ttl=0` differ from `ttl=30`? When is TTL useful for a feature flag?
 
 > **Exercise.** Add reading of `Ctx.Runtime.hostname` to `audit_aspect` (declare it in `@context_requires`) and log it. Then remove `Ctx.Request.trace_id` from the declaration but leave `ctx.get(Ctx.Request.trace_id)` in the body — and explain on which line and why execution will fail.
+
+> **Exercise @env.** Add `@env("debug_mode", lambda: os.environ.get("DEBUG", "false") == "true", ttl=10)` to `AppContext` and an aspect that reads it via `@context_requires("env.debug_mode")`. Run the machine twice — without the environment variable and with `DEBUG=true`. Confirm that behavior changes without modifying the aspect code.
 
 ---
 
