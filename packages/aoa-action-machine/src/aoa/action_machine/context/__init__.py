@@ -4,6 +4,8 @@
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.context.ctx_constants import Ctx
+from aoa.action_machine.context.env_decorator import env
+from aoa.action_machine.context.env_entry import EnvEntry
 from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.context.runtime_info import RuntimeInfo
 from aoa.action_machine.context.user_info import UserInfo
@@ -12,7 +14,9 @@ __all__ = [
     "Context",
     "ContextView",
     "Ctx",
+    "EnvEntry",
     "RequestInfo",
     "RuntimeInfo",
     "UserInfo",
+    "env",
 ]

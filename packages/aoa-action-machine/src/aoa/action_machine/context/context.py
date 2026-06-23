@@ -75,6 +75,12 @@ Context inherits ``resolve()`` from ``BaseSchema``, enabling nested traversal:
 Used by ``ContextView`` for ``@context_requires`` access and by
 template/log substitution paths.
 
+Paths starting with ``"env."`` are dispatched to ``EnvEntry.get()`` registered
+by the ``@env`` decorator:
+
+    context.resolve("env.feature_flag")       → calls provider / returns cached value
+    context.resolve("env.region")             → "eu-west-1"
+
 In examples below, ``AdminRole`` and ``UserRole`` represent ``BaseRole`` subclasses.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -110,8 +116,11 @@ DICT-LIKE ACCESS (inherited from BaseSchema)
 
 """
 
+from typing import Any
+
 from pydantic import ConfigDict, field_validator
 
+from aoa.action_machine.context.env_entry import EnvEntry
 from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.context.runtime_info import RuntimeInfo
 from aoa.action_machine.context.user_info import UserInfo
@@ -127,7 +136,7 @@ AI-CORE-BEGIN
     AI-CORE-END
 """
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", arbitrary_types_allowed=True)
 
     user: UserInfo = UserInfo()
     request: RequestInfo = RequestInfo()
@@ -150,3 +159,13 @@ AI-CORE-BEGIN
     def _default_runtime(cls, v: object) -> object:
         """Replace ``None`` with default ``RuntimeInfo()``."""
         return v if v is not None else RuntimeInfo()
+
+    def resolve(self, dotpath: str, default: object = None) -> object:
+        """Resolve a dot-path; ``"env.<key>"`` paths dispatch to ``EnvEntry.get()``."""
+        if dotpath.startswith("env."):
+            env_key = dotpath.removeprefix("env.")
+            entries: dict[str, EnvEntry[Any]] = getattr(type(self), "__env_entries__", {})
+            if env_key not in entries:
+                return default
+            return entries[env_key].get()
+        return super().resolve(dotpath, default)

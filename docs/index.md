@@ -1,4 +1,4 @@
-<!-- translated-from: index_draft.md @ 2026-06-17T11:46:02Z · sha256:53142cd5d0c3 -->
+<!-- translated-from: index_draft.md @ 2026-06-23T04:11:09Z · sha256:f88184fa80e4 -->
 <p align="center">
   <img src="assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -15,26 +15,32 @@ The chapters are arranged so each builds on the previous. Each comes with a fold
 
 ## How to read
 
-- **You need to start writing operations quickly** — go through [Setup](tutorials/step-00-get-started.md) and then the whole **Business logic** part. That is enough to write production Actions.
-- **You are designing a data model** — first master the core (Business logic), then move on to the **Data model** part.
-- **You are evaluating AOA for a team** — start with [Questions AOA answers with code](explanation/questions-aoa-answers-with-code.md), then [The system from different altitudes](explanation/system-altitudes.md), [Comparison with other frameworks](explanation/comparison.md), and [Questions and answers](reference/faq.md): they answer "why is it built this way" before you open the code.
+The guide moves from a practical entry point to the complete project architecture. First — setup and a first run, then the architectural frame, then the core business logic. After that come the service layer, the data model, testing, and Maxitor as a map of the whole system.
 
 ---
 
-## I Introduction
+## I Getting started
 
-> **Where to start:** what AOA is, why it is built this way, how to look at the system, installation, and project structure.
+> **Practical entry:** installation, first run, repository structure, and minimal orientation to the project.
 
 - **[Getting started](tutorials/step-00-get-started.md)** — installation, uv, first run, the repository map
+
+---
+
+## II Introduction
+
+> **Architectural frame:** how AOA is structured, the philosophy it is based on, how it differs from other approaches, and how it affects the team.
+
 - **[Questions AOA answers with code](explanation/questions-aoa-answers-with-code.md)** — twelve questions about the unique capabilities and short answers with a link to the proof
 - **[The system from different altitudes](explanation/system-altitudes.md)** — five levels at which an AOA system reads: from the domain catalog to the body of a step
+- **[AOA as a project skeleton](explanation/aoa-project-skeleton.md)** — AOA's three layers: service boundary, business operations, data and domain model; connection with clean and hexagonal architecture
 - **[The philosophy of AOA](explanation/philosophy.md)** — why the architecture is built exactly this way: the principles underneath
 - **[Comparison with other frameworks](explanation/comparison.md)** — AOA next to FastAPI, Django, Clean/DDD, CQRS, Temporal; when to apply it
 - **Performance** *(soon)* — the orchestration layer as a conscious cost: where the overhead lives, what to measure, and when a hot path is not cast as an Action
 
 ---
 
-## II Business logic
+## III Business logic
 
 > **The big problem:** how to describe an operation so its intent is visible whole, while access, state, errors, rollbacks, and dependencies do not dissolve the business logic into infrastructure.
 
@@ -44,14 +50,14 @@ The chapters are arranged so each builds on the previous. Each comes with a fold
 - **[Saga and compensations](tutorials/step-04-saga-and-compensations.md)** — rolling back steps on failure, distributed transactions without try/finally
 - **[Explicit error handling](tutorials/step-05-error-handling.md)** — @on_error: business logic, rollback, and errors as three independent layers
 - **[Dependencies](tutorials/step-06-dependencies.md)** — @depends and @connection: an explicit contract on everything external, right in the header
-- **[Context](tutorials/step-07-context.md)** — @context_requires: the call environment as a declared slice, without thread-locals and globals
+- **[Context and environment](tutorials/step-07-context.md)** — `@context_requires` declares a slice of the call environment; `@env` connects lazy config and feature-flag providers right on the Context class with optional TTL; no thread-locals or globals
 - **[Cache](tutorials/step-08-cache.md)** — cache_key and on_cache_write: the operation is responsible for meaning, the coordinator for storage
 - **[Plugins](tutorials/step-09-plugins.md)** — an observer, not a participant: OpenTelemetry and OCEL out of the box
 - **[Logs as business events](tutorials/step-10-logs.md)** — box.info with channels and levels instead of logger.info in the business code
 
 ---
 
-## III Service
+## IV Service
 
 > **The big problem:** how to release the same operation into different transports (HTTP, MCP) without smearing the logic across the delivery layer.
 
@@ -66,7 +72,7 @@ The chapters are arranged so each builds on the previous. Each comes with a fold
 
 ---
 
-## IV Data model
+## V Data model
 
 > **The big problem:** how to describe the domain — entities, relations, lifecycle — without binding to tables and an ORM.
 
@@ -77,7 +83,7 @@ The chapters are arranged so each builds on the previous. Each comes with a fold
 
 ---
 
-## V Testing
+## VI Testing
 
 > **The big problem:** how to test scenarios whole, substituting the world around an operation rather than its internals — so the tests do not break on every refactoring.
 
@@ -87,7 +93,7 @@ The chapters are arranged so each builds on the previous. Each comes with a fold
 
 ---
 
-## VI Maxitor
+## VII Maxitor
 
 > **The big problem:** how to see the whole system — operations, dependencies, entities — without a single line of manual documentation.
 
@@ -95,16 +101,18 @@ The chapters are arranged so each builds on the previous. Each comes with a fold
 
 ---
 
-## How-to guides
+## Additional materials
+
+The materials below are not a continuation of the linear I–VII route. They are a reference, practical solutions, extensions, and research notes to return to as needed.
+
+### How-to guides
 
 > **The task:** make a concrete design decision or migrate existing code.
 
 - **[Action, aspect, or resource — what to choose](how-to/choosing-action-aspect-resource.md)** — an algorithm for choosing the abstraction, with examples
 - **[Migrating legacy to AOA](how-to/migrating-legacy.md)** — the strangler pattern: monster → port → adapter → aspects, step by step
 
----
-
-## Reference materials
+### Reference materials
 
 - **[Glossary](reference/glossary.md)** — the key AOA terms, grouped by layer
 - **[Questions and answers](reference/faq.md)** — positioning, the execution model, trade-offs; for those evaluating AOA
@@ -134,11 +142,12 @@ The framework's extension points. The principle everywhere is the same: you impl
 - **[Extending Context](how-to/authoring-context-extension.md)** — your own call-environment fields and access to them through `@context_requires`
 - **[Your own intent](how-to/authoring-intent.md)** — your own rule as a graph node: decorator → node → inspector → registration
 
----
-
-## Open research
+### Open research
 
 Topics opened by viewing the system as a formal object. This is not a set of ready features but a program: questions that ordinary code cannot even pose — here they can, and some are already computable from the graph. The section will be expanded.
 
 - **[The formal model: open questions](reference/formal-model.md)** — the system as a formal object: what becomes a correctly posed question — from load calculation to proving invariants
 - **[What the system knows about itself](research/self-knowledge.md)** — self-diagnosis: gaps (no compensator, a dead role), risks (a load-bearing fragile node), and hints, computable from the graph
+- **[IOP: intents, invariants, and architectural molecules](research/iop-foundations.md)** — the base IOP model in AOA: an intent as a verifiable invariant, architecture atoms, and `Action` / `Resource` molecules
+- **[Intent-Oriented AI Development](research/intent-oriented-ai-development.md)** — AOA as a verifiable grammar for AI agents: a capability catalog, a correct stop instead of hallucination, and a ReAct development cycle
+- **[Environment Context Port](research/environment-context-port.md)** — the environment as an explicit `Context` port: lazy providers, cache scope, `@context_requires`, TestBench substitution, and protection against a new hidden global

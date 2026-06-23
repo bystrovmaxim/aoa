@@ -1,4 +1,4 @@
-<!-- translated-from: step-25-context_draft.md @ 2026-06-17T17:53:37Z · sha256:f95451a104f8 -->
+<!-- translated-from: step-25-context_draft.md @ 2026-06-23T04:43:16Z · sha256:4ed7af49b901 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -14,6 +14,7 @@
 - [Assembling the context](#assembling-the-context)
 - [Roles and @check_roles](#roles-and-check_roles)
 - [Only the declared is visible](#only-the-declared-is-visible)
+- [Environment providers (@env)](#environment-providers-env)
 - [Invariants](#invariants)
 - [Review questions](#review-questions)
 
@@ -84,11 +85,31 @@ uv run python examples/step_25_context/01_context.py
 3) undeclared field          -> client_ip refused: True  (it was set, but not declared)
 ```
 
+## Environment providers (`@env`)
+
+`.with_env(key, value)` registers a constant directly on `TestBench` — the same way `@env` registers a provider on the `Context` class. In tests the value is always known upfront, so only constants are accepted:
+
+```python
+r = await (
+    TestBench()
+    .with_user(user_id="u-test", roles=(AdminRole,))
+    .with_env("region", "test-eu")
+    .with_env("feature_flag", True)
+    .with_env("max_retries", 3)
+    .run(ShipOrderAction(), params, rollup=False)
+)
+```
+
+Calls merge by key; the last call for the same key wins. `TestBench` is immutable: each `.with_env(...)` returns a new object and the original is unchanged.
+
+Under the hood `TestBench` creates a dynamic `Context` subclass with the necessary `__env_entries__` — the operation sees the same data it would see with `AppContext` in production code. The full `@env` example is in [Step 07](step-07-context.md#environment-variables-via-env).
+
 ## Invariants
 
 - **The context is assembled via `TestBench`.** `with_user`/`with_request`/`with_runtime` give `UserInfo`/`RequestInfo`/`RuntimeInfo` with defaults and `**kwargs`.
 - **Roles are the input to `@check_roles`.** What you put on the user is what authorization checks; no required role → `AuthorizationError`.
 - **Only the declared is visible.** An aspect reads `Context` through the `@context_requires` slice; an undeclared field → `ContextAccessError`, even if it is set.
+- **`@env` — via `.with_env`.** `.with_env(key, value)` registers a constant directly on `TestBench`; calls merge, the last call wins for the same key.
 - **No global state.** It is enough to assemble the input and the environment; there is no object to set up in advance.
 
 The full list is in [Intents and invariants](../reference/intents-and-invariants.md); the terms are in the [Glossary](../reference/glossary.md).
@@ -97,7 +118,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 A `Context` in a test is assembled with the same `TestBench`: `with_user` sets the user and roles (which `@check_roles` then checks), `with_request` and `with_runtime` set the request and runtime fields. The operation sees exactly the declared `@context_requires` slice of this, and an undeclared field is refused — authorization and the context boundary cannot be bypassed in a test, because it is the same machine.
 
-With this the **Testing** part is assembled: the run depth ([TestBench](step-23-testbench.md)), substituting the environment ([mocks, connections, Rollup](step-24-substitution.md)), and assembling the context. Next — the **[Maxitor](step-26-maxitor.md)** part: how to see the whole system — operations, dependencies, entities — without a single line of manual documentation.
+With this the **Testing** part is assembled: the run depth ([TestBench](step-23-testbench.md)), substituting the environment ([mocks, connections, Rollup](step-24-substitution.md)), and assembling the context. `@env` providers are substituted via `.with_env` — no separate `TestAppContext` is needed. Next — the **[Maxitor](step-26-maxitor.md)** part: how to see the whole system — operations, dependencies, entities — without a single line of manual documentation.
 
 ---
 
@@ -108,8 +129,12 @@ With this the **Testing** part is assembled: the run depth ([TestBench](step-23-
 3. What role does the test user have by default, and why does calling an `admin` operation without it fail?
 4. Why might a field set via `with_request` turn out unavailable to an aspect? What is needed for it?
 5. Why can authorization and the context boundary not be bypassed in a test?
+6. What happens if you call `.with_env("region", "v1").with_env("region", "v2")`? Which value does the aspect receive?
+7. How does `.with_env` let you avoid creating a `TestAppContext` in every test?
 
 > **Exercise.** In [01_context.py](../../examples/step_25_context/01_context.py) add `Ctx.Request.client_ip` to `LeakAction`'s `@context_requires` and confirm that the read now passes and `client_ip_refused` became `False`. Then give the test user the `AdminRole` via `with_user` for a second `WhoamiAction` run and watch the `AuthorizationError` disappear.
+>
+> **Exercise (@env).** Add an aspect with `@context_requires("env.region")` to the action in the example. Register the provider via `.with_env("region", "test-eu")` and run via `bench.run(...)`. Confirm that `ctx.get("env.region")` returns `"test-eu"`. Then call `.with_env("region", "ap-test")` on the same bench — confirm you get a new bench with `"ap-test"` while the original still gives `"test-eu"`.
 
 ---
 
