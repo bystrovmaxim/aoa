@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/contracts/ocel_frame.py
+# packages/aoa-ocel/src/aoa/ocel/contracts/ocel_frame.py
 """
 OcelFrame[T] — explicit contract container for OCEL serialization.
 
@@ -11,7 +11,7 @@ Aspects declare which domain object anchors an export row and the E2O role
 one-hop relation peers on ``frame.object`` without separate frames.
 
 Full export rules (E2O-only v1, loaded FK, one hop, analytics trade-off):
-``packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/README.md`` — section **Export policy (v1)**.
+``packages/aoa-ocel/src/aoa/ocel/README.md`` — section **Export policy (v1)**.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -34,8 +34,8 @@ from dataclasses import dataclass, field
 from typing import TypeVar
 
 from aoa.action_machine.domain.entity import BaseEntity
-from aoa.action_machine.plugin.ocel.dto.ocel_attribute import OcelAttribute
-from aoa.action_machine.plugin.ocel.exceptions.ocel_contract_error import OcelContractError
+from aoa.ocel.dto.ocel_attribute import OcelAttribute
+from aoa.ocel.exceptions.ocel_contract_error import OcelContractError
 
 T = TypeVar("T", bound=BaseEntity)
 

@@ -11,12 +11,12 @@ from pathlib import Path
 import pytest
 
 from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
-from aoa.action_machine.plugin.ocel.dto.ocel_attribute import OcelAttribute
-from aoa.action_machine.plugin.ocel.dto.ocel_event import OcelEvent
-from aoa.action_machine.plugin.ocel.dto.ocel_object import OcelObject
-from aoa.action_machine.plugin.ocel.dto.ocel_object_ref import OcelObjectRef
-from aoa.action_machine.plugin.ocel.exceptions import OcelContractError
-from aoa.action_machine.plugin.ocel.resource import InMemoryOcelStoreResource
+from aoa.ocel.dto.ocel_attribute import OcelAttribute
+from aoa.ocel.dto.ocel_event import OcelEvent
+from aoa.ocel.dto.ocel_object import OcelObject
+from aoa.ocel.dto.ocel_object_ref import OcelObjectRef
+from aoa.ocel.exceptions import OcelContractError
+from aoa.ocel.resource import InMemoryOcelStoreResource
 
 
 @pytest.fixture

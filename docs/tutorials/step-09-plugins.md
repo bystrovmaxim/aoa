@@ -47,14 +47,16 @@ Events are classes with their own hierarchy, not strings: the subscription is ty
 
 ## Two built-in plugins
 
-The distribution ships two plugins, and both observe the same event stream in different ways:
+AOA ships two plugins out of the box, both observing the same event stream in different ways:
 
-- **`OpenTelemetryPlugin`** — OpenTelemetry traces and logs: one trace per `machine.run()`, a span per aspect, and `state` snapshots in the `aoa.state.*` attributes. This is the **operation's x-ray**, covered in detail in the [State chapter](step-02-state-as-x-ray.md).
-- **`OcelPlugin`** — writes the course of execution in **OCEL 2.0** (Object-Centric Event Log) format for process mining.
+- **`OpenTelemetryPlugin`** — OpenTelemetry traces and logs: one trace per `machine.run()`, a span per aspect, and `state` snapshots in the `aoa.state.*` attributes. This is the **operation's x-ray**, covered in detail in the [State chapter](step-02-state-as-x-ray.md). Requires `pip install "aoa-action-machine[otel]"`.
+- **`OcelPlugin`** — writes the course of execution in **OCEL 2.0** (Object-Centric Event Log) format for process mining. Ships in a separate package: `pip install aoa-ocel`.
 
 They are wired the same way — as a list on the machine; the `Action` business code does not change:
 
 ```python
+from aoa.ocel import OcelPlugin, OcelFrame, InMemoryOcelStoreResource, OCEL_FRAMES_KEY
+
 machine = ActionProductMachine(plugins=[OcelPlugin(store=store, short_names=True)])
 ```
 
@@ -107,7 +109,7 @@ Observation is assembled from several projections, each configured separately, a
 
 ## A custom plugin is a separate topic
 
-Plugins are extensible: besides OpenTelemetry and OCEL you can write your own — for metrics, role-based audit, anomaly detection, or building a semantic execution tree that is then handed to a language model. This is done by subscribing to typed events (`@on(SomeEvent)` in a `BasePlugin` subclass), but it is a **separate topic** — see the [«Custom plugin»](../index.md#how-to-write-your-own-extension) extension point. What matters here is that the built-in plugins are enough to get observability without writing anything.
+Plugins are extensible: besides `OpenTelemetryPlugin` and `OcelPlugin` you can write your own — for metrics, role-based audit, anomaly detection, or building a semantic execution tree that is then handed to a language model. This is done by subscribing to typed events (`@on(SomeEvent)` in a `BasePlugin` subclass), but it is a **separate topic** — see the [«Custom plugin»](../index.md#how-to-write-your-own-extension) extension point. What matters here is that the built-in plugins are enough to get observability without writing anything.
 
 ## Invariants
 
@@ -122,7 +124,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 ## Summary
 
-Plugins are a safe observation layer: they receive typed events for the whole life of a call but change nothing, and their failure is isolated. The distribution ships two plugins — `OpenTelemetryPlugin` (traces, logs, the `state` x-ray) and `OcelPlugin` (a log for process mining); both are wired as a list without touching the business code and are narrowed via `watch_events`. A custom plugin is written by subscribing to events — but that is a separate topic; the built-in ones are enough for the system to observe itself without a single line of observation in the logic.
+Plugins are a safe observation layer: they receive typed events for the whole life of a call but change nothing, and their failure is isolated. `OpenTelemetryPlugin` (traces, logs, the `state` x-ray) is in `aoa-action-machine[otel]`; `OcelPlugin` (a log for process mining) is in the separate package `aoa-ocel`. Both are wired as a list without touching the business code and are narrowed via `watch_events`. A custom plugin is written by subscribing to events — but that is a separate topic; the built-in ones are enough for the system to observe itself without a single line of observation in the logic.
 
 Next — **[Logs as business events](../index.md#ii-business-logic)**: the second half of observation — what the operation itself writes through `box`, as opposed to what plugins see.
 

@@ -1,7 +1,7 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/ocel/exceptions/ocel_resource_access_prohibited_error.py
+# packages/aoa-ocel/src/aoa/ocel/exceptions/ocel_resource_access_prohibited_error.py
 """OcelResourceAccessProhibitedError — lifecycle call from proxy connection."""
 
-from aoa.action_machine.plugin.ocel.exceptions.ocel_error import OcelError
+from aoa.ocel.exceptions.ocel_error import OcelError
 
 
 class OcelResourceAccessProhibitedError(OcelError):

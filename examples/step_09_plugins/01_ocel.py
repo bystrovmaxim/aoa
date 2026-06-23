@@ -6,9 +6,9 @@ OcelPlugin records each Action run in OCEL 2.0 format when aspects return
 events in memory and writes them to a file on ``close()``.
 
 Install:
-    pip install "aoa-action-machine[ocel]"
+    pip install aoa-ocel
 
-Tutorial: ../../docs/index_draft.md  ·  topic: Plugins (OCEL)
+Tutorial: ../../docs/tutorials/step-09-plugins.md
 
 Run:
     uv run python examples/step_09_plugins/01_ocel.py
@@ -31,8 +31,8 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.plugin.ocel import OCEL_FRAMES_KEY, InMemoryOcelStoreResource, OcelFrame, OcelPlugin
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.ocel import OCEL_FRAMES_KEY, InMemoryOcelStoreResource, OcelFrame, OcelPlugin
 
 
 class RootDomain(BaseDomain):
