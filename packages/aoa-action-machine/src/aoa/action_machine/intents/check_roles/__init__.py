@@ -86,7 +86,6 @@ from __future__ import annotations
 from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.guest_role import GuestRole
-from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 from aoa.action_machine.intents.check_roles.check_roles_decorator import check_roles
 from aoa.action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
@@ -97,7 +96,6 @@ __all__ = [
     "BaseRole",
     "CheckRolesIntent",
     "GuestRole",
-    "RoleGraphNode",
     "RoleMode",
     "RoleModeIntent",
     "check_roles",

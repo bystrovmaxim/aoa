@@ -43,11 +43,12 @@ COMPONENTS
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aoa.action_machine.auth.authenticator import Authenticator
-from aoa.action_machine.context.context import Context
-from aoa.action_machine.context.request_info import RequestInfo
+
+if TYPE_CHECKING:
+    from aoa.action_machine.context.context import Context
 
 
 class CredentialExtractor(ABC):
@@ -83,8 +84,13 @@ class AuthCoordinator:
         auth_instance: Authenticator,
         assembler: ContextAssembler,
         *,
-        context_class: type[Context] = Context,
+        context_class: type[Context] | None = None,
     ) -> None:
+        if context_class is None:
+            from aoa.action_machine.context.context import (  # pylint: disable=import-outside-toplevel
+                Context as _DefaultContext,
+            )
+            context_class = _DefaultContext
         self.extractor = extractor
         self.authenticator = auth_instance
         self.assembler = assembler
@@ -92,6 +98,8 @@ class AuthCoordinator:
 
     async def process(self, request_data: Any) -> Context | None:
         """Execute extract/auth/assemble flow and return ``Context`` or ``None``."""
+        from aoa.action_machine.context.request_info import RequestInfo  # pylint: disable=import-outside-toplevel
+
         # Step 1: credential extraction
         credentials = await self.extractor.extract(request_data)
         if not credentials:
