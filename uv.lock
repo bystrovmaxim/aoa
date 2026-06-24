@@ -108,7 +108,7 @@ provides-extras = ["fastapi", "mcp"]
 
 [[package]]
 name = "aoa-fastapi-adapter"
-version = "1.0.0a0"
+version = "1.0.0"
 source = { editable = "packages/aoa-fastapi-adapter" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -125,7 +125,7 @@ requires-dist = [
 
 [[package]]
 name = "aoa-langgraph-adapter"
-version = "1.0.0a0"
+version = "1.0.0"
 source = { editable = "packages/aoa-langgraph-adapter" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -161,7 +161,7 @@ requires-dist = [
 
 [[package]]
 name = "aoa-mcp-adapter"
-version = "1.0.0a0"
+version = "1.0.0"
 source = { editable = "packages/aoa-mcp-adapter" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -176,7 +176,7 @@ requires-dist = [
 
 [[package]]
 name = "aoa-ocel"
-version = "1.0.0a0"
+version = "1.0.0"
 source = { editable = "packages/aoa-ocel" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -191,7 +191,7 @@ requires-dist = [
 
 [[package]]
 name = "aoa-otel"
-version = "1.0.0a0"
+version = "1.0.0"
 source = { editable = "packages/aoa-otel" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -208,7 +208,7 @@ requires-dist = [
 
 [[package]]
 name = "aoa-run"
-version = "1.0.0a0"
+version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aoa-action-machine" },
