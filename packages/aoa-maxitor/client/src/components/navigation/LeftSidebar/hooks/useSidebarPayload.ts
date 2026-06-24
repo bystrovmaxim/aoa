@@ -35,5 +35,7 @@ export function useSidebarPayload() {
     };
   }, []);
 
-  return { sidebar, error, reload: fetch_ };
+  const reset = useCallback(() => setSidebar(null), []);
+
+  return { sidebar, error, reload: fetch_, reset };
 }
