@@ -9,8 +9,8 @@ PURPOSE
 Materializes a frozen :class:`~aoa.action_machine.graph.core.base_graph_node.BaseGraphNode` for one
 compensator **callable** on a concrete ``BaseAction`` subclass: ``node_id`` is the action
 dotted id plus ``:`` plus the method name, interchange ``node_type`` is
-``Compensator``, ``label`` is the method name; ``properties`` may carry ``description`` and
-``target_aspect_name`` from ``CompensateIntentResolver`` when present;
+``Compensator``, ``label`` is the method name; ``properties`` carry ``description`` when present;
+:attr:`target_aspect` holds the callable reference to the target regular-aspect method;
 ``edges`` are empty. Host class and method name come from :class:`TypeIntrospection`.
 """
 
@@ -30,22 +30,21 @@ class CompensatorGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``@compensate`` callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` is ``Compensator``; ``properties`` include ``description`` and ``target_aspect_name`` when resolver methods return them; ``edges`` empty.
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` is ``Compensator``; ``properties`` include ``description`` when present; :attr:`target_aspect` is the callable reference to the target regular-aspect method; ``edges`` empty.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Compensator"
+    target_aspect: Callable[..., Any] | None
 
     def __init__(self, compensator_func: Callable[..., Any], _action_cls: type[Any]) -> None:
         method_name = TypeIntrospection.unwrapped_callable_name(compensator_func)
         action_id = TypeIntrospection.full_qualname(_action_cls)
         desc = CompensateIntentResolver.resolve_description(compensator_func)
-        target_aspect = CompensateIntentResolver.resolve_target_aspect_name(compensator_func)
+        target_aspect = CompensateIntentResolver.resolve_target_aspect(compensator_func)
         properties: dict[str, str] = {}
         if desc is not None:
             properties["description"] = desc
-        if target_aspect is not None:
-            properties["target_aspect_name"] = target_aspect
         super().__init__(
             node_id=f"{action_id}:{method_name}",
             node_type=CompensatorGraphNode.NODE_TYPE,
@@ -53,6 +52,7 @@ class CompensatorGraphNode(BaseGraphNode[Callable[..., Any]]):
             properties=properties,
             node_obj=compensator_func,
         )
+        object.__setattr__(self, "target_aspect", target_aspect)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -62,8 +62,8 @@ class CompensatorGraphNode(BaseGraphNode[Callable[..., Any]]):
             "properties": {
                 **({"description": str(self.properties["description"])} if "description" in self.properties else {}),
                 **(
-                    {"target_aspect_name": str(self.properties["target_aspect_name"])}
-                    if "target_aspect_name" in self.properties
+                    {"target_aspect_name": self.target_aspect.__name__}
+                    if self.target_aspect is not None
                     else {}
                 ),
             },

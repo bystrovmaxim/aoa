@@ -18,7 +18,7 @@ Address key infrastructure needs: observability, security, testability. Prepare 
 
 - [X] **Rename `NoneRole` → `GuestRole`** — `NoneRole` removed; `GuestRole` is the canonical name.
 
-- [ ] **(High priority)** Allow compensation to be referenced by function name (as an object) instead of a string — improve type safety and refactoring
+- [X] **(High priority)** Allow compensation to be referenced by function name (as an object) instead of a string — improve type safety and refactoring ([#64](https://github.com/bystrovmaxim/aoa/issues/64))
 
 - [ ] **(High priority)** Enhance `TestBench`: return an `ExecutionTrace` containing all intermediate `state` snapshots, the list of executed aspects, and compensations called
 

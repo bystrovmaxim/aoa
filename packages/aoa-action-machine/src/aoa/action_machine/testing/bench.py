@@ -789,7 +789,7 @@ class TestBench:
                 f"Method '{compensator_name}' in {action_class_name} is not a "
                 f"compensator (missing @compensate decorator). "
                 f"Ensure the method is marked with "
-                f"@compensate(target_aspect_name, description)."
+                f"@compensate(target_aspect, description)."
             )
 
         # 3. Prepare environment
