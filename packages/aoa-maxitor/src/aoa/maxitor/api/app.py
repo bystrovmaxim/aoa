@@ -19,7 +19,6 @@ Set ``AOA_SERVICE_URL`` env var to override the default AOA examples service URL
 
 from __future__ import annotations
 
-import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -29,13 +28,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.model import ParamsStub
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
+from aoa.maxitor.api.routes.load import router as load_router
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
-from aoa.maxitor.model.core.actions.left_sidebar_action import GetLeftMenuSidebarDataAction
-from aoa.maxitor.model.core.actions.load_aoa_service_action import LoadAOAServiceAction, LoadAOAServiceParams
 from aoa.maxitor.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
 from aoa.maxitor.model.diagrams.actions.full_graph_action import FullGraphAction
 from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action import GetLifecycleFiniteAutomatonAction
@@ -43,8 +40,6 @@ from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAc
 from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY
-
-_DEFAULT_SERVICE_URL = "http://127.0.0.1:8001"
 
 
 def create_app() -> FastAPI:
@@ -61,21 +56,9 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        """Load AOA service graph into DuckDB, then build sidebar — single source of truth."""
-        service_url = os.environ.get("AOA_SERVICE_URL", _DEFAULT_SERVICE_URL)
-        load_result = await machine.run(
-            Context(),
-            LoadAOAServiceAction(),
-            LoadAOAServiceParams(service_url=service_url),
-        )
-        sidebar_result = await machine.run(
-            Context(),
-            GetLeftMenuSidebarDataAction(),
-            ParamsStub(),
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: load_result.graph_resource},
-        )
-        application.state.duckdb_graph = load_result.graph_resource
-        application.state.sidebar_data = sidebar_result
+        application.state.machine = machine
+        application.state.duckdb_graph = None
+        application.state.sidebar_data = None
         yield
 
     fastapi_app = FastAPI(title="Maxitor API", lifespan=lifespan)
@@ -85,10 +68,11 @@ def create_app() -> FastAPI:
     fastapi_app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
-        allow_methods=["GET"],
+        allow_methods=["GET", "POST"],
         allow_headers=["*"],
     )
     fastapi_app.include_router(sidebar_router)
+    fastapi_app.include_router(load_router)
 
     action_subapp = (
         FastApiAdapter(
