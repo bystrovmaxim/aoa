@@ -37,7 +37,7 @@ Take an order fulfillment of three steps: reserve the item, charge the payment, 
 
 ## A compensator next to its step
 
-`@compensate(target_aspect_name, description)` binds a compensator method to a regular aspect **by name**. Binding by string rather than by reference is deliberate: it does not depend on the order of methods in the class (the same technique as with checkers). A compensator method's name ends with `_compensate`.
+`@compensate(target_aspect, description)` binds a compensator method to a regular aspect **by direct callable reference**. The target aspect must be defined before the compensator in the class body — the reference is captured at class definition time. A compensator method's name ends with `_compensate`.
 
 ```python
 @regular_aspect("Reserve inventory")
@@ -46,7 +46,7 @@ async def reserve_aspect(self, params, state, box, connections):
     await box.info(Channel.business, "regular: reserve order={%var.order_id}", order_id=params.order_id)
     return {"reservation_id": f"res-{params.order_id}"}
 
-@compensate("reserve_aspect", "Release reservation")
+@compensate(reserve_aspect, "Release reservation")
 async def reserve_compensate(self, params, state_before, state_after, box, connections, error):
     rid = state_after["reservation_id"] if state_after else "?"
     await box.info(Channel.business, "compensate: release reservation {%var.rid}", rid=rid)
