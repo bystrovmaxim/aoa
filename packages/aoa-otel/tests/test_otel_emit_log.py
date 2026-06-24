@@ -8,7 +8,8 @@ from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.plugin.core.events import GlobalStartEvent
 from aoa.otel import OpenTelemetryPlugin
-from tests.action_machine.scenarios.domain_model import PingAction
+
+from .support import PingAction
 
 
 def _make_plugin_with_mock_logger() -> tuple[OpenTelemetryPlugin, MagicMock]:

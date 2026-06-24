@@ -50,8 +50,8 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.otel import OpenTelemetryPlugin
-from tests.action_machine.scenarios.domain_model.domains import TestDomain
-from tests.action_machine.scenarios.domain_model.ping_action import PingAction
+
+from .support import PingAction, TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Test-local Actions (full control over opaque fields and failure paths)
