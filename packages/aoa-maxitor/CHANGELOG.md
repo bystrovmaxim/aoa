@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **`LoadAOAServiceAction` — five-aspect DuckDB loader for the AOA coordinator graph.** Accepts a bare base URL or full endpoint URL; empty/whitespace input rejected by Pydantic. Aspects in order: validate URL format → normalize to canonical `coordinator-json` endpoint → validate HTTP reachability → parse coordinator JSON structure → build `DuckDBGraphResource`. 24 unit tests cover all aspects and Pydantic validation; integration test included but skipped by default (`@pytest.mark.skip`). ([#78](https://github.com/bystrovmaxim/aoa/issues/78))
+- **`POST /api/load` — on-demand graph loading endpoint.** Accepts `{"service_url": "..."}`, runs `LoadAOAServiceAction` + `GetLeftMenuSidebarDataAction`, and stores results in `app.state`. The server no longer auto-loads a graph on startup; the graph is loaded only when the user provides a URL. `GET /api/sidebar` returns an empty payload when no graph is loaded. ([#78](https://github.com/bystrovmaxim/aoa/issues/78))
+- **Left sidebar: URL input with recent history.** When no graph is loaded, the sidebar shows an `AOA Service URL` text field with an inline load button. The last 10 successfully used URLs are persisted in `localStorage` and shown below the input as a quick-select list. ([#78](https://github.com/bystrovmaxim/aoa/issues/78))
+- **Left sidebar: switch-service button.** When a graph is loaded, a thin-stroke swap-arrows icon button appears in the sidebar header next to the collapse toggle. Clicking it clears the loaded graph from local state and returns to the URL input screen. ([#78](https://github.com/bystrovmaxim/aoa/issues/78))
 
 ### Changed
 
