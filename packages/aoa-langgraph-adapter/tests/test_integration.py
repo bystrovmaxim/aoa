@@ -25,8 +25,8 @@ from langgraph.graph import END, StateGraph
 from aoa.langgraph.adapter import LangGraphAdapter
 from aoa.langgraph.agent_state import AgentState
 from aoa.langgraph.exceptions import MissingConnectionError, RouteKeyError, StateFieldMismatchError
-from tests.action_machine.scenarios.domain_model import OrdersDbManager, PingAction
-from tests.action_machine.scenarios.domain_model.full_action import FullAction
+
+from .support import FullAction, OrdersDbManager, PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # State schemas

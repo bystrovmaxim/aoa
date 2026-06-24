@@ -21,3 +21,15 @@ Repository = "https://github.com/bystrovmaxim/aoa"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aoa"]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["src"]
+filterwarnings = [
+    "ignore::PendingDeprecationWarning:langgraph.*",
+    "ignore::DeprecationWarning:langgraph.*",
+]
