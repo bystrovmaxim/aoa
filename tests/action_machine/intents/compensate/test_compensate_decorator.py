@@ -28,7 +28,6 @@ import pytest
 from aoa.action_machine.intents.compensate import compensate
 from aoa.action_machine.intents.context_requires import context_requires
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Stub callable used as target_aspect across tests
 # ─────────────────────────────────────────────────────────────────────────────
