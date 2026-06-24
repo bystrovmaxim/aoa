@@ -150,7 +150,7 @@ class OtelSagaAction(BaseAction[OtelOrderParams, OtelOrderResult]):
     ) -> dict[str, Any]:
         return {"txn_id": "TXN-1"}
 
-    @compensate("charge_aspect", "refund charge")
+    @compensate(charge_aspect, "refund charge")
     async def refund_compensate(
         self,
         params: OtelOrderParams,
@@ -174,7 +174,7 @@ class OtelSagaAction(BaseAction[OtelOrderParams, OtelOrderResult]):
     ) -> dict[str, Any]:
         return {"txn_id": state["txn_id"], "reservation_id": "RES-1"}
 
-    @compensate("reserve_aspect", "release reservation")
+    @compensate(reserve_aspect, "release reservation")
     async def unreserve_compensate(
         self,
         params: OtelOrderParams,

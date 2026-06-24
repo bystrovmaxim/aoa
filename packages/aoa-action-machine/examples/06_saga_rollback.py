@@ -47,7 +47,7 @@ class FulfillOrderAction(BaseAction[FulfillOrderParams, FulfillOrderResult]):
         await box.info(Channel.business, "regular: reserve order={%var.order_id}", order_id=params.order_id)
         return {"reservation_id": f"res-{params.order_id}"}
 
-    @compensate("reserve_aspect", "Release reservation")
+    @compensate(reserve_aspect, "Release reservation")
     async def reserve_compensate(self, params, state_before, state_after, box, connections, error):
         reservation_id = state_after["reservation_id"] if state_after else "?"
         await box.info(Channel.business, "compensate: release reservation {%var.id}", id=reservation_id)
@@ -62,7 +62,7 @@ class FulfillOrderAction(BaseAction[FulfillOrderParams, FulfillOrderResult]):
             "txn_id": f"txn-{params.order_id}",
         }
 
-    @compensate("charge_aspect", "Refund payment")
+    @compensate(charge_aspect, "Refund payment")
     async def charge_compensate(self, params, state_before, state_after, box, connections, error):
         txn_id = state_after["txn_id"] if state_after else "?"
         await box.info(Channel.business, "compensate: refund {%var.id}", id=txn_id)

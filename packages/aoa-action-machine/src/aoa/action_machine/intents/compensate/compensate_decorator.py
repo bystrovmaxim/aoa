@@ -6,7 +6,7 @@ Compensate decorator module for declaring saga compensators.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Decorator ``@compensate(target_aspect_name, description)`` marks an async
+Decorator ``@compensate(target_aspect, description)`` marks an async
 action method as compensator for a target regular aspect. On pipeline failure,
 compensators for already executed aspects are invoked in reverse order
 (Saga rollback pattern).
@@ -32,10 +32,10 @@ ARCHITECTURE / DATA FLOW
           v
     runtime rollback invocation in reverse order
 
-Binding uses target aspect *method name string* (``target_aspect_name``), not
-direct callable references. This removes method-order coupling in class body.
-Aspect existence/type validation is deferred to build stage when class surface
-is fully assembled.
+Binding uses a direct callable reference to the target aspect method
+(``target_aspect``). The target must be defined before the compensator in the
+class body. Existence/type validation is deferred to build stage when the class
+surface is fully assembled.
 
 ═══════════════════════════════════════════════════════════════════════════════
 WRITTEN ATTRIBUTE
@@ -44,7 +44,7 @@ WRITTEN ATTRIBUTE
 Decorator writes attribute on function:
 
     func._compensate_meta = {
-        "target_aspect_name": target_aspect_name,
+        "target_aspect": target_aspect,    # callable reference
         "description": description,
     }
 
@@ -58,7 +58,7 @@ INTERACTION WITH @context_requires
 Compensator may use ``@context_requires``. Decorator order:
 
     @context_requires("user.role", "tenant.id")
-    @compensate("process_payment_aspect", "Rollback payment")
+    @compensate(process_payment_aspect, "Rollback payment")
     async def rollback_payment_compensate(self, params, state_before,
                                            state_after, box, connections,
                                            error, ctx):
@@ -80,7 +80,7 @@ EXAMPLE
         async def process_payment_aspect(self, params, state, box, connections):
             ...
 
-        @compensate("process_payment_aspect", "Rollback payment")
+        @compensate(process_payment_aspect, "Rollback payment")
         async def rollback_payment_compensate(self, params, state_before,
                                                state_after, box, connections,
                                                error):
@@ -124,16 +124,20 @@ Attribute name written by @context_requires decorator.
 """
 
 
-def _target_aspect_type_invariant(target_aspect_name: Any) -> None:
-    if not isinstance(target_aspect_name, str):
+def _target_aspect_callable_invariant(target_aspect: Any) -> None:
+    if not callable(target_aspect):
         raise TypeError(
-            f"@compensate: target_aspect_name must be a string, " f"got {type(target_aspect_name).__name__}"
+            f"@compensate: target_aspect must be a callable, got {type(target_aspect).__name__}"
         )
 
 
-def _target_aspect_non_empty_invariant(target_aspect_name: str) -> None:
-    if not target_aspect_name.strip():
-        raise ValueError("@compensate: target_aspect_name cannot be empty")
+def _target_aspect_has_name_invariant(target_aspect: Any) -> None:
+    if not hasattr(target_aspect, "__name__"):
+        raise TypeError(
+            f"@compensate: target_aspect must have __name__, got {type(target_aspect).__name__}"
+        )
+    if not target_aspect.__name__.strip():
+        raise ValueError("@compensate: target_aspect.__name__ cannot be empty")
 
 
 def _description_type_invariant(description: Any) -> None:
@@ -181,17 +185,17 @@ def _method_params_count_invariant(func: Callable[..., Any], method_name: str) -
 
 
 def compensate(
-    target_aspect_name: str,
+    target_aspect: Callable[..., Any],
     description: str,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     Declare a compensator method for a target regular aspect.
 
     Args:
-        target_aspect_name:
-            Name of target regular-aspect method (for example,
-            ``"process_payment_aspect"``). Must be non-empty. Existence/type
-            validation is performed at build stage, not here.
+        target_aspect:
+            Callable reference to the target regular-aspect method (for example,
+            ``process_payment_aspect``). Must be callable and have ``__name__``.
+            Existence/type validation is performed at build stage, not here.
 
         description:
             Human-readable compensator description used in plugin events,
@@ -202,17 +206,18 @@ def compensate(
 
     Raises:
         TypeError:
-            - target_aspect_name is not a string.
+            - target_aspect is not callable.
+            - target_aspect has no ``__name__``.
             - description is not a string.
             - method is not async.
             - invalid parameter arity.
         ValueError:
-            - target_aspect_name is empty.
+            - target_aspect.__name__ is empty.
             - description is empty.
             - method name does not end with ``"_compensate"``.
 
     Example:
-        @compensate("process_payment_aspect", "Rollback payment")
+        @compensate(process_payment_aspect, "Rollback payment")
         async def rollback_payment_compensate(self, params, state_before,
                                                state_after, box,
                                                connections, error):
@@ -221,8 +226,8 @@ def compensate(
 
     # ── Decorator argument validation ────────────────────────────────────────
 
-    _target_aspect_type_invariant(target_aspect_name)
-    _target_aspect_non_empty_invariant(target_aspect_name)
+    _target_aspect_callable_invariant(target_aspect)
+    _target_aspect_has_name_invariant(target_aspect)
     _description_type_invariant(description)
     _description_non_empty_invariant(description)
 
@@ -251,7 +256,7 @@ def compensate(
             func,
             _COMPENSATE_META_ATTR,
             {
-                "target_aspect_name": target_aspect_name.strip(),
+                "target_aspect": target_aspect,
                 "description": description.strip(),
             },
         )
