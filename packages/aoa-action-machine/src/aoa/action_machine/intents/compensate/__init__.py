@@ -75,7 +75,7 @@ EXAMPLE
             txn_id = await payment.charge(params.user_id, state.amount)
             return {"txn_id": txn_id}
 
-        @compensate("process_payment_aspect", "Rollback payment")
+        @compensate(process_payment_aspect, "Rollback payment")
         async def rollback_payment_compensate(self, params, state_before,
                                                state_after, box, connections, error):
             if state_after is None:

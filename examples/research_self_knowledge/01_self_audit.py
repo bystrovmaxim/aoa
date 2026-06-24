@@ -69,7 +69,7 @@ class ChargeAction(BaseAction[ChargeParams, ChargeResult]):
     async def charge_aspect(self, params, state, box, connections):
         return {"txn_id": f"txn-{params.order_id}"}
 
-    @compensate("charge_aspect", "Refund the charge")
+    @compensate(charge_aspect, "Refund the charge")
     async def charge_compensate(self, params, state_before, state_after, box, connections, error):
         pass
 

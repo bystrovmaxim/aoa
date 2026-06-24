@@ -40,7 +40,7 @@ class CompensateIntentResolver:
 
     @staticmethod
     def resolve_target_aspect_name(call_like: Any) -> str | None:
-        """Return ``@compensate`` target_aspect_name from callable scratch when present."""
+        """Return target aspect method name from ``@compensate`` callable reference."""
         func = TypeIntrospection.unwrap_declaring_class_member(call_like)
         meta = getattr(func, "_compensate_meta", None)
         if not isinstance(meta, dict):
@@ -48,7 +48,8 @@ class CompensateIntentResolver:
                 f"{TypeIntrospection.qualname_of(func)} has no usable @compensate target_aspect_name scratch "
                 "required for graph metadata resolution.",
             )
-        raw = meta.get("target_aspect_name")
-        if isinstance(raw, str) and raw.strip():
-            return raw.strip()
+        target_aspect = meta.get("target_aspect")
+        if callable(target_aspect) and hasattr(target_aspect, "__name__"):
+            name = target_aspect.__name__.strip()
+            return name if name else None
         return None

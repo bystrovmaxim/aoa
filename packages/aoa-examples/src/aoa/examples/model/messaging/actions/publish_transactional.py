@@ -94,7 +94,7 @@ class PublishTransactionalOutboxAction(
         oid = f"OB-{params.topic}-1"
         return {"outbound_id": oid, "smtp_receipt": receipt}
 
-    @compensate("dispatch_aspect", "Best-effort undo publish")
+    @compensate(dispatch_aspect, "Best-effort undo publish")
     async def dispatch_compensate(
         self,
         params: PublishTransactionalOutboxAction.Params,
