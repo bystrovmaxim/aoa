@@ -89,7 +89,7 @@ class ProductEnrichmentAction(
         )
         return {"list_price": price, "doc_id": doc_id}
 
-    @compensate("enrich_aspect", "Rollback index row on failure")
+    @compensate(enrich_aspect, "Rollback index row on failure")
     async def enrich_compensate(
         self,
         params: ProductEnrichmentAction.Params,

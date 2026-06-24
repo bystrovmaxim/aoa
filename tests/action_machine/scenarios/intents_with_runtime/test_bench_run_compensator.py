@@ -103,7 +103,7 @@ class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
     async def charge_aspect(self, params, state, box, connections):
         return {"txn_id": "TXN-001"}
 
-    @compensate("charge_aspect", "Rollback with context")
+    @compensate(charge_aspect, "Rollback with context")
     @context_requires(Ctx.User.user_id)
     async def rollback_compensate(
         self,

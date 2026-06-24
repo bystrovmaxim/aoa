@@ -15,7 +15,7 @@ STRUCTURE
 ═══════════════════════════════════════════════════════════════════════════════
 
 TestCompensateDecoratorSuccess      — valid cases
-TestCompensateTargetErrors          — target_aspect_name errors
+TestCompensateTargetErrors          — target_aspect errors
 TestCompensateDescriptionErrors     — description errors
 TestCompensateMethodErrors          — method errors (sync, signature)
 TestCompensateNamingSuffix          — method name suffix errors
@@ -27,6 +27,15 @@ import pytest
 
 from aoa.action_machine.intents.compensate import compensate
 from aoa.action_machine.intents.context_requires import context_requires
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stub callable used as target_aspect across tests
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def _stub_aspect(self, params, state, box, connections):
+    pass
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TestCompensateDecoratorSuccess — valid cases
@@ -42,14 +51,17 @@ class TestCompensateDecoratorSuccess:
         """
 
         class Action:
-            @compensate("some_aspect", "Compensator description")
+            async def charge_aspect(self, params, state, box, connections):
+                pass
+
+            @compensate(charge_aspect, "Compensator description")
             async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
                 pass
 
         method = Action.rollback_compensate
         assert hasattr(method, "_compensate_meta")
         meta = method._compensate_meta
-        assert meta["target_aspect_name"] == "some_aspect"
+        assert meta["target_aspect"] is Action.charge_aspect
         assert meta["description"] == "Compensator description"
 
     def test_correct_decorator_with_8_params_and_context_requires(self) -> None:
@@ -58,7 +70,10 @@ class TestCompensateDecoratorSuccess:
         """
 
         class Action:
-            @compensate("some_aspect", "Description with context")
+            async def charge_aspect(self, params, state, box, connections):
+                pass
+
+            @compensate(charge_aspect, "Description with context")
             @context_requires("user.user_id")
             async def rollback_with_context_compensate(
                 self, params, state_before, state_after, box, connections, error, ctx
@@ -68,7 +83,7 @@ class TestCompensateDecoratorSuccess:
         method = Action.rollback_with_context_compensate
         assert hasattr(method, "_compensate_meta")
         meta = method._compensate_meta
-        assert meta["target_aspect_name"] == "some_aspect"
+        assert meta["target_aspect"] is Action.charge_aspect
         assert meta["description"] == "Description with context"
         assert hasattr(method, "_required_context_keys")
         assert method._required_context_keys == {"user.user_id"}
@@ -81,39 +96,36 @@ class TestCompensateDecoratorSuccess:
         async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
             pass
 
-        decorated = compensate("some_aspect", "Description")(rollback_compensate)
+        decorated = compensate(_stub_aspect, "Description")(rollback_compensate)
         assert decorated is rollback_compensate
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# TestCompensateTargetErrors — target_aspect_name errors
+# TestCompensateTargetErrors — target_aspect errors
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 class TestCompensateTargetErrors:
-    """Validates target_aspect_name parameter."""
+    """Validates target_aspect parameter."""
 
-    def test_target_aspect_name_not_string(self) -> None:
-        """Non-string target_aspect_name → TypeError."""
-        with pytest.raises(TypeError, match="target_aspect_name must be a string"):
+    def test_target_aspect_not_callable(self) -> None:
+        """Non-callable target_aspect → TypeError."""
+        with pytest.raises(TypeError, match="target_aspect must be a callable"):
 
             @compensate(123, "Description")
             async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
                 pass
 
-    def test_target_aspect_name_empty_string(self) -> None:
-        """Empty target_aspect_name → ValueError."""
-        with pytest.raises(ValueError, match="target_aspect_name cannot be empty"):
+    def test_target_aspect_callable_without_name(self) -> None:
+        """Callable without __name__ → TypeError."""
 
-            @compensate("", "Description")
-            async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
+        class _NoName:
+            def __call__(self):
                 pass
 
-    def test_target_aspect_name_whitespace_only(self) -> None:
-        """Whitespace-only target_aspect_name → ValueError."""
-        with pytest.raises(ValueError, match="target_aspect_name cannot be empty"):
+        with pytest.raises(TypeError, match="target_aspect must have __name__"):
 
-            @compensate("   ", "Description")
+            @compensate(_NoName(), "Description")
             async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
                 pass
 
@@ -130,7 +142,7 @@ class TestCompensateDescriptionErrors:
         """Non-string description → TypeError."""
         with pytest.raises(TypeError, match="description must be a string"):
 
-            @compensate("some_aspect", 123)
+            @compensate(_stub_aspect, 123)
             async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
                 pass
 
@@ -138,7 +150,7 @@ class TestCompensateDescriptionErrors:
         """Empty description → ValueError."""
         with pytest.raises(ValueError, match="description cannot be empty"):
 
-            @compensate("some_aspect", "")
+            @compensate(_stub_aspect, "")
             async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
                 pass
 
@@ -146,7 +158,7 @@ class TestCompensateDescriptionErrors:
         """Whitespace-only description → ValueError."""
         with pytest.raises(ValueError, match="description cannot be empty"):
 
-            @compensate("some_aspect", "   ")
+            @compensate(_stub_aspect, "   ")
             async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
                 pass
 
@@ -163,7 +175,7 @@ class TestCompensateMethodErrors:
         """Sync method → TypeError requiring async def."""
         with pytest.raises(TypeError, match="must be async"):
 
-            @compensate("some_aspect", "Description")
+            @compensate(_stub_aspect, "Description")
             def sync_compensate(self, params, state_before, state_after, box, connections, error):
                 pass
 
@@ -171,7 +183,7 @@ class TestCompensateMethodErrors:
         """Fewer than 7 parameters without @context_requires → TypeError."""
         with pytest.raises(TypeError, match="must accept 7 parameters"):
 
-            @compensate("some_aspect", "Description")
+            @compensate(_stub_aspect, "Description")
             async def too_few_params_compensate(self, params, state_before, state_after, box, connections):
                 pass
 
@@ -179,7 +191,7 @@ class TestCompensateMethodErrors:
         """More than 7 parameters without @context_requires → TypeError."""
         with pytest.raises(TypeError, match="must accept 7 parameters"):
 
-            @compensate("some_aspect", "Description")
+            @compensate(_stub_aspect, "Description")
             async def too_many_params_compensate(
                 self, params, state_before, state_after, box, connections, error, extra
             ):
@@ -189,7 +201,7 @@ class TestCompensateMethodErrors:
         """Fewer than 8 parameters with @context_requires → TypeError."""
         with pytest.raises(TypeError, match="must accept 8 parameters"):
 
-            @compensate("some_aspect", "Description")
+            @compensate(_stub_aspect, "Description")
             @context_requires("user.user_id")
             async def too_few_with_ctx_compensate(self, params, state_before, state_after, box, connections, error):
                 pass
@@ -198,7 +210,7 @@ class TestCompensateMethodErrors:
         """More than 8 parameters with @context_requires → TypeError."""
         with pytest.raises(TypeError, match="must accept 8 parameters"):
 
-            @compensate("some_aspect", "Description")
+            @compensate(_stub_aspect, "Description")
             @context_requires("user.user_id")
             async def too_many_with_ctx_compensate(
                 self, params, state_before, state_after, box, connections, error, ctx, extra
@@ -218,7 +230,7 @@ class TestCompensateNamingSuffix:
         """Method name not ending with '_compensate' → ValueError."""
         with pytest.raises(ValueError, match="must end with '_compensate'"):
 
-            @compensate("some_aspect", "Description")
+            @compensate(_stub_aspect, "Description")
             async def rollback_wrong(self, params, state_before, state_after, box, connections, error):
                 pass
 
@@ -226,7 +238,7 @@ class TestCompensateNamingSuffix:
         """Method name with wrong suffix → ValueError."""
         with pytest.raises(ValueError, match="must end with '_compensate'"):
 
-            @compensate("some_aspect", "Description")
+            @compensate(_stub_aspect, "Description")
             async def rollback_rollback(self, params, state_before, state_after, box, connections, error):
                 pass
 
@@ -234,7 +246,7 @@ class TestCompensateNamingSuffix:
         """Method name with '_compensate' suffix — success."""
 
         class Action:
-            @compensate("some_aspect", "Description")
+            @compensate(_stub_aspect, "Description")
             async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
                 pass
 

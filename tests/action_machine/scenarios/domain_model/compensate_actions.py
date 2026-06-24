@@ -143,7 +143,7 @@ class CompensatedOrderAction(
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
-    @compensate("charge_aspect", "Rollback payment — refund")
+    @compensate(charge_aspect, "Rollback payment — refund")
     async def rollback_charge_compensate(
         self,
         params: CompensateTestParams,
@@ -178,7 +178,7 @@ class CompensatedOrderAction(
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
-    @compensate("reserve_aspect", "Rollback reservation — release stock")
+    @compensate(reserve_aspect, "Rollback reservation — release stock")
     async def rollback_reserve_compensate(
         self,
         params: CompensateTestParams,
@@ -271,7 +271,7 @@ class PartialCompensateAction(
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
-    @compensate("charge_aspect", "Rollback payment")
+    @compensate(charge_aspect, "Rollback payment")
     async def rollback_charge_compensate(
         self,
         params: CompensateTestParams,
@@ -373,7 +373,7 @@ class CompensateErrorAction(
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
-    @compensate("charge_aspect", "Rollback payment — raises error")
+    @compensate(charge_aspect, "Rollback payment — raises error")
     async def rollback_charge_compensate(
         self,
         params: CompensateTestParams,
@@ -399,7 +399,7 @@ class CompensateErrorAction(
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
-    @compensate("reserve_aspect", "Rollback reservation — succeeds")
+    @compensate(reserve_aspect, "Rollback reservation — succeeds")
     async def rollback_reserve_compensate(
         self,
         params: CompensateTestParams,
@@ -485,7 +485,7 @@ class CompensateAndOnErrorAction(
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
-    @compensate("charge_aspect", "Rollback payment")
+    @compensate(charge_aspect, "Rollback payment")
     async def rollback_charge_compensate(
         self,
         params: CompensateTestParams,
@@ -513,7 +513,7 @@ class CompensateAndOnErrorAction(
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
-    @compensate("reserve_aspect", "Rollback reservation")
+    @compensate(reserve_aspect, "Rollback reservation")
     async def rollback_reserve_compensate(
         self,
         params: CompensateTestParams,
@@ -664,7 +664,7 @@ class SecondRegularFailsOnErrorAction(
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
-    @compensate("charge_aspect", "Rollback payment")
+    @compensate(charge_aspect, "Rollback payment")
     async def rollback_charge_compensate(
         self,
         params: CompensateTestParams,
@@ -757,7 +757,7 @@ class SummaryFailsOnErrorStateAction(
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
-    @compensate("charge_aspect", "Rollback payment")
+    @compensate(charge_aspect, "Rollback payment")
     async def rollback_charge_compensate(
         self,
         params: CompensateTestParams,
@@ -785,7 +785,7 @@ class SummaryFailsOnErrorStateAction(
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
-    @compensate("reserve_aspect", "Rollback reservation")
+    @compensate(reserve_aspect, "Rollback reservation")
     async def rollback_reserve_compensate(
         self,
         params: CompensateTestParams,
@@ -880,7 +880,7 @@ class CheckerRejectionSagaAction(
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
-    @compensate("first_aspect", "Rollback first — refund")
+    @compensate(first_aspect, "Rollback first — refund")
     async def rollback_first_aspect_compensate(
         self,
         params: CompensateTestParams,
@@ -906,7 +906,7 @@ class CheckerRejectionSagaAction(
     ) -> dict[str, Any]:
         return {"token": "bad"}
 
-    @compensate("second_aspect", "Rollback second — trace only")
+    @compensate(second_aspect, "Rollback second — trace only")
     async def rollback_second_aspect_compensate(
         self,
         params: CompensateTestParams,
@@ -974,7 +974,7 @@ class CompensateWithContextAction(
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
-    @compensate("charge_aspect", "Rollback payment with context")
+    @compensate(charge_aspect, "Rollback payment with context")
     @context_requires(Ctx.User.user_id)
     async def rollback_charge_compensate(
         self,

@@ -89,7 +89,7 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         txn = await payment.service.charge(cents / 100.0)
         return {"capture_txn": txn, "captured_cents": cents}
 
-    @compensate("capture_aspect", "Void capture on failure")
+    @compensate(capture_aspect, "Void capture on failure")
     async def capture_compensate(
         self,
         params: InvoiceSettleAction.Params,

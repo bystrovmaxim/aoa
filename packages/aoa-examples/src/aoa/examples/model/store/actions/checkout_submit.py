@@ -83,7 +83,7 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         txn_id = await payment.service.charge(params.amount)
         return {"txn_id": txn_id, "charged_amount": params.amount}
 
-    @compensate("charge_aspect", "Refund on failure")
+    @compensate(charge_aspect, "Refund on failure")
     async def charge_compensate(
         self,
         params: CheckoutSubmitAction.Params,

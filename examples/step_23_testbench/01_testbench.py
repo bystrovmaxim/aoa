@@ -82,7 +82,7 @@ class ChargeAction(BaseAction[ChargeParams, ChargeResult]):
         gateway = await box.resolve(PaymentService)
         return {"txn_id": await gateway.charge(params.amount)}
 
-    @compensate("charge_aspect", "Refund the charge")
+    @compensate(charge_aspect, "Refund the charge")
     async def charge_compensate(self, params, state_before, state_after, box, connections, error):
         gateway = await box.resolve(PaymentService)
         await gateway.refund(state_after["txn_id"])
