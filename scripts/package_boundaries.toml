@@ -46,10 +46,6 @@ may_import = ["action_machine"]
 roots = ["tests/ocel"]
 may_import = ["action_machine", "ocel"]
 
-[tests.zones.otel]
-roots = ["tests/otel"]
-may_import = ["action_machine", "otel"]
-
 # Partially migrated: the clean example tests live in packages/aoa-examples/tests/;
 # the two OCEL tests below depend on tests/ocel/pm4py_validation and stay here until
 # the shared test-support helpers are extracted (#82 blocker).

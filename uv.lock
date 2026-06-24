@@ -221,11 +221,23 @@ dependencies = [
     { name = "opentelemetry-sdk" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
     { name = "opentelemetry-api", specifier = ">=1.20,<2.0" },
     { name = "opentelemetry-sdk", specifier = ">=1.20,<2.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
 
 [[package]]

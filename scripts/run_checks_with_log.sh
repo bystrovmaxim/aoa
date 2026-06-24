@@ -165,6 +165,7 @@ run_and_log "uv run --extra dev task test-layer-imports" "Test import boundaries
 run_and_log "uv run --extra dev task samples-public-api" "Maxitor samples: action_machine public API"
 run_and_log "uv run --extra dev pytest packages/aoa-maxitor/tests/ -v" "Pytest aoa-maxitor"
 run_and_log "uv run --extra dev pytest packages/aoa-examples/tests/ -v" "Pytest aoa-examples"
+run_and_log "uv run --extra dev pytest packages/aoa-otel/tests/ -v" "Pytest aoa-otel"
 run_and_log "uv run --extra dev pytest tests/integration/ -v" "Pytest integration"
 run_and_log "uv run --extra dev task test" "Pytest"
 run_and_log "uv run --extra dev task cc" "Radon cyclomatic complexity"
