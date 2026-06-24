@@ -6,6 +6,6 @@
   <img src="https://img.shields.io/badge/version-1.0.0-informational" alt="1.0.0">
 </p>
 
-# aoa-examples: Reference Services for AOA
+# aoa-langgraph-adapter: Use AOA Actions as LangGraph Nodes
 
-`aoa-examples` contains two runnable reference services — a FastAPI HTTP service and an MCP server — built on the same domain model: orders, products, and customers. Both services expose the same `Action` operations over different transports, demonstrating how a single piece of business logic is published via `FastApiAdapter` for REST clients and via `McpAdapter` for AI agents without duplicating any logic. The package also serves as the integration fixture used in the AOA test suite.
+`aoa-langgraph-adapter` bridges AOA and LangGraph: each `Action` becomes a typed LangGraph node that the graph can invoke by passing `Params` and receiving a `Result`. The adapter wraps the full AOA execution path — pipeline, compensations, plugins, role checks — so the orchestration logic stays in LangGraph while all business rules remain in `Action`. A single operation can serve HTTP via `FastApiAdapter`, tools via `McpAdapter`, and a LangGraph agent simultaneously, with no duplication.

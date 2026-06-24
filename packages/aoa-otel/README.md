@@ -6,6 +6,6 @@
   <img src="https://img.shields.io/badge/version-1.0.0-informational" alt="1.0.0">
 </p>
 
-# aoa-examples: Reference Services for AOA
+# aoa-otel: OpenTelemetry Plugin for AOA
 
-`aoa-examples` contains two runnable reference services — a FastAPI HTTP service and an MCP server — built on the same domain model: orders, products, and customers. Both services expose the same `Action` operations over different transports, demonstrating how a single piece of business logic is published via `FastApiAdapter` for REST clients and via `McpAdapter` for AI agents without duplicating any logic. The package also serves as the integration fixture used in the AOA test suite.
+`aoa-otel` ships `OpenTelemetryPlugin` — a drop-in plugin that instruments every `Action` run with OpenTelemetry spans and structured log records. Attach it to `ActionProductMachine` and each operation automatically emits a root span for the full run, child spans for every pipeline aspect, and a span for each compensation — carrying `params`, the full `state` snapshot, timing, and error details as span attributes. No changes to business code required: observation is handled entirely at the plugin boundary, leaving `Action` logic untouched.
