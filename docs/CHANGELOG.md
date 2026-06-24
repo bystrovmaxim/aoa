@@ -50,6 +50,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`F841` false positives suppressed in Jupyter notebooks.** Extended the `"**/*.ipynb"` ruff per-file-ignores to include `F841` (unused variable), which fires on cell-scoped names referenced in later cells — a pattern ruff cannot see across cell boundaries. ([#52](https://github.com/bystrovmaxim/aoa/issues/52))
 - **Mypy `no-untyped-def` warnings silenced for example scripts.** The `typecheck` task now targets `src/` directories only (`mypy packages/aoa-action-machine/src packages/aoa-maxitor/src packages/aoa-examples/src`). Standalone scripts in `packages/aoa-action-machine/examples/` are demonstration code and are no longer included in the strict mypy pass. ([#52](https://github.com/bystrovmaxim/aoa/issues/52))
 
+### Documentation
+
+- **Per-package `CHANGELOG.md` files introduced.** Each published package now maintains its own changelog under `packages/<pkg>/CHANGELOG.md`: [`aoa-action-machine`](../packages/aoa-action-machine/CHANGELOG.md) (full monorepo history from `[0.1.0]`), [`aoa-fastapi-adapter`](../packages/aoa-fastapi-adapter/CHANGELOG.md), [`aoa-mcp-adapter`](../packages/aoa-mcp-adapter/CHANGELOG.md), [`aoa-langgraph-adapter`](../packages/aoa-langgraph-adapter/CHANGELOG.md), [`aoa-otel`](../packages/aoa-otel/CHANGELOG.md), [`aoa-ocel`](../packages/aoa-ocel/CHANGELOG.md). This root file will be rewritten as a cross-cutting overview that links to each package's detailed log. ([#76](https://github.com/bystrovmaxim/aoa/issues/76))
+
 ## [1.0.0a5] – 2026-06-20
 
 ### Breaking changes
