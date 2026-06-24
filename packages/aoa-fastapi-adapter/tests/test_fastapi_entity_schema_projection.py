@@ -1,9 +1,9 @@
-# tests/action_machine/adapters/fastapi/test_fastapi_json_schema_value.py
+# tests/action_machine/adapters/fastapi/test_fastapi_entity_schema_projection.py
 """
-FastAPI adapter + OpenAPI for models using ``JsonSchemaValue`` fields.
+FastAPI adapter + OpenAPI for ``BaseResult`` fields using ``BaseEntity.schema(...)``.
 
-PR-2: no FastAPI adapter code changes were required — Pydantic hooks on
-``JsonSchemaValue`` types supply OpenAPI field schemas and raw JSON bodies.
+PR-2: Pydantic hooks on ``EntitySchemaMarker`` supply field JSON Schema; adapter
+code stays unchanged.
 """
 
 from __future__ import annotations
@@ -17,7 +17,8 @@ from fastapi.testclient import TestClient
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
-from tests.action_machine.adapters.json_schema_adapter_fixtures import AdapterTestAction
+
+from .support import EntityProjectionAdapterTestAction
 
 
 def _resolve_ref(openapi: dict[str, Any], node: dict[str, Any]) -> dict[str, Any]:
@@ -29,7 +30,6 @@ def _resolve_ref(openapi: dict[str, Any], node: dict[str, Any]) -> dict[str, Any
 
 
 def _result_schema_from_openapi(openapi: dict[str, Any]) -> dict[str, Any]:
-    """Resolve the 200 JSON response schema for POST ``/test`` to a concrete object schema."""
     post = openapi["paths"]["/test"]["post"]
     schema = post["responses"]["200"]["content"]["application/json"]["schema"]
     return _resolve_ref(openapi, schema)
@@ -41,46 +41,43 @@ def adapter_and_client() -> tuple[FastApiAdapter, TestClient, ActionProductMachi
     auth = AsyncMock()
     auth.process.return_value = Context()
     adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
-    adapter.post("/test", AdapterTestAction)
+    adapter.post("/test", EntityProjectionAdapterTestAction)
     app = adapter.build()
     return adapter, TestClient(app), machine
 
 
-def test_openapi_response_schema_contains_graph_field_schema(
+def test_openapi_builds_without_error(
+    adapter_and_client: tuple[FastApiAdapter, TestClient, ActionProductMachine],
+) -> None:
+    _, client, _ = adapter_and_client
+    openapi = client.app.openapi()
+    assert "paths" in openapi
+
+
+def test_openapi_order_field_matches_inline_projection_schema(
     adapter_and_client: tuple[FastApiAdapter, TestClient, ActionProductMachine],
 ) -> None:
     _, client, _ = adapter_and_client
     openapi = client.app.openapi()
     result_schema = _result_schema_from_openapi(openapi)
-    graph_schema = result_schema["properties"]["graph"]
-    graph_resolved = _resolve_ref(openapi, graph_schema)
-    assert graph_resolved.get("type") == "object"
-    assert "nodes" in graph_resolved["properties"]
-    assert "edges" in graph_resolved["properties"]
-    assert graph_resolved.get("required") == ["nodes", "edges"]
+    order_schema = _resolve_ref(openapi, result_schema["properties"]["order"])
+    assert order_schema.get("type") == "object"
+    assert set(order_schema.get("required", [])) == {"id", "name"}
+    assert order_schema["properties"]["id"] == {"type": "string"}
+    assert order_schema["properties"]["name"] == {"type": "string"}
+    assert order_schema.get("additionalProperties") is False
 
 
-def test_endpoint_returns_raw_graph_dict(
+def test_endpoint_returns_raw_order_dict(
     adapter_and_client: tuple[FastApiAdapter, TestClient, ActionProductMachine],
 ) -> None:
     _, client, machine = adapter_and_client
+    order = {"id": "e1", "name": "One"}
     machine.run = AsyncMock(
-        return_value=AdapterTestAction.Result(
-            domain="Billing",
-            graph={"nodes": [], "edges": []},
-        ),
+        return_value=EntityProjectionAdapterTestAction.Result(domain="Billing", order=order),
     )
     response = client.post("/test", json={"label": "Billing"})
     assert response.status_code == 200
     body = response.json()
-    assert body["graph"] == {"nodes": [], "edges": []}
-    assert isinstance(body["graph"], dict)
-
-
-def test_openapi_domain_field_has_description(
-    adapter_and_client: tuple[FastApiAdapter, TestClient, ActionProductMachine],
-) -> None:
-    _, client, _ = adapter_and_client
-    openapi = client.app.openapi()
-    result_schema = _result_schema_from_openapi(openapi)
-    assert result_schema["properties"]["domain"].get("description") == "Domain name"
+    assert body["order"] == order
+    assert isinstance(body["order"], dict)

@@ -168,6 +168,7 @@ run_and_log "uv run --extra dev pytest packages/aoa-examples/tests/ -v" "Pytest 
 run_and_log "uv run --extra dev pytest packages/aoa-otel/tests/ -v" "Pytest aoa-otel"
 run_and_log "uv run --extra dev pytest packages/aoa-langgraph-adapter/tests/ -v" "Pytest aoa-langgraph-adapter"
 run_and_log "uv run --extra dev pytest packages/aoa-ocel/tests/ -v" "Pytest aoa-ocel"
+run_and_log "uv run --extra dev pytest packages/aoa-fastapi-adapter/tests/ -v" "Pytest aoa-fastapi-adapter"
 run_and_log "uv run --extra dev pytest tests/integration/ -v" "Pytest integration"
 run_and_log "uv run --extra dev task test" "Pytest"
 run_and_log "uv run --extra dev task cc" "Radon cyclomatic complexity"

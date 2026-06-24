@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Test suite relocated into the package (`packages/aoa-fastapi-adapter/tests/`).** FastAPI adapter tests moved out of the shared root `tests/action_machine/adapters/fastapi/` into the package's own `tests/` directory, with a per-package `[dependency-groups]` dev group (adding `httpx` for the FastAPI `TestClient`) and `[tool.pytest.ini_options]`. The cross-package dependencies on `tests/action_machine/scenarios` and the shared adapter-fixture modules were replaced by a self-contained `tests/support/` package (`domain_model`, `connections`, `adapter_fixtures` + facade) — faithful trimmed copies — so the package no longer reaches into another package's test tree. ([#82](https://github.com/bystrovmaxim/aoa/issues/82))
+
 ## [1.0.0] – 2026-06-24
 
 ### Added
