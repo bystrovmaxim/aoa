@@ -28,6 +28,7 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypeVar, cast
 
@@ -178,13 +179,11 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
 
     def compensator_graph_node_for_aspect(
         self,
-        aspect_name: str,
+        target_aspect: Callable[..., Any],
     ) -> CompensatorGraphNode | None:
-        """Optional compensator for ``aspect_name``; at most one compensator references a regular aspect."""
-        needle = aspect_name.strip()
+        """Optional compensator whose ``target_aspect`` is identical to ``target_aspect``."""
         for node in self.get_compensator_graph_nodes():
-            raw = node.properties.get("target_aspect_name")
-            if isinstance(raw, str) and raw.strip() == needle:
+            if node.target_aspect is target_aspect:
                 return node
         return None
 

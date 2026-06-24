@@ -422,7 +422,7 @@ class ActionProductMachine(BaseActionMachine):
                 failed_aspect_name = aspect_node.label
                 state_passed_into_aspect = state
 
-                compensator_node = action_graph_node.compensator_graph_node_for_aspect(aspect_node.label)
+                compensator_node = action_graph_node.compensator_graph_node_for_aspect(aspect_node.node_obj)
                 saga_stack.append(
                     SagaFrame(
                         compensator=compensator_node,
