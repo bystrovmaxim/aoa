@@ -39,8 +39,6 @@ def test_resolve_description_raises_when_meta_not_dict() -> None:
         CompensateIntentResolver.resolve_description(_stub_compensate_fn(object()))
 
 
-def test_resolve_target_aspect_name_returns_stripped_compensate_target() -> None:
-    assert (
-        CompensateIntentResolver.resolve_target_aspect_name(CompensatedOrderAction.rollback_charge_compensate)
-        == "charge_aspect"
-    )
+def test_resolve_target_aspect_returns_callable() -> None:
+    result = CompensateIntentResolver.resolve_target_aspect(CompensatedOrderAction.rollback_charge_compensate)
+    assert result is CompensatedOrderAction.charge_aspect
