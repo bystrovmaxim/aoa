@@ -34,7 +34,8 @@ INVARIANTS
 import pytest
 
 from aoa.fastapi.route_record import FastApiRouteRecord
-from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
+
+from .support import PingAction, SimpleAction
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Default field values

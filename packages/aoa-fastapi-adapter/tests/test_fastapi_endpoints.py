@@ -50,8 +50,8 @@ from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldErr
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
-from tests.action_machine.resources.test_connections_dict import DummyResourceManager
-from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
+
+from .support import DummyResourceManager, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper — adapter with mocked machine.run

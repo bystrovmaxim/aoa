@@ -43,8 +43,8 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
 from aoa.fastapi.route_record import FastApiRouteRecord
-from tests.action_machine.resources.test_connections_dict import DummyResourceManager
-from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
+
+from .support import DummyResourceManager, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers

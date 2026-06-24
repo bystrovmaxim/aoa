@@ -43,7 +43,8 @@ from pydantic import BaseModel, Field
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
-from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
+
+from .support import PingAction, SimpleAction
 
 
 @pytest.fixture()
