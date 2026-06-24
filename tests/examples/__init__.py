@@ -1,2 +1,1 @@
-# tests/examples/__init__.py
-"""Tests for ``aoa.examples`` (graph + action_machine only; no ``aoa.maxitor``)."""
+"""Tests colocated with ``aoa-examples`` (picked up from repo-root pytest)."""

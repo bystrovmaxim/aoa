@@ -7,9 +7,9 @@ import json
 from pathlib import Path
 
 import pytest
-from tests.ocel.pm4py_validation import assert_ocel2_pm4py_log, load_ocel2_pm4py
 
 from aoa.examples.model.store.ocel_export import build_store_ocel_machine, run_store_ocel_trace_batch
+from tests.ocel.pm4py_validation import assert_ocel2_pm4py_log, load_ocel2_pm4py
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 ARCHIVE_OCEL_PATH = REPO_ROOT / "archive/logs/ocel.json"

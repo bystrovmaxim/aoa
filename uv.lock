@@ -96,6 +96,12 @@ mcp = [
     { name = "aoa-mcp-adapter" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
@@ -105,6 +111,12 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.0,<3.0" },
 ]
 provides-extras = ["fastapi", "mcp"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
+]
 
 [[package]]
 name = "aoa-fastapi-adapter"
