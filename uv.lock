@@ -80,7 +80,7 @@ provides-extras = ["postgres"]
 
 [[package]]
 name = "aoa-examples"
-version = "1.0.0a0"
+version = "1.0.0"
 source = { editable = "packages/aoa-examples" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -140,7 +140,7 @@ requires-dist = [
 
 [[package]]
 name = "aoa-maxitor"
-version = "1.0.0a0"
+version = "1.0.0"
 source = { editable = "packages/aoa-maxitor" }
 dependencies = [
     { name = "aoa-action-machine" },
