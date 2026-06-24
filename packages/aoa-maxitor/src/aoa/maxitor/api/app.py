@@ -13,11 +13,13 @@ ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.a
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
 Each diagram route reads the same in-process DuckDB snapshot built from the coordinator
 JSON produced alongside the sidebar (avoids desync with a separate HTTP graph-json service).
+
+Set ``AOA_SERVICE_URL`` env var to override the default AOA examples service URL.
 """
 
 from __future__ import annotations
 
-import json
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -27,18 +29,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.model import ParamsStub
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
-from aoa.maxitor.api.session import build_maxitor_api_session
+from aoa.maxitor.model.core.actions.left_sidebar_action import GetLeftMenuSidebarDataAction
+from aoa.maxitor.model.core.actions.load_aoa_service_action import LoadAOAServiceAction, LoadAOAServiceParams
 from aoa.maxitor.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
 from aoa.maxitor.model.diagrams.actions.full_graph_action import FullGraphAction
 from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action import GetLifecycleFiniteAutomatonAction
 from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
 from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY
+
+_DEFAULT_SERVICE_URL = "http://127.0.0.1:8001"
 
 
 def create_app() -> FastAPI:
@@ -55,12 +61,21 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        """Build sidebar + DuckDB from the same coordinator export (single source of truth)."""
-        session = await build_maxitor_api_session(machine=machine)
-        application.state.duckdb_graph = DuckDBGraphResource.build_from_json(
-            json.loads(session.coordinator_json),
+        """Load AOA service graph into DuckDB, then build sidebar — single source of truth."""
+        service_url = os.environ.get("AOA_SERVICE_URL", _DEFAULT_SERVICE_URL)
+        load_result = await machine.run(
+            Context(),
+            LoadAOAServiceAction(),
+            LoadAOAServiceParams(service_url=service_url),
         )
-        application.state.sidebar_data = session.sidebar_data
+        sidebar_result = await machine.run(
+            Context(),
+            GetLeftMenuSidebarDataAction(),
+            ParamsStub(),
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: load_result.graph_resource},
+        )
+        application.state.duckdb_graph = load_result.graph_resource
+        application.state.sidebar_data = sidebar_result
         yield
 
     fastapi_app = FastAPI(title="Maxitor API", lifespan=lifespan)
