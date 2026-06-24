@@ -144,10 +144,22 @@ dependencies = [
     { name = "langgraph" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
     { name = "langgraph", specifier = ">=0.2,<1.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
 
 [[package]]
