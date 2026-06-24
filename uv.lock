@@ -217,10 +217,24 @@ dependencies = [
     { name = "xxhash" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pm4py" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
     { name = "xxhash", specifier = ">=3.4,<4" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pm4py", specifier = ">=2.7.22.3" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
 
 [[package]]

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Test suite relocated into the package (`packages/aoa-ocel/tests/`).** OCEL tests (including the `contracts/`, `plugin/`, `resource/` subtrees) moved out of the shared root `tests/ocel/` into the package's own `tests/` directory, with a per-package `[dependency-groups]` dev group (adding `pm4py`) and `[tool.pytest.ini_options]`. The cross-package dependency on `tests/action_machine/scenarios` (`SampleEntity` / `TestDomain`) was replaced by a minimal, self-contained `tests/support/` stub, and the `pm4py_validation` helper now lives in `tests/support/`. ([#82](https://github.com/bystrovmaxim/aoa/issues/82))
+
 ## [1.0.0] – 2026-06-24
 
 ### Added

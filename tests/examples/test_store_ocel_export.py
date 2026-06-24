@@ -16,7 +16,8 @@ from aoa.action_machine.testing import TestBench  # noqa: F401  # pylint: disabl
 from aoa.examples.model.store.actions import PublishOrderCreatedOcelAction, RecordOrderOcelAction
 from aoa.examples.model.store.actions.store_ocel_traces import STORE_OCEL_CONNECTION_KEY
 from aoa.examples.model.store.ocel_export import build_store_ocel_machine
-from tests.ocel.pm4py_validation import assert_ocel2_pm4py_smoke
+
+from .pm4py_validation import assert_ocel2_pm4py_smoke
 
 
 def _ctx_with_trace() -> Context:

@@ -1,0 +1,1 @@
+"""OCEL frame contract tests."""
