@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-from tests.action_machine.scenarios.domain_model.entities import SampleEntity
-
 from aoa.ocel.type_id import make_oid
+
+from .support import SampleEntity
 
 
 class _SameShortNameA:

@@ -6,11 +6,12 @@ from __future__ import annotations
 from dataclasses import FrozenInstanceError
 
 import pytest
-from tests.action_machine.scenarios.domain_model.entities import SampleEntity
 
 from aoa.ocel import OcelFrame
 from aoa.ocel.dto import OcelAttribute
 from aoa.ocel.exceptions import OcelContractError
+
+from ..support import SampleEntity
 
 
 def test_ocel_frame_holds_entity() -> None:

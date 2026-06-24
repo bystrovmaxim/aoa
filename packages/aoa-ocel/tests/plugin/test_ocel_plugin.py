@@ -9,7 +9,6 @@ from unittest.mock import MagicMock
 
 import pytest
 from pydantic import Field
-from tests.action_machine.scenarios.domain_model.entities import SampleEntity, TestDomain
 
 from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
@@ -22,6 +21,8 @@ from aoa.ocel.exceptions import OcelContractError
 from aoa.ocel.plugin import OCEL_FRAMES_KEY, OcelPlugin
 from aoa.ocel.plugin.ocel_plugin import collect_ocel_frames
 from aoa.ocel.resource import InMemoryOcelStoreResource
+
+from ..support import SampleEntity, TestDomain
 
 
 class _Params(BaseParams):
