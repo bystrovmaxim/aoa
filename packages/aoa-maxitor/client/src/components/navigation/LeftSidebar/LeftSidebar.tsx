@@ -1,6 +1,7 @@
 // src/components/navigation/LeftSidebar/LeftSidebar.tsx
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { SwitchServiceIcon } from "./SwitchServiceIcon";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
@@ -18,6 +19,7 @@ import { buildSidebarGroupedMaps, diagramSelectionForRow, sortNodes } from "@/li
 import { SIDEBAR_SURFACE } from "@/lib/layoutConstants";
 import { useSidebarCollapse } from "@/components/layout/MainLayout/SidebarCollapseContext";
 import { useSidebarPayload } from "./hooks/useSidebarPayload";
+import { ServiceUrlInput } from "./ServiceUrlInput";
 import { SidebarRowIcon } from "./SidebarRowIcon";
 import { SidebarToggleIcon } from "./SidebarToggleIcon";
 
@@ -126,7 +128,7 @@ function erdRowLabelForDomainGroup(domainLabel: string, rowLabel: string): strin
 
 export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
   const { collapsed, toggleCollapsed } = useSidebarCollapse();
-  const { sidebar, error } = useSidebarPayload();
+  const { sidebar, reload, reset } = useSidebarPayload();
   const group = useMemo(() => (sidebar ? buildSidebarGroupedMaps(sidebar) : null), [sidebar]);
   /** Root ids (e.g. `domains_root`) and graph node ids (e.g. domain rows) share one expand map — ids do not collide. */
   const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
@@ -217,6 +219,44 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
             }}
           />
         </IconButton>
+        {sidebar && (
+          <Tooltip title="Load a different service" placement="right" enterDelay={400} slotProps={tooltipSlotProps}>
+            <IconButton
+              type="button"
+              onClick={reset}
+              aria-label="Load a different service"
+              disableRipple
+              disableFocusRipple
+              sx={{
+                m: 0,
+                ml: 0.5,
+                p: 0,
+                width: 32,
+                minWidth: 32,
+                height: 32,
+                position: "relative",
+                boxSizing: "border-box",
+                overflow: "visible",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: SB.icon,
+                borderRadius: 1.5,
+                "&:hover": { bgcolor: SB.hover },
+              }}
+            >
+              <SwitchServiceIcon
+                sx={{
+                  fontSize: 17.6,
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  transform: "translate(-50%, -50%)",
+                }}
+              />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
 
       <Box
@@ -236,15 +276,8 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
           ...(collapsed ? { display: "none" } : {}),
         }}
       >
-        {error && (
-          <Typography variant="body2" color="error" sx={{ display: "block", px: 0.5, py: 0.5, fontSize: 13 }}>
-            Failed to load sidebar: {error}
-          </Typography>
-        )}
-        {!sidebar && !error && (
-          <Typography variant="body2" sx={{ display: "block", px: 0.5, py: 0.5, fontSize: 13, color: SB.textSecondary }}>
-            Loading…
-          </Typography>
+        {!sidebar && (
+          <ServiceUrlInput onLoaded={reload} />
         )}
         {/* Level-1: preserve API order (_ROOT_SECTIONS on the server). */}
         {sidebar &&
