@@ -163,6 +163,8 @@ run_and_log "uv run --extra dev pytest tests/packaging -v" "Packaging wheel inst
 run_and_log "uv run --extra dev task dead" "Vulture dead code"
 run_and_log "uv run --extra dev task test-layer-imports" "Test import boundaries (tests/ vs action_machine)"
 run_and_log "uv run --extra dev task samples-public-api" "Maxitor samples: action_machine public API"
+run_and_log "uv run --extra dev pytest packages/aoa-maxitor/tests/ -v" "Pytest aoa-maxitor"
+run_and_log "uv run --extra dev pytest tests/integration/ -v" "Pytest integration"
 run_and_log "uv run --extra dev task test" "Pytest"
 run_and_log "uv run --extra dev task cc" "Radon cyclomatic complexity"
 run_and_log "uv run --extra dev task mi" "Radon maintainability index"

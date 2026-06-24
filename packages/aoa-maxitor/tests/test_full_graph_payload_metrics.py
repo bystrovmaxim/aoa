@@ -7,7 +7,8 @@ from typing import Any
 
 from aoa.maxitor.model.diagrams.actions.full_graph_action import _build_payload_from_duckdb
 from aoa.maxitor.model.diagrams.actions.list_domains_action import _LIST_DOMAINS_DISTINCT_COLORS
-from tests.maxitor.payload_wire_metrics import (
+
+from .payload_wire_metrics import (
     simulate_pre_pr1_fat_payload,
     synthetic_sql_rows,
     uncompressed_and_gzip_len,

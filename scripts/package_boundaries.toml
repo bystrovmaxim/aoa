@@ -42,10 +42,6 @@ may_import = ["action_machine"]
 roots = ["tests/action_machine"]
 may_import = ["action_machine"]
 
-[tests.zones.maxitor]
-roots = ["tests/maxitor"]
-may_import = ["action_machine", "maxitor", "examples"]
-
 [tests.zones.ocel]
 roots = ["tests/ocel"]
 may_import = ["action_machine", "ocel"]
