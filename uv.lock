@@ -149,12 +149,24 @@ dependencies = [
     { name = "httpx" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
     { name = "aoa-fastapi-adapter", editable = "packages/aoa-fastapi-adapter" },
     { name = "duckdb", specifier = ">=1.1,<2" },
     { name = "httpx", specifier = ">=0.27,<1.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
 
 [[package]]

@@ -253,6 +253,10 @@ load-plugins = [
     "pylint.extensions.docparams",
 ]
 jobs = 0
+# Per-package test suites (packages/<pkg>/tests/) are linted by ruff, not pylint —
+# pylint's production rules (e.g. import-outside-toplevel) don't apply to test code.
+# The bulk of tests historically lived in the root tests/ tree, outside `pylint packages/`.
+ignore-paths = ['.*/tests/.*']
 
 [tool.pylint."messages control"]
 disable = [
