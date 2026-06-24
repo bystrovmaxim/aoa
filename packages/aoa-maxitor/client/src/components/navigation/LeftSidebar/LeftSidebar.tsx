@@ -18,6 +18,7 @@ import { buildSidebarGroupedMaps, diagramSelectionForRow, sortNodes } from "@/li
 import { SIDEBAR_SURFACE } from "@/lib/layoutConstants";
 import { useSidebarCollapse } from "@/components/layout/MainLayout/SidebarCollapseContext";
 import { useSidebarPayload } from "./hooks/useSidebarPayload";
+import { ServiceUrlInput } from "./ServiceUrlInput";
 import { SidebarRowIcon } from "./SidebarRowIcon";
 import { SidebarToggleIcon } from "./SidebarToggleIcon";
 
@@ -126,7 +127,7 @@ function erdRowLabelForDomainGroup(domainLabel: string, rowLabel: string): strin
 
 export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
   const { collapsed, toggleCollapsed } = useSidebarCollapse();
-  const { sidebar, error } = useSidebarPayload();
+  const { sidebar, reload } = useSidebarPayload();
   const group = useMemo(() => (sidebar ? buildSidebarGroupedMaps(sidebar) : null), [sidebar]);
   /** Root ids (e.g. `domains_root`) and graph node ids (e.g. domain rows) share one expand map — ids do not collide. */
   const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
@@ -236,15 +237,8 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
           ...(collapsed ? { display: "none" } : {}),
         }}
       >
-        {error && (
-          <Typography variant="body2" color="error" sx={{ display: "block", px: 0.5, py: 0.5, fontSize: 13 }}>
-            Failed to load sidebar: {error}
-          </Typography>
-        )}
-        {!sidebar && !error && (
-          <Typography variant="body2" sx={{ display: "block", px: 0.5, py: 0.5, fontSize: 13, color: SB.textSecondary }}>
-            Loading…
-          </Typography>
+        {!sidebar && (
+          <ServiceUrlInput onLoaded={reload} />
         )}
         {/* Level-1: preserve API order (_ROOT_SECTIONS on the server). */}
         {sidebar &&
