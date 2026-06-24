@@ -13,7 +13,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 
 
 def _aspect(label: str) -> SimpleNamespace:
-    return SimpleNamespace(label=label)
+    return SimpleNamespace(label=label, node_obj=object())
 
 
 def _compensator(label: str) -> SimpleNamespace:
