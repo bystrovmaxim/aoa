@@ -68,6 +68,7 @@ packages/aoa-maxitor/client/.vite/
 code_quality.log
 *.tmp
 *.temp
+ocel_log.json
 
 # ============================================================================
 # Project specific - ARCHIVE (ваши локальные снимки)

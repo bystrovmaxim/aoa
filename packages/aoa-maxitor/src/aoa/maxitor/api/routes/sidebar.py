@@ -49,7 +49,18 @@ def sidebar_payload(sidebar_result: Any) -> dict[str, Any]:
     }
 
 
+_EMPTY_PAYLOAD: dict[str, Any] = {
+    "level1_nodes": [],
+    "level2_diagrams": [],
+    "level2_nodes": [],
+    "level3_diagrams": [],
+}
+
+
 @router.get("/sidebar")
 async def get_sidebar(request: Request) -> dict[str, Any]:
-    """Return sidebar navigation data for the React SPA."""
-    return sidebar_payload(request.app.state.sidebar_data)
+    """Return sidebar navigation data for the React SPA, or empty payload when no graph is loaded."""
+    sidebar_data = request.app.state.sidebar_data
+    if sidebar_data is None:
+        return _EMPTY_PAYLOAD
+    return sidebar_payload(sidebar_data)
