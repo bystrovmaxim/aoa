@@ -40,12 +40,12 @@ class CompensatorGraphNode(BaseGraphNode[Callable[..., Any]]):
         method_name = TypeIntrospection.unwrapped_callable_name(compensator_func)
         action_id = TypeIntrospection.full_qualname(_action_cls)
         desc = CompensateIntentResolver.resolve_description(compensator_func)
-        target_aspect = CompensateIntentResolver.resolve_target_aspect_name(compensator_func)
+        target_aspect = CompensateIntentResolver.resolve_target_aspect(compensator_func)
         properties: dict[str, str] = {}
         if desc is not None:
             properties["description"] = desc
         if target_aspect is not None:
-            properties["target_aspect_name"] = target_aspect
+            properties["target_aspect_name"] = target_aspect.__name__
         super().__init__(
             node_id=f"{action_id}:{method_name}",
             node_type=CompensatorGraphNode.NODE_TYPE,

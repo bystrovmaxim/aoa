@@ -14,7 +14,7 @@ class CompensateIntentResolver:
     AI-CORE-BEGIN
     ROLE: Resolve compensator intent declarations from one action class.
     CONTRACT: Returns own-class ``@compensate`` callables in declaration order and does not materialize graph nodes.
-    FAILURES: :exc:`ValueError` from :meth:`resolve_description` or :meth:`resolve_target_aspect_name` when ``_compensate_meta`` is missing or not a ``dict``.
+    FAILURES: :exc:`ValueError` from :meth:`resolve_description` or :meth:`resolve_target_aspect` when ``_compensate_meta`` is missing or not a ``dict``.
     AI-CORE-END
     """
 
@@ -39,17 +39,14 @@ class CompensateIntentResolver:
         return meta.get("description")
 
     @staticmethod
-    def resolve_target_aspect_name(call_like: Any) -> str | None:
-        """Return target aspect method name from ``@compensate`` callable reference."""
+    def resolve_target_aspect(call_like: Any) -> Callable[..., Any] | None:
+        """Return target aspect callable from ``@compensate`` metadata."""
         func = TypeIntrospection.unwrap_declaring_class_member(call_like)
         meta = getattr(func, "_compensate_meta", None)
         if not isinstance(meta, dict):
             raise ValueError(
-                f"{TypeIntrospection.qualname_of(func)} has no usable @compensate target_aspect_name scratch "
+                f"{TypeIntrospection.qualname_of(func)} has no usable @compensate target_aspect "
                 "required for graph metadata resolution.",
             )
         target_aspect = meta.get("target_aspect")
-        if callable(target_aspect) and hasattr(target_aspect, "__name__"):
-            name = target_aspect.__name__.strip()
-            return name if name else None
-        return None
+        return target_aspect if callable(target_aspect) else None
