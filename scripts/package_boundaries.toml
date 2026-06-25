@@ -34,14 +34,6 @@ may_import = ["action_machine", "ocel"]
 
 # --- Test zones: repo-relative roots; may_import lists other internal packages (not self).
 
-[tests.zones.graph]
-roots = ["tests/graph"]
-may_import = ["action_machine"]
-
-[tests.zones.action_machine]
-roots = ["tests/action_machine"]
-may_import = ["action_machine"]
-
 # Partially migrated: the clean example tests live in packages/aoa-examples/tests/;
 # the two OCEL tests below depend on tests/ocel/pm4py_validation and stay here until
 # the shared test-support helpers are extracted (#82 blocker).
