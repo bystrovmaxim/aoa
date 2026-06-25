@@ -69,6 +69,13 @@ postgres = [
     { name = "asyncpg" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "anyio" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29,<1.0" },
@@ -77,6 +84,13 @@ requires-dist = [
     { name = "simpleeval", specifier = ">=1.0,<2.0" },
 ]
 provides-extras = ["postgres"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "anyio", specifier = ">=4.0" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
+]
 
 [[package]]
 name = "aoa-examples"
