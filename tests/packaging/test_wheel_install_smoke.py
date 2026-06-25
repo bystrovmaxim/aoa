@@ -19,30 +19,27 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-_PACKAGE_DIRS: dict[str, str] = {
-    "aoa-action-machine": "aoa-action-machine",
-    "aoa-ocel": "aoa-ocel",
-    "aoa-otel": "aoa-otel",
-    "aoa-maxitor": "aoa-maxitor",
-    "aoa-examples": "aoa-examples",
+# Single source of truth: every publishable distribution → its own ``aoa/`` namespace.
+_DIST_NAMESPACE: dict[str, str] = {
+    "aoa-action-machine": "aoa/action_machine/",
+    "aoa-ocel": "aoa/ocel/",
+    "aoa-otel": "aoa/otel/",
+    "aoa-fastapi-adapter": "aoa/fastapi/",
+    "aoa-mcp-adapter": "aoa/mcp/",
+    "aoa-langgraph-adapter": "aoa/langgraph/",
+    "aoa-maxitor": "aoa/maxitor/",
+    "aoa-examples": "aoa/examples/",
 }
 
-# Wheel must ship these prefixes under ``aoa/`` (namespace); ``*.dist-info`` etc. are ignored.
-_REQUIRED_AOA_PREFIXES: dict[str, tuple[str, ...]] = {
-    "aoa-action-machine": ("aoa/action_machine/",),
-    "aoa-ocel": ("aoa/ocel/",),
-    "aoa-otel": ("aoa/otel/",),
-    "aoa-maxitor": ("aoa/maxitor/",),
-    "aoa-examples": ("aoa/examples/",),
-}
+_PACKAGE_DIRS: dict[str, str] = {dist: dist for dist in _DIST_NAMESPACE}
 
-# No other ``aoa.*`` subtree may appear inside the wheel archive.
+# Wheel must ship its own prefix under ``aoa/`` (namespace); ``*.dist-info`` etc. are ignored.
+_REQUIRED_AOA_PREFIXES: dict[str, tuple[str, ...]] = {dist: (ns,) for dist, ns in _DIST_NAMESPACE.items()}
+
+# A wheel must vendor ONLY its own namespace — every other ``aoa.*`` subtree is forbidden
+# (cross-package code arrives as a declared pip dependency, never bundled in the wheel).
 _FORBIDDEN_AOA_PREFIXES: dict[str, tuple[str, ...]] = {
-    "aoa-action-machine": ("aoa/ocel/", "aoa/otel/", "aoa/maxitor/", "aoa/examples/"),
-    "aoa-ocel": ("aoa/action_machine/", "aoa/otel/", "aoa/maxitor/", "aoa/examples/"),
-    "aoa-otel": ("aoa/action_machine/", "aoa/ocel/", "aoa/maxitor/", "aoa/examples/"),
-    "aoa-maxitor": ("aoa/ocel/", "aoa/otel/", "aoa/examples/"),
-    "aoa-examples": ("aoa/maxitor/",),
+    dist: tuple(other for d, other in _DIST_NAMESPACE.items() if d != dist) for dist in _DIST_NAMESPACE
 }
 
 
