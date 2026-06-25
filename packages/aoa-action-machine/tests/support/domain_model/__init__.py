@@ -6,7 +6,7 @@ Shared test domain model for ActionMachine.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Central export point for reusable test Actions, domains, services, and plugins.
+Central export point for reusable test Actions, domains, and services.
 Use these classes when tests need a working Action pipeline. Intentionally
 broken edge-case Actions should stay local to the test module.
 
@@ -25,8 +25,6 @@ ERROR-HANDLING ACTIONS (@on_error)
 ═══════════════════════════════════════════════════════════════════════════════
 
 ErrorHandledAction      — catches ValueError.
-MultiErrorAction        — three handlers (specific → general).
-NoErrorHandlerAction    — no handler; errors propagate.
 HandlerRaisesAction     — handler itself raises.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -34,17 +32,8 @@ COMPENSATION ACTIONS (@compensate)
 ═══════════════════════════════════════════════════════════════════════════════
 
 CompensatedOrderAction      — baseline reverse-order unwind.
-PartialCompensateAction     — only some aspects expose @compensate (sparse undo stack).
-CompensateErrorAction       — compensator failure suppression.
 CompensateAndOnErrorAction  — order: compensate first, then @on_error.
 CompensateWithContextAction — compensator receives ContextView.
-
-═══════════════════════════════════════════════════════════════════════════════
-CUSTOM EXCEPTIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-InsufficientFundsError  — not enough balance.
-PaymentGatewayError     — payment gateway failure.
 
 ═══════════════════════════════════════════════════════════════════════════════
 DEPENDENCY SERVICES
@@ -53,14 +42,6 @@ DEPENDENCY SERVICES
 PaymentService          — payments (charge, refund).
 NotificationService     — notifications (send).
 InventoryService        — inventory (reserve, unreserve).
-
-═══════════════════════════════════════════════════════════════════════════════
-OBSERVER PLUGINS
-═══════════════════════════════════════════════════════════════════════════════
-
-ErrorObserverPlugin     — records aspect error events into plugin state.
-ErrorCounterPlugin      — counts handled vs unhandled aspect errors.
-SagaObserverPlugin      — records all five compensation event types into state.
 
 ═══════════════════════════════════════════════════════════════════════════════
 LIMITATIONS
@@ -76,23 +57,17 @@ from .child_action import ChildAction
 from .compensate_actions import (
     CompensateAndOnErrorAction,
     CompensatedOrderAction,
-    CompensateErrorAction,
     CompensateTestParams,
     CompensateTestResult,
     CompensateWithContextAction,
-    PartialCompensateAction,
 )
-from .compensate_plugins import SagaObserverPlugin
 from .domains import OrdersDomain, SystemDomain
 from .error_actions import (
     ErrorHandledAction,
     ErrorTestParams,
     ErrorTestResult,
     HandlerRaisesAction,
-    MultiErrorAction,
-    NoErrorHandlerAction,
 )
-from .error_plugins import ErrorCounterPlugin, ErrorObserverPlugin
 from .full_action import FullAction
 from .ping_action import PingAction
 from .services import (
@@ -102,8 +77,6 @@ from .services import (
     NotificationServiceResource,
     PaymentService,
     PaymentServiceResource,
-    SagaCompensateTraceService,
-    SagaCompensateTraceServiceResource,
 )
 from .simple_action import SimpleAction
 from .test_db_manager import OrdersDbManager
@@ -112,40 +85,24 @@ __all__ = [
     "AdminAction",
     "ChildAction",
     "CompensateAndOnErrorAction",
-    "CompensateErrorAction",
-    # Params/Result
     "CompensateTestParams",
     "CompensateTestResult",
     "CompensateWithContextAction",
-    # Actions with @compensate
     "CompensatedOrderAction",
-    # Plugins
-    "ErrorCounterPlugin",
-    # Actions with @on_error
     "ErrorHandledAction",
-    "ErrorObserverPlugin",
     "ErrorTestParams",
     "ErrorTestResult",
     "FullAction",
     "HandlerRaisesAction",
-    # Services
     "InventoryService",
     "InventoryServiceResource",
-    "MultiErrorAction",
-    "NoErrorHandlerAction",
     "NotificationService",
     "NotificationServiceResource",
     "OrdersDbManager",
-    # Domains
     "OrdersDomain",
-    "PartialCompensateAction",
     "PaymentService",
     "PaymentServiceResource",
-    # Base actions
     "PingAction",
-    "SagaCompensateTraceService",
-    "SagaCompensateTraceServiceResource",
-    "SagaObserverPlugin",
     "SimpleAction",
     "SystemDomain",
 ]

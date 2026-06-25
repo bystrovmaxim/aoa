@@ -18,8 +18,7 @@ INTERFACES
 ═══════════════════════════════════════════════════════════════════════════════
 
 `PaymentService` (`charge`, `refund`), `NotificationService` (`send`),
-`InventoryService` (`reserve`, `unreserve`), `SagaCompensateTraceService`
-(test-only hook for asserting compensator calls).
+`InventoryService` (`reserve`, `unreserve`).
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLE
@@ -180,25 +179,6 @@ class InventoryServiceResource(ExternalServiceResource[InventoryService]):
     """Resource manager wrapping :class:`InventoryService` for ``@depends`` / mocks."""
 
 
-class SagaCompensateTraceService:
-    """
-    Test helper: compensators call this so tests assert rollback order and args.
-
-    Not used in production actions; only in saga contract tests.
-    """
-
-    async def record_second_rollback(self, *, state_after_none: bool) -> None:
-        """Record that the second aspect's compensator ran."""
-        raise NotImplementedError(
-            "SagaCompensateTraceService.record_second_rollback() is not implemented",
-        )
-
-
-@meta(description="Saga compensate trace resource (test domain)", domain=TestDomain)
-class SagaCompensateTraceServiceResource(ExternalServiceResource[SagaCompensateTraceService]):
-    """Resource manager wrapping :class:`SagaCompensateTraceService` for ``@depends`` / mocks."""
-
-
 def default_payment_service_resource() -> PaymentServiceResource:
     return PaymentServiceResource(PaymentService())
 
@@ -209,7 +189,3 @@ def default_notification_service_resource() -> NotificationServiceResource:
 
 def default_inventory_service_resource() -> InventoryServiceResource:
     return InventoryServiceResource(InventoryService())
-
-
-def default_saga_compensate_trace_service_resource() -> SagaCompensateTraceServiceResource:
-    return SagaCompensateTraceServiceResource(SagaCompensateTraceService())
