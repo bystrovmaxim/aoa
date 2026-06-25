@@ -26,7 +26,7 @@ Both inherit Exception directly. Used to test handler ordering and type matching
 USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-    from tests.support.domain_model.error_actions import (
+    from ...support.domain_model.error_actions import (
         ErrorHandledAction,
         MultiErrorAction,
         NoErrorHandlerAction,

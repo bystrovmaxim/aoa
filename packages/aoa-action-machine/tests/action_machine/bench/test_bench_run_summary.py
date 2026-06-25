@@ -50,7 +50,8 @@ import pytest
 
 from aoa.action_machine.testing import TestBench
 from aoa.action_machine.testing.state_validator import StateValidationError
-from tests.support.domain_model import FullAction, PingAction
+
+from ...support.domain_model import FullAction, PingAction
 
 
 class TestCompleteState:

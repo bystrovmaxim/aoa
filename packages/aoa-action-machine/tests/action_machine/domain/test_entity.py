@@ -34,7 +34,8 @@ from pydantic import ValidationError
 from aoa.action_machine.domain import BaseEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.entity.entity_decorator import EntityDecoratorError
-from tests.support.domain_model.entities import SampleEntity, TestDomain
+
+from ...support.domain_model.entities import SampleEntity, TestDomain
 
 
 class TestEntityDecorator:

@@ -6,8 +6,9 @@ import pytest
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.depends.depends_intent import DependsIntent
 from aoa.action_machine.model.base_action import BaseAction
-from tests.support.domain_model.ping_action import PingAction
-from tests.support.domain_model.services import PaymentServiceResource
+
+from ...support.domain_model.ping_action import PingAction
+from ...support.domain_model.services import PaymentServiceResource
 
 
 class _PlainSvc:

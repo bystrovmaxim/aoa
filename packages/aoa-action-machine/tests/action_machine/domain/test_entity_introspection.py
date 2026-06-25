@@ -10,7 +10,8 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseEntity, FieldNotLoadedError, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from tests.support.domain_model.entities import (
+
+from ...support.domain_model.entities import (
     DraftLifecycle,
     LifecycleEntity,
     RelatedEntity,

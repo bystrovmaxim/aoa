@@ -8,7 +8,8 @@ from aoa.action_machine.resources.per_call_connection import (
     resolve_connections,
     validate_connection_entries,
 )
-from tests.action_machine.resources.test_connections_dict import DummyResourceManager
+
+from ...action_machine.resources.test_connections_dict import DummyResourceManager
 
 
 def test_resolve_connections_none() -> None:
@@ -57,7 +58,8 @@ def test_resolve_connections_factory_must_return_base_resource() -> None:
 
 def test_mcp_route_record_accepts_connections_field() -> None:
     from aoa.mcp.route_record import McpRouteRecord
-    from tests.support.domain_model import PingAction
+
+    from ...support.domain_model import PingAction
 
     res = DummyResourceManager()
     record = McpRouteRecord(
@@ -70,7 +72,8 @@ def test_mcp_route_record_accepts_connections_field() -> None:
 
 def test_fastapi_route_record_accepts_connections_field() -> None:
     from aoa.fastapi.route_record import FastApiRouteRecord
-    from tests.support.domain_model import PingAction
+
+    from ...support.domain_model import PingAction
 
     res = DummyResourceManager()
     record = FastApiRouteRecord(

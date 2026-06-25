@@ -10,7 +10,8 @@ import pytest
 from aoa.action_machine.graph.core.debug_node_graph_coordinator import DagCycleViolation, DebugNodeGraphCoordinator
 from aoa.action_machine.graph.core.exceptions import InvalidGraphError
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from tests.support.domain_model import PingAction
+
+from ...support.domain_model import PingAction
 
 
 def _params() -> PingAction.Params:

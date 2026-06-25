@@ -47,7 +47,8 @@ from pydantic import Field
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
-from tests.support.domain_model.roles import AdminRole, AgentRole, ManagerRole, UserRole
+
+from ...support.domain_model.roles import AdminRole, AgentRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Basic flat field access

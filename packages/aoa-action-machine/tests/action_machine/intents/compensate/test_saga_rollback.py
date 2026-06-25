@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import pytest
 
-from tests.support.domain_model.compensate_actions import CompensatedOrderAction, CompensateTestParams
+from ....support.domain_model.compensate_actions import CompensatedOrderAction, CompensateTestParams
 
 
 class TestCompensatorReturnValueIgnored:

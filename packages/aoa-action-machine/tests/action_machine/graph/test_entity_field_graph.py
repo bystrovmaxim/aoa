@@ -13,7 +13,8 @@ from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_field_graph_node import EntityFieldGraphNode
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from tests.support.domain_model.entities import RelatedEntity, SampleEntity
+
+from ...support.domain_model.entities import RelatedEntity, SampleEntity
 
 
 def test_entity_node_json_omits_nested_fields() -> None:

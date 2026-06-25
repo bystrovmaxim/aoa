@@ -25,7 +25,8 @@ from aoa.action_machine.domain import BaseEntity, Lifecycle
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.testing import make
 from aoa.action_machine.intents.entity import entity
-from tests.support.domain_model.entities import SampleEntity
+
+from ...support.domain_model.entities import SampleEntity
 
 
 def test_make_generates_primitive_defaults() -> None:

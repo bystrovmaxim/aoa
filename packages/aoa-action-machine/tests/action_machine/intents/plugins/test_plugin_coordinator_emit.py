@@ -19,7 +19,8 @@ from aoa.action_machine.plugin.core.events import (
     GlobalStartEvent,
 )
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
-from tests.support.domain_model import PingAction
+
+from ....support.domain_model import PingAction
 
 
 class _RecordingPluginCtx:

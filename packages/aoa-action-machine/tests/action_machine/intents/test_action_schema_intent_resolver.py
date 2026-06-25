@@ -1,7 +1,8 @@
 import pytest
 
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
-from tests.support.domain_model.ping_action import PingAction
+
+from ...support.domain_model.ping_action import PingAction
 
 
 class NoActionSchema:

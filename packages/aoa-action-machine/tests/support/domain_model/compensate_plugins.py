@@ -50,7 +50,7 @@ SagaObserverPlugin — records all five compensation event types into
 ═══════════════════════════════════════════════════════════════════════════════
 USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
-    from tests.support.domain_model.compensate_plugins import SagaObserverPlugin
+    from ...support.domain_model.compensate_plugins import SagaObserverPlugin
 
     observer = SagaObserverPlugin()
     bench = TestBench(

@@ -9,7 +9,8 @@ import pytest
 
 from aoa.action_machine.logging.channel import Channel
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from tests.support.domain_model.child_action import ChildAction
+
+from ...support.domain_model.child_action import ChildAction
 
 
 class TestToolsBoxResolve:

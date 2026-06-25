@@ -2,11 +2,12 @@
 """@connection argument and target validation."""
 
 import pytest
-from tests.support.domain_model.domains import TestDomain
 
 from aoa.action_machine.intents.connection.connection_decorator import _validate_connection_args, connection
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.resources.base_resource import BaseResource
+
+from ....support.domain_model.domains import TestDomain
 
 
 @meta(description="Connection decorator test resource", domain=TestDomain)

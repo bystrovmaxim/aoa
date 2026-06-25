@@ -10,7 +10,8 @@ from aoa.action_machine.graph.inspectors.action_graph_node_inspector import Acti
 from aoa.action_machine.graph.inspectors.params_graph_node_inspector import ParamsGraphNodeInspector
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.result_graph_node import ResultGraphNode
-from tests.support.domain_model.child_action import ChildAction
+
+from ...support.domain_model.child_action import ChildAction
 
 
 def test_model_package_exports_core_contracts_only() -> None:

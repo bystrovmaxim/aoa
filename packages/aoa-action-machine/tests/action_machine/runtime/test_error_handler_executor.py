@@ -30,8 +30,9 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.error_handler_executor import ErrorHandlerExecutor
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core import TypeIntrospection
-from tests.support.domain_model.domains import OrdersDomain
-from tests.support.domain_model.error_actions import (
+
+from ...support.domain_model.domains import OrdersDomain
+from ...support.domain_model.error_actions import (
     ErrorHandledAction,
     ErrorTestParams,
     ErrorTestResult,

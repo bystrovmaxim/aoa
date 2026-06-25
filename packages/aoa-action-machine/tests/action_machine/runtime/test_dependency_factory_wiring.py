@@ -13,9 +13,10 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from tests.support.domain_model import FullAction, PingAction
-from tests.support.domain_model.services import NotificationServiceResource, PaymentServiceResource
-from tests.support.domain_model.test_db_manager import OrdersDbManager
+
+from ...support.domain_model import FullAction, PingAction
+from ...support.domain_model.services import NotificationServiceResource, PaymentServiceResource
+from ...support.domain_model.test_db_manager import OrdersDbManager
 
 
 def test_tools_box_dependency_factory_from_interchange_edges() -> None:

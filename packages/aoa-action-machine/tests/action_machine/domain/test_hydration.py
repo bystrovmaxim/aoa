@@ -28,7 +28,8 @@ from pydantic import ValidationError
 from aoa.action_machine.domain import BaseEntity, build
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
-from tests.support.domain_model.entities import RelatedEntity, SampleEntity
+
+from ...support.domain_model.entities import RelatedEntity, SampleEntity
 
 
 class _HydrationTestDomain(BaseDomain):

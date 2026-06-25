@@ -43,7 +43,8 @@ from aoa.action_machine.logging.variable_substitutor import VariableSubstitutor
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.testing.stubs import ContextStub
-from tests.support.domain_model import SimpleAction
+
+from ....support.domain_model import SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Auxiliary models for tests

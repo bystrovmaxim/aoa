@@ -8,8 +8,9 @@ from aoa.action_machine.graph.edges.regular_aspect_graph_edge import RegularAspe
 from aoa.action_machine.graph.edges.required_context_graph_edge import RequiredContextGraphEdge
 from aoa.action_machine.graph.edges.summary_aspect_graph_edge import SummaryAspectGraphEdge
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
-from tests.support.domain_model.child_action import ChildAction
-from tests.support.domain_model.ping_action import PingAction
+
+from ...support.domain_model.child_action import ChildAction
+from ...support.domain_model.ping_action import PingAction
 
 
 def test_get_summary_aspect_builds_edges() -> None:

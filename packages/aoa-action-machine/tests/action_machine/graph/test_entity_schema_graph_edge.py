@@ -32,12 +32,13 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from tests.action_machine.adapters.entity_projection_adapter_fixtures import (
+
+from ...action_machine.adapters.entity_projection_adapter_fixtures import (
     EntityProjectionAdapterTestAction,
     EntityProjectionParamsMcpTestAction,
 )
-from tests.support.domain_model.domains import TestDomain
-from tests.support.domain_model.entities import SampleEntity
+from ...support.domain_model.domains import TestDomain
+from ...support.domain_model.entities import SampleEntity
 
 _ORPHAN_WIRE: dict[str, object] = {
     "type": "object",
@@ -142,7 +143,7 @@ def test_property_graph_node_emits_entity_schema() -> None:
 
 
 def test_default_coordinator_build_with_entity_projection_actions() -> None:
-    import tests.action_machine.adapters.entity_projection_adapter_fixtures  # noqa: F401
+    from ...action_machine.adapters import entity_projection_adapter_fixtures  # noqa: F401
 
     coordinator = create_node_graph_coordinator()
     assert len(coordinator.get_all_nodes()) > 0

@@ -35,7 +35,8 @@ import pytest
 
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.testing import MockAction
-from tests.support.domain_model import PingAction
+
+from ...support.domain_model import PingAction
 
 
 class TestFixedResult:

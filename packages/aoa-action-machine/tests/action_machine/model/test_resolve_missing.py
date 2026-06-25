@@ -50,7 +50,8 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.context.runtime_info import RuntimeInfo
 from aoa.action_machine.context.user_info import UserInfo
-from tests.support.domain_model.roles import AdminRole, UserRole
+
+from ...support.domain_model.roles import AdminRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Info subclasses for nested navigation tests

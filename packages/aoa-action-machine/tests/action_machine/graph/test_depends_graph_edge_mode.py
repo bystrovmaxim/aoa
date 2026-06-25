@@ -8,7 +8,8 @@ from jsonschema.exceptions import ValidationError
 from aoa.action_machine.graph.edges.depends_graph_edge import DependsGraphEdge
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.intents.depends import UseCase
-from tests.support.domain_model.depends_mode_host_action import DependsModeHostAction
+
+from ...support.domain_model.depends_mode_host_action import DependsModeHostAction
 
 
 def test_get_dependency_edges_includes_mode_in_properties() -> None:

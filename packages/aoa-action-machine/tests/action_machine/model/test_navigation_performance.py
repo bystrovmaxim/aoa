@@ -17,7 +17,8 @@ from aoa.action_machine.logging.log_scope import LogScope
 from aoa.action_machine.logging.variable_substitutor import VariableSubstitutor
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
-from tests.action_machine.bench.bench_report import (
+
+from ...action_machine.bench.bench_report import (
     emit_benchmark_report,
     rows_compare_two_timings,
     rows_throughput_budget,

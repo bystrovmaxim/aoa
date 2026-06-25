@@ -54,7 +54,8 @@ from aoa.action_machine.auth.auth_coordinator import (
 from aoa.action_machine.auth.authenticator import Authenticator
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from tests.support.domain_model.roles import AdminRole, SpyRole
+
+from ....support.domain_model.roles import AdminRole, SpyRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Mock implementations of authentication components

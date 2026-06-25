@@ -23,7 +23,8 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from tests.support.domain_model.domains import OrdersDomain
+
+from ...support.domain_model.domains import OrdersDomain
 
 # ─── Domain types used as CacheTag.type ───────────────────────────────────────
 

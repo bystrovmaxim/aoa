@@ -39,13 +39,14 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.testing import StubTesterRole, TestBench
-from tests.support.domain_model.compensate_actions import (
+
+from ....support.domain_model.compensate_actions import (
     CompensatedOrderAction,
     CompensateTestParams,
     CompensateWithContextAction,
 )
-from tests.support.domain_model.domains import TestDomain
-from tests.support.domain_model.services import (
+from ....support.domain_model.domains import TestDomain
+from ....support.domain_model.services import (
     InventoryServiceResource,
     PaymentService,
     PaymentServiceResource,

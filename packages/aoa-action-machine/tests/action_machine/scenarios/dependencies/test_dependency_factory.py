@@ -29,7 +29,8 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 from aoa.action_machine.runtime.dependency_info import DependencyInfo
-from tests.support.domain_model.domains import TestDomain
+
+from ....support.domain_model.domains import TestDomain
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper classes — intentionally simple, defined here for isolation.

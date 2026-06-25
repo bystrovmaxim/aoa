@@ -25,7 +25,8 @@ from aoa.action_machine.model.result_stub import ResultStub
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from tests.support.domain_model.domains import TestDomain
+
+from ...support.domain_model.domains import TestDomain
 
 
 @meta(description="Parent gen action for PR-2 generalization factory tests", domain=TestDomain)

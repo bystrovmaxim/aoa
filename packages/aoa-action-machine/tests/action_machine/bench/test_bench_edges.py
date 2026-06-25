@@ -63,9 +63,10 @@ from aoa.action_machine.resources.external_service.wrapper_external_service_reso
 )
 from aoa.action_machine.testing.bench import TestBench, _prepare_all_mocks, _prepare_mock, _reset_all_mocks
 from aoa.action_machine.testing.mock_action import MockAction, MockActionResult
-from tests.support.domain_model import PingAction
-from tests.support.domain_model.roles import AdminRole
-from tests.support.domain_model.services import PaymentService, PaymentServiceResource
+
+from ...support.domain_model import PingAction
+from ...support.domain_model.roles import AdminRole
+from ...support.domain_model.services import PaymentService, PaymentServiceResource
 
 # ═════════════════════════════════════════════════════════════════════════════
 # _prepare_mock — rule priority

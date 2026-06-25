@@ -39,7 +39,8 @@ from dataclasses import dataclass
 from pydantic import BaseModel
 
 from aoa.action_machine.adapters.base_route_record import BaseRouteRecord
-from tests.support.domain_model import PingAction
+
+from ...support.domain_model import PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers — non-standard models, not part of the production domain.

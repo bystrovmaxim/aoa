@@ -32,9 +32,10 @@ from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from tests.support.domain_model.domains import OrdersDomain
-from tests.support.domain_model.error_actions import ErrorTestParams, ErrorTestResult
-from tests.support.domain_model.roles import ManagerRole
+
+from ...support.domain_model.domains import OrdersDomain
+from ...support.domain_model.error_actions import ErrorTestParams, ErrorTestResult
+from ...support.domain_model.roles import ManagerRole
 
 _summary_counter: dict[str, int] = {"n": 0}
 

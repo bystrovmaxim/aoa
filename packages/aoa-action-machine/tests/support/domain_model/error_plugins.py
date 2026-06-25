@@ -35,7 +35,7 @@ PLUGINS
 ═══════════════════════════════════════════════════════════════════════════════
 USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
-    from tests.support.domain_model.error_plugins import ErrorObserverPlugin, ErrorCounterPlugin
+    from ...support.domain_model.error_plugins import ErrorObserverPlugin, ErrorCounterPlugin
 
     observer = ErrorObserverPlugin()
     counter = ErrorCounterPlugin()

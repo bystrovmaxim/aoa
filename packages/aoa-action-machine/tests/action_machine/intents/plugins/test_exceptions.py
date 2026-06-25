@@ -41,8 +41,8 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.plugin.core.events import GlobalFinishEvent
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
-from tests.action_machine.intents.logging.test_log_coordinator import RecordingLogger
 
+from ....action_machine.intents.logging.test_log_coordinator import RecordingLogger
 from .conftest import (
     _TEST_ACTION_CLASS,
     _TEST_ACTION_NAME,

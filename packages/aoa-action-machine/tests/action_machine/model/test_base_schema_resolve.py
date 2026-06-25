@@ -50,7 +50,8 @@ from aoa.action_machine.context.runtime_info import RuntimeInfo
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.model.base_schema import BaseSchema
 from aoa.action_machine.model.base_state import BaseState
-from tests.support.domain_model.roles import AdminRole, AgentRole, UserRole
+
+from ...support.domain_model.roles import AdminRole, AgentRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Helper classes

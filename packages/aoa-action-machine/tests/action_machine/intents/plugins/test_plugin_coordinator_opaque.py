@@ -12,7 +12,8 @@ from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.plugin.core.events import AfterRegularAspectEvent
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
-from tests.support.domain_model import PingAction
+
+from ....support.domain_model import PingAction
 
 
 class _RecordingPluginCtx:

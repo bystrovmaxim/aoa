@@ -13,7 +13,8 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from tests.support.domain_model.domains import TestDomain
+
+from ...support.domain_model.domains import TestDomain
 
 
 class ChildNestedParams(BaseParams):

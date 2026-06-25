@@ -43,7 +43,8 @@ Integration with ``BaseAction``:
 from aoa.action_machine.intents.depends.depends_eligible import DependsEligible
 from aoa.action_machine.intents.depends.depends_intent import DependsIntent
 from aoa.action_machine.resources.base_resource import BaseResource
-from tests.support.domain_model import FullAction, PingAction
+
+from ...support.domain_model import FullAction, PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers — test-only classes, not part of the production domain.

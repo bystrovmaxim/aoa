@@ -32,11 +32,12 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.role_checker import RoleChecker
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core import TypeIntrospection
-from tests.action_machine.scenarios.intents_with_runtime.test_role_checker_pr2 import OrderManagerRole, OrderViewerRole
-from tests.support.domain_model.admin_action import AdminAction
-from tests.support.domain_model.domains import SystemDomain
-from tests.support.domain_model.ping_action import PingAction
-from tests.support.domain_model.roles import AdminRole, EditorRole, SpyRole, UserRole
+
+from ...action_machine.scenarios.intents_with_runtime.test_role_checker_pr2 import OrderManagerRole, OrderViewerRole
+from ...support.domain_model.admin_action import AdminAction
+from ...support.domain_model.domains import SystemDomain
+from ...support.domain_model.ping_action import PingAction
+from ...support.domain_model.roles import AdminRole, EditorRole, SpyRole, UserRole
 
 importlib.import_module("tests.support.domain_model.full_action")
 

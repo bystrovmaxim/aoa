@@ -55,7 +55,8 @@ from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.context.runtime_info import RuntimeInfo
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import ContextAccessError
-from tests.support.domain_model.roles import AdminRole, ManagerRole, UserRole
+
+from ....support.domain_model.roles import AdminRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Info subclasses for custom-field tests.

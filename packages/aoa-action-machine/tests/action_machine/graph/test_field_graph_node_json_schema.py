@@ -17,7 +17,8 @@ from __future__ import annotations
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.result_graph_node import ResultGraphNode
 from aoa.action_machine.model.base_result import BaseResult
-from tests.action_machine.adapters.json_schema_adapter_fixtures import AdapterTestAction, GraphJson
+
+from ...action_machine.adapters.json_schema_adapter_fixtures import AdapterTestAction, GraphJson
 
 AdapterTestResult = AdapterTestAction.Result
 

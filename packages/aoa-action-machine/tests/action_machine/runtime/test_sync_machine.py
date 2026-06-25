@@ -27,7 +27,8 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
 from aoa.action_machine.testing.stubs import ContextStub
-from tests.support.domain_model.child_action import ChildAction
+
+from ...support.domain_model.child_action import ChildAction
 
 
 @pytest.fixture()
