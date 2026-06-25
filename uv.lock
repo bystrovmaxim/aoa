@@ -69,6 +69,13 @@ postgres = [
     { name = "asyncpg" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "anyio" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29,<1.0" },
@@ -77,6 +84,13 @@ requires-dist = [
     { name = "simpleeval", specifier = ">=1.0,<2.0" },
 ]
 provides-extras = ["postgres"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "anyio", specifier = ">=4.0" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
+]
 
 [[package]]
 name = "aoa-examples"
@@ -96,6 +110,12 @@ mcp = [
     { name = "aoa-mcp-adapter" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
@@ -105,6 +125,12 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.0,<3.0" },
 ]
 provides-extras = ["fastapi", "mcp"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
+]
 
 [[package]]
 name = "aoa-fastapi-adapter"
@@ -116,11 +142,25 @@ dependencies = [
     { name = "uvicorn", extra = ["standard"] },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
     { name = "fastapi", specifier = ">=0.100,<1.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.20,<1.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
 
 [[package]]
@@ -132,10 +172,22 @@ dependencies = [
     { name = "langgraph" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
     { name = "langgraph", specifier = ">=0.2,<1.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
 
 [[package]]
@@ -149,12 +201,24 @@ dependencies = [
     { name = "httpx" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
     { name = "aoa-fastapi-adapter", editable = "packages/aoa-fastapi-adapter" },
     { name = "duckdb", specifier = ">=1.1,<2" },
     { name = "httpx", specifier = ">=0.27,<1.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
 
 [[package]]
@@ -166,10 +230,22 @@ dependencies = [
     { name = "mcp" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
     { name = "mcp", specifier = ">=1.0,<2.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
 
 [[package]]
@@ -181,10 +257,24 @@ dependencies = [
     { name = "xxhash" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pm4py" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
     { name = "xxhash", specifier = ">=3.4,<4" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pm4py", specifier = ">=2.7.22.3" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
 
 [[package]]
@@ -197,11 +287,23 @@ dependencies = [
     { name = "opentelemetry-sdk" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
     { name = "opentelemetry-api", specifier = ">=1.20,<2.0" },
     { name = "opentelemetry-sdk", specifier = ">=1.20,<2.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
 
 [[package]]

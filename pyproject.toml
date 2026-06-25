@@ -111,7 +111,7 @@ packages = ["aoa_run"]
 # PYTEST
 # ============================================================================
 [tool.pytest.ini_options]
-testpaths = ["tests", "packages/aoa-examples/aoa_examples_tests"]
+testpaths = ["tests"]
 asyncio_mode = "auto"
 # Четыре `…/src` на PYTHONPATH для неймспейса `aoa.*`; `.` — корень репо (conftest/fixtures).
 pythonpath = [
@@ -253,6 +253,10 @@ load-plugins = [
     "pylint.extensions.docparams",
 ]
 jobs = 0
+# Per-package test suites (packages/<pkg>/tests/) are linted by ruff, not pylint —
+# pylint's production rules (e.g. import-outside-toplevel) don't apply to test code.
+# The bulk of tests historically lived in the root tests/ tree, outside `pylint packages/`.
+ignore-paths = ['.*/tests/.*']
 
 [tool.pylint."messages control"]
 disable = [
@@ -381,31 +385,41 @@ src_paths = ["packages", "aoa_run", "tests"]
 # VULTURE
 # ============================================================================
 [tool.vulture]
-paths = ["packages/aoa-action-machine/src/aoa/action_machine"]
+paths = [
+    "packages/aoa-action-machine/src/aoa/action_machine",
+    "packages/aoa-ocel/src/aoa/ocel",
+    "packages/aoa-otel/src/aoa/otel",
+    "packages/aoa-fastapi-adapter/src/aoa/fastapi",
+    "packages/aoa-mcp-adapter/src/aoa/mcp",
+    "packages/aoa-langgraph-adapter/src/aoa/langgraph",
+    "packages/aoa-maxitor/src/aoa/maxitor",
+    "packages/aoa-examples/src/aoa/examples",
+]
 min_confidence = 80
 exclude = ["tests/"]
+# Intentionally-unused interface parameters in the aoa-examples billing demo stubs
+# (LedgerArchiveService.append / TaxQuoteService.rate_for keep the real service
+# signature but ignore their inputs in the stub bodies).
+ignore_names = ["event_type", "jurisdiction"]
 
 # ============================================================================
 # TASKIPY — УДОБНЫЕ КОМАНДЫ
 # ============================================================================
 [tool.taskipy.tasks]
 maxitor-api = "uv run uvicorn aoa.maxitor.api.app:app --reload --host 127.0.0.1 --port 8000"
-test = "pytest tests/ --ignore=tests/packaging -v"
 packaging-smoke = "pytest tests/packaging -v"
-build-packages = "uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-maxitor && uv run --group dev python -m build packages/aoa-examples"
-cov = "pytest tests/ --ignore=tests/packaging --cov=packages/aoa-action-machine/src/aoa/action_machine --cov-report=term-missing"
+build-packages = "uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-ocel && uv run --group dev python -m build packages/aoa-otel && uv run --group dev python -m build packages/aoa-fastapi-adapter && uv run --group dev python -m build packages/aoa-mcp-adapter && uv run --group dev python -m build packages/aoa-langgraph-adapter && uv run --group dev python -m build packages/aoa-maxitor && uv run --group dev python -m build packages/aoa-examples"
+cov = "pytest packages/aoa-action-machine/tests/ --cov=packages/aoa-action-machine/src/aoa/action_machine --cov-report=term-missing"
 # Lint sources under packages/, tests/, scripts/, and the root meta package ``aoa_run``.
 lint = "ruff check packages/ tests/ scripts/ aoa_run/"
 fmt = "black packages/ tests/ aoa_run/ && isort packages/ tests/ aoa_run/"
 # Narrow mypy pass on action_machine; full tree: ``task typecheck``.
 types = "mypy packages/aoa-action-machine/src"
-test-layer-imports = "python scripts/check_test_layer_imports.py"
 samples-public-api = "python scripts/check_maxitor_samples_public_api.py"
 package-boundaries = "python scripts/check_package_boundaries.py"
-package-boundaries-tests = "python scripts/check_package_boundaries.py --tests"
 package-metadata = "python scripts/check_package_metadata.py"
-check = "task lint && task types && task package-boundaries && task package-boundaries-tests && task package-metadata && task build-packages && task packaging-smoke && task test-layer-imports && task samples-public-api && task test"
-dead = "vulture packages/aoa-action-machine/src/aoa/action_machine"
+check = "task lint && task types && task package-boundaries && task package-metadata && task build-packages && task packaging-smoke && task samples-public-api"
+dead = "vulture"
 typecheck = "mypy packages/aoa-action-machine/src packages/aoa-maxitor/src packages/aoa-examples/src packages/aoa-langgraph-adapter/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
 pylint = "pylint packages/"
 cc = "radon cc packages/ -a -nb"
