@@ -79,8 +79,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import cast
 
-from aoa.action_machine.runtime.base_controller import BaseController
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # EXCEPTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -225,7 +223,7 @@ class _StateBuilder:
         _completed: Set after ``.initial()`` / ``.intermediate()`` / ``.final()``.
     """
 
-    def __init__(self, lifecycle: LifecycleController, key: str, display_name: str) -> None:
+    def __init__(self, lifecycle: Lifecycle, key: str, display_name: str) -> None:
         self._lifecycle = lifecycle
         self._key = key
         self._display_name = display_name
@@ -259,15 +257,15 @@ class _StateBuilder:
             self._transitions.add(key)
         return self
 
-    def initial(self) -> LifecycleController:
+    def initial(self) -> Lifecycle:
         """Mark this state as ``INITIAL`` and register it on the template."""
         return self._finalize(StateType.INITIAL)
 
-    def intermediate(self) -> LifecycleController:
+    def intermediate(self) -> Lifecycle:
         """Mark this state as ``INTERMEDIATE`` and register it on the template."""
         return self._finalize(StateType.INTERMEDIATE)
 
-    def final(self) -> LifecycleController:
+    def final(self) -> Lifecycle:
         """
         Mark this state as ``FINAL`` and register it on the template.
 
@@ -282,7 +280,7 @@ class _StateBuilder:
             )
         return self._finalize(StateType.FINAL)
 
-    def _finalize(self, state_type: StateType) -> LifecycleController:
+    def _finalize(self, state_type: StateType) -> Lifecycle:
         """
         Close this state and append it to the parent template.
 
@@ -316,7 +314,7 @@ class _StateBuilder:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class LifecycleController(BaseController):
+class Lifecycle:
     """
     AI-CORE-BEGIN
         ROLE: Unified template/instance lifecycle object.
@@ -325,7 +323,7 @@ class LifecycleController(BaseController):
         AI-CORE-END
     """
 
-    _template: LifecycleController | None = None
+    _template: Lifecycle | None = None
 
     def __init__(self, current_state: str | None = None) -> None:
         """
@@ -364,7 +362,7 @@ class LifecycleController(BaseController):
             self._current_state = current_state
 
     @classmethod
-    def _get_template(cls) -> LifecycleController | None:
+    def _get_template(cls) -> Lifecycle | None:
         """
         Resolve ``_template`` from the class MRO.
 
@@ -374,8 +372,8 @@ class LifecycleController(BaseController):
         """
         for klass in cls.__mro__:
             template = klass.__dict__.get("_template")
-            if template is not None and isinstance(template, LifecycleController):
-                return cast(LifecycleController, template)
+            if template is not None and isinstance(template, Lifecycle):
+                return cast(Lifecycle, template)
         return None
 
     # ─────────────────────────────────────────────────────────────────────
@@ -480,7 +478,7 @@ class LifecycleController(BaseController):
         """
         return target in self.current_state_info.transitions
 
-    def transition(self, target: str) -> LifecycleController:
+    def transition(self, target: str) -> Lifecycle:
         """
         Return a **new** instance of this class with ``current_state == target``.
 
@@ -551,12 +549,9 @@ class LifecycleController(BaseController):
         )
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, LifecycleController):
+        if not isinstance(other, Lifecycle):
             return NotImplemented
         return type(self) is type(other) and self._current_state == other._current_state
 
     def __hash__(self) -> int:
         return hash((type(self), self._current_state))
-
-
-Lifecycle = LifecycleController
