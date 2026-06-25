@@ -40,11 +40,12 @@ from aoa.action_machine.exceptions.handle_error import HandleError
 from aoa.action_machine.exceptions.transaction_prohibited_error import TransactionProhibitedError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.resources.sql.protocol_sql_resource import ProtocolSqlResource
 
 
 @exclude_graph_model
-class WrapperSqlResource(BaseResource, ProtocolSqlResource):
+class WrapperSqlResource(BaseStorage, ProtocolSqlResource):
     """
     SQL manager proxy for nested actions.
 
