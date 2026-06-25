@@ -71,9 +71,10 @@ from aoa.action_machine.plugin.core.events import (
 )
 from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
+from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 
 
-class PluginCoordinator:
+class PluginCoordinator(BaseCoordinator):
     """
     AI-CORE-BEGIN
         ROLE: Runtime coordinator for plugin context creation and machine-owned event emissions.
