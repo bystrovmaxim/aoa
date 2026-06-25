@@ -110,9 +110,7 @@ export function buildActionGlyphDataUrl(label: string, accentColor: string): str
     `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${accentColor}" stroke-width="1.3" stroke-linecap="round"/>` +
     `</svg>`;
 
-  const b64 = typeof btoa !== "undefined"
-    ? btoa(unescape(encodeURIComponent(svg)))
-    : Buffer.from(svg, "utf8").toString("base64");
+  const b64 = btoa(unescape(encodeURIComponent(svg)));
   return `data:image/svg+xml;base64,${b64}`;
 }
 
