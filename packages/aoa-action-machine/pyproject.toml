@@ -29,3 +29,19 @@ Repository = "https://github.com/action-machine/action-machine"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aoa"]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "anyio>=4.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["src"]
+addopts = ["-ra", "--strict-markers", "--tb=short"]
+markers = [
+    "slow: slow test",
+    "integration: integration test (may require external services)",
+    "benchmark: performance benchmark test",
+    "graph_coverage: graph-coverage assertion test",
+    "facet_skeleton: facet skeleton test",
+]

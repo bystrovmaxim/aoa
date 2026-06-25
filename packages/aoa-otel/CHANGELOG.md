@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Test suite relocated into the package (`packages/aoa-otel/tests/`).** OpenTelemetry tests moved out of the shared root `tests/otel/` into the package's own `tests/` directory, with a per-package `[dependency-groups]` dev group and `[tool.pytest.ini_options]`. The cross-package dependency on `tests/action_machine/scenarios` (a `PingAction` / `TestDomain` sample domain) was replaced by a minimal, self-contained `tests/support/` stub — a faithful trimmed copy — so the package no longer reaches into another package's test tree. ([#82](https://github.com/bystrovmaxim/aoa/issues/82))
+
 ## [1.0.0] – 2026-06-24
 
 ### Added

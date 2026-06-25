@@ -38,3 +38,11 @@ Repository = "https://github.com/action-machine/action-machine"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aoa"]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["src"]

@@ -8,9 +8,7 @@
  * - `edges[].data`: `label` (DuckDB `edges.relationship`), `edge_type` only.
  * - `constants` may include `layout_entity_scalar_link`, `entity_field_*` for Entity ↔ EntityField layout.
  * Do not add DuckDB `payload` blobs or duplicate id/relationship fields without updating
- * `tests/maxitor/`.
- *
- * **Wire metrics (PR-3):** run `uv run python scripts/measure_full_graph_payload.py` from repo root.
+ * `packages/aoa-maxitor/tests/`.
  */
 
 /** Node ``data`` from ``GET /api/v1/full-graph`` (slim contract; G6 still types ``data`` as unknown). */
