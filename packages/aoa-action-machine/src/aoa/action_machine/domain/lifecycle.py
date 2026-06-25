@@ -79,6 +79,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import cast
 
+from aoa.action_machine.runtime.base_controller import BaseController
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # EXCEPTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -314,7 +316,7 @@ class _StateBuilder:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class Lifecycle:
+class Lifecycle(BaseController):
     """
     AI-CORE-BEGIN
         ROLE: Unified template/instance lifecycle object.
