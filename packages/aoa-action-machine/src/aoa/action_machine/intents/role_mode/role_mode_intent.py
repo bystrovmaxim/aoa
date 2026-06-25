@@ -43,11 +43,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
+from aoa.action_machine.intents.base_intent import BaseIntent
+
 if TYPE_CHECKING:
     from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 
-class RoleModeIntent:
+class RoleModeIntent(BaseIntent):
     """
     AI-CORE-BEGIN
     ROLE: Lifecycle-intent marker for role classes.

@@ -41,8 +41,10 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
+from aoa.action_machine.intents.base_intent import BaseIntent
 
-class CheckRolesIntent:
+
+class CheckRolesIntent(BaseIntent):
     """
     AI-CORE-BEGIN
     ROLE: Role declaration marker for action classes.

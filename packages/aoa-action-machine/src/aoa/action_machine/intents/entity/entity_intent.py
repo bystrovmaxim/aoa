@@ -7,8 +7,10 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
+from aoa.action_machine.intents.base_intent import BaseIntent
 
-class EntityIntent:
+
+class EntityIntent(BaseIntent):
     """
     AI-CORE-BEGIN
     ROLE: Marker mixin declaring eligibility for ``@entity``.
