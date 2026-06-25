@@ -133,9 +133,9 @@ _SCALAR_TYPES = (str, int, float, bool, bytes)
 class BaseEntity(BaseSchema, ABC, EntityIntent):
     """
     AI-CORE-BEGIN
-        ROLE: Shared entity base with strict runtime access semantics.
-        CONTRACT: Provides immutable model behavior plus controlled partial-load mechanics.
-        INVARIANTS: Missing model fields on partial instances fail fast via ``FieldNotLoadedError``.
+        ROLE: Domain object with no coupling to any storage backend.
+        CONTRACT: Knows only its own structure and Lifecycle.
+        INVARIANTS: Can be hydrated from any source.
         AI-CORE-END
     """
 
