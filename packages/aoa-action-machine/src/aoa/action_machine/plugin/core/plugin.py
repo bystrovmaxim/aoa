@@ -76,9 +76,10 @@ from typing import Any
 from aoa.action_machine.intents.on.on_intent import OnIntent
 from aoa.action_machine.plugin.core.events import BasePluginEvent
 from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
+from aoa.action_machine.runtime.base_observer import BaseObserver
 
 
-class Plugin(OnIntent, ABC):
+class Plugin(OnIntent, BaseObserver, ABC):
     """
     AI-CORE-BEGIN
         ROLE: Plugin contract for per-run state initialization and handler discovery.

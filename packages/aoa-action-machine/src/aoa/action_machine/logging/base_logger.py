@@ -63,12 +63,13 @@ from aoa.action_machine.logging.log_scope import LogScope
 from aoa.action_machine.logging.subscription import LogSubscription
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.runtime.base_observer import BaseObserver
 
 # Regular expression to match ANSI escape sequences
 _ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
-class BaseLogger(ABC):
+class BaseLogger(BaseObserver, ABC):
     """
     AI-CORE-BEGIN
         ROLE: Logging sink base class used by coordinator fan-out.
