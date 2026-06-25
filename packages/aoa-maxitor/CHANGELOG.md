@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Test suite relocated into the package (`packages/aoa-maxitor/tests/`).** Maxitor unit tests moved out of the shared root `tests/maxitor/` into the package's own `tests/` directory, so the package is self-contained: test dependencies are declared in its `[dependency-groups]` dev group and pytest is configured via its own `[tool.pytest.ini_options]` (`testpaths`, `asyncio_mode`, `pythonpath`). The skipped integration test `test_load_aoa_service_action_integration.py` moved to the repo-root `tests/integration/`. ([#82](https://github.com/bystrovmaxim/aoa/issues/82))
+- **Test suite relocated into the package (`packages/aoa-maxitor/tests/`).** Maxitor unit tests moved out of the shared root `tests/maxitor/` into the package's own `tests/` directory, so the package is self-contained: test dependencies are declared in its `[dependency-groups]` dev group and pytest is configured via its own `[tool.pytest.ini_options]` (`testpaths`, `asyncio_mode`, `pythonpath`). The skipped integration test `test_load_aoa_service_action_integration.py` lives in the package alongside the maxitor unit tests (skipped by default — it requires a running `aoa-examples` service). ([#82](https://github.com/bystrovmaxim/aoa/issues/82))
 
 ## [1.0.0] – 2026-06-24
 

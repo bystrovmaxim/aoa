@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # scripts/check_package_boundaries.py
 """
-Enforce import boundaries for production packages and (with ``--tests``) test zones.
+Enforce import boundaries for production packages.
 
 Production: ``packages/*/src/aoa/`` trees and ``[packages.*]`` in ``scripts/package_boundaries.toml``.
-
-Tests: ``tests/<zone>/`` trees and ``[tests.zones.*]`` in the same config file.
 """
 
 from __future__ import annotations
@@ -178,30 +176,6 @@ def _collect_py_files(roots: dict[str, list[str]]) -> list[Path]:
     return _collect_py_files_from_roots(flat)
 
 
-def _test_zone_roots(cfg: dict) -> dict[str, list[str]]:
-    tests_cfg = cfg.get("tests") or {}
-    zones = tests_cfg.get("zones") or {}
-    if not isinstance(zones, dict) or not zones:
-        raise SystemExit("[tests.zones] is required for --tests (see scripts/package_boundaries.toml)")
-    out: dict[str, list[str]] = {}
-    for zone_name, zcfg in zones.items():
-        if not isinstance(zcfg, dict):
-            raise SystemExit(f"[tests.zones.{zone_name}] must be a table")
-        roots = zcfg.get("roots") or []
-        if not roots:
-            raise SystemExit(f"[tests.zones.{zone_name}].roots must be non-empty")
-        out[str(zone_name)] = [str(r).rstrip("/") for r in roots]
-    return out
-
-
-def _test_may_import(cfg: dict, zone: str) -> frozenset[str]:
-    tests_cfg = cfg.get("tests") or {}
-    zones = tests_cfg.get("zones") or {}
-    zcfg = zones.get(zone) or {}
-    allowed = zcfg.get("may_import") or []
-    return frozenset(str(x) for x in allowed)
-
-
 def check_production(cfg: dict) -> list[Violation]:
     roots = _package_roots(cfg)
     may_by_pkg = {p: _may_import(cfg, p) for p in CANONICAL}
@@ -219,40 +193,16 @@ def check_production(cfg: dict) -> list[Violation]:
     return violations
 
 
-def check_tests(cfg: dict) -> list[Violation]:
-    roots = _test_zone_roots(cfg)
-    may_by_zone = {z: _test_may_import(cfg, z) for z in roots}
-    allows = _load_allows(cfg)
-    violations: list[Violation] = []
-    for path in _collect_py_files(roots):
-        rel = path.relative_to(REPO_ROOT).as_posix()
-        owner = _owner_for_file(rel, roots)
-        if owner is None:
-            continue
-        for v in _iter_import_violations(path, owner, may_by_zone[owner]):
-            if _allowed_by_allowlist(rel, v.target, allows):
-                continue
-            violations.append(v)
-    return violations
-
-
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--tests",
-        action="store_true",
-        help="Check test-zone import boundaries under tests/ (see [tests.zones]).",
-    )
-    args = parser.parse_args()
+    argparse.ArgumentParser(description=__doc__).parse_args()
     cfg = _load_config()
 
-    violations = check_tests(cfg) if args.tests else check_production(cfg)
+    violations = check_production(cfg)
 
     if violations:
         for v in sorted(violations, key=lambda x: (str(x.path), x.lineno)):
             print(v.format(), file=sys.stderr)
-        label = "test zone" if args.tests else "package"
-        print(f"\n{len(violations)} {label} boundary violation(s).", file=sys.stderr)
+        print(f"\n{len(violations)} package boundary violation(s).", file=sys.stderr)
         return 1
     return 0
 

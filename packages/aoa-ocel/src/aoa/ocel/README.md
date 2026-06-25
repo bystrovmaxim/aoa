@@ -17,7 +17,7 @@ This module exports data in [OCEL 2.0](https://ocel-standard.org/) format. Insta
 
 ### Viewing logs in OC-PM
 
-After ``await store.close()`` writes JSON, open the file in **[Object-Centric Process Mining (OC-PM)](https://www.ocpm.info/ocel.html)** — a browser app for OCEL JSON/XML logs. Upload the export, then use event/object explorers, OCDFG graphs, filters, and conformance views without extra tooling. See also ``examples/07_ocel.py`` and the Store batch export under ``packages/aoa-examples`` (``archive/logs/ocel.json`` in integration tests).
+After ``await store.close()`` writes JSON, open the file in **[Object-Centric Process Mining (OC-PM)](https://www.ocpm.info/ocel.html)** — a browser app for OCEL JSON/XML logs. Upload the export, then use event/object explorers, OCDFG graphs, filters, and conformance views without extra tooling. See also the runnable export example ``examples/01_ocel_export.py`` (in this package) and the tutorial chapter ``examples/step_09_plugins/01_ocel.py``.
 
 ## How it works
 

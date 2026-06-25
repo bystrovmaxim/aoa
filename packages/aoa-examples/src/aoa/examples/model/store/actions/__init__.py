@@ -6,14 +6,6 @@ from aoa.examples.model.store.actions.loyalty_points_stub import LoyaltyPointsSt
 from aoa.examples.model.store.actions.order_lookup import OrderLookupAction
 from aoa.examples.model.store.actions.ping import OpsPingAction
 from aoa.examples.model.store.actions.role_migration import RoleMigrationAction
-from aoa.examples.model.store.actions.store_ocel_traces import (
-    PublishOrderCreatedOcelAction,
-    PublishOrderLinePickedOcelAction,
-    PublishOrderPaymentOcelAction,
-    PublishOrderReturnOcelAction,
-    PublishOrderShippedOcelAction,
-    RecordOrderOcelAction,
-)
 from aoa.examples.model.store.actions.store_read import StoreReadAction
 from aoa.examples.model.store.actions.store_read_use_case_demo import StoreReadUseCaseDemoAction
 
@@ -31,8 +23,6 @@ OrderLookupParams = StoreReadAction.Params
 OrderLookupResult = StoreReadAction.Result
 StoreReadParams = StoreReadAction.Params
 StoreReadResult = StoreReadAction.Result
-RecordOrderOcelParams = RecordOrderOcelAction.Params
-RecordOrderOcelResult = RecordOrderOcelAction.Result
 RoleMigrationParams = RoleMigrationAction.Params
 RoleMigrationResult = RoleMigrationAction.Result
 StoreReadUseCaseDemoParams = StoreReadUseCaseDemoAction.Params
@@ -57,14 +47,6 @@ __all__ = [
     "OrderLookupAction",
     "OrderLookupParams",
     "OrderLookupResult",
-    "PublishOrderCreatedOcelAction",
-    "PublishOrderLinePickedOcelAction",
-    "PublishOrderPaymentOcelAction",
-    "PublishOrderReturnOcelAction",
-    "PublishOrderShippedOcelAction",
-    "RecordOrderOcelAction",
-    "RecordOrderOcelParams",
-    "RecordOrderOcelResult",
     "RoleMigrationAction",
     "RoleMigrationParams",
     "RoleMigrationResult",
