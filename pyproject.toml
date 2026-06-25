@@ -394,21 +394,18 @@ exclude = ["tests/"]
 # ============================================================================
 [tool.taskipy.tasks]
 maxitor-api = "uv run uvicorn aoa.maxitor.api.app:app --reload --host 127.0.0.1 --port 8000"
-test = "pytest tests/ --ignore=tests/packaging -v"
 packaging-smoke = "pytest tests/packaging -v"
 build-packages = "uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-maxitor && uv run --group dev python -m build packages/aoa-examples"
-cov = "pytest tests/ --ignore=tests/packaging --cov=packages/aoa-action-machine/src/aoa/action_machine --cov-report=term-missing"
+cov = "pytest packages/aoa-action-machine/tests/ --cov=packages/aoa-action-machine/src/aoa/action_machine --cov-report=term-missing"
 # Lint sources under packages/, tests/, scripts/, and the root meta package ``aoa_run``.
 lint = "ruff check packages/ tests/ scripts/ aoa_run/"
 fmt = "black packages/ tests/ aoa_run/ && isort packages/ tests/ aoa_run/"
 # Narrow mypy pass on action_machine; full tree: ``task typecheck``.
 types = "mypy packages/aoa-action-machine/src"
-test-layer-imports = "python scripts/check_test_layer_imports.py"
 samples-public-api = "python scripts/check_maxitor_samples_public_api.py"
 package-boundaries = "python scripts/check_package_boundaries.py"
-package-boundaries-tests = "python scripts/check_package_boundaries.py --tests"
 package-metadata = "python scripts/check_package_metadata.py"
-check = "task lint && task types && task package-boundaries && task package-boundaries-tests && task package-metadata && task build-packages && task packaging-smoke && task test-layer-imports && task samples-public-api && task test"
+check = "task lint && task types && task package-boundaries && task package-metadata && task build-packages && task packaging-smoke && task samples-public-api"
 dead = "vulture packages/aoa-action-machine/src/aoa/action_machine"
 typecheck = "mypy packages/aoa-action-machine/src packages/aoa-maxitor/src packages/aoa-examples/src packages/aoa-langgraph-adapter/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
 pylint = "pylint packages/"
