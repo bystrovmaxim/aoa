@@ -108,7 +108,7 @@ from aoa.action_machine.domain.exceptions import (
     RelationNotLoadedError,
 )
 from aoa.action_machine.domain.hydration import build
-from aoa.action_machine.domain.lifecycle import Lifecycle, LifecycleController, StateInfo, StateType
+from aoa.action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
 from aoa.action_machine.domain.relation_containers import (
     AggregateMany,
     AggregateOne,
@@ -147,7 +147,6 @@ __all__ = [
     "Inverse",
     # State machines
     "Lifecycle",
-    "LifecycleController",
     "LifecycleGraphError",
     "LifecycleValidationError",
     "NoGraphEdge",
