@@ -43,7 +43,8 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.mcp.adapter import McpAdapter, _class_name_to_snake_case
 from aoa.mcp.route_record import McpRouteRecord
-from tests.action_machine.scenarios.domain_model import FullAction, PingAction, SimpleAction
+
+from .support import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
