@@ -9,18 +9,7 @@ PURPOSE
 Provides Actions that exercise @on_error scenarios:
 
 - ErrorHandledAction — single handler catching ValueError.
-- MultiErrorAction — multiple handlers (specific → general).
-- NoErrorHandlerAction — no @on_error (errors propagate).
 - HandlerRaisesAction — handler raises → OnErrorHandlerError.
-
-═══════════════════════════════════════════════════════════════════════════════
-CUSTOM EXCEPTIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- InsufficientFundsError — not enough balance.
-- PaymentGatewayError — payment gateway failure.
-
-Both inherit Exception directly. Used to test handler ordering and type matching.
 
 ═══════════════════════════════════════════════════════════════════════════════
 USAGE IN TESTS
@@ -28,11 +17,7 @@ USAGE IN TESTS
 
     from ...support.domain_model.error_actions import (
         ErrorHandledAction,
-        MultiErrorAction,
-        NoErrorHandlerAction,
         HandlerRaisesAction,
-        InsufficientFundsError,
-        PaymentGatewayError,
     )
 """
 
@@ -54,23 +39,6 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from .domains import OrdersDomain
-
-# ═════════════════════════════════════════════════════════════════════════════
-# Custom exceptions
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-class InsufficientFundsError(Exception):
-    """Not enough funds on the account."""
-
-    pass
-
-
-class PaymentGatewayError(Exception):
-    """Payment gateway failure."""
-
-    pass
-
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Shared Params / Result for error Actions
@@ -146,130 +114,6 @@ class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         error: Exception,
     ) -> ErrorTestResult:
         return ErrorTestResult(status="handled", detail=str(error))
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# MultiErrorAction — multiple handlers (specific → general)
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-@meta(description="Action with multiple error handlers", domain=OrdersDomain)
-@check_roles(GuestRole)
-class MultiErrorAction(BaseAction[ErrorTestParams, ErrorTestResult]):
-    """
-    Action with three @on_error handlers from specific to general.
-
-    Handler order:
-    1. InsufficientFundsError — specific.
-    2. PaymentGatewayError — specific.
-    3. Exception — general fallback.
-
-    Test scenarios:
-    - InsufficientFundsError → handler 1 → status="insufficient_funds".
-    - PaymentGatewayError → handler 2 → status="gateway_error".
-    - RuntimeError (or any Exception) → handler 3 → status="unknown_error".
-    - No error → normal Result(status="ok").
-    """
-
-    @regular_aspect("Execute operation")
-    @result_string("processed", required=True)
-    async def execute_aspect(
-        self,
-        params: ErrorTestParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-    ) -> dict[str, Any]:
-        if params.value == "insufficient":
-            raise InsufficientFundsError("Insufficient funds")
-        if params.value == "gateway":
-            raise PaymentGatewayError("Gateway unavailable")
-        if params.should_fail:
-            raise RuntimeError("Unexpected error")
-        return {"processed": params.value}
-
-    @summary_aspect("Build result")
-    async def build_result_summary(
-        self,
-        params: ErrorTestParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-    ) -> ErrorTestResult:
-        return ErrorTestResult(status="ok", detail=state["processed"])
-
-    @on_error(InsufficientFundsError, description="Insufficient funds")
-    async def insufficient_funds_on_error(
-        self,
-        params: ErrorTestParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-        error: Exception,
-    ) -> ErrorTestResult:
-        return ErrorTestResult(status="insufficient_funds", detail=str(error))
-
-    @on_error(PaymentGatewayError, description="Payment gateway error")
-    async def gateway_on_error(
-        self,
-        params: ErrorTestParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-        error: Exception,
-    ) -> ErrorTestResult:
-        return ErrorTestResult(status="gateway_error", detail=str(error))
-
-    @on_error(Exception, description="Unexpected error")
-    async def fallback_on_error(
-        self,
-        params: ErrorTestParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-        error: Exception,
-    ) -> ErrorTestResult:
-        return ErrorTestResult(status="unknown_error", detail=str(error))
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# NoErrorHandlerAction — no @on_error (errors propagate)
-# ═════════════════════════════════════════════════════════════════════════════
-
-
-@meta(description="Action without error handlers", domain=OrdersDomain)
-@check_roles(GuestRole)
-class NoErrorHandlerAction(BaseAction[ErrorTestParams, ErrorTestResult]):
-    """
-    Action without @on_error — aspect errors propagate to the caller.
-
-    Test scenarios:
-    - should_fail=True → ValueError propagates.
-    - should_fail=False → normal Result(status="ok").
-    """
-
-    @regular_aspect("Process value")
-    @result_string("processed", required=True)
-    async def process_aspect(
-        self,
-        params: ErrorTestParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-    ) -> dict[str, Any]:
-        if params.should_fail:
-            raise ValueError(f"Error: {params.value}")
-        return {"processed": params.value}
-
-    @summary_aspect("Build result")
-    async def build_result_summary(
-        self,
-        params: ErrorTestParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-    ) -> ErrorTestResult:
-        return ErrorTestResult(status="ok", detail=state["processed"])
 
 
 # ═════════════════════════════════════════════════════════════════════════════

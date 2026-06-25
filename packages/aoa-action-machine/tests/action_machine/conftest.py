@@ -170,8 +170,8 @@ def compensate_bench(
     ``TestBench`` with ``PaymentService`` and ``InventoryService`` mocks.
 
     Intended for compensation (saga) tests. Includes both services used by
-    ``CompensatedOrderAction``, ``CompensateErrorAction``,
-    ``CompensateAndOnErrorAction``, and ``CompensateWithContextAction``.
+    ``CompensatedOrderAction``, ``CompensateAndOnErrorAction``, and
+    ``CompensateWithContextAction``.
 
     Default user: ``user_id="test_user"``, ``roles=(StubTesterRole,)``.
     Compensating actions use ``GuestRole``, so the default user is sufficient.

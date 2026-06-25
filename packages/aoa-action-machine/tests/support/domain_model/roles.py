@@ -42,12 +42,6 @@ class AgentRole(ApplicationRole):
 
 
 @role_mode(RoleMode.ALIVE)
-class ServiceRole(ApplicationRole):
-    name = "service"
-    description = "Service principal (test)."
-
-
-@role_mode(RoleMode.ALIVE)
 class GuestRole(ApplicationRole):
     name = "guest"
     description = "Guest (test)."
