@@ -34,8 +34,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from aoa.action_machine.intents.base_intent import BaseIntent
 
-class AspectIntent:
+
+class AspectIntent(BaseIntent):
     """
     AI-CORE-BEGIN
     ROLE: Public aspect intent marker.

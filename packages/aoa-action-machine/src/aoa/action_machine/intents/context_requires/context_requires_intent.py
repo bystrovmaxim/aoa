@@ -66,7 +66,10 @@ ARCHITECTURE / DATA FLOW
 """
 
 
-class ContextRequiresIntent:
+from aoa.action_machine.intents.base_intent import BaseIntent
+
+
+class ContextRequiresIntent(BaseIntent):
     """
     AI-CORE-BEGIN
     ROLE: Context-access grammar marker for action classes.

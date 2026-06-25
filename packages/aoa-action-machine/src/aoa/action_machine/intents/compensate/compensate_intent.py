@@ -13,8 +13,10 @@ run in the graph builder / coordinator layer.
 
 from __future__ import annotations
 
+from aoa.action_machine.intents.base_intent import BaseIntent
 
-class CompensateIntent:
+
+class CompensateIntent(BaseIntent):
     """
     AI-CORE-BEGIN
     ROLE: Compensator grammar marker for action classes.

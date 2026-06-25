@@ -5,8 +5,10 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
+from aoa.action_machine.intents.base_intent import BaseIntent
 
-class MetaIntent:
+
+class MetaIntent(BaseIntent):
     """
     AI-CORE-BEGIN
     ROLE: Marker contract for classes that carry ``@meta`` declarations.
