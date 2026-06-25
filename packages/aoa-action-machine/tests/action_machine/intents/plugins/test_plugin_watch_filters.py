@@ -9,7 +9,8 @@ from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.plugin.core.events import GlobalFinishEvent, GlobalStartEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
-from tests.support.domain_model import PingAction
+
+from ....support.domain_model import PingAction
 
 _CTX = Context(user=UserInfo(user_id="u1", roles=()))
 _PARAMS = BaseParams()

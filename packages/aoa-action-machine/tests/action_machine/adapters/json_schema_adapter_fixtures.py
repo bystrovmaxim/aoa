@@ -27,7 +27,8 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.model.json_schema_value import JsonSchemaValue
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from tests.support.domain_model.domains import TestDomain
+
+from ...support.domain_model.domains import TestDomain
 
 _EMPTY_GRAPH_VERTEX: dict[str, Any] = {"type": "object", "properties": {}, "additionalProperties": False}
 GraphJson = JsonSchemaValue.define(

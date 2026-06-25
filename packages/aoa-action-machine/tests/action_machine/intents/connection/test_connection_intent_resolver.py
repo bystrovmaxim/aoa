@@ -1,11 +1,11 @@
 # tests/intents/connection/test_connection_intent_resolver.py
 """Connection intent resolver behavior."""
 
-from tests.support.domain_model.full_action import FullAction
-from tests.support.domain_model.ping_action import PingAction
-from tests.support.domain_model.test_db_manager import OrdersDbManager
-
 from aoa.action_machine.intents.connection.connection_intent_resolver import ConnectionIntentResolver
+
+from ....support.domain_model.full_action import FullAction
+from ....support.domain_model.ping_action import PingAction
+from ....support.domain_model.test_db_manager import OrdersDbManager
 
 
 def test_resolve_connection_types_returns_declared_resource_types() -> None:

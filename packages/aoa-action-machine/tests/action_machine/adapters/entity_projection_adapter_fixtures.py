@@ -24,8 +24,9 @@ from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from tests.support.domain_model.domains import TestDomain
-from tests.support.domain_model.entities import SampleEntity
+
+from ...support.domain_model.domains import TestDomain
+from ...support.domain_model.entities import SampleEntity
 
 _SAMPLE_ENTITY_WIRE_SCHEMA: dict[str, object] = {
     "type": "object",

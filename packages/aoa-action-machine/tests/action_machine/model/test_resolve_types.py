@@ -55,7 +55,8 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
-from tests.support.domain_model.roles import AdminRole, UserRole
+
+from ...support.domain_model.roles import AdminRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # UserInfo subclass for nested structure tests

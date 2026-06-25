@@ -24,8 +24,9 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.include_contract_checker import IncludeContractChecker
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from tests.support.domain_model.domains import SystemDomain
-from tests.support.domain_model.roles import AdminRole, ManagerRole
+
+from ...support.domain_model.domains import SystemDomain
+from ...support.domain_model.roles import AdminRole, ManagerRole
 
 
 def _ctx() -> Context:

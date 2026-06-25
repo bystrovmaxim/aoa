@@ -23,7 +23,8 @@ ARCHITECTURE / DATA FLOW
 import pytest
 
 from aoa.action_machine.testing import MockAction, TestBench
-from tests.support.domain_model import PingAction
+
+from ...support.domain_model import PingAction
 
 
 class TestMockAction:

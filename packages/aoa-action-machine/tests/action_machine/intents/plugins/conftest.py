@@ -107,7 +107,8 @@ from aoa.action_machine.plugin.core.events import GlobalFinishEvent, GlobalStart
 from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
 from aoa.action_machine.testing import StubTesterRole
-from tests.support.domain_model import PingAction
+
+from ....support.domain_model import PingAction
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Custom exception for tests

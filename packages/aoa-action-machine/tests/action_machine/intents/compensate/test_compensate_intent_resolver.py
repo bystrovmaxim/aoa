@@ -3,7 +3,8 @@ from typing import Any
 import pytest
 
 from aoa.action_machine.intents.compensate.compensate_intent_resolver import CompensateIntentResolver
-from tests.support.domain_model.compensate_actions import CompensatedOrderAction
+
+from ....support.domain_model.compensate_actions import CompensatedOrderAction
 
 
 def _stub_compensate_fn(meta: object) -> Any:

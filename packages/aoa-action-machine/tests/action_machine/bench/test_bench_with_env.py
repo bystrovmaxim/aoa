@@ -57,7 +57,8 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.testing import TestBench
-from tests.support.domain_model.domains import SystemDomain
+
+from ...support.domain_model.domains import SystemDomain
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Minimal action that reads env values via @context_requires in the summary

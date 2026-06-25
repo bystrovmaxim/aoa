@@ -47,7 +47,8 @@ import pytest
 from pydantic import ConfigDict
 
 from aoa.action_machine.context.user_info import UserInfo
-from tests.support.domain_model.roles import AdminRole, GuestRole, ManagerRole, UserRole
+
+from ....support.domain_model.roles import AdminRole, GuestRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # UserInfo subclass for extension tests

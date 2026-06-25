@@ -6,10 +6,11 @@ from __future__ import annotations
 from types import MappingProxyType
 
 import pytest
-from tests.support.domain_model.entities import DraftLifecycle, LifecycleEntity, RelatedEntity
 
 from aoa.action_machine.domain.lifecycle import StateType
 from aoa.action_machine.intents.entity.lifecycle_intent_resolver import LifeCycleIntentResolver
+
+from ....support.domain_model.entities import DraftLifecycle, LifecycleEntity, RelatedEntity
 
 
 def test_resolve_lifecycle_fields_includes_expected_template() -> None:

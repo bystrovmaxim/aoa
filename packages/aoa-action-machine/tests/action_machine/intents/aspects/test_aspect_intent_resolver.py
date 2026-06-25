@@ -1,8 +1,9 @@
 import pytest
-from tests.support.domain_model.child_action import ChildAction
 
 from aoa.action_machine.intents.aspects.regular_aspect_intent_resolver import RegularAspectIntentResolver
 from aoa.action_machine.intents.aspects.summary_aspect_intent_resolver import SummaryAspectIntentResolver
+
+from ....support.domain_model.child_action import ChildAction
 
 
 def test_resolve_regular_aspects_returns_own_regular_aspects() -> None:

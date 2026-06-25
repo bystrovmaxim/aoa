@@ -57,7 +57,8 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.context.runtime_info import RuntimeInfo
 from aoa.action_machine.context.user_info import UserInfo
-from tests.support.domain_model.roles import AdminRole, ManagerRole, UserRole
+
+from ....support.domain_model.roles import AdminRole, ManagerRole, UserRole
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Descendants of Info classes for testing three-level navigation.

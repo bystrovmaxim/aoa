@@ -35,7 +35,8 @@ from aoa.action_machine.logging.log_scope import LogScope
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
-from tests.action_machine.bench.bench_report import emit_benchmark_report, rows_throughput_budget
+
+from ...action_machine.bench.bench_report import emit_benchmark_report, rows_throughput_budget
 
 pytestmark = pytest.mark.benchmark
 

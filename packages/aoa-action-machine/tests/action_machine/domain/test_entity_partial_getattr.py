@@ -6,7 +6,8 @@ from __future__ import annotations
 import pytest
 
 from aoa.action_machine.domain.exceptions import FieldNotLoadedError
-from tests.support.domain_model.entities import LifecycleEntity, SampleEntity
+
+from ...support.domain_model.entities import LifecycleEntity, SampleEntity
 
 
 def test_partial_access_to_unloaded_model_field_raises_field_not_loaded() -> None:

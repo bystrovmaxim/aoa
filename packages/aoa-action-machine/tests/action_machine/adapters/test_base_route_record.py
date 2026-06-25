@@ -53,7 +53,8 @@ from aoa.action_machine.adapters.base_route_record import (
 )
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from tests.support.domain_model import FullAction, PingAction, SimpleAction
+
+from ...support.domain_model import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Minimal concrete subclass — ``BaseRouteRecord`` cannot be instantiated

@@ -11,7 +11,7 @@ from aoa.mcp.adapter import _build_graph_json
 
 
 def _import_test_domain_modules() -> None:
-    import tests.support.domain_model  # noqa: F401
+    from ...support import domain_model  # noqa: F401
 
 
 def test_mcp_build_graph_json_uses_node_graph_shape() -> None:

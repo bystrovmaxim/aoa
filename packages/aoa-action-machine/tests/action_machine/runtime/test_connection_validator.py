@@ -14,9 +14,10 @@ import pytest
 from aoa.action_machine.exceptions import ConnectionValidationError
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.runtime.connection_validator import ConnectionValidator
-from tests.support.domain_model.child_action import ChildAction
-from tests.support.domain_model.full_action import FullAction
-from tests.support.domain_model.test_db_manager import OrdersDbManager
+
+from ...support.domain_model.child_action import ChildAction
+from ...support.domain_model.full_action import FullAction
+from ...support.domain_model.test_db_manager import OrdersDbManager
 
 
 def _action_node(cls: type) -> ActionGraphNode:

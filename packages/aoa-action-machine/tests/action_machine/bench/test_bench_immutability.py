@@ -36,8 +36,9 @@ INVARIANTS
 """
 
 from aoa.action_machine.testing import TestBench
-from tests.support.domain_model.roles import AdminRole
-from tests.support.domain_model.services import PaymentService, PaymentServiceResource
+
+from ...support.domain_model.roles import AdminRole
+from ...support.domain_model.services import PaymentService, PaymentServiceResource
 
 
 class TestWithUser:

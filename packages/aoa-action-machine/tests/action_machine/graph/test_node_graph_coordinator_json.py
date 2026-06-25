@@ -125,7 +125,8 @@ class _MiniAxisRole:
 class _InspectPingAction(BaseGraphNodeInspector[_MiniAxisAction]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
-        from tests.support.domain_model.ping_action import PingAction
+
+        from ...support.domain_model.ping_action import PingAction
 
         return ActionGraphNode(PingAction) if cls is _MiniAxisAction else None
 
@@ -133,7 +134,8 @@ class _InspectPingAction(BaseGraphNodeInspector[_MiniAxisAction]):
 class _InspectSystemDomain(BaseGraphNodeInspector[_MiniAxisDomain]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
-        from tests.support.domain_model.domains import SystemDomain
+
+        from ...support.domain_model.domains import SystemDomain
 
         return DomainGraphNode(SystemDomain) if cls is _MiniAxisDomain else None
 
@@ -149,7 +151,8 @@ class _InspectApplication(BaseGraphNodeInspector[_MiniAxisApplication]):
 class _InspectPingParams(BaseGraphNodeInspector[_MiniAxisParams]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         from aoa.action_machine.graph.nodes.params_graph_node import ParamsGraphNode
-        from tests.support.domain_model.ping_action import PingAction
+
+        from ...support.domain_model.ping_action import PingAction
 
         return ParamsGraphNode(PingAction.Params) if cls is _MiniAxisParams else None
 
@@ -157,7 +160,8 @@ class _InspectPingParams(BaseGraphNodeInspector[_MiniAxisParams]):
 class _InspectPingResult(BaseGraphNodeInspector[_MiniAxisResult]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         from aoa.action_machine.graph.nodes.result_graph_node import ResultGraphNode
-        from tests.support.domain_model.ping_action import PingAction
+
+        from ...support.domain_model.ping_action import PingAction
 
         return ResultGraphNode(PingAction.Result) if cls is _MiniAxisResult else None
 
