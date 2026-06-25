@@ -18,10 +18,8 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.mcp.adapter import McpAdapter, _serialize_result
 from aoa.mcp.route_record import McpRouteRecord
-from tests.action_machine.adapters.entity_projection_adapter_fixtures import (
-    EntityProjectionAdapterTestAction,
-    EntityProjectionParamsMcpTestAction,
-)
+
+from .support import EntityProjectionAdapterTestAction, EntityProjectionParamsMcpTestAction
 
 
 def _make_adapter() -> McpAdapter:

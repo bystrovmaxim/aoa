@@ -99,9 +99,8 @@ from aoa.mcp.adapter import (
     _validate_tool_request_kwargs,
 )
 from aoa.mcp.route_record import McpRouteRecord
-from tests.action_machine.scenarios.domain_model import PingAction, SimpleAction
-from tests.action_machine.scenarios.domain_model.domains import TestDomain
-from tests.action_machine.scenarios.domain_model.roles import AdminRole
+
+from .support import AdminRole, PingAction, SimpleAction, TestDomain
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stub resource (``resolve_connections`` requires ``BaseResource`` instances)
@@ -810,12 +809,12 @@ class TestBuildGraphJson:
         action_nodes = [n for n in parsed["nodes"] if n.get("type") == "Action"]
         # Disambiguate from sample actions whose ids also contain "PingAction" (e.g. ``OpsPingAction``).
         ping_action = next(
-            (n for n in action_nodes if "scenarios.domain_model.ping_action.PingAction" in n.get("id", "")),
+            (n for n in action_nodes if "support.domain_model.PingAction" in n.get("id", "")),
             None,
         )
         assert ping_action is not None
         assert ping_action.get("description") == "Service health check"
-        assert ping_action.get("domain") == "tests.action_machine.scenarios.domain_model.domains.SystemDomain"
+        assert ping_action.get("domain") == "tests.support.domain_model.SystemDomain"
 
     def test_edges_include_source_and_target_keys_and_string_type(self) -> None:
         """Edges expose ``source_key`` / ``target_key`` and a string ``type`` (not a dict repr)."""

@@ -32,8 +32,7 @@ INVARIANTS
 
 from pydantic import BaseModel, Field
 
-from tests.action_machine.adapters.entity_projection_adapter_fixtures import EntityProjectionParamsMcpTestAction
-from tests.action_machine.scenarios.domain_model import FullAction, PingAction, SimpleAction
+from .support import EntityProjectionParamsMcpTestAction, FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper — extract schema from a Pydantic model the same way McpAdapter does.

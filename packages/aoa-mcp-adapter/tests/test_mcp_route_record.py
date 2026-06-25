@@ -35,7 +35,8 @@ import pytest
 from pydantic import BaseModel
 
 from aoa.mcp.route_record import McpRouteRecord
-from tests.action_machine.scenarios.domain_model import FullAction, PingAction, SimpleAction
+
+from .support import FullAction, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper models for mapper invariant tests — intentionally simple,
