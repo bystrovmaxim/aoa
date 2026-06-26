@@ -101,18 +101,27 @@ from aoa.langgraph.agent_state import AgentState
 from aoa.langgraph.exceptions import (
     CompileBeforeBuildError,
     ControllerAlreadyBuiltError,
+    DeadEndNodeError,
     DuplicateFieldError,
+    FieldHasNoProducerError,
     FieldNotReadyError,
+    FinishUnreachableError,
     InconsistentFinishOutputError,
     MissingFieldDescriptionError,
     MissingInputFieldError,
+    NoEntryPointError,
+    NoFinishPointError,
+    NoNodesError,
     NoOutputFieldsError,
+    OutputHasNoProducerError,
     RouteKeyError,
     UndeclaredOutputFieldError,
+    UnreachableNodeError,
     UnregisteredNodeError,
 )
 from aoa.langgraph.node_binding import _run_action_node
 from aoa.langgraph.sentinel import UNSET, UnsetType
+from aoa.langgraph.topology_validator import validate as _validate_topology_rules
 from aoa.langgraph.wrapper_langgraph_controller import WrapperLangGraphController
 
 if TYPE_CHECKING:
@@ -453,10 +462,24 @@ class LangGraphController(BaseController):
         self._agentstate = None
         try:
             self._validate_contract()
+            self._validate_topology()
             self._agentstate = self._build_agentstate()
             self._built = True
             return self
-        except (NoOutputFieldsError, InconsistentFinishOutputError, UndeclaredOutputFieldError):
+        except (
+            NoOutputFieldsError,
+            InconsistentFinishOutputError,
+            UndeclaredOutputFieldError,
+            NoNodesError,
+            NoEntryPointError,
+            NoFinishPointError,
+            DeadEndNodeError,
+            FinishUnreachableError,
+            UnreachableNodeError,
+            FieldHasNoProducerError,
+            OutputHasNoProducerError,
+            UnregisteredNodeError,
+        ):
             if silent:
                 return None
             raise
@@ -616,6 +639,27 @@ class LangGraphController(BaseController):
             field_definitions["__finish_node__"] = (str, "")
 
         return create_model("AgentState", __base__=AgentState, **field_definitions)
+
+    def _validate_topology(self) -> None:
+        """Delegate all topology and dataflow checks to the standalone validator."""
+        _validate_topology_rules(
+            node_names=set(self._nodes.keys()),
+            action_nodes={
+                name: info.action_or_fn
+                for name, info in self._nodes.items()
+                if isinstance(info.action_or_fn, type)
+                and issubclass(info.action_or_fn, BaseAction)
+            },
+            edges=self._edges,
+            conditional_edges=[
+                (ce.src, ce.if_true, ce.if_false) for ce in self._conditional_edges
+            ],
+            routes=[(rt.src, list(rt.paths.values())) for rt in self._routes],
+            start_names=self._start_names,
+            finish_names=list(self._finish_nodes.keys()),
+            inp_field_names=set(self._inp_fields.keys()),
+            out_field_names=self._all_out_names(),
+        )
 
     def _build_input_state(self, data: dict[str, Any]) -> AgentState:
         """Build the initial AgentState from inp-fields; raise MissingInputFieldError if any inp field is absent."""

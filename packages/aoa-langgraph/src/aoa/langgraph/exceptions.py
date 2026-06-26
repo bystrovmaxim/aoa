@@ -46,6 +46,17 @@ ainvoke() (raised by .ainvoke()):
 
     MissingInputFieldError       — required inp-field absent from the input dict
 
+topology validation (raised by .build()):
+
+    NoNodesError             — no nodes registered via .node()
+    NoEntryPointError        — no .start() declared
+    NoFinishPointError       — no .finish() declared
+    DeadEndNodeError         — non-finish node has no outgoing edges
+    FinishUnreachableError   — finish node unreachable from all start nodes
+    UnreachableNodeError     — node unreachable from all start nodes
+    FieldHasNoProducerError  — required Params field has no producer in the graph
+    OutputHasNoProducerError — out-field has no producer in the graph
+
 """
 
 
@@ -132,6 +143,72 @@ class MissingInputFieldError(Exception):
         self.field_name = field_name
         super().__init__(
             f"Required inp-field '{field_name}' is missing from the dict passed to .ainvoke()."
+        )
+
+
+class NoNodesError(Exception):
+    """Raised by .build() when no nodes have been registered via .node()."""
+
+
+class NoEntryPointError(Exception):
+    """Raised by .build() when no .start() has been called."""
+
+
+class NoFinishPointError(Exception):
+    """Raised by .build() when no .finish() has been called."""
+
+
+class DeadEndNodeError(Exception):
+    """Raised by .build() when a non-finish node has no outgoing edges."""
+
+    def __init__(self, node_name: str) -> None:
+        """Store the offending node name for programmatic inspection."""
+        self.node_name = node_name
+        super().__init__(
+            f"Node '{node_name}' is a dead end — add an outgoing edge or declare it a finish node."
+        )
+
+
+class FinishUnreachableError(Exception):
+    """Raised by .build() when a finish node cannot be reached from any start node."""
+
+    def __init__(self, node_name: str) -> None:
+        """Store the unreachable finish node name for programmatic inspection."""
+        self.node_name = node_name
+        super().__init__(f"Finish node '{node_name}' is unreachable from all start nodes.")
+
+
+class UnreachableNodeError(Exception):
+    """Raised by .build() when a node cannot be reached from any start node."""
+
+    def __init__(self, node_name: str) -> None:
+        """Store the unreachable node name for programmatic inspection."""
+        self.node_name = node_name
+        super().__init__(f"Node '{node_name}' is unreachable from all start nodes.")
+
+
+class FieldHasNoProducerError(Exception):
+    """Raised by .build() when a required Params field has no producer anywhere in the graph."""
+
+    def __init__(self, node_name: str, field_name: str) -> None:
+        """Store the consuming node name and the field name for programmatic inspection."""
+        self.node_name = node_name
+        self.field_name = field_name
+        super().__init__(
+            f"Node '{node_name}': required Params field '{field_name}' has no producer "
+            "in the graph and is not declared as an inp-field."
+        )
+
+
+class OutputHasNoProducerError(Exception):
+    """Raised by .build() when an out-field has no producer anywhere in the graph."""
+
+    def __init__(self, field_name: str) -> None:
+        """Store the field name for programmatic inspection."""
+        self.field_name = field_name
+        super().__init__(
+            f"Out-field '{field_name}' has no producer in the graph "
+            "and is not declared as an inp-field."
         )
 
 
