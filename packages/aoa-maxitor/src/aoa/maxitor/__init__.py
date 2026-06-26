@@ -18,6 +18,6 @@ Run the backend with ``uv run task maxitor-api`` and the frontend with ``npm run
 from ``packages/aoa-maxitor/client``. Interchange and ERD viewers render in the SPA
 from JSON under ``/api/v1`` (see ``aoa.maxitor.api.app``).
 
-Set ``AOA_SERVICE_URL`` to point at a running ``aoa-examples`` service
+Set ``AOA_SERVICE_URL`` to point at a running AOA service
 (default: ``http://127.0.0.1:8001``).
 """

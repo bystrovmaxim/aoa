@@ -155,14 +155,14 @@ run_and_log "uv run --extra dev task typecheck" "Mypy typecheck"
 run_and_log "uv run --extra dev task pylint" "Pylint"
 run_and_log "uv run --extra dev python scripts/check_package_boundaries.py" "Package import boundaries (production)"
 run_and_log "uv run --extra dev python scripts/check_package_metadata.py" "Package metadata (pyproject dependency matrix)"
-for pkg_dir in packages/aoa-action-machine packages/aoa-ocel packages/aoa-otel packages/aoa-fastapi-adapter packages/aoa-mcp-adapter packages/aoa-langgraph packages/aoa-maxitor packages/aoa-examples; do
+for pkg_dir in packages/aoa-action-machine packages/aoa-ocel packages/aoa-otel packages/aoa-fastapi-adapter packages/aoa-mcp-adapter packages/aoa-langgraph packages/aoa-maxitor packages/aoa-demo; do
   run_and_log "uv run --group dev python -m build \"${REPO_ROOT}/${pkg_dir}\"" "Build wheel/sdist (${pkg_dir})"
 done
 run_and_log "uv run --extra dev pytest tests/packaging -v" "Packaging wheel install smoke"
 run_and_log "uv run --extra dev task dead" "Vulture dead code"
 run_and_log "uv run --extra dev task samples-public-api" "Maxitor samples: action_machine public API"
 run_and_log "uv run --extra dev pytest packages/aoa-maxitor/tests/ -v" "Pytest aoa-maxitor"
-run_and_log "uv run --extra dev pytest packages/aoa-examples/tests/ -v" "Pytest aoa-examples"
+run_and_log "uv run --extra dev pytest packages/aoa-demo/tests/ -v" "Pytest aoa-demo"
 run_and_log "uv run --extra dev pytest packages/aoa-otel/tests/ -v" "Pytest aoa-otel"
 run_and_log "uv run --extra dev pytest packages/aoa-langgraph/tests/ -v" "Pytest aoa-langgraph"
 run_and_log "uv run --extra dev pytest packages/aoa-ocel/tests/ -v" "Pytest aoa-ocel"

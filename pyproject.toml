@@ -27,17 +27,17 @@ dependencies = [
     "aoa-action-machine",
     "aoa-ocel",
     "aoa-maxitor",
-    "aoa-examples",
+    "aoa-demo",
 ]
 
 [project.optional-dependencies]
 fastapi = [
     "aoa-action-machine[fastapi]",
-    "aoa-examples[fastapi]",
+    "aoa-demo[fastapi]",
 ]
 mcp = [
     "aoa-action-machine[mcp]",
-    "aoa-examples[mcp]",
+    "aoa-demo[mcp]",
 ]
 postgres = [
     "aoa-action-machine[postgres]",
@@ -61,7 +61,7 @@ dev = [
     "aoa-mcp-adapter",
     "aoa-langgraph",
     "aoa-ocel",
-    "aoa-examples[fastapi,mcp]",
+    "aoa-demo[fastapi,mcp]",
     "types-jsonschema>=4.19,<5",
     "types-networkx>=3.2,<4",
     "pm4py>=2.7.22.3",
@@ -82,7 +82,7 @@ Repository = "https://github.com/action-machine/action-machine"
 members = [
     "packages/aoa-action-machine",
     "packages/aoa-maxitor",
-    "packages/aoa-examples",
+    "packages/aoa-demo",
     "packages/aoa-langgraph",
     "packages/aoa-fastapi-adapter",
     "packages/aoa-mcp-adapter",
@@ -94,7 +94,7 @@ members = [
 [tool.uv.sources]
 aoa-action-machine = { workspace = true }
 aoa-maxitor = { workspace = true }
-aoa-examples = { workspace = true }
+aoa-demo = { workspace = true }
 aoa-langgraph = { workspace = true }
 aoa-fastapi-adapter = { workspace = true }
 aoa-mcp-adapter = { workspace = true }
@@ -117,7 +117,7 @@ asyncio_mode = "auto"
 pythonpath = [
     "packages/aoa-action-machine/src",
     "packages/aoa-maxitor/src",
-    "packages/aoa-examples/src",
+    "packages/aoa-demo/src",
     "packages/aoa-langgraph/src",
     "packages/aoa-fastapi-adapter/src",
     "packages/aoa-mcp-adapter/src",
@@ -163,7 +163,7 @@ explicit_package_bases = true
 # Standalone ``collect_python_files.py`` scripts at repo / package roots share the module
 # name ``collect_python_files``; exclude them from ``mypy packages/`` (task ``typecheck``).
 exclude = "collect_python_files\\.py$"
-mypy_path = "packages/aoa-action-machine/src:packages/aoa-maxitor/src:packages/aoa-examples/src:packages/aoa-langgraph/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src:packages/aoa-otel/src"
+mypy_path = "packages/aoa-action-machine/src:packages/aoa-maxitor/src:packages/aoa-demo/src:packages/aoa-langgraph/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src:packages/aoa-otel/src"
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -201,14 +201,14 @@ module = "langgraph.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "aoa.examples.*"
+module = "aoa.demo.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 disallow_untyped_decorators = false
 
 # maxitor samples — stacked decorators без py.typed на декораторах
 [[tool.mypy.overrides]]
-module = "aoa.examples.model.*"
+module = "aoa.demo.model.*"
 disallow_untyped_decorators = false
 disable_error_code = ["valid-type"]
 
@@ -355,8 +355,8 @@ ignore = [
 # ``runtime/__init__.py`` — stdlib import block only; isort order is intentional.
 # Отложенные импорты после ``BaseAction`` — отдельный блок (см. комментарий в файле).
 "packages/aoa-action-machine/src/aoa/action_machine/model/base_action.py" = ["I001"]
-"packages/aoa-examples/src/aoa/examples/fastapi_mcp_services/app_fastapi_service.py" = ["E402"]
-"packages/aoa-examples/src/aoa/examples/fastapi_mcp_services/app_mcp_service.py" = ["E402"]
+"packages/aoa-demo/src/aoa/demo/fastapi_mcp_services/app_fastapi_service.py" = ["E402"]
+"packages/aoa-demo/src/aoa/demo/fastapi_mcp_services/app_mcp_service.py" = ["E402"]
 "**/*.ipynb" = ["F404", "E402", "F401", "RUF005", "F841"]
 
 [tool.ruff.lint.isort]
@@ -393,11 +393,11 @@ paths = [
     "packages/aoa-mcp-adapter/src/aoa/mcp",
     "packages/aoa-langgraph/src/aoa/langgraph",
     "packages/aoa-maxitor/src/aoa/maxitor",
-    "packages/aoa-examples/src/aoa/examples",
+    "packages/aoa-demo/src/aoa/demo",
 ]
 min_confidence = 80
 exclude = ["tests/"]
-# Intentionally-unused interface parameters in the aoa-examples billing demo stubs
+# Intentionally-unused interface parameters in the aoa-demo billing demo stubs
 # (LedgerArchiveService.append / TaxQuoteService.rate_for keep the real service
 # signature but ignore their inputs in the stub bodies).
 ignore_names = ["event_type", "jurisdiction"]
@@ -408,7 +408,7 @@ ignore_names = ["event_type", "jurisdiction"]
 [tool.taskipy.tasks]
 maxitor-api = "uv run uvicorn aoa.maxitor.api.app:app --reload --host 127.0.0.1 --port 8000"
 packaging-smoke = "pytest tests/packaging -v"
-build-packages = "uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-ocel && uv run --group dev python -m build packages/aoa-otel && uv run --group dev python -m build packages/aoa-fastapi-adapter && uv run --group dev python -m build packages/aoa-mcp-adapter && uv run --group dev python -m build packages/aoa-langgraph && uv run --group dev python -m build packages/aoa-maxitor && uv run --group dev python -m build packages/aoa-examples"
+build-packages = "uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-ocel && uv run --group dev python -m build packages/aoa-otel && uv run --group dev python -m build packages/aoa-fastapi-adapter && uv run --group dev python -m build packages/aoa-mcp-adapter && uv run --group dev python -m build packages/aoa-langgraph && uv run --group dev python -m build packages/aoa-maxitor && uv run --group dev python -m build packages/aoa-demo"
 cov = "pytest packages/aoa-action-machine/tests/ --cov=packages/aoa-action-machine/src/aoa/action_machine --cov-report=term-missing"
 # Lint sources under packages/, tests/, scripts/, and the root meta package ``aoa_run``.
 lint = "ruff check packages/ tests/ scripts/ aoa_run/"
@@ -420,7 +420,7 @@ package-boundaries = "python scripts/check_package_boundaries.py"
 package-metadata = "python scripts/check_package_metadata.py"
 check = "task lint && task types && task package-boundaries && task package-metadata && task build-packages && task packaging-smoke && task samples-public-api"
 dead = "vulture"
-typecheck = "mypy packages/aoa-action-machine/src packages/aoa-maxitor/src packages/aoa-examples/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
+typecheck = "mypy packages/aoa-action-machine/src packages/aoa-maxitor/src packages/aoa-demo/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
 pylint = "pylint packages/"
 cc = "radon cc packages/ -a -nb"
 mi = "radon mi packages/ -nb"

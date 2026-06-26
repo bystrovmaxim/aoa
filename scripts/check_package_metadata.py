@@ -24,7 +24,7 @@ MEMBERS = (
     "aoa-ocel",
     "aoa-otel",
     "aoa-maxitor",
-    "aoa-examples",
+    "aoa-demo",
 )
 
 # ``packages/<folder>/pyproject.toml`` for each distribution name.
@@ -36,7 +36,7 @@ _PACKAGE_DIR: dict[str, str] = {
     "aoa-ocel": "aoa-ocel",
     "aoa-otel": "aoa-otel",
     "aoa-maxitor": "aoa-maxitor",
-    "aoa-examples": "aoa-examples",
+    "aoa-demo": "aoa-demo",
 }
 
 # Normalized distribution names (hyphenated).
@@ -48,18 +48,18 @@ REQUIRED_MAIN: dict[str, frozenset[str]] = {
     "aoa-ocel": frozenset({"aoa-action-machine"}),
     "aoa-otel": frozenset({"aoa-action-machine"}),
     "aoa-maxitor": frozenset({"aoa-action-machine", "aoa-fastapi-adapter"}),
-    "aoa-examples": frozenset({"aoa-action-machine", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel"}),
+    "aoa-demo": frozenset({"aoa-action-machine", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel"}),
 }
 
 FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
-    "aoa-action-machine": frozenset({"aoa-maxitor", "aoa-examples"}),
-    "aoa-fastapi-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
-    "aoa-mcp-adapter": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
-    "aoa-langgraph": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel", "aoa-otel"}),
-    "aoa-ocel": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph", "aoa-otel"}),
-    "aoa-otel": frozenset({"aoa-maxitor", "aoa-examples", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel"}),
-    "aoa-maxitor": frozenset({"aoa-examples", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
-    "aoa-examples": frozenset({"aoa-maxitor", "aoa-langgraph"}),
+    "aoa-action-machine": frozenset({"aoa-maxitor", "aoa-demo"}),
+    "aoa-fastapi-adapter": frozenset({"aoa-maxitor", "aoa-demo", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
+    "aoa-mcp-adapter": frozenset({"aoa-maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
+    "aoa-langgraph": frozenset({"aoa-maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel", "aoa-otel"}),
+    "aoa-ocel": frozenset({"aoa-maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph", "aoa-otel"}),
+    "aoa-otel": frozenset({"aoa-maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel"}),
+    "aoa-maxitor": frozenset({"aoa-demo", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
+    "aoa-demo": frozenset({"aoa-maxitor", "aoa-langgraph"}),
 }
 
 _NAME_RE = re.compile(r"^([A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)")
