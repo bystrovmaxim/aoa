@@ -31,6 +31,12 @@ Adapter topology (raised at build / ainvoke time):
     RouteKeyError                — .route() on() returned a key not in paths
     StateFieldMismatchError      — Action Result field absent from AgentState
 
+build() validation (raised by .build()):
+
+    NoOutputFieldsError          — no output fields declared (global or per-finish)
+    UndeclaredOutputFieldError   — out field not declared in .inp() or .mid()
+    InconsistentFinishOutputError — some finish nodes have explicit outs, others do not
+
 """
 
 
@@ -62,6 +68,33 @@ class MissingFieldDescriptionError(Exception):
         super().__init__(
             f"Field '{field_name}' declared without a description. "
             f"Pass it as the third positional argument: .inp('{field_name}', type, 'description')."
+        )
+
+
+class NoOutputFieldsError(Exception):
+    """Raised by .build() when no output fields are declared (global or per-finish)."""
+
+
+class UndeclaredOutputFieldError(Exception):
+    """Raised by .build() when an out field is not declared in .inp() or .mid()."""
+
+    def __init__(self, field_name: str) -> None:
+        self.field_name = field_name
+        super().__init__(
+            f"Output field '{field_name}' is not declared in .inp() or .mid()."
+        )
+
+
+class InconsistentFinishOutputError(Exception):
+    """Raised by .build() when some finish nodes have explicit out fields and others do not."""
+
+    def __init__(self, with_outs: list[str], without_outs: list[str]) -> None:
+        self.with_outs = with_outs
+        self.without_outs = without_outs
+        super().__init__(
+            f"Finish nodes {with_outs} declare explicit out fields, "
+            f"but {without_outs} do not. Either all finishes must declare out fields "
+            f"or none of them should (use global .out() instead)."
         )
 
 
