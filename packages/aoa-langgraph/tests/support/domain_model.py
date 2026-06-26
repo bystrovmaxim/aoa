@@ -1,5 +1,5 @@
 """
-Self-contained test-support domain model for the aoa-langgraph-adapter package.
+Self-contained test-support domain model for the aoa-langgraph package.
 
 Faithful, trimmed copy of the action-machine scenario domain model, reduced to
 only what the langgraph adapter tests touch: ``PingAction``, ``FullAction`` and

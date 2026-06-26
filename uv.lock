@@ -15,7 +15,7 @@ members = [
     "aoa-action-machine",
     "aoa-examples",
     "aoa-fastapi-adapter",
-    "aoa-langgraph-adapter",
+    "aoa-langgraph",
     "aoa-maxitor",
     "aoa-mcp-adapter",
     "aoa-ocel",
@@ -164,9 +164,9 @@ dev = [
 ]
 
 [[package]]
-name = "aoa-langgraph-adapter"
+name = "aoa-langgraph"
 version = "1.0.0"
-source = { editable = "packages/aoa-langgraph-adapter" }
+source = { editable = "packages/aoa-langgraph" }
 dependencies = [
     { name = "aoa-action-machine" },
     { name = "langgraph" },
@@ -322,7 +322,7 @@ all = [
     { name = "aoa-action-machine", extra = ["postgres"] },
     { name = "aoa-examples", extra = ["fastapi", "mcp"] },
     { name = "aoa-fastapi-adapter" },
-    { name = "aoa-langgraph-adapter" },
+    { name = "aoa-langgraph" },
     { name = "aoa-mcp-adapter" },
     { name = "aoa-ocel" },
     { name = "aoa-otel" },
@@ -346,7 +346,7 @@ dev = [
     { name = "aoa-action-machine", extra = ["postgres"] },
     { name = "aoa-examples", extra = ["fastapi", "mcp"] },
     { name = "aoa-fastapi-adapter" },
-    { name = "aoa-langgraph-adapter" },
+    { name = "aoa-langgraph" },
     { name = "aoa-mcp-adapter" },
     { name = "aoa-ocel" },
     { name = "aoa-otel" },
@@ -398,7 +398,7 @@ requires-dist = [
     { name = "aoa-examples", extras = ["fastapi", "mcp"], marker = "extra == 'dev'", editable = "packages/aoa-examples" },
     { name = "aoa-examples", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/aoa-examples" },
     { name = "aoa-fastapi-adapter", marker = "extra == 'dev'", editable = "packages/aoa-fastapi-adapter" },
-    { name = "aoa-langgraph-adapter", marker = "extra == 'dev'", editable = "packages/aoa-langgraph-adapter" },
+    { name = "aoa-langgraph", marker = "extra == 'dev'", editable = "packages/aoa-langgraph" },
     { name = "aoa-maxitor", editable = "packages/aoa-maxitor" },
     { name = "aoa-mcp-adapter", marker = "extra == 'dev'", editable = "packages/aoa-mcp-adapter" },
     { name = "aoa-ocel", editable = "packages/aoa-ocel" },

@@ -1,4 +1,4 @@
-"""Test-support facade for the aoa-langgraph-adapter package.
+"""Test-support facade for the aoa-langgraph package.
 
 Re-exports the scenario actions and resource manager the langgraph adapter
 tests rely on, sourced from the self-contained :mod:`domain_model` module so

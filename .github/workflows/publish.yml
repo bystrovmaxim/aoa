@@ -14,7 +14,7 @@ on:
           - aoa-action-machine
           - aoa-fastapi-adapter
           - aoa-mcp-adapter
-          - aoa-langgraph-adapter
+          - aoa-langgraph
           - aoa-otel
           - aoa-ocel
           - aoa-maxitor
@@ -69,19 +69,19 @@ jobs:
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 
-  publish-aoa-langgraph-adapter:
-    name: Publish aoa-langgraph-adapter
+  publish-aoa-langgraph:
+    name: Publish aoa-langgraph
     runs-on: ubuntu-latest
     if: >-
-      startsWith(github.ref, 'refs/tags/aoa-langgraph-adapter-v') ||
-      (github.event_name == 'workflow_dispatch' && inputs.package == 'aoa-langgraph-adapter')
+      startsWith(github.ref, 'refs/tags/aoa-langgraph-v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.package == 'aoa-langgraph')
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - name: Build
-        run: uv build --package aoa-langgraph-adapter --out-dir packages/aoa-langgraph-adapter/dist
+        run: uv build --package aoa-langgraph --out-dir packages/aoa-langgraph/dist
       - name: Publish
-        run: uv publish packages/aoa-langgraph-adapter/dist/*
+        run: uv publish packages/aoa-langgraph/dist/*
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 

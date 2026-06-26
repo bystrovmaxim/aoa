@@ -18,7 +18,7 @@
 
 `LangGraphAdapter` embeds AOA Actions into a LangGraph graph — without rewriting business logic. Build the graph through a fluent builder and get a standard `CompiledGraph` with `ainvoke()`, `astream()`, and `get_graph().draw_mermaid()`.
 
-Installation: `pip install "aoa-langgraph-adapter"`.
+Installation: `pip install "aoa-langgraph"`.
 
 ## Why AOA + LangGraph together
 

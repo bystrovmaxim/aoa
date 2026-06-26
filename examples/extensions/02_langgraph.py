@@ -15,7 +15,7 @@ Key advantages of the adapter form:
 - .build_graph() returns a raw StateGraph for native LangGraph continuation
   when you need low-level control.
 
-Install:  pip install "aoa-langgraph-adapter"
+Install:  pip install "aoa-langgraph"
 
 Run:
     uv run python examples/extensions/02_langgraph.py

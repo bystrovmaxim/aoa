@@ -26,7 +26,7 @@ _DIST_NAMESPACE: dict[str, str] = {
     "aoa-otel": "aoa/otel/",
     "aoa-fastapi-adapter": "aoa/fastapi/",
     "aoa-mcp-adapter": "aoa/mcp/",
-    "aoa-langgraph-adapter": "aoa/langgraph/",
+    "aoa-langgraph": "aoa/langgraph/",
     "aoa-maxitor": "aoa/maxitor/",
     "aoa-examples": "aoa/examples/",
 }
