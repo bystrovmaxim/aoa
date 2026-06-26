@@ -6,6 +6,6 @@
   <img src="https://img.shields.io/badge/version-1.0.0-informational" alt="1.0.0">
 </p>
 
-# aoa-langgraph-adapter: Use AOA Actions as LangGraph Nodes
+# aoa-langgraph: Use AOA Actions as LangGraph Nodes
 
-`aoa-langgraph-adapter` bridges AOA and LangGraph: each `Action` becomes a typed LangGraph node that the graph can invoke by passing `Params` and receiving a `Result`. The adapter wraps the full AOA execution path — pipeline, compensations, plugins, role checks — so the orchestration logic stays in LangGraph while all business rules remain in `Action`. A single operation can serve HTTP via `FastApiAdapter`, tools via `McpAdapter`, and a LangGraph agent simultaneously, with no duplication.
+`aoa-langgraph` bridges AOA and LangGraph: each `Action` becomes a typed LangGraph node that the graph can invoke by passing `Params` and receiving a `Result`. The adapter wraps the full AOA execution path — pipeline, compensations, plugins, role checks — so the orchestration logic stays in LangGraph while all business rules remain in `Action`. A single operation can serve HTTP via `FastApiAdapter`, tools via `McpAdapter`, and a LangGraph agent simultaneously, with no duplication.

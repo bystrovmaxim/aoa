@@ -15,7 +15,7 @@ Key properties:
 
 Extension: ../../docs/extensions/langgraph.md  ·  topic: LangGraphAdapter
 
-Install:  pip install "aoa-langgraph-adapter" langgraph
+Install:  pip install "aoa-langgraph" langgraph
 
 Run:
     uv run python examples/step_14_langgraph/01_langgraph.py
