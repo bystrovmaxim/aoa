@@ -666,14 +666,21 @@ class LangGraphController(BaseController):
 
     def _validate_topology(self) -> None:
         """Delegate all topology and dataflow checks to the standalone validator."""
+        action_nodes = {
+            name: info.action_or_fn
+            for name, info in self._nodes.items()
+            if isinstance(info.action_or_fn, type)
+            and issubclass(info.action_or_fn, BaseAction)
+            and info.response_mapper is None
+        }
+        has_opaque = any(
+            info.response_mapper is not None
+            for info in self._nodes.values()
+            if isinstance(info.action_or_fn, type) and issubclass(info.action_or_fn, BaseAction)
+        )
         _validate_topology_rules(
             node_names=set(self._nodes.keys()),
-            action_nodes={
-                name: info.action_or_fn
-                for name, info in self._nodes.items()
-                if isinstance(info.action_or_fn, type)
-                and issubclass(info.action_or_fn, BaseAction)
-            },
+            action_nodes=action_nodes,
             edges=self._edges,
             conditional_edges=[
                 (ce.src, ce.if_true, ce.if_false) for ce in self._conditional_edges
@@ -683,6 +690,7 @@ class LangGraphController(BaseController):
             finish_names=list(self._finish_nodes.keys()),
             inp_field_names=set(self._inp_fields.keys()),
             out_field_names=self._all_out_names(),
+            has_opaque_action_nodes=has_opaque,
         )
 
     def _build_input_state(self, data: dict[str, Any]) -> AgentState:
@@ -698,16 +706,19 @@ class LangGraphController(BaseController):
     def _extract_output(self, final: Any) -> dict[str, Any]:
         """Extract declared out-fields from the final graph state; raises FieldNotReadyError for UNSET fields."""
         per_finish = any(outs for outs in self._finish_nodes.values())
+        is_dict = isinstance(final, dict)
 
         if per_finish:
-            finish_name: str = getattr(final, "__finish_node__", "")
+            finish_name: str = (
+                final.get("__finish_node__", "") if is_dict else getattr(final, "__finish_node__", "")
+            )
             out_names: list[str] = self._finish_nodes.get(finish_name, [])
         else:
             out_names = list(self._out_fields)
 
         result: dict[str, Any] = {}
         for name in out_names:
-            value = getattr(final, name, UNSET)
+            value = final.get(name, UNSET) if is_dict else getattr(final, name, UNSET)
             if isinstance(value, UnsetType):
                 raise FieldNotReadyError(name)
             result[name] = value

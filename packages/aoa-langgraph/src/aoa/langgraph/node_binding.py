@@ -79,7 +79,7 @@ async def _run_action_node(
         raw: dict[str, Any] = mapped.model_dump() if hasattr(mapped, "model_dump") else dict(mapped)
     else:
         raw = result.model_dump()
-    state_keys = set(agentstate.model_fields.keys())
+    state_keys = set(type(agentstate).model_fields.keys())
     unexpected = [k for k in raw if k not in state_keys]
     if unexpected:
         raise UnexpectedResultFieldError(action_cls, unexpected)
