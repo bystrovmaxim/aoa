@@ -31,13 +31,14 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_controller import BaseController
 from aoa.action_machine.resources.base_resource import BaseResource
 
 if TYPE_CHECKING:
+    from aoa.action_machine.runtime.tools_box import ToolsBox
     from aoa.langgraph.controller import LangGraphController
 
 
@@ -54,6 +55,10 @@ class WrapperLangGraphController(BaseController):
     def __init__(self, inner: LangGraphController) -> None:
         """Wrap a fully built LangGraphController for child-action propagation."""
         self._inner = inner
+
+    async def ainvoke(self, data: dict[str, Any], box: ToolsBox) -> dict[str, Any]:
+        """Delegate ainvoke to the wrapped controller; child actions cannot call build/compile."""
+        return await self._inner.ainvoke(data, box)
 
     async def check_rollup_support(self) -> bool:
         """Delegate to the wrapped controller."""
