@@ -47,6 +47,7 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
@@ -64,14 +65,20 @@ if TYPE_CHECKING:
 
 async def _run_action_node(
     action_cls: type[BaseAction[Any, Any]],
+    params_mapper: Callable[[Any], Any] | None,
+    response_mapper: Callable[[Any], Any] | None,
     connections: dict[str, Any] | None,
     box: ToolsBox,
     agentstate: Any,
 ) -> dict[str, Any]:
     """Execute an Action class as a LangGraph node via box.run(); return result fields."""
-    params = _extract_params(action_cls, agentstate)
+    params = params_mapper(agentstate) if params_mapper is not None else _extract_params(action_cls, agentstate)
     result = await box.run(action_cls, params, connections=connections)
-    raw: dict[str, Any] = result.model_dump()
+    if response_mapper is not None:
+        mapped: Any = response_mapper(result)
+        raw: dict[str, Any] = mapped.model_dump() if hasattr(mapped, "model_dump") else dict(mapped)
+    else:
+        raw = result.model_dump()
     state_keys = set(agentstate.model_fields.keys())
     unexpected = [k for k in raw if k not in state_keys]
     if unexpected:
