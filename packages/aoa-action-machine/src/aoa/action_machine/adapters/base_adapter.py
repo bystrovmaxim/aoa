@@ -91,9 +91,9 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 class BaseAdapter[R: BaseRouteRecord](ABC):
     """
     AI-CORE-BEGIN
-        ROLE: Protocol-agnostic adapter contract and shared state holder.
-        CONTRACT: Validates constructor dependencies, stores route records, and exposes abstract ``build()``.
-        INVARIANTS: machine type is strict; auth coordinator is mandatory; route registration preserves order.
+        ROLE: Transport bridge — exposes Actions via an external protocol.
+        CONTRACT: Translation only, no business logic.
+        INVARIANTS: One adapter — one protocol.
         AI-CORE-END
     """
 

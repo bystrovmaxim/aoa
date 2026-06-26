@@ -27,6 +27,7 @@ ARCHITECTURE / DATA FLOW
 from typing import Any
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.resources.base_controller import BaseController
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.external_service.protocol_external_service_resource import (
     ProtocolExternalServiceResource,
@@ -34,7 +35,7 @@ from aoa.action_machine.resources.external_service.protocol_external_service_res
 
 
 @exclude_graph_model
-class WrapperExternalServiceResource(BaseResource, ProtocolExternalServiceResource):
+class WrapperExternalServiceResource(BaseController, ProtocolExternalServiceResource):
     """
     Thin proxy for nested actions using the same external client handle.
 

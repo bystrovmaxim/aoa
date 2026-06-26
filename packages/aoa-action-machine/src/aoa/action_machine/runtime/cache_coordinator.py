@@ -33,11 +33,12 @@ import time
 from collections import defaultdict
 from typing import Any
 
+from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 
 
-class CacheCoordinator:
+class CacheCoordinator(BaseCoordinator):
     """
     In-memory cache store shared across action classes in one machine instance.
 

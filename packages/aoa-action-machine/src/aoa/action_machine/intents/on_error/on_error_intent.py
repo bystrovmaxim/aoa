@@ -77,8 +77,10 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
+from aoa.action_machine.intents.base_intent import BaseIntent
 
-class OnErrorIntent:
+
+class OnErrorIntent(BaseIntent):
     """
     AI-CORE-BEGIN
     ROLE: Marker contract for on-error handler declarations.

@@ -101,6 +101,12 @@ from aoa.action_machine.system_core.dot_path_navigator import _SENTINEL, DotPath
 @exclude_graph_model
 class BaseSchema(BaseModel):
     """
+    AI-CORE-BEGIN
+        ROLE: Single source of typed data; all AOA contracts descend from it.
+        CONTRACT: Subclasses add fields only, never behaviour; always frozen.
+        INVARIANTS: Immutable after construction.
+    AI-CORE-END
+
     Base Pydantic schema with dict-like reads and dot-path navigation.
 
     Framework data structures inherit this class and configure mutability

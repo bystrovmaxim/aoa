@@ -1,7 +1,7 @@
 # tests/maxitor/test_load_aoa_service_action_integration.py
 # Integration test — skipped in CI.
 # To run: uv run pytest tests/maxitor/test_load_aoa_service_action_integration.py -v -s
-# Requires: uv run uvicorn aoa.examples.fastapi_mcp_services.app_fastapi_service:app --host 127.0.0.1 --port 8001
+# Requires: a running AOA FastAPI service on http://127.0.0.1:8001 (any app exposing the AOA service protocol)
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ def _state(**kwargs: Any) -> BaseState:
     return BaseState(**kwargs)
 
 
-@pytest.mark.skip(reason="integration: requires aoa-examples service running on http://127.0.0.1:8001")
+@pytest.mark.skip(reason="integration: requires an AOA service running on http://127.0.0.1:8001")
 @pytest.mark.asyncio
 async def test_full_pipeline_against_real_service() -> None:
     params = LoadAOAServiceParams(service_url=_BASE_URL)

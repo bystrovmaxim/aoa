@@ -158,9 +158,9 @@ class BaseAction[P: BaseParams, R: BaseResult](
 ):
     """
     AI-CORE-BEGIN
-    ROLE: Public base type for all async/sync actions.
-    CONTRACT: Subclasses end with ``Action``; carry marker mixins; use required decorators.
-    INVARIANTS: Stateless at instance level regarding metadata.
+    ROLE: Unit of business work: Params → Result.
+    CONTRACT: Everything external via ``@depends``/``@connection``.
+    INVARIANTS: Knows nothing about transport, coordinators, or storage.
     CACHE: Optional ``cache_key`` / ``read_cache`` / ``on_cache_write`` / ``on_cache_invalidate``; defaults disable caching. ``cache_key`` returns ``str | None``; ``on_cache_write`` returns ``list[CacheTag] | None`` (None = skip write); ``on_cache_invalidate`` returns ``list[CacheTag] | None`` and is called after every clean pipeline regardless of ``cache_key``.
     AI-CORE-END
     """

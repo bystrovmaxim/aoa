@@ -1,0 +1,33 @@
+# packages/aoa-demo/src/aoa/demo/model/store/actions/inventory_hold_stub.py
+from __future__ import annotations
+
+from typing import Any
+
+from pydantic import Field
+
+from aoa.action_machine.auth import GuestRole
+from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.demo.model.store.store_domain import StoreDomain
+
+
+@meta(description="Place inventory hold (store sample stub)", domain=StoreDomain)
+@check_roles(GuestRole)
+class InventoryHoldStubAction(BaseAction["InventoryHoldStubAction.Params", "InventoryHoldStubAction.Result"]):
+    class Params(BaseParams):
+        sku: str = Field(description="SKU")
+
+    class Result(BaseResult):
+        hold_id: str = Field(description="Stub reservation id")
+
+    @summary_aspect("Hold")
+    async def hold_summary(
+        self,
+        params: InventoryHoldStubAction.Params,
+        state: Any,
+        box: Any,
+        connections: Any,
+    ) -> InventoryHoldStubAction.Result:
+        return InventoryHoldStubAction.Result(hold_id=f"HOLD-{params.sku}")
