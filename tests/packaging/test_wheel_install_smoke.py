@@ -28,7 +28,7 @@ _DIST_NAMESPACE: dict[str, str] = {
     "aoa-mcp-adapter": "aoa/mcp/",
     "aoa-langgraph": "aoa/langgraph/",
     "aoa-maxitor": "aoa/maxitor/",
-    "aoa-examples": "aoa/examples/",
+    "aoa-demo": "aoa/demo/",
 }
 
 _PACKAGE_DIRS: dict[str, str] = {dist: dist for dist in _DIST_NAMESPACE}
@@ -117,7 +117,7 @@ def test_clean_install_action_machine_provides_graph(tmp_path: Path) -> None:
         "assert u.find_spec('aoa.ocel') is None; "
         "assert u.find_spec('aoa.otel') is None; "
         "assert u.find_spec('aoa.maxitor') is None; "
-        "assert u.find_spec('aoa.examples') is None",
+        "assert u.find_spec('aoa.demo') is None",
     )
 
 
@@ -130,13 +130,13 @@ def test_clean_install_examples_does_not_pull_maxitor(tmp_path: Path) -> None:
         [
             _latest_wheel("aoa-action-machine"),
             _latest_wheel("aoa-ocel"),
-            _latest_wheel("aoa-examples"),
+            _latest_wheel("aoa-demo"),
         ],
     )
     _run_in_venv(
         vpy,
         "import importlib.util as u; import aoa.action_machine; "
-        "import aoa.examples; "
+        "import aoa.demo; "
         "assert u.find_spec('aoa.action_machine.plugin.ocel') is None; "
         "assert u.find_spec('aoa.ocel') is not None; "
         "assert u.find_spec('aoa.maxitor') is None",

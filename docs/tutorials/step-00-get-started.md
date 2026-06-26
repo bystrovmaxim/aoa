@@ -97,7 +97,7 @@ uv run python examples/step_01_Action_and_pipeline/01_hello_world.py
 
 ## Repository structure
 
-AOA is a monorepo. At the top level everything splits in two: the three packages the framework is assembled from, and the scaffolding around them — documentation, examples, tests, infrastructure. Let's descend this pyramid exactly two layers: first the general map, then into the core the next chapter works with. There is no need to go deeper now (the separate modules of `aoa-examples` and `aoa-maxitor`, the execution-core files) — that lives in the respective packages' READMEs and in the reference.
+AOA is a monorepo. At the top level everything splits in two: the three packages the framework is assembled from, and the scaffolding around them — documentation, examples, tests, infrastructure. Let's descend this pyramid exactly two layers: first the general map, then into the core the next chapter works with. There is no need to go deeper now (the separate modules of `aoa-demo` and `aoa-maxitor`, the execution-core files) — that lives in the respective packages' READMEs and in the reference.
 
 ### Top level: packages and scaffolding
 
@@ -105,7 +105,7 @@ AOA is a monorepo. At the top level everything splits in two: the three packages
 aoa/
 ├── packages/        ← the three packages AOA is assembled from
 │   ├── aoa-action-machine/   ← CORE: the Action model, execution core, contracts, observability
-│   ├── aoa-examples/         ← LIBRARY of ready-made domains — the framework "at scale"
+│   ├── aoa-demo/         ← LIBRARY of ready-made domains — the framework "at scale"
 │   └── aoa-maxitor/          ← VISUALIZER: graph, ERD, and diagrams straight from code
 │
 ├── docs/            ← this guide (chapters + the intents-and-invariants reference)
@@ -118,7 +118,7 @@ aoa/
 └── housekeeping: .github/, dist/, .venv, caches, htmlcov
 ```
 
-There is little to keep in mind. The center of gravity is `packages/`, and there are three different worlds there: `aoa-action-machine` — the core itself, where the next chapter begins; `aoa-examples` — a large library of ready-made domains, where the framework is seen "at scale" (its inner workings are in the package README); `aoa-maxitor` — a tool that builds an interactive map of the system from code. `docs/` and `examples/` go in pairs: a chapter explains an idea, an example shows it at work. And `tests/` and `scripts/` are notable in that a significant part of the AOA invariants are checked exactly there — statically, before production.
+There is little to keep in mind. The center of gravity is `packages/`, and there are three different worlds there: `aoa-action-machine` — the core itself, where the next chapter begins; `aoa-demo` — a large library of ready-made domains, where the framework is seen "at scale" (its inner workings are in the package README); `aoa-maxitor` — a tool that builds an interactive map of the system from code. `docs/` and `examples/` go in pairs: a chapter explains an idea, an example shows it at work. And `tests/` and `scripts/` are notable in that a significant part of the AOA invariants are checked exactly there — statically, before production.
 
 ### Second level: inside the core
 

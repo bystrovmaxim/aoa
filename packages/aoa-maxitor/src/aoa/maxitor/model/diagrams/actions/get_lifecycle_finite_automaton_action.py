@@ -105,10 +105,10 @@ class GetLifecycleFiniteAutomatonAction(
 
     class Result(BaseResult):
         # {
-        #   "lifecycle_graph_node_id": "aoa.examples...Entity:lifecycle:lifecycle",
-        #   "host_entity_type_qualname": "aoa.examples...Entity",
+        #   "lifecycle_graph_node_id": "myapp...Entity:lifecycle:lifecycle",
+        #   "host_entity_type_qualname": "myapp...Entity",
         #   "field_name": "lifecycle",
-        #   "lifecycle_class_qualname": "aoa.examples...BillingDenseLifecycle",
+        #   "lifecycle_class_qualname": "myapp...BillingDenseLifecycle",
         #   "initial_state_keys": ["open"],
         #   "states": [
         #     {"key": "open", "display_name": "Open", "state_type": "initial", "transitions": ["finalized"]}

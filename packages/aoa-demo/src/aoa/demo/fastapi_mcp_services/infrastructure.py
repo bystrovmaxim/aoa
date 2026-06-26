@@ -1,0 +1,54 @@
+# packages/aoa-demo/src/aoa/demo/fastapi_mcp_services/infrastructure.py
+"""
+Shared ActionMachine runtime wiring for the FastAPI and MCP example apps.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+``ActionProductMachine`` and ``NoAuthCoordinator`` are constructed once and
+imported by both transports so HTTP and MCP share the same runtime instance and
+auth policy.
+
+``GetExampleModelGraphJsonAction`` is imported before ``ActionProductMachine()`` so
+``create_node_graph_coordinator()`` materializes that action on the default graph.
+
+``ActionProductMachine`` creates its default ``NodeGraphCoordinator`` eagerly.
+Adapters receive ``machine`` and ``auth``; they use ``machine.graph_coordinator``
+when they need the graph.
+
+``NoAuthCoordinator`` states that this sample performs no real authentication.
+For production, supply an ``AuthCoordinator`` with ``CredentialExtractor``,
+``Authenticator``, and ``ContextAssembler``. Keep ``NoAuthCoordinator`` only
+for intentionally public APIs.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    infrastructure (this module)
+    +-- machine = ActionProductMachine()
+    |       +-- built NodeGraphCoordinator (eager ``create_node_graph_coordinator()``)
+    +-- auth    = NoAuthCoordinator()
+              |
+              +------------------+------------------+
+              |                                     |
+      app_fastapi_service                   app_mcp_service
+      FastApiAdapter(machine, auth)         McpAdapter(machine, auth)
+              |                                     |
+              v                                     v
+        HTTP routes                          MCP tools
+              \\___________________________________/
+                    same machine + auth instances
+
+"""
+
+from aoa.action_machine.auth import NoAuthCoordinator
+from aoa.action_machine.context import Context
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+
+# Register on the default graph before ``create_node_graph_coordinator()`` runs.
+from aoa.demo.model.actions import GetExampleModelGraphJsonAction  # noqa: F401  # pylint: disable=unused-import
+
+machine = ActionProductMachine()
+auth = NoAuthCoordinator(context=Context())
