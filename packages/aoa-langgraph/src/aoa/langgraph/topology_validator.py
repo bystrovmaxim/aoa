@@ -46,8 +46,9 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+import types as _types
 from collections import deque
-from typing import Any
+from typing import Any, Union, get_args, get_origin
 
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import (
     ActionSchemaIntentResolver,
@@ -55,6 +56,7 @@ from aoa.action_machine.intents.action_schema.action_schema_intent_resolver impo
 from aoa.langgraph.exceptions import (
     DeadEndNodeError,
     FieldHasNoProducerError,
+    FieldTypeMismatchError,
     FinishUnreachableError,
     NoEntryPointError,
     NoFinishPointError,
@@ -65,6 +67,35 @@ from aoa.langgraph.exceptions import (
 )
 
 _END = "__end__"
+
+
+def _unwrap_optional(t: Any) -> Any:
+    """Strip Optional[X] / X | None → X; everything else unchanged."""
+    if get_origin(t) is Union or isinstance(t, _types.UnionType):
+        args = [a for a in get_args(t) if a is not type(None)]
+        if len(args) == 1:
+            return args[0]
+    return t
+
+
+def _check_field_type(
+    node_name: str,
+    field_name: str,
+    direction: str,
+    state_type: Any,
+    action_type: Any,
+) -> None:
+    """Raise FieldTypeMismatchError when unwrapped types differ."""
+    if state_type is None or action_type is None:
+        return
+    if _unwrap_optional(state_type) != _unwrap_optional(action_type):
+        raise FieldTypeMismatchError(
+            node_name=node_name,
+            field_name=field_name,
+            direction=direction,
+            state_type=state_type,
+            action_type=action_type,
+        )
 
 
 def validate(
@@ -79,8 +110,9 @@ def validate(
     inp_field_names: set[str],
     out_field_names: set[str],
     has_opaque_action_nodes: bool = False,
+    state_field_types: dict[str, Any] | None = None,
 ) -> None:
-    """Run all 11 topology and dataflow checks; raise on the first violation found."""
+    """Run all topology and dataflow checks; raise on the first violation found."""
     _check_presence(node_names, start_names, finish_names)
     _check_name_references(
         node_names=node_names,
@@ -92,7 +124,7 @@ def validate(
     )
     adj = _build_adjacency(node_names, edges, conditional_edges, routes, finish_names)
     _check_reachability(adj, node_names, start_names, finish_names)
-    _check_dataflow(action_nodes, inp_field_names, out_field_names, has_opaque_action_nodes)
+    _check_dataflow(action_nodes, inp_field_names, out_field_names, has_opaque_action_nodes, state_field_types)
 
 
 def _check_presence(
@@ -215,15 +247,20 @@ def _check_dataflow(
     inp_field_names: set[str],
     out_field_names: set[str],
     has_opaque_action_nodes: bool = False,
+    state_field_types: dict[str, Any] | None = None,
 ) -> None:
     """Check that required Params fields and out-fields each have at least one producer.
 
     When has_opaque_action_nodes=True (any node has response_mapper), rule 11 is skipped:
     opaque nodes can write any field and their write-sets cannot be determined statically.
+
+    When state_field_types is provided, also validates that the type of each Params field
+    matches the declared type of the corresponding state field (FieldTypeMismatchError).
     """
     all_written: set[str] = _collect_write_sets(action_nodes)
 
-    # Rule 10: each required Params field has a producer or is an inp-field
+    # Rule 10: each required Params field has a producer or is an inp-field.
+    # Extension: when state_field_types is available, also check type compatibility.
     for node_name, action_cls in action_nodes.items():
         try:
             params_type = ActionSchemaIntentResolver.resolve_params_type(action_cls)
@@ -235,6 +272,14 @@ def _check_dataflow(
             if not field_info.is_required():
                 continue
             if field_name in inp_field_names or field_name in all_written:
+                if state_field_types and field_name in state_field_types:
+                    _check_field_type(
+                        node_name=node_name,
+                        field_name=field_name,
+                        direction="params",
+                        state_type=state_field_types[field_name],
+                        action_type=field_info.annotation,
+                    )
                 continue
             raise FieldHasNoProducerError(node_name, field_name)
 

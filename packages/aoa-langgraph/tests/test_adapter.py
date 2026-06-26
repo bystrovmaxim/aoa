@@ -11,8 +11,12 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic import Field as PydanticField
 
+from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
+from aoa.action_machine.model.base_result import BaseResult
 from aoa.langgraph.agent_state import AgentState
 from aoa.langgraph.controller import LangGraphController
 from aoa.langgraph.exceptions import (
@@ -22,6 +26,7 @@ from aoa.langgraph.exceptions import (
     DuplicateFieldError,
     FieldHasNoProducerError,
     FieldNotReadyError,
+    FieldTypeMismatchError,
     FinishUnreachableError,
     InconsistentFinishOutputError,
     MissingFieldDescriptionError,
@@ -560,3 +565,247 @@ class TestExtractParams:
         state = _NameState()
         params = _extract_params(PingAction, state)
         assert params is not None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stubs for TestFieldTypeMismatch — must be module-level for get_type_hints()
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class _WrongParamsAction(BaseAction["_WrongParamsAction.Params", "_WrongParamsAction.Result"]):
+    class Params(BaseParams):
+        ticket_id: int = PydanticField(description="int ticket id")
+
+    class Result(BaseResult):
+        resolved: bool = PydanticField(description="flag")
+
+    @summary_aspect("Run stub")
+    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _WrongParamsAction.Result:
+        return self.Result(resolved=True)
+
+
+class _MatchParamsAction(BaseAction["_MatchParamsAction.Params", "_MatchParamsAction.Result"]):
+    class Params(BaseParams):
+        ticket_id: str = PydanticField(description="str ticket id")
+
+    class Result(BaseResult):
+        resolved: bool = PydanticField(description="flag")
+
+    @summary_aspect("Run stub")
+    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _MatchParamsAction.Result:
+        return self.Result(resolved=True)
+
+
+class _OptParamsAction(BaseAction["_OptParamsAction.Params", "_OptParamsAction.Result"]):
+    class Params(BaseParams):
+        ticket_id: str | None = PydanticField(default=None, description="opt id")
+
+    class Result(BaseResult):
+        resolved: bool = PydanticField(description="flag")
+
+    @summary_aspect("Run stub")
+    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _OptParamsAction.Result:
+        return self.Result(resolved=True)
+
+
+class _IntParamsAction(BaseAction["_IntParamsAction.Params", "_IntParamsAction.Result"]):
+    class Params(BaseParams):
+        ticket_id: int = PydanticField(description="int id")
+
+    class Result(BaseResult):
+        resolved: bool = PydanticField(description="flag")
+
+    @summary_aspect("Run stub")
+    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _IntParamsAction.Result:
+        return self.Result(resolved=True)
+
+
+class _WrongResultAction(BaseAction["_WrongResultAction.Params", "_WrongResultAction.Result"]):
+    class Params(BaseParams):
+        pass
+
+    class Result(BaseResult):
+        resolved: int = PydanticField(description="int, but state has bool")
+
+    @summary_aspect("Run stub")
+    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _WrongResultAction.Result:
+        return self.Result(resolved=1)
+
+
+class _OptResultAction(BaseAction["_OptResultAction.Params", "_OptResultAction.Result"]):
+    class Params(BaseParams):
+        pass
+
+    class Result(BaseResult):
+        message: str | None = PydanticField(default=None, description="optional msg")
+
+    @summary_aspect("Run stub")
+    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _OptResultAction.Result:
+        return self.Result(message="hi")
+
+
+class _IntResultAction(BaseAction["_IntResultAction.Params", "_IntResultAction.Result"]):
+    class Params(BaseParams):
+        pass
+
+    class Result(BaseResult):
+        score: int = PydanticField(description="int score")
+
+    @summary_aspect("Run stub")
+    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _IntResultAction.Result:
+        return self.Result(score=5)
+
+
+class _SilentWrongAction(BaseAction["_SilentWrongAction.Params", "_SilentWrongAction.Result"]):
+    class Params(BaseParams):
+        pass
+
+    class Result(BaseResult):
+        resolved: int = PydanticField(description="int, but state has bool")
+
+    @summary_aspect("Run stub")
+    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _SilentWrongAction.Result:
+        return self.Result(resolved=0)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TestFieldTypeMismatch
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestFieldTypeMismatch:
+    """Verify that .build() raises FieldTypeMismatchError when state and Action types disagree."""
+
+    # ── Params direction ──────────────────────────────────────────────────────
+
+    def test_params_type_mismatch_raises(self) -> None:
+        """State declares str, Params expects int → FieldTypeMismatchError on params."""
+        ctrl = (
+            LangGraphController()
+            .inp("ticket_id", str, "Ticket identifier (str)")
+            .mid("resolved", bool, "Resolution flag")
+            .out("resolved")
+            .node(_WrongParamsAction)
+            .start(_WrongParamsAction)
+            .finish(_WrongParamsAction)
+        )
+        with pytest.raises(FieldTypeMismatchError) as exc_info:
+            ctrl.build()
+        err = exc_info.value
+        assert err.field_name == "ticket_id"
+        assert err.direction == "params"
+        assert err.state_type is str
+        assert err.action_type is int
+
+    def test_params_type_match_passes(self) -> None:
+        """Exact type match on inp field → no error."""
+        ctrl = (
+            LangGraphController()
+            .inp("ticket_id", str, "Ticket identifier")
+            .mid("resolved", bool, "Resolution flag")
+            .out("resolved")
+            .node(_MatchParamsAction)
+            .start(_MatchParamsAction)
+            .finish(_MatchParamsAction)
+        )
+        assert ctrl.build() is not None
+
+    def test_params_optional_unwrapped_passes(self) -> None:
+        """State has str, Params has Optional[str] → unwrapped match, no error."""
+        ctrl = (
+            LangGraphController()
+            .inp("ticket_id", str, "Ticket identifier")
+            .mid("resolved", bool, "Resolution flag")
+            .out("resolved")
+            .node(_OptParamsAction)
+            .start(_OptParamsAction)
+            .finish(_OptParamsAction)
+        )
+        assert ctrl.build() is not None
+
+    def test_params_mapper_skips_type_check(self) -> None:
+        """params_mapper present → node excluded from type validation."""
+        ctrl = (
+            LangGraphController()
+            .inp("ticket_id", str, "Ticket identifier (str)")
+            .mid("resolved", bool, "Resolution flag")
+            .out("resolved")
+            .node(
+                _IntParamsAction,
+                params_mapper=lambda s: _IntParamsAction.Params(ticket_id=int(s.ticket_id)),
+            )
+            .start(_IntParamsAction)
+            .finish(_IntParamsAction)
+        )
+        assert ctrl.build() is not None
+
+    # ── Result direction ──────────────────────────────────────────────────────
+
+    def test_result_type_mismatch_raises(self) -> None:
+        """State declares bool for 'resolved', Result writes int → FieldTypeMismatchError on result."""
+        ctrl = (
+            LangGraphController()
+            .mid("resolved", bool, "Resolution flag")
+            .out("resolved")
+            .node(_WrongResultAction)
+            .start(_WrongResultAction)
+            .finish(_WrongResultAction)
+        )
+        with pytest.raises(FieldTypeMismatchError) as exc_info:
+            ctrl.build()
+        err = exc_info.value
+        assert err.field_name == "resolved"
+        assert err.direction == "result"
+        assert err.state_type is bool
+        assert err.action_type is int
+
+    def test_result_type_match_passes(self) -> None:
+        """Exact type match on mid field → no error."""
+        ctrl = (
+            LangGraphController()
+            .mid("message", str, "Ping response")
+            .out("message")
+            .node(PingAction)
+            .start(PingAction)
+            .finish(PingAction)
+        )
+        assert ctrl.build() is not None
+
+    def test_result_optional_unwrapped_passes(self) -> None:
+        """State has str, Result has Optional[str] → base types match, no error."""
+        ctrl = (
+            LangGraphController()
+            .mid("message", str, "Message field")
+            .out("message")
+            .node(_OptResultAction)
+            .start(_OptResultAction)
+            .finish(_OptResultAction)
+        )
+        assert ctrl.build() is not None
+
+    def test_response_mapper_skips_type_check(self) -> None:
+        """response_mapper present → node excluded from Result type validation."""
+        ctrl = (
+            LangGraphController()
+            .mid("score", str, "Score as string")
+            .out("score")
+            .node(
+                _IntResultAction,
+                response_mapper=lambda r: {"score": str(r.score)},
+            )
+            .start(_IntResultAction)
+            .finish(_IntResultAction)
+        )
+        assert ctrl.build() is not None
+
+    def test_silent_build_returns_none_on_type_mismatch(self) -> None:
+        """build(silent=True) returns None instead of raising FieldTypeMismatchError."""
+        ctrl = (
+            LangGraphController()
+            .mid("resolved", bool, "Resolution flag")
+            .out("resolved")
+            .node(_SilentWrongAction)
+            .start(_SilentWrongAction)
+            .finish(_SilentWrongAction)
+        )
+        assert ctrl.build(silent=True) is None

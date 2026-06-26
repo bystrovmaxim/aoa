@@ -85,9 +85,10 @@ from __future__ import annotations
 
 import functools
 import inspect
+import types as _types
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, Union, get_args, get_origin, overload
 
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, create_model
@@ -108,6 +109,7 @@ from aoa.langgraph.exceptions import (
     DuplicateFieldError,
     FieldHasNoProducerError,
     FieldNotReadyError,
+    FieldTypeMismatchError,
     FinishUnreachableError,
     InconsistentFinishOutputError,
     MissingFieldDescriptionError,
@@ -195,6 +197,18 @@ class RouteInfo:
     src: str
     on: Any
     paths: dict[str, str] = field(default_factory=dict)
+
+
+# ── Type utilities ───────────────────────────────────────────────────────────
+
+
+def _unwrap_optional(t: Any) -> Any:
+    """Strip Optional[X] / X | None → X; everything else unchanged."""
+    if get_origin(t) is Union or isinstance(t, _types.UnionType):
+        args = [a for a in get_args(t) if a is not type(None)]
+        if len(args) == 1:
+            return args[0]
+    return t
 
 
 # ── Compile-time routing helpers ─────────────────────────────────────────────
@@ -481,6 +495,7 @@ class LangGraphController(BaseController):
             FinishUnreachableError,
             UnreachableNodeError,
             FieldHasNoProducerError,
+            FieldTypeMismatchError,
             OutputHasNoProducerError,
             UnexpectedResultFieldError,
             UnregisteredNodeError,
@@ -617,6 +632,21 @@ class LangGraphController(BaseController):
             names.update(outs)
         return names
 
+    def _check_result_field_types(self, action_or_fn: type, result_type: Any) -> None:
+        """Raise FieldTypeMismatchError if any Result field type conflicts with the state declaration."""
+        for field_name, field_info in result_type.model_fields.items():
+            state_meta = self._inp_fields.get(field_name) or self._mid_fields.get(field_name)
+            if state_meta is None or state_meta.type is None or field_info.annotation is None:
+                continue
+            if _unwrap_optional(state_meta.type) != _unwrap_optional(field_info.annotation):
+                raise FieldTypeMismatchError(
+                    node_name=TypeIntrospection.qualname_of(action_or_fn),
+                    field_name=field_name,
+                    direction="result",
+                    state_type=state_meta.type,
+                    action_type=field_info.annotation,
+                )
+
     def _validate_contract(self) -> None:
         """Run all data-contract checks; raise on the first violation found."""
         all_out = self._all_out_names()
@@ -648,6 +678,7 @@ class LangGraphController(BaseController):
             surplus = [f for f in result_type.model_fields if f not in declared]
             if surplus:
                 raise UnexpectedResultFieldError(info.action_or_fn, surplus)
+            self._check_result_field_types(info.action_or_fn, result_type)
 
     def _build_agentstate(self) -> type[AgentState]:
         """Create the dynamic AgentState subclass with typed inp and UNSET-defaulted mid fields."""
@@ -679,6 +710,10 @@ class LangGraphController(BaseController):
             for info in self._nodes.values()
             if isinstance(info.action_or_fn, type) and issubclass(info.action_or_fn, BaseAction)
         )
+        state_field_types: dict[str, Any] = {
+            **{name: meta.type for name, meta in self._inp_fields.items()},
+            **{name: meta.type for name, meta in self._mid_fields.items()},
+        }
         _validate_topology_rules(
             node_names=set(self._nodes.keys()),
             action_nodes=action_nodes,
@@ -692,6 +727,7 @@ class LangGraphController(BaseController):
             inp_field_names=set(self._inp_fields.keys()),
             out_field_names=self._all_out_names(),
             has_opaque_action_nodes=has_opaque,
+            state_field_types=state_field_types,
         )
 
     def _build_input_state(self, data: dict[str, Any]) -> AgentState:
