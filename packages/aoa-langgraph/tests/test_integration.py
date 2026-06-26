@@ -1,148 +1,55 @@
-# tests/langgraph/test_integration.py
+# packages/aoa-langgraph/tests/test_integration.py
 """
-Integration tests for LangGraphAdapter.build_graph() and .compile().
+Integration tests for LangGraphController.compile() and .ainvoke().
 
 Requires langgraph — skipped automatically if not installed.
 
 Covers:
-- build_graph() returns a StateGraph
-- compile() returns a compiled graph with ainvoke/astream/get_graph
-- MissingConnectionError is raised at build_graph() time (before StateGraph is returned)
-- build_graph() result can be extended and compiled with native LangGraph API
-- conditional_edge routing is wired correctly
+- compile(box) returns a CompiledStateGraph with ainvoke/astream/get_graph
+- ainvoke(data, box) executes the graph and returns output fields
+- per-finish out-field mode: __finish_node__ tracking
+- RouteKeyError propagated during ainvoke
+- UnexpectedResultFieldError raised at build() for undeclared Result fields
 """
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 pytest.importorskip("langgraph", reason="langgraph not installed")
 
-from langgraph.graph import END, StateGraph
+from aoa.langgraph.controller import LangGraphController
+from aoa.langgraph.exceptions import MissingInputFieldError, RouteKeyError, UnexpectedResultFieldError
 
-from aoa.langgraph.adapter import LangGraphAdapter
-from aoa.langgraph.agent_state import AgentState
-from aoa.langgraph.exceptions import MissingConnectionError, RouteKeyError, StateFieldMismatchError
-
-from .support import FullAction, OrdersDbManager, PingAction
+from .support import FullAction, PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────
-# State schemas
+# Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class _PingState(AgentState):
-    """State for single-node ping tests."""
-
-    message: str
-
-
-class _FlowState(AgentState):
-    """State for multi-node flow tests."""
-
-    message: str
-    routed: bool = False
+def _mock_box(result_fields: dict[str, Any]) -> Any:
+    """Return a mock ToolsBox whose .run() returns a MagicMock with model_dump()."""
+    mock_result = MagicMock()
+    mock_result.model_dump.return_value = result_fields
+    box = MagicMock()
+    box.run = AsyncMock(return_value=mock_result)
+    return box
 
 
-class _FullState(AgentState):
-    """State covering FullAction.Result fields (order_id, txn_id, total, status)."""
-
-    order_id: str = ""
-    txn_id: str = ""
-    total: float = 0.0
-    status: str = ""
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Factory
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-def _adapter(agentstate: type = _PingState, **kwargs: Any) -> LangGraphAdapter:
-    return LangGraphAdapter(
-        machine=MagicMock(),
-        context=MagicMock(),
-        agentstate=agentstate,
-        **kwargs,
+def _ping_ctrl() -> LangGraphController:
+    """Minimal built controller that runs PingAction and outputs 'message'."""
+    return (
+        LangGraphController()
+        .mid("message", str, "Ping response message")
+        .out("message")
+        .node(PingAction)
+        .start(PingAction)
+        .finish(PingAction)
+        .build()
     )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# TestBuildGraph
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-class TestBuildGraph:
-    def test_returns_state_graph_instance(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction()).start(PingAction)
-        assert isinstance(adapter.build_graph(), StateGraph)
-
-    def test_raises_missing_connection_before_building_graph(self) -> None:
-        # _validate() runs inside build_graph() — MissingConnectionError is raised
-        # before StateGraph is ever constructed or returned.
-        adapter = _adapter()
-        adapter.node(FullAction())  # FullAction requires @connection key="db"
-        with pytest.raises(MissingConnectionError, match="db"):
-            adapter.build_graph()
-
-    def test_passes_when_connection_provided(self) -> None:
-        mock_db = MagicMock(spec=OrdersDbManager)
-        adapter = _adapter(agentstate=_FullState, connections={"db": mock_db})
-        adapter.node(FullAction()).start(FullAction)
-        graph = adapter.build_graph()
-        assert isinstance(graph, StateGraph)
-
-    def test_with_plain_fn_node(self) -> None:
-        async def done(state: _PingState) -> dict:
-            return {}
-
-        adapter = _adapter()
-        adapter.node(PingAction()).node(done, name="done")
-        adapter.edge(PingAction, "done").start(PingAction)
-        graph = adapter.build_graph()
-        assert isinstance(graph, StateGraph)
-
-    def test_with_edge_to_end(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction()).start(PingAction)
-        adapter.edge(PingAction, END)
-        graph = adapter.build_graph()
-        assert isinstance(graph, StateGraph)
-
-    def test_with_conditional_edge(self) -> None:
-        async def branch_a(state: _FlowState) -> dict:
-            return {"routed": True}
-
-        async def branch_b(state: _FlowState) -> dict:
-            return {"routed": False}
-
-        adapter = _adapter(agentstate=_FlowState)
-        adapter.node(PingAction())
-        adapter.node(branch_a, name="branch_a")
-        adapter.node(branch_b, name="branch_b")
-        adapter.start(PingAction)
-        adapter.conditional_edge(
-            PingAction,
-            when=lambda s: s.get("routed"),
-            if_true="branch_a",
-            if_false="branch_b",
-        )
-        adapter.edge("branch_a", END)
-        adapter.edge("branch_b", END)
-        graph = adapter.build_graph()
-        assert isinstance(graph, StateGraph)
-
-    def test_build_graph_enables_native_continuation(self) -> None:
-        """build_graph() → StateGraph can be extended with native LangGraph API."""
-        adapter = _adapter()
-        adapter.node(PingAction()).start(PingAction)
-        graph = adapter.build_graph()
-        graph.add_edge("ping", END)
-        compiled = graph.compile()
-        assert hasattr(compiled, "ainvoke")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -152,28 +59,132 @@ class TestBuildGraph:
 
 class TestCompile:
     def test_returns_compiled_graph_with_ainvoke(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction()).start(PingAction).edge(PingAction, END)
-        compiled = adapter.compile()
+        ctrl = _ping_ctrl()
+        compiled = ctrl.compile(MagicMock())
         assert hasattr(compiled, "ainvoke")
 
     def test_returns_compiled_graph_with_astream(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction()).start(PingAction).edge(PingAction, END)
-        compiled = adapter.compile()
+        ctrl = _ping_ctrl()
+        compiled = ctrl.compile(MagicMock())
         assert hasattr(compiled, "astream")
 
     def test_returns_compiled_graph_with_get_graph(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction()).start(PingAction).edge(PingAction, END)
-        compiled = adapter.compile()
+        ctrl = _ping_ctrl()
+        compiled = ctrl.compile(MagicMock())
         assert hasattr(compiled, "get_graph")
 
-    def test_missing_connection_raised_at_compile(self) -> None:
-        adapter = _adapter()
-        adapter.node(FullAction())
-        with pytest.raises(MissingConnectionError, match="db"):
-            adapter.compile()
+    def test_compile_does_not_store_box_on_controller(self) -> None:
+        ctrl = _ping_ctrl()
+        ctrl.compile(MagicMock())
+        assert not hasattr(ctrl, "_box")
+        assert not hasattr(ctrl, "_compiled")
+
+    def test_two_compile_calls_return_independent_graphs(self) -> None:
+        ctrl = _ping_ctrl()
+        box1 = MagicMock()
+        box2 = MagicMock()
+        g1 = ctrl.compile(box1)
+        g2 = ctrl.compile(box2)
+        assert g1 is not g2
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TestAinvoke
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestAinvoke:
+    async def test_basic_ainvoke_returns_output_fields(self) -> None:
+        ctrl = _ping_ctrl()
+        box = _mock_box({"message": "pong"})
+        result = await ctrl.ainvoke({}, box)
+        assert result == {"message": "pong"}
+
+    async def test_ainvoke_passes_inp_fields_to_initial_state(self) -> None:
+        ctrl = (
+            LangGraphController()
+            .inp("query", str, "Input query")
+            .mid("message", str, "Response")
+            .out("message")
+            .node(PingAction)
+            .start(PingAction)
+            .finish(PingAction)
+            .build()
+        )
+        box = _mock_box({"message": "ok"})
+        result = await ctrl.ainvoke({"query": "hello"}, box)
+        assert result == {"message": "ok"}
+
+    async def test_ainvoke_per_finish_mode(self) -> None:
+        ctrl = (
+            LangGraphController()
+            .mid("message", str, "Ping response message")
+            .node(PingAction)
+            .start(PingAction)
+            .finish(PingAction)
+            .out("message")  # per-finish: PingAction.outs = ["message"]
+            .build()
+        )
+        box = _mock_box({"message": "pong"})
+        result = await ctrl.ainvoke({}, box)
+        assert result == {"message": "pong"}
+
+    async def test_ainvoke_multi_node_chain(self) -> None:
+        # FullAction.Params requires user_id and amount — declare as inp-fields
+        ctrl = (
+            LangGraphController()
+            .inp("user_id", str, "User id")
+            .inp("amount", float, "Amount")
+            .mid("order_id", str, "Order id")
+            .mid("txn_id", str, "Txn id")
+            .mid("total", float, "Total")
+            .mid("status", str, "Status")
+            .out("order_id")
+            .node(FullAction)
+            .start(FullAction)
+            .finish(FullAction)
+            .build()
+        )
+        box = _mock_box({
+            "order_id": "ORD-u1",
+            "txn_id": "TXN-1",
+            "total": 100.0,
+            "status": "created",
+        })
+        result = await ctrl.ainvoke({"user_id": "u1", "amount": 100.0}, box)
+        assert result["order_id"] == "ORD-u1"
+
+    async def test_ainvoke_missing_inp_field_raises(self) -> None:
+        ctrl = (
+            LangGraphController()
+            .inp("user_id", str, "Required user id")
+            .mid("message", str, "Response")
+            .out("message")
+            .node(PingAction)
+            .start(PingAction)
+            .finish(PingAction)
+            .build()
+        )
+        box = _mock_box({"message": "pong"})
+        with pytest.raises(MissingInputFieldError):
+            await ctrl.ainvoke({}, box)  # user_id missing
+
+    async def test_ainvoke_with_response_mapper(self) -> None:
+        ctrl = (
+            LangGraphController()
+            .mid("out_field", str, "output")
+            .out("out_field")
+            .node(PingAction, response_mapper=lambda r: {"out_field": r.message})
+            .start(PingAction)
+            .finish(PingAction)
+            .build()
+        )
+        mock_result = MagicMock()
+        mock_result.message = "hello"
+        box = MagicMock()
+        box.run = AsyncMock(return_value=mock_result)
+        result = await ctrl.ainvoke({}, box)
+        assert result == {"out_field": "hello"}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -181,109 +192,107 @@ class TestCompile:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class _RouteState(AgentState):
-    category: str = ""
-    message: str = ""  # covers PingAction.Result.message
+class _SetUnknownCategory:
+    """Async function node that writes an unregistered route key."""
 
 
-async def _set_unknown_category(state: _RouteState) -> dict:
+async def _set_unknown_category(state: Any) -> dict:
     return {"category": "NOPE"}
 
 
-def _route_adapter() -> LangGraphAdapter:
-    return LangGraphAdapter(
-        machine=MagicMock(),
-        context=MagicMock(),
-        agentstate=_RouteState,
-    )
+async def _set_known_category(state: Any) -> dict:
+    return {"category": "bug"}
+
+
+async def _handle_bug(state: Any) -> dict:
+    return {}
 
 
 class TestRouteKeyError:
-    async def test_unknown_key_raises_route_key_error(self) -> None:
-        compiled = (
-            _route_adapter()
+    async def test_unknown_key_raises(self) -> None:
+        ctrl = (
+            LangGraphController()
+            .mid("category", str, "route category")
+            .mid("message", str, "response")
+            .out("message")
             .node(_set_unknown_category, name="source")
-            .node(PingAction())
+            .node(PingAction)
+            .route("source", on=lambda s: s.category, paths={"bug": PingAction})
             .start("source")
-            .route("source", on=lambda s: s.get("category"), paths={"bug": PingAction})
-            .edge(PingAction, END)
-            .compile()
+            .finish(PingAction)
+            .build()
         )
         with pytest.raises(RouteKeyError):
-            await compiled.ainvoke(_RouteState())
+            await ctrl.ainvoke({}, _mock_box({"message": "pong"}))
 
-    async def test_error_message_includes_key_and_available_paths(self) -> None:
-        compiled = (
-            _route_adapter()
+    async def test_error_message_includes_key_and_paths(self) -> None:
+        ctrl = (
+            LangGraphController()
+            .mid("category", str, "route category")
+            .mid("message", str, "response")
+            .out("message")
             .node(_set_unknown_category, name="source")
-            .node(PingAction())
+            .node(PingAction)
+            .route("source", on=lambda s: s.category, paths={"bug": PingAction})
             .start("source")
-            .route("source", on=lambda s: s.get("category"), paths={"bug": PingAction})
-            .edge(PingAction, END)
-            .compile()
+            .finish(PingAction)
+            .build()
         )
         with pytest.raises(RouteKeyError, match="NOPE") as exc_info:
-            await compiled.ainvoke(_RouteState())
+            await ctrl.ainvoke({}, _mock_box({"message": "pong"}))
         assert "bug" in str(exc_info.value)
-        assert "source" in str(exc_info.value)
 
     async def test_known_key_does_not_raise(self) -> None:
-        async def set_known_category(state: _RouteState) -> dict:
-            return {"category": "bug"}
-
-        async def handle_bug(state: _RouteState) -> dict:
-            return {}
-
-        compiled = (
-            _route_adapter()
-            .node(set_known_category, name="source")
-            .node(handle_bug, name="handle_bug")
+        # Use PingAction as the route target — it writes "message" (satisfies rule #15)
+        ctrl = (
+            LangGraphController()
+            .mid("category", str, "route category")
+            .mid("message", str, "response")
+            .out("message")
+            .node(_set_known_category, name="source")
+            .node(PingAction)
+            .route("source", on=lambda s: s.category, paths={"bug": PingAction})
             .start("source")
-            .route("source", on=lambda s: s.get("category"), paths={"bug": "handle_bug"})
-            .edge("handle_bug", END)
-            .compile()
+            .finish(PingAction)
+            .build()
         )
-        # No RouteKeyError — "bug" is in paths
-        await compiled.ainvoke(_RouteState())
+        result = await ctrl.ainvoke({}, _mock_box({"message": "pong"}))
+        assert result == {"message": "pong"}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# TestStateFieldMismatch
+# TestUnexpectedResultField
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class _EmptyState(AgentState):
-    """AgentState with no fields — anything an Action returns will be missing."""
+class TestUnexpectedResultField:
+    def test_undeclared_result_field_raises_at_build(self) -> None:
+        # Declare "other" in mid (to bypass NoOutputFieldsError), but NOT "message".
+        # PingAction.Result.message not in inp/mid → UnexpectedResultFieldError.
+        ctrl = (
+            LangGraphController()
+            .mid("other", str, "unrelated field")
+            .out("other")
+            .node(PingAction)
+            .start(PingAction)
+            .finish(PingAction)
+        )
+        with pytest.raises(UnexpectedResultFieldError) as exc_info:
+            ctrl.build()
+        assert "message" in exc_info.value.unexpected
 
+    def test_no_error_when_result_fields_declared(self) -> None:
+        _ping_ctrl()  # no exception
 
-class TestStateFieldMismatch:
-    def test_mismatch_raises_at_compile(self) -> None:
-        # PingAction.Result has "message: str"; _EmptyState has no fields → mismatch
-        with pytest.raises(StateFieldMismatchError) as exc_info:
-            _adapter(agentstate=_EmptyState).node(PingAction()).compile()
-        err = exc_info.value
-        assert err.action_name == "PingAction"
-        assert "message" in err.missing_fields
-        assert err.state_class == "_EmptyState"
-
-    def test_mismatch_error_message_is_readable(self) -> None:
-        with pytest.raises(StateFieldMismatchError, match="message"):
-            _adapter(agentstate=_EmptyState).node(PingAction()).compile()
-
-    def test_no_error_when_state_covers_result_fields(self) -> None:
-        # _PingState has "message: str" — matches PingAction.Result
-        _adapter(agentstate=_PingState).node(PingAction()).start(PingAction)
-        # no exception
-
-    def test_no_error_when_response_mapper_provided(self) -> None:
-        # response_mapper handles the output — field check is skipped
-        _adapter(agentstate=_EmptyState).node(
-            PingAction(),
-            response_mapper=lambda r: {},
-        ).start(PingAction)
-        # no exception at registration; build_graph/compile skips field check
-
-    def test_no_error_when_agentstate_is_not_agent_state_subclass(self) -> None:
-        # test_adapter.py uses agentstate=dict — no model_fields, check is skipped
-        _adapter(agentstate=dict).node(PingAction()).start(PingAction)
-        # no exception
+    def test_no_error_with_response_mapper(self) -> None:
+        # response_mapper suppresses rule #13 for that node
+        ctrl = (
+            LangGraphController()
+            .mid("out_field", str, "output")
+            .out("out_field")
+            .node(PingAction, response_mapper=lambda r: {"out_field": r.message})
+            .start(PingAction)
+            .finish(PingAction)
+            .build()
+        )
+        assert ctrl._built is True

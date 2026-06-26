@@ -78,6 +78,7 @@ def validate(
     finish_names: list[str],
     inp_field_names: set[str],
     out_field_names: set[str],
+    has_opaque_action_nodes: bool = False,
 ) -> None:
     """Run all 11 topology and dataflow checks; raise on the first violation found."""
     _check_presence(node_names, start_names, finish_names)
@@ -91,7 +92,7 @@ def validate(
     )
     adj = _build_adjacency(node_names, edges, conditional_edges, routes, finish_names)
     _check_reachability(adj, node_names, start_names, finish_names)
-    _check_dataflow(action_nodes, inp_field_names, out_field_names)
+    _check_dataflow(action_nodes, inp_field_names, out_field_names, has_opaque_action_nodes)
 
 
 def _check_presence(
@@ -213,8 +214,13 @@ def _check_dataflow(
     action_nodes: dict[str, Any],
     inp_field_names: set[str],
     out_field_names: set[str],
+    has_opaque_action_nodes: bool = False,
 ) -> None:
-    """Check that required Params fields and out-fields each have at least one producer."""
+    """Check that required Params fields and out-fields each have at least one producer.
+
+    When has_opaque_action_nodes=True (any node has response_mapper), rule 11 is skipped:
+    opaque nodes can write any field and their write-sets cannot be determined statically.
+    """
     all_written: set[str] = _collect_write_sets(action_nodes)
 
     # Rule 10: each required Params field has a producer or is an inp-field
@@ -232,11 +238,13 @@ def _check_dataflow(
                 continue
             raise FieldHasNoProducerError(node_name, field_name)
 
-    # Rule 11: each out-field has a producer or is an inp-field
-    for field_name in out_field_names:
-        if field_name in inp_field_names or field_name in all_written:
-            continue
-        raise OutputHasNoProducerError(field_name)
+    # Rule 11: each out-field has a producer or is an inp-field.
+    # Skip when opaque nodes exist — their writes are unknown.
+    if not has_opaque_action_nodes:
+        for field_name in out_field_names:
+            if field_name in inp_field_names or field_name in all_written:
+                continue
+            raise OutputHasNoProducerError(field_name)
 
 
 def _collect_write_sets(action_nodes: dict[str, Any]) -> set[str]:
