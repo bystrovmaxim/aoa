@@ -127,7 +127,7 @@ What is already in the box. Some is available right away, some installs as a sep
 - **[ConsoleLogger](extensions/console-logger.md)** — logger: business events to the console, color by level; out of the box
 - **[FastAPI](extensions/fastapi.md)** — adapter: HTTP/REST and OpenAPI from an Action; `pip install aoa-fastapi-adapter`
 - **[MCP](extensions/mcp.md)** — adapter: an operation as a tool for an AI agent; `pip install aoa-mcp-adapter`
-- **[LangGraph](extensions/langgraph.md)** — adapter: AOA Actions as nodes in a LangGraph agent graph; `pip install aoa-langgraph-adapter`
+- **[LangGraph](extensions/langgraph.md)** — adapter: AOA Actions as nodes in a LangGraph agent graph; `pip install aoa-langgraph`
 - **[PostgreSQL](extensions/postgresql.md)** — resource: connections and transactions through asyncpg; `pip install "aoa-action-machine[postgres]"`
 
 ### How to write your own extension

@@ -14,11 +14,11 @@ on:
           - aoa-action-machine
           - aoa-fastapi-adapter
           - aoa-mcp-adapter
-          - aoa-langgraph-adapter
+          - aoa-langgraph
           - aoa-otel
           - aoa-ocel
           - aoa-maxitor
-          - aoa-examples
+          - aoa-demo
 
 jobs:
   publish-aoa-action-machine:
@@ -69,19 +69,19 @@ jobs:
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 
-  publish-aoa-langgraph-adapter:
-    name: Publish aoa-langgraph-adapter
+  publish-aoa-langgraph:
+    name: Publish aoa-langgraph
     runs-on: ubuntu-latest
     if: >-
-      startsWith(github.ref, 'refs/tags/aoa-langgraph-adapter-v') ||
-      (github.event_name == 'workflow_dispatch' && inputs.package == 'aoa-langgraph-adapter')
+      startsWith(github.ref, 'refs/tags/aoa-langgraph-v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.package == 'aoa-langgraph')
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - name: Build
-        run: uv build --package aoa-langgraph-adapter --out-dir packages/aoa-langgraph-adapter/dist
+        run: uv build --package aoa-langgraph --out-dir packages/aoa-langgraph/dist
       - name: Publish
-        run: uv publish packages/aoa-langgraph-adapter/dist/*
+        run: uv publish packages/aoa-langgraph/dist/*
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 
@@ -133,18 +133,18 @@ jobs:
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 
-  publish-aoa-examples:
-    name: Publish aoa-examples
+  publish-aoa-demo:
+    name: Publish aoa-demo
     runs-on: ubuntu-latest
     if: >-
-      startsWith(github.ref, 'refs/tags/aoa-examples-v') ||
-      (github.event_name == 'workflow_dispatch' && inputs.package == 'aoa-examples')
+      startsWith(github.ref, 'refs/tags/aoa-demo-v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.package == 'aoa-demo')
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - name: Build
-        run: uv build --package aoa-examples --out-dir packages/aoa-examples/dist
+        run: uv build --package aoa-demo --out-dir packages/aoa-demo/dist
       - name: Publish
-        run: uv publish packages/aoa-examples/dist/*
+        run: uv publish packages/aoa-demo/dist/*
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}

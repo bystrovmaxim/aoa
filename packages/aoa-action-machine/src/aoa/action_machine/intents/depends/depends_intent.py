@@ -49,8 +49,10 @@ from __future__ import annotations
 import types
 from typing import Any, ClassVar, Union, get_args, get_origin
 
+from aoa.action_machine.intents.base_intent import BaseIntent
 
-class DependsIntent[T]:
+
+class DependsIntent[T](BaseIntent):
     """
     AI-CORE-BEGIN
     ROLE: Dependency declaration marker with bound metadata.

@@ -78,11 +78,12 @@ from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNodeInspector
 from aoa.action_machine.graph.core.exceptions import DuplicateNodeError, InvalidGraphError
+from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 
 _BUILD_REQUIRED_MSG = "This NodeGraphCoordinator operation is only available after a successful build()."
 
 
-class NodeGraphCoordinator:
+class NodeGraphCoordinator(BaseCoordinator):
     """
     AI-CORE-BEGIN
     ROLE: Build validated interchange graph from ``BaseGraphNode`` contributions with indexes.

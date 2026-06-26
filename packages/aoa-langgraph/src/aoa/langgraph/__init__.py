@@ -1,0 +1,89 @@
+# packages/aoa-langgraph/src/aoa/langgraph/__init__.py
+"""
+``aoa-langgraph`` — AOA integration with LangGraph.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Provides the public API for running AOA ``BaseAction`` nodes inside a compiled
+LangGraph state graph.
+
+``LangGraphController``
+    AOA-native controller: fluent builder with a typed data contract
+    (``.inp()`` / ``.mid()`` / ``.out()``) and topology API.  Suited for
+    applications that run everything through ``ActionProductMachine``.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    External apps / tests
+             |
+             v
+      import aoa.langgraph
+             |
+     +-------+----------+-----------+
+     |       |          |           |
+  controller  agent_state  sentinel  exceptions
+
+"""
+
+from aoa.langgraph.agent_state import AgentState
+from aoa.langgraph.controller import LangGraphController
+from aoa.langgraph.exceptions import (
+    CompileBeforeBuildError,
+    ControllerAlreadyBuiltError,
+    DeadEndNodeError,
+    DuplicateFieldError,
+    FieldHasNoProducerError,
+    FieldNotReadyError,
+    FinishUnreachableError,
+    InconsistentFinishOutputError,
+    MissingConnectionError,
+    MissingFieldDescriptionError,
+    MissingInputFieldError,
+    NoEntryPointError,
+    NoFinishPointError,
+    NoNodesError,
+    NoOutputFieldsError,
+    OutputHasNoProducerError,
+    RouteKeyError,
+    StateFieldMismatchError,
+    UndeclaredOutputFieldError,
+    UnexpectedResultFieldError,
+    UnreachableNodeError,
+    UnregisteredNodeError,
+)
+from aoa.langgraph.sentinel import UNSET, UnsetType
+from aoa.langgraph.wrapper_langgraph_controller import WrapperLangGraphController
+
+__all__ = [
+    "UNSET",
+    "AgentState",
+    "CompileBeforeBuildError",
+    "ControllerAlreadyBuiltError",
+    "DeadEndNodeError",
+    "DuplicateFieldError",
+    "FieldHasNoProducerError",
+    "FieldNotReadyError",
+    "FinishUnreachableError",
+    "InconsistentFinishOutputError",
+    "LangGraphController",
+    "MissingConnectionError",
+    "MissingFieldDescriptionError",
+    "MissingInputFieldError",
+    "NoEntryPointError",
+    "NoFinishPointError",
+    "NoNodesError",
+    "NoOutputFieldsError",
+    "OutputHasNoProducerError",
+    "RouteKeyError",
+    "StateFieldMismatchError",
+    "UndeclaredOutputFieldError",
+    "UnexpectedResultFieldError",
+    "UnreachableNodeError",
+    "UnregisteredNodeError",
+    "UnsetType",
+    "WrapperLangGraphController",
+]

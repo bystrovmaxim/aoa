@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+from aoa.action_machine.intents.base_intent import BaseIntent
 
-class SensitiveIntent:
+
+class SensitiveIntent(BaseIntent):
     """
     AI-CORE-BEGIN
     ROLE: Marker contract for classes whose members use ``@sensitive`` masking config.

@@ -46,6 +46,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from aoa.action_machine.auth.authenticator import Authenticator
+from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 
 if TYPE_CHECKING:
     from aoa.action_machine.context.context import Context
@@ -69,7 +70,7 @@ class ContextAssembler(ABC):
         pass
 
 
-class AuthCoordinator:
+class AuthCoordinator(BaseCoordinator):
     """
     AI-CORE-BEGIN
         ROLE: Authentication orchestration coordinator.
@@ -118,7 +119,7 @@ class AuthCoordinator:
         return self._context_class(user=authenticated_user, request=req_info)
 
 
-class NoAuthCoordinator:
+class NoAuthCoordinator(BaseCoordinator):
     """
     Explicit open-access coordinator that bypasses authentication.
 

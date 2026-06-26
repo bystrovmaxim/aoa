@@ -71,6 +71,12 @@ from aoa.action_machine.intents.meta.meta_intent import MetaIntent
 @exclude_graph_model
 class BaseResource(ABC, MetaIntent, DependsEligible):
     """
+    AI-CORE-BEGIN
+        ROLE: Root of all managed long-lived dependencies.
+        CONTRACT: Injected via DI; lives longer than a single call.
+        INVARIANTS: Three subtypes separated by lifecycle ownership.
+    AI-CORE-END
+
     Base abstract contract for all resource manager implementations.
     """
 

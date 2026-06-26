@@ -15,7 +15,7 @@ Key properties:
 
 Extension: ../../docs/extensions/langgraph.md  ·  topic: LangGraphAdapter
 
-Install:  pip install "aoa-langgraph-adapter" langgraph
+Install:  pip install "aoa-langgraph" langgraph
 
 Run:
     uv run python examples/step_14_langgraph/01_langgraph.py
@@ -193,13 +193,13 @@ async def main() -> None:
         r = await compiled.ainvoke(t)
         print(f"  {r['ticket_id']}  [{r['category']:8}]  {r['note']}")
 
-    # --- Part 3: RouteKeyError — ключ не найден в paths --- #
+    # --- Part 3: RouteKeyError — key not found in paths --- #
     #
-    # .route(on=..., paths={...}) бросает RouteKeyError если on() вернул ключ,
-    # которого нет в paths. Ошибка возникает в момент ainvoke() — не при сборке
-    # графа — потому что значение on() зависит от состояния конкретного запуска.
+    # .route(on=..., paths={...}) raises RouteKeyError when on() returns a key
+    # that is not in paths. The error surfaces at ainvoke() time — not at graph
+    # build time — because the value of on() depends on the state of a given run.
     #
-    # Здесь paths покрывает только "bug", а billing-тикет даёт category="billing".
+    # Here paths covers only "bug", but a billing ticket yields category="billing".
     #
     print("\n=== RouteKeyError demo ===")
     incomplete_compiled = (
@@ -210,7 +210,7 @@ async def main() -> None:
         .route(
             ClassifyTicketAction,
             on=lambda s: s.get("category"),
-            paths={"bug": EngineeringAction},   # "billing" и "feature" не покрыты!
+            paths={"bug": EngineeringAction},   # "billing" and "feature" not covered!
         )
         .edge(EngineeringAction, END)
         .compile()
@@ -222,21 +222,21 @@ async def main() -> None:
     except RouteKeyError as exc:
         print(f"[RouteKeyError] {exc}\n")
 
-    # --- Part 4: StateFieldMismatchError — поле Result отсутствует в AgentState --- #
+    # --- Part 4: StateFieldMismatchError — a Result field is missing from AgentState --- #
     #
-    # .compile() проверяет, что каждое поле Result-типа каждого Action объявлено
-    # в AgentState. Пропущенное поле молча исчезает при мёрдже — адаптер обнаруживает
-    # это до первого запуска.
+    # .compile() verifies that every field of every Action's Result type is declared
+    # in AgentState. A missing field silently vanishes on merge — the adapter detects
+    # this before the first run.
     #
-    # EngineeringAction возвращает resolved=bool и note=str.
-    # _IncompleteState объявляет только ticket_id и category — resolved и note забыты.
+    # EngineeringAction returns resolved=bool and note=str.
+    # _IncompleteState declares only ticket_id and category — resolved and note are forgotten.
     #
     print("=== StateFieldMismatchError demo ===")
 
     class _IncompleteState(AgentState):
         ticket_id: str
         category: str = ""
-        # resolved: bool и note: str не объявлены — EngineeringAction их вернёт!
+        # resolved: bool and note: str are not declared — EngineeringAction returns them!
 
     try:
         (
@@ -244,7 +244,7 @@ async def main() -> None:
             .node(ClassifyTicketAction())
             .node(EngineeringAction())
             .start(ClassifyTicketAction)
-            .compile()   # ← StateFieldMismatchError здесь, до первого ainvoke()
+            .compile()   # ← StateFieldMismatchError here, before the first ainvoke()
         )
     except StateFieldMismatchError as exc:
         print(f"[StateFieldMismatchError] {exc}\n")

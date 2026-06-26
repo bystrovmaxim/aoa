@@ -67,7 +67,10 @@ aligns with other markers such as ``CheckRolesIntent``, ``AspectIntent``,
 """
 
 
-class OnIntent:
+from aoa.action_machine.intents.base_intent import BaseIntent
+
+
+class OnIntent(BaseIntent):
     """
     AI-CORE-BEGIN
     ROLE: Marker contract for plugin event subscriptions.

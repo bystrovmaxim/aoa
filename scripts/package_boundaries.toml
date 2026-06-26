@@ -27,9 +27,9 @@ import_prefixes = ["maxitor", "aoa.maxitor"]
 may_import = ["action_machine"]
 
 [packages.examples]
-current_roots = ["packages/aoa-examples/src/aoa/examples"]
-future_roots = ["packages/aoa-examples/src/aoa/examples"]
-import_prefixes = ["examples", "aoa.examples"]
+current_roots = ["packages/aoa-demo/src/aoa/demo"]
+future_roots = ["packages/aoa-demo/src/aoa/demo"]
+import_prefixes = ["examples", "aoa.demo"]
 may_import = ["action_machine", "ocel"]
 
 # Production-only import exceptions (rare). Each row must include path, imports, reason, expires.

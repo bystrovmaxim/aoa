@@ -72,6 +72,7 @@ from aoa.action_machine.logging.log_var_payloads import LogChannelPayload, LogLe
 from aoa.action_machine.logging.variable_substitutor import VariableSubstitutor
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 
 # Stdlib sink for failures inside ``BaseLogger.handle`` — must not use
 # LogCoordinator (no recursive emit). If this logger errors, we drop the line.
@@ -92,7 +93,7 @@ def _record_logger_handle_failure(logger: BaseLogger, exc: BaseException) -> Non
         pass
 
 
-class LogCoordinator:
+class LogCoordinator(BaseCoordinator):
     """
     AI-CORE-BEGIN
         ROLE: Central logging bus and validation gate.

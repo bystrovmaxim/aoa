@@ -13,9 +13,9 @@ resolution-markers = [
 [manifest]
 members = [
     "aoa-action-machine",
-    "aoa-examples",
+    "aoa-demo",
     "aoa-fastapi-adapter",
-    "aoa-langgraph-adapter",
+    "aoa-langgraph",
     "aoa-maxitor",
     "aoa-mcp-adapter",
     "aoa-ocel",
@@ -93,9 +93,9 @@ dev = [
 ]
 
 [[package]]
-name = "aoa-examples"
+name = "aoa-demo"
 version = "1.0.0"
-source = { editable = "packages/aoa-examples" }
+source = { editable = "packages/aoa-demo" }
 dependencies = [
     { name = "aoa-action-machine" },
     { name = "aoa-ocel" },
@@ -164,9 +164,9 @@ dev = [
 ]
 
 [[package]]
-name = "aoa-langgraph-adapter"
+name = "aoa-langgraph"
 version = "1.0.0"
-source = { editable = "packages/aoa-langgraph-adapter" }
+source = { editable = "packages/aoa-langgraph" }
 dependencies = [
     { name = "aoa-action-machine" },
     { name = "langgraph" },
@@ -312,7 +312,7 @@ version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aoa-action-machine" },
-    { name = "aoa-examples" },
+    { name = "aoa-demo" },
     { name = "aoa-maxitor" },
     { name = "aoa-ocel" },
 ]
@@ -320,9 +320,9 @@ dependencies = [
 [package.optional-dependencies]
 all = [
     { name = "aoa-action-machine", extra = ["postgres"] },
-    { name = "aoa-examples", extra = ["fastapi", "mcp"] },
+    { name = "aoa-demo", extra = ["fastapi", "mcp"] },
     { name = "aoa-fastapi-adapter" },
-    { name = "aoa-langgraph-adapter" },
+    { name = "aoa-langgraph" },
     { name = "aoa-mcp-adapter" },
     { name = "aoa-ocel" },
     { name = "aoa-otel" },
@@ -344,9 +344,9 @@ all = [
 ]
 dev = [
     { name = "aoa-action-machine", extra = ["postgres"] },
-    { name = "aoa-examples", extra = ["fastapi", "mcp"] },
+    { name = "aoa-demo", extra = ["fastapi", "mcp"] },
     { name = "aoa-fastapi-adapter" },
-    { name = "aoa-langgraph-adapter" },
+    { name = "aoa-langgraph" },
     { name = "aoa-mcp-adapter" },
     { name = "aoa-ocel" },
     { name = "aoa-otel" },
@@ -368,11 +368,11 @@ dev = [
 ]
 fastapi = [
     { name = "aoa-action-machine" },
-    { name = "aoa-examples", extra = ["fastapi"] },
+    { name = "aoa-demo", extra = ["fastapi"] },
 ]
 mcp = [
     { name = "aoa-action-machine" },
-    { name = "aoa-examples", extra = ["mcp"] },
+    { name = "aoa-demo", extra = ["mcp"] },
 ]
 postgres = [
     { name = "aoa-action-machine", extra = ["postgres"] },
@@ -393,12 +393,12 @@ requires-dist = [
     { name = "aoa-action-machine", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/aoa-action-machine" },
     { name = "aoa-action-machine", extras = ["postgres"], marker = "extra == 'dev'", editable = "packages/aoa-action-machine" },
     { name = "aoa-action-machine", extras = ["postgres"], marker = "extra == 'postgres'", editable = "packages/aoa-action-machine" },
-    { name = "aoa-examples", editable = "packages/aoa-examples" },
-    { name = "aoa-examples", extras = ["fastapi"], marker = "extra == 'fastapi'", editable = "packages/aoa-examples" },
-    { name = "aoa-examples", extras = ["fastapi", "mcp"], marker = "extra == 'dev'", editable = "packages/aoa-examples" },
-    { name = "aoa-examples", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/aoa-examples" },
+    { name = "aoa-demo", editable = "packages/aoa-demo" },
+    { name = "aoa-demo", extras = ["fastapi"], marker = "extra == 'fastapi'", editable = "packages/aoa-demo" },
+    { name = "aoa-demo", extras = ["fastapi", "mcp"], marker = "extra == 'dev'", editable = "packages/aoa-demo" },
+    { name = "aoa-demo", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/aoa-demo" },
     { name = "aoa-fastapi-adapter", marker = "extra == 'dev'", editable = "packages/aoa-fastapi-adapter" },
-    { name = "aoa-langgraph-adapter", marker = "extra == 'dev'", editable = "packages/aoa-langgraph-adapter" },
+    { name = "aoa-langgraph", marker = "extra == 'dev'", editable = "packages/aoa-langgraph" },
     { name = "aoa-maxitor", editable = "packages/aoa-maxitor" },
     { name = "aoa-mcp-adapter", marker = "extra == 'dev'", editable = "packages/aoa-mcp-adapter" },
     { name = "aoa-ocel", editable = "packages/aoa-ocel" },

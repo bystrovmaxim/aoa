@@ -317,9 +317,9 @@ class _StateBuilder:
 class Lifecycle:
     """
     AI-CORE-BEGIN
-        ROLE: Unified template/instance lifecycle object.
-        CONTRACT: Template mode defines graph; instance mode enforces legal transitions.
-        INVARIANTS: ``transition()`` returns a new object and never mutates current instance.
+        ROLE: Finite state machine for a domain object's transitions.
+        CONTRACT: State graph is declared declaratively; inconsistent graph is a startup error.
+        INVARIANTS: Standalone primitive — not a resource, not a coordinator.
         AI-CORE-END
     """
 

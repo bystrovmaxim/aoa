@@ -72,16 +72,16 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         # [
         #   {
         #     "domain_label": "Billing",
-        #     "domain_qualname": "aoa.examples.model.billing.domain.BillingDomain",
+        #     "domain_qualname": "myapp.model.billing.domain.BillingDomain",
         #     "list_entities": {
         #       "entities": [
         #         {
         #           "id": (
-        #             "aoa.examples.model.billing.entities.billing_sat_interchange_slice."
+        #             "myapp.model.billing.entities.billing_sat_interchange_slice."
         #             "InterchangeAssessmentSliceEntity"
         #           ),
         #           "label": "InterchangeAssessmentSliceEntity",
-        #           "domain_qualname": "aoa.examples.model.billing.domain.BillingDomain",
+        #           "domain_qualname": "myapp.model.billing.domain.BillingDomain",
         #           "fields": [
         #             {"name": "id", "type": "str", "primary_key": true, "foreign_key": false},
         #             {
@@ -123,11 +123,11 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         #       "relations": [
         #         {
         #           "source": (
-        #             "aoa.examples.model.billing.entities.billing_sat_interchange_slice."
+        #             "myapp.model.billing.entities.billing_sat_interchange_slice."
         #             "InterchangeAssessmentSliceEntity"
         #           ),
         #           "target": (
-        #             "aoa.examples.model.billing.entities.billing_mesh_chargeback_ingest."
+        #             "myapp.model.billing.entities.billing_mesh_chargeback_ingest."
         #             "BillingChargebackIngestCorrelateEntity"
         #           ),
         #           "label": "chargeback_ingest_correlate",

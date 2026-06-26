@@ -51,12 +51,13 @@ from aoa.action_machine.plugin.core.events import (
 )
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 from aoa.action_machine.runtime.aspect_executor import AspectExecutor
+from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 from aoa.action_machine.runtime.error_handler_executor import ErrorHandlerExecutor
 from aoa.action_machine.runtime.saga_frame import SagaFrame
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
-class SagaCoordinator:
+class SagaCoordinator(BaseCoordinator):
     """Component owning rollback execution for saga frames."""
 
     def __init__(
