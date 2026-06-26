@@ -5,7 +5,7 @@ All notable changes to `aoa-langgraph` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] – 2026-06-27
 
 ### Breaking changes
 
@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Test suite relocated into the package (`packages/aoa-langgraph/tests/`).** Adapter tests moved out of the shared root `tests/langgraph/` into the package's own `tests/` directory, with a per-package `[dependency-groups]` dev group and `[tool.pytest.ini_options]` (including the langgraph deprecation `filterwarnings`). The cross-package dependency on `tests/action_machine/scenarios` (`PingAction` / `FullAction` / `OrdersDbManager`) was replaced by a minimal, self-contained `tests/support/` stub — a faithful trimmed copy — so the package no longer reaches into another package's test tree. ([#82](https://github.com/bystrovmaxim/aoa/issues/82))
 
-## [1.0.0] – 2026-06-24
+## [0.1.0] – 2026-06-24
 
 ### Added
 
