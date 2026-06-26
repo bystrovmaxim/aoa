@@ -672,9 +672,10 @@ class LangGraphController(BaseController):
             if isinstance(info.action_or_fn, type)
             and issubclass(info.action_or_fn, BaseAction)
             and info.response_mapper is None
+            and info.params_mapper is None
         }
         has_opaque = any(
-            info.response_mapper is not None
+            info.response_mapper is not None or info.params_mapper is not None
             for info in self._nodes.values()
             if isinstance(info.action_or_fn, type) and issubclass(info.action_or_fn, BaseAction)
         )
