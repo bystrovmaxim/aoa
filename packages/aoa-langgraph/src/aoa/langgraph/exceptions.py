@@ -6,8 +6,8 @@ Exceptions for the ``aoa-langgraph`` package.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-All public exception types raised by ``LangGraphController``,
-``LangGraphAdapter``, and ``AgentState``. Import from ``aoa.langgraph``
+All public exception types raised by ``LangGraphController`` and ``AgentState``.
+Import from ``aoa.langgraph``
 directly — these are part of the public API.
 
 ═══════════════════════════════════════════════════════════════════════════════
