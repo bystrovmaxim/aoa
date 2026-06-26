@@ -93,6 +93,9 @@ from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, create_model
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import (
+    ActionSchemaIntentResolver,
+)
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.resources.base_controller import BaseController
 from aoa.action_machine.resources.base_resource import BaseResource
@@ -116,6 +119,7 @@ from aoa.langgraph.exceptions import (
     OutputHasNoProducerError,
     RouteKeyError,
     UndeclaredOutputFieldError,
+    UnexpectedResultFieldError,
     UnreachableNodeError,
     UnregisteredNodeError,
 )
@@ -478,6 +482,7 @@ class LangGraphController(BaseController):
             UnreachableNodeError,
             FieldHasNoProducerError,
             OutputHasNoProducerError,
+            UnexpectedResultFieldError,
             UnregisteredNodeError,
         ):
             if silent:
@@ -504,7 +509,12 @@ class LangGraphController(BaseController):
             is_action = isinstance(action_or_fn, type) and issubclass(action_or_fn, BaseAction)
             if is_action:
                 node_fn: Any = functools.partial(
-                    _run_action_node, action_or_fn, node_info.connections, box
+                    _run_action_node,
+                    action_or_fn,
+                    node_info.params_mapper,
+                    node_info.response_mapper,
+                    node_info.connections,
+                    box,
                 )
             else:
                 node_fn = action_or_fn
@@ -624,6 +634,20 @@ class LangGraphController(BaseController):
         for name in all_out:
             if name not in declared:
                 raise UndeclaredOutputFieldError(name)
+
+        # Rule #13: Result fields of Action nodes without response_mapper must be in inp ∪ mid
+        for _name, info in self._nodes.items():
+            if info.response_mapper is not None:
+                continue
+            if not isinstance(info.action_or_fn, type) or not issubclass(info.action_or_fn, BaseAction):
+                continue
+            try:
+                result_type = ActionSchemaIntentResolver.resolve_result_type(info.action_or_fn)
+            except (ValueError, TypeError):
+                continue
+            surplus = [f for f in result_type.model_fields if f not in declared]
+            if surplus:
+                raise UnexpectedResultFieldError(info.action_or_fn, surplus)
 
     def _build_agentstate(self) -> type[AgentState]:
         """Create the dynamic AgentState subclass with typed inp and UNSET-defaulted mid fields."""

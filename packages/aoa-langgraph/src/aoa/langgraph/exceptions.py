@@ -37,10 +37,13 @@ build() validation (raised by .build()):
     UndeclaredOutputFieldError   — out field not declared in .inp() or .mid()
     InconsistentFinishOutputError — some finish nodes have explicit outs, others do not
 
-compile() / runtime (raised by .compile() or during graph execution):
+compile() (raised by .compile()):
 
     CompileBeforeBuildError      — .compile() called before .build()
-    UnexpectedResultFieldError   — Action returns a field not declared in AgentState
+
+build() or runtime (static at .build(), or dynamic during graph execution):
+
+    UnexpectedResultFieldError   — Action Result field not declared in AgentState
 
 ainvoke() (raised by .ainvoke()):
 
@@ -123,7 +126,7 @@ class CompileBeforeBuildError(Exception):
 
 
 class UnexpectedResultFieldError(Exception):
-    """Raised when an Action returns a result field not declared in AgentState."""
+    """Raised at .build() (static) or at runtime when an Action Result field is absent from AgentState."""
 
     def __init__(self, action_cls: type, unexpected: list[str]) -> None:
         """Store the offending class and field list for programmatic inspection."""
