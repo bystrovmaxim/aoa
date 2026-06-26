@@ -42,6 +42,10 @@ compile() / runtime (raised by .compile() or during graph execution):
     CompileBeforeBuildError      — .compile() called before .build()
     UnexpectedResultFieldError   — Action returns a field not declared in AgentState
 
+ainvoke() (raised by .ainvoke()):
+
+    MissingInputFieldError       — required inp-field absent from the input dict
+
 """
 
 
@@ -117,6 +121,17 @@ class UnexpectedResultFieldError(Exception):
         super().__init__(
             f"{action_cls.__name__} returned fields not declared in AgentState: "
             f"{unexpected}. Add them to .mid() or .inp() declarations."
+        )
+
+
+class MissingInputFieldError(Exception):
+    """Raised by .ainvoke() when a required inp-field is absent from the input dict."""
+
+    def __init__(self, field_name: str) -> None:
+        """Store the missing field name for programmatic inspection."""
+        self.field_name = field_name
+        super().__init__(
+            f"Required inp-field '{field_name}' is missing from the dict passed to .ainvoke()."
         )
 
 

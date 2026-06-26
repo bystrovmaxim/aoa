@@ -102,8 +102,10 @@ from aoa.langgraph.exceptions import (
     CompileBeforeBuildError,
     ControllerAlreadyBuiltError,
     DuplicateFieldError,
+    FieldNotReadyError,
     InconsistentFinishOutputError,
     MissingFieldDescriptionError,
+    MissingInputFieldError,
     NoOutputFieldsError,
     RouteKeyError,
     UndeclaredOutputFieldError,
@@ -202,6 +204,21 @@ def _make_route_fn(on: Any, paths: dict[str, str]) -> Callable[[Any], str]:
             )
         return paths[key]
     return _route
+
+
+def _make_finish_wrapper(inner: Any, finish_name: str) -> Any:
+    """Wrap a node function to write __finish_node__ into the returned state update dict."""
+    if inspect.iscoroutinefunction(inner):
+        async def _async_wrapped(s: Any) -> dict[str, Any]:
+            result: dict[str, Any] = await inner(s)
+            result["__finish_node__"] = finish_name
+            return result
+        return _async_wrapped
+    def _sync_wrapped(s: Any) -> dict[str, Any]:
+        result: dict[str, Any] = inner(s)
+        result["__finish_node__"] = finish_name
+        return result
+    return _sync_wrapped
 
 
 # ── Controller ────────────────────────────────────────────────────────────────
@@ -457,6 +474,7 @@ class LangGraphController(BaseController):
 
         assert self._agentstate is not None  # guaranteed by _built=True
         sg = StateGraph(self._agentstate)
+        per_finish = any(outs for outs in self._finish_nodes.values())
 
         for node_name, node_info in self._nodes.items():
             action_or_fn = node_info.action_or_fn
@@ -467,6 +485,8 @@ class LangGraphController(BaseController):
                 )
             else:
                 node_fn = action_or_fn
+            if node_name in self._finish_nodes and per_finish:
+                node_fn = _make_finish_wrapper(node_fn, node_name)
             sg.add_node(node_name, node_fn)
 
         for src, dst in self._edges:
@@ -488,6 +508,13 @@ class LangGraphController(BaseController):
             sg.add_edge(finish_name, END)
 
         return sg.compile()
+
+    async def ainvoke(self, data: dict[str, Any], box: ToolsBox) -> dict[str, Any]:
+        """Run the graph end-to-end; return the out-fields of the finish node that fired."""
+        compiled = self.compile(box)
+        input_state = self._build_input_state(data)
+        final: Any = await compiled.ainvoke(input_state)
+        return self._extract_output(final)
 
     # ── private helpers ───────────────────────────────────────────────────────
 
@@ -585,4 +612,35 @@ class LangGraphController(BaseController):
         for name, meta in self._mid_fields.items():
             field_definitions[name] = (meta.type | UnsetType, UNSET)
 
+        if any(outs for outs in self._finish_nodes.values()):
+            field_definitions["__finish_node__"] = (str, "")
+
         return create_model("AgentState", __base__=AgentState, **field_definitions)
+
+    def _build_input_state(self, data: dict[str, Any]) -> AgentState:
+        """Build the initial AgentState from inp-fields; raise MissingInputFieldError if any inp field is absent."""
+        assert self._agentstate is not None
+        kwargs: dict[str, Any] = {}
+        for name in self._inp_fields:
+            if name not in data:
+                raise MissingInputFieldError(name)
+            kwargs[name] = data[name]
+        return self._agentstate(**kwargs)
+
+    def _extract_output(self, final: Any) -> dict[str, Any]:
+        """Extract declared out-fields from the final graph state; raises FieldNotReadyError for UNSET fields."""
+        per_finish = any(outs for outs in self._finish_nodes.values())
+
+        if per_finish:
+            finish_name: str = getattr(final, "__finish_node__", "")
+            out_names: list[str] = self._finish_nodes.get(finish_name, [])
+        else:
+            out_names = list(self._out_fields)
+
+        result: dict[str, Any] = {}
+        for name in out_names:
+            value = getattr(final, name, UNSET)
+            if isinstance(value, UnsetType):
+                raise FieldNotReadyError(name)
+            result[name] = value
+        return result
