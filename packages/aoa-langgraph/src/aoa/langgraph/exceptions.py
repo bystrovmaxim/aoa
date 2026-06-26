@@ -37,6 +37,11 @@ build() validation (raised by .build()):
     UndeclaredOutputFieldError   — out field not declared in .inp() or .mid()
     InconsistentFinishOutputError — some finish nodes have explicit outs, others do not
 
+compile() / runtime (raised by .compile() or during graph execution):
+
+    CompileBeforeBuildError      — .compile() called before .build()
+    UnexpectedResultFieldError   — Action returns a field not declared in AgentState
+
 """
 
 
@@ -95,6 +100,23 @@ class InconsistentFinishOutputError(Exception):
             f"Finish nodes {with_outs} declare explicit out fields, "
             f"but {without_outs} do not. Either all finishes must declare out fields "
             f"or none of them should (use global .out() instead)."
+        )
+
+
+class CompileBeforeBuildError(Exception):
+    """Raised when .compile() is called before .build()."""
+
+
+class UnexpectedResultFieldError(Exception):
+    """Raised when an Action returns a result field not declared in AgentState."""
+
+    def __init__(self, action_cls: type, unexpected: list[str]) -> None:
+        """Store the offending class and field list for programmatic inspection."""
+        self.action_cls = action_cls
+        self.unexpected = unexpected
+        super().__init__(
+            f"{action_cls.__name__} returned fields not declared in AgentState: "
+            f"{unexpected}. Add them to .mid() or .inp() declarations."
         )
 
 

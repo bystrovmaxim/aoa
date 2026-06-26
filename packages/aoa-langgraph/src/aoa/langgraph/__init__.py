@@ -38,6 +38,7 @@ from aoa.langgraph.adapter import LangGraphAdapter
 from aoa.langgraph.agent_state import AgentState
 from aoa.langgraph.controller import LangGraphController
 from aoa.langgraph.exceptions import (
+    CompileBeforeBuildError,
     ControllerAlreadyBuiltError,
     DuplicateFieldError,
     FieldNotReadyError,
@@ -48,6 +49,7 @@ from aoa.langgraph.exceptions import (
     RouteKeyError,
     StateFieldMismatchError,
     UndeclaredOutputFieldError,
+    UnexpectedResultFieldError,
     UnregisteredNodeError,
 )
 from aoa.langgraph.sentinel import UNSET, UnsetType
@@ -56,6 +58,7 @@ from aoa.langgraph.wrapper_langgraph_controller import WrapperLangGraphControlle
 __all__ = [
     "UNSET",
     "AgentState",
+    "CompileBeforeBuildError",
     "ControllerAlreadyBuiltError",
     "DuplicateFieldError",
     "FieldNotReadyError",
@@ -68,6 +71,7 @@ __all__ = [
     "RouteKeyError",
     "StateFieldMismatchError",
     "UndeclaredOutputFieldError",
+    "UnexpectedResultFieldError",
     "UnregisteredNodeError",
     "UnsetType",
     "WrapperLangGraphController",
