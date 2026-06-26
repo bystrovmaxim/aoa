@@ -35,6 +35,7 @@ class LangGraphAdapter[S: AgentState]:
         agentstate: type[S],
         connections: dict[str, BaseResource] | None = None,
     ) -> None:
+        """Initialise the adapter with machine, context, state schema, and optional connection pool."""
         self._machine = machine
         self._context = context
         self._agentstate = agentstate
@@ -190,6 +191,7 @@ class LangGraphAdapter[S: AgentState]:
     # ── internals ────────────────────────────────────────────────────────────
 
     def _resolve_name(self, action_or_name: Any, *, context: str) -> str:
+        """Convert an Action class/instance or string to the registered node name."""
         if isinstance(action_or_name, type) and issubclass(action_or_name, BaseAction):
             name = _node_name(action_or_name)
         elif isinstance(action_or_name, BaseAction):
@@ -246,5 +248,6 @@ class LangGraphAdapter[S: AgentState]:
                 )
 
     def _declared_connections(self, action: Any) -> set[str]:
+        """Return the set of connection keys declared on the action via @connection."""
         infos = getattr(type(action), "_connection_info", [])
         return {info.key for info in infos}

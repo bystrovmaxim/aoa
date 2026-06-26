@@ -50,9 +50,10 @@ class AgentState(BaseSchema):
     AI-CORE-END
     """
 
-    model_config = ConfigDict(frozen=False, extra="ignore")
+    model_config = ConfigDict(frozen=False, extra="ignore", arbitrary_types_allowed=True)
 
     def __getitem__(self, key: str) -> object:
+        """Return field value; raise FieldNotReadyError if the field is still UNSET."""
         value = super().__getitem__(key)
         if isinstance(value, UnsetType):
             raise FieldNotReadyError(key)

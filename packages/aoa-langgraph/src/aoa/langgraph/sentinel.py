@@ -50,14 +50,17 @@ class UnsetType:
     _instance: UnsetType | None = None
 
     def __new__(cls) -> UnsetType:
+        """Return the singleton instance, creating it on first call."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
     def __repr__(self) -> str:
+        """Return the literal string 'UNSET' for unambiguous display."""
         return "UNSET"
 
     def __bool__(self) -> bool:
+        """Always falsy — lets callers write ``if not value`` to detect UNSET."""
         return False
 
 

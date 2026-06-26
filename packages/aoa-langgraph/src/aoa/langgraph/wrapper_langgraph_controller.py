@@ -52,10 +52,13 @@ class WrapperLangGraphController(BaseController):
     """
 
     def __init__(self, inner: LangGraphController) -> None:
+        """Wrap a fully built LangGraphController for child-action propagation."""
         self._inner = inner
 
     async def check_rollup_support(self) -> bool:
+        """Delegate to the wrapped controller."""
         return await self._inner.check_rollup_support()
 
     def get_wrapper_class(self) -> type[BaseResource] | None:
+        """Return this wrapper class so deeper nesting levels are also wrapped."""
         return WrapperLangGraphController

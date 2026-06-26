@@ -88,19 +88,24 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, overload
 
-from pydantic import BaseModel
+from pydantic import BaseModel, create_model
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.resources.base_controller import BaseController
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+from aoa.langgraph.agent_state import AgentState
 from aoa.langgraph.exceptions import (
     ControllerAlreadyBuiltError,
     DuplicateFieldError,
+    InconsistentFinishOutputError,
     MissingFieldDescriptionError,
+    NoOutputFieldsError,
+    UndeclaredOutputFieldError,
     UnregisteredNodeError,
 )
+from aoa.langgraph.sentinel import UNSET, UnsetType
 from aoa.langgraph.wrapper_langgraph_controller import WrapperLangGraphController
 
 
@@ -181,6 +186,7 @@ class LangGraphController(BaseController):
     """
 
     def __init__(self) -> None:
+        """Initialise an empty controller ready for fluent field and topology declaration."""
         # data contract
         self._inp_fields: dict[str, FieldMeta] = {}
         self._mid_fields: dict[str, FieldMeta] = {}
@@ -195,13 +201,16 @@ class LangGraphController(BaseController):
         self._pending_finishes: list[str] = []
         # lifecycle
         self._built: bool = False
+        self._agentstate: type[AgentState] | None = None
 
     # ── BaseResource abstract method overrides ────────────────────────────────
 
     def get_wrapper_class(self) -> type[BaseResource] | None:
+        """Return WrapperLangGraphController so child actions receive a restricted proxy."""
         return WrapperLangGraphController
 
     async def check_rollup_support(self) -> bool:
+        """Controllers do not participate in rollup transactions."""
         return False
 
     # ── field declaration ─────────────────────────────────────────────────────
@@ -383,9 +392,30 @@ class LangGraphController(BaseController):
         self._pending_finishes.append(name)
         return self
 
+    # ── build ─────────────────────────────────────────────────────────────────
+
+    def build(self, silent: bool = False) -> LangGraphController | None:
+        """Validate the data contract, build _agentstate, set _built = True.
+
+        Returns self on success. With silent=True returns None on validation error.
+        May be called again to rebuild after topology changes.
+        """
+        self._built = False
+        self._agentstate = None
+        try:
+            self._validate_contract()
+            self._agentstate = self._build_agentstate()
+            self._built = True
+            return self
+        except (NoOutputFieldsError, InconsistentFinishOutputError, UndeclaredOutputFieldError):
+            if silent:
+                return None
+            raise
+
     # ── private helpers ───────────────────────────────────────────────────────
 
     def _check_not_built(self) -> None:
+        """Raise ControllerAlreadyBuiltError if .build() has already been called."""
         if self._built:
             raise ControllerAlreadyBuiltError(
                 "LangGraphController is already built. "
@@ -393,10 +423,12 @@ class LangGraphController(BaseController):
             )
 
     def _check_duplicate_field(self, name: str) -> None:
+        """Raise DuplicateFieldError if name is already declared in inp or mid."""
         if name in self._inp_fields or name in self._mid_fields:
             raise DuplicateFieldError(name)
 
     def _clear_pending_finishes(self) -> None:
+        """Clear pending finishes; called by every topology method except .finish() and .out()."""
         self._pending_finishes.clear()
 
     def _resolve_name(self, thing: Any) -> str:
@@ -428,6 +460,7 @@ class LangGraphController(BaseController):
         *,
         target: dict[str, FieldMeta],
     ) -> LangGraphController:
+        """Expand all fields of a Pydantic model class into the given field registry."""
         for field_name, field_info in cls.model_fields.items():
             desc = field_info.description
             if not desc:
@@ -439,3 +472,40 @@ class LangGraphController(BaseController):
                 description=desc,
             )
         return self
+
+    def _all_out_names(self) -> set[str]:
+        """Collect all output field names: global out-fields plus all per-finish out-fields."""
+        names: set[str] = set(self._out_fields)
+        for outs in self._finish_nodes.values():
+            names.update(outs)
+        return names
+
+    def _validate_contract(self) -> None:
+        """Run all data-contract checks; raise on the first violation found."""
+        all_out = self._all_out_names()
+
+        if not all_out:
+            raise NoOutputFieldsError("No output fields declared. Call .out() at least once.")
+
+        if self._finish_nodes:
+            with_outs = [n for n, outs in self._finish_nodes.items() if outs]
+            without_outs = [n for n, outs in self._finish_nodes.items() if not outs]
+            if with_outs and without_outs:
+                raise InconsistentFinishOutputError(with_outs, without_outs)
+
+        declared = set(self._inp_fields) | set(self._mid_fields)
+        for name in all_out:
+            if name not in declared:
+                raise UndeclaredOutputFieldError(name)
+
+    def _build_agentstate(self) -> type[AgentState]:
+        """Create the dynamic AgentState subclass with typed inp and UNSET-defaulted mid fields."""
+        field_definitions: dict[str, Any] = {}
+
+        for name, meta in self._inp_fields.items():
+            field_definitions[name] = (meta.type, ...)
+
+        for name, meta in self._mid_fields.items():
+            field_definitions[name] = (meta.type | UnsetType, UNSET)
+
+        return create_model("AgentState", __base__=AgentState, **field_definitions)

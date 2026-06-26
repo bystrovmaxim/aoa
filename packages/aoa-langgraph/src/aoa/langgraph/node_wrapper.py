@@ -44,6 +44,7 @@ def wrap_action(
 
 
 def _extract_params(action: BaseAction[Any, Any], agentstate: Any) -> Any:
+    """Build the Action's Params instance from matching fields in the current agentstate."""
     params_cls = _params_class(action)
     fields = params_cls.model_fields
     data: dict[str, Any] = {}
@@ -60,6 +61,7 @@ def _extract_params(action: BaseAction[Any, Any], agentstate: Any) -> Any:
 
 
 def _params_class(action: BaseAction[Any, Any]) -> type[BaseModel]:
+    """Resolve the Params class for an action via schema introspection or nested Params class."""
     try:
         cls = ActionSchemaIntentResolver.resolve_params_type(type(action))
         if cls is not None:
