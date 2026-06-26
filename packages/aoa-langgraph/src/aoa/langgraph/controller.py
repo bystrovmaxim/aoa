@@ -83,11 +83,13 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+import functools
 import inspect
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, overload
+from typing import TYPE_CHECKING, Any, overload
 
+from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, create_model
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -97,16 +99,24 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.langgraph.agent_state import AgentState
 from aoa.langgraph.exceptions import (
+    CompileBeforeBuildError,
     ControllerAlreadyBuiltError,
     DuplicateFieldError,
     InconsistentFinishOutputError,
     MissingFieldDescriptionError,
     NoOutputFieldsError,
+    RouteKeyError,
     UndeclaredOutputFieldError,
     UnregisteredNodeError,
 )
+from aoa.langgraph.node_binding import _run_action_node
 from aoa.langgraph.sentinel import UNSET, UnsetType
 from aoa.langgraph.wrapper_langgraph_controller import WrapperLangGraphController
+
+if TYPE_CHECKING:
+    from langgraph.graph.state import CompiledStateGraph
+
+    from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 @dataclass(frozen=True)
@@ -170,6 +180,28 @@ class RouteInfo:
     src: str
     on: Any
     paths: dict[str, str] = field(default_factory=dict)
+
+
+# ── Compile-time routing helpers ─────────────────────────────────────────────
+
+
+def _make_cond_edge_fn(when: Any, if_true: str, if_false: str) -> Callable[[Any], str]:
+    """Create a binary condition router for .conditional_edge() declarations."""
+    def _route(s: Any) -> str:
+        return if_true if when(s) else if_false
+    return _route
+
+
+def _make_route_fn(on: Any, paths: dict[str, str]) -> Callable[[Any], str]:
+    """Create a multi-path router for .route() declarations; raises RouteKeyError on unknown key."""
+    def _route(s: Any) -> str:
+        key = on(s)
+        if key not in paths:
+            raise RouteKeyError(
+                f"Route key '{key}' not found. Declared paths: {list(paths)}."
+            )
+        return paths[key]
+    return _route
 
 
 # ── Controller ────────────────────────────────────────────────────────────────
@@ -411,6 +443,51 @@ class LangGraphController(BaseController):
             if silent:
                 return None
             raise
+
+    def compile(self, box: ToolsBox) -> CompiledStateGraph[Any]:
+        """Build a fresh StateGraph from declared topology and return the compiled graph.
+
+        Synchronous — no IO, no await.  Builds a new graph on every call so
+        ``box`` is never stored on the controller (see box-free invariant).
+        """
+        if not self._built:
+            raise CompileBeforeBuildError(
+                "Call .build() before .compile()."
+            )
+
+        assert self._agentstate is not None  # guaranteed by _built=True
+        sg = StateGraph(self._agentstate)
+
+        for node_name, node_info in self._nodes.items():
+            action_or_fn = node_info.action_or_fn
+            is_action = isinstance(action_or_fn, type) and issubclass(action_or_fn, BaseAction)
+            if is_action:
+                node_fn: Any = functools.partial(
+                    _run_action_node, action_or_fn, node_info.connections, box
+                )
+            else:
+                node_fn = action_or_fn
+            sg.add_node(node_name, node_fn)
+
+        for src, dst in self._edges:
+            sg.add_edge(src, dst)
+
+        for ce in self._conditional_edges:
+            sg.add_conditional_edges(
+                ce.src,
+                _make_cond_edge_fn(ce.when, ce.if_true, ce.if_false),
+            )
+
+        for rt in self._routes:
+            sg.add_conditional_edges(rt.src, _make_route_fn(rt.on, rt.paths))
+
+        for start_name in self._start_names:
+            sg.add_edge(START, start_name)
+
+        for finish_name in self._finish_nodes:
+            sg.add_edge(finish_name, END)
+
+        return sg.compile()
 
     # ── private helpers ───────────────────────────────────────────────────────
 
