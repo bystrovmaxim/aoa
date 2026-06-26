@@ -239,3 +239,32 @@ class StateFieldMismatchError(ValueError):
             f"{', '.join(missing_fields)}. "
             f"Add these fields to the AgentState class, or use response_mapper to map them."
         )
+
+
+class FieldTypeMismatchError(Exception):
+    """Raised by .build() when a state field type does not match the Action.Params or Action.Result type.
+
+    Direction 'params': state declares type A, but Action.Params expects type B for the same field.
+    Direction 'result': Action.Result writes type B, but state declares type A for the same field.
+    Use params_mapper / response_mapper to bridge type differences intentionally.
+    """
+
+    def __init__(
+        self,
+        node_name: str,
+        field_name: str,
+        direction: str,
+        state_type: type,
+        action_type: type,
+    ) -> None:
+        self.node_name = node_name
+        self.field_name = field_name
+        self.direction = direction
+        self.state_type = state_type
+        self.action_type = action_type
+        super().__init__(
+            f"Node '{node_name}': type mismatch on {direction} field '{field_name}' — "
+            f"state declares {state_type!r} but Action.{direction.capitalize()} "
+            f"has {action_type!r}. "
+            f"Fix the declaration or use params_mapper/response_mapper."
+        )
