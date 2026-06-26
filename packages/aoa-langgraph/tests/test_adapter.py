@@ -1,44 +1,125 @@
-# tests/langgraph/test_adapter.py
+# packages/aoa-langgraph/tests/test_adapter.py
 """
-Unit tests for LangGraphAdapter.
+Unit tests for LangGraphController data contract, topology, and node_binding helpers.
 
-Tests cover:
-- Node registration (Action instances and plain async functions)
-- Fail-fast edge validation: UnregisteredNodeError raised at .edge() / .conditional_edge() / .route() / .start()
-- Connection validation: MissingConnectionError raised at _validate() / build_graph()
-- _node_name() naming convention (strip 'Action' suffix, snake_case)
-- _declared_connections() reads @connection metadata from action class
-
-These tests do not import langgraph and do not call build_graph() / compile(),
-so they pass without langgraph installed.
+Tests do not import langgraph and do not call .compile() or .ainvoke(),
+so they pass without a running ToolsBox.
 """
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
 from aoa.action_machine.model.base_params import BaseParams
-from aoa.langgraph.adapter import LangGraphAdapter
-from aoa.langgraph.exceptions import MissingConnectionError, UnregisteredNodeError
-from aoa.langgraph.node_wrapper import _extract_params, _node_name, wrap_action
+from aoa.langgraph.agent_state import AgentState
+from aoa.langgraph.controller import LangGraphController
+from aoa.langgraph.exceptions import (
+    CompileBeforeBuildError,
+    ControllerAlreadyBuiltError,
+    DeadEndNodeError,
+    DuplicateFieldError,
+    FieldHasNoProducerError,
+    FieldNotReadyError,
+    FinishUnreachableError,
+    InconsistentFinishOutputError,
+    MissingFieldDescriptionError,
+    NoEntryPointError,
+    NoFinishPointError,
+    NoNodesError,
+    OutputHasNoProducerError,
+    StateFieldMismatchError,
+    UndeclaredOutputFieldError,
+    UnexpectedResultFieldError,
+    UnreachableNodeError,
+    UnregisteredNodeError,
+)
+from aoa.langgraph.node_binding import _extract_params
+from aoa.langgraph.sentinel import UNSET, UnsetType
 
-from .support import FullAction, OrdersDbManager, PingAction
+from .support import FullAction, PingAction
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Factory helper
+# Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _adapter(**kwargs: Any) -> LangGraphAdapter:
-    """Build a LangGraphAdapter with mock machine and context."""
-    return LangGraphAdapter(
-        machine=MagicMock(),
-        context=MagicMock(),
-        agentstate=dict,
-        **kwargs,
+def _minimal_built() -> LangGraphController:
+    """Return a minimal built controller (PingAction node, no inp fields)."""
+    return (
+        LangGraphController()
+        .mid("message", str, "Ping response message")
+        .out("message")
+        .node(PingAction)
+        .start(PingAction)
+        .finish(PingAction)
+        .build()
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TestDataContract
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestDataContract:
+    def test_inp_field_stored(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.inp("query", str, "Search query")
+        assert "query" in ctrl._inp_fields
+
+    def test_mid_field_stored(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.mid("result", str, "Intermediate result")
+        assert "result" in ctrl._mid_fields
+
+    def test_out_field_global_when_no_pending_finish(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.mid("result", str, "desc")
+        ctrl.out("result")
+        assert "result" in ctrl._out_fields
+
+    def test_out_after_finish_is_per_finish(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.mid("result", str, "desc")
+        ctrl.node(PingAction)
+        ctrl.finish(PingAction)
+        ctrl.out("result")
+        assert "result" in ctrl._finish_nodes["PingAction"]
+        assert "result" not in ctrl._out_fields
+
+    def test_duplicate_inp_raises(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.inp("query", str, "desc")
+        with pytest.raises(DuplicateFieldError, match="query"):
+            ctrl.inp("query", str, "desc2")
+
+    def test_duplicate_mid_raises(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.mid("result", str, "desc")
+        with pytest.raises(DuplicateFieldError, match="result"):
+            ctrl.mid("result", str, "desc2")
+
+    def test_inp_empty_description_raises(self) -> None:
+        ctrl = LangGraphController()
+        with pytest.raises(MissingFieldDescriptionError):
+            ctrl.inp("query", str, "")
+
+    def test_mid_empty_description_raises(self) -> None:
+        ctrl = LangGraphController()
+        with pytest.raises(MissingFieldDescriptionError):
+            ctrl.mid("result", str, "")
+
+    def test_fluent_chain_returns_self(self) -> None:
+        ctrl = LangGraphController()
+        result = ctrl.inp("q", str, "desc").mid("r", str, "desc")
+        assert result is ctrl
+
+    def test_methods_raise_after_build(self) -> None:
+        ctrl = _minimal_built()
+        with pytest.raises(ControllerAlreadyBuiltError):
+            ctrl.inp("extra", str, "desc")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -47,290 +128,400 @@ def _adapter(**kwargs: Any) -> LangGraphAdapter:
 
 
 class TestNodeRegistration:
-    def test_action_instance_registered_by_snake_name(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction())
-        assert "ping" in adapter._nodes
+    def test_action_class_registered_by_qualname(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.node(PingAction)
+        assert "PingAction" in ctrl._nodes
 
-    def test_node_entry_marks_is_action_true(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction())
-        _, is_action, *_ = adapter._nodes["ping"]
-        assert is_action is True
+    def test_action_class_custom_name_overrides_qualname(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.node(PingAction, name="ping_check")
+        assert "ping_check" in ctrl._nodes
+        assert "PingAction" not in ctrl._nodes
 
-    def test_plain_async_fn_registered_with_explicit_name(self) -> None:
-        async def my_fn(state: dict) -> dict:
+    def test_async_fn_with_name_registered(self) -> None:
+        async def my_fn(state: Any) -> dict:
             return {}
 
-        adapter = _adapter()
-        adapter.node(my_fn, name="entry")
-        assert "entry" in adapter._nodes
-        _, is_action, *_ = adapter._nodes["entry"]
-        assert is_action is False
+        ctrl = LangGraphController()
+        ctrl.node(my_fn, name="entry")
+        assert "entry" in ctrl._nodes
 
-    def test_plain_fn_without_name_raises_value_error(self) -> None:
-        async def fn(state: dict) -> dict:
+    def test_fn_without_name_raises(self) -> None:
+        async def fn(state: Any) -> dict:
             return {}
 
         with pytest.raises(ValueError, match="name="):
-            _adapter().node(fn)
+            LangGraphController().node(fn)
 
-    def test_sync_fn_raises_type_error(self) -> None:
-        def sync_fn(state: dict) -> dict:
+    def test_sync_fn_raises(self) -> None:
+        def sync_fn(state: Any) -> dict:
             return {}
 
         with pytest.raises(TypeError, match="async"):
-            _adapter().node(sync_fn, name="sync")
+            LangGraphController().node(sync_fn, name="sync")
 
     def test_node_returns_self_for_chaining(self) -> None:
-        adapter = _adapter()
-        assert adapter.node(PingAction()) is adapter
+        ctrl = LangGraphController()
+        assert ctrl.node(PingAction) is ctrl
 
-    def test_two_actions_registered_independently(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction()).node(FullAction())
-        assert "ping" in adapter._nodes
-        assert "full" in adapter._nodes
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# TestEdgeValidation
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-class TestEdgeValidation:
-    def test_edge_between_registered_nodes_ok(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction()).node(FullAction())
-        adapter.edge(PingAction, FullAction)
-        assert ("ping", "full") in adapter._edges
-
-    def test_edge_accepts_string_names(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction()).node(FullAction())
-        adapter.edge("ping", "full")
-        assert ("ping", "full") in adapter._edges
-
-    def test_edge_unregistered_source_raises_immediately(self) -> None:
-        adapter = _adapter()
-        adapter.node(FullAction())
-        with pytest.raises(UnregisteredNodeError, match="ping"):
-            adapter.edge(PingAction, FullAction)
-
-    def test_edge_unregistered_target_raises_immediately(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction())
-        with pytest.raises(UnregisteredNodeError, match="full"):
-            adapter.edge(PingAction, FullAction)
-
-    def test_edge_returns_self_for_chaining(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction()).node(FullAction())
-        assert adapter.edge(PingAction, FullAction) is adapter
-
-    def test_conditional_edge_registered_ok(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction()).node(FullAction())
-        adapter.conditional_edge(
-            PingAction,
-            when=lambda s: True,
-            if_true=FullAction,
-            if_false=PingAction,
-        )
-        assert len(adapter._conditional_edges) == 1
-
-    def test_conditional_edge_unregistered_source_raises(self) -> None:
-        adapter = _adapter()
-        adapter.node(FullAction())
-        with pytest.raises(UnregisteredNodeError):
-            adapter.conditional_edge(
-                PingAction,
-                when=lambda s: True,
-                if_true=FullAction,
-                if_false=FullAction,
-            )
-
-    def test_conditional_edge_unregistered_branch_raises(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction())
-        with pytest.raises(UnregisteredNodeError, match="full"):
-            adapter.conditional_edge(
-                PingAction,
-                when=lambda s: True,
-                if_true=FullAction,  # not registered
-                if_false=PingAction,
-            )
-
-    def test_route_registered_ok(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction()).node(FullAction())
-        adapter.route(PingAction, on=lambda s: "full", paths={"full": FullAction})
-        assert len(adapter._routes) == 1
-
-    def test_route_unregistered_path_target_raises(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction())
-        with pytest.raises(UnregisteredNodeError, match="full"):
-            adapter.route(PingAction, on=lambda s: "full", paths={"full": FullAction})
-
-    def test_edge_to_end_sentinel_passes_without_registration(self) -> None:
-        # LangGraph END = "__end__" — dunder names are allowed without .node()
-        adapter = _adapter()
-        adapter.node(PingAction())
-        adapter.edge(PingAction, "__end__")
-        assert ("ping", "__end__") in adapter._edges
-
-    def test_edge_to_start_sentinel_passes_without_registration(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction())
-        adapter.edge(PingAction, "__start__")
-        assert ("ping", "__start__") in adapter._edges
+    def test_two_action_classes_registered_independently(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.node(PingAction).node(FullAction)
+        assert "PingAction" in ctrl._nodes
+        assert "FullAction" in ctrl._nodes
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# TestStart
+# TestTopology
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class TestStart:
-    def test_start_sets_name_from_action_class(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction())
-        adapter.start(PingAction)
-        assert adapter._start_name == "ping"
+class TestTopology:
+    def test_edge_between_registered_nodes_stored(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.node(PingAction).node(FullAction)
+        ctrl.edge(PingAction, FullAction)
+        assert ("PingAction", "FullAction") in ctrl._edges
 
-    def test_start_sets_name_from_string(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction())
-        adapter.start("ping")
-        assert adapter._start_name == "ping"
+    def test_edge_unregistered_src_raises_immediately(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.node(FullAction)
+        with pytest.raises(UnregisteredNodeError, match="PingAction"):
+            ctrl.edge(PingAction, FullAction)
+
+    def test_edge_unregistered_dst_raises_immediately(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.node(PingAction)
+        with pytest.raises(UnregisteredNodeError, match="FullAction"):
+            ctrl.edge(PingAction, FullAction)
+
+    def test_start_sets_name(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.node(PingAction).start(PingAction)
+        assert "PingAction" in ctrl._start_names
 
     def test_start_unregistered_raises_immediately(self) -> None:
         with pytest.raises(UnregisteredNodeError):
-            _adapter().start(PingAction)
+            LangGraphController().start(PingAction)
 
-    def test_start_returns_self_for_chaining(self) -> None:
-        adapter = _adapter()
-        adapter.node(PingAction())
-        assert adapter.start(PingAction) is adapter
+    def test_finish_creates_entry_in_finish_nodes(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.node(PingAction).finish(PingAction)
+        assert "PingAction" in ctrl._finish_nodes
 
+    def test_conditional_edge_registered(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.node(PingAction).node(FullAction)
+        ctrl.conditional_edge(PingAction, when=lambda s: True, if_true=FullAction, if_false=PingAction)
+        assert len(ctrl._conditional_edges) == 1
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TestNodeName
-# ─────────────────────────────────────────────────────────────────────────────
+    def test_route_registered(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.node(PingAction).node(FullAction)
+        ctrl.route(PingAction, on=lambda s: "full", paths={"full": FullAction})
+        assert len(ctrl._routes) == 1
 
-
-class TestNodeName:
-    def test_strips_action_suffix(self) -> None:
-        assert _node_name(PingAction) == "ping"
-
-    def test_strips_action_suffix_full(self) -> None:
-        assert _node_name(FullAction) == "full"
-
-    def test_snake_case_multi_word(self) -> None:
-        class CheckInventoryAction:
-            pass
-
-        assert _node_name(CheckInventoryAction) == "check_inventory"  # type: ignore[arg-type]
-
-    def test_no_action_suffix_lowercased(self) -> None:
-        class Monitor:
-            pass
-
-        assert _node_name(Monitor) == "monitor"  # type: ignore[arg-type]
-
-    def test_single_word_uppercase(self) -> None:
-        class RouteAction:
-            pass
-
-        assert _node_name(RouteAction) == "route"  # type: ignore[arg-type]
+    def test_edge_returns_self(self) -> None:
+        ctrl = LangGraphController()
+        ctrl.node(PingAction).node(FullAction)
+        assert ctrl.edge(PingAction, FullAction) is ctrl
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# TestDeclaredConnections
+# TestBuild
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class TestDeclaredConnections:
-    def test_action_without_connections_returns_empty_set(self) -> None:
-        adapter = _adapter()
-        assert adapter._declared_connections(PingAction()) == set()
+class TestBuild:
+    def test_no_nodes_raises(self) -> None:
+        with pytest.raises(NoNodesError):
+            LangGraphController().mid("x", str, "d").out("x").build()
 
-    def test_action_with_connection_returns_key(self) -> None:
-        adapter = _adapter()
-        assert adapter._declared_connections(FullAction()) == {"db"}
+    def test_no_start_raises(self) -> None:
+        ctrl = (
+            LangGraphController()
+            .mid("message", str, "d")
+            .out("message")
+            .node(PingAction)
+            .finish(PingAction)
+        )
+        with pytest.raises(NoEntryPointError):
+            ctrl.build()
 
+    def test_no_finish_raises(self) -> None:
+        ctrl = (
+            LangGraphController()
+            .mid("message", str, "d")
+            .out("message")
+            .node(PingAction)
+            .start(PingAction)
+        )
+        with pytest.raises(NoFinishPointError):
+            ctrl.build()
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TestValidate
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-class TestValidate:
-    def test_passes_when_all_connections_provided(self) -> None:
-        mock_db = MagicMock(spec=OrdersDbManager)
-        adapter = _adapter(connections={"db": mock_db})
-        adapter.node(FullAction())
-        adapter._validate()  # no exception
-
-    def test_passes_with_extra_connections_in_pool(self) -> None:
-        mock_db = MagicMock(spec=OrdersDbManager)
-        adapter = _adapter(connections={"db": mock_db, "cache": MagicMock()})
-        adapter.node(PingAction()).node(FullAction())
-        adapter._validate()  # extra "cache" is filtered per action — no error
-
-    def test_raises_missing_connection(self) -> None:
-        adapter = _adapter()  # empty connections pool
-        adapter.node(FullAction())
-        with pytest.raises(MissingConnectionError, match="db"):
-            adapter._validate()
-
-    def test_plain_fn_node_skipped_in_validate(self) -> None:
-        async def fn(state: dict) -> dict:
+    def test_dead_end_node_raises(self) -> None:
+        async def dead_end(state: Any) -> dict:
             return {}
 
-        adapter = _adapter()  # no connections pool
-        adapter.node(fn, name="fn")
-        adapter._validate()  # plain fns have no @connection — no error
+        ctrl = (
+            LangGraphController()
+            .mid("message", str, "d")
+            .out("message")
+            .node(dead_end, name="dead_end")  # no outgoing edge
+            .node(PingAction)
+            .start("dead_end")
+            .finish(PingAction)
+            # "dead_end" has no edge to PingAction → DeadEndNodeError
+        )
+        with pytest.raises(DeadEndNodeError):
+            ctrl.build()
 
-    def test_no_action_nodes_validate_passes(self) -> None:
-        adapter = _adapter()
-        adapter._validate()  # empty node list — no error
+    def test_undeclared_out_field_raises(self) -> None:
+        ctrl = (
+            LangGraphController()
+            .out("ghost")  # "ghost" not in inp or mid
+            .node(PingAction)
+            .start(PingAction)
+            .finish(PingAction)
+        )
+        with pytest.raises(UndeclaredOutputFieldError):
+            ctrl.build()
+
+    def test_result_field_not_in_inp_mid_raises(self) -> None:
+        # PingAction.Result.message not in inp or mid; "other" is, so NoOutputFieldsError is bypassed
+        ctrl = (
+            LangGraphController()
+            .mid("other", str, "some other field")
+            .out("other")
+            .node(PingAction)
+            .start(PingAction)
+            .finish(PingAction)
+        )
+        with pytest.raises(UnexpectedResultFieldError):
+            ctrl.build()
+
+    def test_silent_returns_none_on_failure(self) -> None:
+        ctrl = (
+            LangGraphController()
+            .node(PingAction)
+            .start(PingAction)
+            .finish(PingAction)
+        )
+        assert ctrl.build(silent=True) is None
+
+    def test_successful_build_returns_self(self) -> None:
+        ctrl = _minimal_built()
+        assert ctrl._built is True
+
+    def test_compile_before_build_raises(self) -> None:
+        ctrl = LangGraphController()
+        with pytest.raises(CompileBeforeBuildError):
+            ctrl.compile(MagicMock())
+
+    def test_finish_unreachable_raises(self) -> None:
+        async def looping(s: Any) -> dict:
+            return {}
+
+        ctrl = (
+            LangGraphController()
+            .mid("message", str, "d")
+            .out("message")
+            .node(looping, name="looping")
+            .node(PingAction)
+            .edge("looping", "looping")  # self-loop: not a dead end
+            .start("looping")
+            .finish(PingAction)  # unreachable from "looping"
+        )
+        with pytest.raises(FinishUnreachableError):
+            ctrl.build()
+
+    def test_unreachable_node_raises(self) -> None:
+        async def orphan(s: Any) -> dict:
+            return {}
+
+        ctrl = (
+            LangGraphController()
+            .mid("message", str, "d")
+            .out("message")
+            .node(PingAction)
+            .node(orphan, name="orphan")
+            .edge("orphan", PingAction)  # orphan→PingAction, but nothing points to orphan
+            .start(PingAction)
+            .finish(PingAction)
+        )
+        with pytest.raises(UnreachableNodeError):
+            ctrl.build()
+
+    def test_inconsistent_finish_output_raises(self) -> None:
+        ctrl = (
+            LangGraphController()
+            .mid("message", str, "d")
+            .node(PingAction)
+            .node(FullAction)
+            .start(PingAction)
+            .finish(PingAction)
+            .out("message")   # PingAction gets per-finish out
+            .finish(FullAction)  # FullAction gets no per-finish out → inconsistent
+        )
+        with pytest.raises(InconsistentFinishOutputError):
+            ctrl.build()
+
+    def test_field_has_no_producer_raises(self) -> None:
+        # FullAction.Params.user_id is required but neither inp nor written by any action
+        ctrl = (
+            LangGraphController()
+            .mid("user_id", str, "u")
+            .mid("amount", float, "a")
+            .mid("order_id", str, "o")
+            .mid("txn_id", str, "t")
+            .mid("total", float, "tot")
+            .mid("status", str, "s")
+            .out("order_id")
+            .node(FullAction)
+            .start(FullAction)
+            .finish(FullAction)
+        )
+        with pytest.raises(FieldHasNoProducerError):
+            ctrl.build()
+
+    def test_output_has_no_producer_raises(self) -> None:
+        async def fn(s: Any) -> dict:
+            return {}
+
+        ctrl = (
+            LangGraphController()
+            .mid("message", str, "m")
+            .out("message")  # no action writes it
+            .node(fn, name="fn")
+            .start("fn")
+            .finish("fn")
+        )
+        with pytest.raises(OutputHasNoProducerError):
+            ctrl.build()
+
+    def test_diamond_topology_builds_successfully(self) -> None:
+        # A→(B|C)→PingAction: covers conditional_edge in _build_adjacency
+        # and BFS revisit (PingAction enqueued from both B and C)
+        async def node_a(s: Any) -> dict:
+            return {}
+
+        async def node_b(s: Any) -> dict:
+            return {}
+
+        async def node_c(s: Any) -> dict:
+            return {}
+
+        ctrl = (
+            LangGraphController()
+            .mid("message", str, "d")
+            .out("message")
+            .node(node_a, name="A")
+            .node(node_b, name="B")
+            .node(node_c, name="C")
+            .node(PingAction)
+            .conditional_edge("A", when=lambda s: True, if_true="B", if_false="C")
+            .edge("B", PingAction)
+            .edge("C", PingAction)
+            .start("A")
+            .finish(PingAction)
+            .build()
+        )
+        assert ctrl._built is True
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Minimal fake action stubs for _extract_params / wrap_action tests.
-# These do not need @meta / @check_roles — only .Params matters.
+# TestSentinel
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class _RequiredField:
-    """Stub with one required str field."""
+class TestSentinel:
+    def test_unset_is_falsy(self) -> None:
+        assert not UNSET  # exercises __bool__ → return False
+
+    def test_unset_singleton(self) -> None:
+        assert UnsetType() is UNSET  # second __new__ call hits the 54→56 branch
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TestExceptions
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestExceptions:
+    def test_state_field_mismatch_stores_attrs(self) -> None:
+        exc = StateFieldMismatchError("MyAction", ["f1", "f2"], "MyState")
+        assert exc.action_name == "MyAction"
+        assert exc.missing_fields == ["f1", "f2"]
+        assert exc.state_class == "MyState"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TestAgentState
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestAgentState:
+    def test_set_field_returned(self) -> None:
+        from aoa.langgraph.agent_state import AgentState
+        from aoa.langgraph.sentinel import UNSET
+
+        class _S(AgentState):
+            name: str | UnsetType = UNSET
+
+        state = _S(name="alice")
+        assert state["name"] == "alice"
+
+    def test_unset_field_raises_field_not_ready(self) -> None:
+        from aoa.langgraph.agent_state import AgentState
+        from aoa.langgraph.sentinel import UNSET
+
+        class _S(AgentState):
+            name: str | UnsetType = UNSET
+
+        state = _S()  # name stays UNSET
+        with pytest.raises(FieldNotReadyError):
+            _ = state["name"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stubs for _extract_params tests
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class _RequiredNameAction:
+    """Stub: one required str field."""
 
     class Params(BaseParams):
         name: str
 
 
-class _OptionalNone:
-    """Stub with one Optional field whose default is None."""
-
-    class Params(BaseParams):
-        name: str | None = None
-
-
-class _OptionalDefault:
-    """Stub with one int field whose default is 42."""
+class _OptionalCountAction:
+    """Stub: one optional int field with default 42."""
 
     class Params(BaseParams):
         count: int = 42
 
 
-class _Mixed:
-    """Stub with one required and one optional field."""
+class _MixedAction:
+    """Stub: one required + one optional field."""
 
     class Params(BaseParams):
         name: str
         count: int = 0
+
+
+class _NameState(AgentState):
+    name: str | UnsetType = UNSET
+
+
+class _CountState(AgentState):
+    count: int | UnsetType = UNSET
+
+
+class _MixedState(AgentState):
+    name: str | UnsetType = UNSET
+    count: int | UnsetType = UNSET
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -339,108 +530,33 @@ class _Mixed:
 
 
 class TestExtractParams:
-    def test_required_field_present_in_agentstate(self) -> None:
-        action = _RequiredField()
-        params = _extract_params(action, {"name": "alice"})  # type: ignore[arg-type]
+    def test_required_field_set_in_state(self) -> None:
+        state = _NameState(name="alice")
+        params = _extract_params(_RequiredNameAction, state)  # type: ignore[arg-type]
         assert params.name == "alice"
 
-    def test_required_field_absent_raises_key_error(self) -> None:
-        action = _RequiredField()
-        with pytest.raises(KeyError, match="name"):
-            _extract_params(action, {})  # type: ignore[arg-type]
+    def test_required_field_unset_raises_field_not_ready(self) -> None:
+        state = _NameState()  # name=UNSET
+        with pytest.raises(FieldNotReadyError, match="name"):
+            _extract_params(_RequiredNameAction, state)  # type: ignore[arg-type]
 
-    def test_optional_none_default_absent_uses_none(self) -> None:
-        action = _OptionalNone()
-        params = _extract_params(action, {})  # type: ignore[arg-type]
-        assert params.name is None
-
-    def test_optional_int_default_absent_uses_default(self) -> None:
-        action = _OptionalDefault()
-        params = _extract_params(action, {})  # type: ignore[arg-type]
+    def test_optional_field_unset_uses_default(self) -> None:
+        state = _CountState()  # count=UNSET
+        params = _extract_params(_OptionalCountAction, state)  # type: ignore[arg-type]
         assert params.count == 42
 
-    def test_optional_int_default_overridden_by_agentstate(self) -> None:
-        action = _OptionalDefault()
-        params = _extract_params(action, {"count": 99})  # type: ignore[arg-type]
+    def test_optional_field_set_overrides_default(self) -> None:
+        state = _CountState(count=99)
+        params = _extract_params(_OptionalCountAction, state)  # type: ignore[arg-type]
         assert params.count == 99
 
-    def test_mixed_required_present_optional_absent(self) -> None:
-        action = _Mixed()
-        params = _extract_params(action, {"name": "bob"})  # type: ignore[arg-type]
+    def test_mixed_required_set_optional_unset(self) -> None:
+        state = _MixedState(name="bob")  # count=UNSET
+        params = _extract_params(_MixedAction, state)  # type: ignore[arg-type]
         assert params.name == "bob"
         assert params.count == 0
 
-    def test_empty_params_class_needs_no_agentstate_keys(self) -> None:
-        params = _extract_params(PingAction(), {})
+    def test_empty_params_needs_no_state_fields(self) -> None:
+        state = _NameState()
+        params = _extract_params(PingAction, state)
         assert params is not None
-
-    def test_key_error_message_includes_action_class_name(self) -> None:
-        action = _RequiredField()
-        with pytest.raises(KeyError, match="_RequiredField"):
-            _extract_params(action, {})  # type: ignore[arg-type]
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# TestWrapAction
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-class TestWrapAction:
-    def test_wrapped_node_has_correct_name(self) -> None:
-        node_fn = wrap_action(PingAction(), MagicMock(), MagicMock(), {})
-        assert node_fn.__name__ == "ping"
-
-    async def test_wrapped_node_calls_machine_run(self) -> None:
-        mock_machine = AsyncMock()
-        mock_result = MagicMock()
-        mock_result.model_dump.return_value = {"message": "pong"}
-        mock_machine.run.return_value = mock_result
-
-        node_fn = wrap_action(PingAction(), mock_machine, MagicMock(), {})
-        result = await node_fn({})
-
-        mock_machine.run.assert_awaited_once()
-        assert result == {"message": "pong"}
-
-    async def test_wrapped_node_returns_result_model_dump(self) -> None:
-        mock_machine = AsyncMock()
-        mock_result = MagicMock()
-        mock_result.model_dump.return_value = {"status": "ok", "count": 3}
-        mock_machine.run.return_value = mock_result
-
-        node_fn = wrap_action(PingAction(), mock_machine, MagicMock(), {})
-        result = await node_fn({})
-
-        assert result == {"status": "ok", "count": 3}
-
-    async def test_wrapped_node_passes_filtered_connections(self) -> None:
-        mock_machine = AsyncMock()
-        mock_machine.run.return_value = MagicMock(model_dump=lambda: {})
-        mock_db = MagicMock()
-
-        node_fn = wrap_action(PingAction(), mock_machine, MagicMock(), {"db": mock_db})
-        await node_fn({})
-
-        _, call_kwargs = mock_machine.run.call_args
-        assert call_kwargs.get("connections") == {"db": mock_db}
-
-    async def test_wrapped_node_extracts_params_from_agentstate(self) -> None:
-        mock_machine = AsyncMock()
-        mock_machine.run.return_value = MagicMock(model_dump=lambda: {})
-
-        # Use a fake action stub with a required field
-        class _NamedAction:
-            class Params(BaseParams):
-                name: str
-
-        node_fn = wrap_action(
-            _NamedAction(),  # type: ignore[arg-type]
-            mock_machine,
-            MagicMock(),
-            {},
-        )
-        await node_fn({"name": "alice"})
-
-        call_args, _ = mock_machine.run.call_args
-        passed_params = call_args[2]  # positional: context, action, params
-        assert passed_params.name == "alice"
