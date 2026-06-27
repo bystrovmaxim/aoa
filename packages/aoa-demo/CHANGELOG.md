@@ -5,7 +5,7 @@ All notable changes to `aoa-demo` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] – 2026-06-27
 
 ### Changed
 
@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Store-domain OCEL export sub-feature.** The `PublishOrder*OcelAction` / `RecordOrderOcelAction` trace actions, the `build_store_ocel_machine` / `run_store_ocel_trace_batch` helpers, and `StoreOcelStoreResource` were removed from `aoa.examples.model.store`. The OCEL 2.0 export flow is now demonstrated by the self-contained runnable example `packages/aoa-ocel/examples/01_ocel_export.py` in the `aoa-ocel` package. ([#82](https://github.com/bystrovmaxim/aoa/issues/82))
 
-## [1.0.0] – 2026-06-24
+## [0.1.0] – 2026-06-24
 
 ### Added
 
