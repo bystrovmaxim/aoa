@@ -51,6 +51,8 @@ dmypy.json
 # ============================================================================
 packages/aoa-maxitor/client/node_modules/
 packages/aoa-maxitor/client/.vite/
+# Built frontend — assembled by CI before packaging; never commit
+packages/aoa-maxitor/src/aoa/maxitor/static/
 
 # ============================================================================
 # IDE
