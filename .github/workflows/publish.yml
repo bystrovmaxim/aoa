@@ -126,6 +126,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build frontend
+        working-directory: packages/aoa-maxitor/client
+        run: |
+          npm ci
+          VITE_MAXITOR_API_BASE_URL=https://aoa.run/maxitor \
+            npx vite build \
+            --base=/maxitor/ \
+            --outDir ../src/aoa/maxitor/static \
+            --emptyOutDir
       - name: Build
         run: uv build --package aoa-maxitor --out-dir packages/aoa-maxitor/dist
       - name: Publish

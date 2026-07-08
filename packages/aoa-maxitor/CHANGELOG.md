@@ -5,6 +5,18 @@ All notable changes to `aoa-maxitor` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] – 2026-07-08
+
+### Added
+
+- **Bundled React SPA.** The compiled Vite frontend (`src/aoa/maxitor/static/`) is now included in the wheel via hatchling `artifacts`. `pip install aoa-maxitor` delivers both the API backend and the complete web UI — no Node.js required on the server.
+- **`StaticFiles` mount.** `create_app()` now mounts the bundled SPA at `/` (after all API routes) using FastAPI `StaticFiles(html=True)`, enabling SPA client-side routing fallback. The mount is skipped gracefully if the static directory is absent (dev environment without a built frontend).
+- **`uvicorn>=0.30` added to runtime dependencies.** Previously an implicit transitive dependency; now declared explicitly so `pip install aoa-maxitor` pulls a working ASGI server.
+
+### Deployment note
+
+The frontend is built with `--base=/maxitor/` and `VITE_MAXITOR_API_BASE_URL=https://aoa.run/maxitor`. Nginx should proxy `location /maxitor/ { proxy_pass http://127.0.0.1:8101/; }` — the prefix is stripped before reaching uvicorn.
+
 ## [1.0.1] – 2026-06-27
 
 ### Changed
