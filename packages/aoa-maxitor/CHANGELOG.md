@@ -5,6 +5,12 @@ All notable changes to `aoa-maxitor` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] – 2026-07-08
+
+### Fixed
+
+- **Dependency `aoa-action-machine` pinned to non-existent stable version.** Changed `==1.0.0` → `>=1.0.0a4` so the package installs correctly from PyPI where only alpha releases are available. Similarly tightened `aoa-fastapi-adapter>=1.0.0a0` → `>=1.0.0`.
+
 ## [1.1.0] – 2026-07-08
 
 ### Added
