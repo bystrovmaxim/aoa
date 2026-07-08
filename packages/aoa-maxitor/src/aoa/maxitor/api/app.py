@@ -6,8 +6,11 @@ FastAPI ASGI application for Maxitor.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Expose API endpoints for a separately hosted Vite React SPA. This module does
-not serve React assets or Python-rendered shell HTML.
+Expose API endpoints and serve the bundled Vite React SPA.
+
+The compiled frontend lives in ``src/aoa/maxitor/static/`` and is bundled into
+the wheel so that ``pip install aoa-maxitor`` is the only server-side step.
+Nginx proxies ``/maxitor/`` to this process; the SPA is built with ``--base=/maxitor/``.
 
 ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.action_machine.adapters.fastapi.FastApiAdapter`
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
@@ -21,9 +24,13 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+_STATIC_DIR = Path(__file__).parent.parent / "static"
 
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.context import Context
@@ -122,6 +129,9 @@ def create_app() -> FastAPI:
     @fastapi_app.get("/api/health", tags=["health"])
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    if _STATIC_DIR.exists():
+        fastapi_app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="static")
 
     return fastapi_app
 
