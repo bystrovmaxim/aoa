@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aoa-maxitor"
-version = "1.1.2"
+version = "1.1.3"
 description = "AOA system visualizer: bundled React SPA + FastAPI backend."
 readme = "README.md"
 license = { text = "MIT" }

@@ -133,9 +133,8 @@ jobs:
         working-directory: packages/aoa-maxitor/client
         run: |
           npm ci
-          VITE_MAXITOR_API_BASE_URL=https://aoa.run/maxitor \
-            npx vite build \
-            --base=/maxitor/ \
+          npx vite build \
+            --base=/ \
             --outDir ../src/aoa/maxitor/static \
             --emptyOutDir
       - name: Build
