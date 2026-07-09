@@ -37,7 +37,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.model.core.core_domain import CoreDomain
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
-_GRAPH_JSON_PATH = "/examples/model/graph-json"
+_DEFAULT_GRAPH_JSON_PATH = "/examples/model/graph-json"
 
 
 class LoadAOAServiceParams(BaseParams):
@@ -46,9 +46,10 @@ class LoadAOAServiceParams(BaseParams):
     service_url: str = Field(
         min_length=1,
         description=(
-            "AOA service URL — bare base URL (http://host:8001) or full graph-json endpoint "
-            "(http://host:8001/examples/model/graph-json). "
-            "The correct path is appended automatically when a base URL is supplied."
+            "AOA service URL — bare base URL (http://host:8001) or any full endpoint "
+            "(http://host:8001/examples/model/graph-json, http://host/api/model/graph, …). "
+            "When a bare host is supplied (no path), the default AOA path is appended automatically. "
+            "Any URL with an explicit path is used as-is."
         ),
     )
 
@@ -104,7 +105,7 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
     # ─── Aspect 2 ────────────────────────────────────────────────────────────
 
     @result_string("service_graph_json_url", required=True, not_empty=True)  # type: ignore[untyped-decorator]
-    @regular_aspect("Normalize the validated URL to the canonical graph-json endpoint path.")
+    @regular_aspect("Normalize URL: append default graph-json path only when no explicit path is given.")
     async def normalize_url_aspect(
         self,
         params: LoadAOAServiceParams,
@@ -114,8 +115,9 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
     ) -> dict[str, Any]:
         _ = (params, box, connections)
         url = cast(str, state["service_graph_json_url"]).rstrip("/")
-        if not url.endswith(_GRAPH_JSON_PATH):
-            url = f"{url}{_GRAPH_JSON_PATH}"
+        parsed = urlparse(url)
+        if not parsed.path or parsed.path == "/":
+            url = f"{url}{_DEFAULT_GRAPH_JSON_PATH}"
         return {"service_graph_json_url": url}
 
     # ─── Aspect 3 ────────────────────────────────────────────────────────────
