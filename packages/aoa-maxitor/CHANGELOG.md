@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Frontend built with relative API paths.** Removed hardcoded `VITE_MAXITOR_API_BASE_URL=https://aoa.run/maxitor` and `--base=/maxitor/` from CI build; frontend now uses `--base=/` and relative `/api/` paths, making the package deployable at any domain or IP without rebuilding.
+- **`LoadAOAServiceAction` accepts arbitrary endpoint URLs.** Previously the URL normalization always appended `/examples/model/graph-json`, making it impossible to load from services with a different path (e.g. `/api/model/graph`). Now any URL with an explicit path is used as-is; the default AOA path is appended only when a bare host URL is supplied.
 
 ## [1.1.2] – 2026-07-09
 
