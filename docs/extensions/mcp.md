@@ -1,4 +1,4 @@
-<!-- translated-from: mcp_draft.md @ 2026-06-17T10:40:46Z · sha256:3fe07276637a -->
+<!-- translated-from: mcp_draft.md @ 2026-07-10T13:56:17Z (filesystem mtime; draft is gitignored, no git history) · sha256:10597f139365 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -47,6 +47,7 @@ server = (
 - A fluent builder `.tool(name, ActionClass, ...)` → `.build()` → an MCP server (`FastMCP`); `.register_all()` publishes the whole catalog of operations.
 - **The tool's `inputSchema` comes from `Params`**, the description — from `@meta`: the agent receives an exact contract, no schema to write.
 - **`auth_coordinator` is mandatory** (as in [FastAPI](fastapi.md)); use `NoAuthCoordinator(context=Context())` for an open server.
+- **Per-tool override.** `.tool(name, Action, auth_coordinator=...)` — the same mechanism as [FastAPI](fastapi.md#the-essentials): one tool uses its own coordinator instead of the adapter's default.
 - **The response is not an HTTP code but a JSON envelope** with an `isError` flag and a stable code: `OK` / `PERMISSION_DENIED` / `INVALID_PARAMS` / `INTERNAL_ERROR`; on `INTERNAL_ERROR` the traceback is written to the log but **not handed to the agent**.
 - Reconciling external schemas (`request_model`/`response_model` + mappers) — [Schema converters](../tutorials/step-18-converters.md); per-call resources — the `connections=` argument.
 

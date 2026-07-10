@@ -1,4 +1,4 @@
-<!-- translated-from: fastapi_draft.md @ 2026-06-17T10:30:35Z · sha256:3acdd1dc63f6 -->
+<!-- translated-from: fastapi_draft.md @ 2026-07-10T13:56:09Z (filesystem mtime; draft is gitignored, no git history) · sha256:b7eaab3fedb4 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -37,6 +37,7 @@ app = (
 - A fluent builder `.post/.get/.put/.delete/.patch(path, ActionClass, ...)` → `.build()` → a FastAPI app.
 - **OpenAPI is derived from the code** — `Params`/`Result`, `Field(description=…)`, `@meta`; Swagger at `/docs`.
 - **`auth_coordinator` is mandatory** (`None` → `TypeError`); for open access use `NoAuthCoordinator(context=Context())`. See [Authentication](../tutorials/step-12-authentication.md).
+- **Per-route override.** `.post(path, Action, auth_coordinator=...)` — one route uses its own coordinator instead of the adapter's default (e.g. an open `/login` next to a strict default). Without an explicit value, the adapter's default applies.
 - Machine errors → HTTP codes: `AuthorizationError` → 403, `ValidationFieldError` → 422, anything else → 500; an auto `GET /health`.
 - A mismatch between the external schema and the contract — `request_model`/`response_model` + `params_mapper`/`response_mapper` (see [Schema converters](../tutorials/step-18-converters.md)); open resources per request — the `connections=` argument (see [Connections at the boundary](../tutorials/step-17-connections.md)).
 

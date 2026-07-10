@@ -111,7 +111,7 @@ The "reserve or refuse" decision is the same — only the store behind the resou
 
 ## Rollup: checking against production data
 
-A resource can declare that it supports **rollup** — a mode where writes run in a transaction, but at the commit stage a rollback is performed instead of persisting. This lets you run a scenario against the production schema while saving nothing. By default `check_rollup_support()` raises `RollupNotSupportedError`; resources that can do it (SQL ones, for example) override the method and return `True`. In detail — in the [Testing](../index.md#v-testing) part *(soon)*.
+A resource can declare that it supports **rollup** — a mode where writes run in a transaction, but at the commit stage a rollback is performed instead of persisting. This lets you run a scenario against the production schema while saving nothing. By default `check_rollup_support()` raises `RollupNotSupportedError`; resources that can do it (SQL ones, for example) override the method and return `True`. In detail — in the [Testing](../index.md#vi-testing) part *(soon)*.
 
 ## Invariants
 

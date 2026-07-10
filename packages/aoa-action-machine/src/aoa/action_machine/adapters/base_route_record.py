@@ -29,6 +29,7 @@ Data flow sketch::
             ▼
     adapter runtime uses:
       effective_request_model / effective_response_model
+      BaseAdapter.effective_auth_coordinator(record)
 
 Inheritance sketch::
 
@@ -38,7 +39,9 @@ Inheritance sketch::
         └── GRPCRouteRecord(service_name, method_name, ...)
 
     All concrete records may carry optional per-route ``connections`` mapping
-    (see :mod:`aoa.action_machine.resources.per_call_connection`).
+    (see :mod:`aoa.action_machine.resources.per_call_connection`) and an optional
+    per-route ``auth_coordinator`` override — ``None`` falls back to the adapter's
+    default via :meth:`~aoa.action_machine.adapters.base_adapter.BaseAdapter.effective_auth_coordinator`.
 
 """
 
@@ -128,6 +131,7 @@ class BaseRouteRecord:
     params_mapper: Callable[..., Any] | None = None
     response_mapper: Callable[..., Any] | None = None
     connections: Mapping[str, ConnectionValue] | None = None
+    auth_coordinator: Any | None = None
     _cached_params_type: type = field(init=False, repr=False)
     _cached_result_type: type = field(init=False, repr=False)
 

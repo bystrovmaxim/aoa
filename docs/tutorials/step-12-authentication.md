@@ -1,4 +1,4 @@
-<!-- translated-from: step-12-authentication_draft.md @ 2026-06-16T20:26:43Z · sha256:f4a9bfdfa3a7 -->
+<!-- translated-from: step-12-authentication_draft.md @ 2026-07-10T13:58:04Z (filesystem mtime; draft is gitignored, no git history) · sha256:7fb7db549305 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -18,6 +18,7 @@
 - [One mechanism for any transport](#one-mechanism-for-any-transport)
 - [Four ready methods](#four-ready-methods)
 - [Where it is wired](#where-it-is-wired)
+- [Route-level override](#route-level-override)
 - [Invariants](#invariants)
 - [Review questions](#review-questions)
 
@@ -106,14 +107,14 @@ Only `CredentialExtractor` is protocol-dependent — it knows where to take cred
 
 ## Four ready methods
 
-For now you implement `Authenticator` for your own method yourself. Planned (ROADMAP) are ready out-of-the-box implementations for four common schemes:
+For now you implement `Authenticator` for your own method yourself — except for one that already ships. Planned (ROADMAP) are implementations out of the box for four common schemes:
 
-- **HTTP Basic Auth**,
-- **Bearer Token (JWT)**,
-- **API Key**,
-- **OAuth2** (Google / GitHub / Keycloak).
+- **HTTP Basic Auth** — planned,
+- **[Bearer Token (JWT)](../extensions/jwt.md)** — ready (`extra [jwt]`); works with FastAPI, does not yet work with MCP (see the article — [issue #113](https://github.com/bystrovmaxim/aoa/issues/113)),
+- **API Key** — planned,
+- **OAuth2** (Google / GitHub / Keycloak) — planned.
 
-With their arrival, typical authentication will be wirable without writing your own `Authenticator`. Until then the template is one: implement the three components (or take `NoAuthCoordinator` for open access).
+Once the rest arrive, typical authentication will be wirable without writing your own `Authenticator`. Until then, for the three remaining, the template is one: implement the three components (or take `NoAuthCoordinator` for open access).
 
 ## Where it is wired
 
@@ -125,6 +126,21 @@ app = FastApiAdapter(machine=machine, auth_coordinator=auth_coordinator, title="
 
 How the adapters themselves are built is in the [FastAPI](step-13-fastapi.md) and [MCP](step-14-mcp.md) chapters. Your own authentication scheme is shaped as a [custom authentication coordinator](../index.md#how-to-write-your-own-extension).
 
+## Route-level override
+
+The coordinator on the adapter is a **default**, not the only option. A specific route can set its own:
+
+```python
+app = (
+    FastApiAdapter(machine=machine, auth_coordinator=strict_jwt_coordinator)  # default — strict
+    .post("/auth/login", LoginAction, auth_coordinator=NoAuthCoordinator(context=Context()))  # explicit exception
+    .post("/orders", CreateOrderAction)                                       # inherits the default
+    .build()
+)
+```
+
+`BaseAdapter.effective_auth_coordinator(record)` resolves the coordinator for a given call: if the route has its own `auth_coordinator`, that one is used, otherwise — the adapter default. This way a strict coordinator (JWT, say) stays strict for every route except the explicitly listed exceptions — like a login endpoint, which has no token to present. Details — in [«Your own adapter»](../how-to/authoring-adapter.md#what-the-base-guarantees).
+
 ## Invariants
 
 - **`Context` is built by the transport, not the machine.** The machine receives a ready `Context` in `run(context, ...)`.
@@ -133,6 +149,7 @@ How the adapters themselves are built is in the [FastAPI](step-13-fastapi.md) an
 - **Anonymity is declared.** Open access is `NoAuthCoordinator`, not the absence of a check.
 - **Authentication ≠ authorization.** The first puts roles into `Context`; the second (`@check_roles`) checks them in the machine.
 - **Only the extractor is protocol-dependent.** Verification and `Context` assembly are reused across transports.
+- **A per-route override — not a block by default.** `auth_coordinator` on a route is optional; without it, the adapter default applies. `None` on the adapter is rejected by the constructor; `None` on a route just means "no override".
 
 The full list is in [Intents and invariants](../reference/intents-and-invariants.md); the terms are in the [Glossary](../reference/glossary.md). Why the environment is built before the operation is in the [Philosophy](../explanation/philosophy.md).
 
@@ -153,6 +170,7 @@ Next — **[FastAPI](step-13-fastapi.md)**: how to expose an operation over HTTP
 5. What is `NoAuthCoordinator`, and for which operations is it appropriate?
 6. Which of the three components is protocol-dependent, and which are reused across transports? Why does this give "one mechanism for any transport"?
 7. Which four authentication methods are planned, and what do you have to do until they arrive?
+8. How can a route override the adapter's default `auth_coordinator`? What happens if it doesn't?
 
 > **Exercise.** Sketch an `Authenticator` for an API key: `extract` pulls the key from the `X-Api-Key` header, `authenticate` matches it against a "key → (user_id, roles)" dictionary and returns `UserInfo(user_id=..., roles=(...))` or `None`. Run through mentally what `process` returns if the key is missing, if the key is wrong, and if it is correct — and which `Context` the machine receives in each case.
 

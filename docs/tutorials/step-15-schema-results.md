@@ -91,7 +91,7 @@ class OrderSummaryResult(BaseResult):
 OrderSummaryResult.model_validate({"order": {"id": "o1", "status": "paid", "total": 99.5}})  # ok
 ```
 
-Important is what this is **not**: the field's value is a plain `dict` validated against the schema, and **not** a hydrated `OrderEntity` instance (no lifecycle, relations, or `FieldNotLoadedError`). Full entities are assembled elsewhere — in [resources](../index.md#iv-data-model). The projection returns exactly the declared slice: a field outside the schema will be rejected. When you need a rich Python type on the wire (computed fields, your own structure) — use a separate `BaseModel`, not a projection.
+Important is what this is **not**: the field's value is a plain `dict` validated against the schema, and **not** a hydrated `OrderEntity` instance (no lifecycle, relations, or `FieldNotLoadedError`). Full entities are assembled elsewhere — in [resources](../index.md#v-data-model). The projection returns exactly the declared slice: a field outside the schema will be rejected. When you need a rich Python type on the wire (computed fields, your own structure) — use a separate `BaseModel`, not a projection.
 
 ## Where validation happens
 

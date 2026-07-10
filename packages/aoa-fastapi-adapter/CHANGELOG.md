@@ -5,7 +5,11 @@ All notable changes to `aoa-fastapi-adapter` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] – 2026-07-10
+
+### Added
+
+- **`auth_coordinator=` on `.post/.get/.put/.delete/.patch(...)` — per-route authentication override.** Overrides the adapter's default coordinator for one route only; falls back to the adapter default when omitted, via the new `BaseAdapter.effective_auth_coordinator`. Lets a route like `/auth/login` opt out of a strict adapter-wide coordinator without weakening it for every other route. ([#66](https://github.com/bystrovmaxim/aoa/issues/66) · [aoa-action-machine CHANGELOG](../aoa-action-machine/CHANGELOG.md))
 
 ### Changed
 

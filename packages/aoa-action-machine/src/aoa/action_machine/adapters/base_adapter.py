@@ -24,6 +24,13 @@ machine's ``NodeGraphCoordinator``. Per-route connection wiring lives on each
 Registered routes are accumulated in
 ``_routes`` as concrete ``BaseRouteRecord`` subclasses.
 
+A route may also override the adapter's default ``auth_coordinator`` via
+``BaseRouteRecord.auth_coordinator``. Concrete adapters resolve the coordinator
+to use for one request through :meth:`effective_auth_coordinator`, which returns
+the per-route override when set, else the adapter-wide default. This lets a
+public route (e.g. a login endpoint) sit next to routes protected by a strict
+default coordinator, without weakening the default for every other route.
+
 ::
 
     ┌──────────────────────────────────────┐
@@ -35,6 +42,7 @@ Registered routes are accumulated in
     │  _routes: list[R]                    │
     │                                      │
     │  _add_route(record: R) → Self        │
+    │  effective_auth_coordinator(record: R) → Any │
     │  build() → Any                       │
     └──────────────────────────────────────┘
                ▲
@@ -147,6 +155,10 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
         """Add a RouteRecord to the route list and return self (fluent API)."""
         self._routes.append(record)
         return self
+
+    def effective_auth_coordinator(self, record: R) -> Any:
+        """Return ``record.auth_coordinator`` when set, else the adapter's default coordinator."""
+        return record.auth_coordinator if record.auth_coordinator is not None else self._auth_coordinator
 
     @abstractmethod
     def build(self) -> Any:

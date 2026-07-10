@@ -1,4 +1,4 @@
-<!-- translated-from: step-01-action-and-pipeline_draft.md @ 2026-06-17T17:53:37Z · sha256:c48e9f5907e0 -->
+<!-- translated-from: step-01-action-and-pipeline_draft.md @ 2026-06-20T20:51:23Z (filesystem mtime; draft is gitignored, no git history) · sha256:b58d057a1a15 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -244,6 +244,9 @@ class ExtendedOrderAction(BaseOrderAction):
     async def validate_aspect(self, params, state, box, connections):
         result = await super().validate_aspect(params, state, box, connections)
         return {**result, "extended": True}     # add our own on top of the parent's
+
+    @summary_aspect("Extended result")
+    async def extended_summary(self, ...): ...
 ```
 
 `ChildOrderAction` will run fine and return a result — but its pipeline contains only `child_summary`, and the parent's `validate_aspect` does not execute. `ExtendedOrderAction` does it right: it re-declares `validate_aspect` in the desired place and calls `super()` to run the ancestor's logic and build on it. The moment of execution is set by the method's position in the child's body, not in the parent's. The checker `@result_instance("steps", list, required=True)` is a relative of `@result_string` for non-string types: it guards that `state["steps"]` holds a non-empty list.

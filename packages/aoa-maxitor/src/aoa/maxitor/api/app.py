@@ -30,8 +30,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-_STATIC_DIR = Path(__file__).parent.parent / "static"
-
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
@@ -47,6 +45,8 @@ from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAc
 from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY
+
+_STATIC_DIR = Path(__file__).parent.parent / "static"
 
 
 def create_app() -> FastAPI:
