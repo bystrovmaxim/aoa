@@ -1,4 +1,4 @@
-<!-- translated-from: langgraph_draft.md @ 2026-06-23T17:06:01Z · sha256:8ae095db733f -->
+<!-- translated-from: langgraph_draft.md @ 2026-06-27T01:40:22Z (filesystem mtime; draft is gitignored, no git history) · sha256:80c0695cc324 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -16,9 +16,9 @@
 
 ---
 
-`LangGraphAdapter` embeds AOA Actions into a LangGraph graph — without rewriting business logic. Build the graph through a fluent builder and get a standard `CompiledGraph` with `ainvoke()`, `astream()`, and `get_graph().draw_mermaid()`.
+`LangGraphController` embeds an AOA Action into a LangGraph graph — without rewriting business logic. Declare the state fields, register the nodes, describe the topology, and get `ainvoke(data, box)` with full static validation at `.build()`.
 
-Installation: `pip install "aoa-langgraph"`.
+Installation: `pip install "aoa-langgraph" langgraph`.
 
 ## Why AOA + LangGraph together
 
@@ -29,40 +29,107 @@ Without AOA a LangGraph node is just a function: the graph runs it but does not 
 ## The essentials
 
 ```python
-from aoa.langgraph import LangGraphAdapter
-from langgraph.graph import END
+from aoa.action_machine.context import Context
+from aoa.action_machine.intents.connection import connection
+from aoa.langgraph import LangGraphController
 
-compiled = (
-    LangGraphAdapter(machine=machine, context=context, agentstate=AgentState)
-    .node(ValidateOrderAction())        # AOA Action — name derived from class
-    .node(ConfirmOrderAction())
-    .node(reject_order, name="reject")  # plain async function
-    .start(ValidateOrderAction)
-    .conditional_edge(
-        ValidateOrderAction,
-        when=lambda s: s.get("valid"),
-        if_true=ConfirmOrderAction,
-        if_false="reject",
+# The graph is built once at startup — no machine or context needed here.
+ticket_graph = (
+    LangGraphController()
+    .inp("ticket_id", str, "Ticket identifier")
+    .inp("note",      str, "Ticket text")
+    .mid("category",        str,  "Category: bug | feature | billing")
+    .mid("resolved",        bool, "Resolution flag")
+    .mid("resolution_note", str,  "Resolution note")
+    .out("category")
+    .out("resolved")
+    .out("resolution_note")
+    .node(ClassifyTicketAction)
+    .node(EngineeringAction)
+    .node(BillingAction)
+    .start(ClassifyTicketAction)
+    .route(
+        ClassifyTicketAction,
+        on=lambda s: s.category,
+        paths={
+            "bug":     EngineeringAction,
+            "feature": EngineeringAction,
+            "billing": BillingAction,
+        },
     )
-    .edge(ConfirmOrderAction, END)
-    .edge("reject", END)
-    .compile()                          # → standard LangGraph CompiledGraph
+    .finish(EngineeringAction)
+    .finish(BillingAction)
+    .build()          # validates topology and the data contract before the first run
 )
 
-result = await compiled.ainvoke({"order_id": "ORD-001", "valid": False, "status": ""})
+# Run inside a host Action, whose @summary_aspect receives box from the machine:
+@meta(description="Process a support ticket", domain=SupportDomain)
+@check_roles(GuestRole)
+@connection(LangGraphController, key="graph", description="Ticket-processing graph")
+class ProcessTicketAction(BaseAction[ProcessParams, ProcessResult]):
+    @summary_aspect("Run the ticket graph")
+    async def run_summary(self, params, state, box, connections):
+        result = await connections["graph"].ainvoke(
+            {"ticket_id": params.ticket_id, "note": params.note},
+            box,          # box carries the resource pool for all Action nodes in the graph
+        )
+        return ProcessResult(**result)
+
+# Pass the graph to the machine as a connection:
+result = await machine.run(
+    Context(),
+    ProcessTicketAction(),
+    ProcessParams(ticket_id="T-1", note="The app crashes on login"),
+    connections={"graph": ticket_graph},
+)
 ```
 
-- Node name is derived automatically: `ValidateOrderAction` → `"validate_order"`.
-- `.node()` accepts an **Action instance** or a **plain `async` function** (`name=` argument required for functions).
-- `.edge()`, `.conditional_edge()`, `.route()` accept an Action class, instance, or string — no magic string names.
-- Referencing an unregistered node in `.edge()` / `.start()` raises `UnregisteredNodeError` immediately — topology errors surface at graph build time, not inside `ainvoke()`.
-- Missing connections are caught at `.compile()` via `MissingConnectionError`: if an Action declares `@connection(DbManager, key="db")` and the pool does not contain `"db"`, the error is raised before the first run.
-- The connection pool is filtered per node by declared `@connection` keys — no manual plumbing needed.
-- `Params` fields are extracted from `agentstate` by name (strict: `KeyError` if a field is absent and has no default).
-- `machine.run()` result is serialised via `result.model_dump()` and merged back into `agentstate`.
-- `.build_graph()` returns an uncompiled `StateGraph` — add more nodes and edges with the native LangGraph API and compile yourself.
+**Key points:**
 
-Example: [02_langgraph.py](../../examples/extensions/02_langgraph.py).
+- `.inp()` / `.mid()` / `.out()` — declare the state fields; an `AgentState` subclass is built automatically.
+- `.node(ActionClass)` — accepts an Action **class**, not an instance; the node name is the class name.
+- `.node(async_fn, name="name")` — plain async functions are also allowed; `name=` is required.
+- `.build()` — validates the topology and the data contract **before the first run**.
+- `ctrl.ainvoke(data, box)` — compiles a fresh LangGraph on every call; `box` is not stored on the controller.
+- `params_mapper` / `response_mapper` in `.node(...)` — field renaming, when the state's names differ from the Action's Params/Result.
+- `response_mapper=lambda r: {}` — the node runs for a side effect and writes nothing to the state.
+- Nodes with a mapper are excluded from static contract validation.
+
+**Errors at `.build()`:**
+
+| Error | Cause |
+|---|---|
+| `NoStartNodeError` | `.start()` was not called |
+| `DeadEndNodeError` | A node with no outgoing edges, not marked `.finish()` |
+| `UnreachableNodeError` | A node is unreachable from start |
+| `FieldHasNoProducerError` | A required Params field is not an inp and is not written by any predecessor |
+| `UnexpectedResultFieldError` | A Result field is not declared in the inp/mid schema |
+
+**Three ways to test without a machine:**
+
+```python
+# 1. Structural — topology and data contract only:
+assert ctrl.build()._built is True
+
+# 2. Stub Action — replace the real Action with a stub:
+ctrl = _build_graph(classify_cls=StubClassifyAction)
+result = await ctrl.ainvoke({"ticket_id": "T-1", "note": "..."}, mock_box)
+
+# 3. Mock box — full ainvoke with a mocked box.run:
+box = MagicMock()
+box.run = AsyncMock(return_value=mock_result)
+result = await ctrl.ainvoke({"ticket_id": "T-1", "note": "crash"}, box)
+```
+
+Tutorial: [Step 14b — LangGraph](../tutorials/step-14-langgraph.md).
+
+Examples:
+- [01_external_connection.py](../../examples/step_14_langgraph/01_external_connection.py) · [Notebook](../../examples/step_14_langgraph/01_external_connection.ipynb)
+- [02_inline_graph.py](../../examples/step_14_langgraph/02_inline_graph.py) · [Notebook](../../examples/step_14_langgraph/02_inline_graph.ipynb)
+- [03_function_node.py](../../examples/step_14_langgraph/03_function_node.py) · [Notebook](../../examples/step_14_langgraph/03_function_node.ipynb)
+- [04_field_mapping.py](../../examples/step_14_langgraph/04_field_mapping.py) · [Notebook](../../examples/step_14_langgraph/04_field_mapping.ipynb)
+- [05_testing.py](../../examples/step_14_langgraph/05_testing.py) · [Notebook](../../examples/step_14_langgraph/05_testing.ipynb)
+- [06_field_mapping.py](../../examples/step_14_langgraph/06_field_mapping.py) · [Notebook](../../examples/step_14_langgraph/06_field_mapping.ipynb)
 
 ---
 

@@ -56,7 +56,7 @@ class OrderEntity(BaseEntity):
     ] = Rel(description="Line items of the order")              # lines belong to the order
 ```
 
-`One`/`Many` set the cardinality, `composition`/`aggregation`/`association` set the meaning of ownership. These relations land in the graph and the ERD of [Maxitor](../index.md#vi-maxitor).
+`One`/`Many` set the cardinality, `composition`/`aggregation`/`association` set the meaning of ownership. These relations land in the graph and the ERD of [Maxitor](../index.md#vii-maxitor).
 
 ## Inverse: the reverse side and the startup check
 

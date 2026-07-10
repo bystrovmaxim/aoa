@@ -1,4 +1,4 @@
-<!-- translated-from: step-02-state-as-x-ray_draft.md @ 2026-06-17T17:53:37Z · sha256:b931686f28b9 -->
+<!-- translated-from: step-02-state-as-x-ray_draft.md @ 2026-06-24T02:08:29Z (filesystem mtime; draft is gitignored, no git history) · sha256:d3635062d63e -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

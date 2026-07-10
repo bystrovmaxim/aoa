@@ -98,7 +98,7 @@ The main thing is visible: from `draft` only `paid` and `cancelled` are availabl
 
 The template is not just a set of strings: when the graph is built (that is, when the machine is created), the system **validates the automaton structure** — that the states and transitions are consistent, that the `initial`/`intermediate`/`final` classification is meaningful. An inconsistent graph does not let the system start. This is the same discipline as with [relations](step-21-relations.md): the domain model is checked at startup, not falling apart in a report half a year later.
 
-And since the automaton is declared in code rather than in a comment or a DB migration, [Maxitor](../index.md#vi-maxitor) draws it as a separate state diagram, and [OCEL events](step-09-plugins.md) bind to meaning: "order `ord-1` moved to `paid`", not "a step ran".
+And since the automaton is declared in code rather than in a comment or a DB migration, [Maxitor](../index.md#vii-maxitor) draws it as a separate state diagram, and [OCEL events](step-09-plugins.md) bind to meaning: "order `ord-1` moved to `paid`", not "a step ran".
 
 ## Invariants
 

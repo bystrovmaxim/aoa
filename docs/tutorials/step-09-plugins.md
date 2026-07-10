@@ -24,7 +24,7 @@
 
 Observing a system splits into two tasks: seeing the **mechanics** of execution (which steps ran, how long they took, where it failed) and recording **business events** ("payment declined by the limit"). Usually both are dumped into one `logger.info()` — and then logging starts to dictate the architecture, and its failure turns the observer into a participant capable of bringing down a request.
 
-AOA separates them. The mechanics are observed by **plugins** — that is this chapter. Business events are written by `box` — that is the [next one](../index.md#ii-business-logic). The key property of a plugin: it is an **observer, not a participant**. At every step boundary the machine emits an event, the plugin receives it — and cannot change `params`, `state`, or `result`.
+AOA separates them. The mechanics are observed by **plugins** — that is this chapter. Business events are written by `box` — that is the [next one](../index.md#iii-business-logic). The key property of a plugin: it is an **observer, not a participant**. At every step boundary the machine emits an event, the plugin receives it — and cannot change `params`, `state`, or `result`.
 
 [▶ Try in Colab](https://drive.google.com/file/d/1oepjkBpFi_DVU5v42WwuCHj5QaKO9ahR/view?usp=drive_link) · [Open in project](../../examples/step_09_plugins/01_ocel.py)
 
@@ -126,7 +126,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 Plugins are a safe observation layer: they receive typed events for the whole life of a call but change nothing, and their failure is isolated. `OpenTelemetryPlugin` (traces, logs, the `state` x-ray) is in the separate package `aoa-otel`; `OcelPlugin` (a log for process mining) is in the separate package `aoa-ocel`. Both are wired as a list without touching the business code and are narrowed via `watch_events`. A custom plugin is written by subscribing to events — but that is a separate topic; the built-in ones are enough for the system to observe itself without a single line of observation in the logic.
 
-Next — **[Logs as business events](../index.md#ii-business-logic)**: the second half of observation — what the operation itself writes through `box`, as opposed to what plugins see.
+Next — **[Logs as business events](../index.md#iii-business-logic)**: the second half of observation — what the operation itself writes through `box`, as opposed to what plugins see.
 
 ---
 

@@ -1,4 +1,4 @@
-<!-- translated-from: opentelemetry_draft.md @ 2026-06-17T10:18:34Z · sha256:cf84e606f2ee -->
+<!-- translated-from: opentelemetry_draft.md @ 2026-06-24T02:08:28Z (filesystem mtime; draft is gitignored, no git history) · sha256:d8f6774964c4 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

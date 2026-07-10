@@ -1,4 +1,4 @@
-<!-- translated-from: glossary_draft.md @ 2026-06-17T16:09:26Z · sha256:36c58a4af4c4 -->
+<!-- translated-from: glossary_draft.md @ 2026-06-20T20:51:23Z (filesystem mtime; draft is gitignored, no git history) · sha256:6a6407d28c90 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
