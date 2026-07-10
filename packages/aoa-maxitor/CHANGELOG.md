@@ -5,6 +5,12 @@ All notable changes to `aoa-maxitor` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`GetLifecycleFiniteAutomatonAction` reads FSM from DuckDB instead of local class import.** Previously the action called `importlib.import_module` on the entity class qualname, which fails in standalone deployments (`pip install aoa-maxitor`) where the target service's Python packages are not installed. Rewritten as a five-aspect pipeline — parse interchange id → validate Lifecycle vertex → load states → load transitions → assemble FSM payload — querying the already-loaded DuckDB graph (`lifecycle`, `state`, `lifecycle_contains_state_edges`, `lifecycle_transition_edges` tables); no local entity classes required. Aspect-level unit tests added. ([#101](https://github.com/bystrovmaxim/aoa/issues/101))
+
 ## [1.1.3] – 2026-07-09
 
 ### Fixed
