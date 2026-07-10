@@ -27,8 +27,10 @@ from aoa.action_machine.exceptions import AuthorizationError
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance, result_string
+from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
 
@@ -44,8 +46,27 @@ class AuthDomain(BaseDomain):
     description = "Login and token issuance"
 
 
-# Fake user store: username -> (password, role names).
-# A real store hashes passwords (bcrypt/argon2) and never keeps or compares plaintext.
+@meta(description="Transport to the user credential store.", domain=AuthDomain)
+class UserStoreResource(BaseResource):
+    """
+    AI-CORE-BEGIN
+    ROLE: Transport to the user credential store -- no business rules, only "how to fetch".
+    CONTRACT: find(username) returns (password, role_names) or None; a real backend hashes passwords (bcrypt/argon2) and never compares plaintext.
+    AI-CORE-END
+    """
+
+    def __init__(self, users: dict[str, tuple[str, list[str]]]) -> None:
+        self._users = users
+
+    def get_wrapper_class(self) -> type[BaseResource] | None:
+        return None  # simple non-transactional resource, no nested-call restrictions
+
+    async def find(self, username: str) -> tuple[str, list[str]] | None:
+        return self._users.get(username)
+
+
+# Fake user store: username -> (password, role names). Wired to LoginAction via
+# @connection, not read directly -- the Action never touches storage details.
 _USER_STORE: dict[str, tuple[str, list[str]]] = {
     "alice": ("wonderland", ["admin"]),
     "bob": ("builder", ["viewer"]),
@@ -65,12 +86,13 @@ class LoginResult(BaseResult):
 
 @meta(description="Authenticate a username/password pair and issue a JWT.", domain=AuthDomain)
 @check_roles(GuestRole)
+@connection(UserStoreResource, key="user_store")
 class LoginAction(BaseAction[LoginParams, LoginResult]):
     """
     AI-CORE-BEGIN
     ROLE: Two-aspect pipeline -- verify credentials against the user store, then sign a JWT carrying user_id + roles.
     CONTRACT: Wrong username or wrong password both raise the same AuthorizationError message -- never reveal which one was wrong (no username enumeration).
-    INVARIANTS: Password comparison here is a placeholder (plaintext) -- replace with a real hash check (bcrypt/argon2) before production use.
+    INVARIANTS: Password comparison here is a placeholder (plaintext) -- replace with a real hash check (bcrypt/argon2) before production use. Storage is reached only through connections["user_store"] -- the Action never touches a dict, a DB client, or any other transport detail directly.
     AI-CORE-END
     """
 
@@ -78,8 +100,9 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
     @result_instance("role_names", list, required=True)  # type: ignore[untyped-decorator]
     @regular_aspect("Verify username/password against the user store; resolve role names.")
     async def authenticate_user_aspect(self, params: LoginParams, state, box, connections) -> dict:
-        _ = (state, box, connections)
-        record = _USER_STORE.get(params.username)
+        _ = (state, box)
+        store: UserStoreResource = connections["user_store"]
+        record = await store.find(params.username)
         if record is None or record[0] != params.password:
             raise AuthorizationError("Invalid username or password")
         _password, role_names = record
@@ -103,7 +126,12 @@ def build_app():
     machine = ActionProductMachine()
     return (
         FastApiAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), title="Login Demo")
-        .post("/auth/login", LoginAction, tags=["auth"])
+        .post(
+            "/auth/login",
+            LoginAction,
+            tags=["auth"],
+            connections={"user_store": UserStoreResource(_USER_STORE)},
+        )
         .build()
     )
 
