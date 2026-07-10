@@ -86,9 +86,9 @@ The tools are wired, unwired, and replaced depending on the environment — a se
 
 ## What the machine does not do
 
-The machine contains no business logic and does not know what a particular operation does. It does not manage transactions automatically — `commit`/`rollback` remain with the operation and its [resources](../index.md#iv-data-model). It does not change `params`, `state`, or `result` and does not influence what `summary` returns. Its single task is a uniform, deterministic, and safe execution path. Everything else is the responsibility of operations and resources.
+The machine contains no business logic and does not know what a particular operation does. It does not manage transactions automatically — `commit`/`rollback` remain with the operation and its [resources](../index.md#v-data-model). It does not change `params`, `state`, or `result` and does not influence what `summary` returns. Its single task is a uniform, deterministic, and safe execution path. Everything else is the responsibility of operations and resources.
 
-At the same time the machine holds the **metamodel** of every operation, assembled when the graph was built: roles, dependencies, ordered steps, contracts, connections. This data cannot diverge from the code — without it the operation will not run — and on it stand the system graph, [Maxitor](../index.md#vi-maxitor), and the access matrix (see [The system from different altitudes](../explanation/system-altitudes.md)).
+At the same time the machine holds the **metamodel** of every operation, assembled when the graph was built: roles, dependencies, ordered steps, contracts, connections. This data cannot diverge from the code — without it the operation will not run — and on it stand the system graph, [Maxitor](../index.md#vii-maxitor), and the access matrix (see [The system from different altitudes](../explanation/system-altitudes.md)).
 
 ## Invariants
 

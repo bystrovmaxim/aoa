@@ -280,6 +280,36 @@ class TestFrozen:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# Per-route auth_coordinator override
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestAuthCoordinatorField:
+    """``auth_coordinator`` defaults to ``None`` (adapter default applies) or carries an explicit override."""
+
+    def test_defaults_to_none(self) -> None:
+        """No ``auth_coordinator`` passed -> ``None`` (adapter falls back to its default)."""
+        record = _TestRouteRecord(action_class=PingAction)
+
+        assert record.auth_coordinator is None
+
+    def test_stores_explicit_override(self) -> None:
+        """An explicit ``auth_coordinator`` is stored as-is, unchanged."""
+        sentinel = object()
+
+        record = _TestRouteRecord(action_class=PingAction, auth_coordinator=sentinel)
+
+        assert record.auth_coordinator is sentinel
+
+    def test_frozen(self) -> None:
+        """``auth_coordinator`` cannot be reassigned after construction."""
+        record = _TestRouteRecord(action_class=PingAction)
+
+        with pytest.raises(AttributeError):
+            record.auth_coordinator = object()  # type: ignore[misc]
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # Runtime mapper output guards (FastAPI / MCP adapters)
 # ═════════════════════════════════════════════════════════════════════════════
 

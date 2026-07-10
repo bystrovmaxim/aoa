@@ -1,4 +1,4 @@
-<!-- translated-from: step-04-saga-and-compensations_draft.md @ 2026-06-17T17:53:37Z · sha256:da3dfcd4cf05 -->
+<!-- translated-from: step-04-saga-and-compensations_draft.md @ 2026-06-24T15:32:41Z (filesystem mtime; draft is gitignored, no git history) · sha256:56741c1b6dfd -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -108,17 +108,17 @@ The stack is built predictably, and it is important to know its boundaries:
 - **Compensators are only for regular aspects.** A `@summary_aspect` has no compensator — it assembles the `Result`, not performs rollbackable effects.
 - **Compensators are not inherited.** They are assembled from the class itself, not from ancestors: under inheritance aspects are overridden, and an inherited compensator might reference a changed step. Need a rollback in the subclass — declare the compensator anew (the same logic as with [aspects](step-01-action-and-pipeline.md)).
 - **A separate stack per nesting level.** If an aspect called a nested operation through `box.run` and wrapped the call in `try/except`, the child operation unwinds *its own* stack and re-raises the error; for the parent, such an aspect completed successfully and lands in *its* stack.
-- **`rollup=True` disables compensation.** In "run-with-rollback" mode (see [Testing](../index.md#v-testing)) the rollback is done transactionally at the connection level, not by compensators; the stack is not created.
+- **`rollup=True` disables compensation.** In "run-with-rollback" mode (see [Testing](../index.md#vi-testing)) the rollback is done transactionally at the connection level, not by compensators; the stack is not created.
 
 ## Compensator errors are silent
 
 A compensator works in an emergency situation — external services may be unavailable. Therefore **a compensator's error is suppressed**: the unwind continues, the remaining compensators do not lose their chance, and what comes out is the **original** error of the step, not the rollback error. Otherwise the failure of one compensator would break the unwind (some effects would remain un-rolled-back) and would replace the business error in `@on_error` with a rollback error.
 
-The machine guarantees that the unwind will not break; the success of the rollback itself is the developer's responsibility. Hence the practice: wrap the compensator body in `try/except`, make it idempotent, and log it. For observation the failure is not lost — the machine emits a `CompensateFailedEvent`, to which a monitoring [plugin](../index.md#ii-business-logic) subscribes (the whole unwind is framed by a pair of `SagaRollbackStartedEvent`/`SagaRollbackCompletedEvent` with totals: how many rolled back, how many failed, how many skipped).
+The machine guarantees that the unwind will not break; the success of the rollback itself is the developer's responsibility. Hence the practice: wrap the compensator body in `try/except`, make it idempotent, and log it. For observation the failure is not lost — the machine emits a `CompensateFailedEvent`, to which a monitoring [plugin](../index.md#iii-business-logic) subscribes (the whole unwind is framed by a pair of `SagaRollbackStartedEvent`/`SagaRollbackCompletedEvent` with totals: how many rolled back, how many failed, how many skipped).
 
 ## Compensations, then @on_error
 
-The order of failure handling is strict: **first the saga unwind, then `@on_error`.** Compensators return the system to a consistent state; the error handler already works with rolled-back data and decides what to return outward. And it receives the **original** error of the step — the unwind is transparent to it. These are two independent layers: rollback (`@compensate`) and handling (`@on_error`), which is covered in the [next chapter](../index.md#ii-business-logic). In the example there is no `@on_error`, so after the rollback the error simply came out — and the launching code caught it.
+The order of failure handling is strict: **first the saga unwind, then `@on_error`.** Compensators return the system to a consistent state; the error handler already works with rolled-back data and decides what to return outward. And it receives the **original** error of the step — the unwind is transparent to it. These are two independent layers: rollback (`@compensate`) and handling (`@on_error`), which is covered in the [next chapter](../index.md#iii-business-logic). In the example there is no `@on_error`, so after the rollback the error simply came out — and the launching code caught it.
 
 ## Invariants
 
@@ -136,7 +136,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 A saga in AOA is not scattered `try/finally` but a declaration: a step has a compensator declared next to it. The machine assembles the stack of executed steps and, on failure, unwinds it in reverse order; the compensator receives `state_before`/`state_after` and the error itself, its failures are silent and best-effort, and after the rollback control passes to `@on_error`. The rollbackability of a distributed operation becomes a visible part of its contract.
 
-Next — **[Explicit error handling](../index.md#ii-business-logic)**: what `@on_error` does after the unwind and how errors become a third independent layer.
+Next — **[Explicit error handling](../index.md#iii-business-logic)**: what `@on_error` does after the unwind and how errors become a third independent layer.
 
 ---
 

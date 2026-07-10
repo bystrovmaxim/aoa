@@ -296,3 +296,60 @@ class TestExceptionHandlers:
         # Assert
         assert response.status_code == 500
         assert response.json() == {"detail": "Internal server error"}
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Per-route auth_coordinator override
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestPerRouteAuthCoordinatorOverride:
+    """A route's ``auth_coordinator=`` overrides the adapter-wide default coordinator."""
+
+    def test_route_override_allows_when_adapter_default_denies(self) -> None:
+        """Adapter default denies (``process`` -> ``None``); the overridden route's own coordinator allows."""
+        # Arrange
+        machine = ActionProductMachine(loggers=[])
+        machine.run = AsyncMock(return_value=PingAction.Result(message="pong"))
+
+        denying_auth = AsyncMock()
+        denying_auth.process.return_value = None
+        allowing_auth = AsyncMock()
+        allowing_auth.process.return_value = Context()
+
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=denying_auth)
+        adapter.post("/open", PingAction, auth_coordinator=allowing_auth)
+        adapter.post("/protected", PingAction)
+        app = adapter.build()
+        client = TestClient(app, raise_server_exceptions=False)
+
+        # Act
+        open_response = client.post("/open", json={})
+        protected_response = client.post("/protected", json={})
+
+        # Assert
+        assert open_response.status_code == 200
+        assert protected_response.status_code == 403
+        allowing_auth.process.assert_called_once()
+        denying_auth.process.assert_called_once()
+
+    def test_no_override_falls_back_to_adapter_default(self) -> None:
+        """No ``auth_coordinator=`` on the route -> the adapter's default coordinator handles it."""
+        # Arrange
+        machine = ActionProductMachine(loggers=[])
+        machine.run = AsyncMock(return_value=PingAction.Result(message="pong"))
+
+        default_auth = AsyncMock()
+        default_auth.process.return_value = Context()
+
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=default_auth)
+        adapter.post("/ping", PingAction)
+        app = adapter.build()
+        client = TestClient(app)
+
+        # Act
+        response = client.post("/ping", json={})
+
+        # Assert
+        assert response.status_code == 200
+        default_auth.process.assert_called_once()

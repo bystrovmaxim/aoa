@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aoa-action-machine"
-version = "1.0.1a0"
+version = "1.0.1a1"
 description = "Intent-first business logic framework with metadata-driven actions and role-based access control."
 readme = "README.md"
 license = { text = "MIT" }
@@ -20,6 +20,9 @@ dependencies = [
 [project.optional-dependencies]
 postgres = [
     "asyncpg>=0.29,<1.0",
+]
+jwt = [
+    "PyJWT>=2.8,<3",
 ]
 
 [project.urls]

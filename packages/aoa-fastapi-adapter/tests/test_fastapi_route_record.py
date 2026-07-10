@@ -249,3 +249,23 @@ class TestInheritedInvariants:
         record = FastApiRouteRecord(action_class=SimpleAction, path="/simple")
         assert record.params_type is SimpleAction.Params
         assert record.result_type is SimpleAction.Result
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Per-route auth_coordinator override
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestAuthCoordinatorField:
+    """``auth_coordinator`` (inherited from ``BaseRouteRecord``) is available on ``FastApiRouteRecord``."""
+
+    def test_defaults_to_none(self) -> None:
+        """No ``auth_coordinator`` passed -> ``None`` (adapter falls back to its default)."""
+        record = FastApiRouteRecord(action_class=PingAction, path="/ping")
+        assert record.auth_coordinator is None
+
+    def test_stores_explicit_override(self) -> None:
+        """An explicit ``auth_coordinator`` is stored as-is, unchanged."""
+        sentinel = object()
+        record = FastApiRouteRecord(action_class=PingAction, path="/ping", auth_coordinator=sentinel)
+        assert record.auth_coordinator is sentinel

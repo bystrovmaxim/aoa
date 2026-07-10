@@ -108,7 +108,7 @@ An `Entity` is not an ORM class, nor a DTO assembled wherever. It is `frozen` an
 
 ## Relations and lifecycle — later
 
-An `Entity` describes more than fields. An order has **relations** (a customer, order lines) and a **lifecycle** — the allowed status transitions. In this chapter `status` is a plain string field; in the [next one](../index.md#iv-data-model) it becomes a `Lifecycle` — a finite-state machine where a `draft → shipped` transition is directly impossible. Relations between entities are the topic of the [Relations](../index.md#iv-data-model) chapter. Here the point is to grasp the `Entity` itself as a unit of the domain.
+An `Entity` describes more than fields. An order has **relations** (a customer, order lines) and a **lifecycle** — the allowed status transitions. In this chapter `status` is a plain string field; in the [next one](../index.md#v-data-model) it becomes a `Lifecycle` — a finite-state machine where a `draft → shipped` transition is directly impossible. Relations between entities are the topic of the [Relations](../index.md#v-data-model) chapter. Here the point is to grasp the `Entity` itself as a unit of the domain.
 
 ## Consequences
 

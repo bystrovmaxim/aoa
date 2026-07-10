@@ -487,8 +487,14 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         description: str = "",
         *,
         connections: Mapping[str, ConnectionValue] | None = None,
+        auth_coordinator: Any | None = None,
     ) -> Self:
-        """Add one tool (``inputSchema`` from request model; ``@meta`` description if description empty)."""
+        """
+        Add one tool (``inputSchema`` from request model; ``@meta`` description if description empty).
+
+        ``auth_coordinator``, when given, overrides the adapter's default coordinator
+        for this tool only (see :meth:`~aoa.action_machine.adapters.base_adapter.BaseAdapter.effective_auth_coordinator`).
+        """
         effective_description = description or _get_action_class_description(
             action_class,
             coordinator=self.graph_coordinator,
@@ -501,6 +507,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
             params_mapper=params_mapper,
             response_mapper=response_mapper,
             connections=connections,
+            auth_coordinator=auth_coordinator,
             tool_name=name,
             description=effective_description,
         )
@@ -590,7 +597,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         handler = _make_tool_handler(
             record=record,
             machine=self._machine,
-            auth_coordinator=self._auth_coordinator,
+            auth_coordinator=self.effective_auth_coordinator(record),
             graph_coordinator=self.graph_coordinator,
         )
         arg_model = self._mcp_argument_model(record)

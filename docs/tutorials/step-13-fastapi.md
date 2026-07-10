@@ -1,4 +1,4 @@
-<!-- translated-from: step-13-fastapi_draft.md @ 2026-06-17T17:53:37Z · sha256:772e764ef9a4 -->
+<!-- translated-from: step-13-fastapi_draft.md @ 2026-07-10T14:08:50Z (filesystem mtime; draft is gitignored, no git history) · sha256:e556c9fd9930 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -81,6 +81,21 @@ Each route has `tags`, `summary`, `operation_id`, `deprecated` for OpenAPI.
 
 `auth_coordinator` is a required argument: `None` fails immediately with `TypeError`, so that authentication cannot be forgotten by oversight. For an open API it is declared explicitly — `NoAuthCoordinator(context=Context())`. The coordinator builds `Context` at the transport boundary; the machine receives it ready (in detail — in the [Authentication](step-12-authentication.md) chapter).
 
+A specific route can override this default with its own coordinator — `auth_coordinator=` in `.post/.get/.put/.delete/.patch(...)`:
+
+```python
+app = (
+    FastApiAdapter(machine=machine, auth_coordinator=strict_jwt_coordinator)
+    .post("/auth/login", LoginAction, auth_coordinator=NoAuthCoordinator(context=Context()))  # exception
+    .post("/orders", CreateOrderAction)                                                        # inherits the default
+    .build()
+)
+```
+
+Without `auth_coordinator=` on the route, the adapter default applies.
+
+[▶ Try in Colab](#02_auth_override.ipynb) · [Open in project](../../examples/step_13_fastapi/02_auth_override.py)
+
 ## OpenAPI from code
 
 The OpenAPI schema is generated from what is already declared in the code: field descriptions from `Field(description=...)`, constraints from `Field(gt=0, min_length=3, ...)`, the summary from `@meta`, the tags from the route registration. No separate schema needs to be written — Swagger UI is available at `/docs`.
@@ -140,6 +155,7 @@ Everything is visible at once: the open operation answers 200, the one protected
 
 - **Transport in the adapter, not the operation.** The `Action` knows nothing of HTTP; the adapter builds the app from `Params`/`Result` and `@meta`.
 - **`auth_coordinator` is mandatory.** `None` → `TypeError`; open access is declared explicitly via `NoAuthCoordinator(context=Context())`.
+- **A route can override the coordinator.** `.post(path, Action, auth_coordinator=...)` — without it, the adapter default applies (`BaseAdapter.effective_auth_coordinator`).
 - **Parameters by method.** POST/PUT/PATCH → body, GET/DELETE → query and path, empty `Params` → no body.
 - **OpenAPI from code.** The schema and `/docs` are derived from the contract; no separate specification is needed.
 - **Schema translation at the boundary.** `request_model`/`response_model` + `params_mapper`/`response_mapper` reconcile the external shape with the contract, without touching the `Action`.
@@ -164,6 +180,7 @@ Next — **[MCP](step-14-mcp.md)**: how to publish the same operation as a tool 
 5. Where does the OpenAPI schema come from? What do you need to write additionally for it?
 6. An external API renamed a request field. How do you reconcile it with the operation's contract without changing the `Action`?
 7. Into which HTTP codes are `AuthorizationError` and `ValidationFieldError` translated?
+8. A route needs open access, but the adapter default is strict. How do you express that without weakening the default for every other route?
 
 > **Exercise.** In [01_service.py](../../examples/step_13_fastapi/01_service.py) add a `GET` route for an operation with non-empty `Params` and verify through `TestClient` that the parameters are read from the query. Then add a `response_model`/`response_mapper` to one of the routes and confirm that the external response schema changed, while the `Action` itself stayed the same.
 

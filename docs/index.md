@@ -1,4 +1,4 @@
-<!-- translated-from: index_draft.md @ 2026-06-23T04:11:09Z · sha256:f88184fa80e4 -->
+<!-- translated-from: index_draft.md @ 2026-07-10T13:57:44Z (filesystem mtime; draft is gitignored, no git history) · sha256:2b48a20ac13f -->
 <p align="center">
   <img src="assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -129,6 +129,7 @@ What is already in the box. Some is available right away, some installs as a sep
 - **[MCP](extensions/mcp.md)** — adapter: an operation as a tool for an AI agent; `pip install aoa-mcp-adapter`
 - **[LangGraph](extensions/langgraph.md)** — adapter: AOA Actions as nodes in a LangGraph agent graph; `pip install aoa-langgraph`
 - **[PostgreSQL](extensions/postgresql.md)** — resource: connections and transactions through asyncpg; `pip install "aoa-action-machine[postgres]"`
+- **[Bearer / JWT](extensions/jwt.md)** — coordinator: ready-made Bearer-token verification with roles from claims; `pip install "aoa-action-machine[jwt]"`; works with FastAPI, does not work with MCP (explained in the article)
 
 ### How to write your own extension
 

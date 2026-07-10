@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
+## [1.0.1a1] – 2026-07-10
+
+### Added
+
+- **`BaseRouteRecord.auth_coordinator` — optional per-route authentication override.** Adapters resolve the coordinator for a request via the new `BaseAdapter.effective_auth_coordinator(record)`: returns `record.auth_coordinator` when set, else the adapter's default. Lets one route (e.g. a login endpoint) opt out of a strict default coordinator without weakening it for every other route. Concrete adapters (`aoa-fastapi-adapter`, `aoa-mcp-adapter`) expose this as an `auth_coordinator=` keyword on their route-registration methods. ([#66](https://github.com/bystrovmaxim/aoa/issues/66))
+- **`aoa-action-machine[jwt]` — ready-made Bearer/JWT `AuthCoordinator`.** New optional extra (`pip install "aoa-action-machine[jwt]"`, adds `PyJWT`) under `aoa.action_machine.auth.jwt_auth`: `BearerCredentialExtractor` (parses `Authorization: Bearer <jwt>`; raises `TypeError` with an actionable message when `request_data` has no `.headers` at all — a wiring error, not "no credentials"; this is exactly what happens if wired into `aoa-mcp-adapter`, which always calls `process(None)` — see [#113](https://github.com/bystrovmaxim/aoa/issues/113)), `JwtAuthenticator` (verifies signature/expiry/audience via PyJWT; `exp` is mandatory — a token without it is rejected; unknown role-claim strings are dropped, not rejected), `HttpContextAssembler` (default `RequestInfo` projection for HTTP requests), and `JwtAuthCoordinator` — a thin `AuthCoordinator` subclass wiring the three together (`JwtAuthCoordinator(secret_key=..., role_registry={"admin": AdminRole})`). Works with `aoa-fastapi-adapter`; does **not** work with `aoa-mcp-adapter` (tracked in #113). Issuing tokens (login) is out of scope — an application's own `LoginAction` signs tokens with PyJWT directly; this coordinator only verifies them on every subsequent request. Never imported from the core `aoa.action_machine.auth` namespace, so installing without the extra never pulls in PyJWT. Documented in `docs/extensions/jwt_draft.md`. ([#66](https://github.com/bystrovmaxim/aoa/issues/66))
+
 ## [1.0.1a0] – 2026-07-09
 
 ### Breaking changes

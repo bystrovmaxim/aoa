@@ -240,3 +240,31 @@ class TestAddRoute:
 
         assert result is adapter
         assert len(adapter.routes) == 2
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# effective_auth_coordinator
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestEffectiveAuthCoordinator:
+    """``effective_auth_coordinator`` resolves per-route override vs. adapter default."""
+
+    def test_returns_adapter_default_when_record_has_no_override(self) -> None:
+        """``record.auth_coordinator is None`` -> adapter's default coordinator."""
+        machine = _make_machine()
+        default_auth = _make_auth()
+        adapter = _TestAdapter(machine=machine, auth_coordinator=default_auth)
+        record = MagicMock(auth_coordinator=None)
+
+        assert adapter.effective_auth_coordinator(record) is default_auth
+
+    def test_returns_record_override_when_set(self) -> None:
+        """``record.auth_coordinator`` set -> that coordinator, not the adapter default."""
+        machine = _make_machine()
+        default_auth = _make_auth()
+        override_auth = _make_auth()
+        adapter = _TestAdapter(machine=machine, auth_coordinator=default_auth)
+        record = MagicMock(auth_coordinator=override_auth)
+
+        assert adapter.effective_auth_coordinator(record) is override_auth

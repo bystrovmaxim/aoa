@@ -1,4 +1,4 @@
-<!-- translated-from: authoring-adapter_draft.md @ 2026-06-17T10:52:07Z · sha256:1810195d7bea -->
+<!-- translated-from: authoring-adapter_draft.md @ 2026-07-10T13:56:35Z (filesystem mtime; draft is gitignored, no git history) · sha256:4fb128eda734 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -76,7 +76,8 @@ def _make_handler(self, record):
         body = record.effective_request_model.model_validate(payload)      # 1. validate input
         params = record.params_mapper(body) if record.params_mapper else body  # 2. -> Params
         ensure_machine_params(params, record.params_type, adapter="Dict", route_label=record.command)
-        context = await self._auth_coordinator.process(None) or Context()  # 3. Context at the boundary
+        auth_coordinator = self.effective_auth_coordinator(record)         # 3a. per-route override or default
+        context = await auth_coordinator.process(None) or Context()       # 3b. Context at the boundary
         connections = resolve_connections(record.connections)              # 4. per-route connections
         result = await self._machine.run(context, record.action_class(), params, connections)  # 5. the machine
         if record.response_mapper:                                         # 6. -> external response
@@ -95,7 +96,8 @@ def _make_handler(self, record):
 - checks that `machine` is an `ActionProductMachine` (otherwise `TypeError`);
 - requires `auth_coordinator` (None → `TypeError`) — authentication cannot be forgotten;
 - gives access to `self._machine`, `self._auth_coordinator`, `self._graph_coordinator` (the machine's graph), and `self._routes`;
-- preserves the registration order of the routes.
+- preserves the registration order of the routes;
+- `effective_auth_coordinator(record)` — returns the specific route's coordinator (`record.auth_coordinator`) when set, else the adapter's default. `BaseRouteRecord` carries an `auth_coordinator: Any | None = None` field — any concrete route record gets this override capability for free.
 
 An adapter is tested the same way as the shipped ones: on a real `ActionProductMachine`, stubbing only `machine.run` if needed (the seam at the execution boundary), rather than rewriting the adapter logic.
 

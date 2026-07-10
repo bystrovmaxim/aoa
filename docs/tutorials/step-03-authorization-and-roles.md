@@ -1,4 +1,4 @@
-<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-06-17T17:53:37Z · sha256:39ae491b76c7 -->
+<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-06-20T20:53:08Z (filesystem mtime; draft is gitignored, no git history) · sha256:5c746bbc793c -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -25,7 +25,7 @@
 
 In most systems authorization is strings and habit. Somewhere near the top of a method sits `if user.role == "admin"`, elsewhere there is `"administrator"` with a typo, and in a third place the check was simply forgotten. Who can call what is collected nowhere: to find out, you grep the codebase and hope you caught every spot. And per-object authority ("a manager may cancel only their own order") drowns in the same business logic as the order itself.
 
-AOA treats access as a **mandatory declaration of the operation**, not a string in its body. Who may call an `Action` is declared once, in the header, with the `@check_roles` decorator — and checked by the machine **before** the first aspect. Roles, moreover, are not strings but classes: with a name, a description, inheritance, and a place in the system graph. This chapter is about how operation-level authorization works; authentication (how a request yields a user with roles) is a separate topic of the [service layer](../index.md#iii-service).
+AOA treats access as a **mandatory declaration of the operation**, not a string in its body. Who may call an `Action` is declared once, in the header, with the `@check_roles` decorator — and checked by the machine **before** the first aspect. Roles, moreover, are not strings but classes: with a name, a description, inheritance, and a place in the system graph. This chapter is about how operation-level authorization works; authentication (how a request yields a user with roles) is a separate topic of the [service layer](../index.md#iv-service).
 
 [▶ Try in Colab](https://drive.google.com/file/d/1oB84MmIX7ritKbk5x8giwNV0-ymln_ig/view?usp=drive_link) · [Open in project](../../examples/step_03_authorization_and_roles/01_roles.py)
 
@@ -159,9 +159,9 @@ An empty list is forbidden (`ValueError`), and `@check_roles` does not accept st
 
 ## Where the user's roles come from
 
-`@check_roles` declares a *requirement*; the *user's* roles live in `Context.user.roles` — a tuple of role classes. The context is assembled by the authentication coordinator before the operation runs: `NoAuthCoordinator` returns an anonymous user (`roles=()`), while a production coordinator extracts a token from the request, verifies it, and puts the corresponding roles into the context. How exactly this context is built from an HTTP/MCP request is the topic of the [Authentication](../index.md#iii-service) chapter of the service layer; here it is enough for the operation to know that the roles are already in the context, and the checking mechanics are the same regardless of transport.
+`@check_roles` declares a *requirement*; the *user's* roles live in `Context.user.roles` — a tuple of role classes. The context is assembled by the authentication coordinator before the operation runs: `NoAuthCoordinator` returns an anonymous user (`roles=()`), while a production coordinator extracts a token from the request, verifies it, and puts the corresponding roles into the context. How exactly this context is built from an HTTP/MCP request is the topic of the [Authentication](../index.md#iv-service) chapter of the service layer; here it is enough for the operation to know that the roles are already in the context, and the checking mechanics are the same regardless of transport.
 
-The aspect itself does not see the roles directly — like the whole context, they are available only through the declared slice `@context_requires` (see [Context](../index.md#ii-business-logic)), if the operation needs to read `user_id` or the roles for audit for some reason. This does not perform authorization — that is done by the machine via `@check_roles` at the entrance.
+The aspect itself does not see the roles directly — like the whole context, they are available only through the declared slice `@context_requires` (see [Context](../index.md#iii-business-logic)), if the operation needs to read `user_id` or the roles for audit for some reason. This does not perform authorization — that is done by the machine via `@check_roles` at the entrance.
 
 ---
 
@@ -206,7 +206,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 Authorization in AOA is a declaration, not code in the operation's body. `@check_roles` is mandatory and checked before the first aspect; roles are typed classes with inheritance, where a subclass carries the parent's rights; `GuestRole`/`AnyRole` cover "open to everyone" and "any authenticated user"; a list gives OR-semantics; role modes make changing the model manageable. Who can call what is assembled from the code into an access matrix — without a single "magic string".
 
-Next — **[Saga and compensations](../index.md#ii-business-logic)**: what happens when a multi-step operation fails halfway, and how to roll back what was already done.
+Next — **[Saga and compensations](../index.md#iii-business-logic)**: what happens when a multi-step operation fails halfway, and how to roll back what was already done.
 
 ---
 

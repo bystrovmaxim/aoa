@@ -147,7 +147,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 `box` is the operation's own voice about business events: a structured event with a channel, level, and context instead of a context-free `print` string. Templates substitute and color values, `iif` branches the text, private names are blocked, and `@sensitive` masks what may be shown only in part. Where to deliver is decided by loggers, by channel and level, and the operation code does not know about it. Together with plugins this gives two independent layers of observation: meaning (`box`) and mechanics (plugins).
 
-With this the core — the **Business logic** part — is assembled: the operation, state, access, sagas, dependencies, context, cache, plugins, and logs. Next — **[Service](../index.md#iii-service)**: how to expose the same operation outward over HTTP and MCP.
+With this the core — the **Business logic** part — is assembled: the operation, state, access, sagas, dependencies, context, cache, plugins, and logs. Next — **[Service](../index.md#iv-service)**: how to expose the same operation outward over HTTP and MCP.
 
 ---
 

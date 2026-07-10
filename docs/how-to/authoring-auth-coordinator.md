@@ -1,4 +1,4 @@
-<!-- translated-from: authoring-auth-coordinator_draft.md @ 2026-06-17T11:01:06Z · sha256:42483988383a -->
+<!-- translated-from: authoring-auth-coordinator_draft.md @ 2026-07-10T13:56:43Z (filesystem mtime; draft is gitignored, no git history) · sha256:c7399f20d8c5 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -110,7 +110,7 @@ class SsoCoordinator:
 
 - **`None` ≠ a block.** The adapter replaces `None` with an anonymous `Context()`; the access denial is already `@check_roles`. Need a hard reject right at the boundary (an expired token, for example) — **raise an exception** from `process`, then the request will not reach the machine.
 - **Invalid data is `None`, not an exception** (the `Authenticator` contract): "wrong key" is a regular path, not a failure.
-- **Where it is wired:** the coordinator is passed to the constructor of any adapter — `FastApiAdapter(machine, auth_coordinator=...)`, `McpAdapter(...)`, [your own adapter](authoring-adapter.md). The argument is mandatory (it cannot be forgotten), so for a public API you put `NoAuthCoordinator(context=Context())` explicitly.
+- **Where it is wired:** the coordinator is passed to the constructor of any adapter — `FastApiAdapter(machine, auth_coordinator=...)`, `McpAdapter(...)`, [your own adapter](authoring-adapter.md). The argument is mandatory (it cannot be forgotten), so for a public API you put `NoAuthCoordinator(context=Context())` explicitly. A single route can override it: `.post(path, Action, auth_coordinator=...)` — see [«What the base guarantees»](authoring-adapter.md#what-the-base-guarantees).
 - **One mechanism — any transport:** the same coordinator serves HTTP, MCP, and your transport; `request_data` is what the specific adapter passes (a FastAPI request object, `None` for MCP).
 
 ## Verification

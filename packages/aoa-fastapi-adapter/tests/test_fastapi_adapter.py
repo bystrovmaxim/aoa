@@ -36,6 +36,7 @@ INVARIANTS
 
 from unittest.mock import AsyncMock
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -184,6 +185,30 @@ class TestRouteRegistration:
         adapter.get("/x", PingAction, connections={"svc": res})
 
         assert adapter.routes[0].connections == {"svc": res}
+
+    def test_auth_coordinator_stored_on_record(self) -> None:
+        """Per-route ``auth_coordinator`` override is stored on ``FastApiRouteRecord``."""
+        adapter = _make_adapter()
+        override = AsyncMock()
+        adapter.post("/orders", PingAction, auth_coordinator=override)
+
+        assert adapter.routes[0].auth_coordinator is override
+
+    def test_no_auth_coordinator_means_none_on_record(self) -> None:
+        """Omitting ``auth_coordinator`` leaves the field ``None`` (adapter default applies)."""
+        adapter = _make_adapter()
+        adapter.post("/orders", PingAction)
+
+        assert adapter.routes[0].auth_coordinator is None
+
+    @pytest.mark.parametrize("verb", ["post", "get", "put", "delete", "patch"])
+    def test_auth_coordinator_passed_by_every_verb(self, verb: str) -> None:
+        """Every registration method (post/get/put/delete/patch) forwards ``auth_coordinator`` to the record."""
+        adapter = _make_adapter()
+        override = AsyncMock()
+        getattr(adapter, verb)("/x", PingAction, auth_coordinator=override)
+
+        assert adapter.routes[0].auth_coordinator is override
 
 
 # ═════════════════════════════════════════════════════════════════════════════

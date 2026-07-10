@@ -118,7 +118,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 `@on_error` turns error handling from a scatter of `try/except` into a visible contract: a handler is declared by type, checked in declaration order, returns a `Result` — or, if there is no match, lets the original error through. Together with `@compensate` this gives three independent layers — logic, rollback, handling — each of which reads on its own.
 
-Next — **[Dependencies](../index.md#ii-business-logic)**: how an operation declares everything external through `@depends` and `@connection` and receives it, without hiding implicit couplings in its body.
+Next — **[Dependencies](../index.md#iii-business-logic)**: how an operation declares everything external through `@depends` and `@connection` and receives it, without hiding implicit couplings in its body.
 
 ---
 

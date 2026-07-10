@@ -1,4 +1,4 @@
-<!-- translated-from: philosophy_draft.md @ 2026-06-17T15:27:34Z · sha256:967ecba9084e -->
+<!-- translated-from: philosophy_draft.md @ 2026-06-26T02:59:41Z (filesystem mtime; draft is gitignored, no git history) · sha256:6b9bcccbb236 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -73,6 +73,31 @@ AOA requires following the rules: explicit `Params`, declared dependencies with 
 
 Half a year later, code written by AOA's rules reads as easily as on the first day — the structure is the same, there are no surprises, and every operation carries a full description of its intents: who can call it, what it needs to work, which steps it passes through, what each step guarantees.
 
+## Invariants as an immune system
+
+There is a moment when the abstract benefit of "extra decorators" becomes tangible.
+
+While refactoring AOA's primitive ontology, three new marker classes are added — `BaseStorage`, `BaseGateway`, `BaseController` — each inheriting `BaseResource`. Three empty classes, three lines of code. `pytest` runs.
+
+1.14 seconds later:
+
+```
+MissingMetaError: aoa.action_machine.resources.base_controller.BaseController
+has no usable @meta 'description' required for graph metadata resolution.
+```
+
+The graph inspector walks every subclass of `BaseResource` and tries to build a node for each one. The new marker classes have neither `@meta` nor `@exclude_graph_model` — the system stops and says, plainly: *"You have a new entity in the domain. Either it's a full-fledged resource — then declare `@meta`. Or it's a technical marker — then `@exclude_graph_model`. Choose."*
+
+Three lines get added. The tests are green. A minute of work.
+
+Now the same story in a world without invariants. Three empty classes get added — tests green, all good, commit, release. A month later someone opens Maxitor and sees three gray nodes on the diagram, with no names, no description, no relations. "Is this a Maxitor bug?" — no, it honestly renders what the inspector handed it. "Is this an inspector bug?" — no, it honestly walks every subclass. Where's the rule that marker classes don't land in the graph? It lived in the author's head, and the author no longer remembers it three weeks later. In an 800-file project, that's hours of investigation.
+
+In AOA it's 1.14 seconds and one line per class.
+
+Here the real cost of every "extra" decorator reveals itself: it is not boilerplate for boilerplate's sake, but **cheap insurance that pays for itself on the very first violation**. The system cannot silently accumulate architectural debris — the invariant does not allow it. It does not know or remember the author's intent; it simply demands that the intent be expressed explicitly. And it demands this exactly when violating it would hurt the most.
+
+This property matters especially in AI-assisted development. An LLM will happily write `class BaseController(BaseResource): pass` and forget about `@exclude_graph_model` — because it does not remember the context of the previous refactor. But a `MissingMetaError` 1.14 seconds later leaves no choice: either the intent is expressed explicitly in the code, or the system does not start. A hallucination does not pass quietly — it gets a hard, typed rebuff.
+
 ---
 
 ## In brief: the principles
@@ -87,6 +112,7 @@ Half a year later, code written by AOA's rules reads as easily as on the first d
 8. Plugins observe but do not interfere.
 9. Intents are machine-readable — every `Action` is a specification of itself.
 10. Testability is built in, not optional.
+11. Invariants are an immune system: a violation of the architectural contract is immediate and explicit.
 
 ---
 

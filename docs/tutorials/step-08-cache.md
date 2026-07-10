@@ -174,7 +174,7 @@ The list may contain any combination of matchers.
 
 The cache coexists neatly with the neighboring layers, and this is visible in two rules.
 
-**With `@on_error`.** A result returned from an [error handler](../index.md#ii-business-logic) is **not cached**. It is semantically not equal to a clean summary pass: on a repeat call the pipeline should run again (or hit the handler again), not return a "workaround" answer. The machine distinguishes these cases and writes to the cache only after a clean summary.
+**With `@on_error`.** A result returned from an [error handler](../index.md#iii-business-logic) is **not cached**. It is semantically not equal to a clean summary pass: on a repeat call the pipeline should run again (or hit the handler again), not return a "workaround" answer. The machine distinguishes these cases and writes to the cache only after a clean summary.
 
 **With the include contract.** On a cache hit the pipeline does not run — and so neither do the nested operations declared with `UseCase.include`. Therefore, for a call served from the cache the include contract is **not checked**: the included dependencies ran in the materialization that landed in the cache, not in this call (see [Intents and invariants](../reference/intents-and-invariants.md)).
 
@@ -196,7 +196,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 The cache is a separate layer over the pipeline, changing the execution path but not the meaning of the operation. The operation declares only the meaning: `cache_key` (a string key, necessarily with scope), `on_cache_write` (a list of tags for indexing, or `None`), `on_cache_invalidate` (a list of `CacheTag` matchers for wildcard invalidation, or `None`), and, when needed, `read_cache` (freshness). Everything else — the store, the tag index, the eviction — is carried by the coordinator, and there is no cache until it is wired in. On a hit the pipeline does not run; the result from `@on_error` and the include contract behave predictably meanwhile.
 
-Next — **[Plugins](../index.md#ii-business-logic)**: lifecycle observers that see all these events — start, aspects, errors, rollbacks — but do not interfere.
+Next — **[Plugins](../index.md#iii-business-logic)**: lifecycle observers that see all these events — start, aspects, errors, rollbacks — but do not interfere.
 
 ---
 

@@ -27,7 +27,7 @@ The **Data model** part described the domain. The **Testing** part answers how t
 
 An ordinary test assembles a separate world of mocks around a scenario and checks the agreement with the mocks, not the scenario's behavior; over time the mock stops reflecting the real resource, yet the test is still green. AOA does not substitute the scenario itself: `TestBench` runs the **same `Action` through the same machine** — the pipeline, checkers, roles, `@depends`, plugins are all real — and substitutes only the **reality around it**.
 
-This chapter is about **what you can run**: at what depth to run an operation. What to substitute that reality with (`with_mocks`, connections, Rollup) is the [next chapter](../index.md#v-testing); assembling the context (`with_user`/…) is the [one after](../index.md#v-testing). Here `with_user` is used minimally, so that `@check_roles` passes.
+This chapter is about **what you can run**: at what depth to run an operation. What to substitute that reality with (`with_mocks`, connections, Rollup) is the [next chapter](../index.md#vi-testing); assembling the context (`with_user`/…) is the [one after](../index.md#vi-testing). Here `with_user` is used minimally, so that `@check_roles` passes.
 
 [▶ Try in Colab](https://drive.google.com/file/d/10eZ6dRuYxf41lXlII-oDGb6LczZCBTg-/view?usp=drive_link) · [Open in project](../../examples/step_23_testbench/01_testbench.py)
 

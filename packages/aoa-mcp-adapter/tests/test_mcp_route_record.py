@@ -255,3 +255,23 @@ class TestInheritedValidation:
         """A valid action_class is stored on the record."""
         record = McpRouteRecord(action_class=PingAction, tool_name="ping")
         assert record.action_class is PingAction
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Per-tool auth_coordinator override
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestAuthCoordinatorField:
+    """``auth_coordinator`` (inherited from ``BaseRouteRecord``) is available on ``McpRouteRecord``."""
+
+    def test_defaults_to_none(self) -> None:
+        """No ``auth_coordinator`` passed -> ``None`` (adapter falls back to its default)."""
+        record = McpRouteRecord(action_class=PingAction, tool_name="ping")
+        assert record.auth_coordinator is None
+
+    def test_stores_explicit_override(self) -> None:
+        """An explicit ``auth_coordinator`` is stored as-is, unchanged."""
+        sentinel = object()
+        record = McpRouteRecord(action_class=PingAction, tool_name="ping", auth_coordinator=sentinel)
+        assert record.auth_coordinator is sentinel

@@ -1,4 +1,4 @@
-<!-- translated-from: step-00-get-started_draft.md @ 2026-06-16T13:35:49Z · sha256:049fdb863bca -->
+<!-- translated-from: step-00-get-started_draft.md @ 2026-06-24T01:02:55Z (filesystem mtime; draft is gitignored, no git history) · sha256:b3ec4c640ed3 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200"><br><br>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" alt="Python 3.12+"></a>

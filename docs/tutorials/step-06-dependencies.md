@@ -1,4 +1,4 @@
-<!-- translated-from: step-06-dependencies_draft.md @ 2026-06-17T17:53:37Z · sha256:10c84ce48bc1 -->
+<!-- translated-from: step-06-dependencies_draft.md @ 2026-06-20T20:51:23Z (filesystem mtime; draft is gitignored, no git history) · sha256:ed8fafa31e83 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -63,7 +63,7 @@ For dependencies that are **operations**, `@depends` has a `mode` parameter: `Us
 
 ## A contract, not a container
 
-In most frameworks DI is a container: modules, bindings, providers, configuration. AOA looks at it more simply: DI is a contract between the operation and the infrastructure. The operation says "I need this", the machine provides. No modules and no providers — only the `@depends` decorator and, optionally, a factory (`factory=`). Simple, predictable, testable: in a test the dependency is substituted without untangling a container (see [Testing](../index.md#v-testing)).
+In most frameworks DI is a container: modules, bindings, providers, configuration. AOA looks at it more simply: DI is a contract between the operation and the infrastructure. The operation says "I need this", the machine provides. No modules and no providers — only the `@depends` decorator and, optionally, a factory (`factory=`). Simple, predictable, testable: in a test the dependency is substituted without untangling a container (see [Testing](../index.md#vi-testing)).
 
 ## An already-open resource
 
@@ -114,7 +114,7 @@ Result: sku=sku-1, total=17980.0
 
 The whole path is visible: the parent computed the price via `box.resolve`, wrote to the `ledger`, called the child operation (which wrote through the proxy, but had its `commit` blocked), and only the owner committed the transaction. The proxy is preserved at deeper levels too — the prohibition is not lost with further nesting.
 
-*(In the example `PricingService` and `LedgerResource` carry `@meta(description=…, domain=…)` — like any resources in the system graph; the `LedgerProxy` is marked `@exclude_graph_model` as infrastructure. More on resources is in the [Data model](../index.md#iv-data-model) part.)*
+*(In the example `PricingService` and `LedgerResource` carry `@meta(description=…, domain=…)` — like any resources in the system graph; the `LedgerProxy` is marked `@exclude_graph_model` as infrastructure. More on resources is in the [Data model](../index.md#v-data-model) part.)*
 
 ## depends or connection
 
@@ -123,7 +123,7 @@ The split is simple:
 - **`@depends`** — the machine **creates** the dependency on demand through `box.resolve`. Suitable for services and repositories that can be assembled on the spot, and for nested operations (`box.run`).
 - **`@connection`** — the operation **receives** an already-open resource under a key from `connections`. Suitable for everything that holds a live connection or transaction and must be passed, not recreated.
 
-Both are about the boundary with the external world (which is implemented by [resources](../index.md#iv-data-model)); both are declared in the header and checked by the machine.
+Both are about the boundary with the external world (which is implemented by [resources](../index.md#v-data-model)); both are declared in the header and checked by the machine.
 
 ## Invariants
 
@@ -140,7 +140,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 An operation declares everything external in the header and does not obtain it without a declaration. `@depends` + `await box.resolve` — for what the machine creates; `@connection` + `connections["key"]` — for already-open resources passed to `machine.run`. On a nested `box.run` the connection is proxied: the nested operation runs statements but does not control someone else's transaction. Dependencies stop being a hidden cause of behavior and become a visible, verifiable part of the contract.
 
-Next — **[Context](../index.md#ii-business-logic)**: the same principle of explicitness applied to the call environment — `@context_requires` and the context slice.
+Next — **[Context](../index.md#iii-business-logic)**: the same principle of explicitness applied to the call environment — `@context_requires` and the context slice.
 
 ---
 
