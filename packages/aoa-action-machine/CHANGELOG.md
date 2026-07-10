@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
+## [Unreleased]
+
+### Added
+
+- **`BaseRouteRecord.auth_coordinator` — optional per-route authentication override.** Adapters resolve the coordinator for a request via the new `BaseAdapter.effective_auth_coordinator(record)`: returns `record.auth_coordinator` when set, else the adapter's default. Lets one route (e.g. a login endpoint) opt out of a strict default coordinator without weakening it for every other route. Concrete adapters (`aoa-fastapi-adapter`, `aoa-mcp-adapter`) expose this as an `auth_coordinator=` keyword on their route-registration methods. ([#66](https://github.com/bystrovmaxim/aoa/issues/66))
+
 ## [1.0.1a0] – 2026-07-09
 
 ### Breaking changes

@@ -140,6 +140,21 @@ class TestToolRegistration:
 
         assert isinstance(adapter.routes[0], McpRouteRecord)
 
+    def test_auth_coordinator_stored_on_record(self) -> None:
+        """Per-tool ``auth_coordinator`` override is stored on ``McpRouteRecord``."""
+        adapter = _make_adapter()
+        override = AsyncMock()
+        adapter.tool("system.ping", PingAction, auth_coordinator=override)
+
+        assert adapter.routes[0].auth_coordinator is override
+
+    def test_no_auth_coordinator_means_none_on_record(self) -> None:
+        """Omitting ``auth_coordinator`` leaves the field ``None`` (adapter default applies)."""
+        adapter = _make_adapter()
+        adapter.tool("system.ping", PingAction)
+
+        assert adapter.routes[0].auth_coordinator is None
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Fluent chaining
@@ -296,3 +311,56 @@ class TestRegisterAll:
         for route in adapter.routes:
             assert route.tool_name == route.tool_name.lower()
             assert " " not in route.tool_name
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Per-tool auth_coordinator override
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestPerToolAuthCoordinatorOverride:
+    """A tool's ``auth_coordinator=`` overrides the adapter-wide default coordinator."""
+
+    @pytest.mark.asyncio
+    async def test_tool_override_allows_when_adapter_default_denies(self) -> None:
+        """Adapter default denies (``process`` -> ``None``); the overridden tool's own coordinator allows."""
+        machine = ActionProductMachine(loggers=[])
+        machine.run = AsyncMock(return_value=PingAction.Result(message="pong"))
+
+        denying_auth = AsyncMock()
+        denying_auth.process.return_value = None
+        allowing_auth = AsyncMock()
+        allowing_auth.process.return_value = Context()
+
+        adapter = McpAdapter(machine=machine, auth_coordinator=denying_auth)
+        adapter.tool("system.open", PingAction, auth_coordinator=allowing_auth)
+        adapter.tool("system.protected", PingAction)
+
+        open_tool = adapter._make_mcp_tool(adapter.routes[0])
+        protected_tool = adapter._make_mcp_tool(adapter.routes[1])
+
+        open_result = await open_tool.fn()
+        protected_result = await protected_tool.fn()
+
+        assert open_result.isError is False
+        assert protected_result.isError is True
+        allowing_auth.process.assert_called_once()
+        denying_auth.process.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_no_override_falls_back_to_adapter_default(self) -> None:
+        """No ``auth_coordinator=`` on the tool -> the adapter's default coordinator handles it."""
+        machine = ActionProductMachine(loggers=[])
+        machine.run = AsyncMock(return_value=PingAction.Result(message="pong"))
+
+        default_auth = AsyncMock()
+        default_auth.process.return_value = Context()
+
+        adapter = McpAdapter(machine=machine, auth_coordinator=default_auth)
+        adapter.tool("system.ping", PingAction)
+
+        tool = adapter._make_mcp_tool(adapter.routes[0])
+        result = await tool.fn()
+
+        assert result.isError is False
+        default_auth.process.assert_called_once()

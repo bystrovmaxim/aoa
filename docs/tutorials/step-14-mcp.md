@@ -1,4 +1,4 @@
-<!-- translated-from: step-14-mcp_draft.md @ 2026-06-17T17:53:37Z · sha256:daac6ed50ef6 -->
+<!-- translated-from: step-14-mcp_draft.md @ 2026-07-10T13:57:58Z (filesystem mtime; draft is gitignored, no git history) · sha256:9b823b02e61d -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -124,6 +124,17 @@ A security-important detail: on `INTERNAL_ERROR` the message is fixed — `"Unex
 
 Extracting the agent's credentials from the MCP call itself (an api-key or token from the request metadata) is on the roadmap, together with the [four ready methods](step-12-authentication.md#four-ready-methods) of authentication. The mechanism is the same: only the extractor is protocol-dependent, while `@check_roles` checks roles identically for HTTP and MCP — the agent will not get access to what it is not allowed.
 
+As with [FastAPI](step-13-fastapi.md#authentication-is-mandatory), a specific tool can override the adapter default with its own coordinator — `auth_coordinator=` in `.tool(...)`:
+
+```python
+server = (
+    McpAdapter(machine=machine, auth_coordinator=strict_default)
+    .tool("system.login", LoginAction, auth_coordinator=NoAuthCoordinator(context=Context()))  # exception
+    .tool("orders.create", CreateOrderAction)                                                   # inherits the default
+    .build()
+)
+```
+
 ## When the external schema diverges from the contract
 
 Schema reconciliation is arranged identically to [FastAPI](step-13-fastapi.md#when-the-external-schema-diverges-from-the-contract): `request_model`/`response_model` set the external shape, while `params_mapper`/`response_mapper` translate it into the operation's `Params`/`Result` and back — at the adapter boundary, without touching the `Action` itself.
@@ -150,6 +161,7 @@ MCP tools are tested with the same `ActionProductMachine` as in production, by c
 - **The same `Action`, a different transport.** The operation knows nothing of MCP; the tool is built from its contract.
 - **The schema from the contract.** `inputSchema` — from `Params` (`model_json_schema`), the description — from `@meta`.
 - **`auth_coordinator` is mandatory.** An open server is `NoAuthCoordinator(context=Context())`; `@check_roles` works identically for HTTP and MCP.
+- **A tool can override the coordinator.** `.tool(name, Action, auth_coordinator=...)` — without it, the adapter default applies, the same mechanism as FastAPI.
 - **Arguments validated at the boundary.** A mismatch with `inputSchema` is rejected as a `ToolError` before the operation runs.
 - **An envelope instead of codes.** Each call returns a `CallToolResult` with a JSON envelope and `isError`; codes `OK` / `PERMISSION_DENIED` / `INVALID_PARAMS` / `INTERNAL_ERROR`.
 - **Internal errors do not leak.** `INTERNAL_ERROR` returns a fixed message; the real exception only to the log.
@@ -173,6 +185,7 @@ Next — **[Result by JSON schema](step-15-schema-results.md)**: how to return a
 5. Why, on `INTERNAL_ERROR`, is the agent given a fixed message rather than the exception text?
 6. At which stage is a call with a missing required argument rejected — before or after the operation runs?
 7. What does `register_all()` do, and when is it more convenient than listing `.tool(...)` by hand?
+8. How can one specific tool get its own authentication coordinator, different from the adapter default?
 
 > **Exercise.** In [01_tool.py](../../examples/step_14_mcp/01_tool.py) add a third tool via `.tool(...)` and confirm through `server.list_tools()` that its `inputSchema` is derived from `Params`. Then call the protected operation and compare the `PERMISSION_DENIED` envelope (`isError=true`) with a successful `OK` — this is the response protocol the agent relies on.
 
