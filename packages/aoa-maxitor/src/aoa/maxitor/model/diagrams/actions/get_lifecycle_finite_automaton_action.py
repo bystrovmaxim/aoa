@@ -1,99 +1,67 @@
 # packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/get_lifecycle_finite_automaton_action.py
 """
-GetLifecycleFiniteAutomatonAction — template FSM for one ``Lifecycle`` interchange vertex.
+GetLifecycleFiniteAutomatonAction — FSM snapshot for one Lifecycle interchange vertex from DuckDB.
 
-Interchange lifecycle rows use ids shaped like
-``<entity_type_qualname>:lifecycle:<field_name>`` (see
-:class:`~aoa.action_machine.graph.nodes.lifecycle_graph_node.LifeCycleGraphNode`).
-The action resolves the host entity class, loads the lifecycle template, and returns
-states plus explicit directed edges for diagramming clients.
+Reads states and transitions from the already-loaded DuckDB graph; no local class import needed,
+so the action works in standalone deployments where the target service's packages are absent.
+
+Aspect sequence:
+  1. parse_interchange_id — validate ``<entity_qualname>:lifecycle:<field_name>`` shape, extract host qualname
+  2. validate_lifecycle_node — verify the Lifecycle vertex exists in DuckDB, read its field_name
+  3. load_states — read state rows attached via ``lifecycle_contains_state_edges``
+  4. load_transitions — read directed transition arcs via ``lifecycle_transition_edges``
+  5. build_fsm (summary) — assemble the wire payload (metadata, per-state rows, explicit edges)
+
+State flows strictly aspect-to-aspect: each aspect re-returns every key the downstream
+aspects still need and drops the rest.
 """
 
 from __future__ import annotations
 
-import importlib
 from typing import Any, cast
 
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
-from aoa.action_machine.domain.entity import BaseEntity
-from aoa.action_machine.domain.lifecycle import StateType
-from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.checkers import result_instance, result_string
 from aoa.action_machine.intents.connection import connection
-from aoa.action_machine.intents.entity.lifecycle_intent_resolver import LifeCycleIntentResolver
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action_schema import LifecycleFiniteAutomatonJson
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
 _LIFECYCLE_SEGMENT = ":lifecycle:"
 
-
-def _import_type_from_full_qualname(full_qualname: str) -> type[Any]:
-    """Resolve ``module.nested.Class`` (including nested classes) to a type object."""
-    parts = full_qualname.split(".")
-    if len(parts) < 2:
-        msg = f"Not a dotted type path: {full_qualname!r}"
-        raise ValueError(msg)
-
-    for mod_end in range(len(parts) - 1, 0, -1):
-        mod_name = ".".join(parts[:mod_end])
-        tail = parts[mod_end:]
-        try:
-            mod = importlib.import_module(mod_name)
-        except ImportError:
-            continue
-        obj: Any = mod
-        try:
-            for attr in tail:
-                obj = getattr(obj, attr)
-        except AttributeError:
-            continue
-        if isinstance(obj, type):
-            return obj
-
-    msg = f"Could not import type {full_qualname!r}"
-    raise ValueError(msg)
-
-
-def _parse_lifecycle_interchange_id(lifecycle_graph_node_id: str) -> tuple[str, str]:
-    raw = lifecycle_graph_node_id.strip()
-    if _LIFECYCLE_SEGMENT not in raw:
-        msg = f"Expected interchange lifecycle id containing {_LIFECYCLE_SEGMENT!r}, got {raw!r}"
-        raise ValueError(msg)
-    host, field = raw.split(_LIFECYCLE_SEGMENT, 1)
-    host = host.strip()
-    field = field.strip()
-    if not host or not field:
-        msg = f"Invalid lifecycle interchange id: {raw!r}"
-        raise ValueError(msg)
-    return host, field
+_KIND_TO_SLUG: dict[str, str] = {
+    "StateInitial": "initial",
+    "StateIntermediate": "intermediate",
+    "StateFinal": "final",
+}
 
 
 @meta(
-    description="Return lifecycle template states and transitions for one interchange Lifecycle vertex id",
+    description="Return lifecycle FSM states and transitions for one interchange Lifecycle vertex id",
     domain=DiagramsDomain,
 )
 @check_roles(GuestRole)
 @connection(
     DuckDBGraphResource,
     key=DUCKDB_GRAPH_CONNECTION_KEY,
-    description="Shared DuckDB graph connection (required by FastAPI adapter; unused by this action)",
+    description="Shared DuckDB graph connection — queried for lifecycle/state/transition rows",
 )
 class GetLifecycleFiniteAutomatonAction(
     BaseAction["GetLifecycleFiniteAutomatonAction.Params", "GetLifecycleFiniteAutomatonAction.Result"],
 ):
     """
     AI-CORE-BEGIN
-    ROLE: Serialize one lifecycle field's declarative FSM template for UI builders.
-    CONTRACT: ``lifecycle_graph_node_id`` matches ``LifeCycleGraphNode`` ids; raises ``ValueError`` on parse/import mismatch.
-    INVARIANTS: Read-only; no DuckDB reads despite declared connection.
+    ROLE: Five-aspect pipeline — parse interchange id, validate Lifecycle vertex in DuckDB, load states, load transitions, assemble FSM payload.
+    CONTRACT: ``lifecycle_graph_node_id`` must match a Lifecycle node id in the loaded graph; raises ``ValueError`` on shape mismatch or when the vertex is absent.
+    INVARIANTS: Read-only DuckDB queries only; no dynamic imports — works in standalone deployments where entity classes are not locally installed. Each aspect re-returns exactly the state keys the downstream aspects consume.
     AI-CORE-END
     """
 
@@ -104,22 +72,143 @@ class GetLifecycleFiniteAutomatonAction(
         )
 
     class Result(BaseResult):
-        # {
-        #   "lifecycle_graph_node_id": "myapp...Entity:lifecycle:lifecycle",
-        #   "host_entity_type_qualname": "myapp...Entity",
-        #   "field_name": "lifecycle",
-        #   "lifecycle_class_qualname": "myapp...BillingDenseLifecycle",
-        #   "initial_state_keys": ["open"],
-        #   "states": [
-        #     {"key": "open", "display_name": "Open", "state_type": "initial", "transitions": ["finalized"]}
-        #   ],
-        #   "transitions": [{"source": "open", "target": "finalized"}]
-        # }
         lifecycle_finite_automaton: LifecycleFiniteAutomatonJson = Field(
-            description="Template FSM snapshot (metadata, per-state rows, explicit directed edges).",
+            description="FSM snapshot (metadata, per-state rows, explicit directed edges).",
         )
 
-    @summary_aspect("Resolve lifecycle template FSM from interchange Lifecycle vertex id")
+    # ─── Aspect 1 ────────────────────────────────────────────────────────────
+
+    @result_string("lifecycle_graph_node_id", required=True, not_empty=True)  # type: ignore[untyped-decorator]
+    @result_string("host_entity_type_qualname", required=True, not_empty=True)  # type: ignore[untyped-decorator]
+    @regular_aspect("Validate interchange id shape (<entity_qualname>:lifecycle:<field_name>) and extract host qualname.")
+    async def parse_interchange_id_aspect(
+        self,
+        params: GetLifecycleFiniteAutomatonAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> dict[str, Any]:
+        _ = (state, box, connections)
+        node_id = params.lifecycle_graph_node_id.strip()
+        if _LIFECYCLE_SEGMENT not in node_id:
+            msg = f"Expected interchange lifecycle id containing {_LIFECYCLE_SEGMENT!r}, got {node_id!r}"
+            raise ValueError(msg)
+        host, field = node_id.split(_LIFECYCLE_SEGMENT, 1)
+        host = host.strip()
+        field = field.strip()
+        if not host or not field:
+            msg = f"Invalid lifecycle interchange id: {node_id!r}"
+            raise ValueError(msg)
+        return {
+            "lifecycle_graph_node_id": node_id,
+            "host_entity_type_qualname": host,
+        }
+
+    # ─── Aspect 2 ────────────────────────────────────────────────────────────
+
+    @result_string("lifecycle_graph_node_id", required=True, not_empty=True)  # type: ignore[untyped-decorator]
+    @result_string("host_entity_type_qualname", required=True, not_empty=True)  # type: ignore[untyped-decorator]
+    @result_string("field_name", required=True, not_empty=True)  # type: ignore[untyped-decorator]
+    @regular_aspect("Validate the Lifecycle vertex exists in the loaded DuckDB graph and read its field_name.")
+    async def validate_lifecycle_node_aspect(
+        self,
+        params: GetLifecycleFiniteAutomatonAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> dict[str, Any]:
+        _ = (params, box)
+        graph = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
+        node_id = cast(str, state["lifecycle_graph_node_id"])
+
+        rows = graph.execute_fetch_dicts("SELECT field_name FROM lifecycle WHERE id = ?", [node_id])
+        if not rows:
+            msg = (
+                f"Lifecycle node {node_id!r} not found in the loaded graph. "
+                "Ensure the AOA service graph is loaded via POST /api/load."
+            )
+            raise ValueError(msg)
+        return {
+            "lifecycle_graph_node_id": node_id,
+            "host_entity_type_qualname": state["host_entity_type_qualname"],
+            "field_name": str(rows[0]["field_name"]),
+        }
+
+    # ─── Aspect 3 ────────────────────────────────────────────────────────────
+
+    @result_string("lifecycle_graph_node_id", required=True, not_empty=True)  # type: ignore[untyped-decorator]
+    @result_string("host_entity_type_qualname", required=True, not_empty=True)  # type: ignore[untyped-decorator]
+    @result_string("field_name", required=True, not_empty=True)  # type: ignore[untyped-decorator]
+    @result_instance("state_rows", list, required=True)  # type: ignore[untyped-decorator]
+    @regular_aspect("Load state rows attached to the Lifecycle vertex via lifecycle_contains_state_edges.")
+    async def load_states_aspect(
+        self,
+        params: GetLifecycleFiniteAutomatonAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> dict[str, Any]:
+        _ = (params, box)
+        graph = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
+        node_id = cast(str, state["lifecycle_graph_node_id"])
+
+        state_rows = graph.execute_fetch_dicts(
+            """
+            SELECT s.state_key, s.kind, s.label, s.lifecycle_class_id
+            FROM lifecycle_contains_state_edges lcs
+            JOIN state s ON s.id = lcs.target_id
+            WHERE lcs.source_id = ?
+            ORDER BY s.state_key
+            """,
+            [node_id],
+        )
+        return {
+            "lifecycle_graph_node_id": node_id,
+            "host_entity_type_qualname": state["host_entity_type_qualname"],
+            "field_name": state["field_name"],
+            "state_rows": state_rows,
+        }
+
+    # ─── Aspect 4 ────────────────────────────────────────────────────────────
+
+    @result_string("lifecycle_graph_node_id", required=True, not_empty=True)  # type: ignore[untyped-decorator]
+    @result_string("host_entity_type_qualname", required=True, not_empty=True)  # type: ignore[untyped-decorator]
+    @result_string("field_name", required=True, not_empty=True)  # type: ignore[untyped-decorator]
+    @result_instance("state_rows", list, required=True)  # type: ignore[untyped-decorator]
+    @result_instance("transition_rows", list, required=True)  # type: ignore[untyped-decorator]
+    @regular_aspect("Load directed transition arcs between the Lifecycle vertex's states via lifecycle_transition_edges.")
+    async def load_transitions_aspect(
+        self,
+        params: GetLifecycleFiniteAutomatonAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> dict[str, Any]:
+        _ = (params, box)
+        graph = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
+        node_id = cast(str, state["lifecycle_graph_node_id"])
+
+        transition_rows = graph.execute_fetch_dicts(
+            """
+            SELECT lte.from_state, lte.to_state
+            FROM lifecycle_transition_edges lte
+            JOIN lifecycle_contains_state_edges lcs ON lte.source_id = lcs.target_id
+            WHERE lcs.source_id = ?
+            ORDER BY lte.from_state, lte.to_state
+            """,
+            [node_id],
+        )
+        return {
+            "lifecycle_graph_node_id": node_id,
+            "host_entity_type_qualname": state["host_entity_type_qualname"],
+            "field_name": state["field_name"],
+            "state_rows": state["state_rows"],
+            "transition_rows": transition_rows,
+        }
+
+    # ─── Aspect 5 (summary) ──────────────────────────────────────────────────
+
+    @summary_aspect("Assemble the FSM wire payload from loaded state and transition rows.")
     async def build_fsm_summary(
         self,
         params: GetLifecycleFiniteAutomatonAction.Params,
@@ -127,50 +216,49 @@ class GetLifecycleFiniteAutomatonAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> GetLifecycleFiniteAutomatonAction.Result:
-        _ = (state, box)
-        _ = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
+        _ = (params, box, connections)
+        node_id = cast(str, state["lifecycle_graph_node_id"])
+        host_q = cast(str, state["host_entity_type_qualname"])
+        field_name = cast(str, state["field_name"])
+        state_rows = cast(list[dict[str, Any]], state["state_rows"])
+        transition_rows = cast(list[dict[str, Any]], state["transition_rows"])
 
-        host_q, field_name = _parse_lifecycle_interchange_id(params.lifecycle_graph_node_id)
-        entity_cls = _import_type_from_full_qualname(host_q)
-        if not isinstance(entity_cls, type) or not issubclass(entity_cls, BaseEntity):
-            msg = f"Resolved host {host_q!r} is not a BaseEntity subclass"
-            raise ValueError(msg)
+        transitions_by_state: dict[str, list[str]] = {}
+        for tr in transition_rows:
+            transitions_by_state.setdefault(str(tr["from_state"]), []).append(str(tr["to_state"]))
 
-        fsm = LifeCycleIntentResolver.resolve_finite_state_machine(entity_cls, field_name)
-        lifecycle_cls = fsm.lifecycle_class
-        lifecycle_q = TypeIntrospection.full_qualname(lifecycle_cls)
-
-        states_json: list[dict[str, Any]] = []
-        edges_json: list[dict[str, str]] = []
+        lifecycle_class_qualname = ""
         initials: list[str] = []
+        states_json: list[dict[str, Any]] = []
 
-        for key, info in fsm.states.items():
-            st = info.state_type
-            if st == StateType.INITIAL:
+        for sr in state_rows:
+            st_slug = _KIND_TO_SLUG.get(str(sr["kind"]), "intermediate")
+            key = str(sr["state_key"])
+            if st_slug == "initial":
                 initials.append(key)
-            st_slug = st.value
-            targets = sorted(info.transitions)
+            if not lifecycle_class_qualname:
+                lifecycle_class_qualname = str(sr["lifecycle_class_id"])
             states_json.append(
                 {
                     "key": key,
-                    "display_name": info.display_name,
+                    "display_name": str(sr["label"]),
                     "state_type": st_slug,
-                    "transitions": targets,
+                    "transitions": sorted(transitions_by_state.get(key, [])),
                 },
             )
-            for tgt in targets:
-                edges_json.append({"source": key, "target": tgt})
 
         states_json.sort(key=lambda s: (s["state_type"] != "initial", s["key"]))
-        edges_json.sort(key=lambda e: (e["source"], e["target"]))
-        initials_sorted = sorted(set(initials))
+        edges_json = [
+            {"source": str(tr["from_state"]), "target": str(tr["to_state"])}
+            for tr in transition_rows
+        ]
 
         payload: dict[str, Any] = {
-            "lifecycle_graph_node_id": params.lifecycle_graph_node_id.strip(),
+            "lifecycle_graph_node_id": node_id,
             "host_entity_type_qualname": host_q,
             "field_name": field_name,
-            "lifecycle_class_qualname": lifecycle_q,
-            "initial_state_keys": initials_sorted,
+            "lifecycle_class_qualname": lifecycle_class_qualname,
+            "initial_state_keys": sorted(set(initials)),
             "states": states_json,
             "transitions": edges_json,
         }
