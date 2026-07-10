@@ -1,4 +1,4 @@
-<!-- translated-from: step-12-authentication_draft.md @ 2026-07-10T13:57:13Z (filesystem mtime; draft is gitignored, no git history) · sha256:1869d7a8a168 -->
+<!-- translated-from: step-12-authentication_draft.md @ 2026-07-10T13:58:04Z (filesystem mtime; draft is gitignored, no git history) · sha256:7fb7db549305 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -107,14 +107,14 @@ Only `CredentialExtractor` is protocol-dependent — it knows where to take cred
 
 ## Four ready methods
 
-For now you implement `Authenticator` for your own method yourself. Planned (ROADMAP) are ready out-of-the-box implementations for four common schemes:
+For now you implement `Authenticator` for your own method yourself — except for one that already ships. Planned (ROADMAP) are implementations out of the box for four common schemes:
 
-- **HTTP Basic Auth**,
-- **Bearer Token (JWT)**,
-- **API Key**,
-- **OAuth2** (Google / GitHub / Keycloak).
+- **HTTP Basic Auth** — planned,
+- **[Bearer Token (JWT)](../extensions/jwt.md)** — ready (`extra [jwt]`); works with FastAPI, does not yet work with MCP (see the article — [issue #113](https://github.com/bystrovmaxim/aoa/issues/113)),
+- **API Key** — planned,
+- **OAuth2** (Google / GitHub / Keycloak) — planned.
 
-With their arrival, typical authentication will be wirable without writing your own `Authenticator`. Until then the template is one: implement the three components (or take `NoAuthCoordinator` for open access).
+Once the rest arrive, typical authentication will be wirable without writing your own `Authenticator`. Until then, for the three remaining, the template is one: implement the three components (or take `NoAuthCoordinator` for open access).
 
 ## Where it is wired
 
