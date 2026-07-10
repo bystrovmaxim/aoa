@@ -44,8 +44,10 @@ from aoa.action_machine.exceptions import AuthorizationError
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance, result_string
+from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.mcp import McpAdapter
 
@@ -59,7 +61,20 @@ class AuthDomain(BaseDomain):
     description = "Login and token issuance"
 
 
+@meta(description="Transport to the user credential store.", domain=AuthDomain)
+class UserStoreResource(BaseResource):
+    def __init__(self, users: dict[str, tuple[str, list[str]]]) -> None:
+        self._users = users
+
+    def get_wrapper_class(self) -> type[BaseResource] | None:
+        return None  # simple non-transactional resource, no nested-call restrictions
+
+    async def find(self, username: str) -> tuple[str, list[str]] | None:
+        return self._users.get(username)
+
+
 # Fake user store: username -> (password, role names). See step_13_fastapi/03_login_action.py.
+# Wired to LoginAction via @connection, not read directly.
 _USER_STORE: dict[str, tuple[str, list[str]]] = {
     "alice": ("wonderland", ["admin"]),
 }
@@ -79,14 +94,16 @@ class LoginResult(BaseResult):
 # ── Phase 1: login as an MCP tool -- this part WORKS, transport-agnostic ────
 @meta(description="Authenticate a username/password pair and issue a JWT.", domain=AuthDomain)
 @check_roles(GuestRole)
+@connection(UserStoreResource, key="user_store")
 class LoginAction(BaseAction[LoginParams, LoginResult]):
 
     @result_string("user_id", required=True, not_empty=True)  # type: ignore[untyped-decorator]
     @result_instance("role_names", list, required=True)  # type: ignore[untyped-decorator]
     @regular_aspect("Verify username/password against the user store; resolve role names.")
     async def authenticate_user_aspect(self, params: LoginParams, state, box, connections) -> dict:
-        _ = (state, box, connections)
-        record = _USER_STORE.get(params.username)
+        _ = (state, box)
+        store: UserStoreResource = connections["user_store"]
+        record = await store.find(params.username)
         if record is None or record[0] != params.password:
             raise AuthorizationError("Invalid username or password")
         _password, role_names = record
@@ -114,7 +131,11 @@ def build_server():
             auth_coordinator=NoAuthCoordinator(context=Context()),
             server_name="Bearer Limitation Demo",
         )
-        .tool("auth.login", LoginAction)
+        .tool(
+            "auth.login",
+            LoginAction,
+            connections={"user_store": UserStoreResource(_USER_STORE)},
+        )
         .build()
     )
 
