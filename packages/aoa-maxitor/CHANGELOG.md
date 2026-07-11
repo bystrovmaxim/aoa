@@ -5,6 +5,12 @@ All notable changes to `aoa-maxitor` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **URL deep-linking for the Maxitor SPA.** `?source=<service-url>&view=<full-graph|domain-erd|use-case|lifecycle-fsm>[&domain=|&node=&host=]` loads the given service and lands directly on the given view — `use-case`/`lifecycle-fsm` opened without their qualifier fall back to the first matching sidebar row once it loads. Every subsequent navigation (sidebar click, loading/switching service) pushes a browser history entry and updates the URL, so Back/Forward step through visited diagrams one at a time (reloading the graph server-side if needed) and the current URL is always copy-paste shareable. ([#126](https://github.com/bystrovmaxim/aoa/issues/126))
+
 ## [1.1.4] – 2026-07-10
 
 ### Fixed

@@ -23,7 +23,7 @@ const SB = {
 } as const;
 
 type Props = {
-  onLoaded: () => void;
+  onLoaded: (serviceUrl: string) => void;
 };
 
 export function ServiceUrlInput({ onLoaded }: Props) {
@@ -40,7 +40,7 @@ export function ServiceUrlInput({ onLoaded }: Props) {
     try {
       await loadGraph(trimmed);
       pushServiceUrl(trimmed);
-      onLoaded();
+      onLoaded(trimmed);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
