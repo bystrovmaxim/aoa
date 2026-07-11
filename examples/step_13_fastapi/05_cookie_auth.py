@@ -10,19 +10,15 @@ like a browser) authenticates purely through the cookie the login route set. See
 docs/extensions/jwt_draft.md#транспорт-заголовок-или-cookie for when cookie beats
 header and vice versa.
 
-Two things this example does differently from 04_bearer_auth.py, both because
-JwtAuthCoordinator hard-codes BearerCredentialExtractor (there is a follow-up issue
-to parameterize it):
-
-  1. /auth/login is NOT registered through FastApiAdapter's .post() -- BaseResult has
-     no field for response headers/cookies (Actions stay HTTP-agnostic by design), so
-     there is no built-in way for an Action to set a Set-Cookie header. It is a plain
-     FastAPI route that runs LoginAction through the machine directly -- the same
-     "auth_coordinator.process -> resolve connections -> machine.run" pipeline every
-     adapter follows -- then calls response.set_cookie() on the result.
-  2. The adapter-wide auth_coordinator is assembled from AuthCoordinator directly:
-     CookieCredentialExtractor + JwtAuthenticator + HttpContextAssembler -- the same
-     three pieces JwtAuthCoordinator wires internally, with the extractor swapped.
+The only thing this example does differently from 04_bearer_auth.py: /auth/login is
+NOT registered through FastApiAdapter's .post() -- BaseResult has no field for
+response headers/cookies (Actions stay HTTP-agnostic by design), so there is no
+built-in way for an Action to set a Set-Cookie header. It is a plain FastAPI route
+that runs LoginAction through the machine directly -- the same "auth_coordinator
+.process -> resolve connections -> machine.run" pipeline every adapter follows --
+then calls response.set_cookie() on the result. The coordinator itself is an
+ordinary JwtAuthCoordinator, just with credential_extractor=CookieCredentialExtractor(...)
+instead of the Bearer default.
 
 Run from repository root:
     uv run python examples/step_13_fastapi/05_cookie_auth.py
@@ -38,8 +34,8 @@ from fastapi import Response
 from fastapi.testclient import TestClient
 from pydantic import Field
 
-from aoa.action_machine.auth import ApplicationRole, AuthCoordinator, GuestRole, NoAuthCoordinator
-from aoa.action_machine.auth.jwt_auth import CookieCredentialExtractor, HttpContextAssembler, JwtAuthenticator
+from aoa.action_machine.auth import ApplicationRole, GuestRole, NoAuthCoordinator
+from aoa.action_machine.auth.jwt_auth import CookieCredentialExtractor, JwtAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions import AuthorizationError
@@ -156,17 +152,14 @@ class ListOrdersAction(BaseAction[ParamsStub, OrderSummaryResult]):
 def build_app():
     machine = ActionProductMachine()
 
-    # No JwtAuthCoordinator here -- it hard-codes BearerCredentialExtractor. Assemble
-    # AuthCoordinator directly with the same three pieces JwtAuthCoordinator would use
-    # internally, swapping in CookieCredentialExtractor for the extractor.
-    cookie_auth = AuthCoordinator(
-        extractor=CookieCredentialExtractor(cookie_name=_COOKIE_NAME),
-        auth_instance=JwtAuthenticator(
-            secret_key=_SECRET_KEY,
-            algorithm=_ALGORITHM,
-            role_registry={"admin": AdminRole},
-        ),
-        assembler=HttpContextAssembler(),
+    # An ordinary JwtAuthCoordinator -- credential_extractor= swaps in the cookie
+    # reader in place of the Bearer-header default; signature/expiry/role_registry
+    # verification is unchanged.
+    cookie_auth = JwtAuthCoordinator(
+        secret_key=_SECRET_KEY,
+        algorithm=_ALGORITHM,
+        role_registry={"admin": AdminRole},
+        credential_extractor=CookieCredentialExtractor(cookie_name=_COOKIE_NAME),
     )
 
     fastapi_app = (

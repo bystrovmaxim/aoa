@@ -6,7 +6,9 @@ JwtAuthCoordinator — ready-made AuthCoordinator for Bearer/JWT authentication.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Thin ``AuthCoordinator`` subclass wiring ``BearerCredentialExtractor`` +
+Thin ``AuthCoordinator`` subclass wiring a ``CredentialExtractor``
+(``BearerCredentialExtractor`` by default, or a caller-supplied extractor --
+e.g. ``CookieCredentialExtractor`` for same-site cookie-based SSO) +
 ``JwtAuthenticator`` + ``HttpContextAssembler`` (or a caller-supplied assembler)
 into one ready-to-pass ``auth_coordinator=`` for ``FastApiAdapter``/``McpAdapter``.
 No new ``process()`` logic — reuses the inherited
@@ -20,13 +22,23 @@ subsequent request.
 
     auth = JwtAuthCoordinator(secret_key="...", role_registry={"admin": AdminRole})
     FastApiAdapter(machine=machine, auth_coordinator=auth).post("/orders", CreateOrderAction).build()
+
+    # Same-site cookie transport instead of the "Authorization: Bearer" header --
+    # everything else about the pipeline (signature/expiry/roles) is unchanged:
+    from aoa.action_machine.auth.jwt_auth import CookieCredentialExtractor
+
+    auth = JwtAuthCoordinator(
+        secret_key="...",
+        role_registry={"admin": AdminRole},
+        credential_extractor=CookieCredentialExtractor(cookie_name="session"),
+    )
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 
-from aoa.action_machine.auth.auth_coordinator import AuthCoordinator, ContextAssembler
+from aoa.action_machine.auth.auth_coordinator import AuthCoordinator, ContextAssembler, CredentialExtractor
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.jwt_auth.bearer_credential_extractor import BearerCredentialExtractor
 from aoa.action_machine.auth.jwt_auth.http_context_assembler import HttpContextAssembler
@@ -36,8 +48,8 @@ from aoa.action_machine.auth.jwt_auth.jwt_authenticator import JwtAuthenticator
 class JwtAuthCoordinator(AuthCoordinator):
     """
     AI-CORE-BEGIN
-    ROLE: Ready-made AuthCoordinator for the "Authorization: Bearer <jwt>" scheme.
-    CONTRACT: Construction assembles BearerCredentialExtractor + JwtAuthenticator + an HTTP ContextAssembler; process() is inherited from AuthCoordinator unchanged.
+    ROLE: Ready-made AuthCoordinator for JWT authentication over a pluggable credential transport.
+    CONTRACT: Construction assembles a CredentialExtractor (BearerCredentialExtractor by default, or the caller-supplied credential_extractor) + JwtAuthenticator + an HTTP ContextAssembler; process() is inherited from AuthCoordinator unchanged.
     AI-CORE-END
     """
 
@@ -50,10 +62,11 @@ class JwtAuthCoordinator(AuthCoordinator):
         role_registry: Mapping[str, type[BaseRole]],
         user_id_claim: str = "sub",
         roles_claim: str = "roles",
+        credential_extractor: CredentialExtractor | None = None,
         context_assembler: ContextAssembler | None = None,
     ) -> None:
         super().__init__(
-            extractor=BearerCredentialExtractor(),
+            extractor=credential_extractor or BearerCredentialExtractor(),
             auth_instance=JwtAuthenticator(
                 secret_key=secret_key,
                 algorithm=algorithm,
