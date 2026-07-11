@@ -1,13 +1,17 @@
 // src/components/navigation/LeftSidebar/ServiceUrlInput.tsx
+import CheckIcon from "@mui/icons-material/Check";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LinkIcon from "@mui/icons-material/Link";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import OutlinedInput from "@mui/material/OutlinedInput";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { loadGraph } from "@/api/load";
@@ -26,11 +30,24 @@ type Props = {
   onLoaded: (serviceUrl: string) => void;
 };
 
+const COPY_FEEDBACK_MS = 1500;
+
 export function ServiceUrlInput({ onLoaded }: Props) {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const history = getServiceUrlHistory();
+
+  async function copyToClipboard(value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedUrl(value);
+      setTimeout(() => setCopiedUrl((cur) => (cur === value ? null : cur)), COPY_FEEDBACK_MS);
+    } catch {
+      // Clipboard permission denied or unavailable — silently ignore, row click still loads the URL.
+    }
+  }
 
   async function submit(value: string) {
     const trimmed = value.trim();
@@ -110,28 +127,60 @@ export function ServiceUrlInput({ onLoaded }: Props) {
           </Typography>
           <List dense disablePadding>
             {history.map((h) => (
-              <ListItemButton
+              <ListItem
                 key={h}
-                disabled={loading}
-                onClick={() => {
-                  setUrl(h);
-                  void submit(h);
-                }}
+                disablePadding
                 sx={{
                   borderRadius: 1.5,
-                  py: 0.3,
-                  minHeight: 30,
                   "&:hover": { bgcolor: SB.hover },
+                  "&:hover .row-copy-btn, &:focus-within .row-copy-btn": { opacity: 1 },
                 }}
+                secondaryAction={
+                  <Tooltip title={copiedUrl === h ? "Copied" : "Copy address"} placement="top">
+                    <IconButton
+                      className="row-copy-btn"
+                      size="small"
+                      disabled={loading}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void copyToClipboard(h);
+                      }}
+                      aria-label="Copy address"
+                      sx={{
+                        opacity: 0,
+                        transition: "opacity .15s",
+                        color: copiedUrl === h ? "success.main" : SB.icon,
+                        "&:hover": { color: copiedUrl === h ? "success.main" : SB.text },
+                      }}
+                    >
+                      {copiedUrl === h ? <CheckIcon sx={{ fontSize: 15 }} /> : <ContentCopyIcon sx={{ fontSize: 15 }} />}
+                    </IconButton>
+                  </Tooltip>
+                }
               >
-                <ListItemText
-                  primary={h}
-                  primaryTypographyProps={{
-                    noWrap: true,
-                    sx: { fontSize: 12, color: SB.textSecondary, fontFamily: "ui-monospace, monospace" },
+                <ListItemButton
+                  disabled={loading}
+                  onClick={() => {
+                    setUrl(h);
+                    void submit(h);
                   }}
-                />
-              </ListItemButton>
+                  sx={{
+                    borderRadius: 1.5,
+                    py: 0.3,
+                    pr: 4.5,
+                    minHeight: 30,
+                    "&:hover": { bgcolor: "transparent" },
+                  }}
+                >
+                  <ListItemText
+                    primary={h}
+                    primaryTypographyProps={{
+                      noWrap: true,
+                      sx: { fontSize: 12, color: SB.textSecondary, fontFamily: "ui-monospace, monospace" },
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
             ))}
           </List>
         </Box>
