@@ -37,12 +37,12 @@ default coordinator, without weakening the default for every other route.
     │  BaseAdapter[R]                      │
     │                                      │
     │  machine: ActionProductMachine       │
-    │  auth_coordinator: Any (required)    │
+    │  auth_coordinator: AuthCoordinatorProtocol (required) │
     │  graph_coordinator: NodeGraphCoordinator │
     │  _routes: list[R]                    │
     │                                      │
     │  _add_route(record: R) → Self        │
-    │  effective_auth_coordinator(record: R) → Any │
+    │  effective_auth_coordinator(record: R) → AuthCoordinatorProtocol │
     │  build() → Any                       │
     └──────────────────────────────────────┘
                ▲
@@ -92,6 +92,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Self
 
 from aoa.action_machine.adapters.base_route_record import BaseRouteRecord
+from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
@@ -108,7 +109,7 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
     def __init__(
         self,
         machine: ActionProductMachine,
-        auth_coordinator: Any,
+        auth_coordinator: AuthCoordinatorProtocol,
     ) -> None:
         """
         Initialize the adapter.
@@ -127,7 +128,7 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
             )
 
         self._machine: ActionProductMachine = machine
-        self._auth_coordinator: Any = auth_coordinator
+        self._auth_coordinator: AuthCoordinatorProtocol = auth_coordinator
         self._graph_coordinator: NodeGraphCoordinator = machine.graph_coordinator
         self._routes: list[R] = []
 
@@ -137,7 +138,7 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
         return self._machine
 
     @property
-    def auth_coordinator(self) -> Any:
+    def auth_coordinator(self) -> AuthCoordinatorProtocol:
         """Returns the authentication coordinator."""
         return self._auth_coordinator
 
@@ -156,7 +157,7 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
         self._routes.append(record)
         return self
 
-    def effective_auth_coordinator(self, record: R) -> Any:
+    def effective_auth_coordinator(self, record: R) -> AuthCoordinatorProtocol:
         """Return ``record.auth_coordinator`` when set, else the adapter's default coordinator."""
         return record.auth_coordinator if record.auth_coordinator is not None else self._auth_coordinator
 

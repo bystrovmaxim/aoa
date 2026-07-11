@@ -125,6 +125,7 @@ from starlette.responses import Response as StarletteResponse
 
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
 from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
+from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
@@ -257,7 +258,7 @@ def _has_body_method(method: str) -> bool:
 def _make_endpoint_with_body(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
-    auth_coordinator: Any,
+    auth_coordinator: AuthCoordinatorProtocol,
 ) -> Callable[..., Any]:
     """
     Create endpoint for methods with JSON body (POST, PUT, PATCH).
@@ -322,7 +323,7 @@ def _make_endpoint_with_body(
 def _make_endpoint_with_query(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
-    auth_coordinator: Any,
+    auth_coordinator: AuthCoordinatorProtocol,
 ) -> Callable[..., Any]:
     """
     Create endpoint for GET/DELETE with query/path parameters.
@@ -424,7 +425,7 @@ def _make_endpoint_with_query(
 def _make_endpoint_no_params(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
-    auth_coordinator: Any,
+    auth_coordinator: AuthCoordinatorProtocol,
 ) -> Callable[..., Any]:
     """
     Create endpoint for actions with empty Params (no fields).
@@ -485,7 +486,7 @@ def _make_endpoint_no_params(
 def _make_endpoint(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
-    auth_coordinator: Any,
+    auth_coordinator: AuthCoordinatorProtocol,
 ) -> Callable[..., Any]:
     """
     Endpoint factory for FastAPI.
@@ -573,7 +574,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     def __init__(
         self,
         machine: ActionProductMachine,
-        auth_coordinator: Any,
+        auth_coordinator: AuthCoordinatorProtocol,
         *,
         title: str = "ActionMachine API",
         version: str = "0.1.0",
@@ -637,7 +638,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         deprecated: bool = False,
         *,
         connections: Mapping[str, ConnectionValue] | None = None,
-        auth_coordinator: Any | None = None,
+        auth_coordinator: AuthCoordinatorProtocol | None = None,
     ) -> Self:
         """
         Create ``FastApiRouteRecord``, append to ``_routes``, and return ``self``.
@@ -688,7 +689,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         deprecated: bool = False,
         *,
         connections: Mapping[str, ConnectionValue] | None = None,
-        auth_coordinator: Any | None = None,
+        auth_coordinator: AuthCoordinatorProtocol | None = None,
     ) -> Self:
         """Register POST endpoint. Returns self for fluent chain."""
         return self._register(
@@ -712,7 +713,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         deprecated: bool = False,
         *,
         connections: Mapping[str, ConnectionValue] | None = None,
-        auth_coordinator: Any | None = None,
+        auth_coordinator: AuthCoordinatorProtocol | None = None,
     ) -> Self:
         """Register GET endpoint. Returns self for fluent chain."""
         return self._register(
@@ -736,7 +737,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         deprecated: bool = False,
         *,
         connections: Mapping[str, ConnectionValue] | None = None,
-        auth_coordinator: Any | None = None,
+        auth_coordinator: AuthCoordinatorProtocol | None = None,
     ) -> Self:
         """Register PUT endpoint. Returns self for fluent chain."""
         return self._register(
@@ -760,7 +761,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         deprecated: bool = False,
         *,
         connections: Mapping[str, ConnectionValue] | None = None,
-        auth_coordinator: Any | None = None,
+        auth_coordinator: AuthCoordinatorProtocol | None = None,
     ) -> Self:
         """Register DELETE endpoint. Returns self for fluent chain."""
         return self._register(
@@ -784,7 +785,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         deprecated: bool = False,
         *,
         connections: Mapping[str, ConnectionValue] | None = None,
-        auth_coordinator: Any | None = None,
+        auth_coordinator: AuthCoordinatorProtocol | None = None,
     ) -> Self:
         """Register PATCH endpoint. Returns self for fluent chain."""
         return self._register(
