@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **`aoa-action-machine[jwt]` now pulls in `PyJWT[crypto]` instead of plain `PyJWT`.** RS256/ES256 signature verification (required for the new JWKS path, and already possible via a static public-key `secret_key`) needs the `cryptography` package — without it, asymmetric algorithms fail at runtime with "Algorithm 'RS256' could not be found" instead of at install time. HS256-only consumers gain one transitive dependency; no API changes. ([#120](https://github.com/bystrovmaxim/aoa/issues/120))
+- **`auth_coordinator` is now typed `AuthCoordinatorProtocol` instead of `Any`.** New `@runtime_checkable` `Protocol` (`aoa.action_machine.auth.AuthCoordinatorProtocol`) formalizes the duck-typed `async def process(self, request_data) -> Context | None` contract in the type system: `BaseAdapter.__init__`/`.auth_coordinator`/`effective_auth_coordinator`, and `BaseRouteRecord.auth_coordinator`, all move off `Any`. mypy/IDEs now catch a typo'd method name or wrong signature on a custom coordinator instead of only failing at runtime. Purely additive — structural typing, so every existing coordinator (`AuthCoordinator`, `NoAuthCoordinator`, or any hand-written duck-typed class) already satisfies it with zero code changes. ([#108](https://github.com/bystrovmaxim/aoa/issues/108))
 
 ## [1.0.1a1] – 2026-07-10
 

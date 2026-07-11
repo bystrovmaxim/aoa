@@ -132,6 +132,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
 from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
+from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
@@ -305,7 +306,7 @@ def _build_graph_json(coordinator: NodeGraphCoordinator) -> str:
 def _make_tool_handler(
     record: McpRouteRecord,
     machine: ActionProductMachine,
-    auth_coordinator: Any,
+    auth_coordinator: AuthCoordinatorProtocol,
     graph_coordinator: NodeGraphCoordinator,
 ) -> Callable[..., Any]:
     """Async MCP handler: validate input, ``machine.run``, JSON envelope in ``CallToolResult``."""
@@ -382,7 +383,7 @@ async def _execute_tool_call(
     req_model: type,
     record: McpRouteRecord,
     machine: ActionProductMachine,
-    auth_coordinator: Any,
+    auth_coordinator: AuthCoordinatorProtocol,
     has_params_mapper: bool,
     has_response_mapper: bool,
 ) -> Any:
@@ -445,7 +446,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
     def __init__(
         self,
         machine: ActionProductMachine,
-        auth_coordinator: Any,
+        auth_coordinator: AuthCoordinatorProtocol,
         *,
         server_name: str = "ActionMachine MCP",
         server_version: str = "0.1.0",
@@ -487,7 +488,7 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         description: str = "",
         *,
         connections: Mapping[str, ConnectionValue] | None = None,
-        auth_coordinator: Any | None = None,
+        auth_coordinator: AuthCoordinatorProtocol | None = None,
     ) -> Self:
         """
         Add one tool (``inputSchema`` from request model; ``@meta`` description if description empty).

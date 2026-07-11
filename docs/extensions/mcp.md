@@ -1,4 +1,4 @@
-<!-- translated-from: mcp_draft.md @ 2026-07-10T13:56:17Z (filesystem mtime; draft is gitignored, no git history) · sha256:10597f139365 -->
+<!-- translated-from: mcp_draft.md @ 2026-07-11T15:01:29Z (filesystem mtime; draft is gitignored, no git history) · sha256:3c887db456d8 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -36,6 +36,7 @@ Installation: `pip install aoa-mcp-adapter`.
 ```python
 from aoa.mcp import McpAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
+from aoa.action_machine.context import Context
 
 server = (
     McpAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), server_name="Orders MCP")

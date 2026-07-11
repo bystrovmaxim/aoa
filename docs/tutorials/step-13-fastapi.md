@@ -1,4 +1,4 @@
-<!-- translated-from: step-13-fastapi_draft.md @ 2026-07-10T14:08:50Z (filesystem mtime; draft is gitignored, no git history) · sha256:e556c9fd9930 -->
+<!-- translated-from: step-13-fastapi_draft.md @ 2026-07-11T15:02:03Z (filesystem mtime; draft is gitignored, no git history) · sha256:e9c82664b0dc -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -41,6 +41,7 @@ The adapter is assembled fluently: each `.post/.get/...` call is one endpoint, a
 ```python
 from aoa.fastapi import FastApiAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
+from aoa.action_machine.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 machine = ActionProductMachine()

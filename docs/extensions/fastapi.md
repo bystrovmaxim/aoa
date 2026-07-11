@@ -1,4 +1,4 @@
-<!-- translated-from: fastapi_draft.md @ 2026-07-10T13:56:09Z (filesystem mtime; draft is gitignored, no git history) · sha256:b7eaab3fedb4 -->
+<!-- translated-from: fastapi_draft.md @ 2026-07-11T15:01:29Z (filesystem mtime; draft is gitignored, no git history) · sha256:a602e2e4e2ef -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -26,6 +26,7 @@ Installation: `pip install aoa-fastapi-adapter`.
 ```python
 from aoa.fastapi import FastApiAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
+from aoa.action_machine.context import Context
 
 app = (
     FastApiAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), title="Orders API")

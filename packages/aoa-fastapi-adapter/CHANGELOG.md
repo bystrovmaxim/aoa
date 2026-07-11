@@ -5,6 +5,12 @@ All notable changes to `aoa-fastapi-adapter` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] – 2026-07-11
+
+### Changed
+
+- **`auth_coordinator` is now typed `AuthCoordinatorProtocol` instead of `Any`.** Applies to `FastApiAdapter.__init__` and the `auth_coordinator=` parameter on `.post/.get/.put/.delete/.patch(...)`. Purely additive typing — structural (`Protocol`), so every coordinator that already works continues to work unchanged; mypy/IDEs now catch a mismatched custom coordinator instead of only failing at runtime. ([#108](https://github.com/bystrovmaxim/aoa/issues/108) · [aoa-action-machine CHANGELOG](../aoa-action-machine/CHANGELOG.md))
+
 ## [1.1.0] – 2026-07-10
 
 ### Added

@@ -1,4 +1,4 @@
-<!-- translated-from: step-14-mcp_draft.md @ 2026-07-10T13:58:34Z (filesystem mtime; draft is gitignored, no git history) · sha256:495d89469936 -->
+<!-- translated-from: step-14-mcp_draft.md @ 2026-07-11T15:01:41Z (filesystem mtime; draft is gitignored, no git history) · sha256:2c1da3e2be76 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -41,6 +41,7 @@ The adapter is assembled the same fluent way as [FastAPI](step-13-fastapi.md): `
 ```python
 from aoa.mcp import McpAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
+from aoa.action_machine.context import Context
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 machine = ActionProductMachine()

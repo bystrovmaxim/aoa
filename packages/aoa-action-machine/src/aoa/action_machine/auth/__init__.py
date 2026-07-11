@@ -11,6 +11,7 @@ from aoa.action_machine.auth.auth_coordinator import (
     CredentialExtractor,
     NoAuthCoordinator,
 )
+from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
 from aoa.action_machine.auth.authenticator import Authenticator
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.guest_role import GuestRole
@@ -22,6 +23,7 @@ __all__ = [
     "AnyRole",
     "ApplicationRole",
     "AuthCoordinator",
+    "AuthCoordinatorProtocol",
     "Authenticator",
     "BaseRole",
     "ContextAssembler",
