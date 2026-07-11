@@ -1,3 +1,4 @@
+<!-- translated-from: README_draft.md @ 2026-06-18T22:35:50Z (filesystem mtime; draft is gitignored, no git history) · sha256:cf6abfcdb8a4 -->
 <p align="center">
   <img src="docs/assets/aoa-logo.png" alt="AOA" width="660"><br><br>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" alt="Python 3.12+"></a>
