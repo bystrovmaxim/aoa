@@ -13,8 +13,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from unittest.mock import Mock
 
 import jwt
+import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 from aoa.action_machine.auth.auth_coordinator import ContextAssembler, CredentialExtractor
 from aoa.action_machine.auth.base_role import BaseRole
@@ -24,6 +28,7 @@ from aoa.action_machine.auth.jwt_auth.jwt_auth_coordinator import JwtAuthCoordin
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 
 _SECRET = "unit-test-secret-key-not-for-production-use"
+_JWKS_URL = "https://issuer.example.com/.well-known/jwks.json"
 
 
 # @role_mode is mandatory here, not optional decoration: the coordinator graph
@@ -169,3 +174,41 @@ async def test_cookie_credential_extractor_produces_populated_context() -> None:
     assert context.user.roles == (AdminRole,)
     assert context.request.request_path == "/api/v1/orders"
     assert context.request.protocol == "http"
+
+
+def test_both_secret_key_and_jwks_url_raises_value_error_through_coordinator() -> None:
+    """JwtAuthCoordinator forwards secret_key/jwks_url as-is -- the XOR check fires through the wrapper too."""
+    with pytest.raises(ValueError, match="exactly one"):
+        JwtAuthCoordinator(secret_key=_SECRET, jwks_url=_JWKS_URL, role_registry={"admin": AdminRole})
+
+
+def test_neither_secret_key_nor_jwks_url_raises_value_error_through_coordinator() -> None:
+    with pytest.raises(ValueError, match="exactly one"):
+        JwtAuthCoordinator(role_registry={"admin": AdminRole})
+
+
+async def test_jwks_url_produces_populated_context_through_coordinator() -> None:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode()
+
+    coordinator = _make_coordinator(secret_key=None, jwks_url=_JWKS_URL, algorithm="RS256")
+    coordinator.authenticator._jwks_client = Mock(  # type: ignore[attr-defined]
+        get_signing_key_from_jwt=Mock(return_value=Mock(key=private_key.public_key())),
+    )
+    now = datetime.now(UTC)
+    token = jwt.encode(
+        {"sub": "alice", "roles": ["admin"], "iat": now, "exp": now + timedelta(minutes=30)},
+        private_pem,
+        algorithm="RS256",
+        headers={"kid": "test-kid-1"},
+    )
+
+    context = await coordinator.process(_FakeRequest(headers={"authorization": f"Bearer {token}"}))
+
+    assert context is not None
+    assert context.user.user_id == "alice"
+    assert context.user.roles == (AdminRole,)

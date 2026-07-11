@@ -32,6 +32,16 @@ subsequent request.
         role_registry={"admin": AdminRole},
         credential_extractor=CookieCredentialExtractor(cookie_name="session"),
     )
+
+    # A central identity provider issuing RS256 tokens (Keycloak, Auth0, Google,
+    # an in-house token service) instead of a co-deployed secret -- no key
+    # material on this consumer at all, zero-downtime rotation via `kid`:
+    auth = JwtAuthCoordinator(
+        jwks_url="https://sso.example.com/.well-known/jwks.json",
+        algorithm="RS256",
+        issuer="https://sso.example.com",
+        role_registry={"admin": AdminRole},
+    )
 """
 
 from __future__ import annotations
@@ -48,17 +58,19 @@ from aoa.action_machine.auth.jwt_auth.jwt_authenticator import JwtAuthenticator
 class JwtAuthCoordinator(AuthCoordinator):
     """
     AI-CORE-BEGIN
-    ROLE: Ready-made AuthCoordinator for JWT authentication over a pluggable credential transport.
-    CONTRACT: Construction assembles a CredentialExtractor (BearerCredentialExtractor by default, or the caller-supplied credential_extractor) + JwtAuthenticator + an HTTP ContextAssembler; process() is inherited from AuthCoordinator unchanged.
+    ROLE: Ready-made AuthCoordinator for JWT authentication over a pluggable credential transport and key source.
+    CONTRACT: Construction assembles a CredentialExtractor (BearerCredentialExtractor by default, or the caller-supplied credential_extractor) + JwtAuthenticator + an HTTP ContextAssembler; process() is inherited from AuthCoordinator unchanged. secret_key/jwks_url are forwarded to JwtAuthenticator as-is -- exactly one of the two must be set, or construction raises ValueError.
     AI-CORE-END
     """
 
     def __init__(
         self,
         *,
-        secret_key: str,
+        secret_key: str | None = None,
+        jwks_url: str | None = None,
         algorithm: str = "HS256",
         audience: str | None = None,
+        issuer: str | None = None,
         role_registry: Mapping[str, type[BaseRole]],
         user_id_claim: str = "sub",
         roles_claim: str = "roles",
@@ -69,8 +81,10 @@ class JwtAuthCoordinator(AuthCoordinator):
             extractor=credential_extractor or BearerCredentialExtractor(),
             auth_instance=JwtAuthenticator(
                 secret_key=secret_key,
+                jwks_url=jwks_url,
                 algorithm=algorithm,
                 audience=audience,
+                issuer=issuer,
                 role_registry=role_registry,
                 user_id_claim=user_id_claim,
                 roles_claim=roles_claim,
