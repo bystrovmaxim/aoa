@@ -1,4 +1,4 @@
-<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-06-20T20:53:08Z (filesystem mtime; draft is gitignored, no git history) · sha256:5c746bbc793c -->
+<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-11T14:38:38Z (filesystem mtime; draft is gitignored, no git history) · sha256:552048fc6c6c -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -180,12 +180,11 @@ This turns changing the role model from a risky operation into a managed one: a 
 
 ## What's ahead
 
-In an upcoming release (see ROADMAP) authorization will become even more expressive while staying declarative:
+Authorization is planned to become even more expressive, while staying declarative:
 
-- **Conditional authorization** — a `condition: Callable[[AuthSession, Params], bool]` parameter on `@check_roles`: a lambda that fires *after* the role check and decides access by the call data itself. So "a manager may cancel only an order from their own region" becomes part of the operation's contract rather than a branch in its body.
-- **`NoneRole` renamed to `GuestRole`** — the old name expressed absence; the new name expresses intent: "guest access, declared explicitly". `NoneRole` is removed.
+**Conditional authorization** — a `condition: Callable[[AuthSession, Params], bool]` parameter on `@check_roles`: a lambda that fires *after* the role check and decides access by the call data itself. So "a manager may cancel only an order from their own region" becomes part of the operation's contract rather than a branch in its body.
 
-Both items are *planned*; in the current version they do not yet exist.
+Tracked in [issue #65](https://github.com/bystrovmaxim/aoa/issues/65); in the current version this does not yet exist.
 
 ---
 

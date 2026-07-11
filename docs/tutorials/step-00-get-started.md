@@ -1,4 +1,4 @@
-<!-- translated-from: step-00-get-started_draft.md @ 2026-06-24T01:02:55Z (filesystem mtime; draft is gitignored, no git history) · sha256:b3ec4c640ed3 -->
+<!-- translated-from: step-00-get-started_draft.md @ 2026-07-11T14:38:17Z (filesystem mtime; draft is gitignored, no git history) · sha256:20bac9c142ce -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200"><br><br>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" alt="Python 3.12+"></a>
@@ -113,7 +113,7 @@ aoa/
 ├── tests/           ← around two thousand tests; part of the invariants are also checked here
 ├── scripts/         ← static checks of package and layer boundaries for CI
 │
-├── README.md · ROADMAP.md · LICENSE
+├── README.md · LICENSE
 ├── pyproject.toml · uv.lock      ← the uv workspace
 └── housekeeping: .github/, dist/, .venv, caches, htmlcov
 ```

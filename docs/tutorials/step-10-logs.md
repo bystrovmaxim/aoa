@@ -1,4 +1,4 @@
-<!-- translated-from: step-10-logs_draft.md @ 2026-06-17T17:53:37Z · sha256:35c13bb3906a -->
+<!-- translated-from: step-10-logs_draft.md @ 2026-07-11T14:38:22Z (filesystem mtime; draft is gitignored, no git history) · sha256:b2811cdef7d5 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -52,7 +52,7 @@ The first argument to `box` is the **channel**, the semantic address of the even
 await box.info(Channel.business | Channel.security, "Login from new device: {%var.user}", user=params.username)
 ```
 
-The channel and level are the **address and importance**: by them loggers decide what to pick up (for example, only `business` events at `critical` level). *(A `client` channel for end-user notifications is planned, see ROADMAP.)*
+The channel and level are the **address and importance**: by them loggers decide what to pick up (for example, only `business` events at `critical` level). *(A `client` channel for end-user notifications is planned, see [issue #68](https://github.com/bystrovmaxim/aoa/issues/68).)*
 
 ## Templates
 

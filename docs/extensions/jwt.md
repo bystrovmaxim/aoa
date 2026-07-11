@@ -1,4 +1,4 @@
-<!-- translated-from: jwt_draft.md @ 2026-07-11T13:46:07Z (filesystem mtime; draft is gitignored, no git history) · sha256:a4fce7e9e753 -->
+<!-- translated-from: jwt_draft.md @ 2026-07-11T14:10:43Z (filesystem mtime; draft is gitignored, no git history) · sha256:fbf9dce9a47c -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -17,13 +17,14 @@
 - [Full cycle — FastAPI](#full-cycle--fastapi)
 - [MCP — it doesn't work, and here's why](#mcp--it-doesnt-work-and-heres-why)
 - [Transport: header or cookie](#transport-header-or-cookie)
+- [External IdP: RS256 and JWKS](#external-idp-rs256-and-jwks)
 - [Roles: mapping the claim to classes](#roles-mapping-the-claim-to-classes)
 - [Variants](#variants)
 - [API surface](#api-surface)
 
 ---
 
-`JwtAuthCoordinator` is a ready-made [`AuthCoordinator`](../tutorials/step-12-authentication.md) that verifies `Authorization: Bearer <jwt>` on every request: signature, expiry, optionally `audience`, roles — from the token's claims. It fits when a service issues its own tokens (unlike OAuth2, where an external provider issues the token) and doesn't want to keep sessions — the token carries everything needed, verification requires no trip to a database.
+`JwtAuthCoordinator` is a ready-made [`AuthCoordinator`](../tutorials/step-12-authentication.md) that verifies `Authorization: Bearer <jwt>` on every request: signature, expiry, optionally `audience`/`issuer`, roles — from the token's claims. The verification key is either a static secret the service signs its own tokens with (`secret_key`), or the JWKS of an external identity provider (`jwks_url` — Keycloak, Auth0, Google, an in-house token service; see [«External IdP: RS256 and JWKS»](#external-idp-rs256-and-jwks)). Either way, no sessions need to be kept — the token carries everything needed, verification requires no trip to a database.
 
 **Issuing the token (login) is out of scope.** `JwtAuthCoordinator` only **verifies** a Bearer token on an incoming request. How an application issues a token at login is an ordinary `LoginAction` that signs a JWT with PyJWT directly; no special class ships for this (see [below](#two-phases-issuing-and-verifying)).
 
@@ -33,7 +34,7 @@
 
 - **`BearerCredentialExtractor`** (`CredentialExtractor`) — pulls the token out of `Authorization: Bearer <jwt>`. An empty/malformed header → `{}` (no credentials); `request_data` with no `.headers` at all → `TypeError` (a wiring error, not "no credentials" — see the [MCP section](#mcp--it-doesnt-work-and-heres-why)).
 - **`CookieCredentialExtractor`** (`CredentialExtractor`) — the same contract, but pulls the token out of a named cookie (`request_data.cookies`) instead of a header — see [«Transport: header or cookie»](#transport-header-or-cookie).
-- **`JwtAuthenticator`** (`Authenticator`) — `jwt.decode(...)` with a fixed allowlist of algorithms (not whatever the token itself claims — otherwise algorithm confusion), checks the mandatory `exp`, optionally `audience`, maps the `roles` claim (a list of strings) to `BaseRole` classes via `role_registry`. Any verification failure → `None` (the `Authenticator` contract: invalid → `None`, not an exception).
+- **`JwtAuthenticator`** (`Authenticator`) — `jwt.decode(...)` with a fixed allowlist of algorithms (not whatever the token itself claims — otherwise algorithm confusion), checks the mandatory `exp`, optionally `audience`/`issuer`, maps the `roles` claim (a list of strings) to `BaseRole` classes via `role_registry`. The verification key is either a static `secret_key` or a JWKS endpoint `jwks_url` (exactly one of the two, else `ValueError` at construction) — see [«External IdP: RS256 and JWKS»](#external-idp-rs256-and-jwks). Any verification failure → `None` (the `Authenticator` contract: invalid → `None`, not an exception).
 - **`HttpContextAssembler`** (`ContextAssembler`) — the default `RequestInfo` projection built from `request_data.url.path`/`.method`/`.client.host` (Starlette `Request`).
 - **`JwtAuthCoordinator`** (`AuthCoordinator`) — a thin subclass that just assembles the three components above; no `process()` logic of its own. The extractor is swappable via `credential_extractor=` (`None` by default → `BearerCredentialExtractor()`), symmetric with the existing `context_assembler=`.
 
@@ -43,7 +44,7 @@
 pip install "aoa-action-machine[jwt]"
 ```
 
-The extra pulls in only `PyJWT` — a lightweight, pure-Python library. `aoa.action_machine.auth` (the core namespace) never imports `jwt_auth` — without the extra, `PyJWT` never loads into memory at all, not even transitively.
+The extra pulls in `PyJWT[crypto]` — PyJWT itself is lightweight and pure-Python, `[crypto]` adds `cryptography` (needed to verify RS256/ES256 — without it, asymmetric algorithms fail at runtime, not at install time). `aoa.action_machine.auth` (the core namespace) never imports `jwt_auth` — without the extra, neither `PyJWT` nor `cryptography` ever loads into memory, not even transitively.
 
 ## Two phases: issuing and verifying
 
@@ -59,6 +60,8 @@ LoginAction (your code, GuestRole)         JwtAuthCoordinator (built in)
 ```
 
 **The secret and the algorithm must match on both sides** — this is a symmetric key (HS256): `JwtAuthCoordinator` verifies with the same `secret_key` that `LoginAction` used to sign. The lifetime (`TOKEN_TTL`) is a signing-side-only parameter: it's already baked into the token's `exp` claim, the verifying side never needs to know the TTL itself.
+
+This shape has the service play both issuer and verifier. When the issuer is an external IdP (Keycloak, Auth0, Google) and there's no `LoginAction` in the service at all, the left half of the diagram doesn't exist: the service only verifies, and never holds the issuer's key material at all — see [«External IdP: RS256 and JWKS»](#external-idp-rs256-and-jwks).
 
 ## Full cycle — FastAPI
 
@@ -141,6 +144,41 @@ auth = JwtAuthCoordinator(
 
 A working example — [`examples/step_13_fastapi/05_cookie_auth.py`](../../examples/step_13_fastapi/05_cookie_auth.py) ([▶ Try in Colab](#05_cookie_auth.ipynb)): `LoginAction` sets `Set-Cookie: session=...; HttpOnly`, the protected route is reached with no `Authorization` header at all — only through the cookie the client stored, and the coordinator is a plain `JwtAuthCoordinator` with `credential_extractor=CookieCredentialExtractor(...)`.
 
+## External IdP: RS256 and JWKS
+
+`secret_key` is a shared static key: HS256 within one service, or a mounted public key for RS256/ES256. At scale this shape has two operational downsides: the verification key has to be copied into every consumer (a file per container, an ops step per service), and rotation is all-or-nothing — consumers hold exactly one key, so rotating the issuer's key instantly invalidates every outstanding token (mass logout).
+
+The industry answer is **JWKS** (RFC 7517): the issuer publishes its public keys at a URL like `https://issuer/.well-known/jwks.json`, every token carries a `kid` header, and verifiers fetch and cache the key set and pick the right one by `kid`. Rotation becomes seamless: publish old+new, sign with the new key, drop the old one once outstanding tokens expire. The consumer holds no key material at all — only a URL. PyJWT supports this natively via `jwt.PyJWKClient`, no new dependency required.
+
+```python
+auth = JwtAuthCoordinator(
+    jwks_url="https://sso.example.com/.well-known/jwks.json",
+    algorithm="RS256",
+    issuer="https://sso.example.com",
+    audience="my-platform",
+    role_registry={"admin": AdminRole},
+)
+```
+
+`jwks_url` and `secret_key` are mutually exclusive — exactly one of the two is required, else `ValueError` at construction (fail-fast, same as every other declaration-time check). The allowlist passed to `jwt.decode` is still exactly one algorithm — whatever `algorithm=` says, never whatever the token itself claims (algorithm-confusion protection is unchanged).
+
+**`issuer` is now validated too.** Previously `iss` was ignored outright; `issuer=...` turns on validation (a mismatch rejects the token), `issuer=None` (the default) — same as before, `iss` is not checked. Works identically for a static key and for JWKS.
+
+**Failure is always `None`, never an exception.** An unreachable JWKS endpoint, an unknown `kid`, a token with no `kid` at all, a malformed JWKS document — all of it degrades to `None` (same as any other verification failure), never an unhandled exception somewhere mid-pipeline.
+
+**Packaging.** RS256/ES256 signature verification needs `cryptography` — the `aoa-action-machine[jwt]` extra now pulls in `PyJWT[crypto]` instead of plain `PyJWT`.
+
+**Static key or JWKS:**
+
+| | Static key (`secret_key`) | JWKS (`jwks_url`) |
+|---|---|---|
+| Topology | One service signs and verifies itself | One central IdP, many verifying services |
+| Key on the consumer | Yes (an HS256 secret, or a mounted public key) | No — a URL only |
+| Rotation | All-or-nothing, logs every token out at once | Seamless — publish old+new, then drop the old one |
+| Typical IdP | Your own | Keycloak, Auth0, Google, an in-house token service |
+
+A working example — [`examples/step_13_fastapi/06_jwks_auth.py`](../../examples/step_13_fastapi/06_jwks_auth.py) ([▶ Try in Colab](#06_jwks_auth.ipynb)): generates an RSA keypair and a local JWKS document right in the example, `LoginAction` signs RS256 with a `kid` header, the protected route verifies through `jwks_url` with `issuer=` set, plus a negative case — a token from a "foreign" issuer gets rejected.
+
 ## Roles: mapping the claim to classes
 
 A JWT carries roles as strings (`"roles": ["admin", "viewer"]`), while `UserInfo.roles` is a tuple of `BaseRole` classes. `role_registry` is the explicit dict the developer supplies:
@@ -153,13 +191,12 @@ Unmapped names in the claim are silently dropped rather than rejecting the token
 
 ## Variants
 
-- **HS256 (a shared secret) vs. RS256/JWKS (asymmetric).** `JwtAuthCoordinator` ships with HS256 — the same `secret_key` signs and verifies. For a microservice setup where the verifying service should not know the signing secret (only the issuing service should) you need an asymmetric algorithm (RS256/ES256) and a public key instead of `secret_key`; today `JwtAuthenticator` accepts a single `secret_key`, so JWKS (a set of public keys, rotated by `kid`) would need a separate extension.
-- **`audience`/`issuer` for multi-service systems.** `audience=` is already supported — a token issued for one service won't be accepted by another with a different `audience`. `issuer` (`iss`) is not yet checked.
+- **Static key vs. RS256/JWKS.** See [«External IdP: RS256 and JWKS»](#external-idp-rs256-and-jwks) — `secret_key`/`jwks_url` are mutually exclusive, `issuer=` optionally validates `iss`.
 - **One long-lived token (as in the demo) vs. an access+refresh pair.** The demo example uses a single 30-minute token. There is no built-in support for refresh tokens — if needed, issuing them (another `LoginAction`-like Action) and storing them stays application code, just like login itself.
 
 ## API surface
 
-`BearerCredentialExtractor()` · `CookieCredentialExtractor(cookie_name)` · `JwtAuthenticator(secret_key, algorithm="HS256", audience=None, role_registry, user_id_claim="sub", roles_claim="roles")` · `HttpContextAssembler()` · `JwtAuthCoordinator(secret_key, algorithm="HS256", audience=None, role_registry, user_id_claim="sub", roles_claim="roles", credential_extractor=None, context_assembler=None)`.
+`BearerCredentialExtractor()` · `CookieCredentialExtractor(cookie_name)` · `JwtAuthenticator(secret_key=None, jwks_url=None, algorithm="HS256", audience=None, issuer=None, role_registry, user_id_claim="sub", roles_claim="roles")` · `HttpContextAssembler()` · `JwtAuthCoordinator(secret_key=None, jwks_url=None, algorithm="HS256", audience=None, issuer=None, role_registry, user_id_claim="sub", roles_claim="roles", credential_extractor=None, context_assembler=None)`.
 
 How authentication is structured overall — the chapter [Authentication](../tutorials/step-12-authentication.md); your own sign-in mechanism (Basic, API key, OAuth2, anything else) — [«Your own authentication coordinator»](../how-to/authoring-auth-coordinator.md).
 
