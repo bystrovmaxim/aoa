@@ -1,4 +1,4 @@
-<!-- translated-from: jwt_draft.md @ 2026-07-11T13:35:58Z (filesystem mtime; draft is gitignored, no git history) · sha256:f7090720ef42 -->
+<!-- translated-from: jwt_draft.md @ 2026-07-11T13:46:07Z (filesystem mtime; draft is gitignored, no git history) · sha256:a4fce7e9e753 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -35,7 +35,7 @@
 - **`CookieCredentialExtractor`** (`CredentialExtractor`) — the same contract, but pulls the token out of a named cookie (`request_data.cookies`) instead of a header — see [«Transport: header or cookie»](#transport-header-or-cookie).
 - **`JwtAuthenticator`** (`Authenticator`) — `jwt.decode(...)` with a fixed allowlist of algorithms (not whatever the token itself claims — otherwise algorithm confusion), checks the mandatory `exp`, optionally `audience`, maps the `roles` claim (a list of strings) to `BaseRole` classes via `role_registry`. Any verification failure → `None` (the `Authenticator` contract: invalid → `None`, not an exception).
 - **`HttpContextAssembler`** (`ContextAssembler`) — the default `RequestInfo` projection built from `request_data.url.path`/`.method`/`.client.host` (Starlette `Request`).
-- **`JwtAuthCoordinator`** (`AuthCoordinator`) — a thin subclass that just assembles the three components above; no `process()` logic of its own.
+- **`JwtAuthCoordinator`** (`AuthCoordinator`) — a thin subclass that just assembles the three components above; no `process()` logic of its own. The extractor is swappable via `credential_extractor=` (`None` by default → `BearerCredentialExtractor()`), symmetric with the existing `context_assembler=`.
 
 ## Installation
 
@@ -122,6 +122,16 @@ For browser-based SSO across subdomains (`app.example.com`, `admin.example.com`,
 
 `CookieCredentialExtractor(cookie_name=...)` reads it from there — the contract is identical to `BearerCredentialExtractor`'s: an empty/missing cookie → `{}` (no credentials), `request_data` with no `.cookies` at all → `TypeError` (a wiring error — the same `McpAdapter` case as above).
 
+It plugs straight into `JwtAuthCoordinator` — the `credential_extractor` parameter swaps `BearerCredentialExtractor` for any other `CredentialExtractor`; the rest of the pipeline (signature, `exp`, `role_registry`) is unchanged:
+
+```python
+auth = JwtAuthCoordinator(
+    secret_key=...,
+    role_registry={"admin": AdminRole},
+    credential_extractor=CookieCredentialExtractor(cookie_name="session"),
+)
+```
+
 **`SameSite` and subdomains.** `Domain=.example.com` makes the cookie visible on every subdomain of one eTLD+1 (`app.example.com`, `admin.example.com`, ...) — from `SameSite=Lax`'s point of view (the modern browser default for cookies), those all count as "the same site", so the cookie flows freely between them. A third-party domain (`evil.com`) still never receives it in a cross-site request — `SameSite`'s baseline CSRF protection holds regardless of how many subdomains the cookie is visible to.
 
 **Which to choose:**
@@ -129,7 +139,7 @@ For browser-based SSO across subdomains (`app.example.com`, `admin.example.com`,
 - **Header (`BearerCredentialExtractor`)** — the client controls the request programmatically and can explicitly attach the token: API-to-API, CLI, mobile apps, server-to-server integrations.
 - **Cookie (`CookieCredentialExtractor`)** — browser-based SSO across subdomains via an `httpOnly` session: JavaScript cannot read the token by design, so Bearer isn't merely inconvenient here — it's architecturally impossible.
 
-A working example — [`examples/step_13_fastapi/05_cookie_auth.py`](../../examples/step_13_fastapi/05_cookie_auth.py) ([▶ Try in Colab](#05_cookie_auth.ipynb)): `LoginAction` sets `Set-Cookie: session=...; HttpOnly`, the protected route is reached with no `Authorization` header at all — only through the cookie the client stored. `JwtAuthCoordinator` won't work here — it's hard-wired to `BearerCredentialExtractor` — so `AuthCoordinator` is assembled by hand from the same three components, with `CookieCredentialExtractor` in place of `BearerCredentialExtractor`.
+A working example — [`examples/step_13_fastapi/05_cookie_auth.py`](../../examples/step_13_fastapi/05_cookie_auth.py) ([▶ Try in Colab](#05_cookie_auth.ipynb)): `LoginAction` sets `Set-Cookie: session=...; HttpOnly`, the protected route is reached with no `Authorization` header at all — only through the cookie the client stored, and the coordinator is a plain `JwtAuthCoordinator` with `credential_extractor=CookieCredentialExtractor(...)`.
 
 ## Roles: mapping the claim to classes
 
@@ -149,7 +159,7 @@ Unmapped names in the claim are silently dropped rather than rejecting the token
 
 ## API surface
 
-`BearerCredentialExtractor()` · `CookieCredentialExtractor(cookie_name)` · `JwtAuthenticator(secret_key, algorithm="HS256", audience=None, role_registry, user_id_claim="sub", roles_claim="roles")` · `HttpContextAssembler()` · `JwtAuthCoordinator(secret_key, algorithm="HS256", audience=None, role_registry, user_id_claim="sub", roles_claim="roles", context_assembler=None)`.
+`BearerCredentialExtractor()` · `CookieCredentialExtractor(cookie_name)` · `JwtAuthenticator(secret_key, algorithm="HS256", audience=None, role_registry, user_id_claim="sub", roles_claim="roles")` · `HttpContextAssembler()` · `JwtAuthCoordinator(secret_key, algorithm="HS256", audience=None, role_registry, user_id_claim="sub", roles_claim="roles", credential_extractor=None, context_assembler=None)`.
 
 How authentication is structured overall — the chapter [Authentication](../tutorials/step-12-authentication.md); your own sign-in mechanism (Basic, API key, OAuth2, anything else) — [«Your own authentication coordinator»](../how-to/authoring-auth-coordinator.md).
 

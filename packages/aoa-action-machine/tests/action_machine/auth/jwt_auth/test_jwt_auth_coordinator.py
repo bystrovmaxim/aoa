@@ -16,8 +16,10 @@ from typing import Any
 
 import jwt
 
-from aoa.action_machine.auth.auth_coordinator import ContextAssembler
+from aoa.action_machine.auth.auth_coordinator import ContextAssembler, CredentialExtractor
 from aoa.action_machine.auth.base_role import BaseRole
+from aoa.action_machine.auth.jwt_auth.bearer_credential_extractor import BearerCredentialExtractor
+from aoa.action_machine.auth.jwt_auth.cookie_credential_extractor import CookieCredentialExtractor
 from aoa.action_machine.auth.jwt_auth.jwt_auth_coordinator import JwtAuthCoordinator
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 
@@ -42,8 +44,15 @@ class _FakeUrl:
 
 
 class _FakeRequest:
-    def __init__(self, *, headers: dict[str, str] | None = None, path: str = "/orders") -> None:
+    def __init__(
+        self,
+        *,
+        headers: dict[str, str] | None = None,
+        cookies: dict[str, str] | None = None,
+        path: str = "/orders",
+    ) -> None:
         self.headers = headers or {}
+        self.cookies = cookies or {}
         self.url = _FakeUrl(path)
         self.method = "GET"
         self.client = None
@@ -124,3 +133,39 @@ async def test_custom_context_assembler_is_used_instead_of_default() -> None:
     assert context is not None
     assert context.request.trace_id == "fixed-trace-id"
     assert context.request.request_path is None  # the stub never set it
+
+
+async def test_default_credential_extractor_is_bearer() -> None:
+    coordinator = _make_coordinator()
+
+    assert isinstance(coordinator.extractor, BearerCredentialExtractor)
+
+
+async def test_custom_credential_extractor_is_used_instead_of_default() -> None:
+    token = _sign()
+
+    class _StubExtractor(CredentialExtractor):
+        async def extract(self, request_data: Any) -> dict[str, Any]:
+            _ = request_data
+            return {"token": token}
+
+    coordinator = _make_coordinator(credential_extractor=_StubExtractor())
+
+    # No Authorization header at all -- the stub supplies the token instead of Bearer.
+    context = await coordinator.process(_FakeRequest())
+
+    assert context is not None
+    assert context.user.user_id == "alice"
+
+
+async def test_cookie_credential_extractor_produces_populated_context() -> None:
+    token = _sign()
+    coordinator = _make_coordinator(credential_extractor=CookieCredentialExtractor(cookie_name="session"))
+
+    context = await coordinator.process(_FakeRequest(cookies={"session": token}, path="/api/v1/orders"))
+
+    assert context is not None
+    assert context.user.user_id == "alice"
+    assert context.user.roles == (AdminRole,)
+    assert context.request.request_path == "/api/v1/orders"
+    assert context.request.protocol == "http"
