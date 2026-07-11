@@ -19,6 +19,14 @@ function clampUserScale(scale: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
 }
 
+function touchDistance(a: Touch, b: Touch): number {
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+}
+
+function touchMidpoint(a: Touch, b: Touch, rect: DOMRect): { x: number; y: number } {
+  return { x: (a.clientX + b.clientX) / 2 - rect.left, y: (a.clientY + b.clientY) / 2 - rect.top };
+}
+
 function stripGraphvizBackdropPolygons(svg: SVGSVGElement): void {
   const gg = svg.querySelector("g.graph");
   if (!gg) return;
@@ -141,6 +149,8 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
   const pannerRef = useRef<HTMLDivElement | null>(null);
   const panRef = useRef({ scale: 1, tx: 0, ty: 0 });
   const dragRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
+  const touchDragRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
+  const pinchRef = useRef<{ startDist: number; startScale: number } | null>(null);
   const wheelAccumRef = useRef(0);
   const wheelRafRef = useRef<number | null>(null);
   const wheelFocalRef = useRef<{ ox: number; oy: number } | null>(null);
@@ -352,10 +362,74 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
       }
     };
 
+    // Single finger pans, two fingers pinch-zoom (and may pan too, tracking the midpoint each
+    // frame) — reuses the same focal-point scale math as wheel zoom. touch-action:"none" on the
+    // viewport already blocks the browser's native scroll/pinch; preventDefault is defense-in-depth.
+    const onTouchStart = (evt: TouchEvent) => {
+      if (evt.touches.length === 1) {
+        pinchRef.current = null;
+        const t = evt.touches[0];
+        touchDragRef.current = { x: t.clientX, y: t.clientY, tx: panRef.current.tx, ty: panRef.current.ty };
+        vp.classList.add("erd-panning");
+      } else if (evt.touches.length === 2) {
+        touchDragRef.current = null;
+        vp.classList.remove("erd-panning");
+        pinchRef.current = {
+          startDist: touchDistance(evt.touches[0], evt.touches[1]),
+          startScale: panRef.current.scale,
+        };
+      }
+    };
+
+    const onTouchMove = (evt: TouchEvent) => {
+      if (evt.touches.length === 2 && pinchRef.current) {
+        evt.preventDefault();
+        const [t0, t1] = [evt.touches[0], evt.touches[1]];
+        const { startDist, startScale } = pinchRef.current;
+        if (startDist > 0) {
+          const dist = touchDistance(t0, t1);
+          const mid = touchMidpoint(t0, t1, vp.getBoundingClientRect());
+          const s0 = panRef.current.scale;
+          const s1 = clampUserScale(startScale * (dist / startDist));
+          if (s1 !== s0) {
+            panRef.current.tx = mid.x - (mid.x - panRef.current.tx) * (s1 / s0);
+            panRef.current.ty = mid.y - (mid.y - panRef.current.ty) * (s1 / s0);
+            panRef.current.scale = s1;
+            applyTransform();
+          }
+        }
+      } else if (evt.touches.length === 1 && touchDragRef.current) {
+        evt.preventDefault();
+        const t = evt.touches[0];
+        panRef.current.tx = touchDragRef.current.tx + (t.clientX - touchDragRef.current.x);
+        panRef.current.ty = touchDragRef.current.ty + (t.clientY - touchDragRef.current.y);
+        applyTransform();
+      }
+    };
+
+    const onTouchEnd = (evt: TouchEvent) => {
+      if (evt.touches.length === 0) {
+        touchDragRef.current = null;
+        pinchRef.current = null;
+        vp.classList.remove("erd-panning");
+        setZoomPct(Math.round(panRef.current.scale * 100));
+      } else if (evt.touches.length === 1) {
+        // Dropped from two touches to one — restart single-finger pan from here, no jump.
+        pinchRef.current = null;
+        const t = evt.touches[0];
+        touchDragRef.current = { x: t.clientX, y: t.clientY, tx: panRef.current.tx, ty: panRef.current.ty };
+        vp.classList.add("erd-panning");
+      }
+    };
+
     vp.addEventListener("wheel", onWheel, { passive: false, signal: sig });
     vp.addEventListener("mousedown", onMouseDown, { signal: sig });
     window.addEventListener("mousemove", onMouseMove, { signal: sig });
     window.addEventListener("mouseup", onMouseUp, { signal: sig });
+    vp.addEventListener("touchstart", onTouchStart, { passive: false, signal: sig });
+    vp.addEventListener("touchmove", onTouchMove, { passive: false, signal: sig });
+    vp.addEventListener("touchend", onTouchEnd, { signal: sig });
+    vp.addEventListener("touchcancel", onTouchEnd, { signal: sig });
 
     return () => {
       ac.abort();

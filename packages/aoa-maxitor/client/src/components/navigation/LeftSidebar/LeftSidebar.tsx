@@ -11,6 +11,8 @@ import ListItemText from "@mui/material/ListItemText";
 import type { ListItemTextProps } from "@mui/material/ListItemText";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
 import type { DiagramSelection } from "@/model/diagramSelection";
 import type { SidebarPayload } from "@/model/sidebar";
@@ -130,7 +132,14 @@ function erdRowLabelForDomainGroup(domainLabel: string, rowLabel: string): strin
 }
 
 export function LeftSidebar({ diagram, onSelectDiagram, sidebar, onLoaded, onReset }: LeftSidebarProps) {
-  const { collapsed, toggleCollapsed } = useSidebarCollapse();
+  const { collapsed, toggleCollapsed, setCollapsed } = useSidebarCollapse();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  /** On mobile the drawer is an overlay — picking a diagram should close it so the diagram is visible. */
+  const handleSelectDiagram = (sel: DiagramSelection) => {
+    onSelectDiagram(sel);
+    if (isMobile) setCollapsed(true);
+  };
   const group = useMemo(() => (sidebar ? buildSidebarGroupedMaps(sidebar) : null), [sidebar]);
   /** Root ids (e.g. `domains_root`) and graph node ids (e.g. domain rows) share one expand map — ids do not collide. */
   const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
@@ -337,7 +346,7 @@ export function LeftSidebar({ diagram, onSelectDiagram, sidebar, onLoaded, onRes
                               disabled={!sel}
                               selected={sel !== null && diagram !== null && selectionKey(diagram) === selectionKey(sel)}
                               onMouseEnter={() => prefetchDiagramModule(sel)}
-                              onClick={() => sel && onSelectDiagram(sel)}
+                              onClick={() => sel && handleSelectDiagram(sel)}
                               sx={{
                                 borderRadius: 1.5,
                                 pl: 4,
@@ -451,7 +460,7 @@ export function LeftSidebar({ diagram, onSelectDiagram, sidebar, onLoaded, onRes
                                               selectionKey(diagram) === selectionKey(sel)
                                             }
                                             onMouseEnter={() => prefetchDiagramModule(sel)}
-                                            onClick={() => sel && onSelectDiagram(sel)}
+                                            onClick={() => sel && handleSelectDiagram(sel)}
                                             sx={{
                                               borderRadius: 1.5,
                                               pl: 6,

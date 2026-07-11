@@ -2,13 +2,8 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
-import {
-  floatingLegendPanelSx,
-  floatingLegendTitleSx,
-  legendDiskImgSx,
-  legendRowLabelSx,
-  legendRowSx,
-} from "@/lib/ui";
+import { legendDiskImgSx, legendRowLabelSx, legendRowSx } from "@/lib/ui";
+import { CollapsibleLegendPanel } from "@/components/ui/CollapsibleLegendPanel";
 
 export type DomainLegendProps = {
   domainKeys: string[];
@@ -36,10 +31,7 @@ export function DomainLegend({
   if (!showWhenSingle && domainKeys.length <= 1) return null;
 
   return (
-    <Box component="aside" aria-label="Domains" sx={floatingLegendPanelSx}>
-      <Typography variant="caption" sx={floatingLegendTitleSx}>
-        Domains
-      </Typography>
+    <CollapsibleLegendPanel ariaLabel="Domains" title="Domains">
       {domainKeys.map((k) => {
         const on = enabledDomains.has(k);
         const color = accents[k] || "#3b82f6";
@@ -78,6 +70,6 @@ export function DomainLegend({
           </Box>
         );
       })}
-    </Box>
+    </CollapsibleLegendPanel>
   );
 }

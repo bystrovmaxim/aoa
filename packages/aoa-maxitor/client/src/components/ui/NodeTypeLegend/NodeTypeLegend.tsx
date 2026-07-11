@@ -2,13 +2,8 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { svgDataUriForGraphNodeIcon } from "@/lib/icons";
-import {
-  floatingLegendPanelSx,
-  floatingLegendTitleSx,
-  legendDiskImgSx,
-  legendRowLabelSx,
-  legendRowSx,
-} from "@/lib/ui";
+import { legendDiskImgSx, legendRowLabelSx, legendRowSx } from "@/lib/ui";
+import { CollapsibleLegendPanel } from "@/components/ui/CollapsibleLegendPanel";
 
 export type NodeTypeLegendItem = { type: string; color: string };
 
@@ -19,10 +14,7 @@ export type NodeTypeLegendProps = {
 /** Full-graph (G6) node-type legend — absolute inside the graph viewport. */
 export function NodeTypeLegend({ items }: NodeTypeLegendProps) {
   return (
-    <Box component="aside" aria-label="Node types" sx={floatingLegendPanelSx}>
-      <Typography variant="caption" sx={floatingLegendTitleSx}>
-        Node types
-      </Typography>
+    <CollapsibleLegendPanel ariaLabel="Node types" title="Node types">
       {items.map((it) => (
         <Box key={it.type} sx={legendRowSx} title={it.type}>
           <Box
@@ -38,6 +30,6 @@ export function NodeTypeLegend({ items }: NodeTypeLegendProps) {
           </Typography>
         </Box>
       ))}
-    </Box>
+    </CollapsibleLegendPanel>
   );
 }

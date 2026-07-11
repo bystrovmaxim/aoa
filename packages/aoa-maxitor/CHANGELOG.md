@@ -5,11 +5,13 @@ All notable changes to `aoa-maxitor` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.6] – 2026-07-11
 
 ### Added
 
 - **URL deep-linking for the Maxitor SPA.** `?source=<service-url>&view=<full-graph|domain-erd|use-case|lifecycle-fsm>[&domain=|&node=&host=]` loads the given service and lands directly on the given view — `use-case`/`lifecycle-fsm` opened without their qualifier fall back to the first matching sidebar row once it loads. Every subsequent navigation (sidebar click, loading/switching service) pushes a browser history entry and updates the URL, so Back/Forward step through visited diagrams one at a time (reloading the graph server-side if needed) and the current URL is always copy-paste shareable. ([#126](https://github.com/bystrovmaxim/aoa/issues/126))
+- **Mobile-responsive layout for the Maxitor SPA.** Below the `sm` breakpoint the sidebar becomes an off-canvas overlay drawer (was a permanent panel eating 48-255px of a narrow viewport) with a menu button to open it and auto-close on diagram selection. ERD/use-case/lifecycle views (Graphviz SVG) gained touch pan and two-finger pinch-zoom — previously mouse-only despite `touchAction: "none"` silently blocking native touch with nothing replacing it; the Full Graph view (G6 canvas) already had native touch support via G6 v5 and needed no change. Zoom toolbar buttons grow from 30px to 44px on mobile to meet minimum touch-target guidance. The "Node types" / "Domains" legend panels, previously pinned open and covering most of a narrow canvas, now start collapsed to a small pill on mobile and expand on tap. ([#125](https://github.com/bystrovmaxim/aoa/issues/125))
+- **Copy button on recent service URLs.** Hovering a row in the "AOA Service URL" panel's recent-history list reveals a copy-to-clipboard button (also reachable via keyboard focus), independent of the row's own click-to-load action.
 
 ## [1.1.4] – 2026-07-10
 

@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 type SidebarCollapseContextValue = {
   collapsed: boolean;
   toggleCollapsed: () => void;
+  setCollapsed: (collapsed: boolean) => void;
 };
 
 const SidebarCollapseContext = createContext<SidebarCollapseContextValue | null>(null);
@@ -17,6 +18,7 @@ export function SidebarCollapseProvider({ children }: { children: ReactNode }) {
     () => ({
       collapsed,
       toggleCollapsed,
+      setCollapsed,
     }),
     [collapsed, toggleCollapsed],
   );
