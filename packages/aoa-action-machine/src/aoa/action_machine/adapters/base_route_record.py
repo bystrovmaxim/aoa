@@ -51,6 +51,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, validate_connection_entries
@@ -131,7 +132,7 @@ class BaseRouteRecord:
     params_mapper: Callable[..., Any] | None = None
     response_mapper: Callable[..., Any] | None = None
     connections: Mapping[str, ConnectionValue] | None = None
-    auth_coordinator: Any | None = None
+    auth_coordinator: AuthCoordinatorProtocol | None = None
     _cached_params_type: type = field(init=False, repr=False)
     _cached_result_type: type = field(init=False, repr=False)
 

@@ -202,13 +202,49 @@ class TestRouteRegistration:
         assert adapter.routes[0].auth_coordinator is None
 
     @pytest.mark.parametrize("verb", ["post", "get", "put", "delete", "patch"])
-    def test_auth_coordinator_passed_by_every_verb(self, verb: str) -> None:
-        """Every registration method (post/get/put/delete/patch) forwards ``auth_coordinator`` to the record."""
-        adapter = _make_adapter()
-        override = AsyncMock()
-        getattr(adapter, verb)("/x", PingAction, auth_coordinator=override)
+    @pytest.mark.parametrize(
+        "kwarg,value",
+        [
+            ("request_model", PingAction.Params),
+            ("response_model", PingAction.Result),
+            ("params_mapper", lambda body: body),
+            ("response_mapper", lambda result: result),
+            ("tags", ("orders", "create")),
+            ("summary", "Do the thing"),
+            ("description", "A longer description"),
+            ("operation_id", "custom_op_id"),
+            ("deprecated", True),
+            ("connections", {"svc": DummyResourceManager()}),
+            ("auth_coordinator", AsyncMock()),
+        ],
+        ids=[
+            "request_model",
+            "response_model",
+            "params_mapper",
+            "response_mapper",
+            "tags",
+            "summary",
+            "description",
+            "operation_id",
+            "deprecated",
+            "connections",
+            "auth_coordinator",
+        ],
+    )
+    def test_every_keyword_forwarded_by_every_verb(self, verb: str, kwarg: str, value: object) -> None:
+        """Every registration method forwards every optional keyword to the record.
 
-        assert adapter.routes[0].auth_coordinator is override
+        `.post/.get/.put/.delete/.patch` each declare the same 13-parameter
+        signature explicitly (for IDE autocomplete on this public fluent
+        builder, rather than a `**kwargs` passthrough) and forward it into a
+        shared `_register`. This is the regression test that makes a silent
+        copy-paste omission in any one of the five methods fail CI
+        immediately, instead of shipping unnoticed (#110).
+        """
+        adapter = _make_adapter()
+        getattr(adapter, verb)("/x", PingAction, **{kwarg: value})
+
+        assert getattr(adapter.routes[0], kwarg) == value
 
 
 # ═════════════════════════════════════════════════════════════════════════════
