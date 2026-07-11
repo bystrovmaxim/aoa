@@ -1,4 +1,4 @@
-<!-- translated-from: step-12-authentication_draft.md @ 2026-07-11T14:38:29Z (filesystem mtime; draft is gitignored, no git history) · sha256:aaa108fd9c7f -->
+<!-- translated-from: step-12-authentication_draft.md @ 2026-07-11T15:01:20Z (filesystem mtime; draft is gitignored, no git history) · sha256:d6d5fe3fafbf -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -93,7 +93,7 @@ class JwtAuthenticator(Authenticator):
 
 ## NoAuthCoordinator
 
-The only coordinator ready out of the box today is `NoAuthCoordinator`. It does not authenticate but always returns a fresh **anonymous** `Context` (`user_id=None`, `roles=()`):
+The only coordinator ready out of the box today is `NoAuthCoordinator`. It does not authenticate but returns the same explicitly declared **anonymous** `Context` (`user_id=None`, `roles=()`) on every call:
 
 ```python
 context = await NoAuthCoordinator(context=Context()).process(None)
