@@ -13,12 +13,12 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 import type { DiagramSelection } from "@/model/diagramSelection";
+import type { SidebarPayload } from "@/model/sidebar";
 import { prefetchInterchangeG6 } from "@/lib/prefetch/g6Prefetch";
 import { prefetchErdGraphviz } from "@/lib/prefetch/erdGraphviz";
 import { buildSidebarGroupedMaps, diagramSelectionForRow, sortNodes } from "@/lib/sidebarNavigation";
 import { SIDEBAR_SURFACE } from "@/lib/layoutConstants";
 import { useSidebarCollapse } from "@/components/layout/MainLayout/SidebarCollapseContext";
-import { useSidebarPayload } from "./hooks/useSidebarPayload";
 import { ServiceUrlInput } from "./ServiceUrlInput";
 import { SidebarRowIcon } from "./SidebarRowIcon";
 import { SidebarToggleIcon } from "./SidebarToggleIcon";
@@ -95,6 +95,9 @@ function TruncatingListLabel({
 type LeftSidebarProps = {
   diagram: DiagramSelection | null;
   onSelectDiagram: (sel: DiagramSelection) => void;
+  sidebar: SidebarPayload | null;
+  onLoaded: (serviceUrl: string) => void;
+  onReset: () => void;
 };
 
 function selectionKey(sel: DiagramSelection): string {
@@ -126,9 +129,8 @@ function erdRowLabelForDomainGroup(domainLabel: string, rowLabel: string): strin
   return rowLabel;
 }
 
-export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
+export function LeftSidebar({ diagram, onSelectDiagram, sidebar, onLoaded, onReset }: LeftSidebarProps) {
   const { collapsed, toggleCollapsed } = useSidebarCollapse();
-  const { sidebar, reload, reset } = useSidebarPayload();
   const group = useMemo(() => (sidebar ? buildSidebarGroupedMaps(sidebar) : null), [sidebar]);
   /** Root ids (e.g. `domains_root`) and graph node ids (e.g. domain rows) share one expand map — ids do not collide. */
   const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
@@ -223,7 +225,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
           <Tooltip title="Load a different service" placement="right" enterDelay={400} slotProps={tooltipSlotProps}>
             <IconButton
               type="button"
-              onClick={reset}
+              onClick={onReset}
               aria-label="Load a different service"
               disableRipple
               disableFocusRipple
@@ -277,7 +279,7 @@ export function LeftSidebar({ diagram, onSelectDiagram }: LeftSidebarProps) {
         }}
       >
         {!sidebar && (
-          <ServiceUrlInput onLoaded={reload} />
+          <ServiceUrlInput onLoaded={onLoaded} />
         )}
         {/* Level-1: preserve API order (_ROOT_SECTIONS on the server). */}
         {sidebar &&

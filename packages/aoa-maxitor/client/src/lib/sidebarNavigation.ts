@@ -45,6 +45,15 @@ export function sortNodes(nodes: NodeRow[]): NodeRow[] {
   });
 }
 
+/** First selectable row of the given kind, in sidebar order — resolves a ``view=`` deep link that didn't pin an exact qualifier. */
+export function firstSelectionOfKind(sidebar: SidebarPayload, kind: DiagramSelection["kind"]): DiagramSelection | null {
+  for (const row of sortNodes([...sidebar.level2_diagrams, ...sidebar.level3_diagrams])) {
+    const sel = diagramSelectionForRow(row);
+    if (sel?.kind === kind) return sel;
+  }
+  return null;
+}
+
 export function buildSidebarGroupedMaps(sidebar: SidebarPayload): SidebarGroupedMaps {
   const l2ByParent = new Map<string, NodeRow[]>();
   for (const n of sidebar.level2_nodes) {
