@@ -1,4 +1,4 @@
-<!-- translated-from: jwt_draft.md @ 2026-07-10T13:57:28Z (filesystem mtime; draft is gitignored, no git history) · sha256:bb6f93eb6145 -->
+<!-- translated-from: jwt_draft.md @ 2026-07-11T13:35:58Z (filesystem mtime; draft is gitignored, no git history) · sha256:f7090720ef42 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -16,6 +16,7 @@
 - [Two phases: issuing and verifying](#two-phases-issuing-and-verifying)
 - [Full cycle — FastAPI](#full-cycle--fastapi)
 - [MCP — it doesn't work, and here's why](#mcp--it-doesnt-work-and-heres-why)
+- [Transport: header or cookie](#transport-header-or-cookie)
 - [Roles: mapping the claim to classes](#roles-mapping-the-claim-to-classes)
 - [Variants](#variants)
 - [API surface](#api-surface)
@@ -28,9 +29,10 @@
 
 ## What it is
 
-`aoa.action_machine.auth.jwt_auth` — four classes:
+`aoa.action_machine.auth.jwt_auth` — five classes:
 
 - **`BearerCredentialExtractor`** (`CredentialExtractor`) — pulls the token out of `Authorization: Bearer <jwt>`. An empty/malformed header → `{}` (no credentials); `request_data` with no `.headers` at all → `TypeError` (a wiring error, not "no credentials" — see the [MCP section](#mcp--it-doesnt-work-and-heres-why)).
+- **`CookieCredentialExtractor`** (`CredentialExtractor`) — the same contract, but pulls the token out of a named cookie (`request_data.cookies`) instead of a header — see [«Transport: header or cookie»](#transport-header-or-cookie).
 - **`JwtAuthenticator`** (`Authenticator`) — `jwt.decode(...)` with a fixed allowlist of algorithms (not whatever the token itself claims — otherwise algorithm confusion), checks the mandatory `exp`, optionally `audience`, maps the `roles` claim (a list of strings) to `BaseRole` classes via `role_registry`. Any verification failure → `None` (the `Authenticator` contract: invalid → `None`, not an exception).
 - **`HttpContextAssembler`** (`ContextAssembler`) — the default `RequestInfo` projection built from `request_data.url.path`/`.method`/`.client.host` (Starlette `Request`).
 - **`JwtAuthCoordinator`** (`AuthCoordinator`) — a thin subclass that just assembles the three components above; no `process()` logic of its own.
@@ -112,6 +114,23 @@ A full demonstration (both phases, including the explicit failure) — [`example
 
 Tracked in [issue #113](https://github.com/bystrovmaxim/aoa/issues/113). Until it's resolved, the only working `auth_coordinator` for `McpAdapter` is `NoAuthCoordinator`, regardless of transport.
 
+## Transport: header or cookie
+
+A Bearer token lives in the `Authorization` header, which **the client sets itself** — usually by copying the token from the login response into JS code, a mobile app, or a CLI. That fits naturally where the client controls the request programmatically: API-to-API, CLI, mobile apps.
+
+For browser-based SSO across subdomains (`app.example.com`, `admin.example.com`, ...) that model doesn't just get awkward, it stops working entirely: a central login service sets an `httpOnly` cookie on the parent domain (`Set-Cookie: session=...; Domain=.example.com; HttpOnly`). The browser attaches that cookie automatically to every request to every subdomain — but `HttpOnly` makes it invisible to JavaScript, so the frontend has no way to copy the token into an `Authorization` header. The token only ever arrives in the `Cookie:` header.
+
+`CookieCredentialExtractor(cookie_name=...)` reads it from there — the contract is identical to `BearerCredentialExtractor`'s: an empty/missing cookie → `{}` (no credentials), `request_data` with no `.cookies` at all → `TypeError` (a wiring error — the same `McpAdapter` case as above).
+
+**`SameSite` and subdomains.** `Domain=.example.com` makes the cookie visible on every subdomain of one eTLD+1 (`app.example.com`, `admin.example.com`, ...) — from `SameSite=Lax`'s point of view (the modern browser default for cookies), those all count as "the same site", so the cookie flows freely between them. A third-party domain (`evil.com`) still never receives it in a cross-site request — `SameSite`'s baseline CSRF protection holds regardless of how many subdomains the cookie is visible to.
+
+**Which to choose:**
+
+- **Header (`BearerCredentialExtractor`)** — the client controls the request programmatically and can explicitly attach the token: API-to-API, CLI, mobile apps, server-to-server integrations.
+- **Cookie (`CookieCredentialExtractor`)** — browser-based SSO across subdomains via an `httpOnly` session: JavaScript cannot read the token by design, so Bearer isn't merely inconvenient here — it's architecturally impossible.
+
+A working example — [`examples/step_13_fastapi/05_cookie_auth.py`](../../examples/step_13_fastapi/05_cookie_auth.py) ([▶ Try in Colab](#05_cookie_auth.ipynb)): `LoginAction` sets `Set-Cookie: session=...; HttpOnly`, the protected route is reached with no `Authorization` header at all — only through the cookie the client stored. `JwtAuthCoordinator` won't work here — it's hard-wired to `BearerCredentialExtractor` — so `AuthCoordinator` is assembled by hand from the same three components, with `CookieCredentialExtractor` in place of `BearerCredentialExtractor`.
+
 ## Roles: mapping the claim to classes
 
 A JWT carries roles as strings (`"roles": ["admin", "viewer"]`), while `UserInfo.roles` is a tuple of `BaseRole` classes. `role_registry` is the explicit dict the developer supplies:
@@ -130,7 +149,7 @@ Unmapped names in the claim are silently dropped rather than rejecting the token
 
 ## API surface
 
-`BearerCredentialExtractor()` · `JwtAuthenticator(secret_key, algorithm="HS256", audience=None, role_registry, user_id_claim="sub", roles_claim="roles")` · `HttpContextAssembler()` · `JwtAuthCoordinator(secret_key, algorithm="HS256", audience=None, role_registry, user_id_claim="sub", roles_claim="roles", context_assembler=None)`.
+`BearerCredentialExtractor()` · `CookieCredentialExtractor(cookie_name)` · `JwtAuthenticator(secret_key, algorithm="HS256", audience=None, role_registry, user_id_claim="sub", roles_claim="roles")` · `HttpContextAssembler()` · `JwtAuthCoordinator(secret_key, algorithm="HS256", audience=None, role_registry, user_id_claim="sub", roles_claim="roles", context_assembler=None)`.
 
 How authentication is structured overall — the chapter [Authentication](../tutorials/step-12-authentication.md); your own sign-in mechanism (Basic, API key, OAuth2, anything else) — [«Your own authentication coordinator»](../how-to/authoring-auth-coordinator.md).
 

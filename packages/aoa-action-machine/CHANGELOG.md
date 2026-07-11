@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
+## [Unreleased]
+
+### Added
+
+- **`CookieCredentialExtractor` — pull a JWT out of a named HTTP cookie.** New `CredentialExtractor` under `aoa.action_machine.auth.jwt_auth`, alongside `BearerCredentialExtractor`. Unblocks same-site SSO across subdomains: a central login service sets a domain-wide, `httpOnly` session cookie that browsers attach automatically to every subdomain request, but that `httpOnly`-ness makes the token invisible to JavaScript, so it can never reach an `Authorization` header. `CookieCredentialExtractor(cookie_name=...)` reads it straight from `request_data.cookies` instead — `cookie_name` is required, with no default, since it's part of the cross-service contract between the issuer and every verifier. Missing, empty, or whitespace-only cookie → `{}` (no credentials); `request_data` with no `.cookies` at all → `TypeError` (a wiring error — the same contract `BearerCredentialExtractor` uses for `.headers`). Duck-types a plain `dict[str, str]`, no Starlette import. Purely additive; pairs with the follow-up issue that parameterizes the extractor on `JwtAuthCoordinator`. ([#118](https://github.com/bystrovmaxim/aoa/issues/118))
+
 ## [1.0.1a1] – 2026-07-10
 
 ### Added

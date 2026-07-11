@@ -27,6 +27,7 @@ COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``BearerCredentialExtractor``: pulls the token out of ``Authorization: Bearer ...``.
+- ``CookieCredentialExtractor``: pulls the token out of a named HTTP cookie (same-site SSO).
 - ``JwtAuthenticator``: verifies signature/expiry/audience, maps claims to ``UserInfo``.
 - ``HttpContextAssembler``: default ``RequestInfo`` projection for HTTP requests.
 - ``JwtAuthCoordinator``: ``AuthCoordinator`` pre-wired with the three pieces above.
@@ -41,12 +42,14 @@ except ImportError:
     ) from None
 
 from aoa.action_machine.auth.jwt_auth.bearer_credential_extractor import BearerCredentialExtractor
+from aoa.action_machine.auth.jwt_auth.cookie_credential_extractor import CookieCredentialExtractor
 from aoa.action_machine.auth.jwt_auth.http_context_assembler import HttpContextAssembler
 from aoa.action_machine.auth.jwt_auth.jwt_auth_coordinator import JwtAuthCoordinator
 from aoa.action_machine.auth.jwt_auth.jwt_authenticator import JwtAuthenticator
 
 __all__ = [
     "BearerCredentialExtractor",
+    "CookieCredentialExtractor",
     "HttpContextAssembler",
     "JwtAuthCoordinator",
     "JwtAuthenticator",
