@@ -26,7 +26,7 @@ ARCHITECTURE / DATA FLOW
         └── _run_internal(nested_level=0, rollup=False)
                 │
                 ├── action_node = get_action_node_by_id(action_cls)
-                ├── _role_checker.check(context, action_node)
+                ├── _role_checker.check(context, action_node, params)
                 ├── conns = _connection_validator.validate(action, connections, action_node)
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
                 ├── log = ScopedLogger(..., domain=action_node.domain.target_node.node_obj)
@@ -612,7 +612,7 @@ class ActionProductMachine(BaseActionMachine):
             action_cls = action.__class__
             result_type = ActionSchemaIntentResolver.resolve_result_type(action_cls)
             action_node = self.get_action_node_by_id(action_cls)
-            self._role_checker.check(context, action_node)
+            self._role_checker.check(context, action_node, params)
             conns = self._connection_validator.validate(action, connections, action_node)
             plugin_ctx = await self._plugin_coordinator.create_run_context()
 
