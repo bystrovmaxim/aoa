@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "design-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8899"],
+      "port": 8899
+    },
+    {
+      "name": "maxitor-client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "packages/aoa-maxitor/client"],
+      "port": 5173
+    }
+  ]
+}

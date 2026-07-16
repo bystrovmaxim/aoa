@@ -1,4 +1,4 @@
-<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-11T14:38:38Z (filesystem mtime; draft is gitignored, no git history) · sha256:552048fc6c6c -->
+<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-16T21:45:17Z (filesystem mtime; draft is gitignored, no git history) · sha256:92ebbf482fe7 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -15,9 +15,12 @@
 - [Roles as classes](#roles-as-classes)
 - [Role hierarchy](#role-hierarchy)
 - [Several allowed roles](#several-allowed-roles)
+- [A condition on top of a role: grant](#a-condition-on-top-of-a-role-grant)
+- [A shared condition: guard](#a-shared-condition-guard)
+- [Checking the fact: access_decide](#checking-the-fact-access_decide)
+- [Asking first: machine.check_access_decide](#asking-first-machinecheck_access_decide)
 - [Where the user's roles come from](#where-the-users-roles-come-from)
 - [Role modes](#role-modes)
-- [What's ahead](#whats-ahead)
 - [Invariants](#invariants)
 - [Review questions](#review-questions)
 
@@ -157,6 +160,112 @@ An empty list is forbidden (`ValueError`), and `@check_roles` does not accept st
 
 ---
 
+## A condition on top of a role: grant
+
+A role answers "who is calling"; it knows nothing about the specific call — the same `RegionalManagerRole` covers every region alike. Sometimes one role is not enough — a regional manager, say, should only act within their own region. That's what `grant(role, when=...)` is for on `@check_roles`: a role paired with an optional condition on the caller.
+
+```python
+@check_roles(
+    grant(RegionalManagerRole, when=lambda user: user.user_id.startswith("eu-")),
+    grant(GlobalAdminRole),
+)
+class CancelOrderAction(BaseAction[OrderParams, OrderResult]): ...
+```
+
+Grants are tried in declaration order, `any()` semantics: as soon as a role matches and its `when=` (if given) returns `True`, the role-level check passes. A role matching but `when=` returning `False` is not fatal — the check keeps going to the next grant. `grant(GlobalAdminRole)` with no `when=` needs no condition — the role alone is enough.
+
+A bare role in `@check_roles` (like `ManagerRole` above) is not a legacy form — it stays the permanent shorthand for "no condition needed"; `grant(role)` with no `when=` is equivalent to it. Bare roles and `grant(...)` instances can be freely mixed in the same call.
+
+`when=` sees only the caller (`UserInfo` — `user_id` and `roles`), not the call's parameters: it is about **who** is asking, not **what** they're asking for.
+
+**Run:**
+
+```bash
+uv run python examples/step_03_authorization_and_roles/02_grant.py
+```
+
+Full code is in [`02_grant.py`](../../examples/step_03_authorization_and_roles/02_grant.py).
+
+---
+
+## A shared condition: guard
+
+`guard=` is a single condition on top of whichever grant already won, shared by every role on the operation (unlike `grant.when=`, which is per-role). It is checked once, only after a grant has already matched:
+
+```python
+@check_roles(
+    StaffRole,
+    guard=lambda user, params: not params.order_id.startswith("LOCKED-"),
+)
+class CancelOrderAction(BaseAction[OrderParams, OrderResult]): ...
+```
+
+Unlike `grant.when=(user)`, `guard=(user, params)` also sees the call's parameters — so a condition like "is this particular order locked" belongs naturally in `guard=`, not in `when=`. A caller without `StaffRole` never even reaches `guard=`: the role check has to pass first.
+
+**Run:**
+
+```bash
+uv run python examples/step_03_authorization_and_roles/03_guard.py
+```
+
+Full code is in [`03_guard.py`](../../examples/step_03_authorization_and_roles/03_guard.py).
+
+---
+
+## Checking the fact: access_decide
+
+Role and `guard=` both decide before the machine has loaded the object itself. Sometimes that's not enough: "a manager may cancel an order" is about a role, but "a customer may cancel *their own* order" is a fact about a specific order, not about the customer's role in general. The third, object-level check is the `access_decide` method on the action itself:
+
+```python
+class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
+
+    async def access_decide(self, params, context, box, connections) -> bool:
+        return params.owner_user_id == context.user.user_id
+```
+
+By default (on `BaseAction`), `access_decide` returns `True` — level 3 adds no restriction beyond role/`guard=` until an action explicitly overrides the method. `access_decide` runs only after role and `guard=` have already passed; a denial here is the same `AuthorizationError` as at levels 1-2, just with `level=3`.
+
+**Run:**
+
+```bash
+uv run python examples/step_03_authorization_and_roles/04_access_decide.py
+```
+
+Full code is in [`04_access_decide.py`](../../examples/step_03_authorization_and_roles/04_access_decide.py).
+
+---
+
+## Asking first: machine.check_access_decide
+
+A frontend deciding whether to show a "Cancel" button, or grey it out, cannot find out by actually trying to cancel the order. `machine.check_access_decide` answers "would this be allowed?", checking the same role → `guard=` → `access_decide` cascade, but running neither the cache, nor the aspects, nor plugin events:
+
+```python
+verdict = await machine.check_access_decide(context, CancelOrderAction, params)
+if verdict.allowed:
+    show_cancel_button()
+```
+
+A denial here is not an exception but `verdict.allowed = False`, with `verdict.level` (1, 2, or 3 — which level denied it) and `verdict.reason` (a human-readable message). The same method, `check_access_decide`, accepts either one action or a list of `(action, params)` pairs, returning a list of verdicts in the same order:
+
+```python
+verdicts = await machine.check_access_decide(context, [
+    (CancelOrderAction, params_1),
+    (CancelOrderAction, params_2),
+])
+```
+
+The list is not a side overload — it's the primary form: a single check is implemented as a one-item list. One failing item in the list (say, a bug in `access_decide` for a particular order) does not bring down the rest — only its own verdict fails. A list longer than `max_check_access_decide_batch_size` (a constructor parameter on `ActionProductMachine`, defaulting to 100) is rejected with `CheckAccessDecideBatchSizeExceededError` before a single item is checked.
+
+**Run:**
+
+```bash
+uv run python examples/step_03_authorization_and_roles/05_machine_check.py
+```
+
+Full code is in [`05_machine_check.py`](../../examples/step_03_authorization_and_roles/05_machine_check.py).
+
+---
+
 ## Where the user's roles come from
 
 `@check_roles` declares a *requirement*; the *user's* roles live in `Context.user.roles` — a tuple of role classes. The context is assembled by the authentication coordinator before the operation runs: `NoAuthCoordinator` returns an anonymous user (`roles=()`), while a production coordinator extracts a token from the request, verifies it, and puts the corresponding roles into the context. How exactly this context is built from an HTTP/MCP request is the topic of the [Authentication](../index.md#iv-service) chapter of the service layer; here it is enough for the operation to know that the roles are already in the context, and the checking mechanics are the same regardless of transport.
@@ -178,24 +287,18 @@ This turns changing the role model from a risky operation into a managed one: a 
 
 ---
 
-## What's ahead
-
-Authorization is planned to become even more expressive, while staying declarative:
-
-**Conditional authorization** — a `condition: Callable[[AuthSession, Params], bool]` parameter on `@check_roles`: a lambda that fires *after* the role check and decides access by the call data itself. So "a manager may cancel only an order from their own region" becomes part of the operation's contract rather than a branch in its body.
-
-Tracked in [issue #65](https://github.com/bystrovmaxim/aoa/issues/65); in the current version this does not yet exist.
-
----
-
 ## Invariants
 
 - **Access is mandatory.** No `@check_roles` — no operation: `MissingCheckRolesError` at initialization. Openness is declared explicitly through `GuestRole`.
-- **Classes only.** `@check_roles` accepts `GuestRole`, `AnyRole`, a role class, or a non-empty list of classes. Strings are rejected (`TypeError`), an empty list is a `ValueError`.
+- **Classes only.** `@check_roles` accepts `GuestRole`, `AnyRole`, a role class, a non-empty list of classes, or `grant(...)` instances mixed with bare roles. Strings are rejected (`TypeError`), an empty list is a `ValueError`.
 - **Inheritance = authority.** The check is `issubclass(user_role, required_role)`; a subclass satisfies the parent's requirement.
 - **Sentinels are sealed.** `GuestRole`/`AnyRole` cannot be subclassed and cannot be assigned to a user.
-- **Check before logic.** Roles are checked before the first aspect; denial is an `AuthorizationError`, the aspects do not run.
+- **Check before logic.** Roles, `guard=`, and `access_decide` are checked before the first aspect; denial at any of the three levels is an `AuthorizationError`, the aspects do not run.
 - **Role names.** A role class ends with `Role`, otherwise `NamingSuffixError`; `name`/`description` are mandatory and non-empty.
+- **`grant.when=`/`guard=` are synchronous and `bool`-only.** An `async def` in either raises `AccessConditionAsyncError` at class definition, not at runtime — an un-awaited coroutine is always truthy, and the check would silently wave everything through.
+- **`access_decide` defaults to `True`.** Level 3 restricts nothing beyond role/`guard=` until an action explicitly overrides the method.
+- **`machine.check_access_decide` is capped by list size.** `max_check_access_decide_batch_size` (100 by default) — a longer list is rejected with `CheckAccessDecideBatchSizeExceededError` before a single `access_decide` call.
+- **Denial at any of the three cascade levels flies past `@on_error`/the saga.** Role/`guard=`/`access_decide` run before `_execute_pipeline_aspects` — no `@regular_aspect`/`@summary_aspect` has run yet, so there's nothing to roll back; `@on_error` is a recovery mechanism for business-logic failures inside the pipeline, not a place for authorization decisions.
 
 The full list is in [Intents and invariants](../reference/intents-and-invariants.md); the terms are in the [Glossary](../reference/glossary.md). Why access is made a mandatory declaration is in the [Philosophy](../explanation/philosophy.md).
 
@@ -203,7 +306,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 ## Summary
 
-Authorization in AOA is a declaration, not code in the operation's body. `@check_roles` is mandatory and checked before the first aspect; roles are typed classes with inheritance, where a subclass carries the parent's rights; `GuestRole`/`AnyRole` cover "open to everyone" and "any authenticated user"; a list gives OR-semantics; role modes make changing the model manageable. Who can call what is assembled from the code into an access matrix — without a single "magic string".
+Authorization in AOA is a declaration, not code in the operation's body. `@check_roles` is mandatory and checked before the first aspect; roles are typed classes with inheritance, where a subclass carries the parent's rights; `GuestRole`/`AnyRole` cover "open to everyone" and "any authenticated user"; a list gives OR-semantics; role modes make changing the model manageable. The cascade then extends further: `grant(role, when=...)` is a condition on a specific role, `guard=` is a shared condition on top of any role, `access_decide` is an object-level fact check, and `machine.check_access_decide` answers "would this be allowed?" without running the operation. Who can call what is assembled from the code into an access matrix — without a single "magic string".
 
 Next — **[Saga and compensations](../index.md#iii-business-logic)**: what happens when a multi-step operation fails halfway, and how to roll back what was already done.
 
@@ -218,8 +321,14 @@ Next — **[Saga and compensations](../index.md#iii-business-logic)**: what happ
 5. How does a list in `@check_roles([A, B])` differ from a role hierarchy? When do you need a list, and when inheritance?
 6. Where do the user's roles live and who puts them there? Does the aspect see them directly?
 7. Why does a role need a lifecycle mode? What happens with `@check_roles` for a `UNUSED` role and for a `DEPRECATED` one?
+8. How does `grant(role, when=...)` differ from `guard=`? Which of the two sees the call's parameters, and which sees only the caller?
+9. A role matched, but its `grant.when=` returned `False`. Does that end the check or not? Why?
+10. `access_decide` returned `False`. What `level` will the `AuthorizationError` carry? What if the role hadn't matched at all?
+11. How does `machine.check_access_decide` differ from `machine.run` on denial — what does the calling code get in each case?
 
 > **Exercise.** Add an `AuditorRole(ApplicationRole)` role and an `ExportOrdersAction` with `@check_roles([ManagerRole, AuditorRole])` to the example. Run it under a manager, an auditor, and an anonymous user and check the matrix. Then make `AuditorRole` a subclass of `ManagerRole` and explain how access to the "manager" operations changes.
+>
+> **Exercise.** Take the `CancelOrderAction` from [`04_access_decide.py`](../../examples/step_03_authorization_and_roles/04_access_decide.py) and add a `guard=` that forbids cancelling orders above a certain amount. Use `machine.check_access_decide` to confirm the verdict correctly distinguishes a `guard=` denial (level 2) from an `access_decide` denial (level 3) for the same user.
 
 ---
 

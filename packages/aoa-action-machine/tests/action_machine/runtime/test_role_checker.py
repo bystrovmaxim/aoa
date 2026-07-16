@@ -12,6 +12,7 @@ from pydantic import Field
 
 from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.application_role import ApplicationRole
+from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError
@@ -21,7 +22,7 @@ from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.check_roles import check_roles, grant
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 from aoa.action_machine.model.base_action import BaseAction
@@ -37,7 +38,7 @@ from ...action_machine.scenarios.intents_with_runtime.test_role_checker_pr2 impo
 from ...support.domain_model.admin_action import AdminAction
 from ...support.domain_model.domains import SystemDomain
 from ...support.domain_model.ping_action import PingAction
-from ...support.domain_model.roles import AdminRole, EditorRole, SpyRole, UserRole
+from ...support.domain_model.roles import AdminRole, EditorRole, ManagerRole, SpyRole, UserRole
 
 importlib.import_module("tests.support.domain_model.full_action")
 
@@ -233,3 +234,151 @@ def test_check_invalid_reconstructed_spec_type_error(coordinator_module) -> None
     ctx = Context(user=UserInfo(user_id="u", roles=(AdminRole,)))
     with pytest.raises(TypeError, match="Invalid reconstructed"):
         _BrokenRoleChecker().check(ctx, _action_node(coordinator_module, PingAction))
+
+
+def _is_sales_agent(user) -> bool:
+    return user.user_id == "sales_agent"
+
+
+def _order_not_archived(user, params) -> bool:
+    return not params.order_id.startswith("ARCHIVED-")
+
+
+@meta(description="grant()/guard= probe for RoleChecker level 2", domain=SystemDomain)
+@check_roles(
+    grant(AdminRole),
+    grant(ManagerRole, when=_is_sales_agent),
+    guard=_order_not_archived,
+)
+class GrantGuardProbeAction(BaseAction["GrantGuardProbeAction.Params", "GrantGuardProbeAction.Result"]):
+    class Params(BaseParams):
+        order_id: str = Field(default="ORD-1")
+
+    class Result(BaseResult):
+        ok: bool = Field(description="ok")
+
+    @summary_aspect("S")
+    async def probe_summary(
+        self,
+        params: GrantGuardProbeAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> GrantGuardProbeAction.Result:
+        return GrantGuardProbeAction.Result(ok=True)
+
+
+def test_denied_without_any_role_match_sets_level_1(coordinator_module) -> None:
+    checker = RoleChecker()
+    ctx = Context(user=UserInfo(user_id="u1", roles=(UserRole,)))
+    with pytest.raises(AuthorizationError) as excinfo:
+        checker.check(ctx, _action_node(coordinator_module, GrantGuardProbeAction), GrantGuardProbeAction.Params())
+    assert excinfo.value.level == 1
+
+
+def test_bare_grant_matches_unconditionally(coordinator_module) -> None:
+    checker = RoleChecker()
+    ctx = Context(user=UserInfo(user_id="a1", roles=(AdminRole,)))
+    checker.check(ctx, _action_node(coordinator_module, GrantGuardProbeAction), GrantGuardProbeAction.Params())
+
+
+def test_grant_when_false_falls_through_to_level_2(coordinator_module) -> None:
+    """ManagerRole matches structurally, but when= rejects (wrong user_id); no other
+    grant matches a ManagerRole-only user, so this is a level-2, not level-1, denial."""
+    checker = RoleChecker()
+    ctx = Context(user=UserInfo(user_id="not_sales", roles=(ManagerRole,)))
+    with pytest.raises(AuthorizationError) as excinfo:
+        checker.check(ctx, _action_node(coordinator_module, GrantGuardProbeAction), GrantGuardProbeAction.Params())
+    assert excinfo.value.level == 2
+
+
+def test_grant_when_true_allows_a_later_grant_to_win(coordinator_module) -> None:
+    """The first grant (AdminRole, unconditional) does not match this user — the second
+    grant (ManagerRole + when=) is tried next and wins. Proves any()/declaration order."""
+    checker = RoleChecker()
+    ctx = Context(user=UserInfo(user_id="sales_agent", roles=(ManagerRole,)))
+    checker.check(ctx, _action_node(coordinator_module, GrantGuardProbeAction), GrantGuardProbeAction.Params())
+
+
+def test_guard_false_denies_with_level_2(coordinator_module) -> None:
+    checker = RoleChecker()
+    ctx = Context(user=UserInfo(user_id="a1", roles=(AdminRole,)))
+    with pytest.raises(AuthorizationError) as excinfo:
+        checker.check(
+            ctx,
+            _action_node(coordinator_module, GrantGuardProbeAction),
+            GrantGuardProbeAction.Params(order_id="ARCHIVED-1"),
+        )
+    assert excinfo.value.level == 2
+
+
+def test_check_without_params_still_works_when_action_has_no_guard(coordinator_module) -> None:
+    """Existing call shape ``check(context, action_node)`` — no params — must keep working
+    for actions with no guard= (guard is None, never called, so a missing params is fine)."""
+    checker = RoleChecker()
+    ctx = Context(user=UserInfo(user_id="a1", roles=(AdminRole,)))
+    checker.check(ctx, _action_node(coordinator_module, AdminAction))
+
+
+def _always_false(user) -> bool:
+    return False
+
+
+@meta(description="GuestRole grant with its own when= probe", domain=SystemDomain)
+@check_roles(grant(GuestRole, when=_always_false))
+class GuestWhenProbeAction(BaseAction["GuestWhenProbeAction.Params", "GuestWhenProbeAction.Result"]):
+    class Params(BaseParams):
+        pass
+
+    class Result(BaseResult):
+        ok: bool = Field(description="ok")
+
+    @summary_aspect("S")
+    async def probe_summary(
+        self,
+        params: GuestWhenProbeAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> GuestWhenProbeAction.Result:
+        return GuestWhenProbeAction.Result(ok=True)
+
+
+def test_guest_role_grant_when_false_denies_with_level_2(coordinator_module) -> None:
+    """Regression: `grant(GuestRole, when=...)` is a valid declaration (GuestRole is an
+    ordinary BaseRole subclass as far as grant() is concerned) — its when= must not be
+    silently ignored just because GuestRole normally bypasses role matching entirely."""
+    checker = RoleChecker()
+    with pytest.raises(AuthorizationError) as excinfo:
+        checker.check(Context(), _action_node(coordinator_module, GuestWhenProbeAction))
+    assert excinfo.value.level == 2
+
+
+@meta(description="AnyRole grant with its own when= probe", domain=SystemDomain)
+@check_roles(grant(AnyRole, when=_always_false))
+class AnyWhenProbeAction(BaseAction["AnyWhenProbeAction.Params", "AnyWhenProbeAction.Result"]):
+    class Params(BaseParams):
+        pass
+
+    class Result(BaseResult):
+        ok: bool = Field(description="ok")
+
+    @summary_aspect("S")
+    async def probe_summary(
+        self,
+        params: AnyWhenProbeAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> AnyWhenProbeAction.Result:
+        return AnyWhenProbeAction.Result(ok=True)
+
+
+def test_any_role_grant_when_false_denies_with_level_2(coordinator_module) -> None:
+    """Same regression as above, for AnyRole: at least one active role is present
+    (AnyRole's own gate passes), but the grant's own when= must still be honored."""
+    checker = RoleChecker()
+    ctx = Context(user=UserInfo(user_id="u", roles=(UserRole,)))
+    with pytest.raises(AuthorizationError) as excinfo:
+        checker.check(ctx, _action_node(coordinator_module, AnyWhenProbeAction))
+    assert excinfo.value.level == 2

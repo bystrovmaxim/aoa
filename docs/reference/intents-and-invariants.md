@@ -1,4 +1,4 @@
-<!-- translated-from: intents-and-invariants_draft.md @ 2026-06-20T20:51:23Z (filesystem mtime; draft is gitignored, no git history) · sha256:7cc35d1f137a -->
+<!-- translated-from: intents-and-invariants_draft.md @ 2026-07-16T21:45:54Z (filesystem mtime; draft is gitignored, no git history) · sha256:d96324851717 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -143,6 +143,13 @@ class DeleteOrderAction(BaseAction[...]): ...
 @check_roles(GuestRole)
 class GetOrderStatusAction(BaseAction[...]): ...
 ```
+
+Access is a cascade of three levels, each of which can deny: role (`@check_roles`) → `guard=`/`grant.when=` → `access_decide`. Each level carries its own invariants:
+
+- **`grant.when=`/`guard=` are synchronous functions returning strictly `bool`.** Checked at class definition, not at runtime: an `async def` in either raises `AccessConditionAsyncError` immediately — an un-awaited coroutine is always truthy, and an async condition would silently wave every check through.
+- **`access_decide` defaults to `True`.** The method is declared on `BaseAction`; level 3 restricts nothing until an action explicitly overrides it. Denial at any of the three levels is the same `AuthorizationError`, differing only in `level` (`1` — role, `2` — `guard=`/`grant.when=`, `3` — `access_decide`).
+- **`machine.check_access_decide` is capped by list size.** The list form of `(action, params)` pairs — the `max_check_access_decide_batch_size` constructor parameter (100 by default) on `ActionProductMachine`; a longer list is rejected with `CheckAccessDecideBatchSizeExceededError` before a single item is checked.
+- **Denial at any of the three levels is an `AuthorizationError` that flies past `@on_error`/the saga.** Role, `guard=`, and `access_decide` are checked before `_execute_pipeline_aspects`: no `@regular_aspect`/`@summary_aspect` has run yet, so there's nothing to roll back. `@on_error` is a recovery mechanism for business-logic failures inside the pipeline, not a place for authorization decisions.
 
 ---
 

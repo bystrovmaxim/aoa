@@ -5,11 +5,15 @@ Framework-level exceptions for ActionMachine.
 Import public types from here, for example ``from aoa.action_machine.exceptions import NamingSuffixError``.
 """
 
+from aoa.action_machine.exceptions.access_condition_async_error import AccessConditionAsyncError
 from aoa.action_machine.exceptions.action_result_declaration_error import ActionResultDeclarationError
 from aoa.action_machine.exceptions.action_result_type_error import ActionResultTypeError
 from aoa.action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
+from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
+    CheckAccessDecideBatchSizeExceededError,
+)
 from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from aoa.action_machine.exceptions.connection_not_open_error import ConnectionNotOpenError
 from aoa.action_machine.exceptions.connection_validation_error import ConnectionValidationError
@@ -35,11 +39,13 @@ from aoa.action_machine.exceptions.transaction_prohibited_error import Transacti
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 
 __all__ = [
+    "AccessConditionAsyncError",
     "ActionResultDeclarationError",
     "ActionResultTypeError",
     "AspectPipelineError",
     "AuthorizationError",
     "CacheContractError",
+    "CheckAccessDecideBatchSizeExceededError",
     "ConnectionAlreadyOpenError",
     "ConnectionNotOpenError",
     "ConnectionValidationError",

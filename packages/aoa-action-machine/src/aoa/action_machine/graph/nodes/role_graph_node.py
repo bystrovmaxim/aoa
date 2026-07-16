@@ -56,6 +56,7 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``BaseRole`` host class.
     CONTRACT: Built from ``type[TRole]``; :attr:`NODE_TYPE`; dotted ``id``, ``__name__`` label; ``properties`` include ``role_mode``. :attr:`application` aggregates to :class:`~aoa.action_machine.graph.nodes.application_graph_node.ApplicationGraphNode`; :meth:`get_all_edges` returns ``application`` then ``parent_role`` edges when present.
+    INVARIANTS: Shared/deduplicated by ``node_id`` across every action referencing this role — the coordinator wires every matching :class:`~aoa.action_machine.graph.edges.role_graph_edge.RoleGraphEdge` from any number of actions to the *same* node instance. Never add per-action data here (e.g. ``@check_roles(grant(when=...))`` or ``guard=``): two actions requiring the same role with different conditions would silently clobber each other's value on this shared node. Per-action conditions belong on ``RoleGraphEdge`` (``when``, per grant) or ``ActionGraphNode`` (``guard``, per action) instead.
     AI-CORE-END
     """
 

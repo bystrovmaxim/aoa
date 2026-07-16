@@ -1,0 +1,1 @@
+"""Tests for ``aoa.action_machine.graph.edges``."""
