@@ -45,7 +45,7 @@ class DenyAllAccessDecideAction(BaseAction["DenyAllAccessDecideAction.Params", "
 
     async def access_decide(
         self,
-        params: "DenyAllAccessDecideAction.Params",
+        params: DenyAllAccessDecideAction.Params,
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
@@ -55,11 +55,11 @@ class DenyAllAccessDecideAction(BaseAction["DenyAllAccessDecideAction.Params", "
     @summary_aspect("S")
     async def probe_summary(
         self,
-        params: "DenyAllAccessDecideAction.Params",
+        params: DenyAllAccessDecideAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> "DenyAllAccessDecideAction.Result":
+    ) -> DenyAllAccessDecideAction.Result:
         _summary_calls["n"] += 1
         return DenyAllAccessDecideAction.Result(ok=True)
 
@@ -93,7 +93,7 @@ class AllowAccessDecideAction(BaseAction["AllowAccessDecideAction.Params", "Allo
 
     async def access_decide(
         self,
-        params: "AllowAccessDecideAction.Params",
+        params: AllowAccessDecideAction.Params,
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
@@ -103,11 +103,11 @@ class AllowAccessDecideAction(BaseAction["AllowAccessDecideAction.Params", "Allo
     @summary_aspect("S")
     async def probe_summary(
         self,
-        params: "AllowAccessDecideAction.Params",
+        params: AllowAccessDecideAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> "AllowAccessDecideAction.Result":
+    ) -> AllowAccessDecideAction.Result:
         return AllowAccessDecideAction.Result(ok=True)
 
 
@@ -128,11 +128,11 @@ class DefaultAccessDecideAction(BaseAction["DefaultAccessDecideAction.Params", "
     @summary_aspect("S")
     async def probe_summary(
         self,
-        params: "DefaultAccessDecideAction.Params",
+        params: DefaultAccessDecideAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> "DefaultAccessDecideAction.Result":
+    ) -> DefaultAccessDecideAction.Result:
         return DefaultAccessDecideAction.Result(ok=True)
 
 

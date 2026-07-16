@@ -26,12 +26,14 @@ ARCHITECTURE / DATA FLOW
         └── _run_internal(nested_level=0, rollup=False)
                 │
                 ├── action_node = get_action_node_by_id(action_cls)
-                ├── _role_checker.check(context, action_node, params)
+                ├── _role_checker.check(context, action_node, params)   # levels 1-2
                 ├── conns = _connection_validator.validate(action, connections, action_node)
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
                 ├── log = ScopedLogger(..., domain=action_node.domain.target_node.node_obj)
                 ├── box = ToolsBox(..., factory=DependencyFactory(action_node.resolved_dependency_infos()))
                 ├── _plugin_coordinator.emit_global_start(...)
+                ├── _enforce_access_decide(action, params, context, box, conns)   # level 3, after
+                │       the start event so a level-3 denial is still recorded as an attempt
                 ├── optional cache read (``cache_coordinator`` set) or pipeline
                 ├── _execute_pipeline_aspects(...)  # skipped on cache hit
                 │       ├── per regular aspect:
@@ -136,6 +138,7 @@ from functools import partial
 from typing import Any, TypeVar, cast
 
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
@@ -581,6 +584,34 @@ class ActionProductMachine(BaseActionMachine):
             rollup=False,
         )
 
+    async def _enforce_access_decide(
+        self,
+        action_instance: BaseAction[Any, Any],
+        params: Any,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+        context: Context,
+    ) -> None:
+        """Level 3 of the access-control cascade: raise ``AuthorizationError(level=3)`` if
+        ``access_decide`` rejects.
+
+        Called from ``_run_internal`` *after* ``emit_global_start`` — deliberately: the
+        action's start is still recorded even when ``access_decide`` ultimately denies it,
+        so a security rejection at level 3 does not vanish from telemetry the way a level
+        1/2 rejection (which fires before any plugin lifecycle call, unchanged from before
+        this method existed) already does. One responsibility — check and raise, not two —
+        so ``machine.check`` (a later step) can reuse it standalone.
+
+        A more precise start/finish signal specifically around ``access_decide`` and cache
+        work (so their own duration is measurable, independent of the rest of the pipeline)
+        is tracked as follow-up work — see access-control-cascade.md.
+        """
+        if not await action_instance.access_decide(params, context, box, connections):
+            raise AuthorizationError(
+                f"Access denied: {type(action_instance).__name__}.access_decide() returned False.",
+                level=3,
+            )
+
     async def _run_internal(  # pylint: disable=too-many-branches,too-many-statements
         self,
         context: Context,
@@ -649,6 +680,10 @@ class ActionProductMachine(BaseActionMachine):
                 params=params,
                 nest_level=current_nest,
             )
+
+            # Level 3 (access_decide) runs after emit_global_start on purpose — see
+            # _enforce_access_decide's docstring.
+            await self._enforce_access_decide(action, params, box, conns, context)
 
             cache_key_str: str | None = None
             cache_hit = False
