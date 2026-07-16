@@ -135,14 +135,18 @@ import time
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, cast, overload
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
+from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
+    CheckAccessDecideBatchSizeExceededError,
+)
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.intents.access_control import AccessVerdict
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import Channel
@@ -270,10 +274,14 @@ class ActionProductMachine(BaseActionMachine):
         error_handler_executor: ErrorHandlerExecutor | None = None,
         saga_coordinator: SagaCoordinator | None = None,
         cache_coordinator: CacheCoordinator | None = _CACHE_COORDINATOR_DEFAULT,  # type: ignore[assignment]
+        max_check_access_decide_batch_size: int = 100,
     ) -> None:
         """Wire injectable components; an in-memory ``CacheCoordinator`` is created by default.
 
-        Pass ``cache_coordinator=None`` to disable caching explicitly.
+        Pass ``cache_coordinator=None`` to disable caching explicitly. ``max_check_access_decide_batch_size``
+        caps the list form of ``machine.check_access_decide`` — each item triggers a real
+        ``access_decide`` call, so an unbounded list would let one request force an unbounded
+        number of such calls.
         """
         self._log_coordinator = log_coordinator or LogCoordinator()
         default_loggers = [] if log_coordinator else [ConsoleLogger()]
@@ -295,6 +303,7 @@ class ActionProductMachine(BaseActionMachine):
         self._cache_coordinator: CacheCoordinator | None = (
             CacheCoordinator() if cache_coordinator is _CACHE_COORDINATOR_DEFAULT else cache_coordinator
         )
+        self._max_check_access_decide_batch_size = max_check_access_decide_batch_size
 
     @staticmethod
     def _validate_cache_key(cache_key: str | None, action: BaseAction[Any, Any]) -> None:
@@ -584,6 +593,136 @@ class ActionProductMachine(BaseActionMachine):
             rollup=False,
         )
 
+    # ─────────────────────────────────────────────────────────────────────
+    # Public entry: check
+    # ─────────────────────────────────────────────────────────────────────
+
+    @overload
+    async def check_access_decide(
+        self,
+        context: Context,
+        action: type[BaseAction[Any, Any]],
+        params: BaseParams | None = None,
+        *,
+        connections: dict[str, BaseResource] | None = None,
+    ) -> AccessVerdict: ...
+
+    @overload
+    async def check_access_decide(
+        self,
+        context: Context,
+        action: list[tuple[type[BaseAction[Any, Any]], BaseParams | None]],
+        *,
+        connections: dict[str, BaseResource] | None = None,
+    ) -> list[AccessVerdict]: ...
+
+    async def check_access_decide(
+        self,
+        context: Context,
+        action: type[BaseAction[Any, Any]] | list[tuple[type[BaseAction[Any, Any]], BaseParams | None]],
+        params: BaseParams | None = None,
+        *,
+        connections: dict[str, BaseResource] | None = None,
+    ) -> AccessVerdict | list[AccessVerdict]:
+        """Ask whether one action, or each item in a list, would be allowed — without running it.
+
+        Two shapes under one name, declared as two ``@overload`` signatures for the type
+        checker (a single action → one ``AccessVerdict``; a list of ``(action, params)``
+        pairs → one ``AccessVerdict`` per item, same order as the list). The list shape is
+        the primitive — it contains all the enforcement logic. The single-action shape does
+        not duplicate that logic: it recurses into this same method (``self.check_access_decide``)
+        with a one-item list and unwraps the result. ``connections`` is keyword-only on both
+        shapes: the list shape has no ``params`` slot at all, so a positional 3rd argument
+        would otherwise silently bind to different parameters depending on which overload the
+        caller thinks they're using — keyword-only removes that ambiguity entirely.
+
+        Per list item, in the same order as ``_run_internal``'s own gates (role/guard before
+        connections): build a throwaway ``ToolsBox`` (no cache, no plugin events — never runs
+        the real pipeline), then ``RoleChecker.check(...)``, then ``ConnectionValidator.validate(...)``,
+        then ``_enforce_access_decide(...)`` from ``machine.run()``'s own level-3 gate — all in
+        ``try``/``except``. A caught ``AuthorizationError`` becomes
+        ``AccessVerdict(allowed=False, level=getattr(exc, "level", None), reason=str(exc))``;
+        anything else raised while evaluating that item (a bug in its ``access_decide``, an
+        unreachable connection) becomes ``allowed=False, level=None`` the same way — either
+        way, only that one item is affected, every other item in the list is still evaluated
+        normally. No exception reaches ``_run_internal`` from here the way it does from
+        ``machine.run()``.
+
+        ``connections`` is not in the ADR's original sketch but is required in practice:
+        ``access_decide`` implementations typically need to look up a real object
+        (``connections["orders_db"].get(params.order_id)``, per the ADR's own example) to
+        decide anything meaningful. One shared dict for the whole list, not per item.
+
+        ``len(action) > max_check_access_decide_batch_size`` (set on ``__init__``) raises
+        ``CheckAccessDecideBatchSizeExceededError`` before touching any item — not even the first
+        ``access_decide`` runs. Each item is a real ``access_decide`` call (typically a
+        database lookup); an unbounded list would let one request force an unbounded number
+        of such lookups.
+        """
+        if isinstance(action, list):
+            if len(action) > self._max_check_access_decide_batch_size:
+                raise CheckAccessDecideBatchSizeExceededError(
+                    f"machine.check_access_decide() received {len(action)} items, exceeding "
+                    f"max_check_access_decide_batch_size={self._max_check_access_decide_batch_size}.",
+                    item_count=len(action),
+                    max_check_access_decide_batch_size=self._max_check_access_decide_batch_size,
+                )
+            verdicts: list[AccessVerdict] = []
+            for item_action, item_params in action:
+                try:
+                    item_instance = item_action()
+                    action_node = self.get_action_node_by_id(item_action)
+                    self._role_checker.check(context, action_node, item_params)
+                    conns = self._connection_validator.validate(item_instance, connections, action_node)
+                    box = self._build_check_box(context, item_params, action_node)
+                    await self._enforce_access_decide(item_instance, item_params, box, conns, context)
+                except AuthorizationError as exc:
+                    verdicts.append(
+                        AccessVerdict(
+                            allowed=False,
+                            action=item_action,
+                            level=getattr(exc, "level", None),
+                            reason=str(exc),
+                        )
+                    )
+                except Exception as exc:
+                    # This item's own failure must not abort the rest of the list.
+                    verdicts.append(AccessVerdict(allowed=False, action=item_action, level=None, reason=str(exc)))
+                else:
+                    verdicts.append(AccessVerdict(allowed=True, action=item_action, level=None, reason=None))
+            return verdicts
+        verdicts = await self.check_access_decide(context, [(action, params)], connections=connections)
+        return verdicts[0]
+
+    def _build_check_box(
+        self,
+        context: Context,
+        params: Any,
+        action_node: ActionGraphNode[BaseAction[Any, Any]],
+    ) -> ToolsBox:
+        """Build a throwaway ``ToolsBox`` for ``check_access_decide`` — no cache, no plugin events.
+
+        Mirrors ``_run_internal``'s own ``log``/``box`` construction (kept separate,
+        not shared, so changing one does not risk silently changing the other)."""
+        log = ScopedLogger(
+            coordinator=self._log_coordinator,
+            nest_level=1,
+            action_name=action_node.node_id,
+            aspect_name="",
+            context=context,
+            state=BaseState(),
+            params=params,
+            domain=action_node.domain.target_node.node_obj,
+        )
+        return ToolsBox(
+            run_child=partial(self._run_internal, context=context, resources=None, nested_level=1, rollup=False),
+            resources=None,
+            log=log,
+            nested_level=1,
+            rollup=False,
+            factory=DependencyFactory(action_node.resolved_dependency_infos()),
+        )
+
     async def _enforce_access_decide(
         self,
         action_instance: BaseAction[Any, Any],
@@ -600,11 +739,7 @@ class ActionProductMachine(BaseActionMachine):
         so a security rejection at level 3 does not vanish from telemetry the way a level
         1/2 rejection (which fires before any plugin lifecycle call, unchanged from before
         this method existed) already does. One responsibility — check and raise, not two —
-        so ``machine.check`` (a later step) can reuse it standalone.
-
-        A more precise start/finish signal specifically around ``access_decide`` and cache
-        work (so their own duration is measurable, independent of the rest of the pipeline)
-        is tracked as follow-up work — see access-control-cascade.md.
+        so ``check_access_decide`` can reuse it standalone.
         """
         if not await action_instance.access_decide(params, context, box, connections):
             raise AuthorizationError(
