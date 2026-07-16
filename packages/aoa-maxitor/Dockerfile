@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-RUN pip install --no-cache-dir "aoa-maxitor==1.1.0"
+RUN pip install --no-cache-dir "aoa-maxitor==1.1.6"
 
 ENV MAXITOR_API_HOST=0.0.0.0
 ENV MAXITOR_API_PORT=8101

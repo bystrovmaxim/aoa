@@ -1,4 +1,4 @@
-<!-- translated-from: glossary_draft.md @ 2026-06-20T20:51:23Z (filesystem mtime; draft is gitignored, no git history) · sha256:6a6407d28c90 -->
+<!-- translated-from: glossary_draft.md @ 2026-07-16T21:46:23Z (filesystem mtime; draft is gitignored, no git history) · sha256:20a442b8bfcd -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -74,6 +74,16 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 **GuestRole / AnyRole / BaseRole** — `GuestRole` — open to everyone (explicitly); `AnyRole` — any authenticated; `BaseRole` — the root of domain roles, supports inheritance.
 
 **AuthCoordinator** — builds `Context` from a transport request (credential extraction, verification, assembling the environment).
+
+**`grant(role, when=...)`** — a role paired with an optional condition on the caller, inside `@check_roles`. Grants are tried in declaration order, `any()` semantics: a role matches and `when=` (if given) returns `True` — the role-level check passes. A bare role is equivalent to `grant(role)` with no condition.
+
+**`guard=`** — a shared condition on `@check_roles`, one for every grant on the operation; checked once, after some grant has already won. Unlike `grant.when=(user)`, it also sees the call's parameters: `guard=(user, params)`.
+
+**`access_decide`** — a method on `BaseAction`, the third, object-level access check (after role and `guard=`): `access_decide(self, params, context, box, connections) -> bool`. Defaults to `True`. Denial is `AuthorizationError(level=3)`, the same error as at levels 1-2.
+
+**`AccessVerdict`** — the result of `machine.check_access_decide`: `allowed: bool`, `action`, `level: int | None` (1, 2, or 3 — which level denied it), `reason: str | None`.
+
+**`machine.check_access_decide`** — ask "would this be allowed?" without running the operation: the same role/`guard=`/`access_decide` cascade as `machine.run`, but without the pipeline, cache, or plugin events. The same overload accepts either one action or a list of `(action, params)` pairs — the list is the primary form, a single check is implemented as a one-item list.
 
 ## Reliability
 
