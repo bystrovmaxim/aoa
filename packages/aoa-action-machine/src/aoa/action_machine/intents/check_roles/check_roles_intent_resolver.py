@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.exceptions.missing_check_roles_error import MissingCheckRolesError
@@ -38,7 +38,7 @@ class CheckRolesIntentResolver:
     def resolve_grants(action_cls: type[CheckRolesIntent]) -> list[Grant]:
         """Return `_role_info['grants']` from ``@check_roles``. Raises ``MissingCheckRolesError`` when absent."""
         try:
-            return action_cls._role_info["grants"]
+            return cast("list[Grant]", action_cls._role_info["grants"])
         except (AttributeError, KeyError, TypeError) as exc:
             raise MissingCheckRolesError(action_cls) from exc
 
@@ -46,6 +46,6 @@ class CheckRolesIntentResolver:
     def resolve_guard(action_cls: type[CheckRolesIntent]) -> Callable[..., bool] | None:
         """Return `_role_info['guard']` from ``@check_roles``. Raises ``MissingCheckRolesError`` when absent."""
         try:
-            return action_cls._role_info["guard"]
+            return cast("Callable[..., bool] | None", action_cls._role_info["guard"])
         except (AttributeError, KeyError, TypeError) as exc:
             raise MissingCheckRolesError(action_cls) from exc
