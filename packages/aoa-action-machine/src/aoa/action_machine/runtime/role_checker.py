@@ -125,68 +125,65 @@ class RoleChecker:
                 f"the action is accessible without authentication."
             )
         role_spec = self._check_roles_spec_from_action_edges(action_node)
-        raw_roles = context.user.roles
-        guard = action_node.properties.get("guard")
 
-        if role_spec is GuestRole:
-            # Exactly one edge: `_check_roles_spec_from_action_edges` only returns a bare
-            # sentinel (not a tuple) when there is a single grant. `grant(GuestRole, when=...)`
-            # is a valid declaration (GuestRole is an ordinary BaseRole subclass as far as
-            # `grant()` is concerned) and must not be silently ignored.
-            when = action_node.roles[0].properties.get("when")
-            if when is not None and not when(context.user):
-                raise AuthorizationError("Access denied. GuestRole grant's when= condition was not met.", level=2)
-            _enforce_guard(context.user, params, guard)
+        if role_spec is GuestRole or role_spec is AnyRole:
+            self._check_sentinel(context, action_node, role_spec, params)
             return
+        if isinstance(role_spec, tuple) or (isinstance(role_spec, type) and issubclass(role_spec, BaseRole)):
+            self._check_concrete_roles(context, action_node, role_spec, params)
+            return
+        raise TypeError(f"Invalid reconstructed @check_roles spec: {role_spec!r} " f"({type(role_spec).__name__}).")
+
+    @classmethod
+    def _check_sentinel(
+        cls,
+        context: Context,
+        action_node: ActionGraphNode[BaseAction[Any, Any]],
+        role_spec: Any,
+        params: Any,
+    ) -> None:
+        """``GuestRole``/``AnyRole`` — exactly one edge, no role-matching search needed.
+
+        ``grant(GuestRole, when=...)``/``grant(AnyRole, when=...)`` are valid declarations
+        (both sentinels are ordinary ``BaseRole`` subclasses as far as ``grant()`` is
+        concerned) and must not be silently ignored just because the sentinel itself
+        bypasses role matching.
+        """
         if role_spec is AnyRole:
-            active = _active_user_roles(raw_roles)
+            active = _active_user_roles(context.user.roles)
             if not active:
                 raise AuthorizationError("Authentication required: user must have at least one role", level=1)
-            when = action_node.roles[0].properties.get("when")
+
+        when = action_node.roles[0].properties.get("when")
+        if when is not None and not when(context.user):
+            name = "GuestRole" if role_spec is GuestRole else "AnyRole"
+            raise AuthorizationError(f"Access denied. {name} grant's when= condition was not met.", level=2)
+        _enforce_guard(context.user, params, action_node.properties.get("guard"))
+
+    @classmethod
+    def _check_concrete_roles(
+        cls,
+        context: Context,
+        action_node: ActionGraphNode[BaseAction[Any, Any]],
+        role_spec: Any,
+        params: Any,
+    ) -> None:
+        """A single role type or an OR-tuple of role types — search grants in order."""
+        active = _active_user_roles(context.user.roles)
+        guard = action_node.properties.get("guard")
+        role_matched = False
+        for edge in action_node.roles:
+            role_cls = cls._role_cls_for_edge(action_node, edge)
+            if not any(_user_role_grants_requirement(ur, role_cls) for ur in active):
+                continue
+            role_matched = True
+            when = edge.properties.get("when")
             if when is not None and not when(context.user):
-                raise AuthorizationError("Access denied. AnyRole grant's when= condition was not met.", level=2)
+                continue
             _enforce_guard(context.user, params, guard)
             return
 
-        active = _active_user_roles(raw_roles)
-
-        if isinstance(role_spec, tuple) or (isinstance(role_spec, type) and issubclass(role_spec, BaseRole)):
-            role_matched = False
-            for edge in action_node.roles:
-                role_cls = self._role_cls_for_edge(action_node, edge)
-                if not any(_user_role_grants_requirement(ur, role_cls) for ur in active):
-                    continue
-                role_matched = True
-                when = edge.properties.get("when")
-                if when is not None and not when(context.user):
-                    continue
-                _enforce_guard(context.user, params, guard)
-                return
-
-            user_names = [r.name for r in raw_roles]
-            if isinstance(role_spec, tuple):
-                names = [r.name for r in role_spec]
-                if role_matched:
-                    raise AuthorizationError(
-                        f"Access denied. Required one of the roles: {names}, matched but a "
-                        f"condition rejected the request; user roles: {user_names}",
-                        level=2,
-                    )
-                raise AuthorizationError(
-                    f"Access denied. Required one of the roles: {names}, " f"user roles: {user_names}",
-                    level=1,
-                )
-            if role_matched:
-                raise AuthorizationError(
-                    f"Access denied. Required role: '{role_spec.name}', matched but a "
-                    f"condition rejected the request; user roles: {user_names}",
-                    level=2,
-                )
-            raise AuthorizationError(
-                f"Access denied. Required role: '{role_spec.name}', " f"user roles: {user_names}",
-                level=1,
-            )
-        raise TypeError(f"Invalid reconstructed @check_roles spec: {role_spec!r} " f"({type(role_spec).__name__}).")
+        raise _denial_error(role_spec, context.user.roles, role_matched)
 
 
 def _enforce_guard(user: Any, params: Any, guard: Callable[..., bool] | None) -> None:
@@ -211,3 +208,34 @@ def _user_role_grants_requirement(user_role: type[BaseRole], required: type[Base
     if RoleMode.declared_for(user_role) is RoleMode.SILENCED:
         return False
     return issubclass(user_role, required)
+
+
+def _denial_error(
+    role_spec: Any,
+    raw_roles: tuple[type[BaseRole], ...],
+    role_matched: bool,
+) -> AuthorizationError:
+    """Build the ``AuthorizationError`` for a concrete-role(s) denial (level 1 or 2)."""
+    user_names = [r.name for r in raw_roles]
+    if isinstance(role_spec, tuple):
+        names = [r.name for r in role_spec]
+        if role_matched:
+            return AuthorizationError(
+                f"Access denied. Required one of the roles: {names}, matched but a "
+                f"condition rejected the request; user roles: {user_names}",
+                level=2,
+            )
+        return AuthorizationError(
+            f"Access denied. Required one of the roles: {names}, " f"user roles: {user_names}",
+            level=1,
+        )
+    if role_matched:
+        return AuthorizationError(
+            f"Access denied. Required role: '{role_spec.name}', matched but a "
+            f"condition rejected the request; user roles: {user_names}",
+            level=2,
+        )
+    return AuthorizationError(
+        f"Access denied. Required role: '{role_spec.name}', " f"user roles: {user_names}",
+        level=1,
+    )
