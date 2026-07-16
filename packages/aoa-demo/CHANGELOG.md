@@ -5,6 +5,12 @@ All notable changes to `aoa-demo` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`CancelOrderAction` in `fastapi_mcp_services.orders_domain` — the full access-control cascade in one action.** Demonstrates `grant(CustomerRole)` (role), `guard=` (a `"LOCKED-"`-prefixed order can't be cancelled by anyone), and `access_decide` (a customer may only cancel their own order) together, exercised via both `machine.run` and `machine.check_access_decide`. ([#65](https://github.com/bystrovmaxim/aoa/issues/65))
+
 ## [1.0.0] – 2026-06-27
 
 ### Changed
