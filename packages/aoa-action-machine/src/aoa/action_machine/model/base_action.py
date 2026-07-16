@@ -119,7 +119,6 @@ from __future__ import annotations
 from abc import ABC
 from typing import TYPE_CHECKING, Any, cast
 
-from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.aspects.aspect_intent import AspectIntent
@@ -144,6 +143,14 @@ if TYPE_CHECKING:
     # Deferred: runtime.tools_box imports BaseAction at module level, so a top-level
     # import here would cycle. ToolsBox is only ever used as a type annotation below.
     from aoa.action_machine.runtime.tools_box import ToolsBox
+
+    # Deferred: context.context's own imports don't touch base_action directly, but
+    # model/__init__.py eagerly imports base_action — so context.context (imported
+    # first, e.g. by aoa-otel/aoa-fastapi-adapter/aoa-mcp-adapter before anything
+    # touches `model`) -> context.request_info -> model.base_schema -> triggers
+    # model/__init__.py -> base_action -> context.context (still mid-import) is a
+    # real transitive cycle. Context is only ever used as a type annotation below.
+    from aoa.action_machine.context.context import Context
 
 _REQUIRED_SUFFIX = "Action"
 
