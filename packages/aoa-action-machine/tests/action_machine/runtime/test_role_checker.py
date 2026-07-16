@@ -260,11 +260,11 @@ class GrantGuardProbeAction(BaseAction["GrantGuardProbeAction.Params", "GrantGua
     @summary_aspect("S")
     async def probe_summary(
         self,
-        params: "GrantGuardProbeAction.Params",
+        params: GrantGuardProbeAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> "GrantGuardProbeAction.Result":
+    ) -> GrantGuardProbeAction.Result:
         return GrantGuardProbeAction.Result(ok=True)
 
 
@@ -336,11 +336,11 @@ class GuestWhenProbeAction(BaseAction["GuestWhenProbeAction.Params", "GuestWhenP
     @summary_aspect("S")
     async def probe_summary(
         self,
-        params: "GuestWhenProbeAction.Params",
+        params: GuestWhenProbeAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> "GuestWhenProbeAction.Result":
+    ) -> GuestWhenProbeAction.Result:
         return GuestWhenProbeAction.Result(ok=True)
 
 
@@ -366,11 +366,11 @@ class AnyWhenProbeAction(BaseAction["AnyWhenProbeAction.Params", "AnyWhenProbeAc
     @summary_aspect("S")
     async def probe_summary(
         self,
-        params: "AnyWhenProbeAction.Params",
+        params: AnyWhenProbeAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> "AnyWhenProbeAction.Result":
+    ) -> AnyWhenProbeAction.Result:
         return AnyWhenProbeAction.Result(ok=True)
 
 
