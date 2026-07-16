@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import ConfigDict
 
 from aoa.action_machine.model.base_action import BaseAction
@@ -25,6 +23,6 @@ class AccessVerdict(BaseSchema):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     allowed: bool
-    action: type[BaseAction[Any, Any]]
+    action: type[BaseAction]  # type: ignore[type-arg]  # pydantic rejects a parametrized type[X[...]] here
     level: int | None = None
     reason: str | None = None
