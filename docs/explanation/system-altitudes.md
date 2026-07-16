@@ -1,4 +1,4 @@
-<!-- translated-from: system-altitudes_draft.md @ 2026-06-17T15:29:11Z · sha256:f5efd644bd79 -->
+<!-- translated-from: system-altitudes_draft.md @ 2026-07-14T22:36:09Z · sha256:ac46e972aba8 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -13,9 +13,9 @@
 
 ---
 
-To understand what a system can do and where the boundaries of responsibility run, you do not have to dive straight into the implementation. AOA lets you look at the system from different altitudes — from the product map to the body of a single step — and at each altitude its own layer of the answer is visible. These are not five different representations but one and the same code seen from different distances; the first four levels **Maxitor** builds from the code automatically, the fifth is the code itself.
+To understand what a system can do and where the boundaries of responsibility run, you do not have to dive straight into the implementation. AOA lets you look at the system from different altitudes — from the product map to the body of a single step — and at each altitude its own layer of the answer is visible. These are not six different representations but one and the same code seen from different distances; the first five levels **Maxitor** builds from the code automatically, the sixth is the code itself.
 
-The value of such a view is practical. An architect discusses the system at the first or second level, an API designer at the third, a scenario author at the fourth, and only then someone opens the fifth. An argument about implementation begun straight at the fifth level almost always means the upper ones were skipped.
+The value of such a view is practical. An architect discusses the system at the first or second level, an API designer at the third, a scenario author at the fourth, and a step's information boundary at the fifth. Only then does someone open the sixth. An argument about implementation begun straight at the sixth level almost always means the upper ones were skipped.
 
 ---
 
@@ -78,41 +78,52 @@ At this level the external contract is discussed without reading the implementat
 
 ## Level 4. The operation pipeline
 
-Answers the question: **what steps is the scenario made of and where are the rollbacks?**
+Answers the question: **what steps is the scenario made of and what does each one add?**
 
 ```mermaid
 flowchart LR
     Validate["regular · Validation<br/>validated_id"] --> Reserve["regular · Reserve<br/>reservation_id"]
     Reserve --> Charge["regular · Charge<br/>txn_id"]
     Charge --> Summary["summary · assemble result"]
-    Reserve -. compensate .-> Release["Release reservation"]
-    Charge -. compensate .-> Refund["Refund funds"]
-    Charge -. on failure .-> Refund
-    Refund -. then .-> Release
 ```
 
-Now the business process itself is visible: the order of steps, the data in `state`, the point where the result is assembled, the `regular` → `compensate` pairs, and the order of compensators on failure — the rollback runs in reverse. This is the level at which the scenario logic is discussed before a single method is opened.
+Now the business process itself is visible: the order of steps, the data each step adds to `state`, and the point where the result is assembled. This is the level at which the scenario structure is discussed before a single method is opened. Sagas and compensation are a separate system guarantee, not another altitude.
 
 ---
 
-## Level 5. The body of a step
+## Level 5. The contract of one Aspect
+
+Answers the question: **what can this step see and what does it add?**
+
+```mermaid
+flowchart LR
+    Params["Params<br/>items"] --> Aspect["reserve_inventory"]
+    Before["State before · available<br/>validated_items"] --> Aspect
+    Context["Context · declared slice<br/>user.tenant_id · request.trace_id"] --> Aspect
+    Env["Env · declared slice<br/>env.inventory_region"] --> Aspect
+    Aspect --> After["State after · adds<br/>reservation_id"]
+```
+
+The method body is still closed. The step is visible only as an information boundary: `Params`, the state accumulated by the previous pipeline steps, the explicitly declared `Context` and `Env` slices, and the contribution left in `State` for the following steps. `State before` is shown as available data, not as a separately declared read contract. This altitude describes the shape around the step; runtime checking of its output belongs to the separate state-x-ray guarantee.
+
+---
+
+## Level 6. The body of a step
 
 Answers the question: **how exactly is a concrete piece of the scenario executed?**
 
 ```python
-@regular_aspect("Reserve")
-@result_string("validated_id", required=True, min_length=1)
+@regular_aspect("Reserve inventory")
 @result_string("reservation_id", required=True, min_length=1)
-async def reserve_aspect(self, params, state, box, connections):
-    await box.info(
-        Channel.business,
-        "reserve validated_id={%var.validated_id}",
-        validated_id=state["validated_id"],
+@context_requires("user.tenant_id", "env.inventory_region")
+async def reserve_inventory_aspect(self, params, state, box, connections, ctx):
+    inventory = box.resolve(InventoryResource)
+    reservation_id = await inventory.reserve(
+        tenant_id=ctx.get("user.tenant_id"),
+        region=ctx.get("env.inventory_region"),
+        items=state["validated_items"],
     )
-    return {
-        "validated_id": state["validated_id"],
-        "reservation_id": f"res-{state['validated_id']}",
-    }
+    return {"reservation_id": reservation_id}
 ```
 
 Only here is the Python implementation read. But by this moment it is already known why the step exists, where it is in the scenario, what it must return, and which level of the system it serves. The implementation stops being the single source of truth about behavior — it becomes the last detail, not the first.
