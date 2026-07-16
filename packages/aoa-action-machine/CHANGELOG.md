@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`AccessConditionAsyncError` — guards `grant(when=...)`/`guard=` against `async def`.** New exception under `aoa.action_machine.exceptions`: an unawaited coroutine is always truthy, so an async condition would silently pass every check instead of being evaluated. Not yet raised anywhere — step 1 of the access-control-cascade plan; `@check_roles` starts raising it at class-definition time in a later step. ([#65](https://github.com/bystrovmaxim/aoa/issues/65))
 - **`AccessVerdict` — outcome of an access check without executing the action.** New frozen schema under `aoa.action_machine.intents.access_control`: `allowed: bool`, `action: type[BaseAction]`, `level: int | None` (1 role / 2 guard / 3 `access_decide` — whichever rejected), `reason: str | None`. Step 2 of the access-control-cascade plan — the return type for `access_decide` and the future `machine.check`; nothing constructs it yet. ([#65](https://github.com/bystrovmaxim/aoa/issues/65))
+- **`BaseAction.access_decide` — default object-level access hook.** New optional method, alongside `cache_key`/`read_cache`/`on_cache_write`: `async def access_decide(self, params, context, box, connections) -> bool`, defaulting to `True` (no restriction beyond roles/guard). Step 3 of the access-control-cascade plan; the runtime does not call it yet. ([#65](https://github.com/bystrovmaxim/aoa/issues/65))
 
 ## [1.0.1a2] – 2026-07-11
 
