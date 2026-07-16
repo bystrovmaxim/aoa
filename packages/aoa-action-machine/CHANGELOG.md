@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Conventions.** Release headings use `## [version] – YYYY-MM-DD` (en dash). Use `### Breaking changes`, `### Added`, `### Changed`, `### Fixed`, `### Removed`, and `### Documentation` as needed. Each bullet starts with a **bold title** followed by a period and the body.
 
+## [Unreleased]
+
+### Added
+
+- **`AccessConditionAsyncError` — guards `grant(when=...)`/`guard=` against `async def`.** New exception under `aoa.action_machine.exceptions`: an unawaited coroutine is always truthy, so an async condition would silently pass every check instead of being evaluated. Not yet raised anywhere — step 1 of the access-control-cascade plan; `@check_roles` starts raising it at class-definition time in a later step. ([#65](https://github.com/bystrovmaxim/aoa/issues/65))
+
 ## [1.0.1a2] – 2026-07-11
 
 ### Added

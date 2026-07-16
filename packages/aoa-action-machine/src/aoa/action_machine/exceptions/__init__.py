@@ -5,6 +5,7 @@ Framework-level exceptions for ActionMachine.
 Import public types from here, for example ``from aoa.action_machine.exceptions import NamingSuffixError``.
 """
 
+from aoa.action_machine.exceptions.access_condition_async_error import AccessConditionAsyncError
 from aoa.action_machine.exceptions.action_result_declaration_error import ActionResultDeclarationError
 from aoa.action_machine.exceptions.action_result_type_error import ActionResultTypeError
 from aoa.action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
@@ -35,6 +36,7 @@ from aoa.action_machine.exceptions.transaction_prohibited_error import Transacti
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 
 __all__ = [
+    "AccessConditionAsyncError",
     "ActionResultDeclarationError",
     "ActionResultTypeError",
     "AspectPipelineError",
