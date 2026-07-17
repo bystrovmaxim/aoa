@@ -137,6 +137,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+from aoa.fastapi.manifest import Manifest, build_manifest
 from aoa.fastapi.permissions import build_action_index, resolve_verdicts
 from aoa.fastapi.permissions_schema import ResolveRequest, ResolveResponse
 from aoa.fastapi.reserved_route_path_error import ReservedRoutePathError
@@ -826,7 +827,9 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         2. Add middleware for uncaught exception handling.
         3. Register exception handlers.
         4. Register health check endpoint ``GET /health``.
-        5. Generate/register endpoint for each route.
+        5. Register permissions endpoints (``POST /permissions/resolve``,
+           ``GET /client-manifest.json``).
+        6. Generate/register endpoint for each route.
 
         Returns:
             Ready-to-run FastAPI application.
@@ -917,12 +920,13 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             )
 
     # ─────────────────────────────────────────────────────────────────────
-    # Permissions resolver (issue #130, PR 1)
+    # Permissions resolver + client manifest (issue #130)
     # ─────────────────────────────────────────────────────────────────────
 
     def _register_permissions_endpoints(self, app: FastAPI) -> None:
         """
-        Add ``POST /permissions/resolve`` (list-shaped role-gate resolver, issue #130 PR 1 + PR 2).
+        Add ``POST /permissions/resolve`` (list-shaped role-gate resolver, PR 1 + PR 2)
+        and ``GET /client-manifest.json`` (endpoint catalog, chapter 3) — both issue #130.
 
         Registered as a bespoke route, not a ``BaseAction`` — it needs ``machine``
         and a full ``Context`` to call ``machine.check_access_decide`` on *other*
@@ -939,10 +943,19 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         Deduplication and per-item error isolation (PR 2, chapter 2) live in
         :func:`~aoa.fastapi.permissions.resolve_verdicts`, not here — this endpoint
         only wires auth + the wire response around it.
+
+        The catalog is a bespoke route for the same structural reason: it projects
+        ``self._routes`` (see :func:`~aoa.fastapi.manifest.build_manifest`), a field
+        an ordinary action cannot reach. It is built once here (``self._routes`` is
+        already fixed by ``build()`` time) and is role-independent — the same manifest
+        is returned to every authenticated caller, guest included.
         """
         machine = self._machine
         auth_coordinator = self._auth_coordinator
         action_index = build_action_index(self.graph_coordinator)
+        # Projected once: self._routes is already fixed by the time build() runs
+        # (every .post/.get/... has registered), so nothing is recomputed per request.
+        manifest = build_manifest(self._routes)
 
         @app.post("/permissions/resolve", tags=["permissions"], response_model=ResolveResponse)
         async def resolve(request: Request, body: ResolveRequest) -> ResolveResponse:
@@ -952,6 +965,15 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
             outcome = await resolve_verdicts(context, body.items, action_index, machine)
             return ResolveResponse(protocol=1, verdicts=outcome.verdicts)
+
+        @app.get("/client-manifest.json", tags=["permissions"], response_model=Manifest)
+        async def client_manifest(request: Request) -> Manifest:
+            context = await auth_coordinator.process(request)
+            if context is None:
+                raise AuthorizationError("Authentication required")
+            # Role-independent: the same manifest goes to every authenticated
+            # caller, guest (NoAuthCoordinator) included.
+            return manifest
 
     # ─────────────────────────────────────────────────────────────────────
     # Health check
