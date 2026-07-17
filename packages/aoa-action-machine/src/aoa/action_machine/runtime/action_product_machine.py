@@ -305,6 +305,17 @@ class ActionProductMachine(BaseActionMachine):
         )
         self._max_check_access_decide_batch_size = max_check_access_decide_batch_size
 
+    @property
+    def max_check_access_decide_batch_size(self) -> int:
+        """The configured cap on the list form of ``check_access_decide`` (see ``__init__``).
+
+        Public so callers that build their own concurrent fan-out over ``check_access_decide``
+        (single-item form) instead of using the sequential list form — e.g. the
+        ``aoa-fastapi-adapter`` resolver's deduplication, chapter 2 — can still honor the same
+        cap explicitly, since the list form's own built-in check never runs for them.
+        """
+        return self._max_check_access_decide_batch_size
+
     @staticmethod
     def _validate_cache_key(cache_key: str | None, action: BaseAction[Any, Any]) -> None:
         """Ensure ``cache_key`` is ``None`` or a non-empty ``str``, or raise :exc:`CacheContractError`."""
