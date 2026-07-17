@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 
-from aoa.fastapi.permissions import build_action_index, resolve_action_class
+from aoa.fastapi.permissions import build_action_index, canonical_key, resolve_action_class
 
 
 @dataclass(frozen=True)
@@ -103,3 +103,17 @@ class TestResolveActionClass:
         """An unregistered operation name fails the whole request (no per-item isolation in this PR)."""
         with pytest.raises(LookupError, match="NoSuchAction"):
             resolve_action_class("NoSuchAction", {"CancelOrderAction": CancelOrderAction})
+
+
+class TestCanonicalKey:
+    """``canonical_key`` — the dedup-key half of ``(operation, canonical_key(params))``, chapter 2."""
+
+    def test_same_fields_different_order_produce_the_same_key(self) -> None:
+        """Field order in the raw params dict must not affect the dedup key."""
+        assert canonical_key({"order_id": 7, "note": "urgent"}) == canonical_key({"note": "urgent", "order_id": 7})
+
+    def test_different_values_produce_different_keys(self) -> None:
+        assert canonical_key({"order_id": 7}) != canonical_key({"order_id": 8})
+
+    def test_empty_params_is_a_stable_key(self) -> None:
+        assert canonical_key({}) == canonical_key({})

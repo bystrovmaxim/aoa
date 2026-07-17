@@ -118,7 +118,7 @@ import re
 from collections.abc import Callable, Mapping
 from typing import Annotated, Any, Self, get_origin
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 from starlette.responses import Response as StarletteResponse
@@ -133,17 +133,15 @@ from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 from aoa.action_machine.model.base_action import BaseAction
-from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
-from aoa.fastapi.permissions import build_action_index, resolve_action_class, to_wire
+from aoa.fastapi.permissions import build_action_index, resolve_verdicts
 from aoa.fastapi.permissions_schema import ResolveRequest, ResolveResponse
 from aoa.fastapi.reserved_route_path_error import ReservedRoutePathError
 from aoa.fastapi.route_record import FastApiRouteRecord
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -924,7 +922,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
     def _register_permissions_endpoints(self, app: FastAPI) -> None:
         """
-        Add ``POST /permissions/resolve`` (list-shaped role-gate resolver, issue #130 PR 1).
+        Add ``POST /permissions/resolve`` (list-shaped role-gate resolver, issue #130 PR 1 + PR 2).
 
         Registered as a bespoke route, not a ``BaseAction`` — it needs ``machine``
         and a full ``Context`` to call ``machine.check_access_decide`` on *other*
@@ -937,6 +935,10 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         coordinator) — a resolved anonymous ``Context`` (``NoAuthCoordinator``)
         proceeds normally, so ``@check_roles(GuestRole)`` actions resolve correctly
         for unauthenticated callers instead of being special-cased here.
+
+        Deduplication and per-item error isolation (PR 2, chapter 2) live in
+        :func:`~aoa.fastapi.permissions.resolve_verdicts`, not here — this endpoint
+        only wires auth + the wire response around it.
         """
         machine = self._machine
         auth_coordinator = self._auth_coordinator
@@ -948,24 +950,8 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             if context is None:
                 raise AuthorizationError("Authentication required")
 
-            pairs: list[tuple[type[BaseAction[Any, Any]], BaseParams | None]] = []
-            for item in body.items:
-                try:
-                    action_class = resolve_action_class(item.operation, action_index)
-                    params_type = ActionSchemaIntentResolver.resolve_params_type(action_class)
-                    if params_type is None:
-                        # Action registered without a resolvable BaseAction[Params, Result] —
-                        # a server-side configuration bug, not a client input problem.
-                        raise TypeError(f"{action_class!r} has no resolvable Params type.")
-                    params = params_type.model_validate(item.params)
-                except (LookupError, ValidationError) as exc:
-                    # No per-item isolation in this PR (see PR 2): a bad item fails the
-                    # whole batch with a plain client error, not a 500.
-                    raise HTTPException(status_code=400, detail=str(exc)) from exc
-                pairs.append((action_class, params))
-
-            verdicts = await machine.check_access_decide(context, pairs)
-            return ResolveResponse(protocol=1, verdicts=[to_wire(v) for v in verdicts])
+            outcome = await resolve_verdicts(context, body.items, action_index, machine)
+            return ResolveResponse(protocol=1, verdicts=outcome.verdicts)
 
     # ─────────────────────────────────────────────────────────────────────
     # Health check

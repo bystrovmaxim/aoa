@@ -262,6 +262,14 @@ async def test_batch_larger_than_max_check_access_decide_batch_size_is_rejected_
     assert _access_decide_calls["n"] == 0
 
 
+def test_max_check_access_decide_batch_size_is_publicly_readable() -> None:
+    """Callers that fan out their own concurrent ``check_access_decide`` calls (e.g. the
+    ``aoa-fastapi-adapter`` resolver, PR 2) need to read back the configured cap to enforce
+    it themselves, since the list form's own built-in check never runs for them."""
+    small_machine = ActionProductMachine(cache_coordinator=None, max_check_access_decide_batch_size=2)
+    assert small_machine.max_check_access_decide_batch_size == 2
+
+
 async def test_single_form_matches_first_item_of_equivalent_list_call(machine: ActionProductMachine) -> None:
     _reset()
     single = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params(key="A"))
