@@ -118,7 +118,7 @@ import re
 from collections.abc import Callable, Mapping
 from typing import Annotated, Any, Self, get_origin
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 from starlette.responses import Response as StarletteResponse
@@ -127,15 +127,23 @@ from aoa.action_machine.adapters.base_adapter import BaseAdapter
 from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
 from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
+    CheckAccessDecideBatchSizeExceededError,
+)
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 from aoa.action_machine.model.base_action import BaseAction
+from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+from aoa.fastapi.permissions import build_action_index, resolve_action_class, to_wire
+from aoa.fastapi.permissions_schema import ResolveRequest, ResolveResponse
+from aoa.fastapi.reserved_route_path_error import ReservedRoutePathError
 from aoa.fastapi.route_record import FastApiRouteRecord
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -571,6 +579,11 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             API description for OpenAPI (Markdown supported).
     """
 
+    #: Paths owned by the adapter's own bespoke routes (``build()`` registers these before looping
+    #: over ``self._routes``, so an app-registered route on the same path would be silently
+    #: shadowed by Starlette's first-match-wins routing — see ``ReservedRoutePathError``).
+    _RESERVED_PATHS: frozenset[str] = frozenset({"/health", "/permissions/resolve"})
+
     def __init__(
         self,
         machine: ActionProductMachine,
@@ -646,7 +659,15 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         If ``summary`` is empty, fill it from action ``@meta`` description.
         ``auth_coordinator``, when given, overrides the adapter's default coordinator
         for this route only (see :meth:`~aoa.action_machine.adapters.base_adapter.BaseAdapter.effective_auth_coordinator`).
+
+        Raises:
+            ReservedRoutePathError: ``path`` collides with one of the adapter's own bespoke
+                routes (``_RESERVED_PATHS``) — registering it here would be silently
+                shadowed at ``build()`` time rather than actually reachable.
         """
+        if path in self._RESERVED_PATHS:
+            raise ReservedRoutePathError(path, method)
+
         effective_summary = summary or _get_action_class_description(
             action_class,
             coordinator=self.graph_coordinator,
@@ -821,6 +842,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         app.add_middleware(_CatchAllErrorsMiddleware)
         self._register_exception_handlers(app)
         self._register_health_check(app)
+        self._register_permissions_endpoints(app)
 
         for record in self._routes:
             self._register_endpoint(app, record)
@@ -885,6 +907,65 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 status_code=422,
                 content={"detail": str(exc)},
             )
+
+        @app.exception_handler(CheckAccessDecideBatchSizeExceededError)
+        async def handle_batch_size_exceeded(
+            request: Request,
+            exc: CheckAccessDecideBatchSizeExceededError,
+        ) -> JSONResponse:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": str(exc)},
+            )
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Permissions resolver (issue #130, PR 1)
+    # ─────────────────────────────────────────────────────────────────────
+
+    def _register_permissions_endpoints(self, app: FastAPI) -> None:
+        """
+        Add ``POST /permissions/resolve`` (list-shaped role-gate resolver, issue #130 PR 1).
+
+        Registered as a bespoke route, not a ``BaseAction`` — it needs ``machine``
+        and a full ``Context`` to call ``machine.check_access_decide`` on *other*
+        actions, and ordinary aspects cannot reach either (see the module-level
+        ``REQUIRED AUTHENTICATION`` note and the ADR for the full argument).
+
+        Always calls ``auth_coordinator.process(request)``; a ``403`` (via the
+        existing ``AuthorizationError`` handler) follows only
+        when that returns ``None`` (e.g. invalid credentials on a strict
+        coordinator) — a resolved anonymous ``Context`` (``NoAuthCoordinator``)
+        proceeds normally, so ``@check_roles(GuestRole)`` actions resolve correctly
+        for unauthenticated callers instead of being special-cased here.
+        """
+        machine = self._machine
+        auth_coordinator = self._auth_coordinator
+        action_index = build_action_index(self.graph_coordinator)
+
+        @app.post("/permissions/resolve", tags=["permissions"], response_model=ResolveResponse)
+        async def resolve(request: Request, body: ResolveRequest) -> ResolveResponse:
+            context = await auth_coordinator.process(request)
+            if context is None:
+                raise AuthorizationError("Authentication required")
+
+            pairs: list[tuple[type[BaseAction[Any, Any]], BaseParams | None]] = []
+            for item in body.items:
+                try:
+                    action_class = resolve_action_class(item.operation, action_index)
+                    params_type = ActionSchemaIntentResolver.resolve_params_type(action_class)
+                    if params_type is None:
+                        # Action registered without a resolvable BaseAction[Params, Result] —
+                        # a server-side configuration bug, not a client input problem.
+                        raise TypeError(f"{action_class!r} has no resolvable Params type.")
+                    params = params_type.model_validate(item.params)
+                except (LookupError, ValidationError) as exc:
+                    # No per-item isolation in this PR (see PR 2): a bad item fails the
+                    # whole batch with a plain client error, not a 500.
+                    raise HTTPException(status_code=400, detail=str(exc)) from exc
+                pairs.append((action_class, params))
+
+            verdicts = await machine.check_access_decide(context, pairs)
+            return ResolveResponse(protocol=1, verdicts=[to_wire(v) for v in verdicts])
 
     # ─────────────────────────────────────────────────────────────────────
     # Health check
