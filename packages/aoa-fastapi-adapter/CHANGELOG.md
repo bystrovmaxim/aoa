@@ -5,6 +5,13 @@ All notable changes to `aoa-fastapi-adapter` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`POST /permissions/resolve` — minimal permissions resolver (role-gate only).** New bespoke route registered directly in `FastApiAdapter.build()` (like `_register_health_check`, but always authenticated): takes a list of `{operation, params}` questions and returns a same-order list of `Verdict`s, backed by the existing `machine.check_access_decide`. List-shaped wire protocol (`items`/`verdicts`) from day one — a single question is a batch of one, not a separate code path. `auth_coordinator.process(request)` is always called; a `403` follows only when it returns `None` — a resolved anonymous `Context` (e.g. `NoAuthCoordinator`) flows through normally, so `@check_roles(GuestRole)` actions resolve correctly for unauthenticated callers instead of being special-cased in the resolver. `scope`/`entities`/`reason_code`/`expires_at` are reserved in the wire schema but deliberately unpopulated in this release — see the upcoming object-level verdict and rate-limiting work. `CheckAccessDecideBatchSizeExceededError` now maps to HTTP `413`. New modules: `aoa.fastapi.permissions_schema` (wire models), `aoa.fastapi.permissions` (`operation` name resolution, `AccessVerdict` -> wire projection). No changes to `aoa-action-machine`. ([#134](https://github.com/bystrovmaxim/aoa/issues/134) · part of [#130](https://github.com/bystrovmaxim/aoa/issues/130))
+- **Reserved-route-path guard on `FastApiAdapter`.** `_RESERVED_PATHS` (`/health`, `/permissions/resolve`) is checked on every `.post/.get/.put/.delete/.patch(...)` call; registering an action on a reserved path now raises `ReservedRoutePathError` immediately instead of being silently shadowed by the adapter's own bespoke route at `build()` time. ([#134](https://github.com/bystrovmaxim/aoa/issues/134))
+
 ## [1.1.1] – 2026-07-11
 
 ### Changed
