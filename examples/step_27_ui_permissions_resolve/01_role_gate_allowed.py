@@ -1,0 +1,78 @@
+"""
+01_role_gate_allowed.py — the happy path: a manager can cancel an order
+
+machine.check_access_decide answers "can this user do X?" without executing
+the action — the same role -> guard -> access_decide cascade that machine.run
+enforces, just without running any aspect. to_wire() then projects the
+internal AccessVerdict onto the wire Verdict shape that POST /permissions/resolve
+actually returns over HTTP.
+
+Watch scope here: it is None, not "role", even though a role check clearly
+ran. AccessVerdict.level is None exactly when allowed=True (nothing rejected
+the check, so there is no rejecting level to report) — to_wire() derives scope
+from level, so an allowed verdict always has scope=None in this chapter.
+
+Tutorial: ../../docs/tutorials/step-27-ui-permissions-resolve_draft.md
+
+Run:
+    uv run python examples/step_27_ui_permissions_resolve/01_role_gate_allowed.py
+"""
+
+import asyncio
+
+from pydantic import Field
+
+from aoa.action_machine.auth import ApplicationRole
+from aoa.action_machine.context import Context
+from aoa.action_machine.context.user_info import UserInfo
+from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.fastapi.permissions import to_wire
+
+
+class StoreDomain(BaseDomain):
+    name = "store"
+    description = "Store domain"
+
+
+class ManagerRole(ApplicationRole):
+    name = "manager"
+    description = "Can manage orders"
+
+
+class OrderParams(BaseParams):
+    order_id: int = Field(description="Order identifier")
+
+
+class OrderResult(BaseResult):
+    status: str = Field(description="New order status")
+
+
+@meta(description="Cancel an order", domain=StoreDomain)
+@check_roles(ManagerRole)
+class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
+
+    @summary_aspect("Cancel the order")
+    async def cancel_summary(self, params, state, box, connections):
+        return OrderResult(status="cancelled")
+
+
+async def main() -> None:
+    machine = ActionProductMachine()
+    manager = Context(user=UserInfo(user_id="m1", roles=(ManagerRole,)))
+
+    verdict = await machine.check_access_decide(manager, CancelOrderAction, OrderParams(order_id=7))
+    wire_verdict = to_wire(verdict)
+
+    print(f"allowed     = {wire_verdict.allowed}")
+    print(f"scope       = {wire_verdict.scope!r}")  # None, not "role" — see module docstring
+    print(f"level       = {wire_verdict.level!r}")
+    print(f"reason_code = {wire_verdict.reason_code!r}")  # always None in this chapter — see PR 2
+    print(f"entities    = {wire_verdict.entities!r}")  # always [] in this chapter — see PR 8
+
+
+asyncio.run(main())
