@@ -1,4 +1,4 @@
-<!-- translated-from: index_draft.md @ 2026-07-10T13:57:44Z (filesystem mtime; draft is gitignored, no git history) · sha256:2b48a20ac13f -->
+<!-- translated-from: index_draft.md @ 2026-07-17T15:52:19Z (filesystem mtime; draft is gitignored, no git history) · sha256:e05709b2ef76 -->
 <p align="center">
   <img src="assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -98,6 +98,14 @@ The guide moves from a practical entry point to the complete project architectur
 > **The big problem:** how to see the whole system — operations, dependencies, entities — without a single line of manual documentation.
 
 - **[Maxitor: a system you can see](tutorials/step-26-maxitor.md)** — graph of operations, ERD, use case, and lifecycle: four projections from one code, without manual documentation
+
+---
+
+## VIII UI permissions
+
+> **The big problem:** the frontend needs to decide whether to show an action's button, without duplicating the access rule declared on the server. The first step is the resolver (`POST /permissions/resolve`); later chapters (a generated client, cache, batching, push invalidation) will arrive as they're ready.
+
+- **[UI permissions: the resolver](tutorials/step-27-ui-permissions-resolve.md)** — `POST /permissions/resolve`: ask the server "can I?" instead of copying the rule into the component; a list-shaped protocol from day one, a guest as an honest role
 
 ---
 

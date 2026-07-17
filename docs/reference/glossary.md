@@ -1,4 +1,4 @@
-<!-- translated-from: glossary_draft.md @ 2026-07-16T21:46:23Z (filesystem mtime; draft is gitignored, no git history) · sha256:20a442b8bfcd -->
+<!-- translated-from: glossary_draft.md @ 2026-07-17T15:33:09Z (filesystem mtime; draft is gitignored, no git history) · sha256:d79e24793fd7 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -134,6 +134,20 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 **Maxitor** — the visualizer: builds an interactive graph, ERD, use-case, and FSM diagrams from the code.
 
 **Machine-readable specification** — the property by which every `Action` describes itself (roles, dependencies, steps, contracts), and from this the documentation, the access matrix, and the diff of business intent between versions are assembled.
+
+## UI permissions
+
+**Reference** — the permissions resolver, `POST /permissions/resolve` (`aoa-fastapi-adapter`). A thin HTTP wrapper around `machine.check_access_decide`: a list of `(operation, params)` → a list of verdicts in the same order. Doesn't change or duplicate the access rule — it's still declared only via `@check_roles`/`access_decide` on the action itself. The list form deduplicates items that share the same `(operation, params)`: the real `access_decide` call happens once per distinct item, and `verdicts` never gets shorter — duplicate positions get copies of the already-computed verdict.
+
+**Verdict** — the wire format of one resolver answer: `allowed`, `scope`, `level`, `reason`, `reason_code`, `entities`, `expires_at` (package `aoa.fastapi.permissions_schema`). Built from the internal `AccessVerdict` by `to_wire()`; not the same thing as `AccessVerdict` — `Verdict` has fields `AccessVerdict` doesn't (`scope`, `reason_code`, `entities`, `expires_at`), reserved for later chapters.
+
+**Reason code** — a machine-readable reason code at the level of one batch item on the resolver (the `reason_code` field on `Verdict`, not meant for direct display to the user). `UNKNOWN_ACTION` is the first code in the taxonomy: a batch item names an action the server doesn't recognize; it's reported as `200 OK` with this code at its own position, rather than an HTTP error for the whole request.
+
+**Role-gate** — a role-based check that ignores the specific object (RBAC, cascade levels 1-2: role and `guard=`). Reported by the resolver as `scope: "role"`.
+
+**Object verdict** — a check based on a fact about a specific object (ABAC, level 3, `access_decide`). The machine has been able to compute it since the access-control cascade was introduced; the resolver only honestly reports it as `scope: "object"` starting with the chapter of the UI-permissions book that adds rate-limiting protection (before that, such a check is still reported as `scope: "role"`).
+
+**Subject** — whoever asks the resolver a question: an authenticated user, or a genuine anonymous guest (`NoAuthCoordinator`). Not to be confused with a role — a subject can hold zero, one, or several roles at once.
 
 ## Common errors
 
