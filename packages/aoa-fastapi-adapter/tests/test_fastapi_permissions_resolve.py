@@ -1,6 +1,6 @@
 # tests/test_fastapi_permissions_resolve.py
 """
-End-to-end tests for ``POST /permissions/resolve`` (issue #130, PR 1).
+End-to-end tests for ``POST /permissions/resolve`` (issue #130, PR 1 + PR 2).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -12,8 +12,12 @@ real ``@check_roles``-gated actions — only ``auth_coordinator`` is mocked, per
 this package's adapter testing contract (see ``BaseAdapter`` module docstring).
 
 Covers: role-gate allow/deny, guest (anonymous) access, truly-unauthenticated
-rejection, unknown ``operation``, reserved-path collisions, and the
-``max_check_access_decide_batch_size`` -> HTTP 413 mapping.
+rejection, unknown ``operation`` (per-item ``UNKNOWN_ACTION``, PR 2), duplicate
+items in one batch (PR 2), reserved-path collisions, and the
+``max_check_access_decide_batch_size`` -> HTTP 413 mapping. Deduplication's
+internal accounting (``real_call_count``) is asserted directly against
+``resolve_verdicts`` in ``test_fastapi_permissions_resolve_verdicts.py`` — this
+file only checks what a real client actually observes over HTTP.
 """
 
 from unittest.mock import AsyncMock
@@ -142,6 +146,54 @@ class TestRoleGate:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Deduplication (PR 2): observable client-side behavior only
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestDeduplication:
+    """The client sees the same length/order/content whether or not the server deduplicated."""
+
+    def test_duplicate_items_return_identical_verdicts_at_both_positions(self) -> None:
+        """Two identical items in one batch still get two verdicts back, and they match."""
+        client = _make_client(context=_manager_context())
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "protocol": 1,
+                "items": [
+                    {"operation": "CancelOrderAction", "params": {"order_id": 7}},
+                    {"operation": "CancelOrderAction", "params": {"order_id": 7}},
+                ],
+            },
+        )
+        assert response.status_code == 200
+        verdicts = response.json()["verdicts"]
+        assert len(verdicts) == 2
+        assert verdicts[0] == verdicts[1]
+
+    def test_batch_of_five_two_duplicates_preserves_length_and_order(self) -> None:
+        """Book example (chapter 2): positions 0 and 4 repeat the same question; response stays length 5."""
+        client = _make_client(context=_manager_context())
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "protocol": 1,
+                "items": [
+                    {"operation": "CancelOrderAction", "params": {"order_id": 1}},
+                    {"operation": "CancelOrderAction", "params": {"order_id": 2}},
+                    {"operation": "CancelOrderAction", "params": {"order_id": 3}},
+                    {"operation": "CancelOrderAction", "params": {"order_id": 4}},
+                    {"operation": "CancelOrderAction", "params": {"order_id": 1}},
+                ],
+            },
+        )
+        assert response.status_code == 200
+        verdicts = response.json()["verdicts"]
+        assert len(verdicts) == 5
+        assert verdicts[0] == verdicts[4]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Guest role vs. genuinely rejected anonymous access
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -187,16 +239,41 @@ class TestGuestAndAnonymous:
 
 
 class TestErrorMapping:
-    """Whole-request error mapping — no per-item isolation in this PR (see PR 2)."""
+    """Per-item isolation (PR 2) vs. whole-request error mapping."""
 
-    def test_unknown_operation_is_400(self) -> None:
-        """An operation name with no registered action fails the whole request with 400, not 500."""
+    def test_unknown_operation_gets_a_per_item_reason_code(self) -> None:
+        """An operation name with no registered action is a ``200`` with ``reason_code: UNKNOWN_ACTION``, not a 500/400."""
         client = _make_client(context=_manager_context())
         response = client.post(
             "/permissions/resolve",
             json={"protocol": 1, "items": [{"operation": "NoSuchAction", "params": {}}]},
         )
-        assert response.status_code == 400
+        assert response.status_code == 200
+        verdict = response.json()["verdicts"][0]
+        assert verdict["allowed"] is False
+        assert verdict["reason_code"] == "UNKNOWN_ACTION"
+
+    def test_unknown_operation_in_the_middle_does_not_affect_other_items(self) -> None:
+        """A batch of three, with the middle item unknown, still answers the other two normally."""
+        client = _make_client(context=_manager_context())
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "protocol": 1,
+                "items": [
+                    {"operation": "CancelOrderAction", "params": {"order_id": 1}},
+                    {"operation": "NoSuchAction", "params": {}},
+                    {"operation": "CancelOrderAction", "params": {"order_id": 2}},
+                ],
+            },
+        )
+        assert response.status_code == 200
+        verdicts = response.json()["verdicts"]
+        assert len(verdicts) == 3
+        assert verdicts[0]["allowed"] is True
+        assert verdicts[1]["allowed"] is False
+        assert verdicts[1]["reason_code"] == "UNKNOWN_ACTION"
+        assert verdicts[2]["allowed"] is True
 
     def test_batch_larger_than_machine_limit_is_413(self) -> None:
         """A batch over ``max_check_access_decide_batch_size`` fails the whole request with 413."""
