@@ -138,7 +138,7 @@ from aoa.action_machine.resources.per_call_connection import ConnectionValue, re
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.fastapi.manifest import Manifest, build_manifest
-from aoa.fastapi.permissions import build_action_index, resolve_verdicts
+from aoa.fastapi.permissions import build_route_index, resolve_verdicts
 from aoa.fastapi.permissions_schema import ResolveRequest, ResolveResponse
 from aoa.fastapi.reserved_route_path_error import ReservedRoutePathError
 from aoa.fastapi.route_record import FastApiRouteRecord
@@ -952,7 +952,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         """
         machine = self._machine
         auth_coordinator = self._auth_coordinator
-        action_index = build_action_index(self.graph_coordinator)
+        route_index = build_route_index(self._routes)
         # Projected once: self._routes is already fixed by the time build() runs
         # (every .post/.get/... has registered), so nothing is recomputed per request.
         manifest = build_manifest(self._routes)
@@ -963,7 +963,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             if context is None:
                 raise AuthorizationError("Authentication required")
 
-            outcome = await resolve_verdicts(context, body.items, action_index, machine)
+            outcome = await resolve_verdicts(context, body.items, route_index, machine)
             return ResolveResponse(protocol=1, verdicts=outcome.verdicts)
 
         @app.get("/client-manifest.json", tags=["permissions"], response_model=Manifest)

@@ -33,7 +33,7 @@ class ResolveItem(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    operation: str = Field(description="Registered action class name, e.g. \"CancelOrderAction\".")
+    operation: str = Field(description='Endpoint identifier "{method} {path}", e.g. "POST /actions/cancel-order".')
     params: dict[str, Any] = Field(default_factory=dict, description="Raw action parameters (validated server-side).")
     context: dict[str, Any] | None = Field(
         default=None,

@@ -27,18 +27,18 @@ class TestResolveItem:
 
     def test_params_defaults_to_empty_dict(self) -> None:
         """``params`` defaults to ``{}`` when omitted."""
-        item = ResolveItem(operation="CancelOrderAction")
+        item = ResolveItem(operation="POST /actions/cancel-order")
         assert item.params == {}
 
     def test_context_defaults_to_none(self) -> None:
         """``context`` (reserved for future ABAC hints) defaults to ``None``."""
-        item = ResolveItem(operation="CancelOrderAction")
+        item = ResolveItem(operation="POST /actions/cancel-order")
         assert item.context is None
 
     def test_rejects_extra_fields(self) -> None:
         """Unknown wire fields are rejected, not silently ignored."""
         with pytest.raises(ValidationError):
-            ResolveItem(operation="CancelOrderAction", unexpected="value")  # type: ignore[call-arg]
+            ResolveItem(operation="POST /actions/cancel-order", unexpected="value")  # type: ignore[call-arg]
 
 
 class TestResolveRequest:
@@ -51,7 +51,7 @@ class TestResolveRequest:
 
     def test_batch_of_one_is_valid(self) -> None:
         """A single-item batch is the ordinary case, not a special one."""
-        request = ResolveRequest(protocol=1, items=[ResolveItem(operation="CancelOrderAction")])
+        request = ResolveRequest(protocol=1, items=[ResolveItem(operation="POST /actions/cancel-order")])
         assert len(request.items) == 1
 
     def test_batch_of_many_preserves_order(self) -> None:
@@ -59,18 +59,18 @@ class TestResolveRequest:
         request = ResolveRequest(
             protocol=1,
             items=[
-                ResolveItem(operation="CancelOrderAction", params={"order_id": 1}),
-                ResolveItem(operation="IssueRefundAction", params={"order_id": 1}),
+                ResolveItem(operation="POST /actions/cancel-order", params={"order_id": 1}),
+                ResolveItem(operation="POST /actions/issue-refund", params={"order_id": 1}),
             ],
         )
-        assert [item.operation for item in request.items] == ["CancelOrderAction", "IssueRefundAction"]
+        assert [item.operation for item in request.items] == ["POST /actions/cancel-order", "POST /actions/issue-refund"]
 
     def test_rejects_extra_fields(self) -> None:
         """Unknown top-level wire fields are rejected."""
         with pytest.raises(ValidationError):
             ResolveRequest(  # type: ignore[call-arg]
                 protocol=1,
-                items=[ResolveItem(operation="CancelOrderAction")],
+                items=[ResolveItem(operation="POST /actions/cancel-order")],
                 unexpected="value",
             )
 

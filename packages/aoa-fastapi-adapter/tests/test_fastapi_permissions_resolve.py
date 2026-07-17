@@ -12,7 +12,7 @@ real ``@check_roles``-gated actions — only ``auth_coordinator`` is mocked, per
 this package's adapter testing contract (see ``BaseAdapter`` module docstring).
 
 Covers: role-gate allow/deny, guest (anonymous) access, truly-unauthenticated
-rejection, unknown ``operation`` (per-item ``UNKNOWN_ACTION``, PR 2), duplicate
+rejection, unknown ``operation`` (per-item ``UNKNOWN_ENDPOINT``), duplicate
 items in one batch (PR 2), reserved-path collisions, and the
 ``max_check_access_decide_batch_size`` -> HTTP 413 mapping. Deduplication's
 internal accounting (``real_call_count``) is asserted directly against
@@ -100,7 +100,7 @@ class TestRoleGate:
         client = _make_client(context=_manager_context())
         response = client.post(
             "/permissions/resolve",
-            json={"protocol": 1, "items": [{"operation": "CancelOrderAction", "params": {"order_id": 7}}]},
+            json={"protocol": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
         )
         assert response.status_code == 200
         body = response.json()
@@ -115,7 +115,7 @@ class TestRoleGate:
         client = _make_client(context=_user_context())
         response = client.post(
             "/permissions/resolve",
-            json={"protocol": 1, "items": [{"operation": "CancelOrderAction", "params": {"order_id": 7}}]},
+            json={"protocol": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
         )
         assert response.status_code == 200
         verdict = response.json()["verdicts"][0]
@@ -134,8 +134,8 @@ class TestRoleGate:
             json={
                 "protocol": 1,
                 "items": [
-                    {"operation": "CancelOrderAction", "params": {"order_id": 1}},
-                    {"operation": "CancelOrderAction", "params": {"order_id": 2}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 1}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 2}},
                 ],
             },
         )
@@ -161,8 +161,8 @@ class TestDeduplication:
             json={
                 "protocol": 1,
                 "items": [
-                    {"operation": "CancelOrderAction", "params": {"order_id": 7}},
-                    {"operation": "CancelOrderAction", "params": {"order_id": 7}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 7}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 7}},
                 ],
             },
         )
@@ -179,11 +179,11 @@ class TestDeduplication:
             json={
                 "protocol": 1,
                 "items": [
-                    {"operation": "CancelOrderAction", "params": {"order_id": 1}},
-                    {"operation": "CancelOrderAction", "params": {"order_id": 2}},
-                    {"operation": "CancelOrderAction", "params": {"order_id": 3}},
-                    {"operation": "CancelOrderAction", "params": {"order_id": 4}},
-                    {"operation": "CancelOrderAction", "params": {"order_id": 1}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 1}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 2}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 3}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 4}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 1}},
                 ],
             },
         )
@@ -206,7 +206,7 @@ class TestGuestAndAnonymous:
         client = _make_client(context=_guest_context())
         response = client.post(
             "/permissions/resolve",
-            json={"protocol": 1, "items": [{"operation": "PingAction", "params": {}}]},
+            json={"protocol": 1, "items": [{"operation": "GET /actions/ping", "params": {}}]},
         )
         assert response.status_code == 200
         verdict = response.json()["verdicts"][0]
@@ -217,7 +217,7 @@ class TestGuestAndAnonymous:
         client = _make_client(context=_guest_context())
         response = client.post(
             "/permissions/resolve",
-            json={"protocol": 1, "items": [{"operation": "CancelOrderAction", "params": {"order_id": 7}}]},
+            json={"protocol": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
         )
         assert response.status_code == 200
         verdict = response.json()["verdicts"][0]
@@ -228,7 +228,7 @@ class TestGuestAndAnonymous:
         client = _make_client(context=None)
         response = client.post(
             "/permissions/resolve",
-            json={"protocol": 1, "items": [{"operation": "PingAction", "params": {}}]},
+            json={"protocol": 1, "items": [{"operation": "GET /actions/ping", "params": {}}]},
         )
         assert response.status_code == 403  # AuthorizationError -> 403 per this adapter's exception handler
 
@@ -242,16 +242,16 @@ class TestErrorMapping:
     """Per-item isolation (PR 2) vs. whole-request error mapping."""
 
     def test_unknown_operation_gets_a_per_item_reason_code(self) -> None:
-        """An operation name with no registered action is a ``200`` with ``reason_code: UNKNOWN_ACTION``, not a 500/400."""
+        """An operation with no registered endpoint is a ``200`` with ``reason_code: UNKNOWN_ENDPOINT``, not a 500/400."""
         client = _make_client(context=_manager_context())
         response = client.post(
             "/permissions/resolve",
-            json={"protocol": 1, "items": [{"operation": "NoSuchAction", "params": {}}]},
+            json={"protocol": 1, "items": [{"operation": "POST /nope", "params": {}}]},
         )
         assert response.status_code == 200
         verdict = response.json()["verdicts"][0]
         assert verdict["allowed"] is False
-        assert verdict["reason_code"] == "UNKNOWN_ACTION"
+        assert verdict["reason_code"] == "UNKNOWN_ENDPOINT"
 
     def test_unknown_operation_in_the_middle_does_not_affect_other_items(self) -> None:
         """A batch of three, with the middle item unknown, still answers the other two normally."""
@@ -261,9 +261,9 @@ class TestErrorMapping:
             json={
                 "protocol": 1,
                 "items": [
-                    {"operation": "CancelOrderAction", "params": {"order_id": 1}},
-                    {"operation": "NoSuchAction", "params": {}},
-                    {"operation": "CancelOrderAction", "params": {"order_id": 2}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 1}},
+                    {"operation": "POST /nope", "params": {}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 2}},
                 ],
             },
         )
@@ -272,7 +272,7 @@ class TestErrorMapping:
         assert len(verdicts) == 3
         assert verdicts[0]["allowed"] is True
         assert verdicts[1]["allowed"] is False
-        assert verdicts[1]["reason_code"] == "UNKNOWN_ACTION"
+        assert verdicts[1]["reason_code"] == "UNKNOWN_ENDPOINT"
         assert verdicts[2]["allowed"] is True
 
     def test_batch_larger_than_machine_limit_is_413(self) -> None:
@@ -283,8 +283,8 @@ class TestErrorMapping:
             json={
                 "protocol": 1,
                 "items": [
-                    {"operation": "CancelOrderAction", "params": {"order_id": 1}},
-                    {"operation": "CancelOrderAction", "params": {"order_id": 2}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 1}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 2}},
                 ],
             },
         )
