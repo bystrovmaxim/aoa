@@ -581,7 +581,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     #: Paths owned by the adapter's own bespoke routes (``build()`` registers these before looping
     #: over ``self._routes``, so an app-registered route on the same path would be silently
     #: shadowed by Starlette's first-match-wins routing — see ``ReservedRoutePathError``).
-    _RESERVED_PATHS: frozenset[str] = frozenset({"/health", "/permissions/resolve"})
+    _RESERVED_PATHS: frozenset[str] = frozenset({"/health", "/permissions/resolve", "/client-manifest.json"})
 
     def __init__(
         self,

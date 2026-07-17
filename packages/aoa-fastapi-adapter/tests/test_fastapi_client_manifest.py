@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock
 
+import pytest
 from fastapi.testclient import TestClient
 
 from aoa.action_machine.auth.guest_role import GuestRole
@@ -20,6 +21,7 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
+from aoa.fastapi.reserved_route_path_error import ReservedRoutePathError
 
 from .support import CancelOrderAction, ManagerRole, PingAction
 
@@ -97,3 +99,15 @@ class TestClientManifestAuth:
 
         # Role-independent: identical version and endpoints for both callers.
         assert guest_body == manager_body
+
+
+class TestReservedManifestPath:
+    """Registering an app action on the catalog path fails fast, not silently."""
+
+    def test_registering_an_action_on_the_manifest_path_raises(self) -> None:
+        adapter = FastApiAdapter(machine=ActionProductMachine(loggers=[]), auth_coordinator=AsyncMock())
+
+        # Without the reserved-path guard this would silently shadow the catalog
+        # (or be shadowed by it) instead of failing at registration.
+        with pytest.raises(ReservedRoutePathError):
+            adapter.get("/client-manifest.json", PingAction)
