@@ -1058,6 +1058,16 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
             AuthorizationError   -> HTTP 403 Forbidden
             ValidationFieldError -> HTTP 422 Unprocessable Entity
+
+        ``AuthorizationError`` -> 403 body carries ``reason``/``level`` alongside the
+        existing ``detail`` -- additively, ``detail`` is unchanged -- so the
+        developer-declared ``reason=`` a ``grant(when=...)``/``check_roles(guard=...)``
+        was rejected with (or the framework-fixed ``"FORBIDDEN_ROLE"``) actually reaches
+        the caller on a real ``.call()`` denial, not only on a resolver ``.can()``
+        prediction. Both are ``None`` for an entry-gate failure ("Authentication
+        required", raised with neither) and, today, for a level-3 ``access_decide``
+        denial (``reason`` is ``None`` there until that gate gets its own reason
+        mechanism -- a separate, not-yet-done change).
         """
 
         @app.exception_handler(AuthorizationError)
@@ -1067,7 +1077,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         ) -> JSONResponse:
             return JSONResponse(
                 status_code=403,
-                content={"detail": str(exc)},
+                content={"detail": str(exc), "reason": exc.reason, "level": exc.level},
             )
 
         @app.exception_handler(ValidationFieldError)
