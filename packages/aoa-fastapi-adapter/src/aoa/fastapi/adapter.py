@@ -1017,6 +1017,12 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
            ``GET /client-manifest.json``, ``GET /permissions/namespace``).
         7. Generate/register endpoint for each route.
 
+        One :class:`~aoa.fastapi.execution_plan.EndpointExecutionPlan` per route,
+        built once here (``plan_index``) and shared by both step 6 and step 7 — a
+        real call and the resolver's own prediction for the same route always read
+        the identical plan object, not two independently-built ones that merely
+        happen to agree today (chapter 3.5 rule 1; audit finding 9).
+
         Raises:
             RouteShadowError: two registered routes, same method, have path
                 templates that could match the same real URL (e.g. ``/users/me``
@@ -1035,13 +1041,16 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             description=self._description,
         )
 
+        route_index = build_route_index(self._routes)
+        plan_index = build_execution_plan_index(route_index, self.effective_auth_coordinator)
+
         app.add_middleware(_CatchAllErrorsMiddleware)
         self._register_exception_handlers(app)
         self._register_health_check(app)
-        self._register_permissions_endpoints(app)
+        self._register_permissions_endpoints(app, plan_index)
 
         for record in self._routes:
-            self._register_endpoint(app, record)
+            self._register_endpoint(app, record, plan_index)
 
         return app
 
@@ -1049,11 +1058,21 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     # Endpoint generation
     # ─────────────────────────────────────────────────────────────────────
 
-    def _register_endpoint(self, app: FastAPI, record: FastApiRouteRecord) -> None:
+    def _register_endpoint(
+        self, app: FastAPI, record: FastApiRouteRecord, plan_index: dict[str, EndpointExecutionPlan]
+    ) -> None:
         """
         Generate and register one async endpoint from ``FastApiRouteRecord``.
+
+        Reads this route's plan from ``plan_index`` (built once in ``build()``) rather
+        than constructing its own -- the resolver reads the exact same plan object for
+        the exact same route, per chapter 3.5 rule 1 (audit finding 9). An exact
+        ``(method, path)`` duplicate (allowed, first-wins, a non-fatal ``UserWarning``
+        elsewhere) resolves to the *first* registration's plan here too; the second
+        registration is already unreachable via Starlette's own first-match routing,
+        so this cannot change any real request's behavior.
         """
-        plan = EndpointExecutionPlan(record=record, auth_coordinator=self.effective_auth_coordinator(record))
+        plan = plan_index[_fastapi_route_label(record)]
         endpoint = _make_endpoint(
             record=record,
             machine=self._machine,
@@ -1139,7 +1158,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     # Permissions resolver + client manifest (issue #130)
     # ─────────────────────────────────────────────────────────────────────
 
-    def _register_permissions_endpoints(self, app: FastAPI) -> None:
+    def _register_permissions_endpoints(self, app: FastAPI, plan_index: dict[str, EndpointExecutionPlan]) -> None:
         """
         Add ``POST /permissions/resolve`` (list-shaped role-gate resolver, PR 1 + PR 2),
         ``GET /client-manifest.json`` (endpoint catalog, chapter 3), and
@@ -1197,10 +1216,10 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         """
         machine = self._machine
         auth_coordinator = self._auth_coordinator
-        route_index = build_route_index(self._routes)
-        plan_index = build_execution_plan_index(route_index, self.effective_auth_coordinator)
-        # Projected once: self._routes is already fixed by the time build() runs
-        # (every .post/.get/... has registered), so nothing is recomputed per request.
+        # plan_index is built once in build() and shared with _register_endpoint --
+        # not rebuilt here (audit finding 9). Projected once: self._routes is already
+        # fixed by the time build() runs (every .post/.get/... has registered), so
+        # nothing is recomputed per request.
         manifest = build_manifest(self._routes)
 
         @app.post("/permissions/resolve", tags=["permissions"], response_model=ResolveResponse)

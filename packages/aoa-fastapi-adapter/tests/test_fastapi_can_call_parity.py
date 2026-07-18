@@ -16,7 +16,7 @@ resolver and the real HTTP call agree — the regression guard for the fix
 described in ``EndpointExecutionPlan``'s own module docstring.
 """
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 from pydantic import Field
@@ -34,6 +34,7 @@ from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
+from aoa.fastapi.execution_plan import EndpointExecutionPlan
 
 from .support import CancelOrderAction, ManagerRole, OrdersDomain, PingAction, UserRole
 
@@ -219,3 +220,28 @@ class TestConnectionsParity:
         assert response.status_code == 200
         result = response.json()["results"][0]
         assert result["kind"] == "success"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Audit finding 9: one EndpointExecutionPlan object per route, shared by both
+# consumers -- not two independently-built ones that merely happen to agree.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestOnePlanObjectPerRoute:
+    def test_endpoint_execution_plan_is_built_once_per_route_not_twice(self) -> None:
+        """Before this fix, _register_endpoint built its own EndpointExecutionPlan
+        and _register_permissions_endpoints built a second, independent one for the
+        same route via build_execution_plan_index -- two objects, not one shared
+        recipe. All construction happens inside build_execution_plan_index now, so
+        patching EndpointExecutionPlan where execution_plan.py constructs it counts
+        every instantiation, regardless of which consumer ends up reading it."""
+        machine = ActionProductMachine(loggers=[])
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=AsyncMock())
+        adapter.get("/actions/ping", PingAction)
+        adapter.post("/actions/cancel-order", CancelOrderAction)
+
+        with patch("aoa.fastapi.execution_plan.EndpointExecutionPlan", wraps=EndpointExecutionPlan) as spy:
+            adapter.build()
+
+        assert spy.call_count == 2  # one per distinct route -- not one per route per consumer
