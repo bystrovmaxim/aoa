@@ -1243,21 +1243,30 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             return ResolveResponse(version=SUPPORTED_VERSION, results=outcome.results)
 
         manifest_etag = f'"{manifest.manifest_version}"'
+        # Role-independent: the same manifest goes to every authenticated caller,
+        # guest (NoAuthCoordinator) included — hence identity-neutral headers/body,
+        # not per-caller ones. "private" in Cache-Control is about *where* the
+        # response may be cached (this connection only, never a shared proxy), not
+        # about its content varying by caller. Neither headers nor body depend on
+        # anything request-scoped, and self._routes is already fixed by build()
+        # time, so both are built exactly once here, not per request: audit finding
+        # 8 — JSONResponse(...) itself re-runs model_dump() *and* json.dumps() on
+        # every construction, so precomputing only the dict passed to it would still
+        # re-serialize to JSON on every single request. Response objects hold no
+        # per-request state (__call__ only replays the already-rendered bytes/
+        # headers over ASGI), so the same instance is safe to return unmodified on
+        # every cache-miss.
+        manifest_headers = {"ETag": manifest_etag, "Cache-Control": "private, no-cache"}
+        manifest_response = JSONResponse(content=manifest.model_dump(mode="json"), headers=manifest_headers)
 
         @app.get("/client-manifest.json", tags=["permissions"], response_model=Manifest)
         async def client_manifest(request: Request) -> StarletteResponse:
             context = await auth_coordinator.process(request)
             if context is None:
                 raise AuthorizationError("Authentication required")
-            # Role-independent: the same manifest goes to every authenticated
-            # caller, guest (NoAuthCoordinator) included — hence identity-neutral
-            # headers/body below, not per-caller ones. "private" in Cache-Control
-            # is about *where* the response may be cached (this connection only,
-            # never a shared proxy), not about its content varying by caller.
-            headers = {"ETag": manifest_etag, "Cache-Control": "private, no-cache"}
             if _if_none_match_hits(request.headers.get("if-none-match"), manifest_etag):
-                return StarletteResponse(status_code=304, headers=headers)
-            return JSONResponse(content=manifest.model_dump(mode="json"), headers=headers)
+                return StarletteResponse(status_code=304, headers=manifest_headers)
+            return manifest_response
 
         @app.get("/permissions/namespace", tags=["permissions"], response_model=PermissionNamespace)
         async def permission_namespace(request: Request) -> PermissionNamespace:

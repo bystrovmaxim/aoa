@@ -11,7 +11,7 @@ exists, honours auth exactly like the resolver, and is role-independent.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -21,6 +21,7 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
+from aoa.fastapi.manifest import Manifest
 from aoa.fastapi.reserved_route_path_error import ReservedRoutePathError
 
 from .support import CancelOrderAction, ManagerRole, PingAction
@@ -194,6 +195,37 @@ class TestClientManifestHttpContract:
         # The new ETag is fresh against the new manifest -> 304.
         fresh_now = after_client.get("/client-manifest.json", headers={"If-None-Match": second_etag})
         assert fresh_now.status_code == 304
+
+
+class TestClientManifestPrecomputed:
+    """Audit finding 8: the response body is serialized once at build(), not per request."""
+
+    def test_model_dump_runs_once_at_build_not_per_request(self) -> None:
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=ActionProductMachine(loggers=[]), auth_coordinator=auth)
+        adapter.get("/actions/ping", PingAction)
+
+        with patch.object(Manifest, "model_dump", side_effect=Manifest.model_dump, autospec=True) as spy:
+            app = adapter.build()
+            assert spy.call_count == 1  # the precomputed JSONResponse is built here
+
+            client = TestClient(app)
+            for _ in range(3):
+                response = client.get("/client-manifest.json")
+                assert response.status_code == 200
+
+            assert spy.call_count == 1  # unchanged -- no request re-serialized the catalog
+
+    def test_repeated_requests_return_the_same_response_object(self) -> None:
+        """The precomputed JSONResponse is reused verbatim, not rebuilt per request."""
+        client = _make_client(context=_manager_context())
+
+        first = client.get("/client-manifest.json")
+        second = client.get("/client-manifest.json")
+
+        assert first.content == second.content
+        assert first.headers["etag"] == second.headers["etag"]
 
 
 class TestReservedManifestPath:
