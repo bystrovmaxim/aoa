@@ -2,15 +2,13 @@
 """
 Tests for ``aoa.fastapi.permissions`` — endpoint ``operation`` resolution (issue #130).
 
-Validate ``build_route_index``/``resolve_route`` against real ``FastApiRouteRecord``
-instances: ``operation`` is the endpoint identifier ``"{method} {path}"``, the index
-is a projection of the adapter's routes (not the graph), and a duplicate (method,
-path) is first-wins like the router — not an error.
+Validate ``build_route_index`` against real ``FastApiRouteRecord`` instances:
+``operation`` is the endpoint identifier ``"{method} {path}"``, the index is a
+projection of the adapter's routes (not the graph), and a duplicate (method, path)
+is first-wins like the router — not an error.
 """
 
-import pytest
-
-from aoa.fastapi.permissions import build_route_index, canonical_key, resolve_route
+from aoa.fastapi.permissions import build_route_index, canonical_key
 from aoa.fastapi.route_record import FastApiRouteRecord
 
 from .support import CancelOrderAction, PingAction, SimpleAction
@@ -54,26 +52,6 @@ class TestBuildRouteIndex:
 
         assert len(index) == 1
         assert index["POST /a"].action_class is PingAction
-
-
-class TestResolveRoute:
-    """``resolve_route`` — look up one route by wire ``operation`` identifier."""
-
-    def test_returns_registered_route(self) -> None:
-        record = FastApiRouteRecord(action_class=PingAction, path="/ping")  # POST /ping
-        index = build_route_index([record])
-
-        assert resolve_route("POST /ping", index) is record
-
-    def test_unknown_operation_raises_lookup_error(self) -> None:
-        index = build_route_index([FastApiRouteRecord(action_class=PingAction, path="/ping")])
-
-        # An unregistered operation raises. resolve_verdicts does not call this
-        # helper itself (it looks up EndpointExecutionPlan entries and isolates a
-        # miss as UNKNOWN_ENDPOINT directly) — this is the plain, adapter-agnostic
-        # lookup for anything that only needs the route record.
-        with pytest.raises(LookupError, match="GET /nope"):
-            resolve_route("GET /nope", index)
 
 
 class TestCanonicalKey:

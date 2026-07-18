@@ -10,12 +10,12 @@ Small, independent pieces of glue between the wire protocol
 (:mod:`aoa.fastapi.permissions_schema`) and the machine's existing
 ``machine.check_access_decide`` primitive:
 
-- :func:`build_route_index` / :func:`resolve_route` — map a wire ``operation``
-  string to its registered route. ``operation`` is the endpoint identifier
-  ``"{method} {path}"`` (e.g. ``"POST /actions/cancel-order"``), the same string
-  the manifest (chapter 3) publishes. The index is a projection of the adapter's
-  ``self._routes``, not a graph traversal; a duplicate (method, path) is
-  first-wins like the router, not an error.
+- :func:`build_route_index` — map a wire ``operation`` string to its registered
+  route. ``operation`` is the endpoint identifier ``"{method} {path}"`` (e.g.
+  ``"POST /actions/cancel-order"``), the same string the manifest (chapter 3)
+  publishes. The index is a projection of the adapter's ``self._routes``, not a
+  graph traversal; a duplicate (method, path) is first-wins like the router,
+  not an error.
 
 - :func:`to_wire` — project the internal ``AccessVerdict`` onto the wire
   ``ResolveItemResult`` shape. Both are the same flat ``{kind, reason}`` pair
@@ -93,25 +93,6 @@ def build_route_index(routes: list[FastApiRouteRecord]) -> dict[str, FastApiRout
         operation = f"{record.method} {record.path}"
         index.setdefault(operation, record)  # first-wins, mirroring the router
     return index
-
-
-def resolve_route(operation: str, route_index: dict[str, FastApiRouteRecord]) -> FastApiRouteRecord:
-    """
-    Look up the route registered under a wire ``operation`` identifier.
-
-    ``resolve_verdicts`` does not call this directly — it looks up
-    ``EndpointExecutionPlan`` entries (built from the same route index, see
-    :func:`~aoa.fastapi.execution_plan.build_execution_plan_index`) and isolates an
-    unmatched operation itself. This helper remains the plain, adapter-agnostic
-    lookup for anything that only needs the route record.
-
-    Raises:
-        LookupError: no endpoint is registered under ``operation``.
-    """
-    record = route_index.get(operation)
-    if record is None:
-        raise LookupError(f"Unknown operation {operation!r}: no endpoint is registered under this identifier.")
-    return record
 
 
 def to_wire(verdict: AccessVerdict) -> ResolveItemResult:
