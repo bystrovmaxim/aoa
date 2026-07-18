@@ -37,6 +37,19 @@ class TestAccessVerdictCreation:
             )
 
 
+class TestAccessVerdictReasonMatchesKind:
+    """Audit finding 3, second line of defense: kind=SUCCESS <=> reason="" is an
+    enforced invariant, not only a promise in the class docstring."""
+
+    def test_success_with_non_empty_reason_raises(self) -> None:
+        with pytest.raises(ValidationError, match="kind=SUCCESS"):
+            AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS, reason="should be empty")
+
+    def test_non_success_with_empty_reason_raises(self) -> None:
+        with pytest.raises(ValidationError, match="non-empty reason"):
+            AccessVerdict(action=PingAction, kind=ResolveItemKind.SECURITY, reason="")
+
+
 class TestAccessVerdictFrozen:
     """AccessVerdict is immutable after construction."""
 

@@ -4,8 +4,9 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Self
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, model_validator
 
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_schema import BaseSchema
@@ -54,3 +55,20 @@ class AccessVerdict(BaseSchema):
     action: type[BaseAction]  # type: ignore[type-arg]  # pydantic rejects a parametrized type[X[...]] here
     kind: ResolveItemKind
     reason: str
+
+    @model_validator(mode="after")
+    def _reason_matches_kind(self) -> Self:
+        """Enforce the CONTRACT line above in code, not only in the docstring.
+
+        Second line of defense, not the primary fix: ``grant()``/``check_roles()``
+        already reject an empty ``reason=`` at declaration time (see their own
+        ``ValueError``s), so a well-formed cascade never reaches this validator with
+        a mismatch. This catches anything that builds an ``AccessVerdict`` some other
+        way — by hand, or from a future denial source that forgets to set ``reason``.
+        """
+        if (self.kind == ResolveItemKind.SUCCESS) != (self.reason == ""):
+            raise ValueError(
+                "AccessVerdict: kind=SUCCESS must carry reason=''; every other kind must "
+                f"carry a non-empty reason — got kind={self.kind!r}, reason={self.reason!r}."
+            )
+        return self

@@ -30,14 +30,15 @@ def grant(role: type[BaseRole], when: Callable[..., bool] | None = None, reason:
     ``when=`` and ``reason=`` are given together or not at all: a condition that can
     reject the request must also say why, so the denial reported at runtime is a
     string the author chose on purpose — never a guess reconstructed after the fact.
+    ``reason=""`` counts as not given — an empty string is not a reason.
 
     Raises:
         TypeError: ``role`` is not a ``BaseRole`` subclass.
-        ValueError: exactly one of ``when``/``reason`` was given.
+        ValueError: ``when`` was given without a non-empty ``reason``, or vice versa.
     """
     if not isinstance(role, type) or not issubclass(role, BaseRole):
         raise TypeError(f"grant() expected a BaseRole subclass, got {role!r}.")
-    if (when is None) != (reason is None):
+    if (when is None) != (not reason):
         raise ValueError(
             "grant(): when= and reason= must be given together, or not at all — "
             f"got when={when!r}, reason={reason!r}."

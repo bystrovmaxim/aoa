@@ -44,6 +44,12 @@ class TestGrantConstruction:
         with pytest.raises(ValueError, match=r"when=.*reason="):
             grant(AdminRole, reason="sales only")
 
+    def test_grant_when_with_empty_reason_raises(self) -> None:
+        """Audit finding 3: reason="" used to slip past an `is None` check as if it
+        had never been given -- it must be rejected exactly like reason=None."""
+        with pytest.raises(ValueError, match=r"when=.*reason="):
+            grant(AdminRole, when=_sales_only, reason="")
+
 
 class TestCheckRolesGrants:
     def test_single_grant_spec_is_bare_type(self) -> None:
@@ -135,6 +141,19 @@ class TestCheckRolesGuard:
         with pytest.raises(ValueError, match=r"guard=.*reason="):
 
             @check_roles(AdminRole, reason="not eligible")
+            class _Action:
+                pass
+
+    def test_guard_with_empty_reason_raises(self) -> None:
+        """Audit finding 3: reason="" used to slip past an `is None` check as if it
+        had never been given -- it must be rejected exactly like reason=None."""
+
+        def guard_fn(user: object, params: object) -> bool:
+            return True
+
+        with pytest.raises(ValueError, match=r"guard=.*reason="):
+
+            @check_roles(AdminRole, guard=guard_fn, reason="")
             class _Action:
                 pass
 

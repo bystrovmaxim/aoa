@@ -204,18 +204,19 @@ def check_roles(*specs: Any, guard: Callable[..., bool] | None = None, reason: s
 
     ``guard=`` and ``reason=`` are given together or not at all — same rule as
     ``grant(when=..., reason=...)``: a condition that can reject the request must
-    also say why. ``check_roles()`` only supports one ``guard=``/``reason=`` pair
+    also say why. ``reason=""`` counts as not given — an empty string is not a
+    reason. ``check_roles()`` only supports one ``guard=``/``reason=`` pair
     per action today (several denial reasons behind one shared guard is an open
     question, not solved here); several *role-level* reasons are already possible
     via several ``grant(role, when=..., reason=...)`` calls.
 
     Raises:
         TypeError: no role or grant(...) was given at all.
-        ValueError: exactly one of ``guard``/``reason`` was given.
+        ValueError: ``guard`` was given without a non-empty ``reason``, or vice versa.
     """
     if len(specs) == 0:
         raise TypeError("@check_roles requires at least one role or grant(...).")
-    if (guard is None) != (reason is None):
+    if (guard is None) != (not reason):
         raise ValueError(
             "@check_roles: guard= and reason= must be given together, or not at all — "
             f"got guard={guard!r}, reason={reason!r}."
