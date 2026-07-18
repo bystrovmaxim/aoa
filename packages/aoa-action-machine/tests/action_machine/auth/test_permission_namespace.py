@@ -3,15 +3,33 @@
 
 from __future__ import annotations
 
+from aoa.action_machine.auth.application_role import ApplicationRole
 from aoa.action_machine.auth.permission_namespace import compute_cache_partition
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
+from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 
 from ...support.domain_model.roles import AdminRole, ManagerRole
 
 
 def _context(user_id: str | None, *roles: type) -> Context:
     return Context(user=UserInfo(user_id=user_id, roles=tuple(roles)))
+
+
+@role_mode(RoleMode.ALIVE)
+class _PipedRole(ApplicationRole):
+    """A role whose ``.name`` embeds the old delimiter -- ``BaseRole.name`` is a
+    free-form, developer-chosen string with no character restrictions; only the
+    Python *class name* is required to end in ``Role``."""
+
+    name = "b|c"
+    description = "Test-only role with a '|' in its name (audit finding 3)."
+
+
+@role_mode(RoleMode.ALIVE)
+class _CRole(ApplicationRole):
+    name = "c"
+    description = "Test-only role named 'c', paired with _PipedRole (audit finding 3)."
 
 
 class TestDeterminism:
@@ -64,6 +82,21 @@ class TestDistinctIdentitiesDiffer:
         anonymous = compute_cache_partition(_context(None, ManagerRole))
         empty_id = compute_cache_partition(_context("", ManagerRole))
         assert anonymous != empty_id
+
+
+class TestNoDelimiterCollision:
+    """Audit finding 3: joining fields with a plain "|"/"," separator lets two
+    different identities hash to the same partition whenever a field's own
+    content contains that separator -- ``"a|b" + "|" + "c"`` and
+    ``"a" + "|" + "b|c"`` are both ``"a|b|c"``. Length-prefixed framing removes
+    the ambiguity structurally, regardless of what user_id/role names contain."""
+
+    def test_pipe_in_user_id_does_not_collide_with_a_role_name_boundary(self) -> None:
+        # "a|b" as user_id with role "c" versus "a" as user_id with role "b|c":
+        # the pre-fix f"{user_id}|{roles}" join produced "a|b|c" for both.
+        straddled_in_user_id = compute_cache_partition(_context("a|b", _CRole))
+        straddled_in_role_name = compute_cache_partition(_context("a", _PipedRole))
+        assert straddled_in_user_id != straddled_in_role_name
 
 
 class TestOpaqueShape:

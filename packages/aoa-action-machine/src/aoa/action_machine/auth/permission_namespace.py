@@ -55,6 +55,22 @@ if TYPE_CHECKING:
     from aoa.action_machine.context.context import Context
 
 
+def _framed(value: str) -> str:
+    """Length-prefix ``value``: ``f"{len(value)}:{value}"``.
+
+    Unambiguous framing, not a delimiter: two fields joined by a plain separator
+    (``"|"``, ``","``) can collide whenever a field's own content happens to
+    contain that separator — ``"a|b" + "|" + "c"`` and ``"a" + "|" + "b|c"`` are
+    both ``"a|b|c"``, so two genuinely different identities could hash to the
+    same ``cache_partition`` (audit finding 3). Length-prefixing removes the
+    ambiguity structurally: the digits before the mandatory ``":"`` say exactly
+    how many characters of *opaque* payload follow — including any ``":"`` or
+    digit the payload itself contains — so concatenating framed fields can never
+    be re-split a different way, no matter what characters ``value`` holds.
+    """
+    return f"{len(value)}:{value}"
+
+
 def compute_cache_partition(context: Context) -> str:
     """
     Derive the opaque ``cache_partition`` label for one authenticated identity.
@@ -69,14 +85,27 @@ def compute_cache_partition(context: Context) -> str:
 
     ``user_id is not None`` is hashed in explicitly, ahead of ``user_id`` itself:
     nothing on ``UserInfo`` forbids ``user_id=""`` (it is a plain, generic schema
-    field, not exclusively a real-identity contract), and an ``f"{user_id or ''}"``
-    default would hash an authenticated caller with an empty ``user_id`` to the
-    *same* string as a genuinely anonymous one with the same roles — a privilege
-    leak waiting on whatever ``AuthCoordinator`` happens to be in front of this
-    function. The explicit flag keeps the two states apart regardless of what
-    ``user_id`` actually contains.
+    field, not exclusively a real-identity contract), and hashing ``user_id or ""``
+    with no separate flag would map an authenticated caller with an empty ``user_id``
+    to the *same* string as a genuinely anonymous one with the same roles — a
+    privilege leak waiting on whatever ``AuthCoordinator`` happens to be in front
+    of this function. The explicit flag keeps the two states apart regardless of
+    what ``user_id`` actually contains.
+
+    Every field — the flag, ``user_id``, and each role name individually — is
+    length-prefixed (:func:`_framed`) before concatenation, not joined with a
+    plain ``"|"``/``","`` separator: neither ``user_id`` nor ``BaseRole.name``
+    (a free-form, developer-chosen string with no character restrictions) is
+    guaranteed not to contain the separator itself, so a naive join can equate
+    two different identities that happen to straddle the separator differently.
     """
     user_id = context.user.user_id
-    roles = ",".join(sorted(role.name for role in context.user.roles))
-    identity = f"{user_id is not None}:{user_id or ''}|{roles}"
+    role_names = sorted(role.name for role in context.user.roles)
+    identity = "".join(
+        [
+            _framed("1" if user_id is not None else "0"),
+            _framed(user_id or ""),
+            *(_framed(name) for name in role_names),
+        ]
+    )
     return hashlib.sha256(identity.encode()).hexdigest()
