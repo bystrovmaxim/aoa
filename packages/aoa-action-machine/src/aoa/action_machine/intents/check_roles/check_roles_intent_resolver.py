@@ -17,7 +17,7 @@ class CheckRolesIntentResolver:
     """
     AI-CORE-BEGIN
     ROLE: Surface ``_role_info`` / ``spec`` / ``grants`` / ``guard`` written by ``@check_roles`` and ``RoleMode`` from ``@role_mode``.
-    CONTRACT: :meth:`resolve_check_roles`, :meth:`resolve_grants`, :meth:`resolve_guard` return the stored ``_role_info`` entry or raise :exc:`~aoa.action_machine.exceptions.MissingCheckRolesError`; :meth:`resolve_role_mode` reads ``@role_mode``.
+    CONTRACT: :meth:`resolve_check_roles`, :meth:`resolve_grants`, :meth:`resolve_guard`, :meth:`resolve_guard_reason` return the stored ``_role_info`` entry or raise :exc:`~aoa.action_machine.exceptions.MissingCheckRolesError`; :meth:`resolve_role_mode` reads ``@role_mode``.
     AI-CORE-END
     """
 
@@ -47,5 +47,13 @@ class CheckRolesIntentResolver:
         """Return `_role_info['guard']` from ``@check_roles``. Raises ``MissingCheckRolesError`` when absent."""
         try:
             return cast("Callable[..., bool] | None", action_cls._role_info["guard"])
+        except (AttributeError, KeyError, TypeError) as exc:
+            raise MissingCheckRolesError(action_cls) from exc
+
+    @staticmethod
+    def resolve_guard_reason(action_cls: type[CheckRolesIntent]) -> str | None:
+        """Return `_role_info['guard_reason']` — ``guard=``'s mandatory companion, or ``None`` when there is no ``guard=``."""
+        try:
+            return cast("str | None", action_cls._role_info["guard_reason"])
         except (AttributeError, KeyError, TypeError) as exc:
             raise MissingCheckRolesError(action_cls) from exc

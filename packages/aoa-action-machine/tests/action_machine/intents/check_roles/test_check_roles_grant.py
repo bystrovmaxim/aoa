@@ -1,4 +1,4 @@
-"""Golden tests for grant(...)/guard= on @check_roles (access-control-cascade step 4)."""
+"""Golden tests for grant(...)/guard= on @check_roles (access-control-cascade steps 4 and 9)."""
 
 from __future__ import annotations
 
@@ -18,14 +18,16 @@ def _sales_only(user: object) -> bool:
 
 
 class TestGrantConstruction:
-    def test_grant_stores_role_and_when(self) -> None:
-        g = grant(AdminRole, when=_sales_only)
+    def test_grant_stores_role_when_and_reason(self) -> None:
+        g = grant(AdminRole, when=_sales_only, reason="sales only")
         assert g.role is AdminRole
         assert g.when is _sales_only
+        assert g.reason == "sales only"
 
-    def test_grant_when_defaults_to_none(self) -> None:
+    def test_grant_when_and_reason_default_to_none(self) -> None:
         g = grant(AdminRole)
         assert g.when is None
+        assert g.reason is None
 
     def test_grant_rejects_non_role(self) -> None:
         class NotRole:
@@ -33,6 +35,14 @@ class TestGrantConstruction:
 
         with pytest.raises(TypeError, match="BaseRole"):
             grant(NotRole)  # type: ignore[arg-type]
+
+    def test_grant_when_without_reason_raises(self) -> None:
+        with pytest.raises(ValueError, match=r"when=.*reason="):
+            grant(AdminRole, when=_sales_only)
+
+    def test_grant_reason_without_when_raises(self) -> None:
+        with pytest.raises(ValueError, match=r"when=.*reason="):
+            grant(AdminRole, reason="sales only")
 
 
 class TestCheckRolesGrants:
@@ -46,7 +56,7 @@ class TestCheckRolesGrants:
         assert _Action._role_info["guard"] is None
 
     def test_multiple_grants_preserved_in_order(self) -> None:
-        @check_roles(grant(AdminRole), grant(ManagerRole, when=_sales_only))
+        @check_roles(grant(AdminRole), grant(ManagerRole, when=_sales_only, reason="sales only"))
         class _Action:
             pass
 
@@ -55,10 +65,11 @@ class TestCheckRolesGrants:
         assert grants[0] == Grant(role=AdminRole, when=None)
         assert grants[1].role is ManagerRole
         assert grants[1].when is _sales_only
+        assert grants[1].reason == "sales only"
         assert _Action._role_info["spec"] == (AdminRole, ManagerRole)
 
     def test_bare_role_and_grant_mixed(self) -> None:
-        @check_roles(AdminRole, grant(ManagerRole, when=_sales_only))
+        @check_roles(AdminRole, grant(ManagerRole, when=_sales_only, reason="sales only"))
         class _Action:
             pass
 
@@ -91,22 +102,41 @@ class TestCheckRolesGrants:
 
 
 class TestCheckRolesGuard:
-    def test_guard_stored(self) -> None:
+    def test_guard_and_reason_stored(self) -> None:
         def guard_fn(user: object, params: object) -> bool:
             return True
 
-        @check_roles(AdminRole, guard=guard_fn)
+        @check_roles(AdminRole, guard=guard_fn, reason="not eligible")
         class _Action:
             pass
 
         assert _Action._role_info["guard"] is guard_fn
+        assert _Action._role_info["guard_reason"] == "not eligible"
 
-    def test_guard_defaults_to_none(self) -> None:
+    def test_guard_and_reason_default_to_none(self) -> None:
         @check_roles(AdminRole)
         class _Action:
             pass
 
         assert _Action._role_info["guard"] is None
+        assert _Action._role_info["guard_reason"] is None
+
+    def test_guard_without_reason_raises(self) -> None:
+        def guard_fn(user: object, params: object) -> bool:
+            return True
+
+        with pytest.raises(ValueError, match=r"guard=.*reason="):
+
+            @check_roles(AdminRole, guard=guard_fn)
+            class _Action:
+                pass
+
+    def test_reason_without_guard_raises(self) -> None:
+        with pytest.raises(ValueError, match=r"guard=.*reason="):
+
+            @check_roles(AdminRole, reason="not eligible")
+            class _Action:
+                pass
 
 
 class TestAsyncConditionRejected:
@@ -116,7 +146,7 @@ class TestAsyncConditionRejected:
 
         with pytest.raises(AccessConditionAsyncError) as excinfo:
 
-            @check_roles(grant(AdminRole, when=when_async))
+            @check_roles(grant(AdminRole, when=when_async, reason="async when"))
             class _Action:
                 pass
 
@@ -129,7 +159,7 @@ class TestAsyncConditionRejected:
 
         with pytest.raises(AccessConditionAsyncError) as excinfo:
 
-            @check_roles(AdminRole, guard=guard_async)
+            @check_roles(AdminRole, guard=guard_async, reason="async guard")
             class _Action:
                 pass
 

@@ -35,6 +35,12 @@ matches its scope. It does **not** live on
 :class:`~aoa.action_machine.graph.nodes.role_graph_node.RoleGraphNode` either —
 that node is shared/deduplicated across every action referencing the same role, so
 a per-action fact cannot live there without conflicting across actions.
+
+``properties["guard_reason"]`` rides alongside ``"guard"`` for the same reason
+``RoleGraphEdge`` carries ``"when_reason"`` next to ``"when"``: ``guard=``'s
+mandatory companion string (see the ``check_roles`` module docstring) has to
+reach :class:`~aoa.action_machine.runtime.role_checker.RoleChecker` too, and this
+node is ``guard``'s only home, so it is ``guard_reason``'s only home as well.
 """
 
 from __future__ import annotations
@@ -78,7 +84,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
     CONTRACT: Materializes action metadata and every outgoing edge into explicit fields; ``get_all_edges`` returns the composed edge list.
-    PROPERTIES: ``description``; optional ``guard`` callable from ``@check_roles`` (runtime-only, like ``RoleGraphEdge``'s ``when``; never exported by :meth:`to_dict`).
+    PROPERTIES: ``description``; optional ``guard`` callable and its mandatory-when-present ``guard_reason`` string from ``@check_roles`` (runtime-only, like ``RoleGraphEdge``'s ``when``/``when_reason``; never exported by :meth:`to_dict`).
     FAILURES: :exc:`~aoa.action_machine.exceptions.MissingMetaError` propagates from :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` or :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type` (via ``DomainGraphEdge``) when ``@meta`` data is unusable. :exc:`~aoa.action_machine.exceptions.MissingCheckRolesError` when ``@check_roles`` did not set ``_role_info['spec']``/``['grants']``/``['guard']``. :meth:`get_summary_aspect_graph_node` raises :exc:`~aoa.action_machine.exceptions.MissingSummaryAspectError` when ``summary_aspect`` is empty.
     AI-CORE-END
     """
@@ -106,6 +112,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 {
                     "description": MetaIntentResolver.resolve_description(action_cls),
                     "guard": CheckRolesIntentResolver.resolve_guard(action_cls),
+                    "guard_reason": CheckRolesIntentResolver.resolve_guard_reason(action_cls),
                 }
             ),
             node_obj=action_cls,

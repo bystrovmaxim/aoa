@@ -1,4 +1,4 @@
-"""ActionGraphNode.properties["guard"] — carries @check_roles guard= (access-control-cascade step 4)."""
+"""ActionGraphNode.properties["guard"]/["guard_reason"] — carries @check_roles guard=/reason= (access-control-cascade step 4)."""
 
 from __future__ import annotations
 
@@ -37,10 +37,11 @@ class TestActionGraphNodeGuard:
 
         node = ActionGraphNode(_NoGuardAction)
         assert node.properties["guard"] is None
+        assert node.properties["guard_reason"] is None
 
     def test_guard_carried_on_node_properties(self) -> None:
         @meta(description="with guard", domain=TestDomain)
-        @check_roles(AdminRole, guard=_own_order_only)
+        @check_roles(AdminRole, guard=_own_order_only, reason="not the order owner")
         class _GuardedAction(BaseAction["_GuardedAction.Params", "_GuardedAction.Result"]):
             class Params(BaseParams):
                 dummy: str = Field(default="x")
@@ -54,12 +55,13 @@ class TestActionGraphNodeGuard:
 
         node = ActionGraphNode(_GuardedAction)
         assert node.properties["guard"] is _own_order_only
+        assert node.properties["guard_reason"] == "not the order owner"
 
     def test_to_dict_never_exports_guard(self) -> None:
         """``guard`` is runtime-only, like ``DependsGraphEdge``'s ``factory`` — never serialized."""
 
         @meta(description="with guard", domain=TestDomain)
-        @check_roles(AdminRole, guard=_own_order_only)
+        @check_roles(AdminRole, guard=_own_order_only, reason="not the order owner")
         class _GuardedAction(BaseAction["_GuardedAction.Params", "_GuardedAction.Result"]):
             class Params(BaseParams):
                 dummy: str = Field(default="x")

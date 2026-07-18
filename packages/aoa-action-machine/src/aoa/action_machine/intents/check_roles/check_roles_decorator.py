@@ -31,25 +31,34 @@ callables: ``async def`` raises
 :exc:`~aoa.action_machine.exceptions.AccessConditionAsyncError` here, at class
 definition time.
 
+Every ``when=``/``guard=`` that can reject also carries its own mandatory
+``reason=`` — ``Grant.reason`` for a grant's ``when=``, the decorator's own
+``reason=`` for its ``guard=``. Both travel the same path as the condition they
+belong to: ``Grant.reason`` becomes ``RoleGraphEdge.properties["when_reason"]``,
+the decorator's ``reason=`` becomes ``cls._role_info["guard_reason"]`` and then
+``ActionGraphNode.properties["guard_reason"]``. ``RoleChecker`` reads both back
+at denial time and puts the matching one on the ``AuthorizationError`` it raises.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     @check_roles(AdminRole)
-    @check_roles(grant(AdminRole), grant(ManagerRole, when=...), guard=...)
+    @check_roles(grant(AdminRole), grant(ManagerRole, when=..., reason=...), guard=..., reason=...)
             |
             v
     normalize spec / grants to role-type contract
             |
             v
-    cls._role_info = {"spec": ..., "grants": [...], "guard": ...}
+    cls._role_info = {"spec": ..., "grants": [...], "guard": ..., "guard_reason": ...}
             |
             +--> mode validation (UNUSED error, DEPRECATED warning)
             +--> when=/guard= sync validation (AccessConditionAsyncError)
+            +--> when=/reason= and guard=/reason= pairing validation (ValueError)
             |
             v
-    Interchange ``RoleGraphEdge`` (per grant, carries "when") +
-    ``ActionGraphNode.properties["guard"]`` (from "grants"/"guard") +
+    Interchange ``RoleGraphEdge`` (per grant, carries "when"/"when_reason") +
+    ``ActionGraphNode.properties["guard"]``/``["guard_reason"]`` (from "grants"/"guard") +
     ``RoleChecker`` at runtime
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -181,7 +190,7 @@ def _target_is_class_invariant(cls: Any) -> None:
         )
 
 
-def check_roles(*specs: Any, guard: Callable[..., bool] | None = None) -> Any:
+def check_roles(*specs: Any, guard: Callable[..., bool] | None = None, reason: str | None = None) -> Any:
     """
     Class-level decorator that declares role requirements for an action.
 
@@ -192,9 +201,25 @@ def check_roles(*specs: Any, guard: Callable[..., bool] | None = None) -> Any:
     instances may be mixed freely as separate positional arguments. ``guard=`` is
     one additional condition shared by every grant. See module docstring for
     details.
+
+    ``guard=`` and ``reason=`` are given together or not at all — same rule as
+    ``grant(when=..., reason=...)``: a condition that can reject the request must
+    also say why. ``check_roles()`` only supports one ``guard=``/``reason=`` pair
+    per action today (several denial reasons behind one shared guard is an open
+    question, not solved here); several *role-level* reasons are already possible
+    via several ``grant(role, when=..., reason=...)`` calls.
+
+    Raises:
+        TypeError: no role or grant(...) was given at all.
+        ValueError: exactly one of ``guard``/``reason`` was given.
     """
     if len(specs) == 0:
         raise TypeError("@check_roles requires at least one role or grant(...).")
+    if (guard is None) != (reason is None):
+        raise ValueError(
+            "@check_roles: guard= and reason= must be given together, or not at all — "
+            f"got guard={guard!r}, reason={reason!r}."
+        )
 
     if len(specs) == 1 and not isinstance(specs[0], Grant):
         normalized_spec = _normalize_check_roles_spec(specs[0])
@@ -213,7 +238,7 @@ def check_roles(*specs: Any, guard: Callable[..., bool] | None = None) -> Any:
     def decorator(cls: Any) -> Any:
         _target_is_class_invariant(cls)
 
-        cls._role_info = {"spec": normalized_spec, "grants": grants, "guard": guard}
+        cls._role_info = {"spec": normalized_spec, "grants": grants, "guard": guard, "guard_reason": reason}
         return cls
 
     return decorator

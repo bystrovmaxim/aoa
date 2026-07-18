@@ -146,7 +146,7 @@ from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.intents.access_control import AccessVerdict
+from aoa.action_machine.intents.access_control import AccessVerdict, ResolveItemKind
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import Channel
@@ -652,12 +652,17 @@ class ActionProductMachine(BaseActionMachine):
         the real pipeline), then ``RoleChecker.check(...)``, then ``ConnectionValidator.validate(...)``,
         then ``_enforce_access_decide(...)`` from ``machine.run()``'s own level-3 gate — all in
         ``try``/``except``. A caught ``AuthorizationError`` becomes
-        ``AccessVerdict(allowed=False, level=getattr(exc, "level", None), reason=str(exc))``;
-        anything else raised while evaluating that item (a bug in its ``access_decide``, an
-        unreachable connection) becomes ``allowed=False, level=None`` the same way — either
-        way, only that one item is affected, every other item in the list is still evaluated
-        normally. No exception reaches ``_run_internal`` from here the way it does from
-        ``machine.run()``.
+        ``AccessVerdict(kind=SECURITY, reason=exc.reason or str(exc))`` — ``exc.reason`` is set
+        by ``RoleChecker`` for levels 1/2 (see its own module docstring), ``None`` for level 3
+        today (``access_decide``'s own denial-reason mechanism is a separate, not-yet-done
+        change), falling back to the raw exception text either way; anything else raised while
+        evaluating that item (a bug in its ``access_decide``, an unreachable connection) becomes
+        ``AccessVerdict(kind=SECURITY, reason=type(exc).__name__)`` the same way — fail-closed,
+        same as an ``AuthorizationError``, deliberately not ``CHECK_ERROR`` (that channel is the
+        resolver's, for a check that was never reached at all — this one *ran* and failed).
+        Either way, only that one item is affected, every other item in the list is still
+        evaluated normally. No exception reaches ``_run_internal`` from here the way it does
+        from ``machine.run()``.
 
         ``connections`` is not in the ADR's original sketch but is required in practice:
         ``access_decide`` implementations typically need to look up a real object
@@ -690,17 +695,19 @@ class ActionProductMachine(BaseActionMachine):
                 except AuthorizationError as exc:
                     verdicts.append(
                         AccessVerdict(
-                            allowed=False,
                             action=item_action,
-                            level=getattr(exc, "level", None),
-                            reason=str(exc),
+                            kind=ResolveItemKind.SECURITY,
+                            reason=exc.reason or str(exc),
                         )
                     )
                 except Exception as exc:
-                    # This item's own failure must not abort the rest of the list.
-                    verdicts.append(AccessVerdict(allowed=False, action=item_action, level=None, reason=str(exc)))
+                    # This item's own failure must not abort the rest of the list — fail-closed,
+                    # same as an AuthorizationError, not CHECK_ERROR (see the docstring above).
+                    verdicts.append(
+                        AccessVerdict(action=item_action, kind=ResolveItemKind.SECURITY, reason=type(exc).__name__)
+                    )
                 else:
-                    verdicts.append(AccessVerdict(allowed=True, action=item_action, level=None, reason=None))
+                    verdicts.append(AccessVerdict(action=item_action, kind=ResolveItemKind.SUCCESS, reason=""))
             return verdicts
         verdicts = await self.check_access_decide(context, [(action, params)], connections=connections)
         return verdicts[0]

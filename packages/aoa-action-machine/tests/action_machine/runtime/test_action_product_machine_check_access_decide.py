@@ -13,7 +13,7 @@ from pydantic import Field
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import CheckAccessDecideBatchSizeExceededError
-from aoa.action_machine.intents.access_control import AccessVerdict
+from aoa.action_machine.intents.access_control import AccessVerdict, ResolveItemKind
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -66,7 +66,7 @@ def _admin_context() -> Context:
 
 
 @meta(description="machine.check_access_decide probe", domain=SystemDomain)
-@check_roles(AdminRole, guard=_guard)
+@check_roles(AdminRole, guard=_guard, reason="guard rejected")
 class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.Result"]):
     class Params(BaseParams):
         key: str = Field(default="")
@@ -137,7 +137,7 @@ class OtherCheckProbeAction(BaseAction["OtherCheckProbeAction.Params", "OtherChe
 async def test_allowed_true_when_everything_passes(machine: ActionProductMachine) -> None:
     _reset()
     verdict = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params())
-    assert verdict == AccessVerdict(allowed=True, action=CheckProbeAction, level=None, reason=None)
+    assert verdict == AccessVerdict(action=CheckProbeAction, kind=ResolveItemKind.SUCCESS, reason="")
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
@@ -145,8 +145,8 @@ async def test_allowed_true_when_everything_passes(machine: ActionProductMachine
 async def test_level_1_when_role_does_not_match(machine: ActionProductMachine) -> None:
     _reset()
     verdict = await machine.check_access_decide(Context(), CheckProbeAction, CheckProbeAction.Params())
-    assert verdict.allowed is False
-    assert verdict.level == 1
+    assert verdict.kind == ResolveItemKind.SECURITY
+    assert verdict.reason == "FORBIDDEN_ROLE"
     assert verdict.action is CheckProbeAction
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
@@ -156,8 +156,8 @@ async def test_level_2_when_guard_rejects(machine: ActionProductMachine) -> None
     _reset()
     _guard_result["value"] = False
     verdict = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params())
-    assert verdict.allowed is False
-    assert verdict.level == 2
+    assert verdict.kind == ResolveItemKind.SECURITY
+    assert verdict.reason == "guard rejected"
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
@@ -166,8 +166,10 @@ async def test_level_3_when_access_decide_rejects(machine: ActionProductMachine)
     _reset()
     _access_decide_result["value"] = False
     verdict = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params())
-    assert verdict.allowed is False
-    assert verdict.level == 3
+    assert verdict.kind == ResolveItemKind.SECURITY
+    # access_decide's own clean reason= mechanism is a separate, not-yet-done change —
+    # today its rejection still surfaces the raw AuthorizationError message.
+    assert "access_decide() returned False" in verdict.reason
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
@@ -192,7 +194,7 @@ async def test_list_form_returns_verdicts_in_input_order(machine: ActionProductM
             (CheckProbeAction, CheckProbeAction.Params(key="B")),
         ],
     )
-    assert [v.allowed for v in verdicts] == [True, True]
+    assert [v.kind for v in verdicts] == [ResolveItemKind.SUCCESS, ResolveItemKind.SUCCESS]
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
@@ -207,9 +209,9 @@ async def test_list_form_handles_two_different_action_classes(machine: ActionPro
             (OtherCheckProbeAction, OtherCheckProbeAction.Params()),
         ],
     )
-    assert verdicts[0].allowed is True
-    assert verdicts[1].allowed is False
-    assert verdicts[1].level == 1  # admin context does not carry ManagerRole
+    assert verdicts[0].kind == ResolveItemKind.SUCCESS
+    assert verdicts[1].kind == ResolveItemKind.SECURITY
+    assert verdicts[1].reason == "FORBIDDEN_ROLE"  # admin context does not carry ManagerRole
 
 
 async def test_one_failing_item_does_not_affect_the_others(machine: ActionProductMachine) -> None:
@@ -223,15 +225,15 @@ async def test_one_failing_item_does_not_affect_the_others(machine: ActionProduc
             (CheckProbeAction, CheckProbeAction.Params(key="C")),
         ],
     )
-    assert verdicts[0].allowed is True
-    assert verdicts[1].allowed is False
-    assert verdicts[1].level is None
-    assert "boom for key='B'" in (verdicts[1].reason or "")
-    assert verdicts[2].allowed is True
+    assert verdicts[0].kind == ResolveItemKind.SUCCESS
+    assert verdicts[1].kind == ResolveItemKind.SECURITY
+    # An unexpected exception's reason is its class name, not its message text.
+    assert verdicts[1].reason == "RuntimeError"
+    assert verdicts[2].kind == ResolveItemKind.SUCCESS
 
 
-async def test_list_form_reports_independent_levels_for_all_three_gates(machine: ActionProductMachine) -> None:
-    """One list call, four items: allowed, level-1, level-2, level-3 — none of them bleed into another."""
+async def test_list_form_reports_independent_reasons_for_all_three_gates(machine: ActionProductMachine) -> None:
+    """One list call, four items: allowed, role-denied, guard-denied, access_decide-denied — none bleed into another."""
     _reset()
     _guard_deny_keys.add("guard-denied")
     _access_decide_deny_keys.add("decide-denied")
@@ -244,11 +246,12 @@ async def test_list_form_reports_independent_levels_for_all_three_gates(machine:
             (CheckProbeAction, CheckProbeAction.Params(key="decide-denied")),
         ],
     )
-    allowed_verdict, level_1_verdict, level_2_verdict, level_3_verdict = verdicts
-    assert allowed_verdict.allowed is True
-    assert level_1_verdict.allowed is False and level_1_verdict.level == 1
-    assert level_2_verdict.allowed is False and level_2_verdict.level == 2
-    assert level_3_verdict.allowed is False and level_3_verdict.level == 3
+    allowed_verdict, role_denied_verdict, guard_denied_verdict, decide_denied_verdict = verdicts
+    assert allowed_verdict.kind == ResolveItemKind.SUCCESS
+    assert role_denied_verdict.kind == ResolveItemKind.SECURITY and role_denied_verdict.reason == "FORBIDDEN_ROLE"
+    assert guard_denied_verdict.kind == ResolveItemKind.SECURITY and guard_denied_verdict.reason == "guard rejected"
+    assert decide_denied_verdict.kind == ResolveItemKind.SECURITY
+    assert "access_decide() returned False" in decide_denied_verdict.reason
 
 
 async def test_batch_larger_than_max_check_access_decide_batch_size_is_rejected_up_front() -> None:

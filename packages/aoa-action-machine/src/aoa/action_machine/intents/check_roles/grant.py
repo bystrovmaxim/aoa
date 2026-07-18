@@ -11,14 +11,35 @@ from aoa.action_machine.auth.base_role import BaseRole
 
 @dataclass(frozen=True)
 class Grant:
-    """One role alternative inside ``@check_roles``, with its own optional ``when=`` condition."""
+    """One role alternative inside ``@check_roles``, with its own optional ``when=`` condition.
+
+    ``reason`` is ``when``'s mandatory companion — see :func:`grant`. It travels with
+    ``when`` all the way to :class:`~aoa.action_machine.graph.edges.role_graph_edge.RoleGraphEdge`
+    (``properties["when_reason"]``), which is where :class:`~aoa.action_machine.runtime.role_checker.RoleChecker`
+    reads it back at denial time.
+    """
 
     role: type[BaseRole]
     when: Callable[..., bool] | None = None
+    reason: str | None = None
 
 
-def grant(role: type[BaseRole], when: Callable[..., bool] | None = None) -> Grant:
-    """Build a ``Grant``: match ``role``, and if ``when`` is given, only when it returns ``True``."""
+def grant(role: type[BaseRole], when: Callable[..., bool] | None = None, reason: str | None = None) -> Grant:
+    """Build a ``Grant``: match ``role``, and if ``when`` is given, only when it returns ``True``.
+
+    ``when=`` and ``reason=`` are given together or not at all: a condition that can
+    reject the request must also say why, so the denial reported at runtime is a
+    string the author chose on purpose — never a guess reconstructed after the fact.
+
+    Raises:
+        TypeError: ``role`` is not a ``BaseRole`` subclass.
+        ValueError: exactly one of ``when``/``reason`` was given.
+    """
     if not isinstance(role, type) or not issubclass(role, BaseRole):
         raise TypeError(f"grant() expected a BaseRole subclass, got {role!r}.")
-    return Grant(role=role, when=when)
+    if (when is None) != (reason is None):
+        raise ValueError(
+            "grant(): when= and reason= must be given together, or not at all — "
+            f"got when={when!r}, reason={reason!r}."
+        )
+    return Grant(role=role, when=when, reason=reason)

@@ -3,6 +3,6 @@
 
 from __future__ import annotations
 
-from aoa.action_machine.intents.access_control.access_verdict import AccessVerdict
+from aoa.action_machine.intents.access_control.access_verdict import AccessVerdict, ResolveItemKind
 
-__all__ = ["AccessVerdict"]
+__all__ = ["AccessVerdict", "ResolveItemKind"]
