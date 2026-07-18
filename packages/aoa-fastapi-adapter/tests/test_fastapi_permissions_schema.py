@@ -116,8 +116,9 @@ class TestResolveItemResult:
             ResolveItemResult(kind=ResolveItemKind.SUCCESS, reason="", unexpected="value")  # type: ignore[call-arg]
 
     def test_success_with_a_reason_rejected(self) -> None:
-        """Fix-audit finding 7: same kind/reason contract as AccessVerdict, now checked
-        on the wire type too, not just the internal one to_wire() copies it from."""
+        """Fix-audit finding 7: ``ResolveItemResult`` (``aoa-action-machine``) is the
+        base class ``AccessVerdict`` subclasses, not a sibling type kept in sync by
+        hand — the kind/reason contract is declared once, here, and inherited."""
         with pytest.raises(ValidationError, match="kind=SUCCESS"):
             ResolveItemResult(kind=ResolveItemKind.SUCCESS, reason="not empty")
 
@@ -127,8 +128,9 @@ class TestResolveItemResult:
 
     def test_check_error_with_a_reason_round_trips(self) -> None:
         """Unlike AccessVerdict, CHECK_ERROR is an ordinary, valid kind on the wire
-        type — the resolver builds it directly, not via to_wire() (fix-audit finding 6:
-        no kind gets special-cased beyond the one shared success/reason contract)."""
+        type — the resolver builds a plain ResolveItemResult directly for it, never
+        an AccessVerdict (fix-audit finding 6: no kind gets special-cased beyond the
+        one shared success/reason contract)."""
         result = ResolveItemResult(kind=ResolveItemKind.CHECK_ERROR, reason="UNKNOWN_ENDPOINT")
         assert result.kind == ResolveItemKind.CHECK_ERROR
         assert result.reason == "UNKNOWN_ENDPOINT"

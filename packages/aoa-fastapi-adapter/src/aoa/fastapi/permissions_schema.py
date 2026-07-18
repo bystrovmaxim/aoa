@@ -12,15 +12,23 @@ a batch of one, not a separate code path (FR-2).
 
 One flat shape for every answer: ``ResolveItemResult`` is always exactly
 ``{kind, reason}``, never a nested "decision" vs "error" union and never a
-grab-bag of independently-settable fields. ``kind`` is the closed, small set of
-*source channels* an answer can come through — imported from ``aoa-action-machine``
-(:class:`~aoa.action_machine.intents.access_control.ResolveItemKind`), not
-redefined here, since it is what an access check itself decides, one layer below
-this wire schema. ``SUCCESS`` carries ``reason=""``; every other channel carries
-a non-empty, explicitly-declared string — never raw exception text leaked by
-accident (``CHECK_ERROR`` is the one deliberate exception to that promise: its
-``reason`` is a fixed code, e.g. ``"UNKNOWN_ENDPOINT"``, or the class name of
-whatever unexpected exception was actually raised).
+grab-bag of independently-settable fields. Imported from ``aoa-action-machine``
+(:class:`~aoa.action_machine.intents.access_control.ResolveItemResult`), not
+redefined here — same reasoning as ``ResolveItemKind`` below: both HTTP and MCP
+adapters depend on ``aoa-action-machine``, so that is the one place a shared wire
+shape can live without either adapter depending on the other's package.
+``AccessVerdict`` (also ``aoa-action-machine``) *is* a ``ResolveItemResult`` —
+a subclass adding one internal-only field (``action``, excluded from
+serialization) — not a separate type copied over by a `to_wire()` step; a real
+``AccessVerdict`` instance can be put directly into ``ResolveResponse.results``.
+``kind`` is the closed, small set of *source channels* an answer can come
+through — also imported, not redefined, since it is what an access check itself
+decides, one layer below this wire schema. ``SUCCESS`` carries ``reason=""``;
+every other channel carries a non-empty, explicitly-declared string — never raw
+exception text leaked by accident (``CHECK_ERROR`` is the one deliberate
+exception to that promise: its ``reason`` is a fixed code, e.g.
+``"UNKNOWN_ENDPOINT"``, or the class name of whatever unexpected exception was
+actually raised).
 
 A ``SECURITY`` denial's ``reason`` is ``AccessVerdict.reason`` verbatim: the
 fixed ``"FORBIDDEN_ROLE"`` when no role matched, or the mandatory,
@@ -74,11 +82,22 @@ request vs. partial response" boundary.
 
 from __future__ import annotations
 
-from typing import Any, Self
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
-from aoa.action_machine.intents.access_control import ResolveItemKind, kind_matches_reason
+from aoa.action_machine.intents.access_control import ResolveItemResult
+
+__all__ = [
+    "SUPPORTED_VERSION",
+    "ErrorDetail",
+    "ErrorEnvelope",
+    "PermissionNamespace",
+    "ResolveItem",
+    "ResolveItemResult",
+    "ResolveRequest",
+    "ResolveResponse",
+]
 
 # Wire-language version this server speaks. Draft until chapter 3.5's contract
 # settles, then becomes v1 — see rule 8. Echoed by ResolveResponse.version and
@@ -106,36 +125,6 @@ class ResolveRequest(BaseModel):
 
     version: int = Field(description="Wire-language version this request was built for.")
     items: list[ResolveItem] = Field(min_length=1, description="Batch of questions, answered in the same order.")
-
-
-class ResolveItemResult(BaseModel):
-    """One answer in a resolve batch, positionally matched to its ``ResolveItem``.
-
-    Always exactly these two fields, for every ``kind`` — no nested union, no
-    fields that only make sense for some values of ``kind``. See the module
-    docstring for what ``reason`` carries per channel.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    kind: ResolveItemKind = Field(description="Which channel this answer came through — see ResolveItemKind.")
-    reason: str = Field(description='"" for SUCCESS; otherwise a non-empty, explicitly-declared string.')
-
-    @model_validator(mode="after")
-    def _reason_matches_kind(self) -> Self:
-        """Same contract as ``AccessVerdict`` (``aoa-action-machine``), checked with the
-        same shared function, not a second independently written copy (fix-audit
-        finding 7): ``to_wire()`` only ever copies an already-validated ``AccessVerdict``,
-        but ``permissions.py`` also builds a ``ResolveItemResult`` by hand in a couple of
-        places (``_unknown_endpoint_verdict``, ``_unauthorized_verdict``) — this is what
-        actually goes out over the wire, so it gets its own check, not a borrowed promise.
-        """
-        if not kind_matches_reason(self.kind, self.reason):
-            raise ValueError(
-                "ResolveItemResult: kind=SUCCESS must carry reason=''; every other kind "
-                f"must carry a non-empty reason — got kind={self.kind!r}, reason={self.reason!r}."
-            )
-        return self
 
 
 class ResolveResponse(BaseModel):

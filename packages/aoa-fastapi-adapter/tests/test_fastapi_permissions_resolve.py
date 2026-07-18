@@ -138,6 +138,28 @@ class TestRoleGate:
         assert len(results) == 2
         assert all(r["kind"] == "success" for r in results)
 
+    def test_result_never_carries_action_over_the_wire(self) -> None:
+        """resolve_verdicts() now returns real AccessVerdict instances directly (no
+        to_wire() step, fix-audit finding 7's follow-up) -- confirm the internal-only
+        `action` field (a live Python class reference) never actually reaches JSON,
+        for both a real cascade verdict and the synthetic ones (unknown endpoint)."""
+        client = _make_client(context=_manager_context())
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 1}},
+                    {"operation": "POST /nope", "params": {}},
+                ],
+            },
+        )
+        assert response.status_code == 200
+        results = response.json()["results"]
+        assert len(results) == 2
+        for result in results:
+            assert set(result.keys()) == {"kind", "reason"}
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Deduplication (PR 2): observable client-side behavior only

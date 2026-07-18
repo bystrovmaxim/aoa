@@ -3,10 +3,10 @@
 
 machine.check_access_decide answers "can this user do X?" without executing
 the action — the same role -> guard -> access_decide cascade that machine.run
-enforces, just without running any aspect. to_wire() then projects the
-internal AccessVerdict onto the wire ResolveItemResult shape that
-POST /permissions/resolve actually returns over HTTP: both are the same flat
-{kind, reason} pair, one layer apart — to_wire() is a straight copy.
+enforces, just without running any aspect. The AccessVerdict it returns *is*
+a ResolveItemResult (a subclass adding one internal-only field, `action`,
+never serialized) — the same flat {kind, reason} pair that
+POST /permissions/resolve actually returns over HTTP, no conversion step.
 
 Watch kind/reason here: a SUCCESS result always carries reason="" — there is
 nothing more to say when nothing rejected the call. Compare with
@@ -31,7 +31,6 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.fastapi.permissions import to_wire
 
 
 class StoreDomain(BaseDomain):
@@ -66,10 +65,9 @@ async def main() -> None:
     manager = Context(user=UserInfo(user_id="m1", roles=(ManagerRole,)))
 
     verdict = await machine.check_access_decide(manager, CancelOrderAction, OrderParams(order_id=7))
-    wire_verdict = to_wire(verdict)
 
-    print(f"kind   = {wire_verdict.kind!r}")
-    print(f"reason = {wire_verdict.reason!r}")  # "" — SUCCESS never has more to say
+    print(f"kind   = {verdict.kind!r}")
+    print(f"reason = {verdict.reason!r}")  # "" — SUCCESS never has more to say
 
 
 asyncio.run(main())

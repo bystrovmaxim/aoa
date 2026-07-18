@@ -17,17 +17,6 @@ Small, independent pieces of glue between the wire protocol
   graph traversal; a duplicate (method, path) is first-wins like the router,
   not an error.
 
-- :func:`to_wire` — project the internal ``AccessVerdict`` onto the wire
-  ``ResolveItemResult`` shape. Both are the same flat ``{kind, reason}`` pair
-  now, one layer apart, so this is a straight copy, not a recomputation: the
-  wire ``kind`` is the access-control cascade's own ``ResolveItemKind``, and
-  ``reason`` is whatever ``AccessVerdict.reason`` already holds (the fixed
-  ``"FORBIDDEN_ROLE"``, a developer-declared ``reason=`` string from
-  ``when=``/``guard=``, or — for the one gate that mandatory-companion
-  mechanism does not reach yet, ``access_decide`` — the raw cascade text or an
-  unexpected exception's class name; see ``check_access_decide``'s own
-  docstring in ``aoa-action-machine``).
-
 - :func:`resolve_verdicts` — the actual batch resolver: deduplicates identical
   ``(operation, params)`` items so each distinct question triggers exactly one
   real ``check_access_decide`` call (run concurrently across distinct questions
@@ -47,6 +36,16 @@ Small, independent pieces of glue between the wire protocol
   tests assert on deduplication directly (by calling this function, not the HTTP
   endpoint) — ``real_call_count`` is never serialized onto the wire; the client has
   no business knowing which items were deduplicated internally.
+
+``ResolveOutcome.results`` holds real ``AccessVerdict`` instances for every item
+that reached the cascade, no conversion step: ``AccessVerdict`` *is* a
+``ResolveItemResult`` (``aoa-action-machine``, a subclass adding one
+internal-only, non-serialized field), so there is nothing left to project — the
+``to_wire()`` function this module used to export is gone (fix-audit finding 7's
+follow-up). The two synthetic outcomes that never reach the cascade at all —
+unknown ``operation``, route-level auth rejection — build a plain
+``ResolveItemResult`` directly instead, which never had an ``action`` slot to
+begin with.
 """
 
 # Ruff/isort lists first-party ``action_machine`` before FastAPI (known-first-party).
@@ -90,16 +89,6 @@ def build_route_index(routes: list[FastApiRouteRecord]) -> dict[str, FastApiRout
         operation = f"{record.method} {record.path}"
         index.setdefault(operation, record)  # first-wins, mirroring the router
     return index
-
-
-def to_wire(verdict: AccessVerdict) -> ResolveItemResult:
-    """
-    Project an internal ``AccessVerdict`` onto the wire ``ResolveItemResult`` shape.
-
-    Both are the same flat ``{kind, reason}`` pair — this is a straight copy, no
-    recomputation. See the module docstring for what ``reason`` holds per channel.
-    """
-    return ResolveItemResult(kind=verdict.kind, reason=verdict.reason)
 
 
 def canonical_key(params: dict[str, Any]) -> str:
@@ -238,7 +227,7 @@ async def resolve_verdicts(
             return _unknown_endpoint_verdict()
         if key in unauthorized_keys:
             return _unauthorized_verdict()
-        return to_wire(verdict_by_key[key])
+        return verdict_by_key[key]
 
     results = [_result_for(key) for key in item_keys]
     return ResolveOutcome(results=results, real_call_count=len(pending_keys))

@@ -30,7 +30,6 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.fastapi.permissions import to_wire
 
 
 class StoreDomain(BaseDomain):
@@ -70,10 +69,9 @@ async def main() -> None:
     user = Context(user=UserInfo(user_id="u1", roles=(UserRole,)))
 
     verdict = await machine.check_access_decide(user, CancelOrderAction, OrderParams(order_id=7))
-    wire_verdict = to_wire(verdict)
 
-    print(f"kind   = {wire_verdict.kind!r}")
-    print(f"reason = {wire_verdict.reason!r}")  # "FORBIDDEN_ROLE" — no role matched, not developer-declared
+    print(f"kind   = {verdict.kind!r}")
+    print(f"reason = {verdict.reason!r}")  # "FORBIDDEN_ROLE" — no role matched, not developer-declared
 
 
 asyncio.run(main())

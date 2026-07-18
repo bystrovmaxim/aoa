@@ -37,7 +37,6 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.fastapi.permissions import to_wire
 
 
 class StoreDomain(BaseDomain):
@@ -84,12 +83,12 @@ async def main() -> None:
     guest = Context()  # no login at all — GuestRole covers this
     params = TrackOrderParams(order_id=7, tracking_token="secret-token-7")
 
-    before = to_wire(await machine.check_access_decide(guest, TrackOrderAction, params))
+    before = await machine.check_access_decide(guest, TrackOrderAction, params)
     print(f"before shipped: kind={before.kind!r} reason={before.reason!r}")
 
     _ORDERS[7] = Order(tracking_token="secret-token-7", status="shipped")  # the real-world event fires
 
-    after = to_wire(await machine.check_access_decide(guest, TrackOrderAction, params))
+    after = await machine.check_access_decide(guest, TrackOrderAction, params)
     print(f"after shipped:  kind={after.kind!r} reason={after.reason!r}")  # same guest, same token, no client-side change
 
 

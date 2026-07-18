@@ -1,11 +1,12 @@
-"""Constructor, frozen semantics, and dict-like access for AccessVerdict."""
+"""Constructor, frozen semantics, dict-like access, and the ResolveItemResult
+base class relationship for AccessVerdict."""
 
 from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
 
-from aoa.action_machine.intents.access_control import AccessVerdict, ResolveItemKind
+from aoa.action_machine.intents.access_control import AccessVerdict, ResolveItemKind, ResolveItemResult
 
 from ....support.domain_model.ping_action import PingAction
 
@@ -56,7 +57,7 @@ class TestAccessVerdictFrozen:
     def test_mutation_raises_validation_error(self) -> None:
         verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS, reason="")
         with pytest.raises(ValidationError):
-            verdict.kind = ResolveItemKind.SECURITY  # type: ignore[misc]
+            verdict.kind = ResolveItemKind.SECURITY
 
 
 class TestAccessVerdictDictAccess:
@@ -76,6 +77,43 @@ class TestAccessVerdictDictAccess:
         verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS, reason="")
         assert "kind" in verdict
         assert "nonexistent" not in verdict
+
+
+class TestAccessVerdictIsAResolveItemResult:
+    """AccessVerdict subclasses ResolveItemResult -- one entity, not two types kept
+    in sync by hand (to_wire() used to copy between them; it is gone now)."""
+
+    def test_access_verdict_is_a_resolve_item_result(self) -> None:
+        verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS, reason="")
+        assert isinstance(verdict, ResolveItemResult)
+
+    def test_action_is_excluded_from_serialization(self) -> None:
+        """`.action` is a live Python class reference -- meaningful only inside this
+        process, never on the wire. model_dump()/model_dump_json() drop it
+        unconditionally, regardless of the field's declared type on whatever
+        container holds this instance (e.g. ResolveResponse.results: list[ResolveItemResult]
+        in aoa-fastapi-adapter, which can now hold AccessVerdict instances directly)."""
+        verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SECURITY, reason="not a manager")
+        dumped = verdict.model_dump()
+        assert "action" not in dumped
+        assert dumped == {"kind": ResolveItemKind.SECURITY, "reason": "not a manager"}
+        assert "action" not in verdict.model_dump_json()
+
+    def test_base_class_validator_applies_to_the_subclass_without_redeclaring_it(self) -> None:
+        """The kind/reason validator lives once, on ResolveItemResult -- AccessVerdict
+        does not redeclare it, and it still fires (fix-audit finding 7)."""
+        with pytest.raises(ValidationError, match="kind=SUCCESS"):
+            AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS, reason="should be empty")
+
+    def test_resolve_item_result_alone_has_no_action_field(self) -> None:
+        """The two call sites that build a verdict with no real action behind it at
+        all (unknown operation, route-level auth rejection before the action
+        resolved) construct ResolveItemResult directly -- it never had an `action`
+        slot to fill, so there is nothing to work around for them."""
+        result = ResolveItemResult(kind=ResolveItemKind.CHECK_ERROR, reason="UNKNOWN_ENDPOINT")
+        assert "action" not in result.model_dump()
+        with pytest.raises(ValidationError):
+            ResolveItemResult(action=PingAction, kind=ResolveItemKind.CHECK_ERROR, reason="UNKNOWN_ENDPOINT")  # type: ignore[call-arg]
 
 
 class TestResolveItemKindTsParity:
