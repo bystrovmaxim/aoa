@@ -127,3 +127,41 @@ class TestOverlappingTemplatesFailTheBuild:
             adapter.get("/a", SimpleAction)
 
         adapter.build()  # RouteShadowError must not fire for this case
+
+
+class TestReservedRoutesParticipateInShadowing:
+    """Audit finding 5: the adapter's own bespoke routes (/health,
+    /permissions/resolve, /client-manifest.json, /permissions/namespace) used to be
+    invisible to this check -- registered outside self._routes, never fed into it."""
+
+    def test_app_route_shadowing_health_raises(self) -> None:
+        """"/{item_id}" (GET, one segment) overlaps "/health" (GET, one segment)."""
+        adapter = _adapter()
+        adapter.get("/{item_id}", PingAction)
+
+        with pytest.raises(RouteShadowError):
+            adapter.build()
+
+    def test_app_route_shadowing_client_manifest_raises(self) -> None:
+        """"/{item_id}" also overlaps the literal, one-segment "/client-manifest.json"."""
+        adapter = _adapter()
+        adapter.get("/{filename}", PingAction)
+
+        with pytest.raises(RouteShadowError):
+            adapter.build()
+
+    def test_app_route_shadowing_resolve_raises(self) -> None:
+        """"/permissions/{action}" (POST, two segments) overlaps "/permissions/resolve"."""
+        adapter = _adapter()
+        adapter.post("/permissions/{action}", PingAction)
+
+        with pytest.raises(RouteShadowError):
+            adapter.build()
+
+    def test_non_overlapping_app_routes_still_build_with_reserved_routes_present(self) -> None:
+        """The reserved routes must not spuriously conflict with disjoint app routes."""
+        adapter = _adapter()
+        adapter.get("/users/{id}", PingAction)
+        adapter.post("/actions/cancel-order", SimpleAction)
+
+        adapter.build()  # must not raise

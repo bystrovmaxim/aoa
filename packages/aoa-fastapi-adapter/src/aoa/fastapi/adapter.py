@@ -356,9 +356,18 @@ def _paths_could_overlap(path_a: str, path_b: str) -> bool:
     return all(_segments_could_overlap(x, y) for x, y in zip(shorter, prefix_of_longer, strict=True))
 
 
-def _check_for_route_shadowing(routes: list[FastApiRouteRecord]) -> None:
+def _check_for_route_shadowing(routes: list[tuple[str, str]]) -> None:
     """
     Raise ``RouteShadowError`` if any two *different* templates, same method, could overlap.
+
+    Takes plain ``(method, path)`` pairs, not ``FastApiRouteRecord``\\ s — the only two
+    fields this check ever reads — so the caller can feed it the adapter's own bespoke
+    routes (``/health``, ``/permissions/resolve``, ...) alongside ``self._routes``
+    without fabricating a fake ``FastApiRouteRecord`` (which would need a real
+    ``action_class``) for each one. Audit finding 5: those four used to be invisible
+    to this check entirely, registered a different way and never added to the list
+    it was called with — an app-registered route could structurally shadow the
+    framework's own health check or resolver and ``build()`` would not notice.
 
     Exact ``(method, path)`` duplicates are a separate, non-fatal case (a dev-time
     ``UserWarning`` in ``_register``, first-wins in the manifest/resolver) — skipped
@@ -366,8 +375,8 @@ def _check_for_route_shadowing(routes: list[FastApiRouteRecord]) -> None:
     "ambiguous" about which URLs it matches.
     """
     paths_by_method: dict[str, list[str]] = {}
-    for record in routes:
-        paths_by_method.setdefault(record.method, []).append(record.path)
+    for method, path in routes:
+        paths_by_method.setdefault(method, []).append(path)
 
     for method, paths in paths_by_method.items():
         confirmed: list[str] = []
@@ -718,12 +727,23 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             API description for OpenAPI (Markdown supported).
     """
 
-    #: Paths owned by the adapter's own bespoke routes (``build()`` registers these before looping
-    #: over ``self._routes``, so an app-registered route on the same path would be silently
-    #: shadowed by Starlette's first-match-wins routing — see ``ReservedRoutePathError``).
-    _RESERVED_PATHS: frozenset[str] = frozenset(
-        {"/health", "/permissions/resolve", "/client-manifest.json", "/permissions/namespace"}
+    #: (method, path) for every bespoke route the adapter registers itself, outside
+    #: self._routes (``build()`` registers these before looping over ``self._routes``,
+    #: so an app-registered route on the same path would be silently shadowed by
+    #: Starlette's first-match-wins routing — see ``ReservedRoutePathError``). Single
+    #: source of truth for both ``_RESERVED_PATHS`` (exact-path collisions) and the
+    #: route-shadowing check in ``build()`` (template overlaps) — audit finding 5: the
+    #: two used to be checked separately, and only one of them knew these paths existed.
+    _RESERVED_ROUTES: tuple[tuple[str, str], ...] = (
+        ("GET", "/health"),
+        ("POST", "/permissions/resolve"),
+        ("GET", "/client-manifest.json"),
+        ("GET", "/permissions/namespace"),
     )
+
+    #: Paths owned by the adapter's own bespoke routes — derived from ``_RESERVED_ROUTES``
+    #: so the two can never drift apart.
+    _RESERVED_PATHS: frozenset[str] = frozenset(path for _, path in _RESERVED_ROUTES)
 
     def __init__(
         self,
@@ -985,7 +1005,10 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
         Initialization order:
         1. Fail fast if any two different path templates could shadow each
-           other (``RouteShadowError``) — before anything else is built.
+           other (``RouteShadowError``) — before anything else is built. Covers
+           the adapter's own bespoke routes (``_RESERVED_ROUTES``) too, not only
+           ``self._routes`` — an app-registered template can shadow ``/health``
+           or the resolver exactly as easily as it can shadow another app route.
         2. Create FastAPI app with OpenAPI metadata.
         3. Add middleware for uncaught exception handling.
         4. Register exception handlers.
@@ -1002,7 +1025,9 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         Returns:
             Ready-to-run FastAPI application.
         """
-        _check_for_route_shadowing(self._routes)
+        _check_for_route_shadowing(
+            [*self._RESERVED_ROUTES, *((record.method, record.path) for record in self._routes)]
+        )
 
         app = FastAPI(
             title=self._title,
