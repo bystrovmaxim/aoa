@@ -115,7 +115,9 @@ from __future__ import annotations
 
 import inspect
 import re
+import warnings
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from typing import Annotated, Any, Self, get_origin
 
 from pydantic import BaseModel
@@ -126,6 +128,7 @@ from starlette.responses import Response as StarletteResponse
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
 from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
 from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
+from aoa.action_machine.auth.permission_namespace import compute_cache_partition
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
     CheckAccessDecideBatchSizeExceededError,
@@ -134,14 +137,24 @@ from aoa.action_machine.exceptions.validation_field_error import ValidationField
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.model.base_action import BaseAction
-from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
+from aoa.action_machine.resources.per_call_connection import ConnectionValue
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+from aoa.fastapi.execution_plan import EndpointExecutionPlan, PreparedEndpointContext, build_execution_plan_index
 from aoa.fastapi.manifest import Manifest, build_manifest
 from aoa.fastapi.permissions import build_route_index, resolve_verdicts
-from aoa.fastapi.permissions_schema import ResolveRequest, ResolveResponse
+from aoa.fastapi.permissions_schema import (
+    SUPPORTED_VERSION,
+    ErrorDetail,
+    ErrorEnvelope,
+    PermissionNamespace,
+    ResolveRequest,
+    ResolveResponse,
+)
 from aoa.fastapi.reserved_route_path_error import ReservedRoutePathError
 from aoa.fastapi.route_record import FastApiRouteRecord
+from aoa.fastapi.route_shadow_error import RouteShadowError
+from aoa.fastapi.unsupported_version_error import UnsupportedVersionError
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 
@@ -241,6 +254,141 @@ def _extract_path_params(path: str) -> set[str]:
     return set(_PATH_PARAM_PATTERN.findall(path))
 
 
+# ═════════════════════════════════════════════════════════════════════════════
+# Route shadowing detection
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# Two *different* path templates, same method, can still match the same real
+# URL — "/users/me" alongside "/users/{id}", or "/users/{id}" alongside
+# "/users/{name}". Starlette would silently route every matching request to
+# whichever was registered first; build() fails the build instead (RouteShadowError).
+# This is deliberately conservative — "when in doubt, flag it" — since a false
+# positive costs a developer one rename, but a missed collision costs a client a
+# button that lies. See RouteShadowError's own module docstring for the full argument.
+
+_TEMPLATE_SEGMENT_PATTERN: re.Pattern[str] = re.compile(r"\{(?P<name>\w+)(?::(?P<converter>\w+))?\}")
+_INT_LITERAL_PATTERN: re.Pattern[str] = re.compile(r"^-?\d+$")
+_FLOAT_LITERAL_PATTERN: re.Pattern[str] = re.compile(r"^-?\d+(\.\d+)?$")
+_UUID_LITERAL_PATTERN: re.Pattern[str] = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
+
+@dataclass(frozen=True)
+class _PathSegment:
+    """One ``/``-delimited piece of a path template: a literal, or a ``{name[:converter]}`` param."""
+
+    is_param: bool
+    value: str  # literal text, or the param name
+    converter: str = "str"  # only meaningful when is_param — Starlette's default converter is "str"
+
+
+def _parse_path_segments(path: str) -> list[_PathSegment]:
+    """Split a path template into ``_PathSegment``s, recognizing Starlette's ``{name:converter}`` syntax."""
+    segments: list[_PathSegment] = []
+    for raw in path.split("/"):
+        if not raw:
+            continue
+        match = _TEMPLATE_SEGMENT_PATTERN.fullmatch(raw)
+        if match is None:
+            segments.append(_PathSegment(is_param=False, value=raw))
+        else:
+            converter = match.group("converter") or "str"
+            segments.append(_PathSegment(is_param=True, value=match.group("name"), converter=converter))
+    return segments
+
+
+def _literal_matches_converter(literal: str, converter: str) -> bool:
+    """Whether a literal segment's text is a value the given converter could actually accept.
+
+    ``str``/``path`` (and any converter this module does not specifically know
+    about) accept any non-empty text — conservative by construction, since an
+    unrecognized converter might accept anything.
+    """
+    if converter == "int":
+        return bool(_INT_LITERAL_PATTERN.fullmatch(literal))
+    if converter == "float":
+        return bool(_FLOAT_LITERAL_PATTERN.fullmatch(literal))
+    if converter == "uuid":
+        return bool(_UUID_LITERAL_PATTERN.fullmatch(literal))
+    return True
+
+
+def _segments_could_overlap(a: _PathSegment, b: _PathSegment) -> bool:
+    """Whether some single URL segment could satisfy both ``a`` and ``b`` at once."""
+    if not a.is_param and not b.is_param:
+        return a.value == b.value
+    if a.is_param and b.is_param:
+        # Conservative: two params (whatever their converters) can always agree on some value.
+        return True
+    literal, param = (a, b) if not a.is_param else (b, a)
+    return _literal_matches_converter(literal.value, param.converter)
+
+
+def _is_greedy_tail(segments: list[_PathSegment]) -> bool:
+    """Whether ``segments`` ends in a ``{name:path}`` param — Starlette's only multi-segment converter."""
+    return bool(segments) and segments[-1].is_param and segments[-1].converter == "path"
+
+
+def _paths_could_overlap(path_a: str, path_b: str) -> bool:
+    """
+    Whether two *different* path templates could match a common real URL.
+
+    Neither template greedy (no trailing ``{name:path}``): they can only overlap
+    with the same segment count, each pair of corresponding segments compatible.
+    Either one greedy: its trailing ``{name:path}`` can absorb any number of the
+    other template's remaining segments (including zero), so only the fixed
+    (non-greedy) prefixes need to line up — and the shorter fixed prefix must be
+    a compatible match against the longer one's first segments.
+    """
+    segments_a = _parse_path_segments(path_a)
+    segments_b = _parse_path_segments(path_b)
+    fixed_a = segments_a[:-1] if _is_greedy_tail(segments_a) else segments_a
+    fixed_b = segments_b[:-1] if _is_greedy_tail(segments_b) else segments_b
+
+    if not _is_greedy_tail(segments_a) and not _is_greedy_tail(segments_b):
+        if len(fixed_a) != len(fixed_b):
+            return False
+        return all(_segments_could_overlap(x, y) for x, y in zip(fixed_a, fixed_b, strict=True))
+
+    shorter, longer = (fixed_a, fixed_b) if len(fixed_a) <= len(fixed_b) else (fixed_b, fixed_a)
+    prefix_of_longer = longer[: len(shorter)]
+    return all(_segments_could_overlap(x, y) for x, y in zip(shorter, prefix_of_longer, strict=True))
+
+
+def _check_for_route_shadowing(routes: list[FastApiRouteRecord]) -> None:
+    """
+    Raise ``RouteShadowError`` if any two *different* templates, same method, could overlap.
+
+    Exact ``(method, path)`` duplicates are a separate, non-fatal case (a dev-time
+    ``UserWarning`` in ``_register``, first-wins in the manifest/resolver) — skipped
+    here on purpose, since registering the identical template twice is never
+    "ambiguous" about which URLs it matches.
+    """
+    paths_by_method: dict[str, list[str]] = {}
+    for record in routes:
+        paths_by_method.setdefault(record.method, []).append(record.path)
+
+    for method, paths in paths_by_method.items():
+        confirmed: list[str] = []
+        for path in paths:
+            for other in confirmed:
+                if path != other and _paths_could_overlap(path, other):
+                    raise RouteShadowError(method, other, path)
+            confirmed.append(path)
+
+
+def _if_none_match_hits(header_value: str | None, etag: str) -> bool:
+    """
+    Whether a quoted ``etag`` (e.g. ``'"sha256:abc..."'``) satisfies an ``If-None-Match``
+    request header — a comma-separated list of quoted ETags, or the wildcard ``*``.
+    """
+    if header_value is None:
+        return False
+    candidates = [token.strip() for token in header_value.split(",")]
+    return etag in candidates or "*" in candidates
+
+
 def _has_body_method(method: str) -> bool:
     """
     Return whether HTTP method supports request body.
@@ -265,7 +413,7 @@ def _has_body_method(method: str) -> bool:
 def _make_endpoint_with_body(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
-    auth_coordinator: AuthCoordinatorProtocol,
+    plan: EndpointExecutionPlan,
 ) -> Callable[..., Any]:
     """
     Create endpoint for methods with JSON body (POST, PUT, PATCH).
@@ -276,7 +424,8 @@ def _make_endpoint_with_body(
     Args:
         record: route configuration.
         machine: action execution machine.
-        auth_coordinator: authentication coordinator (required).
+        plan: this route's execution plan (auth coordinator + connections recipe) —
+            the same recipe the permissions resolver runs for this route's ``operation``.
 
     Returns:
         Async endpoint function for ``app.add_api_route()``.
@@ -298,14 +447,10 @@ def _make_endpoint_with_body(
             route_label=_fastapi_route_label(record),
         )
 
-        context = await auth_coordinator.process(request)
-        if context is None:
-            raise AuthorizationError("Authentication required")
-
-        connections = resolve_connections(record.connections)
+        prepared = await plan.prepare(request)
 
         action = record.action_class()
-        result = await machine.run(context, action, params, connections)
+        result = await machine.run(prepared.context, action, params, prepared.connections)
 
         if has_response_mapper:
             mapped = record.response_mapper(result)  # type: ignore[misc]
@@ -330,7 +475,7 @@ def _make_endpoint_with_body(
 def _make_endpoint_with_query(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
-    auth_coordinator: AuthCoordinatorProtocol,
+    plan: EndpointExecutionPlan,
 ) -> Callable[..., Any]:
     """
     Create endpoint for GET/DELETE with query/path parameters.
@@ -342,7 +487,8 @@ def _make_endpoint_with_query(
     Args:
         record: route configuration.
         machine: action execution machine.
-        auth_coordinator: authentication coordinator (required).
+        plan: this route's execution plan (auth coordinator + connections recipe) —
+            the same recipe the permissions resolver runs for this route's ``operation``.
 
     Returns:
         Async endpoint function for ``app.add_api_route()``.
@@ -368,14 +514,10 @@ def _make_endpoint_with_query(
             route_label=_fastapi_route_label(record),
         )
 
-        context = await auth_coordinator.process(request)
-        if context is None:
-            raise AuthorizationError("Authentication required")
-
-        connections = resolve_connections(record.connections)
+        prepared = await plan.prepare(request)
 
         action = record.action_class()
-        result = await machine.run(context, action, params, connections)
+        result = await machine.run(prepared.context, action, params, prepared.connections)
 
         if has_response_mapper:
             mapped = record.response_mapper(result)  # type: ignore[misc]
@@ -432,7 +574,7 @@ def _make_endpoint_with_query(
 def _make_endpoint_no_params(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
-    auth_coordinator: AuthCoordinatorProtocol,
+    plan: EndpointExecutionPlan,
 ) -> Callable[..., Any]:
     """
     Create endpoint for actions with empty Params (no fields).
@@ -443,7 +585,8 @@ def _make_endpoint_no_params(
     Args:
         record: route configuration.
         machine: action execution machine.
-        auth_coordinator: authentication coordinator (required).
+        plan: this route's execution plan (auth coordinator + connections recipe) —
+            the same recipe the permissions resolver runs for this route's ``operation``.
 
     Returns:
         Async endpoint function for ``app.add_api_route()``.
@@ -467,14 +610,10 @@ def _make_endpoint_no_params(
             route_label=_fastapi_route_label(record),
         )
 
-        context = await auth_coordinator.process(request)
-        if context is None:
-            raise AuthorizationError("Authentication required")
-
-        connections = resolve_connections(record.connections)
+        prepared = await plan.prepare(request)
 
         action = record.action_class()
-        result = await machine.run(context, action, params, connections)
+        result = await machine.run(prepared.context, action, params, prepared.connections)
 
         if has_response_mapper:
             mapped = record.response_mapper(result)  # type: ignore[misc]
@@ -493,7 +632,7 @@ def _make_endpoint_no_params(
 def _make_endpoint(
     record: FastApiRouteRecord,
     machine: ActionProductMachine,
-    auth_coordinator: AuthCoordinatorProtocol,
+    plan: EndpointExecutionPlan,
 ) -> Callable[..., Any]:
     """
     Endpoint factory for FastAPI.
@@ -507,7 +646,8 @@ def _make_endpoint(
     Args:
         record: route configuration.
         machine: action execution machine.
-        auth_coordinator: authentication coordinator (required).
+        plan: this route's execution plan (auth coordinator + connections recipe) —
+            the same recipe the permissions resolver runs for this route's ``operation``.
 
     Returns:
         Async function suitable for ``app.add_api_route()``.
@@ -515,12 +655,12 @@ def _make_endpoint(
     model_fields = _get_model_fields(record.effective_request_model)
 
     if not model_fields:
-        return _make_endpoint_no_params(record, machine, auth_coordinator)
+        return _make_endpoint_no_params(record, machine, plan)
 
     if _has_body_method(record.method):
-        return _make_endpoint_with_body(record, machine, auth_coordinator)
+        return _make_endpoint_with_body(record, machine, plan)
 
-    return _make_endpoint_with_query(record, machine, auth_coordinator)
+    return _make_endpoint_with_query(record, machine, plan)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -581,7 +721,9 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     #: Paths owned by the adapter's own bespoke routes (``build()`` registers these before looping
     #: over ``self._routes``, so an app-registered route on the same path would be silently
     #: shadowed by Starlette's first-match-wins routing — see ``ReservedRoutePathError``).
-    _RESERVED_PATHS: frozenset[str] = frozenset({"/health", "/permissions/resolve", "/client-manifest.json"})
+    _RESERVED_PATHS: frozenset[str] = frozenset(
+        {"/health", "/permissions/resolve", "/client-manifest.json", "/permissions/namespace"}
+    )
 
     def __init__(
         self,
@@ -659,6 +801,17 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         ``auth_coordinator``, when given, overrides the adapter's default coordinator
         for this route only (see :meth:`~aoa.action_machine.adapters.base_adapter.BaseAdapter.effective_auth_coordinator`).
 
+        An exact ``(method, path)`` duplicate is not an error — Starlette's real
+        router would resolve it the same way, "first registration wins", so this
+        only warns (``UserWarning``, once per call site) rather than raising;
+        :func:`~aoa.fastapi.manifest.build_manifest` and
+        :func:`~aoa.fastapi.permissions.build_route_index` both already build
+        from the first registration to match. A *different* template that could
+        match the same URL as an existing one (e.g. ``/users/me`` alongside
+        ``/users/{id}``) is not caught here — that needs every route to be known
+        first, so it is checked once, at :meth:`build`, and raises
+        ``RouteShadowError`` instead of warning.
+
         Raises:
             ReservedRoutePathError: ``path`` collides with one of the adapter's own bespoke
                 routes (``_RESERVED_PATHS``) — registering it here would be silently
@@ -688,6 +841,14 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             operation_id=operation_id,
             deprecated=deprecated,
         )
+        if any(r.method == record.method and r.path == record.path for r in self._routes):
+            warnings.warn(
+                f"{record.method} {record.path!r} is already registered. Starlette will route every "
+                "matching request to the first registration; this one is unreachable and will not "
+                "appear in the client manifest.",
+                UserWarning,
+                stacklevel=3,
+            )
         return self._add_route(record)
 
     # ─────────────────────────────────────────────────────────────────────
@@ -823,17 +984,26 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         Create FastAPI application from registered routes.
 
         Initialization order:
-        1. Create FastAPI app with OpenAPI metadata.
-        2. Add middleware for uncaught exception handling.
-        3. Register exception handlers.
-        4. Register health check endpoint ``GET /health``.
-        5. Register permissions endpoints (``POST /permissions/resolve``,
-           ``GET /client-manifest.json``).
-        6. Generate/register endpoint for each route.
+        1. Fail fast if any two different path templates could shadow each
+           other (``RouteShadowError``) — before anything else is built.
+        2. Create FastAPI app with OpenAPI metadata.
+        3. Add middleware for uncaught exception handling.
+        4. Register exception handlers.
+        5. Register health check endpoint ``GET /health``.
+        6. Register permissions endpoints (``POST /permissions/resolve``,
+           ``GET /client-manifest.json``, ``GET /permissions/namespace``).
+        7. Generate/register endpoint for each route.
+
+        Raises:
+            RouteShadowError: two registered routes, same method, have path
+                templates that could match the same real URL (e.g. ``/users/me``
+                alongside ``/users/{id}``) — see its own module docstring.
 
         Returns:
             Ready-to-run FastAPI application.
         """
+        _check_for_route_shadowing(self._routes)
+
         app = FastAPI(
             title=self._title,
             version=self._version,
@@ -858,10 +1028,11 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         """
         Generate and register one async endpoint from ``FastApiRouteRecord``.
         """
+        plan = EndpointExecutionPlan(record=record, auth_coordinator=self.effective_auth_coordinator(record))
         endpoint = _make_endpoint(
             record=record,
             machine=self._machine,
-            auth_coordinator=self.effective_auth_coordinator(record),
+            plan=plan,
         )
 
         app.add_api_route(
@@ -919,27 +1090,57 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 content={"detail": str(exc)},
             )
 
+        @app.exception_handler(UnsupportedVersionError)
+        async def handle_unsupported_version(
+            request: Request,
+            exc: UnsupportedVersionError,
+        ) -> JSONResponse:
+            return JSONResponse(
+                status_code=400,
+                content=ErrorEnvelope(error=ErrorDetail(code="unsupported_version")).model_dump(mode="json"),
+            )
+
     # ─────────────────────────────────────────────────────────────────────
     # Permissions resolver + client manifest (issue #130)
     # ─────────────────────────────────────────────────────────────────────
 
     def _register_permissions_endpoints(self, app: FastAPI) -> None:
         """
-        Add ``POST /permissions/resolve`` (list-shaped role-gate resolver, PR 1 + PR 2)
-        and ``GET /client-manifest.json`` (endpoint catalog, chapter 3) — both issue #130.
+        Add ``POST /permissions/resolve`` (list-shaped role-gate resolver, PR 1 + PR 2),
+        ``GET /client-manifest.json`` (endpoint catalog, chapter 3), and
+        ``GET /permissions/namespace`` (``PermissionNamespace``/``cache_partition``,
+        chapter 3.5) — all issue #130.
 
         Registered as a bespoke route, not a ``BaseAction`` — it needs ``machine``
         and a full ``Context`` to call ``machine.check_access_decide`` on *other*
         actions, and ordinary aspects cannot reach either (see the module-level
         ``REQUIRED AUTHENTICATION`` note and the ADR for the full argument).
 
+        ``POST /permissions/resolve`` checks the whole request before touching any
+        item, in order: ``body.version`` first (``400`` via ``UnsupportedVersionError``
+        -> ``ErrorEnvelope``, before authentication even runs), then
+        ``auth_coordinator.process(request)`` (``403``) — see chapter 3.5 rules 7/8.
+        Neither failure produces a ``results`` array at all; a per-item problem
+        (unknown ``operation``, a failed check) never does either — it becomes a
+        ``CHECK_ERROR`` element inside an otherwise-normal ``200``.
+
         Always calls ``auth_coordinator.process(request)``; a ``403`` (via the
         existing ``AuthorizationError`` handler) follows only
         when that returns ``None`` (e.g. invalid credentials on a strict
         coordinator) — a resolved anonymous ``Context`` (``NoAuthCoordinator``)
         proceeds normally, so ``@check_roles(GuestRole)`` actions resolve correctly
-        for unauthenticated callers instead of being special-cased here.
+        for unauthenticated callers instead of being special-cased here. This is the
+        resolver's own entry gate — "can this caller ask the resolver anything at
+        all" — separate from and prior to each item's own route-level auth below.
 
+        Per-item auth/connections go through the same
+        :class:`~aoa.fastapi.execution_plan.EndpointExecutionPlan` a real call to
+        that route would use, not a single context/connections pair shared across
+        the whole batch: for every *distinct* ``operation`` named in the batch (not
+        per item — auth and connections do not depend on ``params``), the matching
+        plan's :meth:`~aoa.fastapi.execution_plan.EndpointExecutionPlan.prepare` runs
+        against this same ``request``, reusing the entry-gate ``context`` outright
+        when that route does not override the adapter's default coordinator.
         Deduplication and per-item error isolation (PR 2, chapter 2) live in
         :func:`~aoa.fastapi.permissions.resolve_verdicts`, not here — this endpoint
         only wires auth + the wire response around it.
@@ -953,27 +1154,60 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         machine = self._machine
         auth_coordinator = self._auth_coordinator
         route_index = build_route_index(self._routes)
+        plan_index = build_execution_plan_index(route_index, self.effective_auth_coordinator)
         # Projected once: self._routes is already fixed by the time build() runs
         # (every .post/.get/... has registered), so nothing is recomputed per request.
         manifest = build_manifest(self._routes)
 
         @app.post("/permissions/resolve", tags=["permissions"], response_model=ResolveResponse)
         async def resolve(request: Request, body: ResolveRequest) -> ResolveResponse:
+            # Whole-request checks first, in order: an unsupported wire language
+            # (400) never even gets to prove its identity (401/403) — see chapter
+            # 3.5 rule 8. Both are all-or-nothing, unlike a per-item CHECK_ERROR.
+            if body.version != SUPPORTED_VERSION:
+                raise UnsupportedVersionError(body.version, supported_version=SUPPORTED_VERSION)
+
             context = await auth_coordinator.process(request)
             if context is None:
                 raise AuthorizationError("Authentication required")
 
-            outcome = await resolve_verdicts(context, body.items, route_index, machine)
-            return ResolveResponse(protocol=1, verdicts=outcome.verdicts)
+            prepared_by_operation: dict[str, PreparedEndpointContext] = {}
+            for operation in {item.operation for item in body.items}:
+                plan = plan_index.get(operation)
+                if plan is None:
+                    continue
+                reuse_context = context if plan.record.auth_coordinator is None else None
+                prepared_by_operation[operation] = await plan.prepare(request, reuse_context=reuse_context)
+
+            outcome = await resolve_verdicts(body.items, plan_index, prepared_by_operation, machine)
+            return ResolveResponse(version=SUPPORTED_VERSION, results=outcome.results)
+
+        manifest_etag = f'"{manifest.manifest_version}"'
 
         @app.get("/client-manifest.json", tags=["permissions"], response_model=Manifest)
-        async def client_manifest(request: Request) -> Manifest:
+        async def client_manifest(request: Request) -> StarletteResponse:
             context = await auth_coordinator.process(request)
             if context is None:
                 raise AuthorizationError("Authentication required")
             # Role-independent: the same manifest goes to every authenticated
-            # caller, guest (NoAuthCoordinator) included.
-            return manifest
+            # caller, guest (NoAuthCoordinator) included — hence identity-neutral
+            # headers/body below, not per-caller ones. "private" in Cache-Control
+            # is about *where* the response may be cached (this connection only,
+            # never a shared proxy), not about its content varying by caller.
+            headers = {"ETag": manifest_etag, "Cache-Control": "private, no-cache"}
+            if _if_none_match_hits(request.headers.get("if-none-match"), manifest_etag):
+                return StarletteResponse(status_code=304, headers=headers)
+            return JSONResponse(content=manifest.model_dump(mode="json"), headers=headers)
+
+        @app.get("/permissions/namespace", tags=["permissions"], response_model=PermissionNamespace)
+        async def permission_namespace(request: Request) -> PermissionNamespace:
+            context = await auth_coordinator.process(request)
+            if context is None:
+                raise AuthorizationError("Authentication required")
+            # Freshly derived from this call's identity, never stored — see
+            # compute_cache_partition's own docstring for why that is enough to
+            # behave like a generation counter without needing one.
+            return PermissionNamespace(cache_partition=compute_cache_partition(context))
 
     # ─────────────────────────────────────────────────────────────────────
     # Health check

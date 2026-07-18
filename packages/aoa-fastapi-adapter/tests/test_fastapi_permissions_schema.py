@@ -1,20 +1,30 @@
 # tests/test_fastapi_permissions_schema.py
 """
-Tests for ``aoa.fastapi.permissions_schema`` — ``/permissions/resolve`` wire models (issue #130, PR 1).
+Tests for ``aoa.fastapi.permissions_schema`` — ``/permissions/resolve`` wire models (issue #130).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Validate required/default fields, the non-empty ``items`` invariant, extra-field
-rejection, and that ``Verdict``'s reserved fields (``scope``, ``entities``,
-``reason_code``, ``expires_at``) default to their PR-1 "unpopulated" values.
+rejection, and that ``ResolveItemResult`` is always exactly the flat ``{kind,
+reason}`` shape — both fields mandatory, no nested union, no fields that only
+make sense for some values of ``kind``.
 """
 
 import pytest
 from pydantic import ValidationError
 
-from aoa.fastapi.permissions_schema import ResolveItem, ResolveRequest, ResolveResponse, Verdict
+from aoa.action_machine.intents.access_control import ResolveItemKind
+from aoa.fastapi.permissions_schema import (
+    SUPPORTED_VERSION,
+    ErrorDetail,
+    ErrorEnvelope,
+    ResolveItem,
+    ResolveItemResult,
+    ResolveRequest,
+    ResolveResponse,
+)
 
 
 class TestResolveItem:
@@ -47,17 +57,17 @@ class TestResolveRequest:
     def test_requires_at_least_one_item(self) -> None:
         """An empty ``items`` list is rejected (FR: batch of 1..N, never 0)."""
         with pytest.raises(ValidationError):
-            ResolveRequest(protocol=1, items=[])
+            ResolveRequest(version=1, items=[])
 
     def test_batch_of_one_is_valid(self) -> None:
         """A single-item batch is the ordinary case, not a special one."""
-        request = ResolveRequest(protocol=1, items=[ResolveItem(operation="POST /actions/cancel-order")])
+        request = ResolveRequest(version=1, items=[ResolveItem(operation="POST /actions/cancel-order")])
         assert len(request.items) == 1
 
     def test_batch_of_many_preserves_order(self) -> None:
         """Multiple items round-trip in the order they were given."""
         request = ResolveRequest(
-            protocol=1,
+            version=1,
             items=[
                 ResolveItem(operation="POST /actions/cancel-order", params={"order_id": 1}),
                 ResolveItem(operation="POST /actions/issue-refund", params={"order_id": 1}),
@@ -69,55 +79,85 @@ class TestResolveRequest:
         """Unknown top-level wire fields are rejected."""
         with pytest.raises(ValidationError):
             ResolveRequest(  # type: ignore[call-arg]
-                protocol=1,
+                version=1,
                 items=[ResolveItem(operation="POST /actions/cancel-order")],
                 unexpected="value",
             )
 
 
-class TestVerdict:
-    """``Verdict`` — one answer, with PR-1's reserved-but-unpopulated fields."""
+class TestResolveItemResult:
+    """``ResolveItemResult`` — one answer, always exactly ``{kind, reason}``."""
 
-    def test_only_allowed_is_required(self) -> None:
-        """``allowed`` is the only field a caller must supply."""
-        verdict = Verdict(allowed=True)
-        assert verdict.allowed is True
-
-    def test_reserved_fields_default_to_unpopulated(self) -> None:
-        """PR 1 never populates scope/entities/reason_code/expires_at for real."""
-        verdict = Verdict(allowed=False)
-        assert verdict.scope is None
-        assert verdict.level is None
-        assert verdict.reason is None
-        assert verdict.reason_code is None
-        assert verdict.entities == []
-        assert verdict.expires_at is None
-
-    def test_scope_rejects_values_outside_role_or_object(self) -> None:
-        """``scope`` is constrained to the two documented wire values."""
+    def test_kind_and_reason_are_both_required(self) -> None:
+        """Neither field defaults — ``reason=""`` for ``SUCCESS`` must be given explicitly."""
         with pytest.raises(ValidationError):
-            Verdict(allowed=False, scope="admin")  # type: ignore[arg-type]
-
-    def test_level_rejects_values_outside_one_two_three(self) -> None:
-        """``level`` is constrained to the three cascade levels."""
+            ResolveItemResult(kind=ResolveItemKind.SUCCESS)  # type: ignore[call-arg]
         with pytest.raises(ValidationError):
-            Verdict(allowed=False, level=4)  # type: ignore[arg-type]
+            ResolveItemResult(reason="")  # type: ignore[call-arg]
+
+    def test_success_with_empty_reason_round_trips(self) -> None:
+        result = ResolveItemResult(kind=ResolveItemKind.SUCCESS, reason="")
+        assert result.kind == ResolveItemKind.SUCCESS
+        assert result.reason == ""
+
+    def test_security_with_a_reason_round_trips(self) -> None:
+        result = ResolveItemResult(kind=ResolveItemKind.SECURITY, reason="not a manager")
+        assert result.kind == ResolveItemKind.SECURITY
+        assert result.reason == "not a manager"
+
+    def test_kind_rejects_values_outside_the_closed_set(self) -> None:
+        """``kind`` is constrained to the five documented channels — no ad hoc strings."""
+        with pytest.raises(ValidationError):
+            ResolveItemResult(kind="admin", reason="")  # type: ignore[arg-type]
 
     def test_rejects_extra_fields(self) -> None:
-        """Unknown wire fields are rejected, not silently ignored."""
+        """Unknown wire fields are rejected, not silently ignored — no room for a third field to creep back in."""
         with pytest.raises(ValidationError):
-            Verdict(allowed=True, unexpected="value")  # type: ignore[call-arg]
+            ResolveItemResult(kind=ResolveItemKind.SUCCESS, reason="", unexpected="value")  # type: ignore[call-arg]
 
 
 class TestResolveResponse:
     """``ResolveResponse`` — the resolver's response body."""
 
-    def test_verdicts_preserve_order(self) -> None:
-        """Verdicts round-trip in the order they were given, matching request items positionally."""
-        response = ResolveResponse(protocol=1, verdicts=[Verdict(allowed=True), Verdict(allowed=False)])
-        assert [v.allowed for v in response.verdicts] == [True, False]
+    def test_results_preserve_order(self) -> None:
+        """Results round-trip in the order they were given, matching request items positionally."""
+        response = ResolveResponse(
+            version=1,
+            results=[
+                ResolveItemResult(kind=ResolveItemKind.SUCCESS, reason=""),
+                ResolveItemResult(kind=ResolveItemKind.SECURITY, reason="not a manager"),
+            ],
+        )
+        assert [r.kind for r in response.results] == [ResolveItemKind.SUCCESS, ResolveItemKind.SECURITY]
 
     def test_rejects_extra_fields(self) -> None:
         """Unknown top-level wire fields are rejected."""
         with pytest.raises(ValidationError):
-            ResolveResponse(protocol=1, verdicts=[], unexpected="value")  # type: ignore[call-arg]
+            ResolveResponse(version=1, results=[], unexpected="value")  # type: ignore[call-arg]
+
+
+class TestSupportedVersion:
+    """``SUPPORTED_VERSION`` — the single source both the resolver and the manifest read."""
+
+    def test_is_the_draft_v1(self) -> None:
+        assert SUPPORTED_VERSION == 1
+
+
+class TestErrorEnvelope:
+    """``ErrorEnvelope`` — the whole-request-failure body, ``{"error": {"code": ...}}``."""
+
+    def test_round_trips_a_code(self) -> None:
+        envelope = ErrorEnvelope(error=ErrorDetail(code="unsupported_version"))
+        assert envelope.model_dump() == {"error": {"code": "unsupported_version"}}
+
+    def test_code_is_required(self) -> None:
+        with pytest.raises(ValidationError):
+            ErrorDetail()  # type: ignore[call-arg]
+
+    def test_error_is_required(self) -> None:
+        with pytest.raises(ValidationError):
+            ErrorEnvelope()  # type: ignore[call-arg]
+
+    def test_rejects_extra_fields(self) -> None:
+        with pytest.raises(ValidationError):
+            ErrorEnvelope(error=ErrorDetail(code="unsupported_version"), unexpected="value")  # type: ignore[call-arg]

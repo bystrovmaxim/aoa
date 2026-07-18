@@ -18,25 +18,32 @@ Small, independent pieces of glue between the wire protocol
   first-wins like the router, not an error.
 
 - :func:`to_wire` — project the internal ``AccessVerdict`` onto the wire
-  ``Verdict`` shape. Deliberately conservative for now: ``scope`` only ever
-  reports ``"role"`` or ``None`` (never ``"object"``, even when the machine
-  really evaluated a level-3 ``access_decide``), and ``entities``/``reason_code``/
-  ``expires_at`` stay at their reserved defaults. See the object-level chapter for
-  why: reporting a real object-level verdict is only safe once a rate limit exists
-  to stop it from becoming an ID-enumeration oracle.
+  ``ResolveItemResult`` shape. Both are the same flat ``{kind, reason}`` pair
+  now, one layer apart, so this is a straight copy, not a recomputation: the
+  wire ``kind`` is the access-control cascade's own ``ResolveItemKind``, and
+  ``reason`` is whatever ``AccessVerdict.reason`` already holds (the fixed
+  ``"FORBIDDEN_ROLE"``, a developer-declared ``reason=`` string from
+  ``when=``/``guard=``, or — for the one gate that mandatory-companion
+  mechanism does not reach yet, ``access_decide`` — the raw cascade text or an
+  unexpected exception's class name; see ``check_access_decide``'s own
+  docstring in ``aoa-action-machine``).
 
 - :func:`resolve_verdicts` — the actual batch resolver: deduplicates identical
   ``(operation, params)`` items so each distinct question triggers exactly one
   real ``check_access_decide`` call (run concurrently across distinct questions
-  via ``asyncio.gather``, never a sequential loop). If the matched route carries a
-  ``params_mapper``, the incoming params are mapped through it first — the same
-  converter the real call would use — before ``access_decide``. An unknown
-  ``operation`` is isolated to that one item's verdict
-  (``reason_code="UNKNOWN_ENDPOINT"``) instead of failing the whole batch. Returns
-  a :class:`ResolveOutcome` whose ``real_call_count`` lets tests assert on
-  deduplication directly (by calling this function, not the HTTP endpoint) —
-  ``real_call_count`` is never serialized onto the wire; the client has no
-  business knowing which items were deduplicated internally.
+  via ``asyncio.gather``, never a sequential loop). Each item is checked under its
+  own route's :class:`~aoa.fastapi.execution_plan.EndpointExecutionPlan` — its own
+  auth coordinator's result and its own resolved ``connections``, prepared by the
+  caller once per distinct operation and passed in as ``prepared_by_operation``
+  (never a single context/connections pair shared across every route in the batch;
+  see ``execution_plan.py``). If the matched route carries a ``params_mapper``, the
+  incoming params are mapped through it first — the same converter the real call
+  would use — before ``access_decide``. An unknown ``operation`` is isolated to
+  that one item's result (``kind=CHECK_ERROR, reason="UNKNOWN_ENDPOINT"``) instead
+  of failing the whole batch. Returns a :class:`ResolveOutcome` whose ``real_call_count`` lets
+  tests assert on deduplication directly (by calling this function, not the HTTP
+  endpoint) — ``real_call_count`` is never serialized onto the wire; the client has
+  no business knowing which items were deduplicated internally.
 """
 
 # Ruff/isort lists first-party ``action_machine`` before FastAPI (known-first-party).
@@ -50,14 +57,14 @@ from typing import Any, cast
 
 from pydantic import BaseModel, ValidationError
 
-from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
     CheckAccessDecideBatchSizeExceededError,
 )
-from aoa.action_machine.intents.access_control import AccessVerdict
+from aoa.action_machine.intents.access_control import AccessVerdict, ResolveItemKind
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.fastapi.permissions_schema import ResolveItem, Verdict
+from aoa.fastapi.execution_plan import EndpointExecutionPlan, PreparedEndpointContext
+from aoa.fastapi.permissions_schema import ResolveItem, ResolveItemResult
 from aoa.fastapi.route_record import FastApiRouteRecord
 from fastapi import HTTPException
 
@@ -89,11 +96,14 @@ def resolve_route(operation: str, route_index: dict[str, FastApiRouteRecord]) ->
     """
     Look up the route registered under a wire ``operation`` identifier.
 
+    ``resolve_verdicts`` does not call this directly — it looks up
+    ``EndpointExecutionPlan`` entries (built from the same route index, see
+    :func:`~aoa.fastapi.execution_plan.build_execution_plan_index`) and isolates an
+    unmatched operation itself. This helper remains the plain, adapter-agnostic
+    lookup for anything that only needs the route record.
+
     Raises:
-        LookupError: no endpoint is registered under ``operation``. Callers that
-            want per-item isolation (a ``reason_code`` of ``UNKNOWN_ENDPOINT``
-            instead of failing the whole batch) catch this themselves — see
-            :func:`resolve_verdicts`.
+        LookupError: no endpoint is registered under ``operation``.
     """
     record = route_index.get(operation)
     if record is None:
@@ -101,25 +111,14 @@ def resolve_route(operation: str, route_index: dict[str, FastApiRouteRecord]) ->
     return record
 
 
-def to_wire(verdict: AccessVerdict) -> Verdict:
+def to_wire(verdict: AccessVerdict) -> ResolveItemResult:
     """
-    Project an internal ``AccessVerdict`` onto the wire ``Verdict`` shape.
+    Project an internal ``AccessVerdict`` onto the wire ``ResolveItemResult`` shape.
 
-    ``scope`` is ``"role"`` whenever some cascade level rejected the check
-    (``level`` is 1, 2, or 3), and ``None`` when the check passed outright
-    (``AccessVerdict`` sets ``level=None`` exactly when ``allowed=True``). This
-    never reports ``scope: "object"`` even for a real level-3 rejection — see the
-    module docstring.
+    Both are the same flat ``{kind, reason}`` pair — this is a straight copy, no
+    recomputation. See the module docstring for what ``reason`` holds per channel.
     """
-    return Verdict(
-        allowed=verdict.allowed,
-        scope="role" if verdict.level is not None else None,
-        level=verdict.level,  # type: ignore[arg-type]
-        reason=verdict.reason,
-        reason_code=None,
-        entities=[],
-        expires_at=None,
-    )
+    return ResolveItemResult(kind=verdict.kind, reason=verdict.reason)
 
 
 def canonical_key(params: dict[str, Any]) -> str:
@@ -134,30 +133,30 @@ def canonical_key(params: dict[str, Any]) -> str:
     return json.dumps(params, sort_keys=True)
 
 
-def _unknown_endpoint_verdict() -> Verdict:
-    return Verdict(allowed=False, scope=None, level=None, reason_code="UNKNOWN_ENDPOINT")
+def _unknown_endpoint_verdict() -> ResolveItemResult:
+    return ResolveItemResult(kind=ResolveItemKind.CHECK_ERROR, reason="UNKNOWN_ENDPOINT")
 
 
 @dataclass
 class ResolveOutcome:
     """
-    Result of :func:`resolve_verdicts`: the wire-shaped verdicts plus an internal count.
+    Result of :func:`resolve_verdicts`: the wire-shaped results plus an internal count.
 
     ``real_call_count`` is the number of distinct ``(operation, params)`` keys that
     triggered an actual ``machine.check_access_decide`` call — i.e. the batch size
     *after* deduplication. It is not part of the wire protocol (see the module
     docstring): tests assert on it directly by calling ``resolve_verdicts``, the HTTP
-    endpoint only ever reads ``verdicts``.
+    endpoint only ever reads ``results``.
     """
 
-    verdicts: list[Verdict]
+    results: list[ResolveItemResult]
     real_call_count: int
 
 
 async def resolve_verdicts(
-    context: Context,
     items: list[ResolveItem],
-    route_index: dict[str, FastApiRouteRecord],
+    plan_index: dict[str, EndpointExecutionPlan],
+    prepared_by_operation: dict[str, PreparedEndpointContext],
     machine: ActionProductMachine,
 ) -> ResolveOutcome:
     """
@@ -168,7 +167,7 @@ async def resolve_verdicts(
     1. **Deduplication.** Items are grouped by ``(operation, canonical_key(params))``.
        Only the *first* occurrence of a key (in request order) is resolved and checked;
        every later occurrence copies that same result onto its own position in the
-       returned ``verdicts`` — the list is never shortened, only the amount of real
+       returned ``results`` — the list is never shortened, only the amount of real
        work is. The real ``check_access_decide`` calls for distinct keys run
        concurrently via ``asyncio.gather``, not a sequential loop.
     2. **params_mapper reuse.** The wire ``params`` arrive in the route's request shape
@@ -177,9 +176,18 @@ async def resolve_verdicts(
        use — and only the result goes to ``access_decide``. With no mapper the request
        shape *is* the action's ``Params``, so nothing changes.
     3. **Per-item error isolation.** An ``operation`` that names no registered endpoint
-       fails only its own key's positions with ``reason_code="UNKNOWN_ENDPOINT"``, not
-       the whole request. A ``ValidationError`` on a known endpoint's params (malformed
+       fails only its own key's positions with ``kind=CHECK_ERROR, reason="UNKNOWN_ENDPOINT"``,
+       not the whole request. A ``ValidationError`` on a known endpoint's params (malformed
        params, not an unknown endpoint) still fails the whole request with HTTP 400.
+
+    Each item's real ``check_access_decide`` call runs under its own route's context
+    and connections: ``prepared_by_operation[item.operation]``, prepared by the caller
+    (see ``adapter.py``) once per distinct operation via
+    ``EndpointExecutionPlan.prepare`` — never a single shared context/connections pair
+    for the whole batch. Every operation reachable from ``items`` that has a matching
+    entry in ``plan_index`` is expected to already have an entry in
+    ``prepared_by_operation``; this function only looks it up, it never calls
+    ``prepare`` itself (it has no ``Request`` to call it with).
 
     Raises:
         CheckAccessDecideBatchSizeExceededError: the number of *distinct* keys exceeds
@@ -199,34 +207,36 @@ async def resolve_verdicts(
             max_check_access_decide_batch_size=machine.max_check_access_decide_batch_size,
         )
 
-    pending: dict[_DedupKey, tuple[type[BaseAction[Any, Any]], Any]] = {}
+    pending: dict[_DedupKey, tuple[type[BaseAction[Any, Any]], Any, PreparedEndpointContext]] = {}
     unknown_keys: set[_DedupKey] = set()
 
     for item, key in zip(items, item_keys, strict=True):
         if key in pending or key in unknown_keys:
             continue
 
-        try:
-            route = resolve_route(item.operation, route_index)
-        except LookupError:
+        plan = plan_index.get(item.operation)
+        if plan is None:
             unknown_keys.add(key)
             continue
 
-        req_model = cast(type[BaseModel], route.effective_request_model)
+        req_model = cast(type[BaseModel], plan.record.effective_request_model)
         try:
             body = req_model.model_validate(item.params)
         except ValidationError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-        mapper = route.params_mapper
+        mapper = plan.record.params_mapper
         params = mapper(body) if mapper is not None else body
-        pending[key] = (route.action_class, params)
+        pending[key] = (plan.record.action_class, params, prepared_by_operation[item.operation])
 
     pending_keys = list(pending.keys())
     real_verdicts: list[AccessVerdict] = (
         list(
             await asyncio.gather(
-                *(machine.check_access_decide(context, action_class, params) for action_class, params in pending.values())
+                *(
+                    machine.check_access_decide(prepared.context, action_class, params, connections=prepared.connections)
+                    for action_class, params, prepared in pending.values()
+                )
             )
         )
         if pending_keys
@@ -234,7 +244,7 @@ async def resolve_verdicts(
     )
     verdict_by_key = dict(zip(pending_keys, real_verdicts, strict=True))
 
-    verdicts = [
+    results = [
         _unknown_endpoint_verdict() if key in unknown_keys else to_wire(verdict_by_key[key]) for key in item_keys
     ]
-    return ResolveOutcome(verdicts=verdicts, real_call_count=len(pending_keys))
+    return ResolveOutcome(results=results, real_call_count=len(pending_keys))

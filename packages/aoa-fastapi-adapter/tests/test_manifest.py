@@ -8,6 +8,9 @@ class, with a deterministic content-hash version.
 
 from __future__ import annotations
 
+import pytest
+
+from aoa.fastapi import manifest as manifest_module
 from aoa.fastapi.manifest import Manifest, build_manifest
 from aoa.fastapi.route_record import FastApiRouteRecord
 
@@ -23,7 +26,8 @@ class TestBuildManifestBasics:
         manifest = build_manifest([record])
 
         assert isinstance(manifest, Manifest)
-        assert manifest.protocol == 1
+        assert manifest.version == 1
+        assert manifest.manifest_schema_version == 2
         assert len(manifest.endpoints) == 1
 
         endpoint = manifest.endpoints[0]
@@ -61,7 +65,8 @@ class TestBuildManifestBasics:
         manifest = build_manifest([])
 
         assert manifest.endpoints == []
-        assert manifest.protocol == 1
+        assert manifest.version == 1
+        assert manifest.manifest_schema_version == 2
         assert manifest.manifest_version.startswith("sha256:")
 
 
@@ -92,6 +97,55 @@ class TestEndpointsNotActions:
         assert operations == ["POST /ping", "POST /simple"]
 
 
+class TestExactDuplicateIsFirstWins:
+    """An exact (method, path) duplicate collapses to its first registration."""
+
+    def test_duplicate_operation_yields_one_entry(self) -> None:
+        routes = [
+            FastApiRouteRecord(action_class=PingAction, method="post", path="/a"),
+            FastApiRouteRecord(action_class=SimpleAction, method="post", path="/a"),
+        ]
+
+        manifest = build_manifest(routes)
+
+        assert len(manifest.endpoints) == 1
+        assert manifest.endpoints[0].name == "PingAction"
+
+    def test_a_third_distinct_route_still_appears(self) -> None:
+        routes = [
+            FastApiRouteRecord(action_class=PingAction, method="post", path="/a"),
+            FastApiRouteRecord(action_class=SimpleAction, method="post", path="/a"),
+            FastApiRouteRecord(action_class=SimpleAction, method="get", path="/b"),
+        ]
+
+        operations = [endpoint.operation for endpoint in build_manifest(routes).endpoints]
+
+        assert operations == ["POST /a", "GET /b"]
+
+    def test_same_action_on_different_methods_is_not_a_duplicate(self) -> None:
+        """(method, path) is the identity — same path, different method, is two real endpoints."""
+        routes = [
+            FastApiRouteRecord(action_class=SimpleAction, method="post", path="/a"),
+            FastApiRouteRecord(action_class=SimpleAction, method="get", path="/a"),
+        ]
+
+        operations = [endpoint.operation for endpoint in build_manifest(routes).endpoints]
+
+        assert operations == ["POST /a", "GET /a"]
+
+    def test_version_reflects_the_deduplicated_content_not_the_duplicate(self) -> None:
+        """A duplicate registration must not perturb the hash — it contributes nothing new."""
+        without_duplicate = build_manifest([FastApiRouteRecord(action_class=PingAction, method="post", path="/a")])
+        with_duplicate = build_manifest(
+            [
+                FastApiRouteRecord(action_class=PingAction, method="post", path="/a"),
+                FastApiRouteRecord(action_class=SimpleAction, method="post", path="/a"),
+            ]
+        )
+
+        assert without_duplicate.manifest_version == with_duplicate.manifest_version
+
+
 class TestManifestVersion:
     """``manifest_version`` is a deterministic content hash of the projected body."""
 
@@ -112,3 +166,80 @@ class TestManifestVersion:
 
         assert version.startswith("sha256:")
         assert len(version) == len("sha256:") + 64
+
+
+class TestThreeNumbers:
+    """``version`` / ``manifest_schema_version`` / ``manifest_version`` answer different questions."""
+
+    def test_bumping_resolver_version_changes_the_hash(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        routes = [FastApiRouteRecord(action_class=PingAction, path="/ping")]
+        before = build_manifest(routes)
+
+        monkeypatch.setattr(manifest_module, "SUPPORTED_VERSION", 2)
+        after = build_manifest(routes)
+
+        assert after.version == 2
+        assert after.manifest_version != before.manifest_version
+
+    def test_bumping_manifest_schema_version_changes_the_hash(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        routes = [FastApiRouteRecord(action_class=PingAction, path="/ping")]
+        before = build_manifest(routes)
+
+        monkeypatch.setattr(manifest_module, "_MANIFEST_SCHEMA_VERSION", 3)
+        after = build_manifest(routes)
+
+        assert after.manifest_schema_version == 3
+        assert after.manifest_version != before.manifest_version
+
+
+class TestReferenceSchemas:
+    """``schemas`` publishes the fixed wire messages' JSON Schemas (chapter 3.5, task 7)."""
+
+    _EXPECTED_KEYS = {"ResolveRequest", "ResolveResponse", "ResolveItemResult", "ErrorEnvelope", "Manifest"}
+
+    def test_schemas_key_has_exactly_the_five_documented_messages(self) -> None:
+        manifest = build_manifest([FastApiRouteRecord(action_class=PingAction, path="/ping")])
+
+        assert set(manifest.schemas.keys()) == self._EXPECTED_KEYS
+
+    def test_every_schema_carries_the_2020_12_dialect(self) -> None:
+        manifest = build_manifest([FastApiRouteRecord(action_class=PingAction, path="/ping")])
+
+        for entry in manifest.schemas.values():
+            assert entry.json_schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+
+    def test_request_message_is_validation_mode_everything_else_is_serialization(self) -> None:
+        manifest = build_manifest([FastApiRouteRecord(action_class=PingAction, path="/ping")])
+
+        assert manifest.schemas["ResolveRequest"].mode == "validation"
+        for key in self._EXPECTED_KEYS - {"ResolveRequest"}:
+            assert manifest.schemas[key].mode == "serialization"
+
+    def test_resolve_item_result_schema_lists_kind_and_reason(self) -> None:
+        manifest = build_manifest([FastApiRouteRecord(action_class=PingAction, path="/ping")])
+
+        properties = manifest.schemas["ResolveItemResult"].json_schema["properties"]
+        assert set(properties.keys()) == {"kind", "reason"}
+
+    def test_empty_routes_still_publish_schemas(self) -> None:
+        """``schemas`` describes the protocol itself, independent of which routes are registered."""
+        manifest = build_manifest([])
+
+        assert set(manifest.schemas.keys()) == self._EXPECTED_KEYS
+
+    def test_adding_a_schema_key_would_change_the_hash(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """``schemas`` is part of the hashed body, like every other top-level field."""
+        routes = [FastApiRouteRecord(action_class=PingAction, path="/ping")]
+        before = build_manifest(routes)
+
+        original_build_schemas = manifest_module._build_schemas
+
+        def _build_schemas_with_extra_entry() -> dict[str, object]:
+            schemas = original_build_schemas()
+            schemas["Extra"] = schemas["Manifest"]
+            return schemas
+
+        monkeypatch.setattr(manifest_module, "_build_schemas", _build_schemas_with_extra_entry)
+        after = build_manifest(routes)
+
+        assert after.manifest_version != before.manifest_version

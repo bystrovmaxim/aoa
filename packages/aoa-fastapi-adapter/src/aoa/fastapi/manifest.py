@@ -24,25 +24,102 @@ independent entries; there is no dedup and no error on that. An action never
 registered via ``.post/.get/.put/.delete/.patch(...)`` simply never appears —
 it is not in ``routes``, so it cannot be in the manifest.
 
+A *different* case — the exact same ``(method, path)`` registered twice — **is**
+deduplicated, first-wins: Starlette's real router only ever reaches the first
+registration (the second is unreachable), so the manifest must agree with it
+instead of listing an endpoint no request can actually reach. This matches
+:func:`~aoa.fastapi.permissions.build_route_index`'s own first-wins behavior.
+Deduplication happens *before* ``manifest_version`` is computed, so the hash
+reflects the manifest's real, deduplicated content rather than some unstable
+pre-dedup state — registering the same duplicate again in a different order
+produces the same version. (Two *different* templates that could match the
+same URL, e.g. ``/users/me`` alongside ``/users/{id}``, are not a duplicate —
+``FastApiAdapter.build()`` fails the build for that case; see
+``RouteShadowError``.)
+
 Because the source is ``FastApiRouteRecord`` (method, path, class, request/
 response models), the body of any access condition (``guard=``/``when=``/
 ``access_decide``) structurally cannot leak into the manifest: those function
 bodies are not part of a route record, so there is nothing to serialize.
+
+═══════════════════════════════════════════════════════════════════════════════
+THREE NUMBERS, NOT ONE
+═══════════════════════════════════════════════════════════════════════════════
+
+``Manifest`` carries three separate version numbers, easy to conflate but
+answering three different questions:
+
+- ``version`` — the resolver wire-language version (``POST /permissions/resolve``
+  speaks the same number — see ``aoa.fastapi.permissions_schema.SUPPORTED_VERSION``,
+  the single source both this module and the resolver read).
+- ``manifest_schema_version`` — the version of the manifest's own *shape* (this
+  module's models). Bumps only when a field is added, removed, or its meaning
+  changes here — independent of ``version`` and of how many routes happen to be
+  registered right now.
+- ``manifest_version`` — a content hash of *this* manifest's actual endpoints
+  (see ``build_manifest``), the value the HTTP layer publishes as the ``ETag``.
+
+Visibility — what ends up in the manifest at all — is not a flag on this
+module: whatever is registered on the *public* ``FastApiAdapter`` instance ends
+up here; an application keeps internal/service-only actions off the manifest by
+registering them on a separate, non-public adapter instead. There is
+deliberately no per-action "hide from manifest" switch to keep in sync with
+anything else.
+
+═══════════════════════════════════════════════════════════════════════════════
+REFERENCE SCHEMAS (``schemas``)
+═══════════════════════════════════════════════════════════════════════════════
+
+A client that wants to *validate* what it sends and receives needs an
+authoritative description of every fixed wire message's shape — not the
+per-action ``params_schema``/``result_schema`` already on each
+``ManifestEndpoint`` (those describe one action), but the small, closed set of
+messages the protocol itself is built from: ``ResolveRequest``,
+``ResolveResponse``, ``ResolveItemResult``, the error envelope, and the catalog's
+own shape. ``build_manifest`` publishes all five under one key, ``schemas``, so
+a client never has to hand-derive or guess any of them.
+
+Two details a client must not ignore:
+
+- **Dialect**: every published schema is JSON Schema **Draft 2020-12**
+  (``$schema`` says so explicitly), restricted to a small, agreed subset — plain
+  types, lists, enums, and in-document ``$ref``s. No recursive types and no
+  custom string formats; every model referenced here satisfies that by
+  construction.
+- **Mode**: the *same* pydantic model can produce a different schema for
+  validating an incoming request than for describing an outgoing response (e.g.
+  required-ness of a field with a default differs between the two). Each entry
+  therefore carries its own ``mode`` — ``"validation"`` for the one request
+  message (``ResolveRequest``), ``"serialization"`` for everything the server
+  only ever emits — so a client always knows which pydantic mode produced the
+  schema it is looking at.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
+from aoa.fastapi.permissions_schema import (
+    SUPPORTED_VERSION,
+    ErrorEnvelope,
+    ResolveItemResult,
+    ResolveRequest,
+    ResolveResponse,
+)
 from aoa.fastapi.route_record import FastApiRouteRecord
 
-# Wire-protocol version the server speaks; matches ``POST /permissions/resolve``.
-_PROTOCOL = 1
+# Version of the manifest's own shape (this module's models) — independent of
+# SUPPORTED_VERSION and of manifest_version's content hash. Bumped to 2 when
+# `schemas` was added (chapter 3.5, task 7). Draft until chapter 3.5's contract
+# settles, same as SUPPORTED_VERSION.
+_MANIFEST_SCHEMA_VERSION = 2
+
+_JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 
 
 class RouteRef(BaseModel):
@@ -70,18 +147,40 @@ class ManifestEndpoint(BaseModel):
     result_schema: dict[str, Any] = Field(description="JSON Schema of the effective response model.")
 
 
+class SchemaEntry(BaseModel):
+    """One published reference schema plus the pydantic mode that produced it — see the module docstring."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["validation", "serialization"] = Field(
+        description="Which pydantic schema mode produced json_schema — the two can legitimately differ.",
+    )
+    json_schema: dict[str, Any] = Field(description="JSON Schema Draft 2020-12 document (carries its own $schema).")
+
+
 class Manifest(BaseModel):
-    """Body of ``GET /client-manifest.json``: a versioned list of endpoints (not actions)."""
+    """Body of ``GET /client-manifest.json``: a versioned list of endpoints (not actions).
+
+    Three separate numbers — see the module docstring for what each answers:
+    ``version`` (resolver wire language), ``manifest_schema_version`` (this
+    manifest's own shape), ``manifest_version`` (content hash of this response).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     manifest_version: str = Field(
-        description='Content hash "sha256:<hex>". Not an app version or a build date — '
-        "it changes only between process deploys, so clients may cache freely.",
+        description='Content hash "sha256:<hex>" of the canonical body *without* this field '
+        "(computed first, then inserted — see build_manifest). Not an app version or a build "
+        "date — it changes only when the endpoint set actually changes, so clients may cache freely.",
     )
-    protocol: int = Field(description="Wire-protocol version the server speaks.")
+    version: int = Field(description="Resolver wire-language version the server speaks.")
+    manifest_schema_version: int = Field(description="Version of this manifest's own shape (these models).")
     endpoints: list[ManifestEndpoint] = Field(
         description="One entry per registered route, in registration order.",
+    )
+    schemas: dict[str, SchemaEntry] = Field(
+        description="Reference schemas for the fixed wire messages — see the module docstring's "
+        '"REFERENCE SCHEMAS" section. Keyed by message name, e.g. "ResolveRequest".',
     )
 
 
@@ -99,6 +198,33 @@ def _json_schema(model: type) -> dict[str, Any]:
     return model.model_json_schema()
 
 
+def _schema_entry(model: type[BaseModel], mode: Literal["validation", "serialization"]) -> SchemaEntry:
+    """One ``schemas`` entry: ``model``'s JSON Schema in the given pydantic mode, tagged with its dialect."""
+    schema = model.model_json_schema(mode=mode)
+    schema["$schema"] = _JSON_SCHEMA_DIALECT
+    return SchemaEntry(mode=mode, json_schema=schema)
+
+
+def _build_schemas() -> dict[str, SchemaEntry]:
+    """
+    Reference schemas for the protocol's own fixed messages — see the module
+    docstring's "REFERENCE SCHEMAS" section for the dialect/subset/mode rules.
+
+    ``ResolveRequest`` is the one message the server *validates* (``mode=
+    "validation"``); everything else here is a message only the server ever
+    *emits*, hence ``mode="serialization"`` — including ``Manifest`` itself,
+    "схему самого каталога": a client can validate the very catalog it just
+    received against a schema published inside that same catalog.
+    """
+    return {
+        "ResolveRequest": _schema_entry(ResolveRequest, "validation"),
+        "ResolveResponse": _schema_entry(ResolveResponse, "serialization"),
+        "ResolveItemResult": _schema_entry(ResolveItemResult, "serialization"),
+        "ErrorEnvelope": _schema_entry(ErrorEnvelope, "serialization"),
+        "Manifest": _schema_entry(Manifest, "serialization"),
+    }
+
+
 def _build_endpoint(record: FastApiRouteRecord) -> ManifestEndpoint:
     """Project one ``FastApiRouteRecord`` into one ``ManifestEndpoint``."""
     action_class = record.action_class
@@ -113,26 +239,47 @@ def _build_endpoint(record: FastApiRouteRecord) -> ManifestEndpoint:
     )
 
 
+def _first_wins_routes(routes: list[FastApiRouteRecord]) -> list[FastApiRouteRecord]:
+    """Keep only the first registration for each exact ``(method, path)`` — see the module docstring."""
+    seen: dict[tuple[str, str], FastApiRouteRecord] = {}
+    for record in routes:
+        seen.setdefault((record.method, record.path), record)
+    return list(seen.values())
+
+
 def build_manifest(routes: list[FastApiRouteRecord]) -> Manifest:
     """
     Project registered routes into a client manifest.
 
     A pure projection of the adapter's ``self._routes``: no graph traversal, no
-    ``Context``, no role filtering. One entry per route, in registration order;
-    several registrations of the same ``action_class`` produce several
-    independent entries (no dedup). ``manifest_version`` is a content hash of the
-    projected body, so identical routes always produce an identical version.
+    ``Context``, no role filtering. One entry per *distinct* ``(method, path)``,
+    in first-registration order; several registrations of the same
+    ``action_class`` on different routes still produce several independent
+    entries (no dedup by class — see the module docstring), but an exact
+    ``(method, path)`` duplicate collapses to its first registration, before
+    ``manifest_version`` is computed, so the hash reflects the manifest's real,
+    deduplicated content.
     """
-    endpoints = [_build_endpoint(record) for record in routes]
+    endpoints = [_build_endpoint(record) for record in _first_wins_routes(routes)]
+    schemas = _build_schemas()
+    # Canonical content *without* manifest_version — hashing the field that would
+    # then have to contain its own hash is a circle with no fixed point. Every
+    # other field goes in, including manifest_schema_version, version, and
+    # schemas: a bump to any of them is a real content change and must move the
+    # ETag too.
     body = {
-        "protocol": _PROTOCOL,
+        "version": SUPPORTED_VERSION,
+        "manifest_schema_version": _MANIFEST_SCHEMA_VERSION,
         "endpoints": [endpoint.model_dump(mode="json") for endpoint in endpoints],
+        "schemas": {name: entry.model_dump(mode="json") for name, entry in schemas.items()},
     }
     digest = hashlib.sha256(
         json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8"),
     ).hexdigest()
     return Manifest(
         manifest_version=f"sha256:{digest}",
-        protocol=_PROTOCOL,
+        version=SUPPORTED_VERSION,
+        manifest_schema_version=_MANIFEST_SCHEMA_VERSION,
         endpoints=endpoints,
+        schemas=schemas,
     )

@@ -68,8 +68,10 @@ class TestResolveRoute:
     def test_unknown_operation_raises_lookup_error(self) -> None:
         index = build_route_index([FastApiRouteRecord(action_class=PingAction, path="/ping")])
 
-        # An unregistered operation raises; per-item isolation (UNKNOWN_ENDPOINT) is
-        # resolve_verdicts' job, which catches this.
+        # An unregistered operation raises. resolve_verdicts does not call this
+        # helper itself (it looks up EndpointExecutionPlan entries and isolates a
+        # miss as UNKNOWN_ENDPOINT directly) — this is the plain, adapter-agnostic
+        # lookup for anything that only needs the route record.
         with pytest.raises(LookupError, match="GET /nope"):
             resolve_route("GET /nope", index)
 

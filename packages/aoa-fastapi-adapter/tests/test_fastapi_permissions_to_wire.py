@@ -1,19 +1,22 @@
 # tests/test_fastapi_permissions_to_wire.py
 """
-Tests for ``aoa.fastapi.permissions.to_wire`` — ``AccessVerdict`` -> wire ``Verdict`` (issue #130, PR 1).
+Tests for ``aoa.fastapi.permissions.to_wire`` — ``AccessVerdict`` -> wire ``ResolveItemResult`` (issue #130).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Confirm the PR-1 projection is deliberately conservative: ``scope`` only ever
-reports ``"role"``/``None`` — never ``"object"``, even for a real level-3
-rejection — and ``entities``/``reason_code``/``expires_at`` stay at their
-reserved defaults regardless of the internal verdict. Full reporting is PR 8.
+Confirm the projection is a straight copy: both ``AccessVerdict`` and
+``ResolveItemResult`` are the same flat ``{kind, reason}`` pair now, one layer
+apart, so ``to_wire`` has nothing left to recompute — every ``ResolveItemKind``
+that can actually appear on an ``AccessVerdict`` round-trips unchanged, ``reason``
+included verbatim.
 """
 
+import pytest
+
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
-from aoa.action_machine.intents.access_control import AccessVerdict
+from aoa.action_machine.intents.access_control import AccessVerdict, ResolveItemKind
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.fastapi.permissions import to_wire
 
@@ -24,42 +27,26 @@ class _ToWireTestAction(BaseAction):  # type: ignore[type-arg]
 
 
 class TestToWire:
-    """``to_wire`` — internal ``AccessVerdict`` -> wire ``Verdict`` projection."""
+    """``to_wire`` — internal ``AccessVerdict`` -> wire ``ResolveItemResult``, a straight copy."""
 
-    def test_allowed_verdict_has_no_scope_or_level(self) -> None:
-        """``allowed=True`` implies ``level=None`` on ``AccessVerdict`` -> ``scope=None`` on the wire."""
-        verdict = to_wire(AccessVerdict(allowed=True, action=_ToWireTestAction))
-        assert verdict.allowed is True
-        assert verdict.scope is None
-        assert verdict.level is None
+    def test_success_round_trips_with_empty_reason(self) -> None:
+        result = to_wire(AccessVerdict(action=_ToWireTestAction, kind=ResolveItemKind.SUCCESS, reason=""))
+        assert result.kind == ResolveItemKind.SUCCESS
+        assert result.reason == ""
 
-    def test_role_level_rejection_reports_scope_role(self) -> None:
-        """Level 1 (role) rejection reports ``scope: "role"``."""
-        verdict = to_wire(AccessVerdict(allowed=False, action=_ToWireTestAction, level=1))
-        assert verdict.allowed is False
-        assert verdict.scope == "role"
-        assert verdict.level == 1
+    @pytest.mark.parametrize("kind", [ResolveItemKind.SECURITY, ResolveItemKind.FLAG, ResolveItemKind.MACHINE_RULE])
+    def test_denial_channels_round_trip_kind_and_reason(self, kind: ResolveItemKind) -> None:
+        """``to_wire()`` itself is a generic straight copy over the whole enum — this is a
+        unit test of that copy, not a claim that FLAG/MACHINE_RULE are reachable today: no
+        production code constructs an AccessVerdict with either (grep confirms this); both
+        are reserved for the rate-limiting/business-rule work chapter 3.5 defers."""
+        result = to_wire(AccessVerdict(action=_ToWireTestAction, kind=kind, reason="not a manager"))
+        assert result.kind == kind
+        assert result.reason == "not a manager"
 
-    def test_guard_level_rejection_reports_scope_role(self) -> None:
-        """Level 2 (guard) rejection also reports ``scope: "role"``."""
-        verdict = to_wire(AccessVerdict(allowed=False, action=_ToWireTestAction, level=2))
-        assert verdict.scope == "role"
-        assert verdict.level == 2
-
-    def test_object_level_rejection_still_reports_scope_role_in_this_pr(self) -> None:
-        """A real level-3 (access_decide) rejection is deliberately reported as "role", not "object", until PR 8."""
-        verdict = to_wire(AccessVerdict(allowed=False, action=_ToWireTestAction, level=3))
-        assert verdict.scope == "role"
-        assert verdict.level == 3
-
-    def test_reason_passes_through(self) -> None:
-        """Developer-facing ``reason`` text passes through unchanged."""
-        verdict = to_wire(AccessVerdict(allowed=False, action=_ToWireTestAction, level=1, reason="not a manager"))
-        assert verdict.reason == "not a manager"
-
-    def test_reserved_fields_stay_unpopulated_regardless_of_input(self) -> None:
-        """``reason_code``/``entities``/``expires_at`` are always at their PR-1 defaults, even on a real rejection."""
-        verdict = to_wire(AccessVerdict(allowed=False, action=_ToWireTestAction, level=3, reason="not your order"))
-        assert verdict.reason_code is None
-        assert verdict.entities == []
-        assert verdict.expires_at is None
+    def test_reason_passes_through_verbatim(self) -> None:
+        """No recomputation: whatever ``AccessVerdict.reason`` holds is exactly what the wire gets."""
+        result = to_wire(
+            AccessVerdict(action=_ToWireTestAction, kind=ResolveItemKind.SECURITY, reason="RuntimeError")
+        )
+        assert result.reason == "RuntimeError"

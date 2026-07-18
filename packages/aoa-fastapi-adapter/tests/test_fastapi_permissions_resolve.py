@@ -96,43 +96,38 @@ class TestRoleGate:
     """The resolver's role-gate (levels 1/2) against a real ``ActionProductMachine``."""
 
     def test_manager_role_allowed(self) -> None:
-        """A manager resolving ``CancelOrderAction`` gets an honest ``allowed: true``."""
+        """A manager resolving ``CancelOrderAction`` gets an honest ``kind: "success"``."""
         client = _make_client(context=_manager_context())
         response = client.post(
             "/permissions/resolve",
-            json={"protocol": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
         )
         assert response.status_code == 200
         body = response.json()
-        assert body["protocol"] == 1
-        verdict = body["verdicts"][0]
-        assert verdict["allowed"] is True
-        assert verdict["scope"] is None
-        assert verdict["level"] is None
+        assert body["version"] == 1
+        result = body["results"][0]
+        assert result["kind"] == "success"
+        assert result["reason"] == ""
 
-    def test_wrong_role_denied_with_role_scope(self) -> None:
-        """A non-manager resolving ``CancelOrderAction`` gets an honest ``allowed: false``, ``scope: "role"``."""
+    def test_wrong_role_denied_with_security_kind(self) -> None:
+        """A non-manager resolving ``CancelOrderAction`` gets an honest ``kind: "security"`` with a non-empty reason."""
         client = _make_client(context=_user_context())
         response = client.post(
             "/permissions/resolve",
-            json={"protocol": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
         )
         assert response.status_code == 200
-        verdict = response.json()["verdicts"][0]
-        assert verdict["allowed"] is False
-        assert verdict["scope"] == "role"
-        assert verdict["level"] in (1, 2)
-        # PR 1 never surfaces entities/reason_code for real yet.
-        assert verdict["entities"] == []
-        assert verdict["reason_code"] is None
+        result = response.json()["results"][0]
+        assert result["kind"] == "security"
+        assert result["reason"] != ""
 
     def test_batch_of_many_preserves_order(self) -> None:
-        """Two different questions in one batch come back as two verdicts, in the same order."""
+        """Two different questions in one batch come back as two results, in the same order."""
         client = _make_client(context=_manager_context())
         response = client.post(
             "/permissions/resolve",
             json={
-                "protocol": 1,
+                "version": 1,
                 "items": [
                     {"operation": "POST /actions/cancel-order", "params": {"order_id": 1}},
                     {"operation": "POST /actions/cancel-order", "params": {"order_id": 2}},
@@ -140,9 +135,9 @@ class TestRoleGate:
             },
         )
         assert response.status_code == 200
-        verdicts = response.json()["verdicts"]
-        assert len(verdicts) == 2
-        assert all(v["allowed"] is True for v in verdicts)
+        results = response.json()["results"]
+        assert len(results) == 2
+        assert all(r["kind"] == "success" for r in results)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -153,13 +148,13 @@ class TestRoleGate:
 class TestDeduplication:
     """The client sees the same length/order/content whether or not the server deduplicated."""
 
-    def test_duplicate_items_return_identical_verdicts_at_both_positions(self) -> None:
-        """Two identical items in one batch still get two verdicts back, and they match."""
+    def test_duplicate_items_return_identical_results_at_both_positions(self) -> None:
+        """Two identical items in one batch still get two results back, and they match."""
         client = _make_client(context=_manager_context())
         response = client.post(
             "/permissions/resolve",
             json={
-                "protocol": 1,
+                "version": 1,
                 "items": [
                     {"operation": "POST /actions/cancel-order", "params": {"order_id": 7}},
                     {"operation": "POST /actions/cancel-order", "params": {"order_id": 7}},
@@ -167,9 +162,9 @@ class TestDeduplication:
             },
         )
         assert response.status_code == 200
-        verdicts = response.json()["verdicts"]
-        assert len(verdicts) == 2
-        assert verdicts[0] == verdicts[1]
+        results = response.json()["results"]
+        assert len(results) == 2
+        assert results[0] == results[1]
 
     def test_batch_of_five_two_duplicates_preserves_length_and_order(self) -> None:
         """Book example (chapter 2): positions 0 and 4 repeat the same question; response stays length 5."""
@@ -177,7 +172,7 @@ class TestDeduplication:
         response = client.post(
             "/permissions/resolve",
             json={
-                "protocol": 1,
+                "version": 1,
                 "items": [
                     {"operation": "POST /actions/cancel-order", "params": {"order_id": 1}},
                     {"operation": "POST /actions/cancel-order", "params": {"order_id": 2}},
@@ -188,9 +183,9 @@ class TestDeduplication:
             },
         )
         assert response.status_code == 200
-        verdicts = response.json()["verdicts"]
-        assert len(verdicts) == 5
-        assert verdicts[0] == verdicts[4]
+        results = response.json()["results"]
+        assert len(results) == 5
+        assert results[0] == results[4]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -201,36 +196,38 @@ class TestDeduplication:
 class TestGuestAndAnonymous:
     """``GuestRole`` is a real, honest verdict — not a resolver-level special case."""
 
-    def test_guest_context_gets_real_allowed_true(self) -> None:
+    def test_guest_context_gets_real_success_kind(self) -> None:
         """A resolved (anonymous) guest ``Context`` — not ``None`` — resolves ``PingAction`` (``@check_roles(GuestRole)``) normally."""
         client = _make_client(context=_guest_context())
         response = client.post(
             "/permissions/resolve",
-            json={"protocol": 1, "items": [{"operation": "GET /actions/ping", "params": {}}]},
+            json={"version": 1, "items": [{"operation": "GET /actions/ping", "params": {}}]},
         )
         assert response.status_code == 200
-        verdict = response.json()["verdicts"][0]
-        assert verdict["allowed"] is True
+        result = response.json()["results"][0]
+        assert result["kind"] == "success"
 
     def test_guest_context_still_denied_for_manager_only_action(self) -> None:
         """A guest is still honestly denied for an action that requires a real role."""
         client = _make_client(context=_guest_context())
         response = client.post(
             "/permissions/resolve",
-            json={"protocol": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
         )
         assert response.status_code == 200
-        verdict = response.json()["verdicts"][0]
-        assert verdict["allowed"] is False
+        result = response.json()["results"][0]
+        assert result["kind"] == "security"
 
     def test_process_returning_none_is_rejected_with_401(self) -> None:
         """When ``auth_coordinator.process()`` itself returns ``None``, the resolver never reaches the machine."""
         client = _make_client(context=None)
         response = client.post(
             "/permissions/resolve",
-            json={"protocol": 1, "items": [{"operation": "GET /actions/ping", "params": {}}]},
+            json={"version": 1, "items": [{"operation": "GET /actions/ping", "params": {}}]},
         )
         assert response.status_code == 403  # AuthorizationError -> 403 per this adapter's exception handler
+        # Whole-request failure: no results array at all, not even a partial/empty one.
+        assert "results" not in response.json()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -241,17 +238,17 @@ class TestGuestAndAnonymous:
 class TestErrorMapping:
     """Per-item isolation (PR 2) vs. whole-request error mapping."""
 
-    def test_unknown_operation_gets_a_per_item_reason_code(self) -> None:
-        """An operation with no registered endpoint is a ``200`` with ``reason_code: UNKNOWN_ENDPOINT``, not a 500/400."""
+    def test_unknown_operation_gets_a_per_item_check_error(self) -> None:
+        """An operation with no registered endpoint is a ``200`` with ``kind: "check_error"``, not a 500/400."""
         client = _make_client(context=_manager_context())
         response = client.post(
             "/permissions/resolve",
-            json={"protocol": 1, "items": [{"operation": "POST /nope", "params": {}}]},
+            json={"version": 1, "items": [{"operation": "POST /nope", "params": {}}]},
         )
         assert response.status_code == 200
-        verdict = response.json()["verdicts"][0]
-        assert verdict["allowed"] is False
-        assert verdict["reason_code"] == "UNKNOWN_ENDPOINT"
+        result = response.json()["results"][0]
+        assert result["kind"] == "check_error"
+        assert result["reason"] == "UNKNOWN_ENDPOINT"
 
     def test_unknown_operation_in_the_middle_does_not_affect_other_items(self) -> None:
         """A batch of three, with the middle item unknown, still answers the other two normally."""
@@ -259,7 +256,7 @@ class TestErrorMapping:
         response = client.post(
             "/permissions/resolve",
             json={
-                "protocol": 1,
+                "version": 1,
                 "items": [
                     {"operation": "POST /actions/cancel-order", "params": {"order_id": 1}},
                     {"operation": "POST /nope", "params": {}},
@@ -268,12 +265,12 @@ class TestErrorMapping:
             },
         )
         assert response.status_code == 200
-        verdicts = response.json()["verdicts"]
-        assert len(verdicts) == 3
-        assert verdicts[0]["allowed"] is True
-        assert verdicts[1]["allowed"] is False
-        assert verdicts[1]["reason_code"] == "UNKNOWN_ENDPOINT"
-        assert verdicts[2]["allowed"] is True
+        results = response.json()["results"]
+        assert len(results) == 3
+        assert results[0]["kind"] == "success"
+        assert results[1]["kind"] == "check_error"
+        assert results[1]["reason"] == "UNKNOWN_ENDPOINT"
+        assert results[2]["kind"] == "success"
 
     def test_batch_larger_than_machine_limit_is_413(self) -> None:
         """A batch over ``max_check_access_decide_batch_size`` fails the whole request with 413."""
@@ -281,7 +278,7 @@ class TestErrorMapping:
         response = client.post(
             "/permissions/resolve",
             json={
-                "protocol": 1,
+                "version": 1,
                 "items": [
                     {"operation": "POST /actions/cancel-order", "params": {"order_id": 1}},
                     {"operation": "POST /actions/cancel-order", "params": {"order_id": 2}},
@@ -289,9 +286,83 @@ class TestErrorMapping:
             },
         )
         assert response.status_code == 413
+        # Whole-request failure: no results array at all, not even a partial/empty one.
+        assert "results" not in response.json()
 
     def test_empty_items_is_422(self) -> None:
         """An empty ``items`` list fails pydantic validation (``min_length=1``) before the resolver runs."""
         client = _make_client(context=_manager_context())
-        response = client.post("/permissions/resolve", json={"protocol": 1, "items": []})
+        response = client.post("/permissions/resolve", json={"version": 1, "items": []})
         assert response.status_code == 422
+
+    def test_known_endpoint_with_malformed_params_fails_the_whole_request_with_400(self) -> None:
+        """Unlike an unknown operation (isolated to its own CHECK_ERROR), a KNOWN endpoint's
+        params failing validation is NOT isolated — it fails the whole request with 400,
+        per resolve_verdicts()'s own documented contract."""
+        client = _make_client(context=_manager_context())
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": "not-an-integer"}},
+                ],
+            },
+        )
+        assert response.status_code == 400
+        # Whole-request failure: no results array at all, not even a partial/empty one.
+        assert "results" not in response.json()
+
+    def test_one_malformed_item_fails_the_whole_batch_even_with_good_items_alongside(self) -> None:
+        """The malformed item is not isolated to its own position — the whole batch fails,
+        unlike an unknown-operation item, which would leave the good items alone."""
+        client = _make_client(context=_manager_context())
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 1}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": "not-an-integer"}},
+                ],
+            },
+        )
+        assert response.status_code == 400
+        assert "results" not in response.json()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Versioning (chapter 3.5, task 8)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestVersioning:
+    """An unsupported ``version`` fails the whole request, before authentication."""
+
+    def test_unsupported_version_is_400_with_error_envelope(self) -> None:
+        client = _make_client(context=_manager_context())
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 2, "items": [{"operation": "GET /actions/ping", "params": {}}]},
+        )
+        assert response.status_code == 400
+        assert response.json() == {"error": {"code": "unsupported_version"}}
+
+    def test_unsupported_version_is_rejected_even_when_unauthenticated(self) -> None:
+        """Version is checked before auth: a wrong-language caller never has to authenticate first."""
+        client = _make_client(context=None)
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 2, "items": [{"operation": "GET /actions/ping", "params": {}}]},
+        )
+        assert response.status_code == 400
+        assert response.json() == {"error": {"code": "unsupported_version"}}
+
+    def test_supported_version_round_trips_on_the_response(self) -> None:
+        client = _make_client(context=_manager_context())
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "GET /actions/ping", "params": {}}]},
+        )
+        assert response.status_code == 200
+        assert response.json()["version"] == 1

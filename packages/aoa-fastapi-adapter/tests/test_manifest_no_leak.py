@@ -42,8 +42,9 @@ _EXPECTED_KEYS = {"operation", "name", "domain", "description", "route", "params
 
 @meta(description="Fully gated action for manifest-leak regression", domain=OrdersDomain)
 @check_roles(
-    grant(ManagerRole, when=lambda user: str(user.user_id) != _WHEN_SENTINEL),
+    grant(ManagerRole, when=lambda user: str(user.user_id) != _WHEN_SENTINEL, reason="not eligible"),
     guard=lambda user, params: str(params.order_id) != _GUARD_SENTINEL,
+    reason="order not eligible",
 )
 class _GatedAction(BaseAction["_GatedAction.Params", "_GatedAction.Result"]):
     """Carries when=, guard= and access_decide, each with its own sentinel string."""
