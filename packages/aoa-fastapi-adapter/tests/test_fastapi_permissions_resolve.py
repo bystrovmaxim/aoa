@@ -142,7 +142,9 @@ class TestRoleGate:
         """resolve_verdicts() now returns real AccessVerdict instances directly (no
         to_wire() step, fix-audit finding 7's follow-up) -- confirm the internal-only
         `action` field (a live Python class reference) never actually reaches JSON,
-        for both a real cascade verdict and the synthetic ones (unknown endpoint)."""
+        for both a real cascade verdict and the synthetic ones (unknown endpoint).
+        The derived `action_name` diagnostic field is the opposite: present for the
+        real verdict, absent for the synthetic one -- it has no action to name."""
         client = _make_client(context=_manager_context())
         response = client.post(
             "/permissions/resolve",
@@ -157,8 +159,9 @@ class TestRoleGate:
         assert response.status_code == 200
         results = response.json()["results"]
         assert len(results) == 2
-        for result in results:
-            assert set(result.keys()) == {"kind", "reason"}
+        assert set(results[0].keys()) == {"kind", "reason", "action_name"}
+        assert results[0]["action_name"] == "CancelOrderAction"
+        assert set(results[1].keys()) == {"kind", "reason"}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

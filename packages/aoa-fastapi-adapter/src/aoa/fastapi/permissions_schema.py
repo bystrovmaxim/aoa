@@ -10,7 +10,7 @@ Pydantic models for the resolver's request/response bodies. The protocol is
 list-shaped from day one (``items``/``results``) — a single question is simply
 a batch of one, not a separate code path (FR-2).
 
-One flat shape for every answer: ``ResolveItemResult`` is always exactly
+One flat shape for every answer: ``ResolveItemResult`` is always at least
 ``{kind, reason}``, never a nested "decision" vs "error" union and never a
 grab-bag of independently-settable fields. Imported from ``aoa-action-machine``
 (:class:`~aoa.action_machine.intents.access_control.ResolveItemResult`), not
@@ -19,8 +19,18 @@ adapters depend on ``aoa-action-machine``, so that is the one place a shared wir
 shape can live without either adapter depending on the other's package.
 ``AccessVerdict`` (also ``aoa-action-machine``) *is* a ``ResolveItemResult`` —
 a subclass adding one internal-only field (``action``, excluded from
-serialization) — not a separate type copied over by a `to_wire()` step; a real
-``AccessVerdict`` instance can be put directly into ``ResolveResponse.results``.
+serialization) plus one derived, client-visible diagnostic field
+(``action_name``) — not a separate type copied over by a `to_wire()` step; a
+real ``AccessVerdict`` instance can be put directly into
+``ResolveResponse.results``. ``results`` is typed
+``list[SerializeAsAny[ResolveItemResult]]``, not plain ``list[ResolveItemResult]``,
+specifically so ``action_name`` (and any future subclass-only field) actually
+reaches JSON: pydantic v2 otherwise serializes a field by its *declared*
+container type, silently dropping subclass-only fields regardless of
+``exclude`` (confirmed empirically). The two synthetic items that never reach
+the cascade at all (unknown operation, route-level auth rejection — see below)
+construct a plain ``ResolveItemResult`` directly, so they carry no
+``action_name`` at all, not an empty one — they honestly have no action to name.
 ``kind`` is the closed, small set of *source channels* an answer can come
 through — also imported, not redefined, since it is what an access check itself
 decides, one layer below this wire schema. ``SUCCESS`` carries ``reason=""``;
@@ -84,7 +94,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 
 from aoa.action_machine.intents.access_control import ResolveItemResult
 
@@ -133,7 +143,12 @@ class ResolveResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     version: int = Field(description="Echoes the request's wire-language version.")
-    results: list[ResolveItemResult] = Field(description="One result per request item, in the same order.")
+    results: list[SerializeAsAny[ResolveItemResult]] = Field(
+        description="One result per request item, in the same order. Items backed by a "
+        "real access check also carry action_name (diagnostic only, not part of the "
+        "stable contract); synthetic items (unknown operation, route-level auth "
+        "rejection) do not."
+    )
 
 
 class ErrorDetail(BaseModel):

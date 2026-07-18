@@ -8,8 +8,9 @@ form is implemented by recursing into a list of exactly one item. This
 example proves it directly: the single-action call and the one-item-batch
 call produce byte-for-byte the same wire shape once printed via model_dump()
 (AccessVerdict *is* a ResolveItemResult; its internal-only `action` field
-never serializes, so model_dump() shows exactly {kind, reason} — the same
-shape POST /permissions/resolve actually returns).
+never serializes, so model_dump() shows exactly {kind, reason, action_name}
+— action_name a derived diagnostic field, not the raw `action` class — the
+same shape POST /permissions/resolve actually returns).
 
 This is exactly why POST /permissions/resolve can be list-shaped from day
 one (items/results) without a slower or different path for the common case

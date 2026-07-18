@@ -5,8 +5,9 @@ machine.check_access_decide answers "can this user do X?" without executing
 the action — the same role -> guard -> access_decide cascade that machine.run
 enforces, just without running any aspect. The AccessVerdict it returns *is*
 a ResolveItemResult (a subclass adding one internal-only field, `action`,
-never serialized) — the same flat {kind, reason} pair that
-POST /permissions/resolve actually returns over HTTP, no conversion step.
+never serialized, plus a derived diagnostic field, `action_name`) — the same
+flat {kind, reason} (+ action_name) shape that POST /permissions/resolve
+actually returns over HTTP, no conversion step.
 
 Watch kind/reason here: a SUCCESS result always carries reason="" — there is
 nothing more to say when nothing rejected the call. Compare with

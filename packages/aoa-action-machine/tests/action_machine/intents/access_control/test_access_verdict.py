@@ -3,6 +3,8 @@ base class relationship for AccessVerdict."""
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from pydantic import ValidationError
 
@@ -94,10 +96,17 @@ class TestAccessVerdictIsAResolveItemResult:
         container holds this instance (e.g. ResolveResponse.results: list[ResolveItemResult]
         in aoa-fastapi-adapter, which can now hold AccessVerdict instances directly)."""
         verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SECURITY, reason="not a manager")
+        assert "action" not in verdict.model_dump()
+        assert "action" not in json.loads(verdict.model_dump_json())
+
+    def test_action_name_is_a_derived_diagnostic_field(self) -> None:
+        """`action_name` is a computed_field -- always exactly type(self.action).__name__,
+        never an independently-settable value that could disagree with `.action`
+        (the two-fields-kept-in-sync bug class fix-audit findings 1/6 closed)."""
+        verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SECURITY, reason="not a manager")
+        assert verdict.action_name == "PingAction"
         dumped = verdict.model_dump()
-        assert "action" not in dumped
-        assert dumped == {"kind": ResolveItemKind.SECURITY, "reason": "not a manager"}
-        assert "action" not in verdict.model_dump_json()
+        assert dumped == {"kind": ResolveItemKind.SECURITY, "reason": "not a manager", "action_name": "PingAction"}
 
     def test_base_class_validator_applies_to_the_subclass_without_redeclaring_it(self) -> None:
         """The kind/reason validator lives once, on ResolveItemResult -- AccessVerdict
@@ -112,6 +121,7 @@ class TestAccessVerdictIsAResolveItemResult:
         slot to fill, so there is nothing to work around for them."""
         result = ResolveItemResult(kind=ResolveItemKind.CHECK_ERROR, reason="UNKNOWN_ENDPOINT")
         assert "action" not in result.model_dump()
+        assert "action_name" not in result.model_dump()
         with pytest.raises(ValidationError):
             ResolveItemResult(action=PingAction, kind=ResolveItemKind.CHECK_ERROR, reason="UNKNOWN_ENDPOINT")  # type: ignore[call-arg]
 

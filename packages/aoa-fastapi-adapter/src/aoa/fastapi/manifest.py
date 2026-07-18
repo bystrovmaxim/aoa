@@ -96,6 +96,14 @@ Two details a client must not ignore:
   message (``ResolveRequest``), ``"serialization"`` for everything the server
   only ever emits — so a client always knows which pydantic mode produced the
   schema it is looking at.
+- **``ResolveItemResult`` is the guaranteed minimum, not a closed shape**: its
+  published schema still says ``additionalProperties: false`` (inherited from
+  the pydantic model's own ``extra="forbid"``, which is correct for *validating*
+  a bare ``ResolveItemResult`` the server might build), but a real response item
+  backed by an ``AccessVerdict`` also carries ``action_name`` — a diagnostic
+  field, not part of this reference schema. A client that validates responses
+  strictly against this entry must tolerate that one extra key rather than treat
+  ``additionalProperties: false`` as literally true for every item it receives.
 """
 
 from __future__ import annotations

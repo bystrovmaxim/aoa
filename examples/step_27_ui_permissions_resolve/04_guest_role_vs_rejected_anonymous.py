@@ -81,7 +81,7 @@ def main() -> None:
     result = guest_response.json()["results"][0]
     print("(a) resolved anonymous Context:")
     print(f"    status = {guest_response.status_code}")
-    print(f"    result = {result}")  # {'kind': 'success', 'reason': ''}
+    print(f"    result = {result}")  # {'kind': 'success', 'reason': '', 'action_name': 'BrowseCatalogAction'}
 
     # (b) A coordinator that genuinely could not authenticate this request.
     rejected_client = _make_client(resolved_context=None)

@@ -6,7 +6,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Self
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, computed_field, model_validator
 
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_schema import BaseSchema
@@ -63,8 +63,9 @@ class ResolveItemResult(BaseSchema):
     neither should depend on the other's wire format — this is the one place both can see.
 
     ``AccessVerdict`` below *is* a ``ResolveItemResult`` (subclass, not a sibling type
-    copied by ``to_wire()``): it adds exactly one field, ``action``, needed only inside
-    the cascade, excluded from serialization. The two functions that build a
+    copied by ``to_wire()``): it adds one internal-only field, ``action``, needed only
+    inside the cascade and excluded from serialization, plus a derived, client-visible
+    diagnostic field, ``action_name``. The two functions that build a
     ``ResolveItemResult`` with no real action behind it at all — an unknown operation,
     or a route-level auth rejection before the action ever resolved (``aoa-fastapi-adapter``,
     ``permissions.py``) — construct this base class directly; they were never going to
@@ -107,19 +108,44 @@ class AccessVerdict(ResolveItemResult):
     """
     AI-CORE-BEGIN
         ROLE: Answer "can this run?" without executing the action — ResolveItemResult
-              plus the one field only the cascade itself needs.
+              plus the one field only the cascade itself needs, plus a derived,
+              client-visible diagnostic name for that field.
         INVARIANTS: Frozen (in addition to ResolveItemResult's forbid-extra).
     AI-CORE-END
 
     ``action`` is excluded from serialization (``Field(exclude=True)``): it is a live
     Python class reference, meaningful only inside this process, and every
-    ``model_dump()``/``model_dump_json()`` — including the one FastAPI runs to answer
-    ``POST /permissions/resolve`` — drops it regardless of the field's declared type on
-    whatever container holds this instance. Nothing today actually reads ``.action``
-    back off a verdict (checked by grep across both packages) — it exists for callers
-    that might want it later (logging, tests) without forcing a resolver rewrite to add it.
+    ``model_dump()``/``model_dump_json()`` would otherwise raise (pydantic cannot encode
+    a bare ``type`` object at all — confirmed empirically, not just excluded for taste).
+    Nothing today reads ``.action`` back off a verdict for business logic (checked by
+    grep across both packages) — it exists for callers that might want it later
+    (logging, tests) without forcing a resolver rewrite to add it.
+
+    ``action_name`` *is* client-visible — a ``@computed_field`` derived from
+    ``action.__name__``, the same string the manifest already publishes as an action's
+    public ``name`` (``aoa-fastapi-adapter``, ``manifest.py``), so this is not a second,
+    parallel naming scheme. It exists purely as a diagnostic/observability signal: which
+    concrete action actually answered this question, useful when working against an
+    endpoint whose backing action isn't obvious from the outside, and increasingly so
+    once a channel like ``kind: FLAG`` can substitute a different action for the same
+    endpoint. Not a stability contract — it names an implementation detail and may change
+    under refactors that do not otherwise change behavior; do not branch client logic on
+    it. Computed, not stored: always exactly ``type(self.action).__name__``, so it cannot
+    independently disagree with ``action`` the way two hand-synced fields could.
+
+    ``ResolveResponse.results`` must be typed ``list[SerializeAsAny[ResolveItemResult]]``
+    (``aoa-fastapi-adapter``, ``permissions_schema.py``) for ``action_name`` to actually
+    reach JSON: pydantic v2 serializes a field by its *declared* container type by
+    default, not the runtime instance's type, so a plain ``list[ResolveItemResult]``
+    silently drops every subclass-only field (confirmed empirically) — ``SerializeAsAny``
+    opts back into polymorphic, "serialize what's actually there" behavior.
     """
 
     model_config = ConfigDict(frozen=True)
 
     action: type[BaseAction] = Field(exclude=True)  # type: ignore[type-arg]  # pydantic rejects a parametrized type[X[...]] here
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def action_name(self) -> str:
+        return self.action.__name__
