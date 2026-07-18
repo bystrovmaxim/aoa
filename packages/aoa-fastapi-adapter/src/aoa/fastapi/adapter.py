@@ -1255,15 +1255,21 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         # response may be cached (this connection only, never a shared proxy), not
         # about its content varying by caller. Neither headers nor body depend on
         # anything request-scoped, and self._routes is already fixed by build()
-        # time, so both are built exactly once here, not per request: audit finding
-        # 8 — JSONResponse(...) itself re-runs model_dump() *and* json.dumps() on
-        # every construction, so precomputing only the dict passed to it would still
-        # re-serialize to JSON on every single request. Response objects hold no
-        # per-request state (__call__ only replays the already-rendered bytes/
-        # headers over ASGI), so the same instance is safe to return unmodified on
-        # every cache-miss.
+        # time, so the JSON bytes are computed exactly once here, not per request:
+        # audit finding 8 — JSONResponse(...) itself re-runs model_dump() *and*
+        # json.dumps() on every construction, so precomputing only the dict passed
+        # to it would still re-serialize to JSON on every single request. What is
+        # NOT cached is the Response object itself (audit finding 2): Response.raw_
+        # headers is a plain mutable list, and Response.__call__ hands that exact
+        # list, by reference, into the ASGI "http.response.start" message on every
+        # call. Middleware that rewrites headers in place -- e.g. GZipMiddleware,
+        # via MutableHeaders(raw=message["headers"]) aliasing that same list --
+        # would then leave those headers on a shared instance permanently, for
+        # every future request, not just the one being compressed. A throwaway
+        # JSONResponse still does the one-time json.dumps() work; only its already-
+        # rendered .body (bytes) is kept, the response object itself is discarded.
         manifest_headers = {"ETag": manifest_etag, "Cache-Control": "private, no-cache"}
-        manifest_response = JSONResponse(content=manifest.model_dump(mode="json"), headers=manifest_headers)
+        manifest_body = JSONResponse(content=manifest.model_dump(mode="json")).body
 
         @app.get("/client-manifest.json", tags=["permissions"], response_model=Manifest)
         async def client_manifest(request: Request) -> StarletteResponse:
@@ -1272,7 +1278,13 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 raise AuthorizationError("Authentication required")
             if _if_none_match_hits(request.headers.get("if-none-match"), manifest_etag):
                 return StarletteResponse(status_code=304, headers=manifest_headers)
-            return manifest_response
+            # A fresh Response per request: cheap (wraps the already-rendered bytes
+            # and builds its own raw_headers list from manifest_headers -- Response.
+            # init_headers() always copies a headers= mapping into a new list, it
+            # never aliases the caller's dict), and never shared, so no per-request
+            # mutation (including a middleware rewriting headers in place) can leak
+            # from one request into another.
+            return StarletteResponse(content=manifest_body, media_type="application/json", headers=manifest_headers)
 
         @app.get("/permissions/namespace", tags=["permissions"], response_model=PermissionNamespace)
         async def permission_namespace(request: Request) -> PermissionNamespace:

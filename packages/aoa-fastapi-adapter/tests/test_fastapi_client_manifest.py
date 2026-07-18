@@ -15,6 +15,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.middleware.gzip import GZipMiddleware
 
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
@@ -217,8 +218,9 @@ class TestClientManifestPrecomputed:
 
             assert spy.call_count == 1  # unchanged -- no request re-serialized the catalog
 
-    def test_repeated_requests_return_the_same_response_object(self) -> None:
-        """The precomputed JSONResponse is reused verbatim, not rebuilt per request."""
+    def test_repeated_requests_return_identical_content(self) -> None:
+        """The precomputed JSON bytes are reused verbatim, not re-serialized per request --
+        but each request gets its own Response object (audit finding 2, see the class below)."""
         client = _make_client(context=_manager_context())
 
         first = client.get("/client-manifest.json")
@@ -226,6 +228,50 @@ class TestClientManifestPrecomputed:
 
         assert first.content == second.content
         assert first.headers["etag"] == second.headers["etag"]
+
+
+class TestClientManifestNotSharedAcrossRequests:
+    """Audit finding 2: a Response object must never be reused across requests.
+
+    ``Response.raw_headers`` is a plain mutable list, and ``Response.__call__``
+    hands that exact list, by reference, into the ASGI ``"http.response.start"``
+    message. Middleware that rewrites headers in place (``GZipMiddleware``, via
+    ``MutableHeaders(raw=message["headers"])`` aliasing that same list) would
+    permanently mutate a shared instance's headers -- for every future request,
+    not just the one being compressed. This reproduces exactly that scenario.
+    """
+
+    def test_gzip_middleware_does_not_leak_content_encoding_to_later_requests(self) -> None:
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=ActionProductMachine(loggers=[]), auth_coordinator=auth)
+        adapter.get("/actions/ping", PingAction)
+        app = adapter.build()
+        app.add_middleware(GZipMiddleware, minimum_size=0)  # compress every response, however small
+        client = TestClient(app)
+
+        # First caller supports gzip -- the manifest response is compressed.
+        compressed = client.get("/client-manifest.json", headers={"Accept-Encoding": "gzip"})
+        assert compressed.status_code == 200
+        assert compressed.headers.get("content-encoding") == "gzip"
+
+        # Second caller does not send Accept-Encoding at all -- httpx's default
+        # transport still auto-decodes a gzip body if the server claims one, so
+        # request with a raw client that will not decode for us, to observe the
+        # server's actual bytes and headers unfiltered.
+        with TestClient(app, headers={}) as raw_client:
+            plain = raw_client.get(
+                "/client-manifest.json",
+                headers={"Accept-Encoding": "identity"},
+                extensions={},
+            )
+        assert plain.status_code == 200
+        # A leaked header from the first, compressed response would show up here
+        # even though this request never asked for (or received) compression.
+        assert plain.headers.get("content-encoding") is None
+        # The body must be plain, readable JSON -- not bytes gzip actually wrote,
+        # and not raw JSON mislabeled as gzip (which is what the bug produced).
+        assert plain.json()["version"] >= 1
 
 
 class TestReservedManifestPath:
