@@ -40,7 +40,10 @@ Small, independent pieces of glue between the wire protocol
   incoming params are mapped through it first — the same converter the real call
   would use — before ``access_decide``. An unknown ``operation`` is isolated to
   that one item's result (``kind=CHECK_ERROR, reason="UNKNOWN_ENDPOINT"``) instead
-  of failing the whole batch. Returns a :class:`ResolveOutcome` whose ``real_call_count`` lets
+  of failing the whole batch; an operation whose own route-level ``auth_coordinator``
+  rejected the caller (``EndpointExecutionPlan.prepare`` raised ``AuthorizationError``,
+  reported by the caller via ``unauthorized_operations``) is isolated the same way,
+  as ``kind=SECURITY, reason="UNAUTHORIZED"``. Returns a :class:`ResolveOutcome` whose ``real_call_count`` lets
   tests assert on deduplication directly (by calling this function, not the HTTP
   endpoint) — ``real_call_count`` is never serialized onto the wire; the client has
   no business knowing which items were deduplicated internally.
@@ -137,6 +140,10 @@ def _unknown_endpoint_verdict() -> ResolveItemResult:
     return ResolveItemResult(kind=ResolveItemKind.CHECK_ERROR, reason="UNKNOWN_ENDPOINT")
 
 
+def _unauthorized_verdict() -> ResolveItemResult:
+    return ResolveItemResult(kind=ResolveItemKind.SECURITY, reason="UNAUTHORIZED")
+
+
 @dataclass
 class ResolveOutcome:
     """
@@ -158,11 +165,13 @@ async def resolve_verdicts(
     plan_index: dict[str, EndpointExecutionPlan],
     prepared_by_operation: dict[str, PreparedEndpointContext],
     machine: ActionProductMachine,
+    *,
+    unauthorized_operations: frozenset[str] = frozenset(),
 ) -> ResolveOutcome:
     """
     Resolve one verdict per ``items`` entry, deduplicating and isolating per-item errors.
 
-    Three things happen in one pass over ``items``:
+    Four things happen in one pass over ``items``:
 
     1. **Deduplication.** Items are grouped by ``(operation, canonical_key(params))``.
        Only the *first* occurrence of a key (in request order) is resolved and checked;
@@ -175,10 +184,18 @@ async def resolve_verdicts(
        runs the validated request through it — the same converter the real call would
        use — and only the result goes to ``access_decide``. With no mapper the request
        shape *is* the action's ``Params``, so nothing changes.
-    3. **Per-item error isolation.** An ``operation`` that names no registered endpoint
-       fails only its own key's positions with ``kind=CHECK_ERROR, reason="UNKNOWN_ENDPOINT"``,
-       not the whole request. A ``ValidationError`` on a known endpoint's params (malformed
-       params, not an unknown endpoint) still fails the whole request with HTTP 400.
+    3. **Per-item error isolation: unknown endpoint.** An ``operation`` that names no
+       registered endpoint fails only its own key's positions with
+       ``kind=CHECK_ERROR, reason="UNKNOWN_ENDPOINT"``, not the whole request. A
+       ``ValidationError`` on a known endpoint's params (malformed params, not an
+       unknown endpoint) still fails the whole request with HTTP 400.
+    4. **Per-item error isolation: route-level auth rejection.** An ``operation`` named
+       in ``unauthorized_operations`` — its own route-level ``auth_coordinator`` (an
+       ``EndpointExecutionPlan.prepare`` override, distinct from the resolver's own
+       entry gate) rejected the caller — fails only its own key's positions with
+       ``kind=SECURITY, reason="UNAUTHORIZED"``, not the whole request. This is a
+       settled "no", not an unreached check: the route's own gate did produce a
+       decision, it is simply not a role/guard/``access_decide`` one.
 
     Each item's real ``check_access_decide`` call runs under its own route's context
     and connections: ``prepared_by_operation[item.operation]``, prepared by the caller
@@ -186,8 +203,10 @@ async def resolve_verdicts(
     ``EndpointExecutionPlan.prepare`` — never a single shared context/connections pair
     for the whole batch. Every operation reachable from ``items`` that has a matching
     entry in ``plan_index`` is expected to already have an entry in
-    ``prepared_by_operation``; this function only looks it up, it never calls
-    ``prepare`` itself (it has no ``Request`` to call it with).
+    ``prepared_by_operation``, *unless* it is also named in ``unauthorized_operations``
+    (``prepare`` raised instead of returning) — this function only looks
+    ``prepared_by_operation`` up, it never calls ``prepare`` itself (it has no
+    ``Request`` to call it with).
 
     Raises:
         CheckAccessDecideBatchSizeExceededError: the number of *distinct* keys exceeds
@@ -209,14 +228,19 @@ async def resolve_verdicts(
 
     pending: dict[_DedupKey, tuple[type[BaseAction[Any, Any]], Any, PreparedEndpointContext]] = {}
     unknown_keys: set[_DedupKey] = set()
+    unauthorized_keys: set[_DedupKey] = set()
 
     for item, key in zip(items, item_keys, strict=True):
-        if key in pending or key in unknown_keys:
+        if key in pending or key in unknown_keys or key in unauthorized_keys:
             continue
 
         plan = plan_index.get(item.operation)
         if plan is None:
             unknown_keys.add(key)
+            continue
+
+        if item.operation in unauthorized_operations:
+            unauthorized_keys.add(key)
             continue
 
         req_model = cast(type[BaseModel], plan.record.effective_request_model)
@@ -244,7 +268,12 @@ async def resolve_verdicts(
     )
     verdict_by_key = dict(zip(pending_keys, real_verdicts, strict=True))
 
-    results = [
-        _unknown_endpoint_verdict() if key in unknown_keys else to_wire(verdict_by_key[key]) for key in item_keys
-    ]
+    def _result_for(key: _DedupKey) -> ResolveItemResult:
+        if key in unknown_keys:
+            return _unknown_endpoint_verdict()
+        if key in unauthorized_keys:
+            return _unauthorized_verdict()
+        return to_wire(verdict_by_key[key])
+
+    results = [_result_for(key) for key in item_keys]
     return ResolveOutcome(results=results, real_call_count=len(pending_keys))

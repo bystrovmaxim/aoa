@@ -1140,7 +1140,16 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         per item — auth and connections do not depend on ``params``), the matching
         plan's :meth:`~aoa.fastapi.execution_plan.EndpointExecutionPlan.prepare` runs
         against this same ``request``, reusing the entry-gate ``context`` outright
-        when that route does not override the adapter's default coordinator.
+        when that route does not override the adapter's default coordinator. When a
+        route *does* override it and that coordinator rejects the caller, ``prepare``
+        raises ``AuthorizationError`` -- caught here per operation (not left to
+        propagate into the app-wide 403 handler) and passed to ``resolve_verdicts`` as
+        ``unauthorized_operations``, so only that operation's own positions in
+        ``results`` come back ``kind=SECURITY, reason="UNAUTHORIZED"``; every other
+        question in the same batch still gets its real answer. The resolver's own
+        entry gate above (``auth_coordinator.process(request)`` at the top of this
+        handler) stays whole-request on purpose -- identity is not established at all
+        yet at that point, so there is no per-item granularity to preserve.
         Deduplication and per-item error isolation (PR 2, chapter 2) live in
         :func:`~aoa.fastapi.permissions.resolve_verdicts`, not here — this endpoint
         only wires auth + the wire response around it.
@@ -1172,14 +1181,30 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 raise AuthorizationError("Authentication required")
 
             prepared_by_operation: dict[str, PreparedEndpointContext] = {}
+            unauthorized_operations: set[str] = set()
             for operation in {item.operation for item in body.items}:
                 plan = plan_index.get(operation)
                 if plan is None:
                     continue
                 reuse_context = context if plan.record.auth_coordinator is None else None
-                prepared_by_operation[operation] = await plan.prepare(request, reuse_context=reuse_context)
+                try:
+                    prepared_by_operation[operation] = await plan.prepare(request, reuse_context=reuse_context)
+                except AuthorizationError:
+                    # This operation's own route-level auth_coordinator rejected the
+                    # caller -- isolate it to this operation's positions (kind=SECURITY,
+                    # reason="UNAUTHORIZED" via resolve_verdicts), not a blanket 403 for
+                    # the whole batch. Distinct from the resolver's own entry gate above,
+                    # which *is* whole-request by design (identity is not established at
+                    # all yet at that point, so there is no per-item granularity to keep).
+                    unauthorized_operations.add(operation)
 
-            outcome = await resolve_verdicts(body.items, plan_index, prepared_by_operation, machine)
+            outcome = await resolve_verdicts(
+                body.items,
+                plan_index,
+                prepared_by_operation,
+                machine,
+                unauthorized_operations=frozenset(unauthorized_operations),
+            )
             return ResolveResponse(version=SUPPORTED_VERSION, results=outcome.results)
 
         manifest_etag = f'"{manifest.manifest_version}"'

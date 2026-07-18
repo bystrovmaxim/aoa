@@ -56,8 +56,15 @@ _PLAN_INDEX = build_execution_plan_index(_ROUTE_INDEX, lambda record: NoAuthCoor
 _PREPARED_BY_OPERATION = {operation: PreparedEndpointContext(context=_manager_context(), connections=None) for operation in _ROUTE_INDEX}
 
 
-async def _resolve(items: list[ResolveItem], machine: ActionProductMachine) -> ResolveOutcome:
-    return await resolve_verdicts(items, _PLAN_INDEX, _PREPARED_BY_OPERATION, machine)
+async def _resolve(
+    items: list[ResolveItem],
+    machine: ActionProductMachine,
+    *,
+    unauthorized_operations: frozenset[str] = frozenset(),
+) -> ResolveOutcome:
+    return await resolve_verdicts(
+        items, _PLAN_INDEX, _PREPARED_BY_OPERATION, machine, unauthorized_operations=unauthorized_operations
+    )
 
 
 def _order_item(order_id: int) -> ResolveItem:
@@ -114,6 +121,25 @@ class TestPerItemIsolation:
         outcome = await _resolve(items, machine)
         assert outcome.real_call_count == 0
         assert all(r.kind == ResolveItemKind.CHECK_ERROR and r.reason == "UNKNOWN_ENDPOINT" for r in outcome.results)
+
+    async def test_route_level_auth_rejection_is_isolated_not_fatal(self) -> None:
+        """A route whose own auth_coordinator rejected the caller (reported via
+        unauthorized_operations, mirroring adapter.py catching AuthorizationError from
+        EndpointExecutionPlan.prepare) fails only its own position -- kind=SECURITY,
+        reason="UNAUTHORIZED" -- never the whole batch."""
+        items = [_order_item(1), ResolveItem(operation="GET /actions/ping", params={})]
+        machine = ActionProductMachine(loggers=[])
+        outcome = await _resolve(items, machine, unauthorized_operations=frozenset({"GET /actions/ping"}))
+        assert len(outcome.results) == 2
+        assert outcome.results[0].kind == ResolveItemKind.SUCCESS
+        assert outcome.results[1].kind == ResolveItemKind.SECURITY
+        assert outcome.results[1].reason == "UNAUTHORIZED"
+
+    async def test_route_level_auth_rejection_does_not_count_as_a_real_call(self) -> None:
+        items = [ResolveItem(operation="GET /actions/ping", params={})]
+        machine = ActionProductMachine(loggers=[])
+        outcome = await _resolve(items, machine, unauthorized_operations=frozenset({"GET /actions/ping"}))
+        assert outcome.real_call_count == 0
 
 
 class TestBatchSizeAfterDedup:

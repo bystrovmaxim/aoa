@@ -35,7 +35,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
 
-from .support import CancelOrderAction, ManagerRole, OrdersDomain, UserRole
+from .support import CancelOrderAction, ManagerRole, OrdersDomain, PingAction, UserRole
 
 # ─────────────────────────────────────────────────────────────────────────────
 # auth_coordinator= override: the resolver must use the ROUTE's own
@@ -89,6 +89,62 @@ class TestAuthCoordinatorOverrideParity:
         assert response.status_code == 200
         result = response.json()["results"][0]
         assert result["kind"] == "success"
+
+
+class TestBatchAuthRejectionIsolation:
+    """A route-level auth_coordinator= rejection for ONE batch item must not fail the
+    whole request (chapter 3.5 rule 2). Regression guard: EndpointExecutionPlan is what
+    made a route-level auth_coordinator reachable from inside resolve() at all -- before
+    it, the resolver only ever ran the adapter's single default coordinator, so this
+    failure mode could not occur."""
+
+    def _build_client(self) -> TestClient:
+        default_auth = AsyncMock()
+        default_auth.process.return_value = _user_context()
+        # Simulates a stricter, route-only coordinator (e.g. admin-only) rejecting
+        # this particular caller -- process() returning None is exactly what a real
+        # "not admin" outcome looks like from AuthCoordinator's perspective.
+        rejecting_auth = AsyncMock()
+        rejecting_auth.process.return_value = None
+
+        machine = ActionProductMachine(loggers=[])
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=default_auth)
+        adapter.get("/actions/ping", PingAction)
+        adapter.post("/actions/cancel-order", CancelOrderAction, auth_coordinator=rejecting_auth)
+        return TestClient(adapter.build())
+
+    def test_batch_isolates_the_rejected_operation_instead_of_failing_everything(self) -> None:
+        client = self._build_client()
+
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [
+                    {"operation": "GET /actions/ping", "params": {}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 7}},
+                ],
+            },
+        )
+
+        assert response.status_code == 200
+        results = response.json()["results"]
+        assert results[0]["kind"] == "success"
+        assert results[1] == {"kind": "security", "reason": "UNAUTHORIZED"}
+
+    def test_rejected_operation_alone_still_answers_200_not_403(self) -> None:
+        """Before the fix, this exact request blew up the whole batch with a bare 403
+        and no results array at all -- the failure this test guards against."""
+        client = self._build_client()
+
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+        )
+
+        assert response.status_code == 200
+        result = response.json()["results"][0]
+        assert result == {"kind": "security", "reason": "UNAUTHORIZED"}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

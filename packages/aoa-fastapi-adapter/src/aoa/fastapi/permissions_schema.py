@@ -31,6 +31,15 @@ and role-level denials still collapse onto the same ``SECURITY`` channel today
 (minimal oracle contract: a caller cannot tell "missing" from "forbidden" from
 the channel alone).
 
+One ``SECURITY`` reason is not an ``AccessVerdict.reason`` at all: the fixed
+``"UNAUTHORIZED"``, added by the resolver itself (``aoa.fastapi.permissions``),
+never by the access-control cascade. It marks one *operation* in a batch whose
+own route-level ``auth_coordinator`` (an ``EndpointExecutionPlan.prepare``
+override, not the resolver's whole-request entry gate) rejected the caller —
+isolated to that operation's own positions in ``results``, exactly like an
+unknown ``operation`` is isolated to ``CHECK_ERROR``, so one route's stricter
+auth requirement never fails every other question in the same batch.
+
 ``PermissionNamespace`` — the opaque ``cache_partition`` label a client attaches
 to every cached resolver answer, so a cache entry can never be mistakenly shared
 across two identities. It is issued by ``GET /permissions/namespace`` (see
