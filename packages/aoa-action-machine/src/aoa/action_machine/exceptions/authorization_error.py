@@ -18,9 +18,23 @@ class AuthorizationError(Exception):
     docstrings). ``None`` means no gate populated it — today, that is level 3
     (``access_decide``'s own denial-reason mechanism is a separate, not-yet-done
     change) and any authorization failure raised outside ``RoleChecker``.
+
+    ``message`` and ``reason`` cannot both be empty: ``check_access_decide``
+    (``ActionProductMachine``) builds an ``AccessVerdict``'s ``reason`` from
+    ``exc.reason or str(exc)``, and an ``AccessVerdict`` forbids an empty ``reason``
+    on a non-success ``kind`` — a caught ``AuthorizationError("")`` would raise
+    *inside* that ``except`` block instead of isolating the one denied item.
+
+    Raises:
+        ValueError: ``message`` and ``reason`` are both empty.
     """
 
     def __init__(self, message: str, *, level: int | None = None, reason: str | None = None) -> None:
+        if not message and not reason:
+            raise ValueError(
+                "AuthorizationError: message and reason cannot both be empty — "
+                "an authorization failure must carry some description of what went wrong."
+            )
         super().__init__(message)
         self.level = level
         self.reason = reason
