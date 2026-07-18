@@ -68,6 +68,7 @@ class OrderResult(BaseResult):
 @check_roles(
     StaffRole,
     guard=lambda user, params: not params.order_id.startswith("LOCKED-"),
+    reason="order is locked",
 )
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 

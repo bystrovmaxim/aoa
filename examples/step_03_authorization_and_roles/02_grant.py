@@ -78,7 +78,11 @@ class OrderResult(BaseResult):
 
 @meta(description="Cancel an order", domain=StoreDomain)
 @check_roles(
-    grant(RegionalManagerRole, when=lambda user: user.user_id.startswith("eu-")),
+    grant(
+        RegionalManagerRole,
+        when=lambda user: user.user_id.startswith("eu-"),
+        reason="regional manager is not assigned to the eu- region",
+    ),
     grant(GlobalAdminRole),
 )
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):

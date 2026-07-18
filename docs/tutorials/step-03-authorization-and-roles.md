@@ -1,4 +1,4 @@
-<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-16T21:45:17Z (filesystem mtime; draft is gitignored, no git history) · sha256:92ebbf482fe7 -->
+<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-18T19:03:37Z (filesystem mtime; draft is gitignored, no git history) · sha256:095153226a0a -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -241,11 +241,11 @@ A frontend deciding whether to show a "Cancel" button, or grey it out, cannot fi
 
 ```python
 verdict = await machine.check_access_decide(context, CancelOrderAction, params)
-if verdict.allowed:
+if verdict.kind == ResolveItemKind.SUCCESS:
     show_cancel_button()
 ```
 
-A denial here is not an exception but `verdict.allowed = False`, with `verdict.level` (1, 2, or 3 — which level denied it) and `verdict.reason` (a human-readable message). The same method, `check_access_decide`, accepts either one action or a list of `(action, params)` pairs, returning a list of verdicts in the same order:
+A denial here is not an exception but `verdict.kind` being something other than `SUCCESS` (`ResolveItemKind.SECURITY` for a role/`guard=`/`access_decide` rejection), with `verdict.reason` (a human-readable message; always an empty string for `SUCCESS`). The same method, `check_access_decide`, accepts either one action or a list of `(action, params)` pairs, returning a list of verdicts in the same order:
 
 ```python
 verdicts = await machine.check_access_decide(context, [
