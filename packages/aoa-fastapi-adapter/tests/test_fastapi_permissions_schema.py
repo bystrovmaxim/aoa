@@ -115,6 +115,24 @@ class TestResolveItemResult:
         with pytest.raises(ValidationError):
             ResolveItemResult(kind=ResolveItemKind.SUCCESS, reason="", unexpected="value")  # type: ignore[call-arg]
 
+    def test_success_with_a_reason_rejected(self) -> None:
+        """Fix-audit finding 7: same kind/reason contract as AccessVerdict, now checked
+        on the wire type too, not just the internal one to_wire() copies it from."""
+        with pytest.raises(ValidationError, match="kind=SUCCESS"):
+            ResolveItemResult(kind=ResolveItemKind.SUCCESS, reason="not empty")
+
+    def test_non_success_with_empty_reason_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="kind=SUCCESS"):
+            ResolveItemResult(kind=ResolveItemKind.SECURITY, reason="")
+
+    def test_check_error_with_a_reason_round_trips(self) -> None:
+        """Unlike AccessVerdict, CHECK_ERROR is an ordinary, valid kind on the wire
+        type — the resolver builds it directly, not via to_wire() (fix-audit finding 6:
+        no kind gets special-cased beyond the one shared success/reason contract)."""
+        result = ResolveItemResult(kind=ResolveItemKind.CHECK_ERROR, reason="UNKNOWN_ENDPOINT")
+        assert result.kind == ResolveItemKind.CHECK_ERROR
+        assert result.reason == "UNKNOWN_ENDPOINT"
+
 
 class TestResolveResponse:
     """``ResolveResponse`` — the resolver's response body."""

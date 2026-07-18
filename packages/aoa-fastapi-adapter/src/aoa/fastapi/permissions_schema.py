@@ -74,11 +74,11 @@ request vs. partial response" boundary.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from aoa.action_machine.intents.access_control import ResolveItemKind
+from aoa.action_machine.intents.access_control import ResolveItemKind, kind_matches_reason
 
 # Wire-language version this server speaks. Draft until chapter 3.5's contract
 # settles, then becomes v1 — see rule 8. Echoed by ResolveResponse.version and
@@ -120,6 +120,22 @@ class ResolveItemResult(BaseModel):
 
     kind: ResolveItemKind = Field(description="Which channel this answer came through — see ResolveItemKind.")
     reason: str = Field(description='"" for SUCCESS; otherwise a non-empty, explicitly-declared string.')
+
+    @model_validator(mode="after")
+    def _reason_matches_kind(self) -> Self:
+        """Same contract as ``AccessVerdict`` (``aoa-action-machine``), checked with the
+        same shared function, not a second independently written copy (fix-audit
+        finding 7): ``to_wire()`` only ever copies an already-validated ``AccessVerdict``,
+        but ``permissions.py`` also builds a ``ResolveItemResult`` by hand in a couple of
+        places (``_unknown_endpoint_verdict``, ``_unauthorized_verdict``) — this is what
+        actually goes out over the wire, so it gets its own check, not a borrowed promise.
+        """
+        if not kind_matches_reason(self.kind, self.reason):
+            raise ValueError(
+                "ResolveItemResult: kind=SUCCESS must carry reason=''; every other kind "
+                f"must carry a non-empty reason — got kind={self.kind!r}, reason={self.reason!r}."
+            )
+        return self
 
 
 class ResolveResponse(BaseModel):

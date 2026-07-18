@@ -34,6 +34,17 @@ class ResolveItemKind(StrEnum):
     CHECK_ERROR = "check_error"
 
 
+def kind_matches_reason(kind: ResolveItemKind, reason: str) -> bool:
+    """The one contract validated on both ``AccessVerdict`` and the wire's
+    ``ResolveItemResult`` (``aoa-fastapi-adapter``): ``kind == SUCCESS`` iff
+    ``reason == ""``. Shared so the check is written once and imported by the
+    wire type, not copied there as a second, independently maintained version
+    (fix-audit finding 7) — nothing beyond this one line should ever be
+    validated about ``kind``/``reason``, on either type (fix-audit finding 6).
+    """
+    return (kind == ResolveItemKind.SUCCESS) == (reason == "")
+
+
 class AccessVerdict(BaseSchema):
     """
     AI-CORE-BEGIN
@@ -75,7 +86,7 @@ class AccessVerdict(BaseSchema):
         a mismatch. This catches anything that builds an ``AccessVerdict`` some other
         way — by hand, or from a future denial source that forgets to set ``reason``.
         """
-        if (self.kind == ResolveItemKind.SUCCESS) != (self.reason == ""):
+        if not kind_matches_reason(self.kind, self.reason):
             raise ValueError(
                 "AccessVerdict: kind=SUCCESS must carry reason=''; every other kind must "
                 f"carry a non-empty reason — got kind={self.kind!r}, reason={self.reason!r}."
