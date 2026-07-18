@@ -4,13 +4,13 @@
 machine.check_access_decide answers "can this user do X?" without executing
 the action — the same role -> guard -> access_decide cascade that machine.run
 enforces, just without running any aspect. to_wire() then projects the
-internal AccessVerdict onto the wire Verdict shape that POST /permissions/resolve
-actually returns over HTTP.
+internal AccessVerdict onto the wire ResolveItemResult shape that
+POST /permissions/resolve actually returns over HTTP: both are the same flat
+{kind, reason} pair, one layer apart — to_wire() is a straight copy.
 
-Watch scope here: it is None, not "role", even though a role check clearly
-ran. AccessVerdict.level is None exactly when allowed=True (nothing rejected
-the check, so there is no rejecting level to report) — to_wire() derives scope
-from level, so an allowed verdict always has scope=None in this chapter.
+Watch kind/reason here: a SUCCESS result always carries reason="" — there is
+nothing more to say when nothing rejected the call. Compare with
+02_role_gate_denied.py, where kind=SECURITY and reason is a real string.
 
 Tutorial: ../../docs/tutorials/step-27-ui-permissions-resolve_draft.md
 
@@ -68,11 +68,8 @@ async def main() -> None:
     verdict = await machine.check_access_decide(manager, CancelOrderAction, OrderParams(order_id=7))
     wire_verdict = to_wire(verdict)
 
-    print(f"allowed     = {wire_verdict.allowed}")
-    print(f"scope       = {wire_verdict.scope!r}")  # None, not "role" — see module docstring
-    print(f"level       = {wire_verdict.level!r}")
-    print(f"reason_code = {wire_verdict.reason_code!r}")  # always None in this chapter — see PR 2
-    print(f"entities    = {wire_verdict.entities!r}")  # always [] in this chapter — see PR 8
+    print(f"kind   = {wire_verdict.kind!r}")
+    print(f"reason = {wire_verdict.reason!r}")  # "" — SUCCESS never has more to say
 
 
 asyncio.run(main())

@@ -7,12 +7,16 @@ package by a tracking_token from an email, with no login at all — but
 access_decide (level 3) still bases allowed on real facts: the token must
 match the specific order, AND the order must have actually reached the
 "shipped" event. Before that event happens, even a guest holding the exact
-right token gets an honest allowed: false — not because they are the wrong
+right token gets an honest kind: "security" — not because they are the wrong
 person, but because the event has not happened yet.
 
 access_decide is not limited to "is this your object" checks — it can
-condition allowed on anything computable from params/context/connections:
-here, time/state, not ownership.
+condition the answer on anything computable from params/context/connections:
+here, time/state, not ownership. access_decide's own denial-reason mechanism
+is a separate, not-yet-done change (chapter 3.5) — unlike the role-gate's
+FORBIDDEN_ROLE or a grant(when=..., reason=...)'s declared string, a False
+from access_decide still surfaces raw cascade text as reason, not a clean
+declared one.
 
 Tutorial: ../../docs/tutorials/step-27-ui-permissions-resolve_draft.md
 
@@ -81,12 +85,12 @@ async def main() -> None:
     params = TrackOrderParams(order_id=7, tracking_token="secret-token-7")
 
     before = to_wire(await machine.check_access_decide(guest, TrackOrderAction, params))
-    print(f"before shipped: allowed={before.allowed}")
+    print(f"before shipped: kind={before.kind!r} reason={before.reason!r}")
 
     _ORDERS[7] = Order(tracking_token="secret-token-7", status="shipped")  # the real-world event fires
 
     after = to_wire(await machine.check_access_decide(guest, TrackOrderAction, params))
-    print(f"after shipped:  allowed={after.allowed}")  # same guest, same token, no client-side change
+    print(f"after shipped:  kind={after.kind!r} reason={after.reason!r}")  # same guest, same token, no client-side change
 
 
 asyncio.run(main())

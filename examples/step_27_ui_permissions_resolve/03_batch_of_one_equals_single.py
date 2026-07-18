@@ -6,10 +6,10 @@ params) pair, and a list of pairs. FR-2 says a single question must not be a
 separate code path — the list form is the primitive, and the single-action
 form is implemented by recursing into a list of exactly one item. This
 example proves it directly: the single-action call and the one-item-batch
-call produce byte-for-byte the same wire Verdict.
+call produce byte-for-byte the same wire ResolveItemResult.
 
 This is exactly why POST /permissions/resolve can be list-shaped from day
-one (items/verdicts) without a slower or different path for the common case
+one (items/results) without a slower or different path for the common case
 of "just one question" — there is no such separate path to be slower.
 
 Tutorial: ../../docs/tutorials/step-27-ui-permissions-resolve_draft.md

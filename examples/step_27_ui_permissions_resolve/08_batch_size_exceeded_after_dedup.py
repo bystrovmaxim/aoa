@@ -23,6 +23,7 @@ import asyncio
 from pydantic import Field
 
 from aoa.action_machine.auth import ApplicationRole
+from aoa.action_machine.auth.auth_coordinator import NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -34,8 +35,10 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.fastapi.permissions import resolve_verdicts
+from aoa.fastapi.execution_plan import PreparedEndpointContext, build_execution_plan_index
+from aoa.fastapi.permissions import build_route_index, resolve_verdicts
 from aoa.fastapi.permissions_schema import ResolveItem
+from aoa.fastapi.route_record import FastApiRouteRecord
 
 
 class StoreDomain(BaseDomain):
@@ -67,23 +70,30 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 
 async def main() -> None:
     manager = Context(user=UserInfo(user_id="m1", roles=(ManagerRole,)))
-    action_index = {"CancelOrderAction": CancelOrderAction}
     machine = ActionProductMachine(max_check_access_decide_batch_size=1)
 
+    route_index = build_route_index(
+        [FastApiRouteRecord(action_class=CancelOrderAction, method="post", path="/actions/cancel-order")]
+    )
+    plan_index = build_execution_plan_index(route_index, lambda record: NoAuthCoordinator(context=manager))
+    prepared_by_operation = {
+        operation: PreparedEndpointContext(context=manager, connections=None) for operation in route_index
+    }
+
     two_different_questions = [
-        ResolveItem(operation="CancelOrderAction", params={"order_id": 1}),
-        ResolveItem(operation="CancelOrderAction", params={"order_id": 2}),
+        ResolveItem(operation="POST /actions/cancel-order", params={"order_id": 1}),
+        ResolveItem(operation="POST /actions/cancel-order", params={"order_id": 2}),
     ]
     try:
-        await resolve_verdicts(manager, two_different_questions, action_index, machine)
+        await resolve_verdicts(two_different_questions, plan_index, prepared_by_operation, machine)
     except CheckAccessDecideBatchSizeExceededError as exc:
         print(f"two different questions, cap=1 -> rejected: {exc}")
 
     two_copies_of_one_question = [
-        ResolveItem(operation="CancelOrderAction", params={"order_id": 7}),
-        ResolveItem(operation="CancelOrderAction", params={"order_id": 7}),
+        ResolveItem(operation="POST /actions/cancel-order", params={"order_id": 7}),
+        ResolveItem(operation="POST /actions/cancel-order", params={"order_id": 7}),
     ]
-    outcome = await resolve_verdicts(manager, two_copies_of_one_question, action_index, machine)
+    outcome = await resolve_verdicts(two_copies_of_one_question, plan_index, prepared_by_operation, machine)
     print(f"two copies of one question, cap=1 -> accepted, real_call_count={outcome.real_call_count}")
 
 
