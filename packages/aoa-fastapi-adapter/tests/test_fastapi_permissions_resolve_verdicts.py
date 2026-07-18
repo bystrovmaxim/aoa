@@ -20,14 +20,9 @@ shared ``Context``. Tests build ``prepared_by_operation`` directly with a fixed
 since ``resolve_verdicts`` itself never calls ``prepare()``, only looks its result up.
 """
 
-import pytest
-
 from aoa.action_machine.auth.auth_coordinator import NoAuthCoordinator
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
-    CheckAccessDecideBatchSizeExceededError,
-)
 from aoa.action_machine.intents.access_control import ResolveItemKind
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.execution_plan import PreparedEndpointContext, build_execution_plan_index
@@ -140,18 +135,3 @@ class TestPerItemIsolation:
         machine = ActionProductMachine(loggers=[])
         outcome = await _resolve(items, machine, unauthorized_operations=frozenset({"GET /actions/ping"}))
         assert outcome.real_call_count == 0
-
-
-class TestBatchSizeAfterDedup:
-    """The size cap is enforced against distinct keys, not raw item count."""
-
-    async def test_distinct_keys_over_the_cap_raise(self) -> None:
-        machine = ActionProductMachine(loggers=[], max_check_access_decide_batch_size=1)
-        with pytest.raises(CheckAccessDecideBatchSizeExceededError):
-            await _resolve([_order_item(1), _order_item(2)], machine)
-
-    async def test_duplicates_collapsing_under_the_cap_do_not_raise(self) -> None:
-        """Two raw items, but one distinct key -> does not exceed a cap of 1."""
-        machine = ActionProductMachine(loggers=[], max_check_access_decide_batch_size=1)
-        outcome = await _resolve([_order_item(7), _order_item(7)], machine)
-        assert outcome.real_call_count == 1

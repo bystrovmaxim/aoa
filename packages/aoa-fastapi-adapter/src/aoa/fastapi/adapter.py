@@ -130,9 +130,6 @@ from aoa.action_machine.adapters.base_route_record import ensure_machine_params,
 from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
 from aoa.action_machine.auth.permission_namespace import compute_cache_partition
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
-from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
-    CheckAccessDecideBatchSizeExceededError,
-)
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
@@ -1131,16 +1128,6 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         ) -> JSONResponse:
             return JSONResponse(
                 status_code=422,
-                content={"detail": str(exc)},
-            )
-
-        @app.exception_handler(CheckAccessDecideBatchSizeExceededError)
-        async def handle_batch_size_exceeded(
-            request: Request,
-            exc: CheckAccessDecideBatchSizeExceededError,
-        ) -> JSONResponse:
-            return JSONResponse(
-                status_code=413,
                 content={"detail": str(exc)},
             )
 

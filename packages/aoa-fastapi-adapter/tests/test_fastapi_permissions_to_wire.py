@@ -39,7 +39,8 @@ class TestToWire:
         """``to_wire()`` itself is a generic straight copy over the whole enum — this is a
         unit test of that copy, not a claim that FLAG/MACHINE_RULE are reachable today: no
         production code constructs an AccessVerdict with either (grep confirms this); both
-        are reserved for the rate-limiting/business-rule work chapter 3.5 defers."""
+        are reserved for future business-rule work (feature flags, budgets, a circuit
+        breaker) that chapter 3.5 defers."""
         result = to_wire(AccessVerdict(action=_ToWireTestAction, kind=kind, reason="not a manager"))
         assert result.kind == kind
         assert result.reason == "not a manager"

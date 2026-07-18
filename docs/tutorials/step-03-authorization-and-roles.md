@@ -1,4 +1,4 @@
-<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-18T19:03:37Z (filesystem mtime; draft is gitignored, no git history) · sha256:095153226a0a -->
+<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-18T21:12:05Z (filesystem mtime; draft is gitignored, no git history) · sha256:c5469ee14907 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -254,7 +254,7 @@ verdicts = await machine.check_access_decide(context, [
 ])
 ```
 
-The list is not a side overload — it's the primary form: a single check is implemented as a one-item list. One failing item in the list (say, a bug in `access_decide` for a particular order) does not bring down the rest — only its own verdict fails. A list longer than `max_check_access_decide_batch_size` (a constructor parameter on `ActionProductMachine`, defaulting to 100) is rejected with `CheckAccessDecideBatchSizeExceededError` before a single item is checked.
+The list is not a side overload — it's the primary form: a single check is implemented as a one-item list. One failing item in the list (say, a bug in `access_decide` for a particular order) does not bring down the rest — only its own verdict fails.
 
 **Run:**
 
@@ -297,7 +297,6 @@ This turns changing the role model from a risky operation into a managed one: a 
 - **Role names.** A role class ends with `Role`, otherwise `NamingSuffixError`; `name`/`description` are mandatory and non-empty.
 - **`grant.when=`/`guard=` are synchronous and `bool`-only.** An `async def` in either raises `AccessConditionAsyncError` at class definition, not at runtime — an un-awaited coroutine is always truthy, and the check would silently wave everything through.
 - **`access_decide` defaults to `True`.** Level 3 restricts nothing beyond role/`guard=` until an action explicitly overrides the method.
-- **`machine.check_access_decide` is capped by list size.** `max_check_access_decide_batch_size` (100 by default) — a longer list is rejected with `CheckAccessDecideBatchSizeExceededError` before a single `access_decide` call.
 - **Denial at any of the three cascade levels flies past `@on_error`/the saga.** Role/`guard=`/`access_decide` run before `_execute_pipeline_aspects` — no `@regular_aspect`/`@summary_aspect` has run yet, so there's nothing to roll back; `@on_error` is a recovery mechanism for business-logic failures inside the pipeline, not a place for authorization decisions.
 
 The full list is in [Intents and invariants](../reference/intents-and-invariants.md); the terms are in the [Glossary](../reference/glossary.md). Why access is made a mandatory declaration is in the [Philosophy](../explanation/philosophy.md).

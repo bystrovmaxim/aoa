@@ -13,8 +13,7 @@ this package's adapter testing contract (see ``BaseAdapter`` module docstring).
 
 Covers: role-gate allow/deny, guest (anonymous) access, truly-unauthenticated
 rejection, unknown ``operation`` (per-item ``UNKNOWN_ENDPOINT``), duplicate
-items in one batch (PR 2), reserved-path collisions, and the
-``max_check_access_decide_batch_size`` -> HTTP 413 mapping. Deduplication's
+items in one batch (PR 2), and reserved-path collisions. Deduplication's
 internal accounting (``real_call_count``) is asserted directly against
 ``resolve_verdicts`` in ``test_fastapi_permissions_resolve_verdicts.py`` — this
 file only checks what a real client actually observes over HTTP.
@@ -39,9 +38,9 @@ from .support import CancelOrderAction, ManagerRole, PingAction, UserRole
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _make_client(*, context: Context | None, max_batch_size: int = 100) -> TestClient:
+def _make_client(*, context: Context | None) -> TestClient:
     """Build a real adapter+machine, register ``CancelOrderAction``/``PingAction``, and return a ``TestClient``."""
-    machine = ActionProductMachine(loggers=[], max_check_access_decide_batch_size=max_batch_size)
+    machine = ActionProductMachine(loggers=[])
     auth = AsyncMock()
     auth.process.return_value = context
     adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
@@ -271,23 +270,6 @@ class TestErrorMapping:
         assert results[1]["kind"] == "check_error"
         assert results[1]["reason"] == "UNKNOWN_ENDPOINT"
         assert results[2]["kind"] == "success"
-
-    def test_batch_larger_than_machine_limit_is_413(self) -> None:
-        """A batch over ``max_check_access_decide_batch_size`` fails the whole request with 413."""
-        client = _make_client(context=_manager_context(), max_batch_size=1)
-        response = client.post(
-            "/permissions/resolve",
-            json={
-                "version": 1,
-                "items": [
-                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 1}},
-                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 2}},
-                ],
-            },
-        )
-        assert response.status_code == 413
-        # Whole-request failure: no results array at all, not even a partial/empty one.
-        assert "results" not in response.json()
 
     def test_empty_items_is_422(self) -> None:
         """An empty ``items`` list fails pydantic validation (``min_length=1``) before the resolver runs."""

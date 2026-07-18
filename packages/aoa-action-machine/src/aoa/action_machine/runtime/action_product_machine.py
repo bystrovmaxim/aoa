@@ -140,9 +140,6 @@ from typing import Any, TypeVar, cast, overload
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
-from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
-    CheckAccessDecideBatchSizeExceededError,
-)
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
@@ -274,14 +271,10 @@ class ActionProductMachine(BaseActionMachine):
         error_handler_executor: ErrorHandlerExecutor | None = None,
         saga_coordinator: SagaCoordinator | None = None,
         cache_coordinator: CacheCoordinator | None = _CACHE_COORDINATOR_DEFAULT,  # type: ignore[assignment]
-        max_check_access_decide_batch_size: int = 100,
     ) -> None:
         """Wire injectable components; an in-memory ``CacheCoordinator`` is created by default.
 
-        Pass ``cache_coordinator=None`` to disable caching explicitly. ``max_check_access_decide_batch_size``
-        caps the list form of ``machine.check_access_decide`` — each item triggers a real
-        ``access_decide`` call, so an unbounded list would let one request force an unbounded
-        number of such calls.
+        Pass ``cache_coordinator=None`` to disable caching explicitly.
         """
         self._log_coordinator = log_coordinator or LogCoordinator()
         default_loggers = [] if log_coordinator else [ConsoleLogger()]
@@ -303,18 +296,6 @@ class ActionProductMachine(BaseActionMachine):
         self._cache_coordinator: CacheCoordinator | None = (
             CacheCoordinator() if cache_coordinator is _CACHE_COORDINATOR_DEFAULT else cache_coordinator
         )
-        self._max_check_access_decide_batch_size = max_check_access_decide_batch_size
-
-    @property
-    def max_check_access_decide_batch_size(self) -> int:
-        """The configured cap on the list form of ``check_access_decide`` (see ``__init__``).
-
-        Public so callers that build their own concurrent fan-out over ``check_access_decide``
-        (single-item form) instead of using the sequential list form — e.g. the
-        ``aoa-fastapi-adapter`` resolver's deduplication, chapter 2 — can still honor the same
-        cap explicitly, since the list form's own built-in check never runs for them.
-        """
-        return self._max_check_access_decide_batch_size
 
     @staticmethod
     def _validate_cache_key(cache_key: str | None, action: BaseAction[Any, Any]) -> None:
@@ -668,21 +649,8 @@ class ActionProductMachine(BaseActionMachine):
         ``access_decide`` implementations typically need to look up a real object
         (``connections["orders_db"].get(params.order_id)``, per the ADR's own example) to
         decide anything meaningful. One shared dict for the whole list, not per item.
-
-        ``len(action) > max_check_access_decide_batch_size`` (set on ``__init__``) raises
-        ``CheckAccessDecideBatchSizeExceededError`` before touching any item — not even the first
-        ``access_decide`` runs. Each item is a real ``access_decide`` call (typically a
-        database lookup); an unbounded list would let one request force an unbounded number
-        of such lookups.
         """
         if isinstance(action, list):
-            if len(action) > self._max_check_access_decide_batch_size:
-                raise CheckAccessDecideBatchSizeExceededError(
-                    f"machine.check_access_decide() received {len(action)} items, exceeding "
-                    f"max_check_access_decide_batch_size={self._max_check_access_decide_batch_size}.",
-                    item_count=len(action),
-                    max_check_access_decide_batch_size=self._max_check_access_decide_batch_size,
-                )
             verdicts: list[AccessVerdict] = []
             for item_action, item_params in action:
                 try:

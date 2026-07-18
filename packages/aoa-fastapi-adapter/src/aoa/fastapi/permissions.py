@@ -60,9 +60,6 @@ from typing import Any, cast
 
 from pydantic import BaseModel, ValidationError
 
-from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
-    CheckAccessDecideBatchSizeExceededError,
-)
 from aoa.action_machine.intents.access_control import AccessVerdict, ResolveItemKind
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -190,22 +187,9 @@ async def resolve_verdicts(
     ``Request`` to call it with).
 
     Raises:
-        CheckAccessDecideBatchSizeExceededError: the number of *distinct* keys exceeds
-            ``machine.max_check_access_decide_batch_size`` — checked up front, before
-            touching any item.
         HTTPException: 400, when a known endpoint's params fail pydantic validation.
     """
     item_keys: list[_DedupKey] = [(item.operation, canonical_key(item.params)) for item in items]
-
-    distinct_key_count = len(set(item_keys))
-    if distinct_key_count > machine.max_check_access_decide_batch_size:
-        raise CheckAccessDecideBatchSizeExceededError(
-            f"POST /permissions/resolve received {distinct_key_count} distinct (operation, params) "
-            f"items after deduplication, exceeding "
-            f"max_check_access_decide_batch_size={machine.max_check_access_decide_batch_size}.",
-            item_count=distinct_key_count,
-            max_check_access_decide_batch_size=machine.max_check_access_decide_batch_size,
-        )
 
     pending: dict[_DedupKey, tuple[type[BaseAction[Any, Any]], Any, PreparedEndpointContext]] = {}
     unknown_keys: set[_DedupKey] = set()

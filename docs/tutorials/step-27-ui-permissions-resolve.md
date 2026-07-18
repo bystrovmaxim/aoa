@@ -1,4 +1,4 @@
-<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-18T15:51:05Z (filesystem mtime; draft is gitignored, no git history) · sha256:23bb3637466a -->
+<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-18T21:15:13Z (filesystem mtime; draft is gitignored, no git history) · sha256:b4d048c0e28e -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -83,7 +83,7 @@ The endpoint itself is a thin wrapper around the already-existing `machine.check
 verdict = await machine.check_access_decide(manager, CancelOrderAction, OrderParams(order_id=7))
 ```
 
-`to_wire()` (package `aoa-fastapi-adapter`, `aoa.fastapi.permissions`) projects the internal `AccessVerdict` onto the wire format `ResolveItemResult` — a straight copy, no recomputation: both share the same flat `{kind, reason}` shape, just on different layers (`AccessVerdict` inside the machine, `ResolveItemResult` on the wire). `kind` is a closed enumeration of five channels (`ResolveItemKind`, defined in `aoa-action-machine`; the resolver only imports it, never redefines it): `SUCCESS`, `SECURITY`, `FLAG`, `MACHINE_RULE`, `CHECK_ERROR`. Only three are actually reachable in this chapter — `SUCCESS`, `SECURITY`, and `CHECK_ERROR` (more on that in the batch section); `FLAG` and `MACHINE_RULE` are reserved for later chapters (rate-limiting protection, business rules) and nothing produces them yet.
+`to_wire()` (package `aoa-fastapi-adapter`, `aoa.fastapi.permissions`) projects the internal `AccessVerdict` onto the wire format `ResolveItemResult` — a straight copy, no recomputation: both share the same flat `{kind, reason}` shape, just on different layers (`AccessVerdict` inside the machine, `ResolveItemResult` on the wire). `kind` is a closed enumeration of five channels (`ResolveItemKind`, defined in `aoa-action-machine`; the resolver only imports it, never redefines it): `SUCCESS`, `SECURITY`, `FLAG`, `MACHINE_RULE`, `CHECK_ERROR`. Only three are actually reachable in this chapter — `SUCCESS`, `SECURITY`, and `CHECK_ERROR` (more on that in the batch section); `FLAG` and `MACHINE_RULE` are reserved for future business rules (feature flags, budgets, a circuit breaker) and nothing produces them yet.
 
 `SUCCESS` always carries `reason=""` — there's nothing more to say when nothing rejected the call. Full example — [`01_role_gate_allowed.py`](../../examples/step_27_ui_permissions_resolve/01_role_gate_allowed.py); on a denial — [`02_role_gate_denied.py`](../../examples/step_27_ui_permissions_resolve/02_role_gate_denied.py).
 
@@ -140,8 +140,6 @@ batch = await machine.check_access_decide(manager, [(CancelOrderAction, params)]
 # to_wire(single) == to_wire(batch[0])
 ```
 
-A list longer than `max_check_access_decide_batch_size` (a constructor parameter of `ActionProductMachine`, default 100) is rejected before a single item is checked — `CheckAccessDecideBatchSizeExceededError`, mapped to HTTP `413 Payload Too Large` at the HTTP layer.
-
 **Run:**
 
 ```bash
@@ -170,14 +168,11 @@ The second, independent problem with the same naive approach is fragility to err
 {"kind": "check_error", "reason": "UNKNOWN_ENDPOINT"}
 ```
 
-Finally, `max_check_access_decide_batch_size` (the batch-length cap, `413` on overflow — see the previous section) is now checked **after** deduplication, against the number of distinct keys, not the raw item count: a batch of a thousand copies of the same question is still one distinct key, and a cap of one lets it through, while a cap of one rejects just two genuinely different questions.
-
 **Run:**
 
 ```bash
 uv run python examples/step_27_ui_permissions_resolve/06_duplicate_within_batch.py
 uv run python examples/step_27_ui_permissions_resolve/07_unknown_action_in_batch.py
-uv run python examples/step_27_ui_permissions_resolve/08_batch_size_exceeded_after_dedup.py
 uv run python examples/step_27_ui_permissions_resolve/09_mixed_dedup_isolation_and_order.py
 ```
 
@@ -324,7 +319,7 @@ The solution is a bespoke route registered right inside `FastApiAdapter.build()`
 
 This chapter is the base: role level (1-2) and object level (3) via `access_decide`, a list from day one, guest access, deduplication and per-item error isolation, one execution recipe, cache partitions, route shadowing, HTTP caching for the catalog, and wire-language versioning. Deliberately out of scope:
 
-- **Honest reporting of the object-level check.** Role-level and object-level checks are still indistinguishable on the wire — both collapse onto the same `kind: "security"` (a minimal oracle contract: a caller can't tell "no such object" from "exists, but not yours" from the channel alone). Revealing that detail without rate-limiting protection would hand an attacker a way to guess other people's object IDs from the shape of a denial. Reporting and protection arrive together, later — along with the `FLAG`/`MACHINE_RULE` channels.
+- **Honest reporting of the object-level check.** Role-level and object-level checks are still indistinguishable on the wire — both collapse onto the same `kind: "security"` (a minimal oracle contract: a caller can't tell "no such object" from "exists, but not yours" from the channel alone). Revealing that detail is safe only together with generic deny — the same answer for "no such object" and "exists, but not yours"; without it, revealing the detail would hand an attacker a way to guess other people's object IDs from the shape of a denial. This mechanism arrives in chapter 8. The `FLAG`/`MACHINE_RULE` channels are a separate, unrelated piece of future work.
 - **The client package.** This chapter's examples call `machine.check_access_decide`/the resolver directly; a convenient typed client (`api.post["/actions/cancel-order"].can(...)`) doesn't exist yet.
 - **A clean reason for `access_decide` denials.** A role denial is `"FORBIDDEN_ROLE"`, or a string declared in `grant(when=..., reason=...)`/`check_roles(guard=..., reason=...)`; an object-level denial (`access_decide` returning `False`, or a raised exception) still hands back raw text, not a declared reason.
 
@@ -338,7 +333,6 @@ This chapter is the base: role level (1-2) and object level (3) via `access_deci
 - **`auth_coordinator.process()` is always called.** `403` only if it returned `None`; a resolved anonymous `Context` (`NoAuthCoordinator`) flows into the machine as usual.
 - **`kind`/`reason` are the only two fields of an answer, always.** `kind` is a closed enumeration (`ResolveItemKind`); `SUCCESS` carries `reason=""`, every other channel a non-empty, declared-ahead-of-time string. `CHECK_ERROR` is not a denial and must never be cached as one.
 - **`reason` is a declaration, not a guess made after the fact.** A `when=`/`guard=` that can reject must carry its own `reason=`, or class declaration raises `ValueError`. A role that never matched at all is the fixed `"FORBIDDEN_ROLE"`, not something the developer writes.
-- **The batch is capped — by distinct keys.** `max_check_access_decide_batch_size` (default 100) rejects an overly long list outright, `413`, but the count is taken after deduplication: a batch of a thousand copies of one question is one distinct key, not a thousand.
 - **A duplicate is about work, not about the answer.** Items with the same `(operation, params)` produce `results` of the same length and order; only the number of real `access_decide` calls is saved (counted only for the first occurrence of a key), never the length of the response.
 - **One bad item never sinks the batch — but only inside an already-valid request.** An unrecognized endpoint — `kind=CHECK_ERROR, reason="UNKNOWN_ENDPOINT"` at its own position, `200 OK` for the whole request. A structurally invalid whole request — the wrong wire-language version (`400`), a failed entry gate (`403`), a server-side failure (`5xx`) — sinks everything, with not a single answer in it.
 - **The resolver, the catalog, and `/permissions/namespace` are bespoke routes, not actions.** Registered directly in `FastApiAdapter.build()`, because an ordinary action can't reach `machine`, a full `Context`, or `self._routes`.
@@ -367,14 +361,13 @@ This chapter is the base: role level (1-2) and object level (3) via `access_deci
 6. An action's `access_decide` returned `False` for a guest. Does that mean the guest doesn't own the object? Give another possible reason for the denial.
 7. A batch of five questions where the first and the fifth are the same `(operation, params)`. How many items will `results` contain? How many times will `access_decide` actually run?
 8. Why isn't `real_call_count` published on the wire `ResolveItemResult`, even though it exists on `ResolveOutcome`?
-9. Why is the `max_check_access_decide_batch_size` cap in this chapter counted by the number of distinct keys, rather than the number of items in `items`? What would go wrong counting the raw item count instead?
-10. Why is `operation` in `POST /permissions/resolve` `"{method} {path}"`, rather than an action class name? What would become ambiguous if `operation` were a class name and one class were registered on two paths?
-11. Why is the catalog built from `self._routes`, rather than by walking the whole action graph? What would end up in the manifest from a graph walk that shouldn't be there?
-12. What's the difference between an exact `(method, path)` duplicate and route shadowing? Why is one a warning and the other a build failure?
-13. `grant(role, when=...)` without `reason=` — what happens, and exactly when (at class declaration, or on the first real request)?
-14. Why isn't `cache_partition` stored on the server as a generation counter, but recomputed on every call instead? What would go wrong on logout if the formula weren't recomputed?
-15. A client sends `version: 2`; the server only understands `version: 1`. Walk through what happens, step by step — and why this check runs before authentication, not after it.
-16. Why is `manifest_version` hashed without itself? What would go wrong if the field hashed its own value too?
+9. Why is `operation` in `POST /permissions/resolve` `"{method} {path}"`, rather than an action class name? What would become ambiguous if `operation` were a class name and one class were registered on two paths?
+10. Why is the catalog built from `self._routes`, rather than by walking the whole action graph? What would end up in the manifest from a graph walk that shouldn't be there?
+11. What's the difference between an exact `(method, path)` duplicate and route shadowing? Why is one a warning and the other a build failure?
+12. `grant(role, when=...)` without `reason=` — what happens, and exactly when (at class declaration, or on the first real request)?
+13. Why isn't `cache_partition` stored on the server as a generation counter, but recomputed on every call instead? What would go wrong on logout if the formula weren't recomputed?
+14. A client sends `version: 2`; the server only understands `version: 1`. Walk through what happens, step by step — and why this check runs before authentication, not after it.
+15. Why is `manifest_version` hashed without itself? What would go wrong if the field hashed its own value too?
 
 > **Exercise.** Take `TrackOrderAction` from [`05_guest_gated_by_event.py`](../../examples/step_27_ui_permissions_resolve/05_guest_gated_by_event.py) and add a second reason for denial to `access_decide` — for example, that the tracking code is only valid for 30 days after shipping. Run `machine.check_access_decide` before shipping, after shipping, and after the 30 days have passed, and confirm `kind`/`reason` reflect exactly that reason in each case.
 
