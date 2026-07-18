@@ -56,6 +56,15 @@ class TestDistinctIdentitiesDiffer:
         alice = compute_cache_partition(_context("alice", ManagerRole))
         assert anonymous != alice
 
+    def test_empty_string_user_id_differs_from_anonymous(self) -> None:
+        """Audit finding 4: user_id=None (anonymous) and user_id="" (an authenticated
+        identity with an empty id -- nothing on UserInfo forbids constructing one)
+        used to hash to the same partition for the same role set, via an
+        f"{user_id or ''}" default that cannot tell "absent" from "empty"."""
+        anonymous = compute_cache_partition(_context(None, ManagerRole))
+        empty_id = compute_cache_partition(_context("", ManagerRole))
+        assert anonymous != empty_id
+
 
 class TestOpaqueShape:
     """The label is a string that does not visibly embed the identity it was built from."""

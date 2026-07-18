@@ -66,7 +66,17 @@ def compute_cache_partition(context: Context) -> str:
     and must produce the same label. An anonymous ``Context`` (``user_id=None``,
     no roles) still hashes to a stable, well-defined string — nothing here is
     optional or ``None``.
+
+    ``user_id is not None`` is hashed in explicitly, ahead of ``user_id`` itself:
+    nothing on ``UserInfo`` forbids ``user_id=""`` (it is a plain, generic schema
+    field, not exclusively a real-identity contract), and an ``f"{user_id or ''}"``
+    default would hash an authenticated caller with an empty ``user_id`` to the
+    *same* string as a genuinely anonymous one with the same roles — a privilege
+    leak waiting on whatever ``AuthCoordinator`` happens to be in front of this
+    function. The explicit flag keeps the two states apart regardless of what
+    ``user_id`` actually contains.
     """
+    user_id = context.user.user_id
     roles = ",".join(sorted(role.name for role in context.user.roles))
-    identity = f"{context.user.user_id or ''}|{roles}"
+    identity = f"{user_id is not None}:{user_id or ''}|{roles}"
     return hashlib.sha256(identity.encode()).hexdigest()
