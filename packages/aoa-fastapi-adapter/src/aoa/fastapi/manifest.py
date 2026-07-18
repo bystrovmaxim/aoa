@@ -27,8 +27,11 @@ it is not in ``routes``, so it cannot be in the manifest.
 A *different* case — the exact same ``(method, path)`` registered twice — **is**
 deduplicated, first-wins: Starlette's real router only ever reaches the first
 registration (the second is unreachable), so the manifest must agree with it
-instead of listing an endpoint no request can actually reach. This matches
-:func:`~aoa.fastapi.permissions.build_route_index`'s own first-wins behavior.
+instead of listing an endpoint no request can actually reach. This reuses
+:func:`~aoa.fastapi.permissions.build_route_index` directly rather than
+reimplementing the same rule a second time (audit finding 10) — one function
+decides "first wins" for both the catalog and the resolver, not two
+independently-written ones that merely agree today.
 Deduplication happens *before* ``manifest_version`` is computed, so the hash
 reflects the manifest's real, deduplicated content rather than some unstable
 pre-dedup state — registering the same duplicate again in a different order
@@ -104,6 +107,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
+from aoa.fastapi.permissions import build_route_index
 from aoa.fastapi.permissions_schema import (
     SUPPORTED_VERSION,
     ErrorEnvelope,
@@ -239,14 +243,6 @@ def _build_endpoint(record: FastApiRouteRecord) -> ManifestEndpoint:
     )
 
 
-def _first_wins_routes(routes: list[FastApiRouteRecord]) -> list[FastApiRouteRecord]:
-    """Keep only the first registration for each exact ``(method, path)`` — see the module docstring."""
-    seen: dict[tuple[str, str], FastApiRouteRecord] = {}
-    for record in routes:
-        seen.setdefault((record.method, record.path), record)
-    return list(seen.values())
-
-
 def build_manifest(routes: list[FastApiRouteRecord]) -> Manifest:
     """
     Project registered routes into a client manifest.
@@ -258,9 +254,11 @@ def build_manifest(routes: list[FastApiRouteRecord]) -> Manifest:
     entries (no dedup by class — see the module docstring), but an exact
     ``(method, path)`` duplicate collapses to its first registration, before
     ``manifest_version`` is computed, so the hash reflects the manifest's real,
-    deduplicated content.
+    deduplicated content. First-wins dedup itself is
+    :func:`~aoa.fastapi.permissions.build_route_index` — dict order preserves
+    first-registration order, so ``.values()`` is exactly the list this needs.
     """
-    endpoints = [_build_endpoint(record) for record in _first_wins_routes(routes)]
+    endpoints = [_build_endpoint(record) for record in build_route_index(routes).values()]
     schemas = _build_schemas()
     # Canonical content *without* manifest_version — hashing the field that would
     # then have to contain its own hash is a circle with no fixed point. Every

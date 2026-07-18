@@ -146,6 +146,17 @@ class TestExactDuplicateIsFirstWins:
         assert without_duplicate.manifest_version == with_duplicate.manifest_version
 
 
+class TestFirstWinsIsOneSharedImplementation:
+    """Audit finding 10: the catalog and the resolver must read "first wins" from
+    the same function, not from two independently-written implementations that
+    merely happen to agree today."""
+
+    def test_manifest_module_reuses_permissions_build_route_index(self) -> None:
+        from aoa.fastapi.permissions import build_route_index
+
+        assert manifest_module.build_route_index is build_route_index
+
+
 class TestManifestVersion:
     """``manifest_version`` is a deterministic content hash of the projected body."""
 
