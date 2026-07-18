@@ -46,8 +46,17 @@ class AccessVerdict(BaseSchema):
     layer deeper: no ``allowed``/``level`` pair that could disagree with each other (the
     bug this shape replaces — ``allowed=True`` with a non-null ``level`` was expressible
     before, meaningless, and eventually happened). ``to_wire()`` copies ``kind``/``reason``
-    straight across, no recomputation. ``CHECK_ERROR`` never appears on an ``AccessVerdict``
-    instance — see :class:`ResolveItemKind`.
+    straight across, no recomputation.
+
+    The only validated contract is the one line in CONTRACT above — ``kind == SUCCESS``
+    iff ``reason == ""`` — and nothing else about ``kind``/``reason`` is or should be
+    checked here. In particular: today, no code path constructs an ``AccessVerdict``
+    with ``kind=CHECK_ERROR`` — the access-control cascade itself never produces that
+    channel, only the resolver does, around a check that was never reached at all (see
+    :class:`ResolveItemKind`) — but that is a fact about today's call sites, not a rule
+    this class enforces. Do not add a second, narrower validator for it or any other
+    ``kind`` (fix-audit finding 6): a client only ever needs to know success-vs-not and
+    the reason string: no combination of `kind`/`reason` should be validated beyond it.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
