@@ -100,12 +100,13 @@ def canonical_key(params: dict[str, Any]) -> str:
     return json.dumps(params, sort_keys=True)
 
 
-def _unknown_endpoint_verdict() -> FailErrorVerdict:
-    return FailErrorVerdict("UNKNOWN_ENDPOINT")
-
-
-def _unauthorized_verdict() -> FailSecurityVerdict:
-    return FailSecurityVerdict("UNAUTHORIZED")
+# Fixed, key-independent verdicts for items resolved without a real access_decide
+# call. BaseVerdict is frozen, so one shared instance per synthetic outcome is safe
+# to hand out for every key that needs it (fix-audit finding 13: this used to be two
+# parallel {set of keys + builder function} pairs; both builders took no arguments
+# and always returned the same value, so there was nothing to isolate them.
+_UNKNOWN_ENDPOINT_VERDICT = FailErrorVerdict("UNKNOWN_ENDPOINT")
+_UNAUTHORIZED_VERDICT = FailSecurityVerdict("UNAUTHORIZED")
 
 
 @dataclass
@@ -180,20 +181,19 @@ async def resolve_verdicts(
     item_keys: list[_DedupKey] = [(item.operation, canonical_key(item.params)) for item in items]
 
     pending: dict[_DedupKey, tuple[type[BaseAction[Any, Any]], Any, PreparedEndpointContext]] = {}
-    unknown_keys: set[_DedupKey] = set()
-    unauthorized_keys: set[_DedupKey] = set()
+    synthetic: dict[_DedupKey, BaseVerdict] = {}
 
     for item, key in zip(items, item_keys, strict=True):
-        if key in pending or key in unknown_keys or key in unauthorized_keys:
+        if key in pending or key in synthetic:
             continue
 
         plan = plan_index.get(item.operation)
         if plan is None:
-            unknown_keys.add(key)
+            synthetic[key] = _UNKNOWN_ENDPOINT_VERDICT
             continue
 
         if item.operation in unauthorized_operations:
-            unauthorized_keys.add(key)
+            synthetic[key] = _UNAUTHORIZED_VERDICT
             continue
 
         req_model = cast(type[BaseModel], plan.record.effective_request_model)
@@ -222,10 +222,8 @@ async def resolve_verdicts(
     verdict_by_key = dict(zip(pending_keys, real_verdicts, strict=True))
 
     def _result_for(key: _DedupKey) -> BaseVerdict:
-        if key in unknown_keys:
-            return _unknown_endpoint_verdict()
-        if key in unauthorized_keys:
-            return _unauthorized_verdict()
+        if key in synthetic:
+            return synthetic[key]
         return verdict_by_key[key]
 
     results = [_result_for(key) for key in item_keys]
