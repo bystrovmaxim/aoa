@@ -46,6 +46,14 @@ class TestGrantConstruction:
         with pytest.raises(ValueError, match=r"reason=.*when="):
             grant(AdminRole, reason=FailSecurityVerdict("sales only"))
 
+    def test_grant_reason_as_plain_string_raises(self) -> None:
+        """baseverdict-audit finding 3, third document: reason= was a plain str before the
+        BaseVerdict redesign -- a caller passing an ordinary string through (migrated code,
+        or simply unchecked by mypy) must be rejected at declaration, not reach a real
+        AuthorizationError and crash the first time something reads .verdict.reason off it."""
+        with pytest.raises(TypeError, match="FailSecurityVerdict"):
+            grant(AdminRole, when=_sales_only, reason="sales only")  # type: ignore[arg-type]
+
 
 class TestCheckRolesGrants:
     def test_single_grant_spec_is_bare_type(self) -> None:
@@ -141,6 +149,18 @@ class TestCheckRolesGuard:
         with pytest.raises(ValueError, match=r"reason=.*guard="):
 
             @check_roles(AdminRole, reason=FailSecurityVerdict("not eligible"))
+            class _Action:
+                pass
+
+    def test_guard_reason_as_plain_string_raises(self) -> None:
+        """baseverdict-audit finding 3, third document -- same gap, same fix, other call site."""
+
+        def guard_fn(user: object, params: object) -> bool:
+            return True
+
+        with pytest.raises(TypeError, match="FailSecurityVerdict"):
+
+            @check_roles(AdminRole, guard=guard_fn, reason="not eligible")  # type: ignore[arg-type]
             class _Action:
                 pass
 

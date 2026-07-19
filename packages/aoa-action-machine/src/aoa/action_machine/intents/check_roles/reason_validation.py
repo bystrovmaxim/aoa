@@ -24,7 +24,16 @@ def require_reason_alongside(
     default_reason: str,
 ) -> FailSecurityVerdict | None:
     """
-    Enforce ``reason=``'s pairing with its condition (``when=``/``guard=``), and default it.
+    Enforce ``reason=``'s type and its pairing with its condition (``when=``/``guard=``), and default it.
+
+    ``reason=`` must actually be a ``FailSecurityVerdict`` (subclasses included) when given —
+    the parameter is typed that way, but Python does not enforce annotations at runtime, and
+    ``reason`` was a plain ``str`` before the ``BaseVerdict`` redesign, so a caller migrating
+    old code (or simply not running mypy over the call site) can otherwise pass an ordinary
+    string through unnoticed. That string then reaches ``AuthorizationError.verdict`` and
+    crashes the first time something reads ``.verdict.reason`` off it — in production, at the
+    exact moment a real denial needs to explain itself (baseverdict-audit finding 3, third
+    document).
 
     ``reason=`` without the condition is meaningless — nothing can reject, so there is
     nothing to explain. The condition without ``reason=`` defaults to a framework-owned
@@ -35,15 +44,18 @@ def require_reason_alongside(
     in these names and the default string).
 
     Raises:
+        TypeError: ``reason`` was given but is not a ``FailSecurityVerdict``.
         ValueError: ``reason`` was given without ``condition``.
     """
+    # pylint: disable-next=import-outside-toplevel
+    from aoa.action_machine.intents.access_control import FailSecurityVerdict  # see TYPE_CHECKING note above
+
+    if reason is not None and not isinstance(reason, FailSecurityVerdict):
+        raise TypeError(f"{context}: reason= must be a FailSecurityVerdict instance, got {type(reason).__name__}.")
     if reason is not None and condition is None:
         raise ValueError(
             f"{context}: reason= was given without {condition_name}= — there is no condition for it to explain."
         )
     if condition is not None and reason is None:
-        # pylint: disable-next=import-outside-toplevel
-        from aoa.action_machine.intents.access_control import FailSecurityVerdict  # see TYPE_CHECKING note above
-
         return FailSecurityVerdict(default_reason)
     return reason
