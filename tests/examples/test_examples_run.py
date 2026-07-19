@@ -52,7 +52,7 @@ def _discover_example_scripts() -> list[Path]:
 
 
 def _example_id(script: Path) -> str:
-    return str(script.relative_to(EXAMPLES_ROOT))
+    return script.relative_to(EXAMPLES_ROOT).as_posix()
 
 
 _SCRIPTS = _discover_example_scripts()
