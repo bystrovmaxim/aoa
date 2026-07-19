@@ -232,6 +232,7 @@ def check_roles(
     if reason is not None and guard is None:
         raise ValueError("@check_roles: reason= was given without guard= — there is no condition for it to explain.")
     if guard is not None and reason is None:
+        # pylint: disable-next=import-outside-toplevel
         from aoa.action_machine.intents.access_control import FailSecurityVerdict  # see TYPE_CHECKING note above
 
         reason = FailSecurityVerdict("FORBIDDEN_GUARD")

@@ -55,6 +55,7 @@ def grant(
     if reason is not None and when is None:
         raise ValueError("grant(): reason= was given without when= — there is no condition for it to explain.")
     if when is not None and reason is None:
+        # pylint: disable-next=import-outside-toplevel
         from aoa.action_machine.intents.access_control import FailSecurityVerdict  # see TYPE_CHECKING note above
 
         reason = FailSecurityVerdict("FORBIDDEN_GRANT")

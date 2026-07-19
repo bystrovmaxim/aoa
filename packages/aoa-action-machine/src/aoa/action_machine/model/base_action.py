@@ -242,6 +242,7 @@ class BaseAction[P: BaseParams, R: BaseResult](
         on the check-only path; on the real ``machine.run()`` path it still blocks
         execution, same as any non-``AllowedVerdict`` outcome.
         """
+        # pylint: disable-next=import-outside-toplevel
         from aoa.action_machine.intents.access_control import AllowedVerdict  # see TYPE_CHECKING note above
 
         return AllowedVerdict()

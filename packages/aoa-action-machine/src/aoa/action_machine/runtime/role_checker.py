@@ -176,6 +176,7 @@ class RoleChecker:
         if role_spec is AnyRole:
             active = _active_user_roles(context.user.roles)
             if not active:
+                # pylint: disable-next=import-outside-toplevel
                 from aoa.action_machine.intents.access_control import (
                     FailSecurityVerdict,  # see TYPE_CHECKING note above
                 )
@@ -268,6 +269,7 @@ def _denial_error(
     framework-fixed ``FailSecurityVerdict("FORBIDDEN_ROLE")``, never a
     developer-declared reason.
     """
+    # pylint: disable-next=import-outside-toplevel
     from aoa.action_machine.intents.access_control import FailSecurityVerdict  # see TYPE_CHECKING note above
 
     user_names = [r.name for r in raw_roles]

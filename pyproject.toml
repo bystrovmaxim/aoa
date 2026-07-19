@@ -400,7 +400,10 @@ exclude = ["tests/"]
 # Intentionally-unused interface parameters in the aoa-demo billing demo stubs
 # (LedgerArchiveService.append / TaxQuoteService.rate_for keep the real service
 # signature but ignore their inputs in the stub bodies).
-ignore_names = ["event_type", "jurisdiction"]
+# __context — pydantic.BaseModel.model_post_init's own hook parameter
+# (BaseVerdict.model_post_init in access_verdict.py); the abstractness guard
+# it implements doesn't need the value, just the hook being called.
+ignore_names = ["event_type", "jurisdiction", "__context"]
 
 # ============================================================================
 # TASKIPY — УДОБНЫЕ КОМАНДЫ

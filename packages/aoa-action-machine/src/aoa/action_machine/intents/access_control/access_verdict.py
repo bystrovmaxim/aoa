@@ -49,8 +49,14 @@ class BaseVerdict(BaseSchema):
     def kind(self) -> str:
         return type(self).__name__
 
+    # pydantic.BaseModel.model_post_init is (self, context, /) -> None; pylint has no
+    # pydantic-aware stub and infers a 0-arg signature for the hook, so this reads as a
+    # mismatch even though it matches the real base method exactly.
+    # pylint: disable-next=arguments-differ
     def model_post_init(self, __context: Any) -> None:
-        if type(self) is BaseVerdict:
+        if type(self) is BaseVerdict:  # pylint: disable=unidiomatic-typecheck
+            # isinstance() would also match every subclass, defeating this guard --
+            # only literal BaseVerdict itself is abstract, not "anything derived from it".
             raise TypeError(f"{type(self).__name__} is abstract and cannot be instantiated directly.")
 
 
