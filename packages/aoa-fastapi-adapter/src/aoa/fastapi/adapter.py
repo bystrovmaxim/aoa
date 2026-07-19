@@ -182,10 +182,6 @@ def _fastapi_query_param_annotation(field_name: str, field_info: Any, path_param
     return ann
 
 
-def _fastapi_route_label(record: FastApiRouteRecord) -> str:
-    return f"{record.method} {record.path}"
-
-
 def _get_action_class_description(
     action_class: type,
     *,
@@ -450,7 +446,7 @@ def _make_endpoint_with_body(
             params,
             record.params_type,
             adapter="FastAPI",
-            route_label=_fastapi_route_label(record),
+            route_label=record.operation,
         )
 
         prepared = await plan.prepare(request)
@@ -464,7 +460,7 @@ def _make_endpoint_with_body(
                 mapped,
                 record.effective_response_model,
                 adapter="FastAPI",
-                route_label=_fastapi_route_label(record),
+                route_label=record.operation,
             )
             return mapped
         return result
@@ -517,7 +513,7 @@ def _make_endpoint_with_query(
             params,
             record.params_type,
             adapter="FastAPI",
-            route_label=_fastapi_route_label(record),
+            route_label=record.operation,
         )
 
         prepared = await plan.prepare(request)
@@ -531,7 +527,7 @@ def _make_endpoint_with_query(
                 mapped,
                 record.effective_response_model,
                 adapter="FastAPI",
-                route_label=_fastapi_route_label(record),
+                route_label=record.operation,
             )
             return mapped
         return result
@@ -613,7 +609,7 @@ def _make_endpoint_no_params(
             params,
             record.params_type,
             adapter="FastAPI",
-            route_label=_fastapi_route_label(record),
+            route_label=record.operation,
         )
 
         prepared = await plan.prepare(request)
@@ -627,7 +623,7 @@ def _make_endpoint_no_params(
                 mapped,
                 record.effective_response_model,
                 adapter="FastAPI",
-                route_label=_fastapi_route_label(record),
+                route_label=record.operation,
             )
             return mapped
         return result
@@ -1069,7 +1065,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         registration is already unreachable via Starlette's own first-match routing,
         so this cannot change any real request's behavior.
         """
-        plan = plan_index[_fastapi_route_label(record)]
+        plan = plan_index[record.operation]
         endpoint = _make_endpoint(
             record=record,
             machine=self._machine,

@@ -84,8 +84,7 @@ def build_route_index(routes: list[FastApiRouteRecord]) -> dict[str, FastApiRout
     """
     index: dict[str, FastApiRouteRecord] = {}
     for record in routes:
-        operation = f"{record.method} {record.path}"
-        index.setdefault(operation, record)  # first-wins, mirroring the router
+        index.setdefault(record.operation, record)  # first-wins, mirroring the router
     return index
 
 

@@ -122,3 +122,18 @@ class FastApiRouteRecord(BaseRouteRecord):
 
         if not self.path.startswith("/"):
             raise ValueError(f"path must start with '/'. " f"Got: '{self.path}'. " f"Use a path like '/{self.path}'.")
+
+    # ── Derived ──────────────────────────────────────────────────────────
+
+    @property
+    def operation(self) -> str:
+        """
+        The wire-protocol operation identifier for this route: ``"{method} {path}"``.
+
+        Canonical source of this format (fix-audit finding 10, second document):
+        callers must read this property rather than reformat ``method``/``path``
+        independently — every previous independent copy agreed only by accident
+        (both fields are already normalized here, in ``__post_init__``), not
+        because they called shared code.
+        """
+        return f"{self.method} {self.path}"

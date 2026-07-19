@@ -242,7 +242,7 @@ def _build_endpoint(record: FastApiRouteRecord) -> ManifestEndpoint:
     """Project one ``FastApiRouteRecord`` into one ``ManifestEndpoint``."""
     action_class = record.action_class
     return ManifestEndpoint(
-        operation=f"{record.method} {record.path}",
+        operation=record.operation,
         name=action_class.__name__,
         domain=MetaIntentResolver.resolve_domain_type(action_class).__name__,
         description=MetaIntentResolver.resolve_description(action_class),
