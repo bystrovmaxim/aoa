@@ -262,12 +262,19 @@ def _validated_access_decide_verdict(
     existing exception handling decides what that means for it -- `_enforce_access_decide` lets it
     propagate and abort the real call, `check_access_decide`'s list form already turns any
     non-`AuthorizationError` exception into an isolated `FailErrorVerdict` for that one item.
+
+    The error message names only ``type(verdict).__name__``, never ``verdict`` itself: a broken
+    override could return anything -- a domain object, raw params, something carrying sensitive
+    data -- and unlike the check-only path (which already keeps only the exception's class name,
+    never its message), the real ``machine.run()`` path lets this exception propagate uncaught,
+    so its text can reach server logs or, depending on the app's own error handling, an HTTP 500
+    body.
     """
     if isinstance(verdict, (AllowedVerdict, FailSecurityVerdict)):
         return verdict
     raise TypeError(
         f"{type(action_instance).__name__}.access_decide() must return AllowedVerdict or "
-        f"FailSecurityVerdict, got {verdict!r}."
+        f"FailSecurityVerdict, got {type(verdict).__name__!r}."
     )
 
 
