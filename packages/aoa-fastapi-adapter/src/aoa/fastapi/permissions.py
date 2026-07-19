@@ -28,11 +28,11 @@ Small, independent pieces of glue between the wire protocol
   see ``execution_plan.py``). If the matched route carries a ``params_mapper``, the
   incoming params are mapped through it first — the same converter the real call
   would use — before ``access_decide``. An unknown ``operation`` is isolated to
-  that one item's result (``kind=CHECK_ERROR, reason="UNKNOWN_ENDPOINT"``) instead
+  that one item's result (a ``FailErrorVerdict("UNKNOWN_ENDPOINT")``) instead
   of failing the whole batch; an operation whose own route-level ``auth_coordinator``
   rejected the caller (``EndpointExecutionPlan.prepare`` raised ``AuthorizationError``,
   reported by the caller via ``unauthorized_operations``) is isolated the same way,
-  as ``kind=SECURITY, reason="UNAUTHORIZED"``. Returns a :class:`ResolveOutcome` whose ``real_call_count`` lets
+  as a ``FailSecurityVerdict("UNAUTHORIZED")``. Returns a :class:`ResolveOutcome` whose ``real_call_count`` lets
   tests assert on deduplication directly (by calling this function, not the HTTP
   endpoint) — ``real_call_count`` is never serialized onto the wire; the client has
   no business knowing which items were deduplicated internally.
