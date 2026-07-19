@@ -33,6 +33,15 @@ class BaseVerdict(BaseSchema):
     Adding a new outcome is adding a new subclass, not editing a central enum — the
     old ``ResolveItemKind`` is gone entirely.
 
+    This guarantee holds for the normal constructor. ``model_construct()`` and
+    ``model_copy(update=...)`` are pydantic's own documented escape hatches for
+    building an instance from already-trusted data without running validators at
+    all (confirmed empirically) — both can still produce e.g.
+    ``FailSecurityVerdict(reason="")``, bypassing ``Field(min_length=1)`` and even
+    ``frozen=True``. Nothing in this codebase calls either on a ``BaseVerdict``; if
+    that ever changes, the "cannot represent" claim above no longer holds for that
+    call site (baseverdict-audit finding 5, third document).
+
     Abstract by construction, not by convention: ``model_post_init`` raises
     ``TypeError`` if ``type(self) is BaseVerdict``. ``pydantic.BaseModel`` combined
     with ``abc.ABC`` alone does not block direct instantiation (confirmed
@@ -79,7 +88,8 @@ class FailSecurityVerdict(BaseVerdict):
     own auth check rejected the caller, ``aoa-fastapi-adapter``), or whatever
     ``access_decide()`` itself returns. ``reason`` is mandatory and non-empty
     (``Field(min_length=1)``) — a ``FailSecurityVerdict`` with nothing to say about
-    why is not a state this class can represent.
+    why is not a state the normal constructor can represent (see ``BaseVerdict``'s
+    own docstring for the ``model_construct``/``model_copy`` caveat to that claim).
 
     Subclasses may add their own fields (same pattern as ``BaseVerdict.kind``: no
     redeclaration needed, ``kind`` keeps resolving to the subclass's own name) — a
