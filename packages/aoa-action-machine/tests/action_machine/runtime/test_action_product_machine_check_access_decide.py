@@ -36,6 +36,7 @@ _guard_result = {"value": True}
 _raise_for_keys: set[str] = set()
 _guard_deny_keys: set[str] = set()
 _access_decide_deny_keys: set[str] = set()
+_access_decide_unexpected_keys: set[str] = set()
 
 
 def _guard(user: object, params: object) -> bool:
@@ -53,6 +54,7 @@ def _reset() -> None:
     _raise_for_keys.clear()
     _guard_deny_keys.clear()
     _access_decide_deny_keys.clear()
+    _access_decide_unexpected_keys.clear()
 
 
 @pytest.fixture(scope="module")
@@ -83,6 +85,8 @@ class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.R
         _access_decide_calls["n"] += 1
         if params.key in _raise_for_keys:
             raise RuntimeError(f"boom for key={params.key!r}")
+        if params.key in _access_decide_unexpected_keys:
+            return None  # type: ignore[return-value]  # simulates a forgotten `return` in a real override
         if not _access_decide_result["value"] or params.key in _access_decide_deny_keys:
             return FailSecurityVerdict("access_decide rejected")
         return AllowedVerdict()
@@ -230,6 +234,29 @@ async def test_one_failing_item_does_not_affect_the_others(machine: ActionProduc
     assert verdicts[1].kind == "FailErrorVerdict"
     # An unexpected exception's reason is its class name, not its message text.
     assert verdicts[1].reason == "RuntimeError"
+    assert verdicts[2] == AllowedVerdict()
+
+
+async def test_access_decide_returning_unexpected_value_becomes_isolated_fail_error_verdict(
+    machine: ActionProductMachine,
+) -> None:
+    """baseverdict-audit finding 2: an access_decide() that answers with anything other than
+    AllowedVerdict/FailSecurityVerdict is a bug in that override, not a real answer -- it must
+    not be silently treated as an allow or a deny, and (on this check-only path, unlike the
+    real-execution path) must not crash the rest of the batch either."""
+    _reset()
+    _access_decide_unexpected_keys.add("B")
+    verdicts = await machine.check_access_decide(
+        _admin_context(),
+        [
+            (CheckProbeAction, CheckProbeAction.Params(key="A")),
+            (CheckProbeAction, CheckProbeAction.Params(key="B")),
+            (CheckProbeAction, CheckProbeAction.Params(key="C")),
+        ],
+    )
+    assert verdicts[0] == AllowedVerdict()
+    assert verdicts[1].kind == "FailErrorVerdict"
+    assert verdicts[1].reason == "TypeError"
     assert verdicts[2] == AllowedVerdict()
 
 

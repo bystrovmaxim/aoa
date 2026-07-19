@@ -143,7 +143,7 @@ from aoa.action_machine.exceptions.cache_contract_error import CacheContractErro
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.intents.access_control import BaseVerdict, FailErrorVerdict, FailSecurityVerdict
+from aoa.action_machine.intents.access_control import AllowedVerdict, BaseVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import Channel
@@ -245,6 +245,29 @@ def _all_aspect_states_from_saga_stack(
         _aspect_state_snapshot_for_plugins(frame.state_after)
         for frame in saga_stack
         if isinstance(frame.state_after, BaseState)
+    )
+
+
+def _validated_access_decide_verdict(
+    action_instance: BaseAction[Any, Any], verdict: FailSecurityVerdict | AllowedVerdict
+) -> FailSecurityVerdict | AllowedVerdict:
+    """Reject anything ``access_decide()`` returns other than ``AllowedVerdict``/``FailSecurityVerdict``.
+
+    The base implementation always returns ``AllowedVerdict()`` (see ``BaseAction.access_decide``),
+    so a subclass override that reaches this function with anything else -- ``None`` (a forgotten
+    ``return``), a bare ``bool``, a ``FailErrorVerdict`` -- has a bug, not an ambiguous or partial
+    answer. That is not the same failure as "the check itself broke" (a crash, an unreachable
+    connection -- genuinely unknown, `FailErrorVerdict`'s own job) and must not be folded into
+    either "allowed" or "denied": it is raised here as a plain ``TypeError``, so each caller's own
+    existing exception handling decides what that means for it -- `_enforce_access_decide` lets it
+    propagate and abort the real call, `check_access_decide`'s list form already turns any
+    non-`AuthorizationError` exception into an isolated `FailErrorVerdict` for that one item.
+    """
+    if isinstance(verdict, (AllowedVerdict, FailSecurityVerdict)):
+        return verdict
+    raise TypeError(
+        f"{type(action_instance).__name__}.access_decide() must return AllowedVerdict or "
+        f"FailSecurityVerdict, got {verdict!r}."
     )
 
 
@@ -657,7 +680,9 @@ class ActionProductMachine(BaseActionMachine):
                     self._role_checker.check(context, action_node, item_params)
                     conns = self._connection_validator.validate(item_instance, connections, action_node)
                     box = self._build_check_box(context, item_params, action_node)
-                    verdict: BaseVerdict = await item_instance.access_decide(item_params, context, box, conns)
+                    verdict = _validated_access_decide_verdict(
+                        item_instance, await item_instance.access_decide(item_params, context, box, conns)
+                    )
                 except AuthorizationError as exc:
                     verdicts.append(exc.verdict if exc.verdict is not None else FailSecurityVerdict(str(exc)))
                 except Exception as exc:
@@ -722,7 +747,9 @@ class ActionProductMachine(BaseActionMachine):
         abort, so it calls ``access_decide`` directly and uses whatever it returns as the
         answer, no exception involved (see that method's own docstring).
         """
-        verdict = await action_instance.access_decide(params, context, box, connections)
+        verdict = _validated_access_decide_verdict(
+            action_instance, await action_instance.access_decide(params, context, box, connections)
+        )
         if isinstance(verdict, FailSecurityVerdict):
             raise AuthorizationError(
                 f"Access denied: {type(action_instance).__name__}.access_decide() rejected — {verdict.reason}.",
