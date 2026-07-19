@@ -95,7 +95,7 @@ class TestRoleGate:
     """The resolver's role-gate (levels 1/2) against a real ``ActionProductMachine``."""
 
     def test_manager_role_allowed(self) -> None:
-        """A manager resolving ``CancelOrderAction`` gets an honest ``kind: "success"``."""
+        """A manager resolving ``CancelOrderAction`` gets an honest ``kind: "AllowedVerdict"``."""
         client = _make_client(context=_manager_context())
         response = client.post(
             "/permissions/resolve",
@@ -105,11 +105,11 @@ class TestRoleGate:
         body = response.json()
         assert body["version"] == 1
         result = body["results"][0]
-        assert result["kind"] == "success"
-        assert result["reason"] == ""
+        assert result["kind"] == "AllowedVerdict"
+        assert "reason" not in result
 
     def test_wrong_role_denied_with_security_kind(self) -> None:
-        """A non-manager resolving ``CancelOrderAction`` gets an honest ``kind: "security"`` with a non-empty reason."""
+        """A non-manager resolving ``CancelOrderAction`` gets an honest ``kind: "FailSecurityVerdict"`` with a non-empty reason."""
         client = _make_client(context=_user_context())
         response = client.post(
             "/permissions/resolve",
@@ -117,7 +117,7 @@ class TestRoleGate:
         )
         assert response.status_code == 200
         result = response.json()["results"][0]
-        assert result["kind"] == "security"
+        assert result["kind"] == "FailSecurityVerdict"
         assert result["reason"] != ""
 
     def test_batch_of_many_preserves_order(self) -> None:
@@ -136,15 +136,14 @@ class TestRoleGate:
         assert response.status_code == 200
         results = response.json()["results"]
         assert len(results) == 2
-        assert all(r["kind"] == "success" for r in results)
+        assert all(r["kind"] == "AllowedVerdict" for r in results)
 
     def test_result_never_carries_action_over_the_wire(self) -> None:
-        """resolve_verdicts() now returns real AccessVerdict instances directly (no
-        to_wire() step, fix-audit finding 7's follow-up) -- confirm the internal-only
-        `action` field (a live Python class reference) never actually reaches JSON,
-        for both a real cascade verdict and the synthetic ones (unknown endpoint).
-        The derived `action_name` diagnostic field is the opposite: present for the
-        real verdict, absent for the synthetic one -- it has no action to name."""
+        """resolve_verdicts() now returns real AllowedVerdict/FailSecurityVerdict/
+        FailErrorVerdict instances directly (no to_wire() step, fix-audit finding
+        7's follow-up) -- confirm the internal-only `action` field (a live Python
+        class reference) never actually reaches JSON, for both a real cascade
+        verdict and the synthetic ones (unknown endpoint)."""
         client = _make_client(context=_manager_context())
         response = client.post(
             "/permissions/resolve",
@@ -159,8 +158,8 @@ class TestRoleGate:
         assert response.status_code == 200
         results = response.json()["results"]
         assert len(results) == 2
-        assert set(results[0].keys()) == {"kind", "reason", "action_name"}
-        assert results[0]["action_name"] == "CancelOrderAction"
+        assert set(results[0].keys()) == {"kind"}
+        assert results[0]["kind"] == "AllowedVerdict"
         assert set(results[1].keys()) == {"kind", "reason"}
 
 
@@ -229,7 +228,7 @@ class TestGuestAndAnonymous:
         )
         assert response.status_code == 200
         result = response.json()["results"][0]
-        assert result["kind"] == "success"
+        assert result["kind"] == "AllowedVerdict"
 
     def test_guest_context_still_denied_for_manager_only_action(self) -> None:
         """A guest is still honestly denied for an action that requires a real role."""
@@ -240,7 +239,7 @@ class TestGuestAndAnonymous:
         )
         assert response.status_code == 200
         result = response.json()["results"][0]
-        assert result["kind"] == "security"
+        assert result["kind"] == "FailSecurityVerdict"
 
     def test_process_returning_none_is_rejected_with_401(self) -> None:
         """When ``auth_coordinator.process()`` itself returns ``None``, the resolver never reaches the machine."""
@@ -263,7 +262,7 @@ class TestErrorMapping:
     """Per-item isolation (PR 2) vs. whole-request error mapping."""
 
     def test_unknown_operation_gets_a_per_item_check_error(self) -> None:
-        """An operation with no registered endpoint is a ``200`` with ``kind: "check_error"``, not a 500/400."""
+        """An operation with no registered endpoint is a ``200`` with ``kind: "FailErrorVerdict"``, not a 500/400."""
         client = _make_client(context=_manager_context())
         response = client.post(
             "/permissions/resolve",
@@ -271,7 +270,7 @@ class TestErrorMapping:
         )
         assert response.status_code == 200
         result = response.json()["results"][0]
-        assert result["kind"] == "check_error"
+        assert result["kind"] == "FailErrorVerdict"
         assert result["reason"] == "UNKNOWN_ENDPOINT"
 
     def test_unknown_operation_in_the_middle_does_not_affect_other_items(self) -> None:
@@ -291,10 +290,10 @@ class TestErrorMapping:
         assert response.status_code == 200
         results = response.json()["results"]
         assert len(results) == 3
-        assert results[0]["kind"] == "success"
-        assert results[1]["kind"] == "check_error"
+        assert results[0]["kind"] == "AllowedVerdict"
+        assert results[1]["kind"] == "FailErrorVerdict"
         assert results[1]["reason"] == "UNKNOWN_ENDPOINT"
-        assert results[2]["kind"] == "success"
+        assert results[2]["kind"] == "AllowedVerdict"
 
     def test_empty_items_is_422(self) -> None:
         """An empty ``items`` list fails pydantic validation (``min_length=1``) before the resolver runs."""

@@ -37,15 +37,13 @@ Small, independent pieces of glue between the wire protocol
   endpoint) — ``real_call_count`` is never serialized onto the wire; the client has
   no business knowing which items were deduplicated internally.
 
-``ResolveOutcome.results`` holds real ``AccessVerdict`` instances for every item
-that reached the cascade, no conversion step: ``AccessVerdict`` *is* a
-``ResolveItemResult`` (``aoa-action-machine``, a subclass adding one
-internal-only, non-serialized field), so there is nothing left to project — the
-``to_wire()`` function this module used to export is gone (fix-audit finding 7's
-follow-up). The two synthetic outcomes that never reach the cascade at all —
-unknown ``operation``, route-level auth rejection — build a plain
-``ResolveItemResult`` directly instead, which never had an ``action`` slot to
-begin with.
+``ResolveOutcome.results`` holds real ``AllowedVerdict``/``FailSecurityVerdict``
+instances for every item that reached the cascade, no conversion step — each *is*
+a ``BaseVerdict`` (``aoa-action-machine``), so there is nothing left to project;
+the ``to_wire()`` function this module used to export is gone (fix-audit finding
+7's follow-up). The two synthetic outcomes that never reach the cascade at all —
+unknown ``operation``, route-level auth rejection — build a ``FailErrorVerdict``/
+``FailSecurityVerdict`` directly instead.
 """
 
 # Ruff/isort lists first-party ``action_machine`` before FastAPI (known-first-party).
@@ -59,11 +57,11 @@ from typing import Any, cast
 
 from pydantic import BaseModel, ValidationError
 
-from aoa.action_machine.intents.access_control import AccessVerdict, ResolveItemKind
+from aoa.action_machine.intents.access_control import BaseVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.execution_plan import EndpointExecutionPlan, PreparedEndpointContext
-from aoa.fastapi.permissions_schema import ResolveItem, ResolveItemResult
+from aoa.fastapi.permissions_schema import ResolveItem
 from aoa.fastapi.route_record import FastApiRouteRecord
 from fastapi import HTTPException
 
@@ -103,12 +101,12 @@ def canonical_key(params: dict[str, Any]) -> str:
     return json.dumps(params, sort_keys=True)
 
 
-def _unknown_endpoint_verdict() -> ResolveItemResult:
-    return ResolveItemResult(kind=ResolveItemKind.CHECK_ERROR, reason="UNKNOWN_ENDPOINT")
+def _unknown_endpoint_verdict() -> FailErrorVerdict:
+    return FailErrorVerdict("UNKNOWN_ENDPOINT")
 
 
-def _unauthorized_verdict() -> ResolveItemResult:
-    return ResolveItemResult(kind=ResolveItemKind.SECURITY, reason="UNAUTHORIZED")
+def _unauthorized_verdict() -> FailSecurityVerdict:
+    return FailSecurityVerdict("UNAUTHORIZED")
 
 
 @dataclass
@@ -123,7 +121,7 @@ class ResolveOutcome:
     endpoint only ever reads ``results``.
     """
 
-    results: list[ResolveItemResult]
+    results: list[BaseVerdict]
     real_call_count: int
 
 
@@ -153,16 +151,18 @@ async def resolve_verdicts(
        shape *is* the action's ``Params``, so nothing changes.
     3. **Per-item error isolation: unknown endpoint.** An ``operation`` that names no
        registered endpoint fails only its own key's positions with
-       ``kind=CHECK_ERROR, reason="UNKNOWN_ENDPOINT"``, not the whole request. A
-       ``ValidationError`` on a known endpoint's params (malformed params, not an
-       unknown endpoint) still fails the whole request with HTTP 400.
+       ``FailErrorVerdict("UNKNOWN_ENDPOINT")`` (``kind: "FailErrorVerdict"``), not
+       the whole request. A ``ValidationError`` on a known endpoint's params
+       (malformed params, not an unknown endpoint) still fails the whole request
+       with HTTP 400.
     4. **Per-item error isolation: route-level auth rejection.** An ``operation`` named
        in ``unauthorized_operations`` — its own route-level ``auth_coordinator`` (an
        ``EndpointExecutionPlan.prepare`` override, distinct from the resolver's own
        entry gate) rejected the caller — fails only its own key's positions with
-       ``kind=SECURITY, reason="UNAUTHORIZED"``, not the whole request. This is a
-       settled "no", not an unreached check: the route's own gate did produce a
-       decision, it is simply not a role/guard/``access_decide`` one.
+       ``FailSecurityVerdict("UNAUTHORIZED")`` (``kind: "FailSecurityVerdict"``), not
+       the whole request. This is a settled "no", not an unreached check: the
+       route's own gate did produce a decision, it is simply not a
+       role/guard/``access_decide`` one.
 
     Each item's real ``check_access_decide`` call runs under its own route's context
     and connections: ``prepared_by_operation[item.operation]``, prepared by the caller
@@ -208,7 +208,7 @@ async def resolve_verdicts(
         pending[key] = (plan.record.action_class, params, prepared_by_operation[item.operation])
 
     pending_keys = list(pending.keys())
-    real_verdicts: list[AccessVerdict] = (
+    real_verdicts: list[BaseVerdict] = (
         list(
             await asyncio.gather(
                 *(
@@ -222,7 +222,7 @@ async def resolve_verdicts(
     )
     verdict_by_key = dict(zip(pending_keys, real_verdicts, strict=True))
 
-    def _result_for(key: _DedupKey) -> ResolveItemResult:
+    def _result_for(key: _DedupKey) -> BaseVerdict:
         if key in unknown_keys:
             return _unknown_endpoint_verdict()
         if key in unauthorized_keys:

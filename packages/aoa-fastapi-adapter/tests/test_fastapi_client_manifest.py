@@ -63,7 +63,7 @@ class TestClientManifestEndpoint:
         assert set(body["schemas"].keys()) == {
             "ResolveRequest",
             "ResolveResponse",
-            "ResolveItemResult",
+            "BaseVerdict",
             "ErrorEnvelope",
             "Manifest",
         }

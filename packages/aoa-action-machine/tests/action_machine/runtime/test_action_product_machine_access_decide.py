@@ -8,6 +8,7 @@ from pydantic import Field
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -49,8 +50,8 @@ class DenyAllAccessDecideAction(BaseAction["DenyAllAccessDecideAction.Params", "
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> bool:
-        return False
+    ) -> FailSecurityVerdict | AllowedVerdict:
+        return FailSecurityVerdict("denied unconditionally")
 
     @summary_aspect("S")
     async def probe_summary(
@@ -69,6 +70,7 @@ async def test_access_decide_false_raises_before_any_aspect(machine: ActionProdu
     with pytest.raises(AuthorizationError) as excinfo:
         await machine.run(_admin_context(), DenyAllAccessDecideAction(), DenyAllAccessDecideAction.Params())
     assert excinfo.value.level == 3
+    assert excinfo.value.verdict == FailSecurityVerdict("denied unconditionally")
     assert _summary_calls["n"] == 0
 
 
@@ -97,8 +99,8 @@ class AllowAccessDecideAction(BaseAction["AllowAccessDecideAction.Params", "Allo
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> bool:
-        return True
+    ) -> FailSecurityVerdict | AllowedVerdict:
+        return AllowedVerdict()
 
     @summary_aspect("S")
     async def probe_summary(

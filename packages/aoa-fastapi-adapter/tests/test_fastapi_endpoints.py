@@ -47,6 +47,7 @@ from fastapi.testclient import TestClient
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
+from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
@@ -268,7 +269,9 @@ class TestExceptionHandlers:
         developer-declared reason= -- audit finding 2: it used to be dropped by str(exc)."""
         # Arrange
         adapter, _ = _make_app(
-            run_side_effect=AuthorizationError("Access denied. guard= condition was not met.", level=2, reason="order is locked"),
+            run_side_effect=AuthorizationError(
+                "Access denied. guard= condition was not met.", level=2, verdict=FailSecurityVerdict("order is locked")
+            ),
         )
         adapter.post("/ping", PingAction)
         app = adapter.build()

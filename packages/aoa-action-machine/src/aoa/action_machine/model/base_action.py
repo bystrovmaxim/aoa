@@ -140,6 +140,14 @@ from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 if TYPE_CHECKING:
+    # Deferred: access_control.access_verdict imports model.base_schema, which
+    # triggers model/__init__.py -> base_action (this file, still mid-import) --
+    # a real transitive cycle, same shape as the Context one below. AllowedVerdict/
+    # FailSecurityVerdict are only ever used as type annotations below; the one
+    # runtime construction (the default access_decide's `return AllowedVerdict()`)
+    # imports locally, inside the method, once every module has finished loading.
+    from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
+
     # Deferred: runtime.tools_box imports BaseAction at module level, so a top-level
     # import here would cycle. ToolsBox is only ever used as a type annotation below.
     from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -176,7 +184,7 @@ class BaseAction[P: BaseParams, R: BaseResult](
     CONTRACT: Everything external via ``@depends``/``@connection``.
     INVARIANTS: Knows nothing about transport, coordinators, or storage.
     CACHE: Optional ``cache_key`` / ``read_cache`` / ``on_cache_write`` / ``on_cache_invalidate``; defaults disable caching. ``cache_key`` returns ``str | None``; ``on_cache_write`` returns ``list[CacheTag] | None`` (None = skip write); ``on_cache_invalidate`` returns ``list[CacheTag] | None`` and is called after every clean pipeline regardless of ``cache_key``.
-    ACCESS: Optional ``access_decide`` — object-level check run after ``@check_roles``/``guard=`` pass; defaults to ``True`` (no extra restriction beyond roles). ``False`` denies access.
+    ACCESS: Optional ``access_decide`` — object-level check run after ``@check_roles``/``guard=`` pass; defaults to ``AllowedVerdict()`` (no extra restriction beyond roles). Returning ``FailSecurityVerdict(reason)`` denies access with that reason.
     AI-CORE-END
     """
 
@@ -223,9 +231,20 @@ class BaseAction[P: BaseParams, R: BaseResult](
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> bool:
-        """``True`` by default — level 3 adds no restriction beyond roles/guard."""
-        return True
+    ) -> FailSecurityVerdict | AllowedVerdict:
+        """``AllowedVerdict()`` by default — level 3 adds no restriction beyond roles/guard.
+
+        Return ``AllowedVerdict()`` to allow, or ``FailSecurityVerdict(reason)`` (or a
+        subclass adding its own fields) to deny with a specific, developer-declared reason
+        — this is the cascade's own denial-reason mechanism (no more raw exception text).
+        Raising instead of returning is for genuine failures (a bug, an unreachable
+        connection) — the machine turns that into a ``FailErrorVerdict``, not a denial,
+        on the check-only path; on the real ``machine.run()`` path it still blocks
+        execution, same as any non-``AllowedVerdict`` outcome.
+        """
+        from aoa.action_machine.intents.access_control import AllowedVerdict  # see TYPE_CHECKING note above
+
+        return AllowedVerdict()
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Enforce the ``"Action"`` name suffix for every concrete subclass."""

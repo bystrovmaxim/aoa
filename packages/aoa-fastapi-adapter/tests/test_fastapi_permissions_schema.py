@@ -7,21 +7,20 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Validate required/default fields, the non-empty ``items`` invariant, extra-field
-rejection, and that ``ResolveItemResult`` is always exactly the flat ``{kind,
-reason}`` shape — both fields mandatory, no nested union, no fields that only
-make sense for some values of ``kind``.
+rejection, and that every ``BaseVerdict`` subclass is exactly its own flat shape —
+``AllowedVerdict`` with no ``reason`` at all, ``FailSecurityVerdict``/
+``FailErrorVerdict`` with ``reason`` mandatory and non-empty.
 """
 
 import pytest
 from pydantic import ValidationError
 
-from aoa.action_machine.intents.access_control import ResolveItemKind
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.fastapi.permissions_schema import (
     SUPPORTED_VERSION,
     ErrorDetail,
     ErrorEnvelope,
     ResolveItem,
-    ResolveItemResult,
     ResolveRequest,
     ResolveResponse,
 )
@@ -85,55 +84,38 @@ class TestResolveRequest:
             )
 
 
-class TestResolveItemResult:
-    """``ResolveItemResult`` — one answer, always exactly ``{kind, reason}``."""
+class TestBaseVerdictSubclasses:
+    """``AllowedVerdict``/``FailSecurityVerdict``/``FailErrorVerdict`` — one class per
+    outcome, ``kind`` computed from the class name, never a free field."""
 
-    def test_kind_and_reason_are_both_required(self) -> None:
-        """Neither field defaults — ``reason=""`` for ``SUCCESS`` must be given explicitly."""
+    def test_allowed_verdict_has_no_reason_field(self) -> None:
+        """AllowedVerdict carries no reason at all -- not an empty one, none."""
+        assert AllowedVerdict().kind == "AllowedVerdict"
         with pytest.raises(ValidationError):
-            ResolveItemResult(kind=ResolveItemKind.SUCCESS)  # type: ignore[call-arg]
+            AllowedVerdict(reason="")  # type: ignore[call-arg]
+
+    def test_fail_security_verdict_requires_a_non_empty_reason(self) -> None:
         with pytest.raises(ValidationError):
-            ResolveItemResult(reason="")  # type: ignore[call-arg]
+            FailSecurityVerdict("")
 
-    def test_success_with_empty_reason_round_trips(self) -> None:
-        result = ResolveItemResult(kind=ResolveItemKind.SUCCESS, reason="")
-        assert result.kind == ResolveItemKind.SUCCESS
-        assert result.reason == ""
-
-    def test_security_with_a_reason_round_trips(self) -> None:
-        result = ResolveItemResult(kind=ResolveItemKind.SECURITY, reason="not a manager")
-        assert result.kind == ResolveItemKind.SECURITY
+    def test_fail_security_verdict_round_trips(self) -> None:
+        result = FailSecurityVerdict("not a manager")
+        assert result.kind == "FailSecurityVerdict"
         assert result.reason == "not a manager"
 
-    def test_kind_rejects_values_outside_the_closed_set(self) -> None:
-        """``kind`` is constrained to the five documented channels — no ad hoc strings."""
-        with pytest.raises(ValidationError):
-            ResolveItemResult(kind="admin", reason="")  # type: ignore[arg-type]
+    def test_fail_error_verdict_round_trips(self) -> None:
+        """FailErrorVerdict is its own class, not a value of some shared kind field --
+        the resolver builds it directly for e.g. UNKNOWN_ENDPOINT, never a
+        FailSecurityVerdict (fix-audit finding 6: no kind gets special-cased beyond
+        the one shared per-class reason contract)."""
+        result = FailErrorVerdict("UNKNOWN_ENDPOINT")
+        assert result.kind == "FailErrorVerdict"
+        assert result.reason == "UNKNOWN_ENDPOINT"
 
     def test_rejects_extra_fields(self) -> None:
-        """Unknown wire fields are rejected, not silently ignored — no room for a third field to creep back in."""
+        """Unknown wire fields are rejected, not silently ignored."""
         with pytest.raises(ValidationError):
-            ResolveItemResult(kind=ResolveItemKind.SUCCESS, reason="", unexpected="value")  # type: ignore[call-arg]
-
-    def test_success_with_a_reason_rejected(self) -> None:
-        """Fix-audit finding 7: ``ResolveItemResult`` (``aoa-action-machine``) is the
-        base class ``AccessVerdict`` subclasses, not a sibling type kept in sync by
-        hand — the kind/reason contract is declared once, here, and inherited."""
-        with pytest.raises(ValidationError, match="kind=SUCCESS"):
-            ResolveItemResult(kind=ResolveItemKind.SUCCESS, reason="not empty")
-
-    def test_non_success_with_empty_reason_rejected(self) -> None:
-        with pytest.raises(ValidationError, match="kind=SUCCESS"):
-            ResolveItemResult(kind=ResolveItemKind.SECURITY, reason="")
-
-    def test_check_error_with_a_reason_round_trips(self) -> None:
-        """Unlike AccessVerdict, CHECK_ERROR is an ordinary, valid kind on the wire
-        type — the resolver builds a plain ResolveItemResult directly for it, never
-        an AccessVerdict (fix-audit finding 6: no kind gets special-cased beyond the
-        one shared success/reason contract)."""
-        result = ResolveItemResult(kind=ResolveItemKind.CHECK_ERROR, reason="UNKNOWN_ENDPOINT")
-        assert result.kind == ResolveItemKind.CHECK_ERROR
-        assert result.reason == "UNKNOWN_ENDPOINT"
+            FailSecurityVerdict.model_validate({"reason": "not a manager", "unexpected": "value"})
 
 
 class TestResolveResponse:
@@ -143,12 +125,9 @@ class TestResolveResponse:
         """Results round-trip in the order they were given, matching request items positionally."""
         response = ResolveResponse(
             version=1,
-            results=[
-                ResolveItemResult(kind=ResolveItemKind.SUCCESS, reason=""),
-                ResolveItemResult(kind=ResolveItemKind.SECURITY, reason="not a manager"),
-            ],
+            results=[AllowedVerdict(), FailSecurityVerdict("not a manager")],
         )
-        assert [r.kind for r in response.results] == [ResolveItemKind.SUCCESS, ResolveItemKind.SECURITY]
+        assert [r.kind for r in response.results] == ["AllowedVerdict", "FailSecurityVerdict"]
 
     def test_rejects_extra_fields(self) -> None:
         """Unknown top-level wire fields are rejected."""

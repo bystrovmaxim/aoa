@@ -9,7 +9,7 @@ side so they are never confused:
 (a) A coordinator that resolves missing credentials to a real, legitimate
     anonymous Context (the same thing NoAuthCoordinator always does) lets the
     request reach the machine normally. A @check_roles(GuestRole) action then
-    gets an honest kind: "success" result — GuestRole is evaluated exactly
+    gets an honest AllowedVerdict result — GuestRole is evaluated exactly
     like any other role, not special-cased inside the resolver.
 (b) A coordinator whose process() genuinely returns None (e.g. credentials
     were supplied but are invalid) never reaches the machine at all — the
@@ -81,7 +81,7 @@ def main() -> None:
     result = guest_response.json()["results"][0]
     print("(a) resolved anonymous Context:")
     print(f"    status = {guest_response.status_code}")
-    print(f"    result = {result}")  # {'kind': 'success', 'reason': '', 'action_name': 'BrowseCatalogAction'}
+    print(f"    result = {result}")  # {'kind': 'AllowedVerdict'}
 
     # (b) A coordinator that genuinely could not authenticate this request.
     rejected_client = _make_client(resolved_context=None)

@@ -2,8 +2,9 @@
 02_role_gate_denied.py — an honest "no", with a reason for developers only
 
 Same action as 01_role_gate_allowed.py, different caller: a plain user, not a
-manager. The role check rejects the call, and this time kind is SECURITY, not
-SUCCESS — a denial through the role-gate channel.
+manager. The role check rejects the call, and this time the result is a
+FailSecurityVerdict, not an AllowedVerdict — a denial through the role-gate
+channel.
 
 reason carries developer-facing text, not something to show the end user
 as-is. No role matched at all here (a bare @check_roles(ManagerRole), no

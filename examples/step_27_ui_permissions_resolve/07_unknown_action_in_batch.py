@@ -4,7 +4,7 @@
 Before this chapter, an operation name the server did not recognize (a typo, a
 stale frontend build asking about an action that got renamed) would fail the
 whole POST /permissions/resolve request. resolve_verdicts() now isolates that
-one item instead: it gets kind="check_error", reason="UNKNOWN_ENDPOINT" at its
+one item instead: it gets a FailErrorVerdict(reason="UNKNOWN_ENDPOINT") at its
 own position, and every other item in the same batch still gets its normal,
 honest result.
 
@@ -83,7 +83,8 @@ async def main() -> None:
     outcome = await resolve_verdicts(items, plan_index, prepared_by_operation, machine)
 
     for position, result in enumerate(outcome.results):
-        print(f"position {position}: kind={result.kind!r} reason={result.reason!r}")
+        # AllowedVerdict has no `reason` field at all -- not an empty one, none.
+        print(f"position {position}: kind={result.kind!r} reason={getattr(result, 'reason', '')!r}")
     print(f"real_call_count = {outcome.real_call_count}")  # 2 — the unknown item never reaches access_decide
 
 

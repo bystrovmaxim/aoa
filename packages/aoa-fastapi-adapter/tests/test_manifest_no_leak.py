@@ -17,6 +17,7 @@ import json
 from pydantic import Field
 
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles, grant
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -42,9 +43,9 @@ _EXPECTED_KEYS = {"operation", "name", "domain", "description", "route", "params
 
 @meta(description="Fully gated action for manifest-leak regression", domain=OrdersDomain)
 @check_roles(
-    grant(ManagerRole, when=lambda user: str(user.user_id) != _WHEN_SENTINEL, reason="not eligible"),
+    grant(ManagerRole, when=lambda user: str(user.user_id) != _WHEN_SENTINEL, reason=FailSecurityVerdict("not eligible")),
     guard=lambda user, params: str(params.order_id) != _GUARD_SENTINEL,
-    reason="order not eligible",
+    reason=FailSecurityVerdict("order not eligible"),
 )
 class _GatedAction(BaseAction["_GatedAction.Params", "_GatedAction.Result"]):
     """Carries when=, guard= and access_decide, each with its own sentinel string."""
@@ -65,9 +66,11 @@ class _GatedAction(BaseAction["_GatedAction.Params", "_GatedAction.Result"]):
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> bool:
-        secret_token = _DECIDE_SENTINEL  # lives only in this method body
-        return secret_token != str(params.order_id)
+    ) -> FailSecurityVerdict | AllowedVerdict:
+        secret_token = _DECIDE_SENTINEL  # lives only in this method body, never in a returned value
+        if secret_token != str(params.order_id):
+            return AllowedVerdict()
+        return FailSecurityVerdict("order rejected by access_decide")
 
     @summary_aspect("Gated summary")
     async def gated_summary(

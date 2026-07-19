@@ -78,7 +78,7 @@ authoritative description of every fixed wire message's shape — not the
 per-action ``params_schema``/``result_schema`` already on each
 ``ManifestEndpoint`` (those describe one action), but the small, closed set of
 messages the protocol itself is built from: ``ResolveRequest``,
-``ResolveResponse``, ``ResolveItemResult``, the error envelope, and the catalog's
+``ResolveResponse``, ``BaseVerdict``, the error envelope, and the catalog's
 own shape. ``build_manifest`` publishes all five under one key, ``schemas``, so
 a client never has to hand-derive or guess any of them.
 
@@ -96,14 +96,15 @@ Two details a client must not ignore:
   message (``ResolveRequest``), ``"serialization"`` for everything the server
   only ever emits — so a client always knows which pydantic mode produced the
   schema it is looking at.
-- **``ResolveItemResult`` is the guaranteed minimum, not a closed shape**: its
-  published schema still says ``additionalProperties: false`` (inherited from
-  the pydantic model's own ``extra="forbid"``, which is correct for *validating*
-  a bare ``ResolveItemResult`` the server might build), but a real response item
-  backed by an ``AccessVerdict`` also carries ``action_name`` — a diagnostic
-  field, not part of this reference schema. A client that validates responses
-  strictly against this entry must tolerate that one extra key rather than treat
-  ``additionalProperties: false`` as literally true for every item it receives.
+- **``BaseVerdict`` is the guaranteed minimum, not a closed shape**: it is
+  abstract, and its own published schema shows only ``{kind}`` —
+  ``additionalProperties: false`` there really is the intersection of every
+  possible item, not a lie. A real item is always one of its concrete
+  subclasses: ``AllowedVerdict`` (``{kind}``, no ``reason`` at all),
+  ``FailSecurityVerdict``/``FailErrorVerdict`` (``{kind, reason}``). This entry
+  does not enumerate those subclasses as a discriminated union today — a client
+  that wants the *reason* field's presence to be schema-checked needs to branch
+  on ``kind`` itself rather than validate every item against this one entry.
 """
 
 from __future__ import annotations
@@ -114,12 +115,12 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from aoa.action_machine.intents.access_control import BaseVerdict
 from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from aoa.fastapi.permissions import build_route_index
 from aoa.fastapi.permissions_schema import (
     SUPPORTED_VERSION,
     ErrorEnvelope,
-    ResolveItemResult,
     ResolveRequest,
     ResolveResponse,
 )
@@ -231,7 +232,7 @@ def _build_schemas() -> dict[str, SchemaEntry]:
     return {
         "ResolveRequest": _schema_entry(ResolveRequest, "validation"),
         "ResolveResponse": _schema_entry(ResolveResponse, "serialization"),
-        "ResolveItemResult": _schema_entry(ResolveItemResult, "serialization"),
+        "BaseVerdict": _schema_entry(BaseVerdict, "serialization"),
         "ErrorEnvelope": _schema_entry(ErrorEnvelope, "serialization"),
         "Manifest": _schema_entry(Manifest, "serialization"),
     }

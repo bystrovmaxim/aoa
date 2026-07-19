@@ -23,6 +23,7 @@ from aoa.action_machine.auth import ApplicationRole
 from aoa.action_machine.auth.auth_coordinator import NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -65,7 +66,7 @@ class OrderResult(BaseResult):
 @check_roles(
     StaffRole,
     guard=lambda user, params: str(params.order_id) != _GUARD_SENTINEL,
-    reason="order not eligible",
+    reason=FailSecurityVerdict("order not eligible"),
 )
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 
@@ -75,9 +76,11 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         context: Context,
         box: ToolsBox,
         connections: dict,
-    ) -> bool:
-        secret_token = _DECIDE_SENTINEL  # lives only in this method body
-        return secret_token != str(params.order_id)
+    ) -> FailSecurityVerdict | AllowedVerdict:
+        secret_token = _DECIDE_SENTINEL  # lives only in this method body, never in a returned value
+        if secret_token != str(params.order_id):
+            return AllowedVerdict()
+        return FailSecurityVerdict("order rejected by access_decide")
 
     @summary_aspect("Cancel the order")
     async def cancel_summary(self, params, state, box, connections):

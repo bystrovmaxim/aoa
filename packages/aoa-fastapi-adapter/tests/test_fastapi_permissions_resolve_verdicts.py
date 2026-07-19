@@ -23,7 +23,7 @@ since ``resolve_verdicts`` itself never calls ``prepare()``, only looks its resu
 from aoa.action_machine.auth.auth_coordinator import NoAuthCoordinator
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.intents.access_control import ResolveItemKind
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.execution_plan import PreparedEndpointContext, build_execution_plan_index
 from aoa.fastapi.permissions import ResolveOutcome, build_route_index, resolve_verdicts
@@ -105,30 +105,28 @@ class TestPerItemIsolation:
         machine = ActionProductMachine(loggers=[])
         outcome = await _resolve(items, machine)
         assert len(outcome.results) == 3
-        assert outcome.results[0].kind == ResolveItemKind.SUCCESS
-        assert outcome.results[1].kind == ResolveItemKind.CHECK_ERROR
-        assert outcome.results[1].reason == "UNKNOWN_ENDPOINT"
-        assert outcome.results[2].kind == ResolveItemKind.SUCCESS
+        assert outcome.results[0] == AllowedVerdict()
+        assert outcome.results[1] == FailErrorVerdict("UNKNOWN_ENDPOINT")
+        assert outcome.results[2] == AllowedVerdict()
 
     async def test_unknown_action_does_not_count_as_a_real_call(self) -> None:
         items = [_unknown_item(), _unknown_item()]
         machine = ActionProductMachine(loggers=[])
         outcome = await _resolve(items, machine)
         assert outcome.real_call_count == 0
-        assert all(r.kind == ResolveItemKind.CHECK_ERROR and r.reason == "UNKNOWN_ENDPOINT" for r in outcome.results)
+        assert all(r == FailErrorVerdict("UNKNOWN_ENDPOINT") for r in outcome.results)
 
     async def test_route_level_auth_rejection_is_isolated_not_fatal(self) -> None:
         """A route whose own auth_coordinator rejected the caller (reported via
         unauthorized_operations, mirroring adapter.py catching AuthorizationError from
-        EndpointExecutionPlan.prepare) fails only its own position -- kind=SECURITY,
+        EndpointExecutionPlan.prepare) fails only its own position -- FailSecurityVerdict,
         reason="UNAUTHORIZED" -- never the whole batch."""
         items = [_order_item(1), ResolveItem(operation="GET /actions/ping", params={})]
         machine = ActionProductMachine(loggers=[])
         outcome = await _resolve(items, machine, unauthorized_operations=frozenset({"GET /actions/ping"}))
         assert len(outcome.results) == 2
-        assert outcome.results[0].kind == ResolveItemKind.SUCCESS
-        assert outcome.results[1].kind == ResolveItemKind.SECURITY
-        assert outcome.results[1].reason == "UNAUTHORIZED"
+        assert outcome.results[0] == AllowedVerdict()
+        assert outcome.results[1] == FailSecurityVerdict("UNAUTHORIZED")
 
     async def test_route_level_auth_rejection_does_not_count_as_a_real_call(self) -> None:
         items = [ResolveItem(operation="GET /actions/ping", params={})]

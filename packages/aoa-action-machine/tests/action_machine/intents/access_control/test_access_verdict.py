@@ -1,5 +1,4 @@
-"""Constructor, frozen semantics, dict-like access, and the ResolveItemResult
-base class relationship for AccessVerdict."""
+"""BaseVerdict hierarchy: AllowedVerdict, FailSecurityVerdict, FailErrorVerdict."""
 
 from __future__ import annotations
 
@@ -8,136 +7,114 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from aoa.action_machine.intents.access_control import AccessVerdict, ResolveItemKind, ResolveItemResult
-
-from ....support.domain_model.ping_action import PingAction
+from aoa.action_machine.intents.access_control import AllowedVerdict, BaseVerdict, FailErrorVerdict, FailSecurityVerdict
 
 
-class TestAccessVerdictCreation:
-    """Constructing AccessVerdict for allowed and denied outcomes."""
+class TestBaseVerdictIsAbstract:
+    """BaseVerdict cannot be instantiated directly -- only its concrete subclasses can."""
 
-    def test_success_verdict_carries_empty_reason(self) -> None:
-        verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS, reason="")
-        assert verdict.kind == ResolveItemKind.SUCCESS
-        assert verdict.action is PingAction
-        assert verdict.reason == ""
+    def test_base_verdict_construction_raises(self) -> None:
+        with pytest.raises(TypeError, match="abstract"):
+            BaseVerdict()
 
-    def test_denied_verdict_carries_kind_and_reason(self) -> None:
-        verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SECURITY, reason="not your order")
-        assert verdict.kind == ResolveItemKind.SECURITY
+    def test_kind_is_computed_from_the_subclass_name_without_redeclaration(self) -> None:
+        """kind is defined once, on BaseVerdict, and inherited -- not a free field a
+        subclass could set to a mismatched value."""
+        assert AllowedVerdict().kind == "AllowedVerdict"
+        assert FailSecurityVerdict("reason").kind == "FailSecurityVerdict"
+        assert FailErrorVerdict("reason").kind == "FailErrorVerdict"
+
+
+class TestAllowedVerdict:
+    """The one way to say "yes" -- no reason field at all."""
+
+    def test_construction_takes_no_parameters(self) -> None:
+        verdict = AllowedVerdict()
+        assert verdict.kind == "AllowedVerdict"
+
+    def test_has_no_reason_field(self) -> None:
+        with pytest.raises(ValidationError):
+            AllowedVerdict(reason="anything")  # type: ignore[call-arg]
+
+    def test_dumped_shape_is_exactly_kind(self) -> None:
+        assert AllowedVerdict().model_dump() == {"kind": "AllowedVerdict"}
+
+
+class TestFailSecurityVerdict:
+    """A real access-control denial -- reason mandatory and non-empty."""
+
+    def test_construction_positional(self) -> None:
+        verdict = FailSecurityVerdict("FORBIDDEN_ROLE")
+        assert verdict.kind == "FailSecurityVerdict"
+        assert verdict.reason == "FORBIDDEN_ROLE"
+
+    def test_empty_reason_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            FailSecurityVerdict("")
+
+    def test_dumped_shape(self) -> None:
+        assert FailSecurityVerdict("not your order").model_dump() == {
+            "kind": "FailSecurityVerdict",
+            "reason": "not your order",
+        }
+
+    def test_frozen(self) -> None:
+        verdict = FailSecurityVerdict("FORBIDDEN_ROLE")
+        with pytest.raises(ValidationError):
+            verdict.reason = "changed"  # type: ignore[misc]
+
+    def test_subclass_may_add_its_own_fields(self) -> None:
+        """Same extensibility BaseVerdict.kind already demonstrates: a subclass adds
+        fields, kind keeps resolving to the subclass's own name, no redeclaration --
+        and the positional `reason` constructor still works without an override,
+        since FailSecurityVerdict.__init__ passes extra fields through **kwargs."""
+
+        class OwnershipDenied(FailSecurityVerdict):
+            order_id: int
+
+        verdict = OwnershipDenied("not your order", order_id=7)
+        assert verdict.kind == "OwnershipDenied"
+        assert verdict.order_id == 7
         assert verdict.reason == "not your order"
 
-    def test_kind_and_reason_are_both_required(self) -> None:
+
+class TestFailErrorVerdict:
+    """The check itself could not be answered -- not a denial, never cached as one."""
+
+    def test_construction_positional(self) -> None:
+        verdict = FailErrorVerdict("UNKNOWN_ENDPOINT")
+        assert verdict.kind == "FailErrorVerdict"
+        assert verdict.reason == "UNKNOWN_ENDPOINT"
+
+    def test_empty_reason_raises(self) -> None:
         with pytest.raises(ValidationError):
-            AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS)  # type: ignore[call-arg]
-        with pytest.raises(ValidationError):
-            AccessVerdict(action=PingAction, reason="")  # type: ignore[call-arg]
+            FailErrorVerdict("")
 
-    def test_extra_field_forbidden(self) -> None:
-        with pytest.raises(ValidationError):
-            AccessVerdict(  # type: ignore[call-arg]
-                action=PingAction, kind=ResolveItemKind.SUCCESS, reason="", extra_field="nope"
-            )
+    def test_dumped_shape(self) -> None:
+        assert FailErrorVerdict("KeyError").model_dump() == {"kind": "FailErrorVerdict", "reason": "KeyError"}
 
 
-class TestAccessVerdictReasonMatchesKind:
-    """Audit finding 3, second line of defense: kind=SUCCESS <=> reason="" is an
-    enforced invariant, not only a promise in the class docstring."""
-
-    def test_success_with_non_empty_reason_raises(self) -> None:
-        with pytest.raises(ValidationError, match="kind=SUCCESS"):
-            AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS, reason="should be empty")
-
-    def test_non_success_with_empty_reason_raises(self) -> None:
-        with pytest.raises(ValidationError, match="non-empty reason"):
-            AccessVerdict(action=PingAction, kind=ResolveItemKind.SECURITY, reason="")
-
-
-class TestAccessVerdictFrozen:
-    """AccessVerdict is immutable after construction."""
-
-    def test_mutation_raises_validation_error(self) -> None:
-        verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS, reason="")
-        with pytest.raises(ValidationError):
-            verdict.kind = ResolveItemKind.SECURITY
-
-
-class TestAccessVerdictDictAccess:
-    """BaseSchema dict-like access on AccessVerdict."""
+class TestDictLikeAccess:
+    """BaseSchema dict-like access on a concrete verdict."""
 
     def test_getitem(self) -> None:
-        verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SECURITY, reason="wrong role")
-        assert verdict["kind"] == ResolveItemKind.SECURITY
+        verdict = FailSecurityVerdict("wrong role")
+        assert verdict["kind"] == "FailSecurityVerdict"
         assert verdict["reason"] == "wrong role"
 
     def test_getitem_missing_raises_key_error(self) -> None:
-        verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS, reason="")
+        verdict = AllowedVerdict()
         with pytest.raises(KeyError):
             _ = verdict["nonexistent"]
 
     def test_contains(self) -> None:
-        verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS, reason="")
-        assert "kind" in verdict
+        verdict = FailSecurityVerdict("wrong role")
+        assert "reason" in verdict
         assert "nonexistent" not in verdict
 
 
-class TestAccessVerdictIsAResolveItemResult:
-    """AccessVerdict subclasses ResolveItemResult -- one entity, not two types kept
-    in sync by hand (to_wire() used to copy between them; it is gone now)."""
-
-    def test_access_verdict_is_a_resolve_item_result(self) -> None:
-        verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS, reason="")
-        assert isinstance(verdict, ResolveItemResult)
-
-    def test_action_is_excluded_from_serialization(self) -> None:
-        """`.action` is a live Python class reference -- meaningful only inside this
-        process, never on the wire. model_dump()/model_dump_json() drop it
-        unconditionally, regardless of the field's declared type on whatever
-        container holds this instance (e.g. ResolveResponse.results: list[ResolveItemResult]
-        in aoa-fastapi-adapter, which can now hold AccessVerdict instances directly)."""
-        verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SECURITY, reason="not a manager")
-        assert "action" not in verdict.model_dump()
-        assert "action" not in json.loads(verdict.model_dump_json())
-
-    def test_action_name_is_a_derived_diagnostic_field(self) -> None:
-        """`action_name` is a computed_field -- always exactly type(self.action).__name__,
-        never an independently-settable value that could disagree with `.action`
-        (the two-fields-kept-in-sync bug class fix-audit findings 1/6 closed)."""
-        verdict = AccessVerdict(action=PingAction, kind=ResolveItemKind.SECURITY, reason="not a manager")
-        assert verdict.action_name == "PingAction"
-        dumped = verdict.model_dump()
-        assert dumped == {"kind": ResolveItemKind.SECURITY, "reason": "not a manager", "action_name": "PingAction"}
-
-    def test_base_class_validator_applies_to_the_subclass_without_redeclaring_it(self) -> None:
-        """The kind/reason validator lives once, on ResolveItemResult -- AccessVerdict
-        does not redeclare it, and it still fires (fix-audit finding 7)."""
-        with pytest.raises(ValidationError, match="kind=SUCCESS"):
-            AccessVerdict(action=PingAction, kind=ResolveItemKind.SUCCESS, reason="should be empty")
-
-    def test_resolve_item_result_alone_has_no_action_field(self) -> None:
-        """The two call sites that build a verdict with no real action behind it at
-        all (unknown operation, route-level auth rejection before the action
-        resolved) construct ResolveItemResult directly -- it never had an `action`
-        slot to fill, so there is nothing to work around for them."""
-        result = ResolveItemResult(kind=ResolveItemKind.CHECK_ERROR, reason="UNKNOWN_ENDPOINT")
-        assert "action" not in result.model_dump()
-        assert "action_name" not in result.model_dump()
-        with pytest.raises(ValidationError):
-            ResolveItemResult(action=PingAction, kind=ResolveItemKind.CHECK_ERROR, reason="UNKNOWN_ENDPOINT")  # type: ignore[call-arg]
-
-
-class TestResolveItemKindTsParity:
-    """chapter 3.5's acceptance list calls for a fixture asserting the server's
-    ResolveItemKind StrEnum values match chapter 4's TypeScript client enum verbatim.
-
-    Blocked, not merely unwritten: no aoa-client-js (or any generated TypeScript
-    client) exists anywhere in this repo yet — chapter 4 is still design-only.
-    There is nothing to compare ``[k.value for k in ResolveItemKind]`` against.
-    Once the TS client exists, replace this skip with a real fixture shared by
-    both languages' test suites (see chapter 3.5, "2.2 Серверный приёмочный набор
-    тестов").
-    """
-
-    @pytest.mark.skip(reason="No TypeScript client package exists yet (chapter 4 is design-only)")
-    def test_server_kind_values_match_the_ts_enum(self) -> None:
-        raise NotImplementedError
+class TestJsonRoundTrip:
+    def test_fail_security_verdict_model_dump_json(self) -> None:
+        verdict = FailSecurityVerdict("not a manager")
+        dumped = json.loads(verdict.model_dump_json())
+        assert dumped == {"kind": "FailSecurityVerdict", "reason": "not a manager"}

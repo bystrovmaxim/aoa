@@ -22,11 +22,13 @@ with different ``when=`` conditions are structurally distinct. Each edge carries
 its grant's ``when`` condition in ``properties["when"]`` (runtime-only, like
 ``DependsGraphEdge``'s ``factory`` — never exported by :meth:`to_dict`) for
 :class:`~aoa.action_machine.runtime.role_checker.RoleChecker` to evaluate, plus
-that same grant's ``reason`` in ``properties["when_reason"]`` — ``when=``'s
-mandatory companion (see :func:`~aoa.action_machine.intents.check_roles.grant.grant`),
-carried alongside it so ``RoleChecker`` can report *why* a ``when=`` rejection
-happened, not just that it did. ``when=None`` grants carry ``when_reason=None``
-too — there is nothing to explain when there is no condition to reject anything.
+that same grant's ``reason`` (a ``FailSecurityVerdict``) in
+``properties["when_reason"]`` — ``when=``'s companion (see
+:func:`~aoa.action_machine.intents.check_roles.grant.grant`; defaults to
+``FailSecurityVerdict("FORBIDDEN_GRANT")`` when not given), carried alongside it
+so ``RoleChecker`` can report *why* a ``when=`` rejection happened, not just that
+it did. ``when=None`` grants carry ``when_reason=None`` too — there is nothing to
+explain when there is no condition to reject anything.
 
 Why ``when`` lives here and not on :class:`~aoa.action_machine.graph.nodes.role_graph_node.RoleGraphNode`:
 ``RoleGraphNode`` is built once **per role** and shared/deduplicated across every
@@ -46,12 +48,17 @@ same value across every grant-edge of that action instead of keeping it in one p
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.graph.core.association_graph_edge import AssociationGraphEdge
 from aoa.action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+
+if TYPE_CHECKING:
+    # Deferred: same transitive-cycle reason as check_roles_intent_resolver.py.
+    # Only ever used as a type annotation below, never constructed here.
+    from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 
 class RoleGraphEdge(AssociationGraphEdge):
@@ -59,7 +66,7 @@ class RoleGraphEdge(AssociationGraphEdge):
     AI-CORE-BEGIN
     ROLE: Typed association edge Action host → ``@check_roles`` role class graph node.
     CONTRACT: ``edge_name`` ``@check_roles``; ``target_node_id`` dotted role class path; coordinator wires ``target_node``.
-    PROPERTIES: optional ``when`` callable and its mandatory-when-present ``when_reason`` string (runtime-only, from the source ``grant(...)``); never exported by :meth:`to_dict`.
+    PROPERTIES: optional ``when`` callable and its companion ``when_reason`` (a ``FailSecurityVerdict``, present whenever ``when`` is, runtime-only, from the source ``grant(...)``); never exported by :meth:`to_dict`.
     INVARIANTS: Frozen via ``AssociationGraphEdge``; ``is_dag`` False.
     AI-CORE-END
     """
@@ -69,7 +76,7 @@ class RoleGraphEdge(AssociationGraphEdge):
         *,
         role_cls: type[BaseRole],
         when: Callable[..., bool] | None = None,
-        when_reason: str | None = None,
+        when_reason: FailSecurityVerdict | None = None,
     ) -> None:
         super().__init__(
             edge_name="@check_roles",

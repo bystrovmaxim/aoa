@@ -143,7 +143,7 @@ from aoa.action_machine.exceptions.cache_contract_error import CacheContractErro
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.intents.access_control import AccessVerdict, ResolveItemKind
+from aoa.action_machine.intents.access_control import BaseVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import Channel
@@ -597,7 +597,7 @@ class ActionProductMachine(BaseActionMachine):
         params: BaseParams | None = None,
         *,
         connections: dict[str, BaseResource] | None = None,
-    ) -> AccessVerdict: ...
+    ) -> BaseVerdict: ...
 
     @overload
     async def check_access_decide(
@@ -606,7 +606,7 @@ class ActionProductMachine(BaseActionMachine):
         action: list[tuple[type[BaseAction[Any, Any]], BaseParams | None]],
         *,
         connections: dict[str, BaseResource] | None = None,
-    ) -> list[AccessVerdict]: ...
+    ) -> list[BaseVerdict]: ...
 
     async def check_access_decide(
         self,
@@ -615,12 +615,12 @@ class ActionProductMachine(BaseActionMachine):
         params: BaseParams | None = None,
         *,
         connections: dict[str, BaseResource] | None = None,
-    ) -> AccessVerdict | list[AccessVerdict]:
+    ) -> BaseVerdict | list[BaseVerdict]:
         """Ask whether one action, or each item in a list, would be allowed — without running it.
 
         Two shapes under one name, declared as two ``@overload`` signatures for the type
-        checker (a single action → one ``AccessVerdict``; a list of ``(action, params)``
-        pairs → one ``AccessVerdict`` per item, same order as the list). The list shape is
+        checker (a single action → one ``BaseVerdict``; a list of ``(action, params)``
+        pairs → one ``BaseVerdict`` per item, same order as the list). The list shape is
         the primitive — it contains all the enforcement logic. The single-action shape does
         not duplicate that logic: it recurses into this same method (``self.check_access_decide``)
         with a one-item list and unwraps the result. ``connections`` is keyword-only on both
@@ -631,19 +631,17 @@ class ActionProductMachine(BaseActionMachine):
         Per list item, in the same order as ``_run_internal``'s own gates (role/guard before
         connections): build a throwaway ``ToolsBox`` (no cache, no plugin events — never runs
         the real pipeline), then ``RoleChecker.check(...)``, then ``ConnectionValidator.validate(...)``,
-        then ``_enforce_access_decide(...)`` from ``machine.run()``'s own level-3 gate — all in
-        ``try``/``except``. A caught ``AuthorizationError`` becomes
-        ``AccessVerdict(kind=SECURITY, reason=exc.reason or str(exc))`` — ``exc.reason`` is set
-        by ``RoleChecker`` for levels 1/2 (see its own module docstring), ``None`` for level 3
-        today (``access_decide``'s own denial-reason mechanism is a separate, not-yet-done
-        change), falling back to the raw exception text either way; anything else raised while
-        evaluating that item (a bug in its ``access_decide``, an unreachable connection) becomes
-        ``AccessVerdict(kind=SECURITY, reason=type(exc).__name__)`` the same way — fail-closed,
-        same as an ``AuthorizationError``, deliberately not ``CHECK_ERROR`` (that channel is the
-        resolver's, for a check that was never reached at all — this one *ran* and failed).
-        Either way, only that one item is affected, every other item in the list is still
-        evaluated normally. No exception reaches ``_run_internal`` from here the way it does
-        from ``machine.run()``.
+        then ``access_decide(...)`` itself — called directly, not through ``_enforce_access_decide``,
+        since there is no real execution here to abort: whatever ``access_decide`` returns
+        (``AllowedVerdict``/``FailSecurityVerdict``) *is* the answer for that item, no exception
+        involved. A role/guard denial (``AuthorizationError`` from ``RoleChecker``) reports
+        ``exc.verdict`` — always set by ``RoleChecker`` (see its own module docstring).
+        Anything else raised while evaluating that item (a bug in its ``access_decide``, an
+        unreachable connection) becomes ``FailErrorVerdict(type(exc).__name__)`` — not a
+        denial, and never cached as one, since the check itself failed rather than producing
+        a real answer. Either way, only that one item is affected, every other item in the
+        list is still evaluated normally. No exception reaches ``_run_internal`` from here the
+        way it does from ``machine.run()``.
 
         ``connections`` is not in the ADR's original sketch but is required in practice:
         ``access_decide`` implementations typically need to look up a real object
@@ -651,7 +649,7 @@ class ActionProductMachine(BaseActionMachine):
         decide anything meaningful. One shared dict for the whole list, not per item.
         """
         if isinstance(action, list):
-            verdicts: list[AccessVerdict] = []
+            verdicts: list[BaseVerdict] = []
             for item_action, item_params in action:
                 try:
                     item_instance = item_action()
@@ -659,23 +657,16 @@ class ActionProductMachine(BaseActionMachine):
                     self._role_checker.check(context, action_node, item_params)
                     conns = self._connection_validator.validate(item_instance, connections, action_node)
                     box = self._build_check_box(context, item_params, action_node)
-                    await self._enforce_access_decide(item_instance, item_params, box, conns, context)
+                    verdict: BaseVerdict = await item_instance.access_decide(item_params, context, box, conns)
                 except AuthorizationError as exc:
-                    verdicts.append(
-                        AccessVerdict(
-                            action=item_action,
-                            kind=ResolveItemKind.SECURITY,
-                            reason=exc.reason or str(exc),
-                        )
-                    )
+                    verdicts.append(exc.verdict if exc.verdict is not None else FailSecurityVerdict(str(exc)))
                 except Exception as exc:
-                    # This item's own failure must not abort the rest of the list — fail-closed,
-                    # same as an AuthorizationError, not CHECK_ERROR (see the docstring above).
-                    verdicts.append(
-                        AccessVerdict(action=item_action, kind=ResolveItemKind.SECURITY, reason=type(exc).__name__)
-                    )
+                    # This item's own failure must not abort the rest of the list, and must not
+                    # be mistaken for a real denial — the check itself failed, it did not run
+                    # and say no. See the docstring above.
+                    verdicts.append(FailErrorVerdict(type(exc).__name__))
                 else:
-                    verdicts.append(AccessVerdict(action=item_action, kind=ResolveItemKind.SUCCESS, reason=""))
+                    verdicts.append(verdict)
             return verdicts
         verdicts = await self.check_access_decide(context, [(action, params)], connections=connections)
         return verdicts[0]
@@ -718,19 +709,25 @@ class ActionProductMachine(BaseActionMachine):
         context: Context,
     ) -> None:
         """Level 3 of the access-control cascade: raise ``AuthorizationError(level=3)`` if
-        ``access_decide`` rejects.
+        ``access_decide`` returns a ``FailSecurityVerdict``.
 
         Called from ``_run_internal`` *after* ``emit_global_start`` — deliberately: the
         action's start is still recorded even when ``access_decide`` ultimately denies it,
         so a security rejection at level 3 does not vanish from telemetry the way a level
         1/2 rejection (which fires before any plugin lifecycle call, unchanged from before
-        this method existed) already does. One responsibility — check and raise, not two —
-        so ``check_access_decide`` can reuse it standalone.
+        this method existed) already does. Only the real ``machine.run()`` path calls this —
+        it is the one place a ``FailSecurityVerdict`` must become a raised exception, since
+        this is the path that actually has something to abort.
+        ``check_access_decide`` does not reuse it: on the check-only path there is nothing to
+        abort, so it calls ``access_decide`` directly and uses whatever it returns as the
+        answer, no exception involved (see that method's own docstring).
         """
-        if not await action_instance.access_decide(params, context, box, connections):
+        verdict = await action_instance.access_decide(params, context, box, connections)
+        if isinstance(verdict, FailSecurityVerdict):
             raise AuthorizationError(
-                f"Access denied: {type(action_instance).__name__}.access_decide() returned False.",
+                f"Access denied: {type(action_instance).__name__}.access_decide() rejected — {verdict.reason}.",
                 level=3,
+                verdict=verdict,
             )
 
     async def _run_internal(  # pylint: disable=too-many-branches,too-many-statements

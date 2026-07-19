@@ -24,6 +24,7 @@ from pydantic import Field
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection.connection_decorator import connection
@@ -89,7 +90,7 @@ class TestAuthCoordinatorOverrideParity:
 
         assert response.status_code == 200
         result = response.json()["results"][0]
-        assert result["kind"] == "success"
+        assert result["kind"] == "AllowedVerdict"
 
 
 class TestBatchAuthRejectionIsolation:
@@ -130,8 +131,8 @@ class TestBatchAuthRejectionIsolation:
 
         assert response.status_code == 200
         results = response.json()["results"]
-        assert results[0]["kind"] == "success"
-        assert results[1] == {"kind": "security", "reason": "UNAUTHORIZED"}
+        assert results[0]["kind"] == "AllowedVerdict"
+        assert results[1] == {"kind": "FailSecurityVerdict", "reason": "UNAUTHORIZED"}
 
     def test_rejected_operation_alone_still_answers_200_not_403(self) -> None:
         """Before the fix, this exact request blew up the whole batch with a bare 403
@@ -145,7 +146,7 @@ class TestBatchAuthRejectionIsolation:
 
         assert response.status_code == 200
         result = response.json()["results"][0]
-        assert result == {"kind": "security", "reason": "UNAUTHORIZED"}
+        assert result == {"kind": "FailSecurityVerdict", "reason": "UNAUTHORIZED"}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -181,8 +182,10 @@ class _ConnectionAwareResult(BaseResult):
 class _ConnectionAwareAction(BaseAction[_ConnectionAwareParams, _ConnectionAwareResult]):
     """Denies unless its registered ``connections`` were actually resolved and passed through."""
 
-    async def access_decide(self, params, context, box, connections) -> bool:
-        return connections is not None and "flag" in connections
+    async def access_decide(self, params, context, box, connections) -> FailSecurityVerdict | AllowedVerdict:
+        if connections is not None and "flag" in connections:
+            return AllowedVerdict()
+        return FailSecurityVerdict("flag connection not resolved")
 
     @summary_aspect("Run")
     async def run_summary(self, params, state, box, connections):
@@ -219,7 +222,7 @@ class TestConnectionsParity:
 
         assert response.status_code == 200
         result = response.json()["results"][0]
-        assert result["kind"] == "success"
+        assert result["kind"] == "AllowedVerdict"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

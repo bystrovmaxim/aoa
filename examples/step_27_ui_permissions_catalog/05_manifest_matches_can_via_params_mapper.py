@@ -111,7 +111,7 @@ def main() -> None:
     print("\n── .can() via POST /permissions/resolve ──")
     print(f"params {{'oid': 7}}      -> {r.status_code} result={result}")
     assert r.status_code == 200
-    assert result["kind"] == "success"  # guest passes GuestRole → success
+    assert result["kind"] == "AllowedVerdict"  # guest passes GuestRole → allowed
 
     # (d) The native Params shape is NOT what the route publishes, so validating
     #     {"order_id": 7} against CancelOrderRequest fails ("oid" is required) before

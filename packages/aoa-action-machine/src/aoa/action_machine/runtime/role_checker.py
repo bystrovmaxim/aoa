@@ -23,17 +23,20 @@ shared ``guard=`` (``action_node.properties["guard"]``) is evaluated once agains
 rejected the request: ``1`` — no role matched at all; ``2`` — a role matched but its
 ``when=`` or the ``guard=`` rejected the request.
 
-Every denial also carries ``AuthorizationError.reason``. No role matched at all
-(level 1) is the one case ``RoleChecker`` decides on its own: the fixed string
-``"FORBIDDEN_ROLE"``, never declared by the action's author. A matched role whose
-``when=`` rejected, or a shared ``guard=`` that rejected (both level 2), report the
-mandatory, developer-declared string that came with that condition
-(``edge.properties["when_reason"]`` / ``action_node.properties["guard_reason"]``)
-— never reconstructed after the fact. When several grants for the same role exist
-(several ``when=``/``reason=`` pairs, one denial reason apiece) and every one of
-them rejects, the reason reported is the last one tried, in declaration order —
-picking a single reason to surface is an open, cosmetic question; which one is not
-load-bearing, since every rejected grant's ``when=`` genuinely returned ``False``.
+Every denial also carries ``AuthorizationError.verdict`` — a ``FailSecurityVerdict``.
+No role matched at all (level 1) is the one case ``RoleChecker`` decides on its
+own: the framework-fixed ``FailSecurityVerdict("FORBIDDEN_ROLE")``, never declared
+by the action's author. A matched role whose ``when=`` rejected, or a shared
+``guard=`` that rejected (both level 2), report the ``FailSecurityVerdict`` that
+came with that condition (``edge.properties["when_reason"]`` /
+``action_node.properties["guard_reason"]``) — a developer-declared reason, or the
+framework's own ``FORBIDDEN_GRANT``/``FORBIDDEN_GUARD`` default when none was
+given — never reconstructed after the fact. When several grants for the same role
+exist (several ``when=``/``reason=`` pairs, one denial reason apiece) and every
+one of them rejects, the verdict reported is the last one tried, in declaration
+order — picking a single one to surface is an open, cosmetic question; which one
+is not load-bearing, since every rejected grant's ``when=`` genuinely returned
+``False``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -67,7 +70,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.base_role import BaseRole
@@ -79,6 +82,12 @@ from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
 from aoa.action_machine.model.base_action import BaseAction
+
+if TYPE_CHECKING:
+    # Deferred: same transitive-cycle reason as grant.py/check_roles_decorator.py.
+    # The runtime constructions (FailSecurityVerdict("FORBIDDEN_ROLE") etc. below)
+    # import locally instead.
+    from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 
 class RoleChecker:
@@ -130,7 +139,7 @@ class RoleChecker:
     ) -> None:
         """Validate role access, per-grant ``when=``, and ``guard=``.
 
-        Raises ``AuthorizationError`` (``level`` 1 or 2, ``reason`` always set) or
+        Raises ``AuthorizationError`` (``level`` 1 or 2, ``verdict`` always set) or
         ``TypeError`` on failure.
         """
         if not action_node.roles:
@@ -167,10 +176,14 @@ class RoleChecker:
         if role_spec is AnyRole:
             active = _active_user_roles(context.user.roles)
             if not active:
+                from aoa.action_machine.intents.access_control import (
+                    FailSecurityVerdict,  # see TYPE_CHECKING note above
+                )
+
                 raise AuthorizationError(
                     "Authentication required: user must have at least one role",
                     level=1,
-                    reason="FORBIDDEN_ROLE",
+                    verdict=FailSecurityVerdict("FORBIDDEN_ROLE"),
                 )
 
         edge = action_node.roles[0]
@@ -180,7 +193,7 @@ class RoleChecker:
             raise AuthorizationError(
                 f"Access denied. {name} grant's when= condition was not met.",
                 level=2,
-                reason=edge.properties.get("when_reason"),
+                verdict=edge.properties.get("when_reason"),
             )
         _enforce_guard(
             context.user, params, action_node.properties.get("guard"), action_node.properties.get("guard_reason")
@@ -199,7 +212,7 @@ class RoleChecker:
         guard = action_node.properties.get("guard")
         guard_reason = action_node.properties.get("guard_reason")
         role_matched = False
-        rejection_reason: str | None = None
+        rejection_reason: FailSecurityVerdict | None = None
         for edge in action_node.roles:
             role_cls = cls._role_cls_for_edge(action_node, edge)
             if not any(_user_role_grants_requirement(ur, role_cls) for ur in active):
@@ -215,10 +228,12 @@ class RoleChecker:
         raise _denial_error(role_spec, context.user.roles, role_matched, rejection_reason)
 
 
-def _enforce_guard(user: Any, params: Any, guard: Callable[..., bool] | None, guard_reason: str | None) -> None:
+def _enforce_guard(
+    user: Any, params: Any, guard: Callable[..., bool] | None, guard_reason: FailSecurityVerdict | None
+) -> None:
     """Raise ``AuthorizationError(level=2)`` if ``guard`` is set and returns falsy."""
     if guard is not None and not guard(user, params):
-        raise AuthorizationError("Access denied. guard= condition was not met.", level=2, reason=guard_reason)
+        raise AuthorizationError("Access denied. guard= condition was not met.", level=2, verdict=guard_reason)
 
 
 def _active_user_roles(
@@ -243,17 +258,20 @@ def _denial_error(
     role_spec: Any,
     raw_roles: tuple[type[BaseRole], ...],
     role_matched: bool,
-    rejection_reason: str | None,
+    rejection_reason: FailSecurityVerdict | None,
 ) -> AuthorizationError:
     """Build the ``AuthorizationError`` for a concrete-role(s) denial (level 1 or 2).
 
     ``rejection_reason`` is only meaningful when ``role_matched`` is ``True`` — it
     is the last rejecting grant's ``when_reason`` tried in the search (see
     ``_check_concrete_roles``); a role that never matched at all always reports the
-    framework-fixed ``"FORBIDDEN_ROLE"``, never a developer-declared string.
+    framework-fixed ``FailSecurityVerdict("FORBIDDEN_ROLE")``, never a
+    developer-declared reason.
     """
+    from aoa.action_machine.intents.access_control import FailSecurityVerdict  # see TYPE_CHECKING note above
+
     user_names = [r.name for r in raw_roles]
-    reason = rejection_reason if role_matched else "FORBIDDEN_ROLE"
+    verdict = rejection_reason if role_matched else FailSecurityVerdict("FORBIDDEN_ROLE")
     if isinstance(role_spec, tuple):
         names = [r.name for r in role_spec]
         if role_matched:
@@ -261,22 +279,22 @@ def _denial_error(
                 f"Access denied. Required one of the roles: {names}, matched but a "
                 f"condition rejected the request; user roles: {user_names}",
                 level=2,
-                reason=reason,
+                verdict=verdict,
             )
         return AuthorizationError(
             f"Access denied. Required one of the roles: {names}, " f"user roles: {user_names}",
             level=1,
-            reason=reason,
+            verdict=verdict,
         )
     if role_matched:
         return AuthorizationError(
             f"Access denied. Required role: '{role_spec.name}', matched but a "
             f"condition rejected the request; user roles: {user_names}",
             level=2,
-            reason=reason,
+            verdict=verdict,
         )
     return AuthorizationError(
         f"Access denied. Required role: '{role_spec.name}', " f"user roles: {user_names}",
         level=1,
-        reason=reason,
+        verdict=verdict,
     )

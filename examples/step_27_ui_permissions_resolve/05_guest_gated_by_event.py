@@ -7,16 +7,15 @@ package by a tracking_token from an email, with no login at all — but
 access_decide (level 3) still bases allowed on real facts: the token must
 match the specific order, AND the order must have actually reached the
 "shipped" event. Before that event happens, even a guest holding the exact
-right token gets an honest kind: "security" — not because they are the wrong
-person, but because the event has not happened yet.
+right token gets an honest FailSecurityVerdict — not because they are the
+wrong person, but because the event has not happened yet.
 
 access_decide is not limited to "is this your object" checks — it can
 condition the answer on anything computable from params/context/connections:
-here, time/state, not ownership. access_decide's own denial-reason mechanism
-is a separate, not-yet-done change (chapter 3.5) — unlike the role-gate's
-FORBIDDEN_ROLE or a grant(when=..., reason=...)'s declared string, a False
-from access_decide still surfaces raw cascade text as reason, not a clean
-declared one.
+here, time/state, not ownership. access_decide returns FailSecurityVerdict/
+AllowedVerdict directly, with whatever reason its author chose — the same
+clean-reason mechanism as the role-gate's FORBIDDEN_ROLE or a
+grant(when=..., reason=...)'s declared string, no more raw cascade text.
 
 Tutorial: ../../docs/tutorials/step-27-ui-permissions-resolve_draft.md
 
@@ -32,6 +31,7 @@ from pydantic import Field
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -67,11 +67,15 @@ class TrackOrderResult(BaseResult):
 @check_roles(GuestRole)  # role-gate: anyone may ask — access_decide still decides the answer
 class TrackOrderAction(BaseAction[TrackOrderParams, TrackOrderResult]):
 
-    async def access_decide(self, params: TrackOrderParams, context, box, connections) -> bool:
+    async def access_decide(
+        self, params: TrackOrderParams, context, box, connections
+    ) -> FailSecurityVerdict | AllowedVerdict:
         order = _ORDERS[params.order_id]
         if order.tracking_token != params.tracking_token:
-            return False  # wrong secret — not this order at all
-        return order.status in ("shipped", "in_transit", "delivered")  # the "shipped" event hasn't fired yet
+            return FailSecurityVerdict("tracking token does not match this order")  # wrong secret
+        if order.status in ("shipped", "in_transit", "delivered"):
+            return AllowedVerdict()
+        return FailSecurityVerdict("order has not shipped yet")  # the "shipped" event hasn't fired yet
 
     @summary_aspect("Return the order status")
     async def track_summary(self, params, state, box, connections):
@@ -84,12 +88,12 @@ async def main() -> None:
     params = TrackOrderParams(order_id=7, tracking_token="secret-token-7")
 
     before = await machine.check_access_decide(guest, TrackOrderAction, params)
-    print(f"before shipped: kind={before.kind!r} reason={before.reason!r}")
+    print(f"before shipped: kind={before.kind!r} reason={getattr(before, 'reason', '')!r}")
 
     _ORDERS[7] = Order(tracking_token="secret-token-7", status="shipped")  # the real-world event fires
 
     after = await machine.check_access_decide(guest, TrackOrderAction, params)
-    print(f"after shipped:  kind={after.kind!r} reason={after.reason!r}")  # same guest, same token, no client-side change
+    print(f"after shipped:  kind={after.kind!r} reason={getattr(after, 'reason', '')!r}")  # same guest, same token, no client-side change
 
 
 asyncio.run(main())

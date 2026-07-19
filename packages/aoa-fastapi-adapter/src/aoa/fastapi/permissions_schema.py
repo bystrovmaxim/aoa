@@ -10,53 +10,42 @@ Pydantic models for the resolver's request/response bodies. The protocol is
 list-shaped from day one (``items``/``results``) — a single question is simply
 a batch of one, not a separate code path (FR-2).
 
-One flat shape for every answer: ``ResolveItemResult`` is always at least
-``{kind, reason}``, never a nested "decision" vs "error" union and never a
-grab-bag of independently-settable fields. Imported from ``aoa-action-machine``
-(:class:`~aoa.action_machine.intents.access_control.ResolveItemResult`), not
-redefined here — same reasoning as ``ResolveItemKind`` below: both HTTP and MCP
-adapters depend on ``aoa-action-machine``, so that is the one place a shared wire
-shape can live without either adapter depending on the other's package.
-``AccessVerdict`` (also ``aoa-action-machine``) *is* a ``ResolveItemResult`` —
-a subclass adding one internal-only field (``action``, excluded from
-serialization) plus one derived, client-visible diagnostic field
-(``action_name``) — not a separate type copied over by a `to_wire()` step; a
-real ``AccessVerdict`` instance can be put directly into
-``ResolveResponse.results``. ``results`` is typed
-``list[SerializeAsAny[ResolveItemResult]]``, not plain ``list[ResolveItemResult]``,
-specifically so ``action_name`` (and any future subclass-only field) actually
-reaches JSON: pydantic v2 otherwise serializes a field by its *declared*
-container type, silently dropping subclass-only fields regardless of
-``exclude`` (confirmed empirically). The two synthetic items that never reach
-the cascade at all (unknown operation, route-level auth rejection — see below)
-construct a plain ``ResolveItemResult`` directly, so they carry no
-``action_name`` at all, not an empty one — they honestly have no action to name.
-``kind`` is the closed, small set of *source channels* an answer can come
-through — also imported, not redefined, since it is what an access check itself
-decides, one layer below this wire schema. ``SUCCESS`` carries ``reason=""``;
-every other channel carries a non-empty, explicitly-declared string — never raw
-exception text leaked by accident (``CHECK_ERROR`` is the one deliberate
-exception to that promise: its ``reason`` is a fixed code, e.g.
-``"UNKNOWN_ENDPOINT"``, or the class name of whatever unexpected exception was
-actually raised).
+One class per answer, not one flag per answer: every result is a
+``BaseVerdict`` subclass — ``AllowedVerdict`` (success, no ``reason`` field at
+all) or ``FailSecurityVerdict``/``FailErrorVerdict`` (both carry a mandatory,
+non-empty ``reason``). Imported from ``aoa-action-machine``
+(:class:`~aoa.action_machine.intents.access_control.BaseVerdict` and its
+subclasses), not redefined here — both HTTP and MCP adapters depend on
+``aoa-action-machine``, so that is the one place a shared wire shape can live
+without either adapter depending on the other's package. ``kind`` is not a
+free-standing enum field a caller could set to a mismatched value — it is
+``type(self).__name__``, computed once on ``BaseVerdict`` and inherited by
+every subclass; the set of possible ``kind`` values is exactly the set of
+``BaseVerdict`` subclasses that exist, not a central list to keep in sync.
+``results`` is typed ``list[SerializeAsAny[BaseVerdict]]``, not plain
+``list[BaseVerdict]``, so each item serializes by its actual runtime class:
+pydantic v2 otherwise serializes a field by its *declared* container type,
+silently dropping subclass-only fields (confirmed empirically).
 
-A ``SECURITY`` denial's ``reason`` is ``AccessVerdict.reason`` verbatim: the
-fixed ``"FORBIDDEN_ROLE"`` when no role matched, or the mandatory,
-developer-declared string that came with the ``when=``/``guard=`` that rejected
-the request (``access_decide``'s own denial-reason mechanism is a separate,
-not-yet-done change — its rejections still surface raw cascade text). Object-level
-and role-level denials still collapse onto the same ``SECURITY`` channel today
-(minimal oracle contract: a caller cannot tell "missing" from "forbidden" from
-the channel alone).
+``FailSecurityVerdict`` is a real access-control denial: ``FORBIDDEN_ROLE``
+(no role matched at all), ``FORBIDDEN_GRANT``/``FORBIDDEN_GUARD`` (a
+``when=``/``guard=`` condition rejected and the developer gave no ``reason=``),
+a developer-declared reason on ``grant()``/``check_roles(guard=...)``, or
+whatever ``access_decide()`` itself returns. ``UNAUTHORIZED`` is the one
+``FailSecurityVerdict`` that is not a cascade decision at all — added by the
+resolver itself (``aoa.fastapi.permissions``), it marks one *operation* in a
+batch whose own route-level ``auth_coordinator`` (an
+``EndpointExecutionPlan.prepare`` override, not the resolver's whole-request
+entry gate) rejected the caller, isolated to that operation's own positions in
+``results`` so one route's stricter auth requirement never fails every other
+question in the same batch. Object-level and role-level denials still collapse
+onto the same ``FailSecurityVerdict`` class today (minimal oracle contract: a
+caller cannot tell "missing" from "forbidden" from the class alone).
 
-One ``SECURITY`` reason is not an ``AccessVerdict.reason`` at all: the fixed
-``"UNAUTHORIZED"``, added by the resolver itself (``aoa.fastapi.permissions``),
-never by the access-control cascade. It marks one *operation* in a batch whose
-own route-level ``auth_coordinator`` (an ``EndpointExecutionPlan.prepare``
-override, not the resolver's whole-request entry gate) rejected the caller —
-isolated to that operation's own positions in ``results``, exactly like an
-unknown ``operation`` is isolated to ``CHECK_ERROR``, so one route's stricter
-auth requirement never fails every other question in the same batch.
+``FailErrorVerdict`` is not a denial and must never be cached as one — the
+check itself could not be answered. ``UNKNOWN_ENDPOINT`` (an ``operation`` that
+names no registered route) is the resolver's own fixed code; any other
+``FailErrorVerdict`` carries the crashing exception's class name as ``reason``.
 
 ``PermissionNamespace`` — the opaque ``cache_partition`` label a client attaches
 to every cached resolver answer, so a cache entry can never be mistakenly shared
@@ -85,9 +74,9 @@ shaped for a contract it does not speak — see chapter 3.5 rule 8.
 ``ErrorEnvelope`` (``{"error": {"code": "..."}}``) is the body of a *whole-request*
 failure — unsupported version, failed authentication, an uncaught server error —
 never a per-item problem. A single bad item inside an otherwise-valid batch stays
-a normal ``200`` with a ``CHECK_ERROR`` element inside ``results``; only a request
-that never got that far uses this envelope. See chapter 3.5 rule 7's "whole
-request vs. partial response" boundary.
+a normal ``200`` with a ``FailErrorVerdict`` element inside ``results``; only a
+request that never got that far uses this envelope. See chapter 3.5 rule 7's
+"whole request vs. partial response" boundary.
 """
 
 from __future__ import annotations
@@ -96,15 +85,15 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 
-from aoa.action_machine.intents.access_control import ResolveItemResult
+from aoa.action_machine.intents.access_control import BaseVerdict
 
 __all__ = [
     "SUPPORTED_VERSION",
+    "BaseVerdict",
     "ErrorDetail",
     "ErrorEnvelope",
     "PermissionNamespace",
     "ResolveItem",
-    "ResolveItemResult",
     "ResolveRequest",
     "ResolveResponse",
 ]
@@ -143,11 +132,11 @@ class ResolveResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     version: int = Field(description="Echoes the request's wire-language version.")
-    results: list[SerializeAsAny[ResolveItemResult]] = Field(
-        description="One result per request item, in the same order. Items backed by a "
-        "real access check also carry action_name (diagnostic only, not part of the "
-        "stable contract); synthetic items (unknown operation, route-level auth "
-        "rejection) do not."
+    results: list[SerializeAsAny[BaseVerdict]] = Field(
+        description="One result per request item, in the same order. kind names which "
+        "BaseVerdict subclass answered: AllowedVerdict (success, no reason field), "
+        "FailSecurityVerdict (a real denial, reason mandatory), or FailErrorVerdict "
+        "(the check could not be answered, never a denial, never cached as one)."
     )
 
 
@@ -163,8 +152,8 @@ class ErrorEnvelope(BaseModel):
     """Body of a whole-request failure (``400``/``401``/``403``/``5xx``) — see the module docstring.
 
     Never used for a per-item problem: a single bad item inside an otherwise-valid
-    batch is a ``ResolveItemResult(kind=CHECK_ERROR, ...)`` inside a normal ``200``
-    ``ResolveResponse`` instead.
+    batch is a ``FailErrorVerdict`` inside a normal ``200`` ``ResolveResponse``
+    instead.
     """
 
     model_config = ConfigDict(extra="forbid")

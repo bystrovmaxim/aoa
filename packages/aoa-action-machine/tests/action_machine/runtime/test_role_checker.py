@@ -21,6 +21,7 @@ from aoa.action_machine.graph.edges.role_graph_edge import RoleGraphEdge
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
+from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles, grant
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -247,9 +248,9 @@ def _order_not_archived(user, params) -> bool:
 @meta(description="grant()/guard= probe for RoleChecker level 2", domain=SystemDomain)
 @check_roles(
     grant(AdminRole),
-    grant(ManagerRole, when=_is_sales_agent, reason="not the sales agent"),
+    grant(ManagerRole, when=_is_sales_agent, reason=FailSecurityVerdict("not the sales agent")),
     guard=_order_not_archived,
-    reason="order archived",
+    reason=FailSecurityVerdict("order archived"),
 )
 class GrantGuardProbeAction(BaseAction["GrantGuardProbeAction.Params", "GrantGuardProbeAction.Result"]):
     class Params(BaseParams):
@@ -329,7 +330,7 @@ def _always_false(user) -> bool:
 
 
 @meta(description="GuestRole grant with its own when= probe", domain=SystemDomain)
-@check_roles(grant(GuestRole, when=_always_false, reason="guest when rejected"))
+@check_roles(grant(GuestRole, when=_always_false, reason=FailSecurityVerdict("guest when rejected")))
 class GuestWhenProbeAction(BaseAction["GuestWhenProbeAction.Params", "GuestWhenProbeAction.Result"]):
     class Params(BaseParams):
         pass
@@ -360,7 +361,7 @@ def test_guest_role_grant_when_false_denies_with_level_2(coordinator_module) -> 
 
 
 @meta(description="AnyRole grant with its own when= probe", domain=SystemDomain)
-@check_roles(grant(AnyRole, when=_always_false, reason="any-role when rejected"))
+@check_roles(grant(AnyRole, when=_always_false, reason=FailSecurityVerdict("any-role when rejected")))
 class AnyWhenProbeAction(BaseAction["AnyWhenProbeAction.Params", "AnyWhenProbeAction.Result"]):
     class Params(BaseParams):
         pass

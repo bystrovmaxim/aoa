@@ -3,15 +3,15 @@
 
 machine.check_access_decide answers "can this user do X?" without executing
 the action — the same role -> guard -> access_decide cascade that machine.run
-enforces, just without running any aspect. The AccessVerdict it returns *is*
-a ResolveItemResult (a subclass adding one internal-only field, `action`,
-never serialized, plus a derived diagnostic field, `action_name`) — the same
-flat {kind, reason} (+ action_name) shape that POST /permissions/resolve
-actually returns over HTTP, no conversion step.
+enforces, just without running any aspect. It returns a BaseVerdict subclass —
+AllowedVerdict on success, FailSecurityVerdict/FailErrorVerdict on the various
+ways it can say no — the same shape that POST /permissions/resolve actually
+returns over HTTP, no conversion step.
 
-Watch kind/reason here: a SUCCESS result always carries reason="" — there is
-nothing more to say when nothing rejected the call. Compare with
-02_role_gate_denied.py, where kind=SECURITY and reason is a real string.
+Watch kind here: AllowedVerdict carries no `reason` field at all — not an
+empty one, none — there is nothing more to say when nothing rejected the
+call. Compare with 02_role_gate_denied.py, where the result is a
+FailSecurityVerdict and `reason` is a real, mandatory string.
 
 Tutorial: ../../docs/tutorials/step-27-ui-permissions-resolve_draft.md
 
@@ -67,8 +67,8 @@ async def main() -> None:
 
     verdict = await machine.check_access_decide(manager, CancelOrderAction, OrderParams(order_id=7))
 
-    print(f"kind   = {verdict.kind!r}")
-    print(f"reason = {verdict.reason!r}")  # "" — SUCCESS never has more to say
+    print(f"kind = {verdict.kind!r}")
+    print(f"model_dump() = {verdict.model_dump()!r}")  # {'kind': 'AllowedVerdict'} — no reason field at all
 
 
 asyncio.run(main())

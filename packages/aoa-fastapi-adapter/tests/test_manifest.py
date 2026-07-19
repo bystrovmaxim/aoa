@@ -206,7 +206,7 @@ class TestThreeNumbers:
 class TestReferenceSchemas:
     """``schemas`` publishes the fixed wire messages' JSON Schemas (chapter 3.5, task 7)."""
 
-    _EXPECTED_KEYS = {"ResolveRequest", "ResolveResponse", "ResolveItemResult", "ErrorEnvelope", "Manifest"}
+    _EXPECTED_KEYS = {"ResolveRequest", "ResolveResponse", "BaseVerdict", "ErrorEnvelope", "Manifest"}
 
     def test_schemas_key_has_exactly_the_five_documented_messages(self) -> None:
         manifest = build_manifest([FastApiRouteRecord(action_class=PingAction, path="/ping")])
@@ -226,11 +226,14 @@ class TestReferenceSchemas:
         for key in self._EXPECTED_KEYS - {"ResolveRequest"}:
             assert manifest.schemas[key].mode == "serialization"
 
-    def test_resolve_item_result_schema_lists_kind_and_reason(self) -> None:
+    def test_base_verdict_schema_lists_only_kind(self) -> None:
+        """BaseVerdict is abstract -- its own schema is the guaranteed minimum across
+        every concrete subclass, and only `kind` is common to all of them (AllowedVerdict
+        has no `reason` field at all)."""
         manifest = build_manifest([FastApiRouteRecord(action_class=PingAction, path="/ping")])
 
-        properties = manifest.schemas["ResolveItemResult"].json_schema["properties"]
-        assert set(properties.keys()) == {"kind", "reason"}
+        properties = manifest.schemas["BaseVerdict"].json_schema["properties"]
+        assert set(properties.keys()) == {"kind"}
 
     def test_empty_routes_still_publish_schemas(self) -> None:
         """``schemas`` describes the protocol itself, independent of which routes are registered."""

@@ -41,6 +41,7 @@ from pydantic import Field
 
 from aoa.action_machine.auth import ApplicationRole
 from aoa.action_machine.context import Context
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles, grant
 from aoa.action_machine.intents.meta import meta
@@ -62,7 +63,7 @@ class CustomerRole(ApplicationRole):
 @check_roles(
     grant(CustomerRole),
     guard=lambda user, params: not params.order_id.startswith("LOCKED-"),
-    reason="order is locked",
+    reason=FailSecurityVerdict("order is locked"),
 )
 class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderAction.Result"]):
 
@@ -92,9 +93,11 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> bool:
+    ) -> FailSecurityVerdict | AllowedVerdict:
         """Level 3: the order must belong to the caller."""
-        return params.owner_user_id == context.user.user_id
+        if params.owner_user_id == context.user.user_id:
+            return AllowedVerdict()
+        return FailSecurityVerdict("order does not belong to the caller")
 
     @summary_aspect("Cancel the order")
     async def cancel_summary(
