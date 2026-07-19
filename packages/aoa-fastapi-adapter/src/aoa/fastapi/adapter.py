@@ -138,7 +138,7 @@ from aoa.action_machine.resources.per_call_connection import ConnectionValue
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.fastapi.execution_plan import EndpointExecutionPlan, PreparedEndpointContext, build_execution_plan_index
-from aoa.fastapi.manifest import Manifest, build_manifest
+from aoa.fastapi.manifest import Manifest, build_manifest_from_route_index
 from aoa.fastapi.permissions import build_route_index, resolve_verdicts
 from aoa.fastapi.permissions_schema import (
     SUPPORTED_VERSION,
@@ -1040,7 +1040,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         app.add_middleware(_CatchAllErrorsMiddleware)
         self._register_exception_handlers(app)
         self._register_health_check(app)
-        self._register_permissions_endpoints(app, plan_index)
+        self._register_permissions_endpoints(app, plan_index, route_index)
 
         for record in self._routes:
             self._register_endpoint(app, record, plan_index)
@@ -1142,7 +1142,12 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     # Permissions resolver + client manifest (issue #130)
     # ─────────────────────────────────────────────────────────────────────
 
-    def _register_permissions_endpoints(self, app: FastAPI, plan_index: dict[str, EndpointExecutionPlan]) -> None:
+    def _register_permissions_endpoints(
+        self,
+        app: FastAPI,
+        plan_index: dict[str, EndpointExecutionPlan],
+        route_index: dict[str, FastApiRouteRecord],
+    ) -> None:
         """
         Add ``POST /permissions/resolve`` (list-shaped role-gate resolver, PR 1 + PR 2),
         ``GET /client-manifest.json`` (endpoint catalog, chapter 3), and
@@ -1193,18 +1198,19 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         only wires auth + the wire response around it.
 
         The catalog is a bespoke route for the same structural reason: it projects
-        ``self._routes`` (see :func:`~aoa.fastapi.manifest.build_manifest`), a field
-        an ordinary action cannot reach. It is built once here (``self._routes`` is
+        ``self._routes`` (see :func:`~aoa.fastapi.manifest.build_manifest_from_route_index`),
+        a field an ordinary action cannot reach. It is built once here (``self._routes`` is
         already fixed by ``build()`` time) and is role-independent — the same manifest
         is returned to every authenticated caller, guest included.
         """
         machine = self._machine
         auth_coordinator = self._auth_coordinator
-        # plan_index is built once in build() and shared with _register_endpoint --
-        # not rebuilt here (audit finding 9). Projected once: self._routes is already
-        # fixed by the time build() runs (every .post/.get/... has registered), so
-        # nothing is recomputed per request.
-        manifest = build_manifest(self._routes)
+        # plan_index and route_index are both built once in build() and shared with
+        # _register_endpoint / this method -- not rebuilt here (audit finding 9;
+        # route_index reuse is audit finding 16, second document). Projected once:
+        # self._routes is already fixed by the time build() runs (every
+        # .post/.get/... has registered), so nothing is recomputed per request.
+        manifest = build_manifest_from_route_index(route_index)
 
         @app.post("/permissions/resolve", tags=["permissions"], response_model=ResolveResponse)
         async def resolve(request: Request, body: ResolveRequest) -> ResolveResponse:

@@ -111,6 +111,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -266,8 +267,28 @@ def build_manifest(routes: list[FastApiRouteRecord]) -> Manifest:
     deduplicated content. First-wins dedup itself is
     :func:`~aoa.fastapi.permissions.build_route_index` — dict order preserves
     first-registration order, so ``.values()`` is exactly the list this needs.
+
+    Convenience wrapper around :func:`build_manifest_from_route_index` for a
+    caller with only the raw route list, not an already-built index — use that
+    function directly when a ``route_index`` already exists (``FastApiAdapter.build()``
+    builds one for :func:`~aoa.fastapi.permissions.build_route_index`'s own callers too;
+    reusing it here avoids computing the identical index twice from the identical
+    input, fix-audit finding 16, second document).
     """
-    endpoints = [_build_endpoint(record) for record in build_route_index(routes).values()]
+    return build_manifest_from_route_index(build_route_index(routes))
+
+
+def build_manifest_from_route_index(route_index: Mapping[str, FastApiRouteRecord]) -> Manifest:
+    """
+    Project an already-deduplicated ``{operation: route record}`` index into a client manifest.
+
+    Does the actual work behind :func:`build_manifest`, which is exactly this
+    function preceded by ``build_route_index(routes)`` — call this one directly
+    when the caller already has ``route_index`` (e.g. ``FastApiAdapter.build()``,
+    which needs it for ``plan_index`` too) to avoid building the identical index a
+    second time from the identical input.
+    """
+    endpoints = [_build_endpoint(record) for record in route_index.values()]
     schemas = _build_schemas()
     # Canonical content *without* manifest_version — hashing the field that would
     # then have to contain its own hash is a circle with no fixed point. Every
