@@ -31,7 +31,7 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.runtime.role_checker import RoleChecker
+from aoa.action_machine.runtime.role_checker import _FORBIDDEN_ROLE_VERDICT, RoleChecker
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core import TypeIntrospection
 
@@ -158,6 +158,16 @@ def test_any_role_requires_nonempty_active_roles(coordinator_module) -> None:
         checker.check(ctx, _action_node(coordinator_module, AnyRoleProbeAction))
 
 
+def test_any_role_denial_reuses_the_module_level_forbidden_role_verdict(coordinator_module) -> None:
+    """baseverdict-audit finding 8, third document: FORBIDDEN_ROLE is a fixed, frozen
+    verdict -- the same instance every time, not rebuilt per denial."""
+    checker = RoleChecker()
+    ctx = Context(user=UserInfo(user_id="anon", roles=()))
+    with pytest.raises(AuthorizationError) as excinfo:
+        checker.check(ctx, _action_node(coordinator_module, AnyRoleProbeAction))
+    assert excinfo.value.verdict is _FORBIDDEN_ROLE_VERDICT
+
+
 def test_any_role_allows_registered_role(coordinator_module) -> None:
     checker = RoleChecker()
     ctx = Context(user=UserInfo(user_id="u", roles=(UserRole,)))
@@ -277,6 +287,8 @@ def test_denied_without_any_role_match_sets_level_1(coordinator_module) -> None:
         checker.check(ctx, _action_node(coordinator_module, GrantGuardProbeAction), GrantGuardProbeAction.Params())
     assert excinfo.value.level == 1
     assert excinfo.value.reason == "FORBIDDEN_ROLE"
+    # baseverdict-audit finding 8, third document: same fixed instance, not rebuilt.
+    assert excinfo.value.verdict is _FORBIDDEN_ROLE_VERDICT
 
 
 def test_bare_grant_matches_unconditionally(coordinator_module) -> None:

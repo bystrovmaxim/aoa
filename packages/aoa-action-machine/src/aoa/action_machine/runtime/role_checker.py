@@ -70,7 +70,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.base_role import BaseRole
@@ -80,14 +80,17 @@ from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.graph.edges.role_graph_edge import RoleGraphEdge
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
+from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
 from aoa.action_machine.model.base_action import BaseAction
 
-if TYPE_CHECKING:
-    # Deferred: same transitive-cycle reason as grant.py/check_roles_decorator.py.
-    # The runtime constructions (FailSecurityVerdict("FORBIDDEN_ROLE") etc. below)
-    # import locally instead.
-    from aoa.action_machine.intents.access_control import FailSecurityVerdict
+# No role matched at all (level 1) is the one denial RoleChecker decides on its own --
+# always this exact, framework-fixed reason, never a developer-declared one (see
+# _check_sentinel/_denial_error below) -- so one frozen instance, built once here, is
+# safe to hand out for every such denial instead of rebuilding it per request
+# (baseverdict-audit finding 8, third document; same pattern as
+# aoa-fastapi-adapter's permissions.py _UNKNOWN_ENDPOINT_VERDICT/_UNAUTHORIZED_VERDICT).
+_FORBIDDEN_ROLE_VERDICT = FailSecurityVerdict("FORBIDDEN_ROLE")
 
 
 class RoleChecker:
@@ -176,15 +179,10 @@ class RoleChecker:
         if role_spec is AnyRole:
             active = _active_user_roles(context.user.roles)
             if not active:
-                # pylint: disable-next=import-outside-toplevel
-                from aoa.action_machine.intents.access_control import (
-                    FailSecurityVerdict,  # see TYPE_CHECKING note above
-                )
-
                 raise AuthorizationError(
                     "Authentication required: user must have at least one role",
                     level=1,
-                    verdict=FailSecurityVerdict("FORBIDDEN_ROLE"),
+                    verdict=_FORBIDDEN_ROLE_VERDICT,
                 )
 
         edge = action_node.roles[0]
@@ -269,11 +267,8 @@ def _denial_error(
     framework-fixed ``FailSecurityVerdict("FORBIDDEN_ROLE")``, never a
     developer-declared reason.
     """
-    # pylint: disable-next=import-outside-toplevel
-    from aoa.action_machine.intents.access_control import FailSecurityVerdict  # see TYPE_CHECKING note above
-
     user_names = [r.name for r in raw_roles]
-    verdict = rejection_reason if role_matched else FailSecurityVerdict("FORBIDDEN_ROLE")
+    verdict = rejection_reason if role_matched else _FORBIDDEN_ROLE_VERDICT
     if isinstance(role_spec, tuple):
         names = [r.name for r in role_spec]
         if role_matched:
