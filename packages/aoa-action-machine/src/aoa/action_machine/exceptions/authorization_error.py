@@ -35,6 +35,11 @@ class AuthorizationError(Exception):
     """
 
     def __init__(self, message: str, *, level: int | None = None, verdict: FailSecurityVerdict | None = None) -> None:
+        if not message and verdict is None:
+            raise ValueError(
+                "AuthorizationError: message and verdict cannot both be empty — "
+                "an authorization failure must carry some description of what went wrong."
+            )
         super().__init__(message)
         self.level = level
         self.verdict = verdict

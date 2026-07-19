@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from aoa.action_machine.exceptions import AuthorizationError
 from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
@@ -30,9 +32,17 @@ def test_message_without_verdict_is_fine() -> None:
 
 
 def test_empty_message_with_a_verdict_is_fine() -> None:
-    """No message/verdict cross-validation any more -- FailSecurityVerdict's own
-    Field(min_length=1) already guarantees reason is never empty when a verdict
-    is given at all, so there is nothing left for this exception to police."""
+    """An empty message is fine as long as a verdict is given -- the exception has
+    somewhere to point a reader for a real description of what went wrong."""
     err = AuthorizationError("", verdict=FailSecurityVerdict("order is locked"))
     assert str(err) == ""
     assert err.reason == "order is locked"
+
+
+def test_empty_message_without_verdict_raises() -> None:
+    """message="" and verdict=None together leave nothing describing the failure --
+    rejected at construction (audit finding 1, third document: this guard was lost
+    as a side effect of the BaseVerdict refactor renaming its own reason= parameter
+    to verdict=, and silently reopened the batch-crashing bug it was written to close)."""
+    with pytest.raises(ValueError, match="cannot both be empty"):
+        AuthorizationError("")
