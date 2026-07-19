@@ -1105,10 +1105,11 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         developer-declared ``reason=`` a ``grant(when=...)``/``check_roles(guard=...)``
         was rejected with (or the framework-fixed ``"FORBIDDEN_ROLE"``) actually reaches
         the caller on a real ``.call()`` denial, not only on a resolver ``.can()``
-        prediction. Both are ``None`` for an entry-gate failure ("Authentication
-        required", raised with neither) and, today, for a level-3 ``access_decide``
-        denial (``reason`` is ``None`` there until that gate gets its own reason
-        mechanism -- a separate, not-yet-done change).
+        prediction. Both are ``None`` only for an entry-gate failure ("Authentication
+        required", raised with neither) -- a level-3 ``access_decide`` denial carries
+        its own real ``reason`` too, since ``access_decide`` returns a
+        ``FailSecurityVerdict(reason=...)`` directly (``aoa-action-machine``'s
+        ``BaseVerdict`` hierarchy), not a raw ``bool``.
         """
 
         @app.exception_handler(AuthorizationError)

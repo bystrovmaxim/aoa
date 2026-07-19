@@ -87,11 +87,11 @@ FastApiAdapter(machine=machine, auth_coordinator=strict_default, title="Bearer A
 A real run (`uv run python examples/step_13_fastapi/04_bearer_auth.py`):
 
 ```text
-GET /orders (no token)           -> 403 {'detail': 'Authentication required'}
+GET /orders (no token)           -> 403 {'detail': 'Authentication required', 'reason': None, 'level': None}
 POST /auth/login                 -> 200 (token acquired)
 GET /orders (valid Bearer)       -> 200 {'message': 'orders: [] -- reached with a valid admin Bearer token'}
-GET /orders (tampered signature) -> 403 {'detail': 'Authentication required'}
-GET /orders (expired token)      -> 403 {'detail': 'Authentication required'}
+GET /orders (tampered signature) -> 403 {'detail': 'Authentication required', 'reason': None, 'level': None}
+GET /orders (expired token)      -> 403 {'detail': 'Authentication required', 'reason': None, 'level': None}
 ```
 
 Five scenarios: no token (the default denied), login (the route-level override let it through), a valid Bearer token (the coordinator verified the signature, mapped `roles=["admin"]` → `AdminRole`, `@check_roles(AdminRole)` let it through), a tampered signature, an expired token — the last two give the same 403 as a missing token: no detail about the reason for the denial leaks to the caller.
