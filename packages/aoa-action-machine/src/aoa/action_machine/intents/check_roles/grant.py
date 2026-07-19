@@ -8,13 +8,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from aoa.action_machine.auth.base_role import BaseRole
+from aoa.action_machine.intents.check_roles.reason_validation import require_reason_alongside
 
 if TYPE_CHECKING:
     # Deferred: access_control transitively imports nearly the whole package (via
     # model.base_schema); grant.py sits inside that same transitive chain (loaded by
     # intents/check_roles/__init__.py), so a top-level import would cycle depending
-    # on which module happens to be imported first. The one runtime construction
-    # (FailSecurityVerdict("FORBIDDEN_GRANT") below) imports locally instead.
+    # on which module happens to be imported first. Only the type annotations below
+    # need it -- the one runtime construction lives in reason_validation.py now.
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 
@@ -52,11 +53,7 @@ def grant(
     """
     if not isinstance(role, type) or not issubclass(role, BaseRole):
         raise TypeError(f"grant() expected a BaseRole subclass, got {role!r}.")
-    if reason is not None and when is None:
-        raise ValueError("grant(): reason= was given without when= — there is no condition for it to explain.")
-    if when is not None and reason is None:
-        # pylint: disable-next=import-outside-toplevel
-        from aoa.action_machine.intents.access_control import FailSecurityVerdict  # see TYPE_CHECKING note above
-
-        reason = FailSecurityVerdict("FORBIDDEN_GRANT")
+    reason = require_reason_alongside(
+        when, reason, condition_name="when", context="grant()", default_reason="FORBIDDEN_GRANT"
+    )
     return Grant(role=role, when=when, reason=reason)

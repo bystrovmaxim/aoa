@@ -95,11 +95,12 @@ from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.exceptions.access_condition_async_error import AccessConditionAsyncError
 from aoa.action_machine.intents.check_roles.grant import Grant
+from aoa.action_machine.intents.check_roles.reason_validation import require_reason_alongside
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 if TYPE_CHECKING:
-    # Deferred: same transitive-cycle reason as grant.py. The one runtime
-    # construction (FailSecurityVerdict("FORBIDDEN_GUARD") below) imports locally.
+    # Deferred: same transitive-cycle reason as grant.py. Only the type annotations
+    # below need it -- the one runtime construction lives in reason_validation.py now.
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 
@@ -229,13 +230,9 @@ def check_roles(
     """
     if len(specs) == 0:
         raise TypeError("@check_roles requires at least one role or grant(...).")
-    if reason is not None and guard is None:
-        raise ValueError("@check_roles: reason= was given without guard= — there is no condition for it to explain.")
-    if guard is not None and reason is None:
-        # pylint: disable-next=import-outside-toplevel
-        from aoa.action_machine.intents.access_control import FailSecurityVerdict  # see TYPE_CHECKING note above
-
-        reason = FailSecurityVerdict("FORBIDDEN_GUARD")
+    reason = require_reason_alongside(
+        guard, reason, condition_name="guard", context="@check_roles", default_reason="FORBIDDEN_GUARD"
+    )
 
     if len(specs) == 1 and not isinstance(specs[0], Grant):
         normalized_spec = _normalize_check_roles_spec(specs[0])
