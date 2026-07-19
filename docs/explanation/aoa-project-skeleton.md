@@ -1,4 +1,4 @@
-<!-- translated-from: aoa-project-skeleton_draft.md @ 2026-07-01T11:29:00Z (filesystem mtime; draft is gitignored, no git history) · sha256:5f7528fd335d -->
+<!-- translated-from: aoa-project-skeleton_draft.md @ 2026-07-10T14:55:05Z (filesystem mtime; draft is gitignored, no git history) · sha256:7f4ffd5415cb -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

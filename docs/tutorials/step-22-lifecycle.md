@@ -1,4 +1,4 @@
-<!-- translated-from: step-22-lifecycle_draft.md @ 2026-06-17T17:53:37Z · sha256:48a68f0cf4f6 -->
+<!-- translated-from: step-22-lifecycle_draft.md @ 2026-07-10T14:55:05Z (filesystem mtime; draft is gitignored, no git history) · sha256:d1fdaef121e1 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

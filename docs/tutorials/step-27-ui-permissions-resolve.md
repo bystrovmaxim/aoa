@@ -1,4 +1,4 @@
-<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-18T21:15:13Z (filesystem mtime; draft is gitignored, no git history) · sha256:b4d048c0e28e -->
+<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-19T17:51:39Z (filesystem mtime; draft is gitignored, no git history) · sha256:54e39377d13c -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -83,23 +83,25 @@ The endpoint itself is a thin wrapper around the already-existing `machine.check
 verdict = await machine.check_access_decide(manager, CancelOrderAction, OrderParams(order_id=7))
 ```
 
-`to_wire()` (package `aoa-fastapi-adapter`, `aoa.fastapi.permissions`) projects the internal `AccessVerdict` onto the wire format `ResolveItemResult` — a straight copy, no recomputation: both share the same flat `{kind, reason}` shape, just on different layers (`AccessVerdict` inside the machine, `ResolveItemResult` on the wire). `kind` is a closed enumeration of five channels (`ResolveItemKind`, defined in `aoa-action-machine`; the resolver only imports it, never redefines it): `SUCCESS`, `SECURITY`, `FLAG`, `MACHINE_RULE`, `CHECK_ERROR`. Only three are actually reachable in this chapter — `SUCCESS`, `SECURITY`, and `CHECK_ERROR` (more on that in the batch section); `FLAG` and `MACHINE_RULE` are reserved for future business rules (feature flags, budgets, a circuit breaker) and nothing produces them yet.
+The resolver hands back exactly what `check_access_decide` returned, with no repacking: `BaseVerdict` (`aoa-action-machine`, `intents.access_control`) is the abstract root — `kind` isn't a separate field, it's the class's own name, computed (`type(self).__name__`). Three concrete outcomes: `AllowedVerdict` (success — there's no `reason` field at all), `FailSecurityVerdict` (a real denial — a role/`guard`/`access_decide` said "no"; `reason` is mandatory and non-empty), `FailErrorVerdict` (the check itself failed — an unrecognized endpoint, an unhandled exception; that's not a denial, and caching it as one would be wrong). The real instance goes straight into `ResolveResponse.results` — there's no separate translation step.
 
-`SUCCESS` always carries `reason=""` — there's nothing more to say when nothing rejected the call. Full example — [`01_role_gate_allowed.py`](../../examples/step_27_ui_permissions_resolve/01_role_gate_allowed.py); on a denial — [`02_role_gate_denied.py`](../../examples/step_27_ui_permissions_resolve/02_role_gate_denied.py).
+`AllowedVerdict` carries no `reason` — there's nothing more to say when nothing rejected the call. Full example — [`01_role_gate_allowed.py`](../../examples/step_27_ui_permissions_resolve/01_role_gate_allowed.py); on a denial — [`02_role_gate_denied.py`](../../examples/step_27_ui_permissions_resolve/02_role_gate_denied.py).
 
-**`reason` — the mandatory companion of `when=`/`guard=`.** A denial's reason is not text the resolver invents after the fact — it's a string the developer declared ahead of time. `grant(role, when=..., reason=...)`: give `when=`, and you must give `reason=` too, or `grant()` refuses with a `ValueError` right when the class is declared. Exactly the same rule applies to `check_roles(..., guard=..., reason=...)`. The `when=`/`guard=` contract itself (boolean functions) doesn't change — only their companion is now mandatory.
+**`reason` is the mandatory companion of `when=`/`guard=` — but not a bare string.** A denial's reason isn't text the resolver invents after the fact — it's a `FailSecurityVerdict` the developer declared ahead of time. `grant(role, when=..., reason=...)`: give `when=`, and if you don't also give `reason=`, it defaults to `FailSecurityVerdict("FORBIDDEN_GRANT")`; you're free to supply your own `reason=`, but the reverse — `reason=` without `when=` — is still a `ValueError` at class declaration (there's nothing to explain if there's no condition). Exactly the same applies to `check_roles(..., guard=..., reason=...)`, defaulting to `FailSecurityVerdict("FORBIDDEN_GUARD")`. The `when=`/`guard=` contract itself (boolean functions) doesn't change.
 
 ```python
 @check_roles(
-    grant(ManagerRole, when=lambda user: user.department == "sales", reason="not in sales"),
+    grant(ManagerRole, when=lambda user: user.department == "sales", reason=FailSecurityVerdict("not in sales")),
     guard=lambda user, params: params.amount < 10_000,
-    reason="amount too large",
+    reason=FailSecurityVerdict("amount too large"),
 )
 class ApproveDiscountAction(BaseAction[DiscountParams, DiscountResult]):
     ...
 ```
 
-A role that never matched at all (none of the listed roles fit) isn't a declared case: here `reason` is the fixed string `"FORBIDDEN_ROLE"`, not something the developer writes. `access_decide` (level 3) is a separate story: its own clean-reason mechanism doesn't exist yet, and `reason` there is still raw exception text or an unexpected exception's class name — see [`05_guest_gated_by_event.py`](../../examples/step_27_ui_permissions_resolve/05_guest_gated_by_event.py).
+A role that never matched at all (none of the listed roles fit) isn't a declared case: here `reason` is the fixed string `"FORBIDDEN_ROLE"`, not something the developer writes. `access_decide` (level 3) is no longer the exception — it now returns its own `FailSecurityVerdict(reason=...)` with its own declared reason too, see [`05_guest_gated_by_event.py`](../../examples/step_27_ui_permissions_resolve/05_guest_gated_by_event.py).
+
+One more fixed source the developer never declares — `"UNAUTHORIZED"`. A batch can mix operations across different routes, and each route can have its own `auth_coordinator=`. If a specific operation's own coordinator didn't let the caller through, that's not a failure of the whole request (other batch operations with their own coordinator can still go through fine) — it's `FailSecurityVerdict("UNAUTHORIZED")` at that operation's own position: a settled denial, not a check that never completed — the source is just the route itself, not the action's role/`guard`/`access_decide`.
 
 **Run:**
 
@@ -137,7 +139,7 @@ For a batch of several questions, the resolver doesn't call `.prepare()` per ite
 ```python
 single = await machine.check_access_decide(manager, CancelOrderAction, params)
 batch = await machine.check_access_decide(manager, [(CancelOrderAction, params)])
-# to_wire(single) == to_wire(batch[0])
+# single.model_dump() == batch[0].model_dump()
 ```
 
 **Run:**
@@ -162,10 +164,10 @@ outcome.real_call_count   # how many REAL access_decide calls happened — at mo
 
 `real_call_count` is not a wire-protocol field: the client has no business (and no need) knowing which positions were freshly computed and which were copied — from its point of view, every answer is equally honest and independent. The field exists for tests and for this chapter's examples — the one way to confirm deduplication actually happened, not so the frontend can rely on it.
 
-The second, independent problem with the same naive approach is fragility to errors: one batch item with an unrecognized endpoint (a typo in the method or path, a stale frontend build) used to fail the whole request. Now that item gets `kind=CHECK_ERROR, reason="UNKNOWN_ENDPOINT"` at its own position — the HTTP status is still `200 OK`, and the rest of the batch answers as usual. `CHECK_ERROR` is not a denial: the resolver never *decided* "no" — it never reached a decision at all, and caching such an answer as "no" would be a lie.
+The second, independent problem with the same naive approach is fragility to errors: one batch item with an unrecognized endpoint (a typo in the method or path, a stale frontend build) used to fail the whole request. Now that item gets `FailErrorVerdict(reason="UNKNOWN_ENDPOINT")` at its own position — the HTTP status is still `200 OK`, and the rest of the batch answers as usual. `FailErrorVerdict` is not a denial: the resolver never *decided* "no" — it never reached a decision at all, and caching such an answer as "no" would be a lie (see `BaseVerdict` above).
 
 ```python
-{"kind": "check_error", "reason": "UNKNOWN_ENDPOINT"}
+{"kind": "FailErrorVerdict", "reason": "UNKNOWN_ENDPOINT"}
 ```
 
 **Run:**
@@ -180,21 +182,23 @@ uv run python examples/step_27_ui_permissions_resolve/09_mixed_dedup_isolation_a
 
 ## A guest is a valid answer too
 
-The resolver always calls `auth_coordinator.process(request)` — but that isn't the same thing as "only works for logged-in users." If the coordinator (e.g. `NoAuthCoordinator`) answers missing credentials with a real anonymous `Context` rather than `None`, the resolver proceeds into `machine.check_access_decide` as usual — and an action with `@check_roles(GuestRole)` gets an honest `kind: "success"`, exactly like any other role. `403` only happens when `process()` genuinely returned `None`.
+The resolver always calls `auth_coordinator.process(request)` — but that isn't the same thing as "only works for logged-in users." If the coordinator (e.g. `NoAuthCoordinator`) answers missing credentials with a real anonymous `Context` rather than `None`, the resolver proceeds into `machine.check_access_decide` as usual — and an action with `@check_roles(GuestRole)` gets an honest `AllowedVerdict`, exactly like any other role. `403` only happens when `process()` genuinely returned `None`.
 
 ```python
 guest = Context()  # anonymous, but a real Context — not None
 verdict = await machine.check_access_decide(guest, BrowseCatalogAction, PublicParams())
 ```
 
-`GuestRole` only clears the question itself — it doesn't mean "always `success`". `access_decide` (level 3) can still base its answer on any fact, not just object ownership — for example, on whether a real-world event has already happened.
+`GuestRole` only clears the question itself — it doesn't mean "always `AllowedVerdict`". `access_decide` (level 3) can still base its answer on any fact, not just object ownership — for example, on whether a real-world event has already happened.
 
 ```python
-async def access_decide(self, params, context, box, connections) -> bool:
+async def access_decide(self, params, context, box, connections) -> FailSecurityVerdict | AllowedVerdict:
     order = orders_db[params.order_id]
     if order.tracking_token != params.tracking_token:
-        return False
-    return order.status in ("shipped", "in_transit", "delivered")  # event hasn't happened yet — too early
+        return FailSecurityVerdict("tracking token does not match this order")
+    if order.status in ("shipped", "in_transit", "delivered"):
+        return AllowedVerdict()
+    return FailSecurityVerdict("order has not shipped yet")  # event hasn't happened yet — too early
 ```
 
 **Run:**
@@ -219,7 +223,7 @@ def compute_cache_partition(context: Context) -> str:
     return hashlib.sha256(identity.encode()).hexdigest()
 ```
 
-A change of identity "generation" (`auth_epoch` — logging in as someone else, granting/revoking a role) doesn't need a dedicated server-side counter in AOA — that would require session storage this stateless framework doesn't have. Instead, the label is simply **recomputed from the current identity on every call**: a different `user_id` or a different role set hashes to a different string on its own, for free, with no state to keep in sync. Logging out has no label to serve at all — there's no authenticated `Context` to compute one from. Revoking a still-valid credential is a separate concern this formula doesn't cover on its own — it's the job of the `AuthCoordinator`/`Authenticator` in front of it (a revocation check that makes `process()` return `None` for a revoked token), not something `compute_cache_partition` can detect from the `Context` alone.
+A change of identity "generation" (`auth_epoch` — logging in as a different user, granting or revoking a role) doesn't need a dedicated generation counter on the server in AOA: this stateless framework has no session storage that such a counter would have to stay in sync with. Instead, the label is simply **recomputed from the current identity on every call** — a different `user_id` or a different role set hashes to a different string on its own, for free, with no state to keep in sync. Logging out has no label at all — there's no authenticated `Context` to compute one from. Revoking a still-unexpired token isn't something this formula can detect on its own — that's the job of the `auth_coordinator` standing in front of it (a revocation check that makes `process()` return `None`) — once the coordinator has rejected a revoked identity once, there is never again a `Context` or a label for it.
 
 `cache_partition` is deliberately not on the manifest (it must stay identical for everyone to stay cacheable and code-generatable) and not on the resolver's response (too late — the client needs the label *before* it can even look an answer up in its cache).
 
@@ -229,7 +233,7 @@ A change of identity "generation" (`auth_epoch` — logging in as someone else, 
 
 The resolver answers "can I call *this specific* endpoint?" But to ask the question, the frontend has to already know that the endpoint exists at all, and that its `operation` is exactly `"POST /actions/cancel-order"`, not `/cancel` or `/order-cancel`. Right now the only source of that knowledge is a Slack thread and a hardcoded string — the exact stub string that silently breaks when the backend renames a path.
 
-The catalog removes that string. The server publishes `GET /client-manifest.json` — a machine-readable list of every endpoint it exposes: its `operation`, its HTTP route, and the schemas of its params and result.
+The catalog removes that string. The server publishes `GET /client-manifest.json` — a machine-readable list of every endpoint it exposes: its `operation`, its HTTP route, the schemas of its params and result, and (see below) the protocol's own reference schemas.
 
 ```json
 {
@@ -250,7 +254,7 @@ The catalog removes that string. The server publishes `GET /client-manifest.json
   "schemas": {
     "ResolveRequest": { "mode": "validation", "json_schema": { "...": "JSON Schema Draft 2020-12" } },
     "ResolveResponse": { "mode": "serialization", "json_schema": { "...": "..." } },
-    "ResolveItemResult": { "mode": "serialization", "json_schema": { "...": "..." } },
+    "BaseVerdict": { "mode": "serialization", "json_schema": { "...": "..." } },
     "ErrorEnvelope": { "mode": "serialization", "json_schema": { "...": "..." } },
     "Manifest": { "mode": "serialization", "json_schema": { "...": "..." } }
   }
@@ -285,7 +289,7 @@ The manifest's three separate numbers answer three different questions, and it's
 
 ### Reference schemas (`schemas`)
 
-A client that wants to genuinely *validate* what it sends and receives needs an authoritative shape for every fixed protocol message — not each action's own `params_schema`/`result_schema` (already on every `endpoints` entry), but `ResolveRequest`, `ResolveResponse`, `ResolveItemResult`, the error envelope (`ErrorEnvelope`), and the catalog's own shape. The manifest publishes all of these under one key, `schemas` — the reference never has to be guessed.
+A client that wants to genuinely *validate* what it sends and receives needs an authoritative shape for every fixed protocol message — not each action's own `params_schema`/`result_schema` (already on every `endpoints` entry), but `ResolveRequest`, `ResolveResponse`, `BaseVerdict`, the error envelope (`ErrorEnvelope`), and the catalog's own shape. The manifest publishes all of these under one key, `schemas` — the reference never has to be guessed. `BaseVerdict` is abstract, and its own published schema shows only `{kind}` — that's a guaranteed minimum, not a closed shape; a real item (`AllowedVerdict`/`FailSecurityVerdict`/`FailErrorVerdict`) also carries `reason`, except for `AllowedVerdict`, which doesn't have one at all.
 
 Two details that matter. The dialect is **JSON Schema Draft 2020-12** (each schema carries its own `$schema`), in a small, agreed-on subset: plain types, lists, enums, in-document `$ref`s — no recursive types, no homegrown formats. And the mode: the same pydantic model can produce a different schema for *validating* an incoming request than for *serializing* an outgoing response (for instance, whether a field with a default is required differs between the two). So every entry carries its own `mode`: `"validation"` — only for `ResolveRequest` (the one message the server actually validates on the way in) — or `"serialization"` — for everything the server only ever emits, including `Manifest` itself: a client can validate the very catalog it just received against a schema published inside that same catalog.
 
@@ -303,7 +307,7 @@ uv run python examples/step_27_ui_permissions_catalog/07_route_shapes_to_operati
 
 The resolver's "question and answer" language has its own version number — `version`, the same one the manifest publishes. The client always sends the version it was built for; the resolver checks it **first, before authentication** — a client speaking the wrong language shouldn't have to prove its identity first just to be told to upgrade. A mismatch is a `400` with body `{"error": {"code": "unsupported_version"}}` (`ErrorEnvelope`, the same envelope published under `schemas`).
 
-This is a specific case of a general rule that's already come up piece by piece in this chapter — now it can be stated whole. If the whole request is fundamentally invalid — the wrong wire-language version (`400`), the caller has no right to poke the resolver at all (`403`, `auth_coordinator.process()` returned `None`), or something broke on the server's own side (`5xx`) — the **whole request** fails, with not a single answer in it at all. Only if the request clears that bar does the default of a partial answer kick in: a single batch item that didn't check out becomes a `CHECK_ERROR` at its own position (see the batch section above), while every other item answers as usual. One bad position doesn't sink the batch — but only *after* the whole request has already been judged sound.
+This is a specific case of a general rule that's already come up piece by piece in this chapter — now it can be stated whole. If the whole request is fundamentally invalid — the wrong wire-language version (`400`), the caller has no right to poke the resolver at all (`403`, `auth_coordinator.process()` returned `None`), or something broke on the server's own side (`5xx`) — the **whole request** fails, with not a single answer in it at all. Only if the request clears that bar does the default of a partial answer kick in: a single batch item that didn't check out becomes a `FailErrorVerdict` at its own position (see the batch section above), while every other item answers as usual. One bad position doesn't sink the batch — but only *after* the whole request has already been judged sound.
 
 ---
 
@@ -319,22 +323,21 @@ The solution is a bespoke route registered right inside `FastApiAdapter.build()`
 
 This chapter is the base: role level (1-2) and object level (3) via `access_decide`, a list from day one, guest access, deduplication and per-item error isolation, one execution recipe, cache partitions, route shadowing, HTTP caching for the catalog, and wire-language versioning. Deliberately out of scope:
 
-- **Honest reporting of the object-level check.** Role-level and object-level checks are still indistinguishable on the wire — both collapse onto the same `kind: "security"` (a minimal oracle contract: a caller can't tell "no such object" from "exists, but not yours" from the channel alone). Revealing that detail is safe only together with generic deny — the same answer for "no such object" and "exists, but not yours"; without it, revealing the detail would hand an attacker a way to guess other people's object IDs from the shape of a denial. This mechanism arrives in chapter 8. The `FLAG`/`MACHINE_RULE` channels are a separate, unrelated piece of future work.
+- **Honest reporting of the object-level check.** Role-level and object-level checks are still indistinguishable on the wire in this chapter — both produce the same `kind: "FailSecurityVerdict"` (a minimal oracle contract: a caller can't tell "no such object" from "exists, but not yours" from `kind` alone — only from the text of `reason`). Revealing that detail is safe only together with generic deny — the same answer for "no such object" and "exists, but not yours"; without it, revealing the detail would hand an attacker a way to guess other people's object IDs from the shape of a denial. This mechanism arrives in chapter 8. Future channels like a disabled feature or a triggered operational rule are a separate, unrelated piece of future work; in this architecture each such channel will be its own subclass of `FailSecurityVerdict`, not a pre-reserved enum value.
 - **The client package.** This chapter's examples call `machine.check_access_decide`/the resolver directly; a convenient typed client (`api.post["/actions/cancel-order"].can(...)`) doesn't exist yet.
-- **A clean reason for `access_decide` denials.** A role denial is `"FORBIDDEN_ROLE"`, or a string declared in `grant(when=..., reason=...)`/`check_roles(guard=..., reason=...)`; an object-level denial (`access_decide` returning `False`, or a raised exception) still hands back raw text, not a declared reason.
 
 ---
 
 ## Invariants
 
-- **The resolver doesn't change the machine.** `to_wire()`/route registration is a thin wrapper in `aoa-fastapi-adapter`; the access rule is still declared only via `@check_roles`/`access_decide` on the action itself.
+- **The resolver doesn't change the machine.** Route registration is a thin wrapper in `aoa-fastapi-adapter`; the access rule is still declared only via `@check_roles`/`access_decide` on the action itself.
 - **A list is the primary shape.** A single question is a batch of one, not a separate code path; `POST /permissions/resolve` accepts and returns lists (`items`/`results`) from day one.
 - **`.can()` and `.call()` share one recipe.** Both go through the same route's `EndpointExecutionPlan.prepare(request)` — there is no second way to get a `Context`/`connections` pair, so the two physically cannot disagree.
 - **`auth_coordinator.process()` is always called.** `403` only if it returned `None`; a resolved anonymous `Context` (`NoAuthCoordinator`) flows into the machine as usual.
-- **`kind`/`reason` are the only two fields of an answer, always.** `kind` is a closed enumeration (`ResolveItemKind`); `SUCCESS` carries `reason=""`, every other channel a non-empty, declared-ahead-of-time string. `CHECK_ERROR` is not a denial and must never be cached as one.
-- **`reason` is a declaration, not a guess made after the fact.** A `when=`/`guard=` that can reject must carry its own `reason=`, or class declaration raises `ValueError`. A role that never matched at all is the fixed `"FORBIDDEN_ROLE"`, not something the developer writes.
+- **`kind` is always present, `reason` is present except on success.** `kind` is the outcome class's own name (`BaseVerdict` and its three concrete subclasses). `AllowedVerdict` carries no `reason` at all; `FailSecurityVerdict`/`FailErrorVerdict` carry a non-empty, declared-ahead-of-time string. `FailErrorVerdict` is not a denial and must never be cached as one.
+- **`reason` is a declaration, not a guess made after the fact.** A `when=`/`guard=` that can reject must carry its own `FailSecurityVerdict` — leave it unset and it defaults to `FailSecurityVerdict("FORBIDDEN_GRANT")`/`FailSecurityVerdict("FORBIDDEN_GUARD")`. A role that never matched at all is the fixed `"FORBIDDEN_ROLE"`; a route's own auth gate rejecting a single batch item is the fixed `"UNAUTHORIZED"`. Neither one is declared by the developer.
 - **A duplicate is about work, not about the answer.** Items with the same `(operation, params)` produce `results` of the same length and order; only the number of real `access_decide` calls is saved (counted only for the first occurrence of a key), never the length of the response.
-- **One bad item never sinks the batch — but only inside an already-valid request.** An unrecognized endpoint — `kind=CHECK_ERROR, reason="UNKNOWN_ENDPOINT"` at its own position, `200 OK` for the whole request. A structurally invalid whole request — the wrong wire-language version (`400`), a failed entry gate (`403`), a server-side failure (`5xx`) — sinks everything, with not a single answer in it.
+- **One bad item never sinks the batch — but only inside an already-valid request.** An unrecognized endpoint — `FailErrorVerdict(reason="UNKNOWN_ENDPOINT")` at its own position, `200 OK` for the whole request. A structurally invalid whole request — the wrong wire-language version (`400`), a failed entry gate (`403`), a server-side failure (`5xx`) — sinks everything, with not a single answer in it.
 - **The resolver, the catalog, and `/permissions/namespace` are bespoke routes, not actions.** Registered directly in `FastApiAdapter.build()`, because an ordinary action can't reach `machine`, a full `Context`, or `self._routes`.
 - **The catalog lists endpoints, not actions.** `GET /client-manifest.json` is a projection of `self._routes` (the `endpoints` field); `operation` = `"{method} {path}"`. One `action_class` on several routes is several independent entries; an exact `(method, path)` duplicate is first-wins with a warning, not an error.
 - **Route shadowing fails the build.** Two different templates able to match the same URL — `RouteShadowError` at `build()`, not a silent mismatch between the catalog and the real router.
@@ -353,14 +356,14 @@ This chapter is the base: role level (1-2) and object level (3) via `access_deci
 
 ## Check yourself
 
-1. What's the difference between `kind: "security"` and `kind: "check_error"`? Why can't the second one be cached as a denial?
+1. What's the difference between `FailSecurityVerdict` and `FailErrorVerdict`? Why can't the second one be cached as a denial?
 2. What's the difference between "`auth_coordinator.process()` returned `None`" and "returned an anonymous `Context`"? What does the resolver do in each case?
 3. Why does `POST /permissions/resolve` accept a list from day one, even though the frontend currently sends one item at a time?
 4. Why can't the resolver be an ordinary `BaseAction` registered via `.post(action_class)`? What access, specifically, does an ordinary action lack?
 5. What, exactly, could diverge between `.can()` and `.call()` before `EndpointExecutionPlan`, and why does one shared `.prepare(request)` for both paths close that gap?
-6. An action's `access_decide` returned `False` for a guest. Does that mean the guest doesn't own the object? Give another possible reason for the denial.
+6. An action's `access_decide` returned `FailSecurityVerdict` for a guest. Does that mean the guest doesn't own the object? Give another possible reason for the denial.
 7. A batch of five questions where the first and the fifth are the same `(operation, params)`. How many items will `results` contain? How many times will `access_decide` actually run?
-8. Why isn't `real_call_count` published on the wire `ResolveItemResult`, even though it exists on `ResolveOutcome`?
+8. Why isn't `real_call_count` published on the wire `BaseVerdict`, even though it exists on `ResolveOutcome`?
 9. Why is `operation` in `POST /permissions/resolve` `"{method} {path}"`, rather than an action class name? What would become ambiguous if `operation` were a class name and one class were registered on two paths?
 10. Why is the catalog built from `self._routes`, rather than by walking the whole action graph? What would end up in the manifest from a graph walk that shouldn't be there?
 11. What's the difference between an exact `(method, path)` duplicate and route shadowing? Why is one a warning and the other a build failure?
