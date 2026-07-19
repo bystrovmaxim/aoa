@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import ConfigDict, Field, computed_field
+from pydantic import ConfigDict, Field
 
 from aoa.action_machine.model.base_schema import BaseSchema
 
@@ -23,40 +23,73 @@ class BaseVerdict(BaseSchema):
     a ``ResolveItemKind`` ``StrEnum`` field, and a validator enforcing
     ``kind == SUCCESS`` iff ``reason == ""``) with a type per outcome instead of a
     flag per outcome. ``kind`` is not a free field a caller could set to a wrong or
-    mismatched value — it is a ``@computed_field`` returning ``type(self).__name__``,
-    defined once, here, and inherited by every subclass without redeclaration.
-    Whether a given ``kind``/``reason`` combination is legal is therefore not
-    something any validator checks: it is not expressible in the first place — you
-    cannot construct a ``FailSecurityVerdict`` with an empty ``reason``, because that
-    class simply has no way to represent "success", and you cannot construct an
-    ``AllowedVerdict`` with a ``reason`` at all, because that class has no such field.
-    Adding a new outcome is adding a new subclass, not editing a central enum — the
-    old ``ResolveItemKind`` is gone entirely.
+    mismatched value: ``__init__`` (below) fills it in from ``type(self).__name__``
+    when omitted, and raises ``ValueError`` if a caller passes a ``kind=`` that
+    disagrees with the class actually being constructed — the same guarantee a
+    ``@computed_field`` would give, just enforced once, in one place, rather than
+    inherited implicitly. (An earlier version of this class used a ``@computed_field``
+    instead of a stored field — that gave a stronger, unconditional guarantee, at the
+    cost of ``kind`` silently vanishing from ``BaseSchema``'s dict-like interface
+    (``.keys()``/``.items()``/``in``, which only look at *declared* fields) and being
+    unrecoverable from ``model_dump()`` output via ``model_validate()`` — a computed
+    field is never accepted back as input. Both were real, reproduced bugs
+    (baseverdict-audit findings 6 and 4, third document); a stored field closes both
+    at once, deliberately trading the unconditional guarantee below for it.) Whether a
+    given ``kind``/``reason`` combination is legal is therefore not something any
+    validator checks: it is not expressible in the first place — you cannot construct
+    a ``FailSecurityVerdict`` with an empty ``reason``, because that class simply has
+    no way to represent "success", and you cannot construct an ``AllowedVerdict`` with
+    a ``reason`` at all, because that class has no such field. Adding a new outcome is
+    adding a new subclass, not editing a central enum — the old ``ResolveItemKind`` is
+    gone entirely.
 
-    This guarantee holds for the normal constructor. ``model_construct()`` and
-    ``model_copy(update=...)`` are pydantic's own documented escape hatches for
-    building an instance from already-trusted data without running validators at
-    all (confirmed empirically) — both can still produce e.g.
+    This guarantee, and the "cannot construct" one two sentences up, both hold for the
+    normal constructor. ``model_construct()`` and ``model_copy(update=...)`` are
+    pydantic's own documented escape hatches for building an instance from
+    already-trusted data without running validators — or ``__init__`` — at all
+    (confirmed empirically): both can still produce e.g.
     ``FailSecurityVerdict(reason="")``, bypassing ``Field(min_length=1)`` and even
-    ``frozen=True``. Nothing in this codebase calls either on a ``BaseVerdict``; if
-    that ever changes, the "cannot represent" claim above no longer holds for that
-    call site (baseverdict-audit finding 5, third document).
+    ``frozen=True``, and, now that ``kind`` is a stored field rather than always
+    ``type(self).__name__`` live, both can also produce a ``FailSecurityVerdict``
+    instance whose ``kind`` claims to be ``"AllowedVerdict"`` — a lie the earlier
+    computed-field design made structurally impossible even through these bypasses.
+    Nothing in this codebase calls either method on a ``BaseVerdict``; if that ever
+    changes, neither claim above holds for that call site (baseverdict-audit finding
+    5, third document — this paragraph is that finding's resolution, extended to
+    cover ``kind`` spoofing as a consequence of closing findings 4/6).
 
-    Abstract by construction, not by convention: ``model_post_init`` raises
-    ``TypeError`` if ``type(self) is BaseVerdict``. ``pydantic.BaseModel`` combined
-    with ``abc.ABC`` alone does not block direct instantiation (confirmed
-    empirically) — an abstract ``@computed_field`` property does, but would force
-    every subclass to redeclare ``kind``, defeating the point of computing it once.
-    A ``model_post_init`` guard is the narrowest fix that keeps ``kind`` inherited,
-    not redeclared.
+    Abstract by construction, not by convention: raises ``TypeError`` if
+    ``type(self) is BaseVerdict``, checked in both ``__init__`` (the normal
+    construction path) and ``model_post_init`` (which pydantic also calls from
+    ``model_construct()``, the one construction path that skips ``__init__``
+    entirely) — ``pydantic.BaseModel`` combined with ``abc.ABC`` alone does not block
+    direct instantiation (confirmed empirically).
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def kind(self) -> str:
-        return type(self).__name__
+    # Field(default=...) exists only so mypy's pydantic plugin treats `kind` as
+    # optional in the synthesized constructor it infers for subclasses that don't
+    # define their own `__init__` (AllowedVerdict, e.g. `AllowedVerdict()` at every
+    # existing call site) -- the default itself is never actually used at runtime,
+    # __init__ below always supplies a real value explicitly.
+    kind: str = Field(default="")
+
+    def __init__(self, **kwargs: Any) -> None:
+        expected_kind = type(self).__name__
+        given_kind = kwargs.pop("kind", expected_kind)
+        if given_kind != expected_kind:
+            raise ValueError(
+                f"kind must be {expected_kind!r} for {expected_kind} (it is derived from the "
+                f"class being constructed, not a free field) -- got {given_kind!r}."
+            )
+        # mypy resolves super().__init__() against BaseSchema's own declared fields
+        # (it has none) -- it does not see `kind`, declared here on this class, not
+        # on the parent `super()` refers to. Pydantic's real, generated constructor
+        # validates against type(self)'s full field set regardless of which class in
+        # the MRO the call goes through (confirmed empirically), so this is a
+        # static-analysis gap, not a runtime one.
+        super().__init__(kind=expected_kind, **kwargs)  # type: ignore[call-arg]
 
     # pydantic.BaseModel.model_post_init is (self, context, /) -> None; pylint has no
     # pydantic-aware stub and infers a 0-arg signature for the hook, so this reads as a
@@ -91,11 +124,10 @@ class FailSecurityVerdict(BaseVerdict):
     why is not a state the normal constructor can represent (see ``BaseVerdict``'s
     own docstring for the ``model_construct``/``model_copy`` caveat to that claim).
 
-    Subclasses may add their own fields (same pattern as ``BaseVerdict.kind``: no
-    redeclaration needed, ``kind`` keeps resolving to the subclass's own name) — a
-    subclass that does not override ``__init__`` still gets the positional
-    ``reason`` for free, since ``**kwargs`` here passes any of the subclass's own
-    fields straight through to pydantic's own constructor.
+    Subclasses may add their own fields — a subclass that does not override
+    ``__init__`` still gets the positional ``reason`` for free, since ``**kwargs``
+    here passes any of the subclass's own fields straight through to
+    ``BaseVerdict.__init__``, which fills in ``kind`` from ``type(self).__name__``.
 
     Constructible positionally — ``FailSecurityVerdict("FORBIDDEN_ROLE")`` — since
     every call site in this codebase constructs one from a single reason string.
@@ -108,11 +140,7 @@ class FailSecurityVerdict(BaseVerdict):
     reason: str = Field(min_length=1)
 
     def __init__(self, reason: str, **kwargs: Any) -> None:
-        # mypy resolves super().__init__() against BaseVerdict's own declared fields
-        # (just the computed `kind`) -- it does not see `reason`, declared only here
-        # on the subclass. Pydantic's real, generated constructor does validate it
-        # (confirmed empirically), so this is a static-analysis gap, not a runtime one.
-        super().__init__(reason=reason, **kwargs)  # type: ignore[call-arg]
+        super().__init__(reason=reason, **kwargs)
 
 
 class FailErrorVerdict(BaseVerdict):
@@ -137,8 +165,4 @@ class FailErrorVerdict(BaseVerdict):
     reason: str = Field(min_length=1)
 
     def __init__(self, reason: str, **kwargs: Any) -> None:
-        # mypy resolves super().__init__() against BaseVerdict's own declared fields
-        # (just the computed `kind`) -- it does not see `reason`, declared only here
-        # on the subclass. Pydantic's real, generated constructor does validate it
-        # (confirmed empirically), so this is a static-analysis gap, not a runtime one.
-        super().__init__(reason=reason, **kwargs)  # type: ignore[call-arg]
+        super().__init__(reason=reason, **kwargs)

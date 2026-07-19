@@ -17,12 +17,18 @@ class TestBaseVerdictIsAbstract:
         with pytest.raises(TypeError, match="abstract"):
             BaseVerdict()
 
-    def test_kind_is_computed_from_the_subclass_name_without_redeclaration(self) -> None:
-        """kind is defined once, on BaseVerdict, and inherited -- not a free field a
-        subclass could set to a mismatched value."""
+    def test_kind_is_derived_from_the_subclass_name_without_redeclaration(self) -> None:
+        """kind is filled in by BaseVerdict.__init__, inherited by every subclass --
+        not a free field a caller could set to a mismatched value."""
         assert AllowedVerdict().kind == "AllowedVerdict"
         assert FailSecurityVerdict("reason").kind == "FailSecurityVerdict"
         assert FailErrorVerdict("reason").kind == "FailErrorVerdict"
+
+    def test_mismatched_explicit_kind_raises(self) -> None:
+        """A caller cannot lie about kind through the normal constructor -- kind is
+        derived from the class being built, not a settable field."""
+        with pytest.raises(ValueError, match="kind must be 'AllowedVerdict'"):
+            AllowedVerdict(kind="FailSecurityVerdict")  # type: ignore[call-arg]
 
 
 class TestAllowedVerdict:
@@ -109,8 +115,18 @@ class TestDictLikeAccess:
 
     def test_contains(self) -> None:
         verdict = FailSecurityVerdict("wrong role")
+        assert "kind" in verdict
         assert "reason" in verdict
         assert "nonexistent" not in verdict
+
+    def test_kind_appears_in_keys_and_items(self) -> None:
+        """baseverdict-audit finding 6, third document: kind used to be a
+        @computed_field, invisible to BaseSchema's keys()/items() (which only look
+        at declared model_fields) even though direct access (verdict["kind"]) always
+        worked -- kind is now a real field, so both agree."""
+        verdict = AllowedVerdict()
+        assert verdict.keys() == ["kind"]
+        assert verdict.items() == [("kind", "AllowedVerdict")]
 
 
 class TestJsonRoundTrip:
@@ -118,3 +134,11 @@ class TestJsonRoundTrip:
         verdict = FailSecurityVerdict("not a manager")
         dumped = json.loads(verdict.model_dump_json())
         assert dumped == {"kind": "FailSecurityVerdict", "reason": "not a manager"}
+
+    def test_model_dump_round_trips_through_model_validate(self) -> None:
+        """baseverdict-audit finding 4, third document: kind used to be a
+        @computed_field -- present in model_dump() output, but rejected as an
+        unknown field (extra="forbid") by model_validate() on the same class, so a
+        verdict could never be honestly reconstructed from its own wire shape."""
+        verdict = FailSecurityVerdict("FORBIDDEN_ROLE")
+        assert FailSecurityVerdict.model_validate(verdict.model_dump()) == verdict
