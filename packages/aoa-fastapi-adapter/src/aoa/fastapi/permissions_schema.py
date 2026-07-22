@@ -18,9 +18,9 @@ non-empty ``reason``). Imported from ``aoa-action-machine``
 subclasses), not redefined here — both HTTP and MCP adapters depend on
 ``aoa-action-machine``, so that is the one place a shared wire shape can live
 without either adapter depending on the other's package. ``kind`` is not a
-free-standing enum field a caller could set to a mismatched value — it is
-``type(self).__name__``, computed once on ``BaseVerdict`` and inherited by
-every subclass; the set of possible ``kind`` values is exactly the set of
+free-standing enum field a caller could set to a mismatched value — ``BaseVerdict.__init__``
+fills it in from ``type(self).__name__`` when omitted and rejects a mismatched
+explicit value; the set of possible ``kind`` values is exactly the set of
 ``BaseVerdict`` subclasses that exist, not a central list to keep in sync.
 ``results`` is typed ``list[SerializeAsAny[BaseVerdict]]``, not plain
 ``list[BaseVerdict]``, so each item serializes by its actual runtime class:
