@@ -1,5 +1,5 @@
 // packages/aoa-client-js/src/engine.ts
-import type { ResolveItem, ResolveResponse, Verdict } from "./types";
+import type { ResolveItem, ResolveResponse, Verdict } from "./types.ts";
 
 // The instance's identity and everything one network call needs. Identity
 // (cache_partition) is an opaque label the server hands out on
@@ -23,8 +23,11 @@ export class NetworkUnavailable extends Error {} // fetch itself threw (network 
 // itself never throws this -- it returns a FailErrorVerdict element as-is;
 // Primitive.can() (chapter 5) is what throws it.
 export class AoaResolveError extends Error {
-  constructor(public reason: string) {
+  reason: string;
+
+  constructor(reason: string) {
     super(reason);
+    this.reason = reason;
   }
 }
 
@@ -40,7 +43,11 @@ export function isRetryableCheckError(reason: string): boolean {
 }
 
 export class AoaEngine {
-  constructor(private config: { transport: TransportConfig }) {}
+  private config: { transport: TransportConfig };
+
+  constructor(config: { transport: TransportConfig }) {
+    this.config = config;
+  }
 
   // Opaque subject label, read-only: no setter, identity cannot change.
   // Switching subjects means constructing a new AoaEngine.

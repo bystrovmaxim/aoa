@@ -1,8 +1,8 @@
 // packages/aoa-client-js/src/engine.test.ts
 import { describe, expect, it } from "vitest";
 
-import { AoaEngine, NetworkUnavailable, ProtocolError, Unauthorized, isRetryableCheckError } from "./engine";
-import type { ResolveResponse } from "./types";
+import { AoaEngine, NetworkUnavailable, ProtocolError, Unauthorized, isRetryableCheckError } from "./engine.ts";
+import type { ResolveResponse } from "./types.ts";
 
 function fakeResponse(body: unknown, init?: { status?: number; contentType?: string }): Response {
   return new Response(JSON.stringify(body), {
