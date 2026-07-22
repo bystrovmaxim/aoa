@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from aoa.action_machine.exceptions import AuthorizationError
-from aoa.action_machine.intents.access_control import FailSecurityVerdict
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
 
 
 def test_message_and_level_and_verdict_stored() -> None:
@@ -46,3 +46,20 @@ def test_empty_message_without_verdict_raises() -> None:
     to verdict=, and silently reopened the batch-crashing bug it was written to close)."""
     with pytest.raises(ValueError, match="cannot both be empty"):
         AuthorizationError("")
+
+
+def test_verdict_as_plain_string_raises() -> None:
+    """baseverdict-audit finding 2, fourth document: verdict= was only checked for
+    absence (is None), never for type -- a plain string sailed through construction
+    and crashed the first time something read .reason off it, in the shared HTTP
+    403 handler that runs for every real denial."""
+    with pytest.raises(TypeError, match="FailSecurityVerdict"):
+        AuthorizationError("denied", verdict="not a verdict object")  # type: ignore[arg-type]
+
+
+def test_verdict_as_allowed_verdict_raises() -> None:
+    """Same gap, the other reproduced shape: an AllowedVerdict (a real BaseVerdict
+    subclass, just the wrong one -- an allow, not a denial) must also be rejected,
+    not only values of the wrong type entirely."""
+    with pytest.raises(TypeError, match="FailSecurityVerdict"):
+        AuthorizationError("denied", verdict=AllowedVerdict())  # type: ignore[arg-type]

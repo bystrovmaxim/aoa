@@ -27,11 +27,25 @@ class Grant:
     ``when`` all the way to :class:`~aoa.action_machine.graph.edges.role_graph_edge.RoleGraphEdge`
     (``properties["when_reason"]``), which is where :class:`~aoa.action_machine.runtime.role_checker.RoleChecker`
     reads it back at denial time and passes it straight into the ``AuthorizationError`` it raises.
+
+    ``reason=``'s pairing with ``when=`` (type-checked, required together, defaulted
+    when ``when=`` is given alone) is enforced here, in ``__post_init__`` — not only
+    in :func:`grant`'s own body — because ``Grant`` is public and importable on its
+    own; constructing it directly bypasses any validation that lives solely in the
+    factory function (baseverdict-audit finding 1, fourth document). ``grant()``
+    itself is now a thin wrapper that only checks ``role``.
     """
 
     role: type[BaseRole]
     when: Callable[..., bool] | None = None
     reason: FailSecurityVerdict | None = None
+
+    def __post_init__(self) -> None:
+        reason = require_reason_alongside(
+            self.when, self.reason, condition_name="when", context="Grant", default_reason="FORBIDDEN_GRANT"
+        )
+        if reason is not self.reason:
+            object.__setattr__(self, "reason", reason)
 
 
 def grant(
@@ -45,7 +59,8 @@ def grant(
     nothing to explain. ``when=`` without ``reason=`` defaults to
     ``FailSecurityVerdict("FORBIDDEN_GRANT")`` rather than erroring: a developer who
     does not care to write a specific reason gets a generic, framework-owned one
-    instead of being forced to invent one.
+    instead of being forced to invent one. Enforced by ``Grant.__post_init__``, not
+    here — this function only checks ``role``.
 
     Raises:
         TypeError: ``role`` is not a ``BaseRole`` subclass.
@@ -53,7 +68,4 @@ def grant(
     """
     if not isinstance(role, type) or not issubclass(role, BaseRole):
         raise TypeError(f"grant() expected a BaseRole subclass, got {role!r}.")
-    reason = require_reason_alongside(
-        when, reason, condition_name="when", context="grant()", default_reason="FORBIDDEN_GRANT"
-    )
     return Grant(role=role, when=when, reason=reason)

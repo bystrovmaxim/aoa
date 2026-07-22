@@ -9,9 +9,13 @@ if TYPE_CHECKING:
     # Deferred: access_control transitively imports nearly the whole package (model,
     # context, auth) via model.base_schema -- and this module is itself imported from
     # deep inside that same chain (auth.base_role -> exceptions.naming_suffix_error ->
-    # exceptions/__init__.py -> here), so a top-level import would cycle. `verdict` is
-    # only ever stored/read, never constructed here, so no runtime import is needed at
-    # all -- FailSecurityVerdict is only ever used as a type annotation below.
+    # exceptions/__init__.py -> here), so a top-level import would cycle. Confirmed
+    # empirically (baseverdict-audit finding 8, third document's methodology, applied
+    # here too): importing access_control, or auth.base_role, before this module
+    # reproducibly raises ImportError -- unlike role_checker.py's now-stale version of
+    # this same comment, this one is still accurate. `verdict` is only ever
+    # stored/read, never constructed here, so the runtime isinstance check below
+    # imports locally instead.
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 
@@ -40,6 +44,15 @@ class AuthorizationError(Exception):
                 "AuthorizationError: message and verdict cannot both be empty — "
                 "an authorization failure must carry some description of what went wrong."
             )
+        if verdict is not None:
+            # pylint: disable-next=import-outside-toplevel
+            from aoa.action_machine.intents.access_control import FailSecurityVerdict  # see TYPE_CHECKING note above
+
+            if not isinstance(verdict, FailSecurityVerdict):
+                raise TypeError(
+                    f"AuthorizationError: verdict= must be a FailSecurityVerdict instance, "
+                    f"got {type(verdict).__name__}."
+                )
         super().__init__(message)
         self.level = level
         self.verdict = verdict

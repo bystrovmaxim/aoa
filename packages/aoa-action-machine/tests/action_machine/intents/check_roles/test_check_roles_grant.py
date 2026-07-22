@@ -54,6 +54,21 @@ class TestGrantConstruction:
         with pytest.raises(TypeError, match="FailSecurityVerdict"):
             grant(AdminRole, when=_sales_only, reason="sales only")  # type: ignore[arg-type]
 
+    def test_grant_dataclass_constructed_directly_still_validates(self) -> None:
+        """baseverdict-audit finding 1, fourth document: Grant is public and importable
+        on its own -- constructing it directly, bypassing grant() entirely, must not
+        skip the reason= validation that only lived in grant()'s own body before."""
+        with pytest.raises(TypeError, match="FailSecurityVerdict"):
+            Grant(role=AdminRole, when=_sales_only, reason="sales only")  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match=r"reason=.*when="):
+            Grant(role=AdminRole, reason=FailSecurityVerdict("sales only"))
+
+    def test_grant_dataclass_constructed_directly_still_defaults(self) -> None:
+        """Same bypass path, the non-error half: when= alone still defaults reason=
+        to FORBIDDEN_GRANT even when Grant is built without going through grant()."""
+        g = Grant(role=AdminRole, when=_sales_only)
+        assert g.reason == FailSecurityVerdict("FORBIDDEN_GRANT")
+
 
 class TestCheckRolesGrants:
     def test_single_grant_spec_is_bare_type(self) -> None:
