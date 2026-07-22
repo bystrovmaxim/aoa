@@ -33,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   ([#130](https://github.com/bystrovmaxim/aoa/issues/130))
 
+### Documentation
+
+- **`execution_plan.py`/`adapter.py` docstrings say `.run()`, not `.call()`, for the real-invocation half of the `.can()`/`.run()` pair.** The client-side rename (chapter 4 of the UI-permissions book, `aoa-client-js`'s `Primitive.call()` becoming `Primitive.run()` to match the server's own `machine.run()`) left these two Python docstrings — which describe the same conceptual pair, not an actual Python method literally named `.call()` — using the old name (04-implementation-audit.md finding 12, chapter 4). No behavior change.
+
 ## [1.1.1] – 2026-07-11
 
 ### Changed

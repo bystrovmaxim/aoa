@@ -1100,7 +1100,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         existing ``detail`` -- additively, ``detail`` is unchanged -- so the
         developer-declared ``reason=`` a ``grant(when=...)``/``check_roles(guard=...)``
         was rejected with (or the framework-fixed ``"FORBIDDEN_ROLE"``) actually reaches
-        the caller on a real ``.call()`` denial, not only on a resolver ``.can()``
+        the caller on a real ``.run()`` denial, not only on a resolver ``.can()``
         prediction. Both are ``None`` only for an entry-gate failure ("Authentication
         required", raised with neither) -- a level-3 ``access_decide`` denial carries
         its own real ``reason`` too, since ``access_decide`` returns a

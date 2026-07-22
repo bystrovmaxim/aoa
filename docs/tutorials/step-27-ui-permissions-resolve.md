@@ -1,4 +1,4 @@
-<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-19T17:51:39Z (filesystem mtime; draft is gitignored, no git history) · sha256:54e39377d13c -->
+<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-22T22:15:29Z (filesystem mtime; draft is gitignored, no git history) · sha256:6811ff2128ed -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -14,12 +14,13 @@
 - [The button that lies](#the-button-that-lies)
 - [The idea: ask, don't copy the rule](#the-idea-ask-dont-copy-the-rule)
 - [POST /permissions/resolve](#post-permissionsresolve)
-- [One execution recipe: why .can() agrees with .call()](#one-execution-recipe-why-can-agrees-with-call)
+- [One execution recipe: why .can() agrees with .run()](#one-execution-recipe-why-can-agrees-with-run)
 - [A list is not a special case](#a-list-is-not-a-special-case)
 - [A batch survives duplicates and one bad error](#a-batch-survives-duplicates-and-one-bad-error)
 - [A guest is a valid answer too](#a-guest-is-a-valid-answer-too)
 - [Whose question is this: PermissionNamespace and cache_partition](#whose-question-is-this-permissionnamespace-and-cache_partition)
 - [The catalog: asking what's even possible](#the-catalog-asking-whats-even-possible)
+- [`aoa-client-js`: a minimal client](#aoa-client-js-a-minimal-client)
 - [The wire language's version, and the boundary of failure](#the-wire-languages-version-and-the-boundary-of-failure)
 - [Why this isn't an ordinary operation](#why-this-isnt-an-ordinary-operation)
 - [What the resolver doesn't say yet](#what-the-resolver-doesnt-say-yet)
@@ -112,9 +113,9 @@ uv run python examples/step_27_ui_permissions_resolve/02_role_gate_denied.py
 
 ---
 
-## One execution recipe: why .can() agrees with .call()
+## One execution recipe: why .can() agrees with .run()
 
-There's a tempting but dangerous way to implement the resolver: give it its own, lighter-weight authentication path — say, one fixed `auth_coordinator` for the whole request, ignoring the fact that a specific route may have declared its own (`auth_coordinator=` on `.post/.get/...`). Before this chapter, that's exactly how the resolver worked, and the real endpoint set up `Context`/`connections` its own way. The result: `.can()` (the resolver) and `.call()` (the real call) could honestly answer *differently* to the same question — if a route overrode the coordinator, or an `access_decide` read `connections`, the button could honestly say "yes" while the real call refused.
+There's a tempting but dangerous way to implement the resolver: give it its own, lighter-weight authentication path — say, one fixed `auth_coordinator` for the whole request, ignoring the fact that a specific route may have declared its own (`auth_coordinator=` on `.post/.get/...`). Before this chapter, that's exactly how the resolver worked, and the real endpoint set up `Context`/`connections` its own way. The result: `.can()` (the resolver) and `.run()` (the real call) could honestly answer *differently* to the same question — if a route overrode the coordinator, or an `access_decide` read `connections`, the button could honestly say "yes" while the real call refused.
 
 `EndpointExecutionPlan` is one execution recipe for a single route, built once at `build()`: the pairing of "route + its effective `auth_coordinator`" (a route override, or the adapter default). `PreparedEndpointContext` is what you get when you apply that plan to one concrete HTTP request: a ready `Context` and resolved `connections`. Both the real endpoint and the resolver go through the same `EndpointExecutionPlan.prepare(request)` — there is no second way to get a `Context`/`connections` pair for a route.
 
@@ -303,6 +304,52 @@ uv run python examples/step_27_ui_permissions_catalog/07_route_shapes_to_operati
 
 ---
 
+## `aoa-client-js`: a minimal client
+
+The resolver and the catalog solved the server's half of the problem. But so far all of this is raw HTTP: to ask "can I cancel order 7?", the frontend developer manually builds the request body and manually parses the response:
+
+```tsx
+// BEFORE — the resolver's HTTP wrapper is duplicated by hand
+async function checkCanCancel(orderId: number): Promise<boolean> {
+  const res = await fetch("/permissions/resolve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ version: 1, items: [{ operation: "POST /actions/cancel-order", params: { order_id: orderId } }] }),
+  });
+  const { results } = await res.json();
+  return results[0].kind === "AllowedVerdict"; // what if the server answered 401? results is undefined, this throws on read
+}
+```
+
+The access rule itself isn't duplicated here anymore — the resolver and the catalog already solved that. Something duller and more dangerous is duplicated instead: the HTTP wrapper itself. Every component author rewrites the endpoint path, rebuilds the body, and reparses the response — and nothing stops those three places from drifting away from the server's schema, except attentiveness.
+
+The new `aoa-client-js` package gives you one class, `AoaEngine`, with one method — `resolve()`. All of the resolver's HTTP logic is written and tested once, in one place:
+
+```tsx
+// AFTER — all of the HTTP wrapper lives inside AoaEngine
+const engine = new AoaEngine({
+  transport: { baseUrl: "", fetchImpl: fetch, cachePartition: bootstrap.cache_partition, credentials: "include" },
+});
+
+async function checkCanCancel(orderId: number): Promise<boolean> {
+  const [result] = await engine.resolve([{ operation: "POST /actions/cancel-order", params: { order_id: orderId } }]);
+  if (result.kind === "FailErrorVerdict") throw new Error(`resolve failed: ${result.reason}`);
+  return result.kind === "AllowedVerdict";
+}
+```
+
+`resolve()` returns `Verdict[]` — a discriminated union of the same three classes the server uses (`AllowedVerdict`/`FailSecurityVerdict`/`FailErrorVerdict`, see the `BaseVerdict` section above): `AllowedVerdict` carries no `reason` at all, and `FailErrorVerdict` isn't a denial — it's the absence of a decision (the server couldn't check), and it must never be shown to the user as "no permission." Transport failures — `401`, the network being down, the wrong `version` or content-type — are checked by `AoaEngine` **before** it ever reads `results`, and it throws typed errors on them (`Unauthorized`/`ProtocolError`/`NetworkUnavailable`) instead of turning them into a synthetic denial.
+
+**The instance's identity is immutable.** `AoaEngine`'s identity (`cachePartition`) is fixed in the constructor and never changes: switching users means constructing a **new** `AoaEngine`, not mutating the old one — so the previous subject's cache and subscriptions never leak to the next one, and `AoaEngine` never operates under an unknown identity.
+
+Every call to `resolve()` carries its own `x-trace-id` (`crypto.randomUUID()` by default) — the server already knows how to read this header into `RequestInfo.trace_id`, no server-side changes were needed.
+
+What this chapter deliberately leaves out: `resolve()` doesn't cache identical questions yet (coming later), and doesn't merge concurrent calls into one network request either (also coming later) — one call to `resolve()` is always exactly one HTTP request. The endpoint is still written by hand as a string (`"POST /actions/cancel-order"`) — a type-safe wrapper (`api.post["/actions/cancel-order"].can(...)`) comes from code generation off the catalog, a separate topic.
+
+Examples — [`01_resolve_single.ts`](../../examples/step_27_ui_permissions_client/01_resolve_single.ts) (a single question), [`02_resolve_batch_of_questions.ts`](../../examples/step_27_ui_permissions_client/02_resolve_batch_of_questions.ts) (a batch of questions in one call), [`03_resolve_request_errors.ts`](../../examples/step_27_ui_permissions_client/03_resolve_request_errors.ts) (transport failures and `FailErrorVerdict`), and [`04_engine_with_fake_fetch_for_tests.ts`](../../examples/step_27_ui_permissions_client/04_engine_with_fake_fetch_for_tests.ts) (swapping in a fake `fetchImpl` for your own tests). Each one runs directly: `node examples/step_27_ui_permissions_client/<file>.ts`.
+
+---
+
 ## The wire language's version, and the boundary of failure
 
 The resolver's "question and answer" language has its own version number — `version`, the same one the manifest publishes. The client always sends the version it was built for; the resolver checks it **first, before authentication** — a client speaking the wrong language shouldn't have to prove its identity first just to be told to upgrade. A mismatch is a `400` with body `{"error": {"code": "unsupported_version"}}` (`ErrorEnvelope`, the same envelope published under `schemas`).
@@ -324,7 +371,7 @@ The solution is a bespoke route registered right inside `FastApiAdapter.build()`
 This chapter is the base: role level (1-2) and object level (3) via `access_decide`, a list from day one, guest access, deduplication and per-item error isolation, one execution recipe, cache partitions, route shadowing, HTTP caching for the catalog, and wire-language versioning. Deliberately out of scope:
 
 - **Honest reporting of the object-level check.** Role-level and object-level checks are still indistinguishable on the wire in this chapter — both produce the same `kind: "FailSecurityVerdict"` (a minimal oracle contract: a caller can't tell "no such object" from "exists, but not yours" from `kind` alone — only from the text of `reason`). Revealing that detail is safe only together with generic deny — the same answer for "no such object" and "exists, but not yours"; without it, revealing the detail would hand an attacker a way to guess other people's object IDs from the shape of a denial. This mechanism arrives in chapter 8. Future channels like a disabled feature or a triggered operational rule are a separate, unrelated piece of future work; in this architecture each such channel will be its own subclass of `FailSecurityVerdict`, not a pre-reserved enum value.
-- **The client package.** This chapter's examples call `machine.check_access_decide`/the resolver directly; a convenient typed client (`api.post["/actions/cancel-order"].can(...)`) doesn't exist yet.
+- **A typed client.** `aoa-client-js` already gives you `AoaEngine.resolve()` (see the section above) — but it's still a low-level call: the endpoint is written by hand as a string. A convenient, type-safe wrapper (`api.post["/actions/cancel-order"].can(...)`), generated from the catalog, doesn't exist yet.
 
 ---
 
@@ -332,7 +379,7 @@ This chapter is the base: role level (1-2) and object level (3) via `access_deci
 
 - **The resolver doesn't change the machine.** Route registration is a thin wrapper in `aoa-fastapi-adapter`; the access rule is still declared only via `@check_roles`/`access_decide` on the action itself.
 - **A list is the primary shape.** A single question is a batch of one, not a separate code path; `POST /permissions/resolve` accepts and returns lists (`items`/`results`) from day one.
-- **`.can()` and `.call()` share one recipe.** Both go through the same route's `EndpointExecutionPlan.prepare(request)` — there is no second way to get a `Context`/`connections` pair, so the two physically cannot disagree.
+- **`.can()` and `.run()` share one recipe.** Both go through the same route's `EndpointExecutionPlan.prepare(request)` — there is no second way to get a `Context`/`connections` pair, so the two physically cannot disagree.
 - **`auth_coordinator.process()` is always called.** `403` only if it returned `None`; a resolved anonymous `Context` (`NoAuthCoordinator`) flows into the machine as usual.
 - **`kind` is always present, `reason` is present except on success.** `kind` is the outcome class's own name (`BaseVerdict` and its three concrete subclasses). `AllowedVerdict` carries no `reason` at all; `FailSecurityVerdict`/`FailErrorVerdict` carry a non-empty, declared-ahead-of-time string. `FailErrorVerdict` is not a denial and must never be cached as one.
 - **`reason` is a declaration, not a guess made after the fact.** A `when=`/`guard=` that can reject must carry its own `FailSecurityVerdict` — leave it unset and it defaults to `FailSecurityVerdict("FORBIDDEN_GRANT")`/`FailSecurityVerdict("FORBIDDEN_GUARD")`. A role that never matched at all is the fixed `"FORBIDDEN_ROLE"`; a route's own auth gate rejecting a single batch item is the fixed `"UNAUTHORIZED"`. Neither one is declared by the developer.
@@ -345,12 +392,14 @@ This chapter is the base: role level (1-2) and object level (3) via `access_deci
 - **The manifest's three numbers answer three different questions.** `version` (the resolver's wire language), `manifest_schema_version` (the manifest's own shape), `manifest_version` (a hash of content without itself, published as the `ETag`).
 - **`cache_partition` is recomputed, not stored.** A deterministic function of the current identity (`user_id` + sorted roles) — a change of identity produces a new label on its own, with no server-side generation counter.
 - **An unsupported wire-language version fails the whole request too.** `version` is checked before authentication; a mismatch is `400 unsupported_version`, the same error envelope (`ErrorEnvelope`) published under `schemas`.
+- **`AoaEngine` never mutates identity.** `cachePartition` is fixed at construction with no setter; switching subjects means a new `AoaEngine`, never reusing the old one.
+- **A transport failure is not a verdict.** `401`, an unreachable network, the wrong content-type/`version`/result cardinality — typed errors (`Unauthorized`/`ProtocolError`/`NetworkUnavailable`) that `AoaEngine.resolve()` throws, rather than returning as an element of `results`.
 
 ---
 
 ## Summary
 
-`POST /permissions/resolve` is a thin, but principled, layer over `machine.check_access_decide`: the frontend gets an honest "can I?" from the one place the rule is declared, instead of keeping a copy of the rule in the component. A list is the protocol's primary shape from day one; a guest isn't a special case for the resolver, but an ordinary role checked by the same cascade; one `EndpointExecutionPlan` keeps `.can()` and `.call()` from ever disagreeing. The batch, meanwhile, is resilient to its own duplicates (identical questions cost one real call but never shorten the response) and to one bad error (an unrecognized action only quenches its own position, not the whole request) — but not to a request that's invalid as a whole: the wrong wire-language version, a failed entry gate, or a server-side failure still take everything down. The catalog removes the hardcoded stub string, publishes the protocol's own reference schemas, and caches cheaply via `ETag`/`304` without fear of shadowing between routes; `cache_partition` gives the client a way to never mistake someone else's cached answer for its own.
+`POST /permissions/resolve` is a thin, but principled, layer over `machine.check_access_decide`: the frontend gets an honest "can I?" from the one place the rule is declared, instead of keeping a copy of the rule in the component. A list is the protocol's primary shape from day one; a guest isn't a special case for the resolver, but an ordinary role checked by the same cascade; one `EndpointExecutionPlan` keeps `.can()` and `.run()` from ever disagreeing. The batch, meanwhile, is resilient to its own duplicates (identical questions cost one real call but never shorten the response) and to one bad error (an unrecognized action only quenches its own position, not the whole request) — but not to a request that's invalid as a whole: the wrong wire-language version, a failed entry gate, or a server-side failure still take everything down. The catalog removes the hardcoded stub string, publishes the protocol's own reference schemas, and caches cheaply via `ETag`/`304` without fear of shadowing between routes; `cache_partition` gives the client a way to never mistake someone else's cached answer for its own. And `aoa-client-js` removes the last piece of manual duplication — the HTTP wrapper itself: one class, `AoaEngine`, one method, `resolve()`, immutable identity, typed transport errors instead of a synthetic denial.
 
 ---
 
@@ -360,7 +409,7 @@ This chapter is the base: role level (1-2) and object level (3) via `access_deci
 2. What's the difference between "`auth_coordinator.process()` returned `None`" and "returned an anonymous `Context`"? What does the resolver do in each case?
 3. Why does `POST /permissions/resolve` accept a list from day one, even though the frontend currently sends one item at a time?
 4. Why can't the resolver be an ordinary `BaseAction` registered via `.post(action_class)`? What access, specifically, does an ordinary action lack?
-5. What, exactly, could diverge between `.can()` and `.call()` before `EndpointExecutionPlan`, and why does one shared `.prepare(request)` for both paths close that gap?
+5. What, exactly, could diverge between `.can()` and `.run()` before `EndpointExecutionPlan`, and why does one shared `.prepare(request)` for both paths close that gap?
 6. An action's `access_decide` returned `FailSecurityVerdict` for a guest. Does that mean the guest doesn't own the object? Give another possible reason for the denial.
 7. A batch of five questions where the first and the fifth are the same `(operation, params)`. How many items will `results` contain? How many times will `access_decide` actually run?
 8. Why isn't `real_call_count` published on the wire `BaseVerdict`, even though it exists on `ResolveOutcome`?
@@ -371,6 +420,8 @@ This chapter is the base: role level (1-2) and object level (3) via `access_deci
 13. Why isn't `cache_partition` stored on the server as a generation counter, but recomputed on every call instead? What would go wrong on logout if the formula weren't recomputed?
 14. A client sends `version: 2`; the server only understands `version: 1`. Walk through what happens, step by step — and why this check runs before authentication, not after it.
 15. Why is `manifest_version` hashed without itself? What would go wrong if the field hashed its own value too?
+16. A user logged out and logged back in as someone else. What should happen to the existing `AoaEngine` — and why would simply assigning a new value to `cachePartition` be a mistake?
+17. `fetchImpl` is passed into `AoaEngine` as a constructor parameter, rather than read off `window.fetch`. Why — and what would break during server-side rendering (SSR) if it were hard-wired to `window.fetch`?
 
 > **Exercise.** Take `TrackOrderAction` from [`05_guest_gated_by_event.py`](../../examples/step_27_ui_permissions_resolve/05_guest_gated_by_event.py) and add a second reason for denial to `access_decide` — for example, that the tracking code is only valid for 30 days after shipping. Run `machine.check_access_decide` before shipping, after shipping, and after the 30 days have passed, and confirm `kind`/`reason` reflect exactly that reason in each case.
 

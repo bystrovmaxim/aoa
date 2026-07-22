@@ -1,6 +1,6 @@
 # packages/aoa-fastapi-adapter/src/aoa/fastapi/execution_plan.py
 """
-EndpointExecutionPlan / PreparedEndpointContext — one recipe for ``.can()`` and ``.call()`` (issue #130).
+EndpointExecutionPlan / PreparedEndpointContext — one recipe for ``.can()`` and ``.run()`` (issue #130).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
