@@ -55,6 +55,12 @@ packages/aoa-maxitor/client/.vite/
 packages/aoa-maxitor/src/aoa/maxitor/static/
 
 # ============================================================================
+# Node (aoa-client-js — source lives in git; node_modules stays local only)
+# ============================================================================
+packages/aoa-client-js/node_modules/
+packages/aoa-client-js/.vite/
+
+# ============================================================================
 # IDE
 # ============================================================================
 .idea/
