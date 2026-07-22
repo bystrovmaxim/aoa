@@ -1,3 +1,11 @@
 // packages/aoa-client-js/src/index.ts
-// Public API surface — populated starting with types.ts/engine.ts (phase 3).
-export {};
+export type { AllowedVerdict, FailErrorVerdict, FailSecurityVerdict, ResolveItem, ResolveResponse, Verdict } from "./types";
+export type { TransportConfig } from "./engine";
+export {
+  AoaEngine,
+  AoaResolveError,
+  NetworkUnavailable,
+  ProtocolError,
+  Unauthorized,
+  isRetryableCheckError,
+} from "./engine";
