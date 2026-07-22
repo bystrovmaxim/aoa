@@ -1,4 +1,4 @@
-<!-- translated-from: step-04-saga-and-compensations_draft.md @ 2026-06-24T15:32:41Z (filesystem mtime; draft is gitignored, no git history) · sha256:56741c1b6dfd -->
+<!-- translated-from: step-04-saga-and-compensations_draft.md @ 2026-07-10T14:55:05Z (filesystem mtime; draft is gitignored, no git history) · sha256:a9f83533782f -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

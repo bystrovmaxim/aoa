@@ -1,20 +1,29 @@
 # tests/test_fastapi_permissions_schema.py
 """
-Tests for ``aoa.fastapi.permissions_schema`` — ``/permissions/resolve`` wire models (issue #130, PR 1).
+Tests for ``aoa.fastapi.permissions_schema`` — ``/permissions/resolve`` wire models (issue #130).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Validate required/default fields, the non-empty ``items`` invariant, extra-field
-rejection, and that ``Verdict``'s reserved fields (``scope``, ``entities``,
-``reason_code``, ``expires_at``) default to their PR-1 "unpopulated" values.
+rejection, and that every ``BaseVerdict`` subclass is exactly its own flat shape —
+``AllowedVerdict`` with no ``reason`` at all, ``FailSecurityVerdict``/
+``FailErrorVerdict`` with ``reason`` mandatory and non-empty.
 """
 
 import pytest
 from pydantic import ValidationError
 
-from aoa.fastapi.permissions_schema import ResolveItem, ResolveRequest, ResolveResponse, Verdict
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailErrorVerdict, FailSecurityVerdict
+from aoa.fastapi.permissions_schema import (
+    SUPPORTED_VERSION,
+    ErrorDetail,
+    ErrorEnvelope,
+    ResolveItem,
+    ResolveRequest,
+    ResolveResponse,
+)
 
 
 class TestResolveItem:
@@ -27,18 +36,18 @@ class TestResolveItem:
 
     def test_params_defaults_to_empty_dict(self) -> None:
         """``params`` defaults to ``{}`` when omitted."""
-        item = ResolveItem(operation="CancelOrderAction")
+        item = ResolveItem(operation="POST /actions/cancel-order")
         assert item.params == {}
 
     def test_context_defaults_to_none(self) -> None:
         """``context`` (reserved for future ABAC hints) defaults to ``None``."""
-        item = ResolveItem(operation="CancelOrderAction")
+        item = ResolveItem(operation="POST /actions/cancel-order")
         assert item.context is None
 
     def test_rejects_extra_fields(self) -> None:
         """Unknown wire fields are rejected, not silently ignored."""
         with pytest.raises(ValidationError):
-            ResolveItem(operation="CancelOrderAction", unexpected="value")  # type: ignore[call-arg]
+            ResolveItem(operation="POST /actions/cancel-order", unexpected="value")  # type: ignore[call-arg]
 
 
 class TestResolveRequest:
@@ -47,77 +56,107 @@ class TestResolveRequest:
     def test_requires_at_least_one_item(self) -> None:
         """An empty ``items`` list is rejected (FR: batch of 1..N, never 0)."""
         with pytest.raises(ValidationError):
-            ResolveRequest(protocol=1, items=[])
+            ResolveRequest(version=1, items=[])
 
     def test_batch_of_one_is_valid(self) -> None:
         """A single-item batch is the ordinary case, not a special one."""
-        request = ResolveRequest(protocol=1, items=[ResolveItem(operation="CancelOrderAction")])
+        request = ResolveRequest(version=1, items=[ResolveItem(operation="POST /actions/cancel-order")])
         assert len(request.items) == 1
 
     def test_batch_of_many_preserves_order(self) -> None:
         """Multiple items round-trip in the order they were given."""
         request = ResolveRequest(
-            protocol=1,
+            version=1,
             items=[
-                ResolveItem(operation="CancelOrderAction", params={"order_id": 1}),
-                ResolveItem(operation="IssueRefundAction", params={"order_id": 1}),
+                ResolveItem(operation="POST /actions/cancel-order", params={"order_id": 1}),
+                ResolveItem(operation="POST /actions/issue-refund", params={"order_id": 1}),
             ],
         )
-        assert [item.operation for item in request.items] == ["CancelOrderAction", "IssueRefundAction"]
+        assert [item.operation for item in request.items] == ["POST /actions/cancel-order", "POST /actions/issue-refund"]
 
     def test_rejects_extra_fields(self) -> None:
         """Unknown top-level wire fields are rejected."""
         with pytest.raises(ValidationError):
             ResolveRequest(  # type: ignore[call-arg]
-                protocol=1,
-                items=[ResolveItem(operation="CancelOrderAction")],
+                version=1,
+                items=[ResolveItem(operation="POST /actions/cancel-order")],
                 unexpected="value",
             )
 
 
-class TestVerdict:
-    """``Verdict`` — one answer, with PR-1's reserved-but-unpopulated fields."""
+class TestBaseVerdictSubclasses:
+    """``AllowedVerdict``/``FailSecurityVerdict``/``FailErrorVerdict`` — one class per
+    outcome, ``kind`` computed from the class name, never a free field."""
 
-    def test_only_allowed_is_required(self) -> None:
-        """``allowed`` is the only field a caller must supply."""
-        verdict = Verdict(allowed=True)
-        assert verdict.allowed is True
-
-    def test_reserved_fields_default_to_unpopulated(self) -> None:
-        """PR 1 never populates scope/entities/reason_code/expires_at for real."""
-        verdict = Verdict(allowed=False)
-        assert verdict.scope is None
-        assert verdict.level is None
-        assert verdict.reason is None
-        assert verdict.reason_code is None
-        assert verdict.entities == []
-        assert verdict.expires_at is None
-
-    def test_scope_rejects_values_outside_role_or_object(self) -> None:
-        """``scope`` is constrained to the two documented wire values."""
+    def test_allowed_verdict_has_no_reason_field(self) -> None:
+        """AllowedVerdict carries no reason at all -- not an empty one, none."""
+        assert AllowedVerdict().kind == "AllowedVerdict"
         with pytest.raises(ValidationError):
-            Verdict(allowed=False, scope="admin")  # type: ignore[arg-type]
+            AllowedVerdict(reason="")  # type: ignore[call-arg]
 
-    def test_level_rejects_values_outside_one_two_three(self) -> None:
-        """``level`` is constrained to the three cascade levels."""
+    def test_fail_security_verdict_requires_a_non_empty_reason(self) -> None:
         with pytest.raises(ValidationError):
-            Verdict(allowed=False, level=4)  # type: ignore[arg-type]
+            FailSecurityVerdict("")
+
+    def test_fail_security_verdict_round_trips(self) -> None:
+        result = FailSecurityVerdict("not a manager")
+        assert result.kind == "FailSecurityVerdict"
+        assert result.reason == "not a manager"
+
+    def test_fail_error_verdict_round_trips(self) -> None:
+        """FailErrorVerdict is its own class, not a value of some shared kind field --
+        the resolver builds it directly for e.g. UNKNOWN_ENDPOINT, never a
+        FailSecurityVerdict (fix-audit finding 6: no kind gets special-cased beyond
+        the one shared per-class reason contract)."""
+        result = FailErrorVerdict("UNKNOWN_ENDPOINT")
+        assert result.kind == "FailErrorVerdict"
+        assert result.reason == "UNKNOWN_ENDPOINT"
 
     def test_rejects_extra_fields(self) -> None:
         """Unknown wire fields are rejected, not silently ignored."""
         with pytest.raises(ValidationError):
-            Verdict(allowed=True, unexpected="value")  # type: ignore[call-arg]
+            FailSecurityVerdict.model_validate({"reason": "not a manager", "unexpected": "value"})
 
 
 class TestResolveResponse:
     """``ResolveResponse`` — the resolver's response body."""
 
-    def test_verdicts_preserve_order(self) -> None:
-        """Verdicts round-trip in the order they were given, matching request items positionally."""
-        response = ResolveResponse(protocol=1, verdicts=[Verdict(allowed=True), Verdict(allowed=False)])
-        assert [v.allowed for v in response.verdicts] == [True, False]
+    def test_results_preserve_order(self) -> None:
+        """Results round-trip in the order they were given, matching request items positionally."""
+        response = ResolveResponse(
+            version=1,
+            results=[AllowedVerdict(), FailSecurityVerdict("not a manager")],
+        )
+        assert [r.kind for r in response.results] == ["AllowedVerdict", "FailSecurityVerdict"]
 
     def test_rejects_extra_fields(self) -> None:
         """Unknown top-level wire fields are rejected."""
         with pytest.raises(ValidationError):
-            ResolveResponse(protocol=1, verdicts=[], unexpected="value")  # type: ignore[call-arg]
+            ResolveResponse(version=1, results=[], unexpected="value")  # type: ignore[call-arg]
+
+
+class TestSupportedVersion:
+    """``SUPPORTED_VERSION`` — the single source both the resolver and the manifest read."""
+
+    def test_is_the_draft_v1(self) -> None:
+        assert SUPPORTED_VERSION == 1
+
+
+class TestErrorEnvelope:
+    """``ErrorEnvelope`` — the whole-request-failure body, ``{"error": {"code": ...}}``."""
+
+    def test_round_trips_a_code(self) -> None:
+        envelope = ErrorEnvelope(error=ErrorDetail(code="unsupported_version"))
+        assert envelope.model_dump() == {"error": {"code": "unsupported_version"}}
+
+    def test_code_is_required(self) -> None:
+        with pytest.raises(ValidationError):
+            ErrorDetail()  # type: ignore[call-arg]
+
+    def test_error_is_required(self) -> None:
+        with pytest.raises(ValidationError):
+            ErrorEnvelope()  # type: ignore[call-arg]
+
+    def test_rejects_extra_fields(self) -> None:
+        with pytest.raises(ValidationError):
+            ErrorEnvelope(error=ErrorDetail(code="unsupported_version"), unexpected="value")  # type: ignore[call-arg]

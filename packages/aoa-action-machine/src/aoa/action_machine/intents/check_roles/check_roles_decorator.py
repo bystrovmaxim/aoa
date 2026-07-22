@@ -31,25 +31,38 @@ callables: ``async def`` raises
 :exc:`~aoa.action_machine.exceptions.AccessConditionAsyncError` here, at class
 definition time.
 
+Every ``when=``/``guard=`` that can reject also carries a ``reason=`` —
+``Grant.reason`` for a grant's ``when=``, the decorator's own ``reason=`` for its
+``guard=`` — a ``FailSecurityVerdict``, not a bare string. Left unspecified, it
+defaults to a framework-owned ``FailSecurityVerdict("FORBIDDEN_GRANT")`` /
+``FailSecurityVerdict("FORBIDDEN_GUARD")`` rather than erroring. Both travel the
+same path as the condition they belong to: ``Grant.reason`` becomes
+``RoleGraphEdge.properties["when_reason"]``, the decorator's ``reason=`` becomes
+``cls._role_info["guard_reason"]`` and then
+``ActionGraphNode.properties["guard_reason"]``. ``RoleChecker`` reads both back
+at denial time and passes the matching one straight into the ``AuthorizationError``
+it raises (``verdict=``).
+
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     @check_roles(AdminRole)
-    @check_roles(grant(AdminRole), grant(ManagerRole, when=...), guard=...)
+    @check_roles(grant(AdminRole), grant(ManagerRole, when=..., reason=...), guard=..., reason=...)
             |
             v
     normalize spec / grants to role-type contract
             |
             v
-    cls._role_info = {"spec": ..., "grants": [...], "guard": ...}
+    cls._role_info = {"spec": ..., "grants": [...], "guard": ..., "guard_reason": ...}
             |
             +--> mode validation (UNUSED error, DEPRECATED warning)
             +--> when=/guard= sync validation (AccessConditionAsyncError)
+            +--> when=/reason= and guard=/reason= pairing validation (ValueError)
             |
             v
-    Interchange ``RoleGraphEdge`` (per grant, carries "when") +
-    ``ActionGraphNode.properties["guard"]`` (from "grants"/"guard") +
+    Interchange ``RoleGraphEdge`` (per grant, carries "when"/"when_reason") +
+    ``ActionGraphNode.properties["guard"]``/``["guard_reason"]`` (from "grants"/"guard") +
     ``RoleChecker`` at runtime
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -75,14 +88,20 @@ from __future__ import annotations
 import asyncio
 import warnings
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.exceptions.access_condition_async_error import AccessConditionAsyncError
 from aoa.action_machine.intents.check_roles.grant import Grant
+from aoa.action_machine.intents.check_roles.reason_validation import require_reason_alongside
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
+
+if TYPE_CHECKING:
+    # Deferred: same transitive-cycle reason as grant.py. Only the type annotations
+    # below need it -- the one runtime construction lives in reason_validation.py now.
+    from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 
 def _normalize_check_roles_spec(spec: Any) -> Any:
@@ -181,7 +200,11 @@ def _target_is_class_invariant(cls: Any) -> None:
         )
 
 
-def check_roles(*specs: Any, guard: Callable[..., bool] | None = None) -> Any:
+def check_roles(
+    *specs: Any,
+    guard: Callable[..., bool] | None = None,
+    reason: FailSecurityVerdict | None = None,
+) -> Any:
     """
     Class-level decorator that declares role requirements for an action.
 
@@ -192,9 +215,24 @@ def check_roles(*specs: Any, guard: Callable[..., bool] | None = None) -> Any:
     instances may be mixed freely as separate positional arguments. ``guard=`` is
     one additional condition shared by every grant. See module docstring for
     details.
+
+    ``reason=`` without ``guard=`` is meaningless — same rule as
+    ``grant(when=..., reason=...)``. ``guard=`` without ``reason=`` defaults to
+    ``FailSecurityVerdict("FORBIDDEN_GUARD")``. ``check_roles()`` only supports one
+    ``guard=``/``reason=`` pair per action today (several denial reasons behind one
+    shared guard is an open question, not solved here); several *role-level*
+    reasons are already possible via several ``grant(role, when=..., reason=...)``
+    calls.
+
+    Raises:
+        TypeError: no role or grant(...) was given at all.
+        ValueError: ``reason`` was given without ``guard``.
     """
     if len(specs) == 0:
         raise TypeError("@check_roles requires at least one role or grant(...).")
+    reason = require_reason_alongside(
+        guard, reason, condition_name="guard", context="@check_roles", default_reason="FORBIDDEN_GUARD"
+    )
 
     if len(specs) == 1 and not isinstance(specs[0], Grant):
         normalized_spec = _normalize_check_roles_spec(specs[0])
@@ -213,7 +251,7 @@ def check_roles(*specs: Any, guard: Callable[..., bool] | None = None) -> Any:
     def decorator(cls: Any) -> Any:
         _target_is_class_invariant(cls)
 
-        cls._role_info = {"spec": normalized_spec, "grants": grants, "guard": guard}
+        cls._role_info = {"spec": normalized_spec, "grants": grants, "guard": guard, "guard_reason": reason}
         return cls
 
     return decorator

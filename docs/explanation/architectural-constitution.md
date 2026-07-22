@@ -1,4 +1,4 @@
-<!-- translated-from: architectural-constitution_draft.md @ 2026-06-25T22:32:46Z (filesystem mtime; draft is gitignored, no git history) · sha256:f4e2ba82ab20 -->
+<!-- translated-from: architectural-constitution_draft.md @ 2026-07-19T14:53:02Z (filesystem mtime; draft is gitignored, no git history) · sha256:eba1ab5bf79c -->
 # The AOA Architectural Constitution
 ## The language of primitives
 
@@ -37,6 +37,7 @@ The system's data language. An immutable Pydantic model with dot-path navigation
 | `BaseState` | an intermediate execution snapshot (`frozen`, `extra="allow"`) |
 | `Context` | a slice of the call's environment (UserInfo + RequestInfo + RuntimeInfo) |
 | `BaseEntity` | a domain object (structure + Lifecycle) |
+| `BaseVerdict` | the outcome of an access-control decision (`AllowedVerdict`/`FailSecurityVerdict`/`FailErrorVerdict`) |
 
 ```python
 class CreateOrderAction(BaseAction[...]):
@@ -248,6 +249,7 @@ AOA
 │   ├── BaseResult     — the result
 │   ├── BaseState      — an execution snapshot
 │   ├── Context        — a slice of the environment
+│   ├── BaseVerdict    — the outcome of an access-control decision
 │   └── BaseEntity     — a domain object (↓ see below)
 ├── BaseAction      — a unit of work
 ├── BaseEntity      — a domain object

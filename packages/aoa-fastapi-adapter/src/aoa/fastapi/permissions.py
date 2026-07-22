@@ -1,6 +1,6 @@
 # packages/aoa-fastapi-adapter/src/aoa/fastapi/permissions.py
 """
-Resolver helpers for ``POST /permissions/resolve`` (issue #130, PR 1 + PR 2).
+Resolver helpers for ``POST /permissions/resolve`` (issue #130).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -10,32 +10,40 @@ Small, independent pieces of glue between the wire protocol
 (:mod:`aoa.fastapi.permissions_schema`) and the machine's existing
 ``machine.check_access_decide`` primitive:
 
-- :func:`build_action_index` / :func:`resolve_action_class` — map a wire
-  ``operation`` string (an action class's bare ``__name__``, e.g.
-  ``"CancelOrderAction"``) to its registered class via the graph, so the
-  frontend never has to know a module path. A name shared by two different
-  action classes is a configuration error, caught once at index-build time
-  (adapter ``build()``), not repeated per request.
+- :func:`build_route_index` — map a wire ``operation`` string to its registered
+  route. ``operation`` is the endpoint identifier ``"{method} {path}"`` (e.g.
+  ``"POST /actions/cancel-order"``), the same string the manifest (chapter 3)
+  publishes. The index is a projection of the adapter's ``self._routes``, not a
+  graph traversal; a duplicate (method, path) is first-wins like the router,
+  not an error.
 
-- :func:`to_wire` — project the internal ``AccessVerdict`` onto the wire
-  ``Verdict`` shape. Deliberately conservative in this PR: ``scope`` only ever
-  reports ``"role"`` or ``None`` (never ``"object"``, even when the machine
-  really evaluated a level-3 ``access_decide``), and ``entities``/``reason_code``/
-  ``expires_at`` stay at their reserved defaults. See PR 8 for why: reporting a
-  real object-level verdict is only safe once a rate limit exists to stop it
-  from becoming an ID-enumeration oracle.
+- :func:`resolve_verdicts` — the actual batch resolver: deduplicates identical
+  ``(operation, params)`` items so each distinct question triggers exactly one
+  real ``check_access_decide`` call (run concurrently across distinct questions
+  via ``asyncio.gather``, never a sequential loop). Each item is checked under its
+  own route's :class:`~aoa.fastapi.execution_plan.EndpointExecutionPlan` — its own
+  auth coordinator's result and its own resolved ``connections``, prepared by the
+  caller once per distinct operation and passed in as ``prepared_by_operation``
+  (never a single context/connections pair shared across every route in the batch;
+  see ``execution_plan.py``). If the matched route carries a ``params_mapper``, the
+  incoming params are mapped through it first — the same converter the real call
+  would use — before ``access_decide``. An unknown ``operation`` is isolated to
+  that one item's result (a ``FailErrorVerdict("UNKNOWN_ENDPOINT")``) instead
+  of failing the whole batch; an operation whose own route-level ``auth_coordinator``
+  rejected the caller (``EndpointExecutionPlan.prepare`` raised ``AuthorizationError``,
+  reported by the caller via ``unauthorized_operations``) is isolated the same way,
+  as a ``FailSecurityVerdict("UNAUTHORIZED")``. Returns a :class:`ResolveOutcome` whose ``real_call_count`` lets
+  tests assert on deduplication directly (by calling this function, not the HTTP
+  endpoint) — ``real_call_count`` is never serialized onto the wire; the client has
+  no business knowing which items were deduplicated internally.
 
-- :func:`resolve_verdicts` (PR 2) — the actual batch resolver: deduplicates
-  identical ``(operation, params)`` items so each distinct question triggers
-  exactly one real ``check_access_decide`` call (run concurrently across
-  distinct questions via ``asyncio.gather``, never a sequential loop), and
-  isolates an unknown ``operation`` to that one item's verdict
-  (``reason_code="UNKNOWN_ACTION"``) instead of failing the whole batch.
-  Returns a :class:`ResolveOutcome` whose ``real_call_count`` lets tests assert
-  on deduplication directly (by calling this function, not the HTTP endpoint) —
-  ``real_call_count`` is never serialized onto the wire; the client has no
-  business knowing which items were deduplicated internally (see chapter 2,
-  "Кто на чём стоит: сервер и клиент в этой главе").
+``ResolveOutcome.results`` holds real ``AllowedVerdict``/``FailSecurityVerdict``
+instances for every item that reached the cascade, no conversion step — each *is*
+a ``BaseVerdict`` (``aoa-action-machine``), so there is nothing left to project;
+the ``to_wire()`` function this module used to export is gone (fix-audit finding
+7's follow-up). The two synthetic outcomes that never reach the cascade at all —
+unknown ``operation``, route-level auth rejection — build a ``FailErrorVerdict``/
+``FailSecurityVerdict`` directly instead.
 """
 
 # Ruff/isort lists first-party ``action_machine`` before FastAPI (known-first-party).
@@ -45,91 +53,39 @@ from __future__ import annotations
 import asyncio
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
-from aoa.action_machine.context.context import Context
-from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
-    CheckAccessDecideBatchSizeExceededError,
-)
-from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
-from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.intents.access_control import AccessVerdict
-from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
+from aoa.action_machine.intents.access_control import BaseVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.action_machine.model.base_action import BaseAction
-from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.fastapi.permissions_schema import ResolveItem, Verdict
+from aoa.fastapi.execution_plan import EndpointExecutionPlan, PreparedEndpointContext
+from aoa.fastapi.permissions_schema import ResolveItem
+from aoa.fastapi.route_record import FastApiRouteRecord
 from fastapi import HTTPException
 
-#: Dedup key: (operation name, canonical JSON serialization of raw params).
+#: Dedup key: (operation, canonical JSON serialization of raw params).
 _DedupKey = tuple[str, str]
 
 
-def build_action_index(graph_coordinator: NodeGraphCoordinator) -> dict[str, type[BaseAction]]:  # type: ignore[type-arg]
+def build_route_index(routes: list[FastApiRouteRecord]) -> dict[str, FastApiRouteRecord]:
     """
-    Build a ``{bare class name: action class}`` index from every registered action.
+    Build an ``{operation: route record}`` index from the adapter's registered routes.
 
-    Raises:
-        ValueError: two different action classes share the same bare ``__name__``
-            (``ActionGraphNode.label``) — a configuration error caught once here,
-            at index-build time, rather than silently resolving to the wrong class
-            on every matching request.
+    ``operation`` is the endpoint identifier ``"{method} {path}"`` (e.g.
+    ``"POST /actions/cancel-order"``) — the same string the manifest publishes and
+    the client sends. Registering the identical (method, path) twice is
+    **first-wins**, exactly like Starlette's router: the second registration is
+    unreachable in HTTP routing anyway, so the index keeps the first and raises
+    nothing. Several routes for one action class on different paths/methods are not
+    a conflict — each has its own distinct ``operation`` (and its own
+    ``params_mapper``).
     """
-    index: dict[str, type[BaseAction]] = {}  # type: ignore[type-arg]
-    for node in graph_coordinator.get_nodes_by_type(ActionGraphNode.NODE_TYPE):
-        name = node.label
-        action_class = node.node_obj
-        existing = index.get(name)
-        if existing is not None and existing is not action_class:
-            raise ValueError(
-                f"Duplicate action name {name!r}: both {existing!r} and {action_class!r} are "
-                "registered under the same operation name. Rename one of the action classes — "
-                "the resolver cannot tell them apart on the wire."
-            )
-        index[name] = action_class
+    index: dict[str, FastApiRouteRecord] = {}
+    for record in routes:
+        index.setdefault(record.operation, record)  # first-wins, mirroring the router
     return index
-
-
-def resolve_action_class(
-    operation: str,
-    action_index: dict[str, type[BaseAction]],  # type: ignore[type-arg]
-) -> type[BaseAction]:  # type: ignore[type-arg]
-    """
-    Look up the action class registered under a wire ``operation`` name.
-
-    Raises:
-        LookupError: no action is registered under ``operation``. Callers that
-            want per-item isolation (a ``reason_code`` like ``UNKNOWN_ACTION``
-            instead of failing the whole batch) catch this themselves — see
-            :func:`resolve_verdicts`.
-    """
-    action_class = action_index.get(operation)
-    if action_class is None:
-        raise LookupError(f"Unknown operation {operation!r}: no action is registered under this name.")
-    return action_class
-
-
-def to_wire(verdict: AccessVerdict) -> Verdict:
-    """
-    Project an internal ``AccessVerdict`` onto the wire ``Verdict`` shape.
-
-    ``scope`` is ``"role"`` whenever some cascade level rejected the check
-    (``level`` is 1, 2, or 3), and ``None`` when the check passed outright
-    (``AccessVerdict`` sets ``level=None`` exactly when ``allowed=True``).
-    This PR never reports ``scope: "object"`` even for a real level-3 rejection
-    — see the module docstring and PR 8.
-    """
-    return Verdict(
-        allowed=verdict.allowed,
-        scope="role" if verdict.level is not None else None,
-        level=verdict.level,  # type: ignore[arg-type]
-        reason=verdict.reason,
-        reason_code=None,
-        entities=[],
-        expires_at=None,
-    )
 
 
 def canonical_key(params: dict[str, Any]) -> str:
@@ -138,110 +94,126 @@ def canonical_key(params: dict[str, Any]) -> str:
 
     Two items with the same field values in a different order must produce the same
     key. Full canonicalization (nested collection normalization beyond key order) is
-    chapter 6's (cache) job — a sorted-keys JSON dump is enough for this PR's items,
+    the cache chapter's job — a sorted-keys JSON dump is enough for these items,
     which are plain JSON objects decoded straight off the request body.
     """
     return json.dumps(params, sort_keys=True)
 
 
-def _unknown_action_verdict() -> Verdict:
-    return Verdict(allowed=False, scope=None, level=None, reason_code="UNKNOWN_ACTION")
+# Fixed, key-independent verdicts for items resolved without a real access_decide
+# call. BaseVerdict is frozen, so one shared instance per synthetic outcome is safe
+# to hand out for every key that needs it (fix-audit finding 13: this used to be two
+# parallel {set of keys + builder function} pairs; both builders took no arguments
+# and always returned the same value, so there was nothing to isolate them.
+_UNKNOWN_ENDPOINT_VERDICT = FailErrorVerdict("UNKNOWN_ENDPOINT")
+_UNAUTHORIZED_VERDICT = FailSecurityVerdict("UNAUTHORIZED")
 
 
 @dataclass
 class ResolveOutcome:
     """
-    Result of :func:`resolve_verdicts`: the wire-shaped verdicts plus an internal count.
+    Result of :func:`resolve_verdicts`: the wire-shaped results plus an internal count.
 
     ``real_call_count`` is the number of distinct ``(operation, params)`` keys that
     triggered an actual ``machine.check_access_decide`` call — i.e. the batch size
     *after* deduplication. It is not part of the wire protocol (see the module
     docstring): tests assert on it directly by calling ``resolve_verdicts``, the HTTP
-    endpoint only ever reads ``verdicts``.
+    endpoint only ever reads ``results``.
     """
 
-    verdicts: list[Verdict]
+    results: list[BaseVerdict]
     real_call_count: int
 
 
 async def resolve_verdicts(
-    context: Context,
     items: list[ResolveItem],
-    action_index: dict[str, type[BaseAction]],  # type: ignore[type-arg]
+    plan_index: dict[str, EndpointExecutionPlan],
+    prepared_by_operation: dict[str, PreparedEndpointContext],
     machine: ActionProductMachine,
+    *,
+    unauthorized_operations: frozenset[str] = frozenset(),
 ) -> ResolveOutcome:
     """
     Resolve one verdict per ``items`` entry, deduplicating and isolating per-item errors.
 
-    Two independent things happen in one pass over ``items`` (FR-3 and FR-4 of chapter 2):
+    Four things happen in one pass over ``items``:
 
-    1. **Deduplication (FR-3).** Items are grouped by ``(operation, canonical_key(params))``.
+    1. **Deduplication.** Items are grouped by ``(operation, canonical_key(params))``.
        Only the *first* occurrence of a key (in request order) is resolved and checked;
-       every later occurrence of the same key copies that same result onto its own
-       position in the returned ``verdicts`` — the list is never shortened, only the
-       amount of real work is. The real ``check_access_decide`` calls for distinct keys
-       run concurrently via ``asyncio.gather``, not a sequential loop, so a batch of many
-       *different* questions does not pay for one network round trip per question.
-    2. **Per-item error isolation (FR-4).** An ``operation`` that names no registered
-       action fails only its own key's positions with ``reason_code="UNKNOWN_ACTION"``,
-       not the whole request. A ``ValidationError`` on a known action's params (malformed
-       params, not an unknown action) still fails the whole request with HTTP 400 — this
-       chapter introduces exactly one ``reason_code`` (``UNKNOWN_ACTION``); isolating other
-       error classes is not in scope here.
+       every later occurrence copies that same result onto its own position in the
+       returned ``results`` — the list is never shortened, only the amount of real
+       work is. The real ``check_access_decide`` calls for distinct keys run
+       concurrently via ``asyncio.gather``, not a sequential loop.
+    2. **params_mapper reuse.** The wire ``params`` arrive in the route's request shape
+       (``effective_request_model``). If the route has a ``params_mapper``, the resolver
+       runs the validated request through it — the same converter the real call would
+       use — and only the result goes to ``access_decide``. With no mapper the request
+       shape *is* the action's ``Params``, so nothing changes.
+    3. **Per-item error isolation: unknown endpoint.** An ``operation`` that names no
+       registered endpoint fails only its own key's positions with
+       ``FailErrorVerdict("UNKNOWN_ENDPOINT")`` (``kind: "FailErrorVerdict"``), not
+       the whole request. A ``ValidationError`` on a known endpoint's params
+       (malformed params, not an unknown endpoint) still fails the whole request
+       with HTTP 400.
+    4. **Per-item error isolation: route-level auth rejection.** An ``operation`` named
+       in ``unauthorized_operations`` — its own route-level ``auth_coordinator`` (an
+       ``EndpointExecutionPlan.prepare`` override, distinct from the resolver's own
+       entry gate) rejected the caller — fails only its own key's positions with
+       ``FailSecurityVerdict("UNAUTHORIZED")`` (``kind: "FailSecurityVerdict"``), not
+       the whole request. This is a settled "no", not an unreached check: the
+       route's own gate did produce a decision, it is simply not a
+       role/guard/``access_decide`` one.
+
+    Each item's real ``check_access_decide`` call runs under its own route's context
+    and connections: ``prepared_by_operation[item.operation]``, prepared by the caller
+    (see ``adapter.py``) once per distinct operation via
+    ``EndpointExecutionPlan.prepare`` — never a single shared context/connections pair
+    for the whole batch. Every operation reachable from ``items`` that has a matching
+    entry in ``plan_index`` is expected to already have an entry in
+    ``prepared_by_operation``, *unless* it is also named in ``unauthorized_operations``
+    (``prepare`` raised instead of returning) — this function only looks
+    ``prepared_by_operation`` up, it never calls ``prepare`` itself (it has no
+    ``Request`` to call it with).
 
     Raises:
-        CheckAccessDecideBatchSizeExceededError: the number of *distinct* keys exceeds
-            ``machine.max_check_access_decide_batch_size`` — checked up front, before touching
-            any item. The list form's own built-in check (same exception type) never runs here,
-            since deduplicated keys are dispatched one real call at a time via ``asyncio.gather``,
-            not as one list passed to the list form — so this endpoint must enforce the same cap
-            itself, against the size that actually matters post-dedup.
-        HTTPException: 400, when a known action's params fail pydantic validation.
-        TypeError: a registered action has no resolvable ``Params`` type — a server-side
-            configuration bug, not a client input problem; left uncaught (-> HTTP 500).
+        HTTPException: 400, when a known endpoint's params fail pydantic validation.
     """
     item_keys: list[_DedupKey] = [(item.operation, canonical_key(item.params)) for item in items]
 
-    distinct_key_count = len(set(item_keys))
-    if distinct_key_count > machine.max_check_access_decide_batch_size:
-        raise CheckAccessDecideBatchSizeExceededError(
-            f"POST /permissions/resolve received {distinct_key_count} distinct (operation, params) "
-            f"items after deduplication, exceeding "
-            f"max_check_access_decide_batch_size={machine.max_check_access_decide_batch_size}.",
-            item_count=distinct_key_count,
-            max_check_access_decide_batch_size=machine.max_check_access_decide_batch_size,
-        )
-
-    pending: dict[_DedupKey, tuple[type[BaseAction[Any, Any]], BaseParams | None]] = {}
-    unknown_keys: set[_DedupKey] = set()
+    pending: dict[_DedupKey, tuple[type[BaseAction[Any, Any]], Any, PreparedEndpointContext]] = {}
+    synthetic: dict[_DedupKey, BaseVerdict] = {}
 
     for item, key in zip(items, item_keys, strict=True):
-        if key in pending or key in unknown_keys:
+        if key in pending or key in synthetic:
             continue
 
-        try:
-            action_class = resolve_action_class(item.operation, action_index)
-        except LookupError:
-            unknown_keys.add(key)
+        plan = plan_index.get(item.operation)
+        if plan is None:
+            synthetic[key] = _UNKNOWN_ENDPOINT_VERDICT
             continue
 
-        params_type = ActionSchemaIntentResolver.resolve_params_type(action_class)
-        if params_type is None:
-            # Action registered without a resolvable BaseAction[Params, Result] —
-            # a server-side configuration bug, not a client input problem.
-            raise TypeError(f"{action_class!r} has no resolvable Params type.")
+        if item.operation in unauthorized_operations:
+            synthetic[key] = _UNAUTHORIZED_VERDICT
+            continue
+
+        req_model = cast(type[BaseModel], plan.record.effective_request_model)
         try:
-            params: BaseParams | None = params_type.model_validate(item.params)
+            body = req_model.model_validate(item.params)
         except ValidationError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-        pending[key] = (action_class, params)
+        mapper = plan.record.params_mapper
+        params = mapper(body) if mapper is not None else body
+        pending[key] = (plan.record.action_class, params, prepared_by_operation[item.operation])
 
     pending_keys = list(pending.keys())
-    real_verdicts: list[AccessVerdict] = (
+    real_verdicts: list[BaseVerdict] = (
         list(
             await asyncio.gather(
-                *(machine.check_access_decide(context, action_class, params) for action_class, params in pending.values())
+                *(
+                    machine.check_access_decide(prepared.context, action_class, params, connections=prepared.connections)
+                    for action_class, params, prepared in pending.values()
+                )
             )
         )
         if pending_keys
@@ -249,7 +221,10 @@ async def resolve_verdicts(
     )
     verdict_by_key = dict(zip(pending_keys, real_verdicts, strict=True))
 
-    verdicts = [
-        _unknown_action_verdict() if key in unknown_keys else to_wire(verdict_by_key[key]) for key in item_keys
-    ]
-    return ResolveOutcome(verdicts=verdicts, real_call_count=len(pending_keys))
+    def _result_for(key: _DedupKey) -> BaseVerdict:
+        if key in synthetic:
+            return synthetic[key]
+        return verdict_by_key[key]
+
+    results = [_result_for(key) for key in item_keys]
+    return ResolveOutcome(results=results, real_call_count=len(pending_keys))

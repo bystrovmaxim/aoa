@@ -1,4 +1,4 @@
-<!-- translated-from: step-06-dependencies_draft.md @ 2026-06-20T20:51:23Z (filesystem mtime; draft is gitignored, no git history) · sha256:ed8fafa31e83 -->
+<!-- translated-from: step-06-dependencies_draft.md @ 2026-07-10T14:55:05Z (filesystem mtime; draft is gitignored, no git history) · sha256:df5b9437de5f -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

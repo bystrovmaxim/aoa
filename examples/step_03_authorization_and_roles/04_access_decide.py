@@ -26,6 +26,7 @@ from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -76,8 +77,10 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         context: Context,
         box: ToolsBox,
         connections: dict,
-    ) -> bool:
-        return params.owner_user_id == context.user.user_id
+    ) -> FailSecurityVerdict | AllowedVerdict:
+        if params.owner_user_id == context.user.user_id:
+            return AllowedVerdict()
+        return FailSecurityVerdict("order does not belong to the caller")
 
     @summary_aspect("Cancel the order")
     async def cancel_summary(self, params, state, box, connections):

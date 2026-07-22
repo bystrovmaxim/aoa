@@ -47,6 +47,7 @@ from fastapi.testclient import TestClient
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
+from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
@@ -262,6 +263,49 @@ class TestExceptionHandlers:
         # Assert
         assert response.status_code == 403
         assert "access denied" in response.json()["detail"]
+
+    def test_authorization_error_surfaces_reason_and_level(self) -> None:
+        """A real .call() denial (not just a resolver .can() prediction) must carry the
+        developer-declared reason= -- audit finding 2: it used to be dropped by str(exc)."""
+        # Arrange
+        adapter, _ = _make_app(
+            run_side_effect=AuthorizationError(
+                "Access denied. guard= condition was not met.", level=2, verdict=FailSecurityVerdict("order is locked")
+            ),
+        )
+        adapter.post("/ping", PingAction)
+        app = adapter.build()
+        client = TestClient(app, raise_server_exceptions=False)
+
+        # Act
+        response = client.post("/ping", json={})
+
+        # Assert
+        assert response.status_code == 403
+        body = response.json()
+        assert body["reason"] == "order is locked"
+        assert body["level"] == 2
+        assert "guard=" in body["detail"]
+
+    def test_authorization_error_without_reason_or_level_surfaces_null(self) -> None:
+        """An entry-gate failure (e.g. "Authentication required") sets neither -- the
+        body must carry null, not omit the keys or crash on a missing attribute."""
+        # Arrange
+        adapter, _ = _make_app(
+            run_side_effect=AuthorizationError("Authentication required"),
+        )
+        adapter.post("/ping", PingAction)
+        app = adapter.build()
+        client = TestClient(app, raise_server_exceptions=False)
+
+        # Act
+        response = client.post("/ping", json={})
+
+        # Assert
+        assert response.status_code == 403
+        body = response.json()
+        assert body["reason"] is None
+        assert body["level"] is None
 
     def test_validation_error_returns_422(self) -> None:
         """``ValidationFieldError`` from ``machine.run`` becomes HTTP 422."""

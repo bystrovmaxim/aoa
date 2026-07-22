@@ -21,6 +21,7 @@ from aoa.action_machine.graph.edges.role_graph_edge import RoleGraphEdge
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
+from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles, grant
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -30,7 +31,7 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.runtime.role_checker import RoleChecker
+from aoa.action_machine.runtime.role_checker import _FORBIDDEN_ROLE_VERDICT, RoleChecker
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core import TypeIntrospection
 
@@ -157,6 +158,16 @@ def test_any_role_requires_nonempty_active_roles(coordinator_module) -> None:
         checker.check(ctx, _action_node(coordinator_module, AnyRoleProbeAction))
 
 
+def test_any_role_denial_reuses_the_module_level_forbidden_role_verdict(coordinator_module) -> None:
+    """baseverdict-audit finding 8, third document: FORBIDDEN_ROLE is a fixed, frozen
+    verdict -- the same instance every time, not rebuilt per denial."""
+    checker = RoleChecker()
+    ctx = Context(user=UserInfo(user_id="anon", roles=()))
+    with pytest.raises(AuthorizationError) as excinfo:
+        checker.check(ctx, _action_node(coordinator_module, AnyRoleProbeAction))
+    assert excinfo.value.verdict is _FORBIDDEN_ROLE_VERDICT
+
+
 def test_any_role_allows_registered_role(coordinator_module) -> None:
     checker = RoleChecker()
     ctx = Context(user=UserInfo(user_id="u", roles=(UserRole,)))
@@ -247,8 +258,9 @@ def _order_not_archived(user, params) -> bool:
 @meta(description="grant()/guard= probe for RoleChecker level 2", domain=SystemDomain)
 @check_roles(
     grant(AdminRole),
-    grant(ManagerRole, when=_is_sales_agent),
+    grant(ManagerRole, when=_is_sales_agent, reason=FailSecurityVerdict("not the sales agent")),
     guard=_order_not_archived,
+    reason=FailSecurityVerdict("order archived"),
 )
 class GrantGuardProbeAction(BaseAction["GrantGuardProbeAction.Params", "GrantGuardProbeAction.Result"]):
     class Params(BaseParams):
@@ -274,6 +286,9 @@ def test_denied_without_any_role_match_sets_level_1(coordinator_module) -> None:
     with pytest.raises(AuthorizationError) as excinfo:
         checker.check(ctx, _action_node(coordinator_module, GrantGuardProbeAction), GrantGuardProbeAction.Params())
     assert excinfo.value.level == 1
+    assert excinfo.value.reason == "FORBIDDEN_ROLE"
+    # baseverdict-audit finding 8, third document: same fixed instance, not rebuilt.
+    assert excinfo.value.verdict is _FORBIDDEN_ROLE_VERDICT
 
 
 def test_bare_grant_matches_unconditionally(coordinator_module) -> None:
@@ -290,6 +305,7 @@ def test_grant_when_false_falls_through_to_level_2(coordinator_module) -> None:
     with pytest.raises(AuthorizationError) as excinfo:
         checker.check(ctx, _action_node(coordinator_module, GrantGuardProbeAction), GrantGuardProbeAction.Params())
     assert excinfo.value.level == 2
+    assert excinfo.value.reason == "not the sales agent"
 
 
 def test_grant_when_true_allows_a_later_grant_to_win(coordinator_module) -> None:
@@ -310,6 +326,7 @@ def test_guard_false_denies_with_level_2(coordinator_module) -> None:
             GrantGuardProbeAction.Params(order_id="ARCHIVED-1"),
         )
     assert excinfo.value.level == 2
+    assert excinfo.value.reason == "order archived"
 
 
 def test_check_without_params_still_works_when_action_has_no_guard(coordinator_module) -> None:
@@ -325,7 +342,7 @@ def _always_false(user) -> bool:
 
 
 @meta(description="GuestRole grant with its own when= probe", domain=SystemDomain)
-@check_roles(grant(GuestRole, when=_always_false))
+@check_roles(grant(GuestRole, when=_always_false, reason=FailSecurityVerdict("guest when rejected")))
 class GuestWhenProbeAction(BaseAction["GuestWhenProbeAction.Params", "GuestWhenProbeAction.Result"]):
     class Params(BaseParams):
         pass
@@ -352,10 +369,11 @@ def test_guest_role_grant_when_false_denies_with_level_2(coordinator_module) -> 
     with pytest.raises(AuthorizationError) as excinfo:
         checker.check(Context(), _action_node(coordinator_module, GuestWhenProbeAction))
     assert excinfo.value.level == 2
+    assert excinfo.value.reason == "guest when rejected"
 
 
 @meta(description="AnyRole grant with its own when= probe", domain=SystemDomain)
-@check_roles(grant(AnyRole, when=_always_false))
+@check_roles(grant(AnyRole, when=_always_false, reason=FailSecurityVerdict("any-role when rejected")))
 class AnyWhenProbeAction(BaseAction["AnyWhenProbeAction.Params", "AnyWhenProbeAction.Result"]):
     class Params(BaseParams):
         pass
@@ -382,3 +400,4 @@ def test_any_role_grant_when_false_denies_with_level_2(coordinator_module) -> No
     with pytest.raises(AuthorizationError) as excinfo:
         checker.check(ctx, _action_node(coordinator_module, AnyWhenProbeAction))
     assert excinfo.value.level == 2
+    assert excinfo.value.reason == "any-role when rejected"

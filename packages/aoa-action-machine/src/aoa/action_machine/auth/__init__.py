@@ -15,6 +15,7 @@ from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorPro
 from aoa.action_machine.auth.authenticator import Authenticator
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.guest_role import GuestRole
+from aoa.action_machine.auth.permission_namespace import compute_cache_partition
 from aoa.action_machine.auth.system_role import SystemRole
 from aoa.action_machine.graph.inspectors.role_graph_node_inspector import RoleGraphNodeInspector
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
@@ -33,4 +34,5 @@ __all__ = [
     "RoleGraphNode",
     "RoleGraphNodeInspector",
     "SystemRole",
+    "compute_cache_partition",
 ]
