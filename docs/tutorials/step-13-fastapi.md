@@ -146,7 +146,7 @@ uv run python examples/step_13_fastapi/01_service.py
 ```text
 GET  /health     -> 200 {'status': 'ok'}
 POST /greet      -> 200 {'message': 'Hello, Alice!'}
-POST /admin/ping -> 403 {'detail': "Access denied. Required role: 'admin', user roles: []"}
+POST /admin/ping -> 403 {'detail': "Access denied. Required role: 'admin', user roles: []", 'reason': 'FORBIDDEN_ROLE', 'level': 1}
 POST /greet/v2   -> 200 {'greeting': 'Hello, Bob!'}
 ```
 

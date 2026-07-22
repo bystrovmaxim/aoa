@@ -11,9 +11,6 @@ from aoa.action_machine.exceptions.action_result_type_error import ActionResultT
 from aoa.action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
-from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
-    CheckAccessDecideBatchSizeExceededError,
-)
 from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from aoa.action_machine.exceptions.connection_not_open_error import ConnectionNotOpenError
 from aoa.action_machine.exceptions.connection_validation_error import ConnectionValidationError
@@ -45,7 +42,6 @@ __all__ = [
     "AspectPipelineError",
     "AuthorizationError",
     "CacheContractError",
-    "CheckAccessDecideBatchSizeExceededError",
     "ConnectionAlreadyOpenError",
     "ConnectionNotOpenError",
     "ConnectionValidationError",

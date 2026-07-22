@@ -1,4 +1,4 @@
-"""ActionProductMachine.check_access_decide() — AccessVerdict(s) without executing the action (step 7).
+"""ActionProductMachine.check_access_decide() — BaseVerdict(s) without executing the action (step 7).
 
 One method, two ``@overload`` shapes: a single action, or a list of ``(action, params)``
 pairs. The list shape is the primitive; the single-action shape recurses into this same
@@ -12,8 +12,7 @@ from pydantic import Field
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import CheckAccessDecideBatchSizeExceededError
-from aoa.action_machine.intents.access_control import AccessVerdict
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -37,6 +36,7 @@ _guard_result = {"value": True}
 _raise_for_keys: set[str] = set()
 _guard_deny_keys: set[str] = set()
 _access_decide_deny_keys: set[str] = set()
+_access_decide_unexpected_keys: set[str] = set()
 
 
 def _guard(user: object, params: object) -> bool:
@@ -54,6 +54,7 @@ def _reset() -> None:
     _raise_for_keys.clear()
     _guard_deny_keys.clear()
     _access_decide_deny_keys.clear()
+    _access_decide_unexpected_keys.clear()
 
 
 @pytest.fixture(scope="module")
@@ -66,7 +67,7 @@ def _admin_context() -> Context:
 
 
 @meta(description="machine.check_access_decide probe", domain=SystemDomain)
-@check_roles(AdminRole, guard=_guard)
+@check_roles(AdminRole, guard=_guard, reason=FailSecurityVerdict("guard rejected"))
 class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.Result"]):
     class Params(BaseParams):
         key: str = Field(default="")
@@ -80,13 +81,15 @@ class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.R
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> bool:
+    ) -> FailSecurityVerdict | AllowedVerdict:
         _access_decide_calls["n"] += 1
         if params.key in _raise_for_keys:
             raise RuntimeError(f"boom for key={params.key!r}")
-        if params.key in _access_decide_deny_keys:
-            return False
-        return _access_decide_result["value"]
+        if params.key in _access_decide_unexpected_keys:
+            return None  # type: ignore[return-value]  # simulates a forgotten `return` in a real override
+        if not _access_decide_result["value"] or params.key in _access_decide_deny_keys:
+            return FailSecurityVerdict("access_decide rejected")
+        return AllowedVerdict()
 
     @regular_aspect("noop")
     async def probe_regular_aspect(
@@ -137,7 +140,7 @@ class OtherCheckProbeAction(BaseAction["OtherCheckProbeAction.Params", "OtherChe
 async def test_allowed_true_when_everything_passes(machine: ActionProductMachine) -> None:
     _reset()
     verdict = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params())
-    assert verdict == AccessVerdict(allowed=True, action=CheckProbeAction, level=None, reason=None)
+    assert verdict == AllowedVerdict()
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
@@ -145,9 +148,8 @@ async def test_allowed_true_when_everything_passes(machine: ActionProductMachine
 async def test_level_1_when_role_does_not_match(machine: ActionProductMachine) -> None:
     _reset()
     verdict = await machine.check_access_decide(Context(), CheckProbeAction, CheckProbeAction.Params())
-    assert verdict.allowed is False
-    assert verdict.level == 1
-    assert verdict.action is CheckProbeAction
+    assert isinstance(verdict, FailSecurityVerdict)
+    assert verdict.reason == "FORBIDDEN_ROLE"
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
@@ -156,18 +158,21 @@ async def test_level_2_when_guard_rejects(machine: ActionProductMachine) -> None
     _reset()
     _guard_result["value"] = False
     verdict = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params())
-    assert verdict.allowed is False
-    assert verdict.level == 2
+    assert isinstance(verdict, FailSecurityVerdict)
+    assert verdict.reason == "guard rejected"
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
 
 async def test_level_3_when_access_decide_rejects(machine: ActionProductMachine) -> None:
+    """access_decide's own denial-reason mechanism: it returns FailSecurityVerdict
+    directly, with whatever reason the action's author chose -- no more raw
+    AuthorizationError text."""
     _reset()
     _access_decide_result["value"] = False
     verdict = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params())
-    assert verdict.allowed is False
-    assert verdict.level == 3
+    assert isinstance(verdict, FailSecurityVerdict)
+    assert verdict.reason == "access_decide rejected"
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
@@ -192,7 +197,7 @@ async def test_list_form_returns_verdicts_in_input_order(machine: ActionProductM
             (CheckProbeAction, CheckProbeAction.Params(key="B")),
         ],
     )
-    assert [v.allowed for v in verdicts] == [True, True]
+    assert verdicts == [AllowedVerdict(), AllowedVerdict()]
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
@@ -207,12 +212,14 @@ async def test_list_form_handles_two_different_action_classes(machine: ActionPro
             (OtherCheckProbeAction, OtherCheckProbeAction.Params()),
         ],
     )
-    assert verdicts[0].allowed is True
-    assert verdicts[1].allowed is False
-    assert verdicts[1].level == 1  # admin context does not carry ManagerRole
+    assert verdicts[0] == AllowedVerdict()
+    assert isinstance(verdicts[1], FailSecurityVerdict)
+    assert verdicts[1].reason == "FORBIDDEN_ROLE"  # admin context does not carry ManagerRole
 
 
 async def test_one_failing_item_does_not_affect_the_others(machine: ActionProductMachine) -> None:
+    """An unexpected exception becomes a FailErrorVerdict -- the check itself failed,
+    it is not a real "no", and must not be confused with one."""
     _reset()
     _raise_for_keys.add("B")
     verdicts = await machine.check_access_decide(
@@ -223,15 +230,38 @@ async def test_one_failing_item_does_not_affect_the_others(machine: ActionProduc
             (CheckProbeAction, CheckProbeAction.Params(key="C")),
         ],
     )
-    assert verdicts[0].allowed is True
-    assert verdicts[1].allowed is False
-    assert verdicts[1].level is None
-    assert "boom for key='B'" in (verdicts[1].reason or "")
-    assert verdicts[2].allowed is True
+    assert verdicts[0] == AllowedVerdict()
+    assert verdicts[1].kind == "FailErrorVerdict"
+    # An unexpected exception's reason is its class name, not its message text.
+    assert verdicts[1].reason == "RuntimeError"
+    assert verdicts[2] == AllowedVerdict()
 
 
-async def test_list_form_reports_independent_levels_for_all_three_gates(machine: ActionProductMachine) -> None:
-    """One list call, four items: allowed, level-1, level-2, level-3 — none of them bleed into another."""
+async def test_access_decide_returning_unexpected_value_becomes_isolated_fail_error_verdict(
+    machine: ActionProductMachine,
+) -> None:
+    """baseverdict-audit finding 2: an access_decide() that answers with anything other than
+    AllowedVerdict/FailSecurityVerdict is a bug in that override, not a real answer -- it must
+    not be silently treated as an allow or a deny, and (on this check-only path, unlike the
+    real-execution path) must not crash the rest of the batch either."""
+    _reset()
+    _access_decide_unexpected_keys.add("B")
+    verdicts = await machine.check_access_decide(
+        _admin_context(),
+        [
+            (CheckProbeAction, CheckProbeAction.Params(key="A")),
+            (CheckProbeAction, CheckProbeAction.Params(key="B")),
+            (CheckProbeAction, CheckProbeAction.Params(key="C")),
+        ],
+    )
+    assert verdicts[0] == AllowedVerdict()
+    assert verdicts[1].kind == "FailErrorVerdict"
+    assert verdicts[1].reason == "TypeError"
+    assert verdicts[2] == AllowedVerdict()
+
+
+async def test_list_form_reports_independent_reasons_for_all_three_gates(machine: ActionProductMachine) -> None:
+    """One list call, four items: allowed, role-denied, guard-denied, access_decide-denied — none bleed into another."""
     _reset()
     _guard_deny_keys.add("guard-denied")
     _access_decide_deny_keys.add("decide-denied")
@@ -244,30 +274,12 @@ async def test_list_form_reports_independent_levels_for_all_three_gates(machine:
             (CheckProbeAction, CheckProbeAction.Params(key="decide-denied")),
         ],
     )
-    allowed_verdict, level_1_verdict, level_2_verdict, level_3_verdict = verdicts
-    assert allowed_verdict.allowed is True
-    assert level_1_verdict.allowed is False and level_1_verdict.level == 1
-    assert level_2_verdict.allowed is False and level_2_verdict.level == 2
-    assert level_3_verdict.allowed is False and level_3_verdict.level == 3
-
-
-async def test_batch_larger_than_max_check_access_decide_batch_size_is_rejected_up_front() -> None:
-    _reset()
-    small_machine = ActionProductMachine(cache_coordinator=None, max_check_access_decide_batch_size=2)
-    items = [(CheckProbeAction, CheckProbeAction.Params(key=k)) for k in ("A", "B", "C")]
-    with pytest.raises(CheckAccessDecideBatchSizeExceededError) as exc_info:
-        await small_machine.check_access_decide(_admin_context(), items)
-    assert exc_info.value.item_count == 3
-    assert exc_info.value.max_check_access_decide_batch_size == 2
-    assert _access_decide_calls["n"] == 0
-
-
-def test_max_check_access_decide_batch_size_is_publicly_readable() -> None:
-    """Callers that fan out their own concurrent ``check_access_decide`` calls (e.g. the
-    ``aoa-fastapi-adapter`` resolver, PR 2) need to read back the configured cap to enforce
-    it themselves, since the list form's own built-in check never runs for them."""
-    small_machine = ActionProductMachine(cache_coordinator=None, max_check_access_decide_batch_size=2)
-    assert small_machine.max_check_access_decide_batch_size == 2
+    allowed_verdict, role_denied_verdict, guard_denied_verdict, decide_denied_verdict = verdicts
+    assert allowed_verdict == AllowedVerdict()
+    assert isinstance(role_denied_verdict, FailSecurityVerdict) and role_denied_verdict.reason == "FORBIDDEN_ROLE"
+    assert isinstance(guard_denied_verdict, FailSecurityVerdict) and guard_denied_verdict.reason == "guard rejected"
+    assert isinstance(decide_denied_verdict, FailSecurityVerdict)
+    assert decide_denied_verdict.reason == "access_decide rejected"
 
 
 async def test_single_form_matches_first_item_of_equivalent_list_call(machine: ActionProductMachine) -> None:

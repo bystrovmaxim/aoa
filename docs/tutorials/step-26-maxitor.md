@@ -1,4 +1,4 @@
-<!-- translated-from: step-26-maxitor_draft.md @ 2026-06-17T17:53:37Z · sha256:07a023a2b3e7 -->
+<!-- translated-from: step-26-maxitor_draft.md @ 2026-07-17T10:41:23Z (filesystem mtime; draft is gitignored, no git history) · sha256:ea733bd85a5d -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -8,7 +8,7 @@
 <table width="100%"><tr>
   <td align="left"><a href="step-25-context.md">← Step 25 — Context</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="../index.md#ready-extensions">Ready extensions →</a></td>
+  <td align="right"><a href="step-27-ui-permissions-resolve.md">Step 27 — UI permissions: the resolver →</a></td>
 </tr></table>
 
 - [Four projections of one system](#four-projections-of-one-system)
@@ -175,5 +175,5 @@ With this the tutorial walks the whole path: an operation and its pipeline → t
 <table width="100%"><tr>
   <td align="left"><a href="step-25-context.md">← Step 25 — Context</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="../index.md#ready-extensions">Ready extensions →</a></td>
+  <td align="right"><a href="step-27-ui-permissions-resolve.md">Step 27 — UI permissions: the resolver →</a></td>
 </tr></table>

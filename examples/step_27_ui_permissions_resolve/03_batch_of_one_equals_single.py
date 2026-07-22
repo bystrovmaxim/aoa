@@ -6,10 +6,12 @@ params) pair, and a list of pairs. FR-2 says a single question must not be a
 separate code path — the list form is the primitive, and the single-action
 form is implemented by recursing into a list of exactly one item. This
 example proves it directly: the single-action call and the one-item-batch
-call produce byte-for-byte the same wire Verdict.
+call produce byte-for-byte the same wire shape once printed via model_dump()
+— here, AllowedVerdict, whose model_dump() shows exactly {kind}, the same
+shape POST /permissions/resolve actually returns.
 
 This is exactly why POST /permissions/resolve can be list-shaped from day
-one (items/verdicts) without a slower or different path for the common case
+one (items/results) without a slower or different path for the common case
 of "just one question" — there is no such separate path to be slower.
 
 Tutorial: ../../docs/tutorials/step-27-ui-permissions-resolve_draft.md
@@ -31,7 +33,6 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.fastapi.permissions import to_wire
 
 
 class StoreDomain(BaseDomain):
@@ -67,15 +68,18 @@ async def main() -> None:
     params = OrderParams(order_id=7)
 
     # Single-action form.
-    single_verdict = to_wire(await machine.check_access_decide(manager, CancelOrderAction, params))
+    single_verdict = await machine.check_access_decide(manager, CancelOrderAction, params)
 
     # List form with exactly one item — this is what POST /permissions/resolve
     # actually calls, regardless of how many items the client sent.
-    batch_verdicts = [to_wire(v) for v in await machine.check_access_decide(manager, [(CancelOrderAction, params)])]
+    batch_verdicts = await machine.check_access_decide(manager, [(CancelOrderAction, params)])
 
-    print(f"single           = {single_verdict!r}")
-    print(f"batch[0]         = {batch_verdicts[0]!r}")
-    print(f"identical shape  = {single_verdict == batch_verdicts[0]}")
+    single_wire = single_verdict.model_dump()
+    batch_wire = batch_verdicts[0].model_dump()
+
+    print(f"single           = {single_wire!r}")
+    print(f"batch[0]         = {batch_wire!r}")
+    print(f"identical shape  = {single_wire == batch_wire}")
 
 
 asyncio.run(main())

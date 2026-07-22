@@ -1,4 +1,4 @@
-<!-- translated-from: formal-model_draft.md @ 2026-06-17T15:35:35Z · sha256:cea33f82cd1a -->
+<!-- translated-from: formal-model_draft.md @ 2026-07-10T14:55:05Z (filesystem mtime; draft is gitignored, no git history) · sha256:076f81072087 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

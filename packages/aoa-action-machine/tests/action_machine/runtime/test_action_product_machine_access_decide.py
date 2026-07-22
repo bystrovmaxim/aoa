@@ -8,6 +8,7 @@ from pydantic import Field
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -49,8 +50,8 @@ class DenyAllAccessDecideAction(BaseAction["DenyAllAccessDecideAction.Params", "
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> bool:
-        return False
+    ) -> FailSecurityVerdict | AllowedVerdict:
+        return FailSecurityVerdict("denied unconditionally")
 
     @summary_aspect("S")
     async def probe_summary(
@@ -69,6 +70,7 @@ async def test_access_decide_false_raises_before_any_aspect(machine: ActionProdu
     with pytest.raises(AuthorizationError) as excinfo:
         await machine.run(_admin_context(), DenyAllAccessDecideAction(), DenyAllAccessDecideAction.Params())
     assert excinfo.value.level == 3
+    assert excinfo.value.verdict == FailSecurityVerdict("denied unconditionally")
     assert _summary_calls["n"] == 0
 
 
@@ -97,8 +99,8 @@ class AllowAccessDecideAction(BaseAction["AllowAccessDecideAction.Params", "Allo
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> bool:
-        return True
+    ) -> FailSecurityVerdict | AllowedVerdict:
+        return AllowedVerdict()
 
     @summary_aspect("S")
     async def probe_summary(
@@ -140,3 +142,45 @@ async def test_default_access_decide_true_does_not_block_run(machine: ActionProd
     """Regression: actions that never override access_decide must keep working exactly as before."""
     result = await machine.run(_admin_context(), DefaultAccessDecideAction(), DefaultAccessDecideAction.Params())
     assert result.ok is True
+
+
+@meta(description="access_decide returns an unexpected value (a bug, not a real answer)", domain=SystemDomain)
+@check_roles(AdminRole)
+class BrokenAccessDecideAction(BaseAction["BrokenAccessDecideAction.Params", "BrokenAccessDecideAction.Result"]):
+    class Params(BaseParams):
+        pass
+
+    class Result(BaseResult):
+        ok: bool = Field(default=True)
+
+    async def access_decide(
+        self,
+        params: BrokenAccessDecideAction.Params,
+        context: Context,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> FailSecurityVerdict | AllowedVerdict:
+        return None  # type: ignore[return-value]  # simulates a forgotten `return` in a real override
+
+    @summary_aspect("S")
+    async def probe_summary(
+        self,
+        params: BrokenAccessDecideAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> BrokenAccessDecideAction.Result:
+        _summary_calls["n"] += 1
+        return BrokenAccessDecideAction.Result(ok=True)
+
+
+async def test_access_decide_returning_neither_verdict_raises_and_blocks_run(machine: ActionProductMachine) -> None:
+    """baseverdict-audit finding 2: access_decide() answering with anything other than
+    AllowedVerdict/FailSecurityVerdict (None, a stray bool, a FailErrorVerdict) used to be
+    silently treated as an allow (isinstance(verdict, FailSecurityVerdict) only blocked an
+    explicit denial) -- fail-open instead of fail-closed. Must raise, and the action must
+    never run."""
+    _summary_calls["n"] = 0
+    with pytest.raises(TypeError, match="access_decide"):
+        await machine.run(_admin_context(), BrokenAccessDecideAction(), BrokenAccessDecideAction.Params())
+    assert _summary_calls["n"] == 0

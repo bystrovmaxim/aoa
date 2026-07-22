@@ -9,8 +9,8 @@ side so they are never confused:
 (a) A coordinator that resolves missing credentials to a real, legitimate
     anonymous Context (the same thing NoAuthCoordinator always does) lets the
     request reach the machine normally. A @check_roles(GuestRole) action then
-    gets an honest allowed: true — GuestRole is evaluated exactly like any
-    other role, not special-cased inside the resolver.
+    gets an honest AllowedVerdict result — GuestRole is evaluated exactly
+    like any other role, not special-cased inside the resolver.
 (b) A coordinator whose process() genuinely returns None (e.g. credentials
     were supplied but are invalid) never reaches the machine at all — the
     resolver answers 403 straight away.
@@ -73,14 +73,15 @@ def _make_client(*, resolved_context: Context | None) -> TestClient:
 
 
 def main() -> None:
-    resolve_body = {"protocol": 1, "items": [{"operation": "BrowseCatalogAction", "params": {}}]}
+    resolve_body = {"version": 1, "items": [{"operation": "GET /actions/browse-catalog", "params": {}}]}
 
     # (a) NoAuthCoordinator-style: no credentials, but a real anonymous Context is resolved.
     guest_client = _make_client(resolved_context=Context())
     guest_response = guest_client.post("/permissions/resolve", json=resolve_body)
+    result = guest_response.json()["results"][0]
     print("(a) resolved anonymous Context:")
     print(f"    status = {guest_response.status_code}")
-    print(f"    verdict = {guest_response.json()['verdicts'][0]}")
+    print(f"    result = {result}")  # {'kind': 'AllowedVerdict'}
 
     # (b) A coordinator that genuinely could not authenticate this request.
     rejected_client = _make_client(resolved_context=None)

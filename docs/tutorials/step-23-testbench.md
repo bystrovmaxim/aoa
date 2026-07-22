@@ -1,4 +1,4 @@
-<!-- translated-from: step-23-testbench_draft.md @ 2026-06-17T17:53:37Z · sha256:6be65b97f4a6 -->
+<!-- translated-from: step-23-testbench_draft.md @ 2026-07-10T14:55:05Z (filesystem mtime; draft is gitignored, no git history) · sha256:99c3ce6e6100 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

@@ -2,14 +2,15 @@
 02_role_gate_denied.py — an honest "no", with a reason for developers only
 
 Same action as 01_role_gate_allowed.py, different caller: a plain user, not a
-manager. The role check rejects the call, and this time scope really is
-"role" (AccessVerdict.level is set to whichever cascade level rejected —
-here, level 1, the role check itself).
+manager. The role check rejects the call, and this time the result is a
+FailSecurityVerdict, not an AllowedVerdict — a denial through the role-gate
+channel.
 
-reason carries developer-facing text ("not a manager" style), not something
-to show the end user as-is. reason_code — the stable, translatable code a
-frontend could safely switch on — is still None here: that taxonomy is
-Chapter 2's job, not this one's.
+reason carries developer-facing text, not something to show the end user
+as-is. No role matched at all here (a bare @check_roles(ManagerRole), no
+when=), so reason is the fixed "FORBIDDEN_ROLE" — not declared by the
+developer. Compare with 05_guest_gated_by_event.py, where a grant(when=...,
+reason=...) rejects for a developer-declared reason instead.
 
 Tutorial: ../../docs/tutorials/step-27-ui-permissions-resolve_draft.md
 
@@ -30,7 +31,6 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.fastapi.permissions import to_wire
 
 
 class StoreDomain(BaseDomain):
@@ -70,13 +70,9 @@ async def main() -> None:
     user = Context(user=UserInfo(user_id="u1", roles=(UserRole,)))
 
     verdict = await machine.check_access_decide(user, CancelOrderAction, OrderParams(order_id=7))
-    wire_verdict = to_wire(verdict)
 
-    print(f"allowed     = {wire_verdict.allowed}")
-    print(f"scope       = {wire_verdict.scope!r}")  # "role" — level 1 rejected the call
-    print(f"level       = {wire_verdict.level!r}")
-    print(f"reason      = {wire_verdict.reason!r}")  # developer-facing text
-    print(f"reason_code = {wire_verdict.reason_code!r}")  # None — taxonomy is Chapter 2's job
+    print(f"kind   = {verdict.kind!r}")
+    print(f"reason = {verdict.reason!r}")  # "FORBIDDEN_ROLE" — no role matched, not developer-declared
 
 
 asyncio.run(main())

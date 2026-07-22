@@ -3,14 +3,15 @@
 
 machine.check_access_decide answers "can this user do X?" without executing
 the action — the same role -> guard -> access_decide cascade that machine.run
-enforces, just without running any aspect. to_wire() then projects the
-internal AccessVerdict onto the wire Verdict shape that POST /permissions/resolve
-actually returns over HTTP.
+enforces, just without running any aspect. It returns a BaseVerdict subclass —
+AllowedVerdict on success, FailSecurityVerdict/FailErrorVerdict on the various
+ways it can say no — the same shape that POST /permissions/resolve actually
+returns over HTTP, no conversion step.
 
-Watch scope here: it is None, not "role", even though a role check clearly
-ran. AccessVerdict.level is None exactly when allowed=True (nothing rejected
-the check, so there is no rejecting level to report) — to_wire() derives scope
-from level, so an allowed verdict always has scope=None in this chapter.
+Watch kind here: AllowedVerdict carries no `reason` field at all — not an
+empty one, none — there is nothing more to say when nothing rejected the
+call. Compare with 02_role_gate_denied.py, where the result is a
+FailSecurityVerdict and `reason` is a real, mandatory string.
 
 Tutorial: ../../docs/tutorials/step-27-ui-permissions-resolve_draft.md
 
@@ -31,7 +32,6 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.fastapi.permissions import to_wire
 
 
 class StoreDomain(BaseDomain):
@@ -66,13 +66,9 @@ async def main() -> None:
     manager = Context(user=UserInfo(user_id="m1", roles=(ManagerRole,)))
 
     verdict = await machine.check_access_decide(manager, CancelOrderAction, OrderParams(order_id=7))
-    wire_verdict = to_wire(verdict)
 
-    print(f"allowed     = {wire_verdict.allowed}")
-    print(f"scope       = {wire_verdict.scope!r}")  # None, not "role" — see module docstring
-    print(f"level       = {wire_verdict.level!r}")
-    print(f"reason_code = {wire_verdict.reason_code!r}")  # always None in this chapter — see PR 2
-    print(f"entities    = {wire_verdict.entities!r}")  # always [] in this chapter — see PR 8
+    print(f"kind = {verdict.kind!r}")
+    print(f"model_dump() = {verdict.model_dump()!r}")  # {'kind': 'AllowedVerdict'} — no reason field at all
 
 
 asyncio.run(main())

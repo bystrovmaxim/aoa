@@ -1,4 +1,4 @@
-<!-- translated-from: step-20-entity_draft.md @ 2026-06-17T17:53:37Z · sha256:0aa4ec81715a -->
+<!-- translated-from: step-20-entity_draft.md @ 2026-07-10T14:55:05Z (filesystem mtime; draft is gitignored, no git history) · sha256:ec1cf8dcdad0 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
