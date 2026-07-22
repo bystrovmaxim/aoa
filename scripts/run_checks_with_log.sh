@@ -105,6 +105,31 @@ check_maxitor_client_component_readmes() {
   return "$fail"
 }
 
+# examples/step_27_ui_permissions_client/*.ts must each run to completion via
+# plain `node` -- these are the only exercised consumers of aoa-client-js's
+# public API outside its own test suite; nothing else catches a signature
+# drift in AoaEngine/Verdict/ResolveResponse breaking them (04-implementation-audit.md finding 9).
+check_client_js_examples_run() {
+  local examples_dir="$REPO_ROOT/examples/step_27_ui_permissions_client"
+  local file
+  local fail=0
+
+  if [[ ! -d "$examples_dir" ]]; then
+    echo "Missing directory: $examples_dir"
+    return 1
+  fi
+
+  while IFS= read -r -d '' file; do
+    echo "--- node $file ---"
+    if ! node "$file"; then
+      echo "FAILED: node $file"
+      fail=1
+    fi
+  done < <(find "$examples_dir" -maxdepth 1 -name '*.ts' -print0)
+
+  return "$fail"
+}
+
 if [[ ! -f "$REPO_ROOT/pyproject.toml" ]]; then
   echo -e "${RED}FAIL pyproject.toml not found in $REPO_ROOT${NC}"
   exit 1
@@ -148,6 +173,25 @@ fi
 echo "" >>"$LOG_FILE"
 
 run_and_log "(cd packages/aoa-maxitor/client && npm ci && npm run build)" "Maxitor client: npm ci and Vite build"
+
+run_and_log "(cd packages/aoa-client-js && npm ci && npm run typecheck && npm run test && npm run build)" "aoa-client-js: npm ci, typecheck, test, build"
+
+step_name="aoa-client-js: examples/step_27_ui_permissions_client/*.ts run via node"
+echo -e "${YELLOW}> ${step_name}${NC}"
+{
+  echo "=== ${step_name} ==="
+  echo "\$ check_client_js_examples_run (shell function)"
+  echo ""
+} >>"$LOG_FILE"
+if check_client_js_examples_run >>"$LOG_FILE" 2>&1; then
+  echo -e "${GREEN}OK ${step_name} (exit 0)${NC}"
+  echo "OK ${step_name} (exit 0)" >>"$LOG_FILE"
+else
+  echo -e "${RED}FAIL ${step_name} (non-zero exit)${NC}"
+  echo "FAIL ${step_name} (non-zero exit)" >>"$LOG_FILE"
+  FAILED=1
+fi
+echo "" >>"$LOG_FILE"
 
 run_and_log "uv run --extra dev ruff check --fix ." "Ruff auto-fix"
 run_and_log "uv run --extra dev task lint" "Ruff lint"
