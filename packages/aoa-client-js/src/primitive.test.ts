@@ -1,0 +1,113 @@
+// packages/aoa-client-js/src/primitive.test.ts
+import { describe, expect, it } from "vitest";
+
+import { AoaEngine, AoaResolveError } from "./engine.ts";
+import { buildInvocation, makeCallablePrimitive, makeGatePrimitive } from "./primitive.ts";
+import type { ActionInvoker } from "./primitive.ts";
+import type { ResolveResponse } from "./types.ts";
+
+interface CancelOrderParams {
+  order_id: number;
+}
+interface CancelOrderResult {
+  status: string;
+}
+
+function fakeResponse(body: ResolveResponse): Response {
+  return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
+}
+
+function makeEngine(resultBody: ResolveResponse, captureRequest?: (body: unknown) => void): AoaEngine {
+  const fetchImpl = (async (_url: string, init: RequestInit) => {
+    captureRequest?.(JSON.parse(init.body as string));
+    return fakeResponse(resultBody);
+  }) as typeof fetch;
+  return new AoaEngine({ transport: { baseUrl: "https://example.test", fetchImpl, cachePartition: "user:1" } });
+}
+
+describe("buildInvocation", () => {
+  it("carries method and path from the descriptor and params as body", () => {
+    const invocation = buildInvocation({ method: "POST", path: "/actions/cancel-order" }, { order_id: 7 });
+    expect(invocation).toEqual({ method: "POST", path: "/actions/cancel-order", body: { order_id: 7 } });
+  });
+});
+
+describe("makeGatePrimitive", () => {
+  it("verdict() sends {operation, params} and returns the raw result element", async () => {
+    let captured: unknown;
+    const engine = makeEngine({ version: 1, results: [{ kind: "AllowedVerdict" }] }, (body) => {
+      captured = body;
+    });
+    const primitive = makeGatePrimitive<CancelOrderParams>(engine, "POST /actions/cancel-order");
+    const verdict = await primitive.verdict({ order_id: 7 });
+    expect(verdict).toEqual({ kind: "AllowedVerdict" });
+    expect(captured).toEqual({ version: 1, items: [{ operation: "POST /actions/cancel-order", params: { order_id: 7 } }] });
+  });
+
+  it("can() returns true for AllowedVerdict", async () => {
+    const engine = makeEngine({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    const primitive = makeGatePrimitive<CancelOrderParams>(engine, "POST /actions/cancel-order");
+    await expect(primitive.can({ order_id: 7 })).resolves.toBe(true);
+  });
+
+  it("can() returns false for FailSecurityVerdict -- a real denial, not an error", async () => {
+    const engine = makeEngine({ version: 1, results: [{ kind: "FailSecurityVerdict", reason: "only the owner can cancel" }] });
+    const primitive = makeGatePrimitive<CancelOrderParams>(engine, "POST /actions/cancel-order");
+    await expect(primitive.can({ order_id: 7 })).resolves.toBe(false);
+  });
+
+  it("can() throws AoaResolveError for FailErrorVerdict -- never silently false", async () => {
+    const engine = makeEngine({ version: 1, results: [{ kind: "FailErrorVerdict", reason: "UNKNOWN_ENDPOINT" }] });
+    const primitive = makeGatePrimitive<CancelOrderParams>(engine, "POST /actions/cancel-order");
+    const error = await primitive.can({ order_id: 7 }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(AoaResolveError);
+    expect((error as AoaResolveError).reason).toBe("UNKNOWN_ENDPOINT");
+  });
+});
+
+describe("makeCallablePrimitive", () => {
+  const descriptor = { method: "POST", path: "/actions/cancel-order" };
+
+  it("exposes the same verdict/can behavior as makeGatePrimitive", async () => {
+    const engine = makeEngine({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    const invoker: ActionInvoker = async () => ({ status: "cancelled" }) as never;
+    const primitive = makeCallablePrimitive<CancelOrderParams, CancelOrderResult>(
+      engine,
+      "POST /actions/cancel-order",
+      descriptor,
+      invoker,
+    );
+    await expect(primitive.can({ order_id: 7 })).resolves.toBe(true);
+    await expect(primitive.verdict({ order_id: 7 })).resolves.toEqual({ kind: "AllowedVerdict" });
+  });
+
+  it("run() builds the invocation from the descriptor + params and delegates to actionInvoker", async () => {
+    const engine = makeEngine({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    let capturedInvocation: unknown;
+    const invoker: ActionInvoker = async (invocation) => {
+      capturedInvocation = invocation;
+      return { status: "cancelled" } as never;
+    };
+    const primitive = makeCallablePrimitive<CancelOrderParams, CancelOrderResult>(
+      engine,
+      "POST /actions/cancel-order",
+      descriptor,
+      invoker,
+    );
+    const result = await primitive.run({ order_id: 7 });
+    expect(capturedInvocation).toEqual({ method: "POST", path: "/actions/cancel-order", body: { order_id: 7 } });
+    expect(result).toEqual({ status: "cancelled" });
+  });
+
+  it("run() returns exactly what actionInvoker resolves with, untouched", async () => {
+    const engine = makeEngine({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    const invoker: ActionInvoker = async () => ({ status: "already-cancelled" }) as never;
+    const primitive = makeCallablePrimitive<CancelOrderParams, CancelOrderResult>(
+      engine,
+      "POST /actions/cancel-order",
+      descriptor,
+      invoker,
+    );
+    await expect(primitive.run({ order_id: 7 })).resolves.toEqual({ status: "already-cancelled" });
+  });
+});

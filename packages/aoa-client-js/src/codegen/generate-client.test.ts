@@ -2,7 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import ts from "typescript";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -10,6 +10,25 @@ import { generateClient } from "./generate-client.ts";
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const tscBinary = path.join(packageRoot, "node_modules", ".bin", "tsc");
+
+/**
+ * Writes the generated source to a real temp file and dynamically imports it, actually
+ * *running* the generated createGateApi/createApi against a real AoaEngine -- proof the
+ * layout renderer produces code that works, not just code that parses. The self-import
+ * `from "aoa-client-js"` is rewritten to a relative path to the real src/index.ts (same
+ * package, just repointed for this in-repo test) so plain Node/vite module resolution
+ * -- no mocking, no alias config -- finds it.
+ */
+async function loadGeneratedModule(source: string): Promise<{ module: Record<string, unknown>; cleanup: () => void }> {
+  const dir = mkdtempSync(path.join(packageRoot, ".codegen-runtime-check-"));
+  const filePath = path.join(dir, "generated.ts");
+  const relativeRuntimePath = path.relative(dir, path.join(packageRoot, "src", "index.ts"));
+  const importPath = relativeRuntimePath.startsWith(".") ? relativeRuntimePath : `./${relativeRuntimePath}`;
+  const rewritten = source.replaceAll('"aoa-client-js"', JSON.stringify(importPath));
+  writeFileSync(filePath, rewritten, "utf8");
+  const module = (await import(pathToFileURL(filePath).href)) as Record<string, unknown>;
+  return { module, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+}
 
 /**
  * Real, end-to-end validity check: writes the generated file to disk inside this
@@ -257,6 +276,21 @@ describe("generateClient", () => {
     expect(source).toContain("export interface DemoOptionalResult {");
     expect(source).toContain("echoed_note?: string | null;");
 
+    // GateApi/CallableApi layout: full-path bracket entries always; a nested dot alias
+    // for the clean multi-segment /actions/ping (no hyphen), none at all for
+    // /actions/cancel-order (hyphenated) or /actions/demo-optional (ditto).
+    expect(source).toContain("export interface GateApi {");
+    expect(source).toContain("export interface CallableApi {");
+    expect(source).toContain('"/actions/cancel-order": GatePrimitive<CancelOrderParams>;');
+    expect(source).toContain('"/actions/cancel-order": CallablePrimitive<CancelOrderParams, CancelOrderResult>;');
+    expect(source).toContain('"/actions/ping": GatePrimitive<PingParams>;');
+    expect(source).toMatch(/actions: \{\n\s*ping: GatePrimitive<PingParams>;\n\s*\};/);
+    expect(source).not.toContain("cancel-order: ");
+    expect(source).not.toContain("demo-optional: ");
+    expect(source).toContain("export function createGateApi(engine: AoaEngine): GateApi {");
+    expect(source).toContain("export function createApi(engine: AoaEngine, actionInvoker: ActionInvoker): CallableApi {");
+    expect(source).toContain('const CANCEL_ORDER_DESCRIPTOR = { method: "POST", path: "/actions/cancel-order" };');
+
     assertSyntacticallyValid(source);
     assertGeneratedFileTypechecks(source);
   });
@@ -268,6 +302,7 @@ describe("generateClient", () => {
     expect(source).toContain("export interface CancelOrderParams {");
     expect(source).toContain("export interface CancelOrder2Params {");
     expect(source).toContain("export interface CancelOrder2Result {");
+    expect(source).toContain('const CANCEL_ORDER2_DESCRIPTOR');
     assertSyntacticallyValid(source);
     assertGeneratedFileTypechecks(source);
   });
@@ -286,5 +321,87 @@ describe("generateClient", () => {
     });
     expect(parsed.results[1]).toEqual({ kind: "FailSecurityVerdict", reason: "only the order owner can cancel" });
     expect(() => schema.parse({ version: 1, results: [{ kind: "FailSecurityVerdict" }] })).toThrow();
+  });
+
+  it("createGateApi and createApi actually work end to end against a real AoaEngine, both bracket and dot-alias forms", async () => {
+    stubFetchJson(fakeManifest([CANCEL_ORDER_ENDPOINT, PING_ENDPOINT]));
+    const source = await generateClient("https://x/client-manifest.json");
+    const { module, cleanup } = await loadGeneratedModule(source);
+    try {
+      const { AoaEngine } = await import("../index.ts");
+      let capturedBody: { items: Array<{ operation: string; params: unknown }> } | undefined;
+      const fetchImpl = (async (_url: string, init: RequestInit) => {
+        capturedBody = JSON.parse(init.body as string);
+        return new Response(JSON.stringify({ version: 1, results: [{ kind: "AllowedVerdict" }] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }) as typeof fetch;
+      const engine = new AoaEngine({ transport: { baseUrl: "https://example.test", fetchImpl, cachePartition: "user:1" } });
+
+      const createGateApi = module.createGateApi as (engine: unknown) => Record<string, any>;
+      const gate = createGateApi(engine);
+      await expect(gate.post["/actions/cancel-order"].can({ order_id: 7 })).resolves.toBe(true);
+      expect(capturedBody?.items[0]).toEqual({ operation: "POST /actions/cancel-order", params: { order_id: 7 } });
+
+      // The dot alias and the bracket key reference the exact same Primitive instance.
+      expect(gate.get.actions.ping).toBe(gate.get["/actions/ping"]);
+
+      const createApi = module.createApi as (engine: unknown, actionInvoker: unknown) => Record<string, any>;
+      let capturedInvocation: unknown;
+      const actionInvoker = async (invocation: unknown) => {
+        capturedInvocation = invocation;
+        return { status: "cancelled" };
+      };
+      const callable = createApi(engine, actionInvoker);
+      const result = await callable.post["/actions/cancel-order"].run({ order_id: 7 });
+      expect(result).toEqual({ status: "cancelled" });
+      expect(capturedInvocation).toEqual({ method: "POST", path: "/actions/cancel-order", body: { order_id: 7 } });
+    } finally {
+      cleanup();
+    }
+  });
+
+  it("GateApi's Primitive genuinely lacks .run at the type level, not merely unused at runtime", async () => {
+    stubFetchJson(fakeManifest([CANCEL_ORDER_ENDPOINT]));
+    const source = await generateClient("https://x/client-manifest.json");
+    const dir = mkdtempSync(path.join(packageRoot, ".codegen-tsc-check-"));
+    try {
+      writeFileSync(path.join(dir, "generated.ts"), source, "utf8");
+      writeFileSync(
+        path.join(dir, "probe.ts"),
+        [
+          'import type { GateApi } from "./generated.ts";',
+          "declare const gate: GateApi;",
+          "// @ts-expect-error GateApi's Primitive has no .run at the type level -- if this",
+          "// directive becomes unused, .run leaked into GateApi and tsc will fail below.",
+          'gate.post["/actions/cancel-order"].run;',
+          "",
+        ].join("\n"),
+      );
+      writeFileSync(
+        path.join(dir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: {
+            target: "ES2022",
+            lib: ["ES2022", "DOM"],
+            module: "ESNext",
+            moduleResolution: "bundler",
+            allowImportingTsExtensions: true,
+            isolatedModules: true,
+            moduleDetection: "force",
+            noEmit: true,
+            strict: true,
+            skipLibCheck: true,
+            baseUrl: ".",
+            paths: { "aoa-client-js": ["../src/index.ts"] },
+          },
+          include: ["generated.ts", "probe.ts"],
+        }),
+      );
+      expect(() => execFileSync(tscBinary, ["--noEmit", "-p", dir], { cwd: packageRoot, stdio: "pipe" })).not.toThrow();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

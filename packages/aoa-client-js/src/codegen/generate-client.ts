@@ -1,23 +1,23 @@
 // packages/aoa-client-js/src/codegen/generate-client.ts
 //
-// generateClient(url) — the static codegen entry point (chapter 5, task 1). Fetches
+// generateClient(url) — the static codegen entry point (chapter 5). Fetches
 // GET /client-manifest.json and returns a self-contained TypeScript source string: one
-// Params/Result interface pair per endpoint, plus the wire-contract zod validator
-// ResolveResponseSchema. The three Verdict outcome types are re-exported from the
-// runtime package rather than redeclared here — the manifest's own BaseVerdict entry is
-// deliberately abstract (kind only, see json-schema-to-zod.ts), so there is no schema
+// Params/Result interface pair per endpoint, the GateApi/CallableApi facades over them
+// (hybrid path/dot-alias layout, see path-layout.ts), and the wire-contract zod
+// validator ResolveResponseSchema. The three Verdict outcome types are re-exported from
+// the runtime package rather than redeclared here — the manifest's own BaseVerdict entry
+// is deliberately abstract (kind only, see json-schema-to-zod.ts), so there is no schema
 // data to mechanically regenerate FailSecurityVerdict/FailErrorVerdict's `reason` field
 // from, and redeclaring a second, hand-maintained copy would be exactly the kind of
 // dual-source-of-truth this whole chapter exists to avoid.
-//
-// Laying endpoint objects out into `api` (the hybrid path/dot-alias rule, GateApi vs.
-// CallableApi) is a separate task — this function does not build `api` yet.
 
 import { assertManifestShape, type Manifest, type ManifestEndpoint } from "./manifest-types.ts";
 import { parseRootSchema } from "./json-schema-ir.ts";
 import { renderParamsOrResultInterface } from "./json-schema-to-ts.ts";
 import { renderResolveResponseZodSchema } from "./json-schema-to-zod.ts";
 import { NameRegistry, deriveEndpointBaseName } from "./naming.ts";
+import { renderApiLayout } from "./api-layout-to-ts.ts";
+import { buildLayout, type LayoutEndpoint } from "./path-layout.ts";
 
 export async function generateClient(url: string): Promise<string> {
   const res = await fetch(url);
@@ -31,7 +31,11 @@ export async function generateClient(url: string): Promise<string> {
 
 function renderClientSource(manifest: Manifest, url: string): string {
   const registry = new NameRegistry();
-  const endpointBlocks = manifest.endpoints.map((endpoint) => renderEndpointTypes(endpoint, registry));
+  const rendered = manifest.endpoints.map((endpoint) => renderEndpointTypes(endpoint, registry));
+  const endpointBlocks = rendered.map((r) => r.source);
+  const layoutEndpoints: LayoutEndpoint[] = rendered.map((r) => r.layoutEndpoint);
+
+  const { typesSource, factoriesSource } = renderApiLayout(buildLayout(layoutEndpoints));
 
   const resolveResponseEntry = manifest.schemas.ResolveResponse;
   if (!resolveResponseEntry) {
@@ -43,11 +47,11 @@ function renderClientSource(manifest: Manifest, url: string): string {
     renderResolveResponseZodSchema(parsedResolveResponse),
   ].join("\n");
 
-  const sections = [renderHeader(url, manifest), renderImports(), ...endpointBlocks, zodBlock];
+  const sections = [renderHeader(url, manifest), renderImports(), ...endpointBlocks, typesSource, factoriesSource, zodBlock];
   return `${sections.join("\n\n")}\n`;
 }
 
-function renderEndpointTypes(endpoint: ManifestEndpoint, registry: NameRegistry): string {
+function renderEndpointTypes(endpoint: ManifestEndpoint, registry: NameRegistry): { source: string; layoutEndpoint: LayoutEndpoint } {
   const base = registry.claimBase(deriveEndpointBaseName(endpoint.name), endpoint.operation);
   const paramsName = `${base}Params`;
   const resultName = `${base}Result`;
@@ -58,7 +62,10 @@ function renderEndpointTypes(endpoint: ManifestEndpoint, registry: NameRegistry)
   const paramsSource = renderParamsOrResultInterface(paramsName, parsedParams, (ref) => `${paramsName}${ref}`);
   const resultSource = renderParamsOrResultInterface(resultName, parsedResult, (ref) => `${resultName}${ref}`);
 
-  return [`// ${endpoint.operation}`, paramsSource, "", resultSource].join("\n");
+  return {
+    source: [`// ${endpoint.operation}`, paramsSource, "", resultSource].join("\n"),
+    layoutEndpoint: { operation: endpoint.operation, method: endpoint.route.method, path: endpoint.route.path, baseName: base },
+  };
 }
 
 function renderHeader(url: string, manifest: Manifest): string {
@@ -72,6 +79,8 @@ function renderHeader(url: string, manifest: Manifest): string {
 function renderImports(): string {
   return [
     'import { z } from "zod";',
+    'import { makeCallablePrimitive, makeGatePrimitive } from "aoa-client-js";',
+    'import type { ActionInvoker, AoaEngine, CallablePrimitive, GatePrimitive } from "aoa-client-js";',
     'export type { AllowedVerdict, FailErrorVerdict, FailSecurityVerdict, Verdict } from "aoa-client-js";',
   ].join("\n");
 }
