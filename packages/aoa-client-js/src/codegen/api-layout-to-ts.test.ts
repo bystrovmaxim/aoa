@@ -3,7 +3,7 @@ import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 import { renderApiLayout } from "./api-layout-to-ts.ts";
-import { buildLayout, type LayoutEndpoint } from "./path-layout.ts";
+import { buildLayout, type LayoutEndpoint } from "../path-layout.ts";
 
 function ep(method: string, path: string, baseName: string): LayoutEndpoint {
   return { operation: `${method} ${path}`, method, path, baseName };

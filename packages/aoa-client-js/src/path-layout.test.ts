@@ -1,4 +1,4 @@
-// packages/aoa-client-js/src/codegen/path-layout.test.ts
+// packages/aoa-client-js/src/path-layout.test.ts
 import { describe, expect, it } from "vitest";
 
 import { buildLayout, type LayoutEndpoint } from "./path-layout.ts";

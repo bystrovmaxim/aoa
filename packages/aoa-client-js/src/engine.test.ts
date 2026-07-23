@@ -292,6 +292,105 @@ describe("AoaEngine -- identity", () => {
   });
 });
 
+describe("AoaEngine.loadFrom", () => {
+  function fakeManifest(endpoints: Array<{ operation: string; name: string; method: string; path: string }>) {
+    return {
+      manifest_version: "sha256:x",
+      version: 1,
+      manifest_schema_version: 2,
+      endpoints: endpoints.map((e) => ({
+        operation: e.operation,
+        name: e.name,
+        domain: "TestDomain",
+        description: "test",
+        route: { method: e.method, path: e.path },
+        params_schema: { type: "object", properties: {} },
+        result_schema: { type: "object", properties: {} },
+      })),
+      schemas: {},
+    };
+  }
+
+  it("builds a real, working dynamic api -- bracket entry and dot alias both call resolve() with the right operation", async () => {
+    let captured: unknown;
+    const manifest = fakeManifest([
+      { operation: "POST /actions/cancel-order", name: "CancelOrderAction", method: "POST", path: "/actions/cancel-order" },
+      { operation: "GET /orders", name: "ListOrdersAction", method: "GET", path: "/orders" },
+    ]);
+    const fetchImpl = (async (url: string, init?: RequestInit) => {
+      if (url === "https://x/client-manifest.json") return fakeResponse(manifest);
+      captured = JSON.parse(init!.body as string);
+      return fakeResponse({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    }) as typeof fetch;
+    const engine = makeEngine(fetchImpl);
+
+    const api = await engine.loadFrom("https://x/client-manifest.json");
+    expect(api.get?.orders).toBe(api.get?.["/orders"]);
+
+    const cancelOrder = api.post?.["/actions/cancel-order"] as { can: (p: unknown) => Promise<boolean> };
+    await expect(cancelOrder.can({ order_id: 1 })).resolves.toBe(true);
+    expect((captured as { items: Array<{ operation: string }> }).items[0]?.operation).toBe("POST /actions/cancel-order");
+  });
+
+  it("throws NetworkUnavailable when the manifest fetch itself fails", async () => {
+    const fetchImpl = (async () => {
+      throw new Error("network down");
+    }) as unknown as typeof fetch;
+    await expect(makeEngine(fetchImpl).loadFrom("https://x/client-manifest.json")).rejects.toThrow(NetworkUnavailable);
+  });
+
+  it("throws ProtocolError on a non-ok manifest response", async () => {
+    const fetchImpl = (async () => fakeResponse({}, { status: 500 })) as typeof fetch;
+    await expect(makeEngine(fetchImpl).loadFrom("https://x/client-manifest.json")).rejects.toThrow(ProtocolError);
+  });
+
+  it("throws ProtocolError on a manifest body that is not valid JSON", async () => {
+    const fetchImpl = (async () => fakeResponse("not json{", { status: 200 })) as typeof fetch;
+    await expect(makeEngine(fetchImpl).loadFrom("https://x/client-manifest.json")).rejects.toThrow(ProtocolError);
+  });
+
+  it("throws ProtocolError (wrapping the real message) on a manifest that fails shape validation", async () => {
+    const fetchImpl = (async () => fakeResponse({ version: 1 })) as typeof fetch;
+    const error = await makeEngine(fetchImpl)
+      .loadFrom("https://x/client-manifest.json")
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ProtocolError);
+    expect((error as ProtocolError).message).toMatch(/manifest_version/);
+  });
+
+  it("produces the exact same key structure (methods, bracket paths, aliases) as the static renderer for the same manifest", async () => {
+    const { renderApiLayout } = await import("./codegen/api-layout-to-ts.ts");
+    const { buildLayout } = await import("./path-layout.ts");
+
+    const layoutEndpoints = [
+      { operation: "POST /actions/cancel-order", method: "POST", path: "/actions/cancel-order", baseName: "CancelOrder" },
+      { operation: "GET /orders", method: "GET", path: "/orders", baseName: "Orders" },
+      { operation: "GET /admin", method: "GET", path: "/admin", baseName: "AdminRoot" },
+      { operation: "GET /admin/settings", method: "GET", path: "/admin/settings", baseName: "AdminSettings" },
+    ];
+    const layouts = buildLayout(layoutEndpoints);
+    const { typesSource } = renderApiLayout(layouts);
+
+    const manifest = fakeManifest(layoutEndpoints.map((e) => ({ operation: e.operation, name: e.baseName, method: e.method, path: e.path })));
+    const fetchImpl = (async () => fakeResponse(manifest)) as typeof fetch;
+    const api = await makeEngine(fetchImpl).loadFrom("https://x/client-manifest.json");
+
+    // Every bracket path the static renderer types also exists as a real dynamic key.
+    for (const e of layoutEndpoints) {
+      expect(typesSource).toContain(`${JSON.stringify(e.path)}: GatePrimitive<`);
+      expect(api[e.method.toLowerCase()]?.[e.path]).toBeDefined();
+    }
+    // "admin" collided (leaf + branch) in both: not a bracket-shaped standalone alias
+    // leaf in the static type, and demoted to a pure namespace dynamically too.
+    expect(typesSource).not.toMatch(/\n\s*admin: GatePrimitive</);
+    expect(api.get?.admin).not.toBe(api.get?.["/admin"]);
+    expect((api.get?.admin as Record<string, unknown>)?.settings).toBe(api.get?.["/admin/settings"]);
+    // "orders" is a clean single-segment alias in both.
+    expect(typesSource).toContain("orders: GatePrimitive<OrdersParams>;");
+    expect(api.get?.orders).toBe(api.get?.["/orders"]);
+  });
+});
+
 describe("error classes", () => {
   it("each request-level error class sets its own .name", () => {
     expect(new Unauthorized("x").name).toBe("Unauthorized");

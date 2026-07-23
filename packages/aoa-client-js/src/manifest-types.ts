@@ -1,8 +1,11 @@
-// packages/aoa-client-js/src/codegen/manifest-types.ts
+// packages/aoa-client-js/src/manifest-types.ts
 //
 // The `GET /client-manifest.json` wire shape (aoa-fastapi-adapter's manifest.py:
 // Manifest/ManifestEndpoint/RouteRef/SchemaEntry) — field names and types verified
 // directly against that module's pydantic models, not against tutorial prose.
+//
+// Shared by both entry points: generateClient (codegen) and AoaEngine.loadFrom
+// (runtime) both fetch and validate the same manifest shape.
 
 export interface RouteRef {
   method: string;

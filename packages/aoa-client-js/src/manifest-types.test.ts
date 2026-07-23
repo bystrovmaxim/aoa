@@ -1,4 +1,4 @@
-// packages/aoa-client-js/src/codegen/manifest-types.test.ts
+// packages/aoa-client-js/src/manifest-types.test.ts
 import { describe, expect, it } from "vitest";
 
 import { assertManifestShape } from "./manifest-types.ts";

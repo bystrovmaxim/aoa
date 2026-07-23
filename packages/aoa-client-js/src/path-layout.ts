@@ -1,4 +1,4 @@
-// packages/aoa-client-js/src/codegen/path-layout.ts
+// packages/aoa-client-js/src/path-layout.ts
 //
 // The hybrid api layout rule (chapter 3 / chapter 5): every endpoint is always reachable
 // by its full path (api[method]["/path"]), grouped by lowercase HTTP method. A dot alias
@@ -6,8 +6,13 @@
 // a valid identifier (no {param}, hyphen, or dot) -- and does not collide with a deeper
 // path sharing the same prefix (a segment cannot be both a callable leaf and a branch
 // namespace on the same generated object).
+//
+// Shared by both entry points: generateClient (codegen) renders this layout to
+// TypeScript text; AoaEngine.loadFrom (runtime) builds the same layout into a real
+// in-memory object -- see the module docstring in dynamic-api.ts and chapter 5's "та же
+// раскладка «манифест → api», что и generateClient" requirement.
 
-import { isValidIdentifier } from "./json-schema-ir.ts";
+import { isValidIdentifier } from "./identifier.ts";
 
 export interface LayoutEndpoint {
   operation: string;

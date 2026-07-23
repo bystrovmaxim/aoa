@@ -5,7 +5,7 @@
 // Primitive is built exactly once per endpoint and referenced from both its bracket key
 // and any dot-alias position -- the same operation regardless of which form is used.
 
-import type { AliasNode, LayoutEndpoint, MethodLayout } from "./path-layout.ts";
+import type { AliasNode, LayoutEndpoint, MethodLayout } from "../path-layout.ts";
 
 export interface RenderedApiLayout {
   typesSource: string;

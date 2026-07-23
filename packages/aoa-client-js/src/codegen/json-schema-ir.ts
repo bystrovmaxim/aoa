@@ -38,11 +38,8 @@ export class CodegenSchemaError extends Error {
 }
 
 const MAX_SCHEMA_DEPTH = 20;
-const VALID_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
-export function isValidIdentifier(name: string): boolean {
-  return VALID_IDENTIFIER.test(name);
-}
+export { isValidIdentifier } from "../identifier.ts";
 
 /**
  * Parses a top-level `params_schema`/`result_schema`/`schemas.*.json_schema` document

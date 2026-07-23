@@ -11,13 +11,13 @@
 // from, and redeclaring a second, hand-maintained copy would be exactly the kind of
 // dual-source-of-truth this whole chapter exists to avoid.
 
-import { assertManifestShape, type Manifest, type ManifestEndpoint } from "./manifest-types.ts";
+import { assertManifestShape, type Manifest, type ManifestEndpoint } from "../manifest-types.ts";
 import { parseRootSchema } from "./json-schema-ir.ts";
 import { renderParamsOrResultInterface } from "./json-schema-to-ts.ts";
 import { renderResolveResponseZodSchema } from "./json-schema-to-zod.ts";
 import { NameRegistry, deriveEndpointBaseName } from "./naming.ts";
 import { renderApiLayout } from "./api-layout-to-ts.ts";
-import { buildLayout, type LayoutEndpoint } from "./path-layout.ts";
+import { buildLayout, type LayoutEndpoint } from "../path-layout.ts";
 
 export async function generateClient(url: string): Promise<string> {
   const res = await fetch(url);
