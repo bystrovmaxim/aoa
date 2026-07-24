@@ -1,4 +1,4 @@
-<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-24T03:20:11Z (filesystem mtime; draft is gitignored, no git history) · sha256:fa709d0be34f -->
+<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-24T05:30:44Z (filesystem mtime; draft is gitignored, no git history) · sha256:ac352ee6808d -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -363,7 +363,16 @@ if (item.kind === "FailErrorVerdict") throw new Error(item.reason);
 const canCancel = item.kind === "AllowedVerdict";
 ```
 
-A typo in `"POST /actions/cancle-order"` doesn't surface at build time — only in production, when the resolver can't find the endpoint. Rename `order_id` to `orderId` on the server and the frontend finds out when a user clicks the button and gets an error, not before.
+A typo in `"POST /actions/cancle-order"` doesn't surface at build time — only in production, when the resolver can't find the endpoint: `item.kind` comes back `"FailErrorVerdict"`, exactly as the code above expects. A parameter *schema* mismatch is a different animal, though, not a per-item outcome at all: the resolver validates `params` against the real server model before `access_decide` ever runs, and a mismatch fails the *whole request* — `engine.resolve(...)` itself throws `ProtocolError` before `results` even exists, so the `if (item.kind === ...)` line above never runs. A caller needs its own `try/catch` around `resolve()` for this case, not just a `kind` check inside it:
+
+```tsx
+try {
+  const [item] = await engine.resolve([{ operation: "POST /actions/cancel-order", params: { order_id: order.id } }]);
+  // ...
+} catch (error) {
+  if (error instanceof ProtocolError) { /* whole request rejected -- e.g. a params schema mismatch */ }
+}
+```
 
 The catalog (previous section) already publishes every raw ingredient needed — the parameter and result schema of each endpoint. `generateClient(url)` — a function from a separate entry point, `aoa-client-js/codegen` — reads that manifest and returns TypeScript source: `Params`/`Result` interfaces for each endpoint, and a typed `api` object:
 
@@ -375,7 +384,7 @@ const gate = createGateApi(engine);
 const canCancel = await gate.post["/actions/cancel-order"].can({ order_id: order.id });
 ```
 
-Rename the parameter on the server and the generated file itself fails to compile — before production, not after.
+Rename the parameter on the server, though, and *generation itself* still succeeds — silently, reflecting exactly what the manifest says now. What breaks is anything that used the old field name: once you regenerate, `tsc` refuses to compile your own call sites still written against `order_id` — before production, not after. Skip regenerating altogether and nothing catches it this way at all; that gap is exactly what the next section is for.
 
 ### Two ways to get types: statically or at runtime
 
