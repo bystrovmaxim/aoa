@@ -268,6 +268,45 @@ describe("makeCallablePrimitive -- run() precheck (chapter 5.5)", () => {
     expect(networkCallCount).toBe(1);
   });
 
+  // Audit finding 7: every other test here exercises exactly one .can()/run()
+  // round. A bug that only shows up on the second or third cycle (e.g. staleAt
+  // drifting on repeated cache.set() calls to the same key) would pass every
+  // single-round test and go uncaught. Three full rounds with a controlled
+  // clock: fresh cache hit, TTL expiry, run()'s own skipCache call every round.
+  it("staleness, write-through, and skipCache all keep composing correctly across several .can()/run() rounds in a row", async () => {
+    let networkCallCount = 0;
+    const fetchImpl = (async () => {
+      networkCallCount += 1;
+      return fakeResponse({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    }) as typeof fetch;
+    let now = 0;
+    const engine = new AoaEngine({
+      transport: { baseUrl: "https://example.test", fetchImpl, cachePartition: "user:1", clock: () => now },
+    });
+    const invoker: ActionInvoker = async () => ({ status: "cancelled" }) as never;
+    const primitive = makeCallablePrimitive<CancelOrderParams, CancelOrderResult>(
+      engine,
+      "POST /actions/cancel-order",
+      descriptor,
+      invoker,
+    );
+
+    for (let round = 0; round < 3; round++) {
+      const callsAtRoundStart = networkCallCount;
+
+      await expect(primitive.can({ order_id: 7 })).resolves.toBe(true); // cache expired since last round -- refetches
+      expect(networkCallCount).toBe(callsAtRoundStart + 1);
+
+      await expect(primitive.can({ order_id: 7 })).resolves.toBe(true); // still fresh within this round -- cache hit
+      expect(networkCallCount).toBe(callsAtRoundStart + 1);
+
+      await expect(primitive.run({ order_id: 7 })).resolves.toEqual({ status: "cancelled" }); // skipCache -- own network call every round
+      expect(networkCallCount).toBe(callsAtRoundStart + 2);
+
+      now += 3_000; // past this round's TTL -- next round's first can() must refetch
+    }
+  });
+
   it("run() throws AoaResolveError for FailErrorVerdict, same as can() -- never a synthetic deny, no actionInvoker call", async () => {
     const engine = makeEngine({ version: 1, results: [{ kind: "FailErrorVerdict", reason: "UNKNOWN_ENDPOINT" }] });
     const invoker: ActionInvoker = async () => {

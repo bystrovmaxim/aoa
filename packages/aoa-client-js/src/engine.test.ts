@@ -374,6 +374,30 @@ describe("AoaEngine.resolve -- cache (chapter 5.5 prerequisite, issue #157)", ()
     expect(networkCallCount).toBe(2);
   });
 
+  // Audit finding 6: the two TTL-boundary tests above both override cache.ttlMs
+  // (1_000, 10_000) -- neither one pins the actual DEFAULT_TTL_MS = 3_000
+  // constant itself against a controlled clock. A typo in that constant (an
+  // extra zero, say) would pass every "served from cache" test regardless of
+  // its real value, and these boundary tests never touch the default at all.
+  it("the literal default TTL (DEFAULT_TTL_MS = 3000, no ttlMs override) is honored at its exact boundary", async () => {
+    let networkCallCount = 0;
+    const fetchImpl = (async () => {
+      networkCallCount += 1;
+      return fakeResponse({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    }) as typeof fetch;
+    let now = 0;
+    const engine = makeEngine(fetchImpl, { clock: () => now }); // no cache.ttlMs override
+
+    await engine.resolve(oneItem); // fetchedAt=0, staleAt=3000 if the constant is really 3_000
+    now = 2_999;
+    await engine.resolve(oneItem); // one millisecond inside the default window -- still a cache hit
+    expect(networkCallCount).toBe(1);
+
+    now = 3_000;
+    await engine.resolve(oneItem); // staleAt itself -- must not still count as fresh
+    expect(networkCallCount).toBe(2);
+  });
+
   it("a custom ttlMs from transport.cache is honored, not a hardcoded default", async () => {
     let networkCallCount = 0;
     const fetchImpl = (async () => {
