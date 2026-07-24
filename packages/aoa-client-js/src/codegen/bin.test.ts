@@ -18,11 +18,24 @@ describe("parseArgs", () => {
     expect(parseArgs(["--url", "https://x/client-manifest.json", "--out", "src/generated/aoa-client.ts"])).toEqual({
       url: "https://x/client-manifest.json",
       out: "src/generated/aoa-client.ts",
+      check: false,
     });
   });
 
   it("parses --out before --url just as well", () => {
-    expect(parseArgs(["--out", "out.ts", "--url", "https://x/m.json"])).toEqual({ url: "https://x/m.json", out: "out.ts" });
+    expect(parseArgs(["--out", "out.ts", "--url", "https://x/m.json"])).toEqual({
+      url: "https://x/m.json",
+      out: "out.ts",
+      check: false,
+    });
+  });
+
+  it("parses --check as a boolean flag alongside --url/--out", () => {
+    expect(parseArgs(["--url", "https://x/m.json", "--out", "out.ts", "--check"])).toEqual({
+      url: "https://x/m.json",
+      out: "out.ts",
+      check: true,
+    });
   });
 
   it("throws a clear error when --url is missing", () => {
@@ -40,12 +53,15 @@ describe("parseArgs", () => {
 
 describe("aoa-codegen CLI (real subprocess)", () => {
   const binPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "bin.ts");
-  let server: Server | undefined;
+  // An array, not a single reference: a test that needs to simulate the live manifest
+  // changing (see the drift test below) starts a second server without discarding the
+  // first, and every one of them must still get closed afterward.
+  let servers: Server[] = [];
   let tmpDir: string | undefined;
 
   afterEach(async () => {
-    if (server) await new Promise((resolve) => server!.close(resolve));
-    server = undefined;
+    await Promise.all(servers.map((s) => new Promise((resolve) => s.close(resolve))));
+    servers = [];
     if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
     tmpDir = undefined;
   });
@@ -68,12 +84,13 @@ describe("aoa-codegen CLI (real subprocess)", () => {
 
   function startManifestServer(manifest: unknown): Promise<string> {
     return new Promise((resolve) => {
-      server = createServer((_req, res) => {
+      const server = createServer((_req, res) => {
         res.setHeader("content-type", "application/json");
         res.end(JSON.stringify(manifest));
       });
+      servers.push(server);
       server.listen(0, "127.0.0.1", () => {
-        const address = server!.address();
+        const address = server.address();
         const port = typeof address === "object" && address ? address.port : 0;
         resolve(`http://127.0.0.1:${port}/client-manifest.json`);
       });
@@ -158,5 +175,50 @@ describe("aoa-codegen CLI (real subprocess)", () => {
     expect(code).not.toBe(0);
     expect(stderr).toContain("aoa-codegen:");
     expect(existsSync(outPath)).toBe(false);
+  });
+
+  it("--check exits 0 and writes nothing when the committed file is already up to date", async () => {
+    const url = await startManifestServer(FAKE_MANIFEST);
+    tmpDir = mkdtempSync(path.join(tmpdir(), "aoa-codegen-cli-"));
+    const outPath = path.join(tmpDir, "generated.ts");
+
+    const written = await runCli(["--url", url, "--out", outPath]);
+    expect(written.code).toBe(0);
+    const before = readFileSync(outPath, "utf8");
+
+    const checked = await runCli(["--check", "--url", url, "--out", outPath]);
+    expect(checked.code).toBe(0);
+    expect(checked.stdout).toContain("is up to date");
+    expect(readFileSync(outPath, "utf8")).toBe(before);
+  });
+
+  it("--check exits non-zero and names the specific drifted declaration when the live manifest changed", async () => {
+    const url = await startManifestServer(FAKE_MANIFEST);
+    tmpDir = mkdtempSync(path.join(tmpdir(), "aoa-codegen-cli-"));
+    const outPath = path.join(tmpDir, "generated.ts");
+    await runCli(["--url", url, "--out", outPath]);
+
+    const DRIFTED_MANIFEST = {
+      ...FAKE_MANIFEST,
+      manifest_version: "sha256:drifted",
+      endpoints: [{ ...FAKE_MANIFEST.endpoints[0], result_schema: { type: "object", properties: { total: { type: "integer" } }, required: ["total"] } }],
+    };
+    const driftedUrl = await startManifestServer(DRIFTED_MANIFEST);
+
+    const { code, stderr } = await runCli(["--check", "--url", driftedUrl, "--out", outPath]);
+    expect(code).not.toBe(0);
+    expect(stderr).toContain("out of date");
+    expect(stderr).toContain("ListOrdersResult");
+  });
+
+  it("--check exits non-zero with a clear message when the file to check does not exist yet", async () => {
+    const url = await startManifestServer(FAKE_MANIFEST);
+    tmpDir = mkdtempSync(path.join(tmpdir(), "aoa-codegen-cli-"));
+    const outPath = path.join(tmpDir, "generated.ts");
+
+    const { code, stderr } = await runCli(["--check", "--url", url, "--out", outPath]);
+    expect(code).not.toBe(0);
+    expect(stderr).toContain("does not exist");
+    expect(stderr).toContain(outPath);
   });
 });
