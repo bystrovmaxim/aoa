@@ -186,6 +186,40 @@ describe("renderResolveResponseZodSchema", () => {
     expect(schema.parse({ x: "y" })).toEqual({ x: "y" });
   });
 
+  // Audit finding 7: recursive schemas are explicitly unsupported by this codegen (see
+  // json-schema-ir.ts's own docstring), but the two renderers used to disagree on HOW
+  // they failed. json-schema-to-ts.test.ts documents that the TS renderer keeps working
+  // on this exact input (an accident of its hoisting mechanism, not a deliberate cycle
+  // guard) -- this documents the zod renderer now failing the same clear, typed way
+  // every other unsupported input in this codegen already does, instead of overflowing
+  // the call stack with a raw RangeError.
+  it("throws a clear CodegenSchemaError on a genuine $defs cycle, not a raw stack overflow", () => {
+    const parsed: ParsedSchema = {
+      description: undefined,
+      defs: {
+        A: { kind: "object", properties: [{ name: "b", required: true, description: undefined, schema: { kind: "ref", refName: "B" } }] },
+        B: { kind: "object", properties: [{ name: "a", required: true, description: undefined, schema: { kind: "ref", refName: "A" } }] },
+      },
+      root: { kind: "ref", refName: "A" },
+    };
+    expect(() => renderResolveResponseZodSchema(parsed)).toThrow(/Cyclic \$ref detected at "A"/);
+    expect(() => renderResolveResponseZodSchema(parsed)).not.toThrow(RangeError);
+  });
+
+  it("does not false-positive on the same $ref used twice from unrelated, non-cyclic branches", () => {
+    const parsed = parseRootSchema(
+      {
+        $defs: { Shared: { properties: { id: { type: "integer" } }, required: ["id"], type: "object" } },
+        properties: { first: { $ref: "#/$defs/Shared" }, second: { $ref: "#/$defs/Shared" } },
+        required: ["first", "second"],
+        type: "object",
+      },
+      "test",
+    );
+    const schema = evalZodSchema(renderResolveResponseZodSchema(parsed));
+    expect(schema.parse({ first: { id: 1 }, second: { id: 2 } })).toEqual({ first: { id: 1 }, second: { id: 2 } });
+  });
+
   it("throws a clear error rendering a $ref to a name missing from $defs (and not a well-known name like BaseVerdict)", () => {
     const parsed: ParsedSchema = {
       description: undefined,
