@@ -115,6 +115,14 @@ export class AoaEngine {
   private cache = new ResolveCache();
 
   constructor(config: { transport: TransportConfig }) {
+    // Validated once, here, rather than on every resolve() call: a NaN ttlMs
+    // (e.g. from an unvalidated env var) would make staleAt = now + NaN = NaN,
+    // and `now >= NaN` is always false in JS -- the entry would never expire,
+    // silently becoming "eternally fresh" (audit finding 8, chapter 5.5).
+    const ttlMs = config.transport.cache?.ttlMs;
+    if (ttlMs !== undefined && !(Number.isFinite(ttlMs) && ttlMs >= 0)) {
+      throw new Error(`transport.cache.ttlMs must be a finite number >= 0, got ${ttlMs}`);
+    }
     this.config = config;
   }
 

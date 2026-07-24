@@ -415,6 +415,23 @@ describe("AoaEngine.resolve -- cache (chapter 5.5 prerequisite, issue #157)", ()
   });
 });
 
+describe("AoaEngine constructor -- cache.ttlMs validation (audit finding 8)", () => {
+  const fetchImpl = (async () => fakeResponse({ version: 1, results: [] })) as typeof fetch;
+
+  it.each([NaN, Infinity, -Infinity, -1])("throws for ttlMs=%s", (ttlMs) => {
+    expect(() => makeEngine(fetchImpl, { cache: { ttlMs } })).toThrow(/ttlMs/);
+  });
+
+  it("does not throw when ttlMs is omitted (falls back to the default)", () => {
+    expect(() => makeEngine(fetchImpl, {})).not.toThrow();
+  });
+
+  it("does not throw for a valid, finite, non-negative ttlMs", () => {
+    expect(() => makeEngine(fetchImpl, { cache: { ttlMs: 0 } })).not.toThrow();
+    expect(() => makeEngine(fetchImpl, { cache: { ttlMs: 10_000 } })).not.toThrow();
+  });
+});
+
 describe("AoaEngine -- identity", () => {
   it("exposes cachePartition read-only", () => {
     const engine = makeEngine(async () => fakeResponse({ version: 1, results: [] }));
