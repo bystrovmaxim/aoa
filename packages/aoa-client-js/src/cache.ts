@@ -40,7 +40,14 @@ export class ResolveCache {
     return entry;
   }
 
+  // A slower, out-of-order response must never roll back a fresher one already
+  // recorded here -- e.g. a slow .can() that lands after a fast run() precheck
+  // already wrote a just-revoked FailSecurityVerdict for the same key (audit
+  // finding 2). Only refuse to overwrite something strictly newer; anything
+  // else (no entry yet, or an equal/older fetchedAt) writes through as before.
   set(key: string, entry: CacheEntry): void {
+    const existing = this.entries.get(key);
+    if (existing && existing.fetchedAt > entry.fetchedAt) return;
     this.entries.set(key, entry);
   }
 }

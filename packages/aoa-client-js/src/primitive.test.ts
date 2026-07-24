@@ -163,6 +163,56 @@ describe("makeCallablePrimitive -- run() precheck (chapter 5.5)", () => {
     expect((error as Error).message).toContain("only the owner can cancel");
   });
 
+  // Audit finding 2: run()'s own decision never reads the cache (skipCache is
+  // always true for it), so it can't itself be fooled -- but a slower, unrelated
+  // .can() answering AFTER run()'s faster precheck could still roll the cache
+  // back to a stale "allowed" for the next caller, if set() didn't compare
+  // freshness. Reproduced here against the real engine/Primitive with manually
+  // controlled response order (not real timers), for a fully deterministic test.
+  it("a slower .can() response landing after run()'s faster precheck never rolls the cache back to stale-allowed", async () => {
+    let requestCount = 0;
+    const resolvers: Record<number, (body: ResolveResponse) => void> = {};
+    const fetchImpl = (async () => {
+      requestCount += 1;
+      const thisRequest = requestCount;
+      return new Promise<Response>((resolve) => {
+        resolvers[thisRequest] = (body) => resolve(fakeResponse(body));
+      });
+    }) as typeof fetch;
+
+    let clockValue = 0;
+    const engine = new AoaEngine({
+      transport: { baseUrl: "https://example.test", fetchImpl, cachePartition: "user:1", clock: () => clockValue++ },
+    });
+    const invoker: ActionInvoker = async () => {
+      throw new Error("actionInvoker must not be called");
+    };
+    const primitive = makeCallablePrimitive<CancelOrderParams, CancelOrderResult>(
+      engine,
+      "POST /actions/cancel-order",
+      descriptor,
+      invoker,
+    );
+
+    const canPromise = primitive.can({ order_id: 7 }); // request #1, fetchedAt will be 0
+    const runPromise = primitive.run({ order_id: 7 }).catch((e: unknown) => e); // request #2, fetchedAt will be 1, skipCache
+
+    // Resolve out of order: the newer request (run()'s precheck) answers first
+    // with the real, current denial; the older request (.can()) answers second
+    // with a now-stale "allowed" -- simulating a slow response landing after a
+    // faster one that was actually issued later.
+    resolvers[2]({ version: 1, results: [{ kind: "FailSecurityVerdict", reason: "access revoked" }] });
+    expect(await runPromise).toBeInstanceOf(Error);
+    resolvers[1]({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    await canPromise;
+
+    // A fresh cache read must still see run()'s denial, not the older "allowed"
+    // -- and it must be a real cache hit (no 3rd network call), or this
+    // wouldn't be testing the cache at all.
+    await expect(primitive.can({ order_id: 7 })).resolves.toBe(false);
+    expect(requestCount).toBe(2);
+  });
+
   it("run() throws AoaResolveError for FailErrorVerdict, same as can() -- never a synthetic deny, no actionInvoker call", async () => {
     const engine = makeEngine({ version: 1, results: [{ kind: "FailErrorVerdict", reason: "UNKNOWN_ENDPOINT" }] });
     const invoker: ActionInvoker = async () => {

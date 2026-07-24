@@ -77,11 +77,29 @@ describe("ResolveCache", () => {
     expect(cache.get("k", 5_000)).toBeUndefined();
   });
 
-  it("set() overwrites a previous entry for the same key", () => {
+  it("set() overwrites a previous entry for the same key when the new one is at least as fresh", () => {
     const cache = new ResolveCache();
     cache.set("k", entry);
     const replacement: CacheEntry = { ...entry, verdict: { kind: "FailSecurityVerdict", reason: "revoked" } };
     cache.set("k", replacement);
     expect(cache.get("k", 0)).toEqual(replacement);
+  });
+
+  // Audit finding 2: two resolve() calls to the same key can answer out of
+  // order (a slow .can() response landing after a fast run() precheck already
+  // wrote a just-revoked denial). Blindly overwriting on every set() would let
+  // the older, slower answer roll back the fresher one.
+  it("set() refuses to overwrite a strictly newer entry with an older one", () => {
+    const cache = new ResolveCache();
+    const newer: CacheEntry = {
+      operation: "POST /actions/cancel-order",
+      verdict: { kind: "FailSecurityVerdict", reason: "revoked" },
+      fetchedAt: 10,
+      staleAt: 3_010,
+    };
+    cache.set("k", newer);
+    const olderStale: CacheEntry = { operation: "POST /actions/cancel-order", verdict: { kind: "AllowedVerdict" }, fetchedAt: 5, staleAt: 3_005 };
+    cache.set("k", olderStale);
+    expect(cache.get("k", 10)).toEqual(newer);
   });
 });
