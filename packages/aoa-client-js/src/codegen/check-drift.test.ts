@@ -70,6 +70,27 @@ describe("diffGeneratedSource -- synthetic fixtures", () => {
     const drift = diffGeneratedSource(committed, fresh);
     expect(drift).toContain("changed (same name, different shape -- schema drift): (endpoint descriptors)");
   });
+
+  // Audit finding 15: a pure route/method rename (no schema change) only ever reported
+  // as the whole "(endpoint descriptors)" block changing, with no way to tell which of
+  // several endpoints actually moved without diffing the block by hand.
+  it("names the specific descriptor whose route changed, on top of the block-level report", () => {
+    const committed = `${HEADER("https://a", "sha256:x")}\n\nconst FOO_DESCRIPTOR = { method: "GET", path: "/foo" };\nconst BAR_DESCRIPTOR = { method: "GET", path: "/bar" };`;
+    const fresh = `${HEADER("https://a", "sha256:x")}\n\nconst FOO_DESCRIPTOR = { method: "GET", path: "/foo" };\nconst BAR_DESCRIPTOR = { method: "GET", path: "/bar-renamed" };`;
+    const drift = diffGeneratedSource(committed, fresh);
+    expect(drift).toContain("changed (same name, different shape -- schema drift): (endpoint descriptors)");
+    expect(drift).toContain("within (endpoint descriptors), route changed for: BAR_DESCRIPTOR");
+    expect(drift).not.toContain("FOO_DESCRIPTOR");
+  });
+
+  it("names every descriptor whose route changed when more than one moves at once", () => {
+    const committed = `${HEADER("https://a", "sha256:x")}\n\nconst FOO_DESCRIPTOR = { method: "GET", path: "/foo" };\nconst BAR_DESCRIPTOR = { method: "GET", path: "/bar" };`;
+    const fresh = `${HEADER("https://a", "sha256:x")}\n\nconst FOO_DESCRIPTOR = { method: "POST", path: "/foo" };\nconst BAR_DESCRIPTOR = { method: "GET", path: "/bar-renamed" };`;
+    const drift = diffGeneratedSource(committed, fresh);
+    const detailLine = drift!.split("\n").find((line) => line.includes("route changed for"));
+    expect(detailLine).toContain("FOO_DESCRIPTOR");
+    expect(detailLine).toContain("BAR_DESCRIPTOR");
+  });
 });
 
 describe("diffGeneratedSource -- against real generateClient output", () => {
@@ -132,6 +153,51 @@ describe("diffGeneratedSource -- against real generateClient output", () => {
     stubFetchJson(manifestWithParamField("order_id"));
     const second = await generateClient("https://x/client-manifest.json");
     expect(diffGeneratedSource(first, second)).toBeNull();
+  });
+
+  function manifestWithTwoRoutes(cancelOrderPath: string) {
+    return {
+      manifest_version: `sha256:${cancelOrderPath}`,
+      version: 1,
+      manifest_schema_version: 2,
+      endpoints: [
+        {
+          operation: `POST ${cancelOrderPath}`,
+          name: "CancelOrderAction",
+          domain: "OrdersDomain",
+          description: "x",
+          route: { method: "POST", path: cancelOrderPath },
+          params_schema: { type: "object", properties: { order_id: { type: "integer" } }, required: ["order_id"] },
+          result_schema: { type: "object", properties: { status: { type: "string" } }, required: ["status"] },
+        },
+        {
+          operation: "GET /actions/ping",
+          name: "PingAction",
+          domain: "SystemDomain",
+          description: "x",
+          route: { method: "GET", path: "/actions/ping" },
+          params_schema: { type: "object", properties: {} },
+          result_schema: { type: "object", properties: { message: { type: "string" } }, required: ["message"] },
+        },
+      ],
+      schemas: { ResolveResponse: RESOLVE_RESPONSE_SCHEMA_ENTRY },
+    };
+  }
+
+  // Audit finding 15, end to end: a real route rename (path only, schema untouched)
+  // through a real generateClient() call.
+  it("detects a real pure route rename end to end and names the specific moved endpoint (audit finding 15)", async () => {
+    stubFetchJson(manifestWithTwoRoutes("/actions/cancel-order"));
+    const committed = await generateClient("https://x/client-manifest.json");
+
+    stubFetchJson(manifestWithTwoRoutes("/actions/cancel-order-v2"));
+    const fresh = await generateClient("https://x/client-manifest.json");
+
+    const drift = diffGeneratedSource(committed, fresh);
+    expect(drift).not.toBeNull();
+    expect(drift).toContain("within (endpoint descriptors), route changed for: CANCEL_ORDER_DESCRIPTOR");
+    // PingAction's own route never changed -- it must not show up in the detail line.
+    expect(drift).not.toContain("PING_DESCRIPTOR");
   });
 
   // Audit finding 2's original symptom: --check silently reported "up to date" for a
