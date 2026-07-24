@@ -102,6 +102,26 @@ describe("diffGeneratedSource -- synthetic fixtures", () => {
     expect(drift).toContain("changed (same name, different shape -- schema drift): (endpoint descriptors)");
     expect(drift).not.toContain("route changed for");
   });
+
+  // Audit finding 17: the imports/re-exports block (always the file's first content
+  // block) never matched DECLARATION_NAME_PATTERN -- neither a bare `import` line nor
+  // `export type { X } from "..."` (no `= ...` after the name) fits `export
+  // (interface|type|function|const) NAME`. It fell through to the generic, useless
+  // "(unrecognized block 0)".
+  it("names the imports block '(imports)' instead of '(unrecognized block 0)'", () => {
+    const committed = `${HEADER("https://a", "sha256:x")}\n\nimport { z } from "zod";\nimport { makeGatePrimitive } from "aoa-client-js";\n\nexport interface FooParams {\n  x: number;\n}`;
+    const fresh = `${HEADER("https://a", "sha256:x")}\n\nimport { z } from "zod";\nimport { makeGatePrimitive, extra } from "aoa-client-js";\n\nexport interface FooParams {\n  x: number;\n}`;
+    const drift = diffGeneratedSource(committed, fresh);
+    expect(drift).toContain("changed (same name, different shape -- schema drift): (imports)");
+    expect(drift).not.toContain("unrecognized block");
+  });
+
+  it("still falls back to '(unrecognized block N)' for a block that is neither a descriptor, imports, nor a matched declaration", () => {
+    const committed = `${HEADER("https://a", "sha256:x")}\n\n// a stray top-level comment block, not a declaration`;
+    const fresh = `${HEADER("https://a", "sha256:x")}\n\n// a DIFFERENT stray top-level comment block`;
+    const drift = diffGeneratedSource(committed, fresh);
+    expect(drift).toContain("changed (same name, different shape -- schema drift): (unrecognized block 0)");
+  });
 });
 
 describe("diffGeneratedSource -- against real generateClient output", () => {
@@ -164,6 +184,16 @@ describe("diffGeneratedSource -- against real generateClient output", () => {
     stubFetchJson(manifestWithParamField("order_id"));
     const second = await generateClient("https://x/client-manifest.json");
     expect(diffGeneratedSource(first, second)).toBeNull();
+  });
+
+  // Audit finding 17, end to end: confirms the real, current generateClient() output's
+  // imports block actually has the shape check-drift.ts's fix relies on (starts with a
+  // bare `import`, not `export`) -- not just a hand-constructed fixture shaped to match.
+  it("the real generated file's imports block starts with a bare import, matching the fix's detection", async () => {
+    stubFetchJson(manifestWithParamField("order_id"));
+    const source = await generateClient("https://x/client-manifest.json");
+    const importsBlock = source.split(/\n{2,}/)[1];
+    expect(importsBlock?.startsWith("import ")).toBe(true);
   });
 
   function manifestWithTwoRoutes(cancelOrderPath: string) {

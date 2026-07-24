@@ -12,6 +12,7 @@ const MANIFEST_VERSION_PATTERN = /^\/\/ Manifest version: (.+)$/m;
 const DECLARATION_NAME_PATTERN = /^export (?:interface|type|function|const)\s+(\w+)/m;
 const DESCRIPTOR_CONST_PATTERN = /^const [A-Z0-9_]+_DESCRIPTOR\b/m;
 const DESCRIPTOR_BLOCK_NAME = "(endpoint descriptors)";
+const IMPORTS_BLOCK_NAME = "(imports)";
 
 export function diffGeneratedSource(committed: string, fresh: string): string | null {
   const committedVersion = extractManifestVersion(committed);
@@ -105,6 +106,14 @@ function declarationName(block: string, index: number): string {
   // first one found would misreport which endpoint's descriptor actually changed, so
   // this whole block is named as a single unit instead.
   if (DESCRIPTOR_CONST_PATTERN.test(block)) return DESCRIPTOR_BLOCK_NAME;
+  // generate-client.ts's renderImports() always emits the file's first content block
+  // (right after the header) as `import ...`/`export type { ... } from ...` lines --
+  // neither matches DECLARATION_NAME_PATTERN (bare `import` isn't `export`, and
+  // `export type { X } from "..."` isn't `export type NAME =`), so this always fell
+  // through to the generic "(unrecognized block 0)" (audit finding 17). Checked by
+  // content, not position (block 0), so it stays correct even if generateClient's own
+  // section order ever changes -- no other block starts with a bare `import`.
+  if (block.startsWith("import ")) return IMPORTS_BLOCK_NAME;
   const match = DECLARATION_NAME_PATTERN.exec(block);
   return match ? match[1] : `(unrecognized block ${index})`;
 }
