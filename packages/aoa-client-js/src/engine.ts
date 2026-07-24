@@ -1,4 +1,5 @@
 // packages/aoa-client-js/src/engine.ts
+import { cacheKeyFor, isCacheableVerdict, ResolveCache } from "./cache.ts";
 import { buildDynamicGateApi, type DynamicGateApi } from "./dynamic-api.ts";
 import { assertManifestShape } from "./manifest-types.ts";
 import { buildLayout, type LayoutEndpoint } from "./path-layout.ts";
@@ -13,13 +14,19 @@ export interface TransportConfig {
   cachePartition: string; // subject identity; fixed for the AoaEngine's whole lifetime
   credentials?: RequestCredentials; // "include" for cookie sessions
   headers?: Record<string, string>; // shared headers (e.g. Authorization); overrides defaults case-insensitively
-  clock?: () => number; // time source; defaults to Date.now (used starting chapter 6's cache)
+  clock?: () => number; // time source; defaults to Date.now
+  // Minimal cache config (chapter 5.5, issue #157) -- only ttlMs so far. Chapter 6
+  // (#139) is expected to extend this same object (maxStaleMs, maxEntries,
+  // onUnavailable), not replace it.
+  cache?: { ttlMs?: number };
   // Trace-id generator; defaults to crypto.randomUUID. Injectable for the same
   // reason fetchImpl is: crypto.randomUUID() isn't available identically
   // everywhere (older Node, a non-secure browser context), and this class
   // otherwise promises environment dependencies go through the constructor.
   generateTraceId?: () => string;
 }
+
+const DEFAULT_TTL_MS = 3_000;
 
 // Request-level typed failures -- resolve() throws these, never returns them
 // as a verdict. Resolver unavailability never turns into a denial. Each sets
@@ -105,8 +112,17 @@ function assertValidVerdict(item: unknown, index: number): asserts item is Verdi
 
 export class AoaEngine {
   private config: { transport: TransportConfig };
+  private cache = new ResolveCache();
 
   constructor(config: { transport: TransportConfig }) {
+    // Validated once, here, rather than on every resolve() call: a NaN ttlMs
+    // (e.g. from an unvalidated env var) would make staleAt = now + NaN = NaN,
+    // and `now >= NaN` is always false in JS -- the entry would never expire,
+    // silently becoming "eternally fresh" (audit finding 8, chapter 5.5).
+    const ttlMs = config.transport.cache?.ttlMs;
+    if (ttlMs !== undefined && !(Number.isFinite(ttlMs) && ttlMs >= 0)) {
+      throw new Error(`transport.cache.ttlMs must be a finite number >= 0, got ${ttlMs}`);
+    }
     this.config = config;
   }
 
@@ -116,7 +132,51 @@ export class AoaEngine {
     return this.config.transport.cachePartition;
   }
 
-  async resolve(items: ResolveItem[], opts?: { traceId?: string }): Promise<Verdict[]> {
+  // Per item: read the cache unless opts.skipCache -- Primitive.run()'s precheck
+  // (chapter 5.5) sets it, since a cache hit there would defeat the whole point of a
+  // fresh check right before the real invocation. A fresh network answer is written
+  // through to the cache regardless of skipCache, so the next ordinary call benefits.
+  // Only the actual misses go to the network, in one batched call.
+  async resolve(items: ResolveItem[], opts?: { traceId?: string; skipCache?: boolean }): Promise<Verdict[]> {
+    const t = this.config.transport;
+    const now = (t.clock ?? Date.now)();
+    const results: Verdict[] = new Array(items.length);
+    const misses: { index: number; item: ResolveItem; key: string }[] = [];
+
+    items.forEach((item, index) => {
+      const key = cacheKeyFor(t.cachePartition, item);
+      if (!opts?.skipCache) {
+        const entry = this.cache.get(key, now);
+        if (entry) {
+          results[index] = entry.verdict;
+          return;
+        }
+      }
+      misses.push({ index, item, key });
+    });
+
+    if (misses.length === 0) return results;
+
+    const networkResults = await this.fetchResolve(
+      misses.map((m) => m.item),
+      opts,
+    );
+    const ttlMs = t.cache?.ttlMs ?? DEFAULT_TTL_MS;
+    misses.forEach((m, i) => {
+      const verdict = networkResults[i];
+      results[m.index] = verdict;
+      if (isCacheableVerdict(verdict)) {
+        this.cache.set(m.key, { operation: m.item.operation, verdict, fetchedAt: now, staleAt: now + ttlMs });
+      }
+    });
+
+    return results;
+  }
+
+  // The actual HTTP round-trip -- operates only on whatever subset resolve() didn't
+  // already have a fresh cache answer for, so cardinality/index-based validation below
+  // is relative to that subset, not necessarily the caller's original full batch.
+  private async fetchResolve(items: ResolveItem[], opts?: { traceId?: string }): Promise<Verdict[]> {
     const t = this.config.transport;
     const generateTraceId = t.generateTraceId ?? (() => crypto.randomUUID());
     const traceId = opts?.traceId ?? generateTraceId(); // unique per call unless overridden

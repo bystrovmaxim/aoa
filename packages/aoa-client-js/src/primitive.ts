@@ -65,7 +65,19 @@ export function makeCallablePrimitive<TParams, TResult>(
 ): CallablePrimitive<TParams, TResult> {
   return {
     ...makeGatePrimitive<TParams>(engine, operation),
-    run(params: TParams): Promise<TResult> {
+    // Precheck (chapter 5.5): a fresh, non-cached can() right before the real call --
+    // skipCache is mandatory here, a cache hit would defeat the whole point of asking
+    // again right before invoking. FailErrorVerdict throws the same AoaResolveError
+    // .can() already throws for it (no new behavior). FailSecurityVerdict is new: a
+    // plain Error with no dedicated class -- neither .can() (returns false) nor
+    // .verdict() (returns the Verdict) ever throws for it, so there's no existing
+    // precedent to reuse, and the caller doesn't need to know a precheck happened.
+    async run(params: TParams): Promise<TResult> {
+      const [item] = await engine.resolve([{ operation, params: params as Record<string, unknown> }], {
+        skipCache: true,
+      });
+      if (item.kind === "FailErrorVerdict") throw new AoaResolveError(item.reason);
+      if (item.kind === "FailSecurityVerdict") throw new Error(`action not allowed: ${item.reason}`);
       return actionInvoker<TResult>(buildInvocation(descriptor, params));
     },
   };

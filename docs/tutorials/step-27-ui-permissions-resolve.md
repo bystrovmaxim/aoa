@@ -1,4 +1,4 @@
-<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-24T05:30:44Z (filesystem mtime; draft is gitignored, no git history) · sha256:ac352ee6808d -->
+<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-24T22:31:56Z (filesystem mtime; draft is gitignored, no git history) · sha256:f6a9503d70d8 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -425,6 +425,38 @@ Layout in `api` follows the rule from the previous section: by full path — alw
 The reactive `useCan` (cache, invalidation, component re-render) isn't part of the generated code — it's a separate, framework-specific layer (chapter 10) that subscribes to `AoaEngine` without touching the generator.
 
 Examples — [`01_static_codegen_and_primitive.ts`](../../examples/step_27_ui_permissions_codegen/01_static_codegen_and_primitive.ts) (full path and dot alias), [`02_dynamic_engine_loadfrom.ts`](../../examples/step_27_ui_permissions_codegen/02_dynamic_engine_loadfrom.ts) (the same `api`, no build step), [`03_endpoint_drift_unknown_endpoint.ts`](../../examples/step_27_ui_permissions_codegen/03_endpoint_drift_unknown_endpoint.ts) (a stale static client against a manifest that's moved on), and [`04_contract_fixture_resolve_response.ts`](../../examples/step_27_ui_permissions_codegen/04_contract_fixture_resolve_response.ts) (one fixture, Python and TypeScript alike). Each one runs directly: `node examples/step_27_ui_permissions_codegen/<file>.ts`.
+
+---
+
+## A fresh check before running: why `run()` asks `can()` again
+
+`.can()` might have answered a second ago. Or five minutes ago, if the tab just sat open. Access could have changed in the meantime: a role got revoked, an order changed owners. The button in the UI still looks active, even though the real permission is already gone.
+
+The gap between "button shown" and "user clicked it" is a hole in time. `Primitive.run()` doesn't close it completely — the server still makes the final call, inside the real invocation itself. But `run()` narrows that hole sharply: right before actually executing the action, it asks one more question of its own — `can()`.
+
+The key word here is fresh. If `run()` just read the answer from cache (next chapter), the whole point of the check would vanish: the cache could be just as stale as the button itself. So internally, `run()` calls `resolve()` with a flag that explicitly bypasses the cache (`skipCache: true`) — the only place in the library where this flag is used at all. Even if the same question was already sitting in the cache a second ago, `run()` still goes to the network for the real, currently-true answer.
+
+From that fresh answer, `run()` tells two different cases apart:
+
+- **`FailSecurityVerdict`** — a real, just-confirmed denial. The action doesn't run.
+- **`FailErrorVerdict` or a network error** — the server couldn't answer: an unknown endpoint, a timeout, the network being down. That's not a denial of access, it's "couldn't ask." Turning a connectivity failure into a quiet "no access" would be exactly as wrong as ignoring a real denial.
+
+The calling code doesn't need to know anything about this internal second question. If the server couldn't answer (`FailErrorVerdict`), `run()` throws the same `AoaResolveError` as `.can()` — nothing new. But if access is genuinely gone (`FailSecurityVerdict`), `run()` throws an ordinary error with a human-readable reason — and there's no precedent for that one: neither `.can()` (quietly returns `false`) nor `.verdict()` (returns the `Verdict` object itself) ever throws for it. This is new behavior, introduced by the precheck:
+
+```ts
+const gate = createApi(engine, actionInvoker);
+try {
+  await gate.post["/actions/cancel-order"].run({ order_id: 7 });
+} catch (error) {
+  console.error((error as Error).message); // e.g.: "action not allowed: access revoked"
+}
+```
+
+This isn't a defense against code that bypasses the library entirely and talks to the server directly — for that code, neither `.can()` nor this built-in precheck exist at all. The only genuinely authoritative check happens on the server, inside the action itself, and it sees every call regardless of which client it came through.
+
+> A fresh denial on the real-execution path isn't just a routine UI check — that's a separate topic in the reference docs: [Glossary → "precheck"](../reference/glossary.md#ui-permissions).
+
+Example: [`01_run_precheck_skip_cache.ts`](../../examples/step_27_ui_permissions_precheck/01_run_precheck_skip_cache.ts).
 
 ---
 
