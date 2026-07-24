@@ -22,6 +22,7 @@ describe("parseRootSchema", () => {
     expect(parsed.root).toEqual({
       kind: "object",
       properties: [{ name: "order_id", required: true, description: "Order identifier", schema: { kind: "integer" } }],
+      additionalProperties: false,
     });
   });
 
@@ -30,7 +31,7 @@ describe("parseRootSchema", () => {
       { additionalProperties: false, description: "PingAction parameters — empty; no input required.", properties: {}, title: "Params", type: "object" },
       "test",
     );
-    expect(parsed.root).toEqual({ kind: "object", properties: [] });
+    expect(parsed.root).toEqual({ kind: "object", properties: [], additionalProperties: false });
   });
 
   it("parses an untyped dict (additionalProperties: true, no properties key) as unknownRecord", () => {
@@ -48,6 +49,30 @@ describe("parseRootSchema", () => {
     expect(parsed.root.kind).toBe("object");
     if (parsed.root.kind !== "object") throw new Error("unreachable");
     expect(parsed.root.properties[0]?.schema).toEqual({ kind: "unknownRecord" });
+  });
+
+  // Audit finding 16: additionalProperties: true with declared properties too (a Python
+  // model with extra="allow" plus its own fields) is a DIFFERENT shape from the
+  // no-properties-at-all case above -- it must stay `kind: "object"` (its declared
+  // fields need real types), not collapse to `unknownRecord` (which would lose them).
+  it("parses a schema with BOTH declared properties AND additionalProperties: true as an object node carrying the flag, not unknownRecord", () => {
+    const parsed = parseRootSchema(
+      { properties: { known: { type: "string" } }, required: ["known"], additionalProperties: true, type: "object" },
+      "test",
+    );
+    expect(parsed.root).toEqual({
+      kind: "object",
+      properties: [{ name: "known", required: true, description: undefined, schema: { kind: "string" } }],
+      additionalProperties: true,
+    });
+  });
+
+  it("parses a schema with declared properties and additionalProperties: false as additionalProperties: false", () => {
+    const parsed = parseRootSchema(
+      { properties: { known: { type: "string" } }, required: ["known"], additionalProperties: false, type: "object" },
+      "test",
+    );
+    expect(parsed.root).toMatchObject({ additionalProperties: false });
   });
 
   it("parses an array of a primitive type", () => {
@@ -133,6 +158,7 @@ describe("parseRootSchema", () => {
         { name: "city", required: true, description: "City name", schema: { kind: "string" } },
         { name: "zip_code", required: true, description: "Postal code", schema: { kind: "string" } },
       ],
+      additionalProperties: false,
     });
   });
 
@@ -174,7 +200,7 @@ describe("parseRootSchema", () => {
 
   it("parses an object schema with no properties key at all (not additionalProperties:true) as empty, not unknownRecord", () => {
     const parsed = parseRootSchema({ type: "object" }, "test");
-    expect(parsed.root).toEqual({ kind: "object", properties: [] });
+    expect(parsed.root).toEqual({ kind: "object", properties: [], additionalProperties: false });
   });
 
   it("throws a clear error when the root schema is not an object", () => {

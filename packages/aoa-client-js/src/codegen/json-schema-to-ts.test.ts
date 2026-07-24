@@ -43,6 +43,43 @@ describe("renderParamsOrResultInterface", () => {
     assertSyntacticallyValidTypeScript(source);
   });
 
+  // Audit finding 16: a schema with declared properties AND additionalProperties: true
+  // (a Python model with extra="allow" plus its own fields) used to render as a plain,
+  // closed interface -- silently losing the "extra keys are allowed" signal entirely.
+  it("renders an index signature alongside declared properties when additionalProperties is true", () => {
+    const parsed = parseRootSchema(
+      { properties: { known: { type: "string" } }, required: ["known"], additionalProperties: true, type: "object" },
+      "test",
+    );
+    const source = renderParamsOrResultInterface("X", parsed, (ref) => `X${ref}`);
+    expect(source).toContain("known: string;");
+    expect(source).toContain("[key: string]: unknown;");
+    assertSyntacticallyValidTypeScript(source);
+  });
+
+  it("renders no index signature when additionalProperties is false", () => {
+    const parsed = parseRootSchema(
+      { properties: { known: { type: "string" } }, required: ["known"], additionalProperties: false, type: "object" },
+      "test",
+    );
+    const source = renderParamsOrResultInterface("X", parsed, (ref) => `X${ref}`);
+    expect(source).not.toContain("[key: string]");
+  });
+
+  it("renders an index signature in an INLINE nested object too, not only a named interface (typeText's own object case)", () => {
+    const parsed = parseRootSchema(
+      {
+        properties: { nested: { properties: { known: { type: "string" } }, required: ["known"], additionalProperties: true, type: "object" } },
+        required: ["nested"],
+        type: "object",
+      },
+      "test",
+    );
+    const source = renderParamsOrResultInterface("X", parsed, (ref) => `X${ref}`);
+    expect(source).toContain("nested: { known: string; [key: string]: unknown };");
+    assertSyntacticallyValidTypeScript(source);
+  });
+
   it("renders an optional+nullable field as `field?: T | null`", () => {
     const parsed = parseRootSchema(
       { type: "object", properties: { note: { anyOf: [{ type: "string" }, { type: "null" }], description: "Optional note" } } },
@@ -88,6 +125,7 @@ describe("renderParamsOrResultInterface", () => {
     const brokenRoot = {
       kind: "object" as const,
       properties: [{ name: "x", required: true, description: undefined, schema: { kind: "ref" as const, refName: "Ghost" } }],
+      additionalProperties: false,
     };
     expect(() => renderParamsOrResultInterface("X", { ...parsed, root: brokenRoot }, (ref) => `X${ref}`)).toThrow(
       /Unknown \$ref "Ghost" \(not present in \$defs\)/,
@@ -268,7 +306,11 @@ describe("renderParamsOrResultInterface", () => {
   it("throws a clear error hoisting a $defs entry that is neither an object nor an enum", () => {
     const parsed = parseRootSchema({ type: "object", properties: { x: { type: "string" } } }, "test");
     const broken = { ...parsed, defs: { Weird: { kind: "string" as const } } };
-    const brokenRoot = { kind: "object" as const, properties: [{ name: "x", required: true, description: undefined, schema: { kind: "ref" as const, refName: "Weird" } }] };
+    const brokenRoot = {
+      kind: "object" as const,
+      properties: [{ name: "x", required: true, description: undefined, schema: { kind: "ref" as const, refName: "Weird" } }],
+      additionalProperties: false,
+    };
     expect(() => renderParamsOrResultInterface("X", { ...broken, root: brokenRoot }, (ref) => `X${ref}`)).toThrow(
       /Unsupported \$defs entry kind for a named declaration: "string"/,
     );

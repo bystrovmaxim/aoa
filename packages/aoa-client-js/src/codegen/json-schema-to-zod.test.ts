@@ -173,6 +173,34 @@ describe("renderResolveResponseZodSchema", () => {
     expect(schema.parse({ label: "x" })).toEqual({ label: "x" });
   });
 
+  // Audit finding 16: a schema with declared properties AND additionalProperties: true
+  // (a Python model with extra="allow" plus its own fields) used to render as a plain
+  // z.object({...}) with no .passthrough() -- zod's default "strip unknown keys"
+  // behavior would then silently drop any real extra data the server actually sent.
+  it("keeps extra keys via .passthrough() when additionalProperties is true alongside declared properties", () => {
+    const parsed = parseRootSchema(
+      { properties: { known: { type: "string" } }, required: ["known"], additionalProperties: true, type: "object" },
+      "test",
+    );
+    const source = renderResolveResponseZodSchema(parsed);
+    expect(source).toContain(".passthrough()");
+    const schema = evalZodSchema(source);
+    // Before the fix: zod's default behavior strips "extra" -- this would come back as
+    // just { known: "x" }, silently losing data the server actually sent.
+    expect(schema.parse({ known: "x", extra: "unexpected but real" })).toEqual({ known: "x", extra: "unexpected but real" });
+  });
+
+  it("does not add .passthrough() when additionalProperties is false", () => {
+    const parsed = parseRootSchema(
+      { properties: { known: { type: "string" } }, required: ["known"], additionalProperties: false, type: "object" },
+      "test",
+    );
+    const source = renderResolveResponseZodSchema(parsed);
+    expect(source).not.toContain(".passthrough()");
+    const schema = evalZodSchema(source);
+    expect(schema.parse({ known: "x", extra: "dropped" })).toEqual({ known: "x" });
+  });
+
   it("keeps a required-but-nullable field mandatory -- the key must be present even though its value may be null", () => {
     const parsed = parseRootSchema(
       { properties: { x: { anyOf: [{ type: "string" }, { type: "null" }] } }, required: ["x"], type: "object" },
@@ -197,8 +225,16 @@ describe("renderResolveResponseZodSchema", () => {
     const parsed: ParsedSchema = {
       description: undefined,
       defs: {
-        A: { kind: "object", properties: [{ name: "b", required: true, description: undefined, schema: { kind: "ref", refName: "B" } }] },
-        B: { kind: "object", properties: [{ name: "a", required: true, description: undefined, schema: { kind: "ref", refName: "A" } }] },
+        A: {
+          kind: "object",
+          properties: [{ name: "b", required: true, description: undefined, schema: { kind: "ref", refName: "B" } }],
+          additionalProperties: false,
+        },
+        B: {
+          kind: "object",
+          properties: [{ name: "a", required: true, description: undefined, schema: { kind: "ref", refName: "A" } }],
+          additionalProperties: false,
+        },
       },
       root: { kind: "ref", refName: "A" },
     };
@@ -223,7 +259,11 @@ describe("renderResolveResponseZodSchema", () => {
   it("throws a clear error rendering a $ref to a name missing from $defs (and not a well-known name like BaseVerdict)", () => {
     const parsed: ParsedSchema = {
       description: undefined,
-      root: { kind: "object", properties: [{ name: "x", required: true, description: undefined, schema: { kind: "ref", refName: "Missing" } }] },
+      root: {
+        kind: "object",
+        properties: [{ name: "x", required: true, description: undefined, schema: { kind: "ref", refName: "Missing" } }],
+        additionalProperties: false,
+      },
       defs: {},
     };
     expect(() => renderResolveResponseZodSchema(parsed)).toThrow(/Unknown \$ref "Missing"/);

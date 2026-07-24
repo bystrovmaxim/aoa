@@ -91,6 +91,17 @@ describe("diffGeneratedSource -- synthetic fixtures", () => {
     expect(detailLine).toContain("FOO_DESCRIPTOR");
     expect(detailLine).toContain("BAR_DESCRIPTOR");
   });
+
+  it("adds no misleading 'route changed' detail when the block changed only because a new endpoint was added", () => {
+    const committed = `${HEADER("https://a", "sha256:x")}\n\nconst FOO_DESCRIPTOR = { method: "GET", path: "/foo" };`;
+    const fresh = `${HEADER("https://a", "sha256:x")}\n\nconst FOO_DESCRIPTOR = { method: "GET", path: "/foo" };\nconst BAR_DESCRIPTOR = { method: "GET", path: "/bar" };`;
+    const drift = diffGeneratedSource(committed, fresh);
+    // The block as a whole did change (one more line) -- but FOO's own line didn't, and
+    // there's no "committed" BAR line to compare against, so there's nothing to name as
+    // having "moved". diffDescriptorRoutes must not report an empty/misleading detail.
+    expect(drift).toContain("changed (same name, different shape -- schema drift): (endpoint descriptors)");
+    expect(drift).not.toContain("route changed for");
+  });
 });
 
 describe("diffGeneratedSource -- against real generateClient output", () => {

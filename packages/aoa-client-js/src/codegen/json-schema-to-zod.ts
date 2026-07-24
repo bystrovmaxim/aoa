@@ -69,7 +69,7 @@ function zodExpr(node: IrNode, defs: Record<string, IrNode>, renderingRefs: Set<
     case "enum":
       return `z.enum([${node.values.map((value) => JSON.stringify(value)).join(", ")}])`;
     case "object":
-      return renderZodObject(node.properties, defs, renderingRefs);
+      return renderZodObject(node.properties, node.additionalProperties, defs, renderingRefs);
     case "ref": {
       const wellKnown = WELL_KNOWN_REF_ZOD[node.refName];
       if (wellKnown !== undefined) return wellKnown;
@@ -92,7 +92,18 @@ function zodExpr(node: IrNode, defs: Record<string, IrNode>, renderingRefs: Set<
   }
 }
 
-function renderZodObject(properties: IrProperty[], defs: Record<string, IrNode>, renderingRefs: Set<string>): string {
+function renderZodObject(
+  properties: IrProperty[],
+  additionalProperties: boolean,
+  defs: Record<string, IrNode>,
+  renderingRefs: Set<string>,
+): string {
+  // `.passthrough()` keeps extra keys zod would otherwise silently strip on `.parse()`
+  // (its default behavior) -- a schema with both declared properties AND
+  // additionalProperties: true (e.g. a Python model with extra="allow" plus its own
+  // fields) used to lose that signal entirely (audit finding 16); `properties.length ===
+  // 0` with additionalProperties true never reaches here, since the IR itself resolves
+  // that combination to `unknownRecord` instead (json-schema-ir.ts's parseObjectNode).
   if (properties.length === 0) return "z.object({})";
   // `required` decides PRESENCE (can the key be missing), independent of the value's own
   // form -- the same separation json-schema-to-ts.ts already makes via its own `?` (audit
@@ -105,5 +116,6 @@ function renderZodObject(properties: IrProperty[], defs: Record<string, IrNode>,
       return `${JSON.stringify(prop.name)}: ${prop.required ? expr : `${expr}.optional()`}`;
     })
     .join(", ");
-  return `z.object({ ${fields} })`;
+  const object = `z.object({ ${fields} })`;
+  return additionalProperties ? `${object}.passthrough()` : object;
 }

@@ -19,7 +19,14 @@ export type IrNode =
   | { kind: "boolean" }
   | { kind: "unknownRecord" }
   | { kind: "array"; items: IrNode }
-  | { kind: "object"; properties: IrProperty[] }
+  // `additionalProperties` is required, not optional, so both renderers have to
+  // consciously decide what to do with it rather than a stale one silently ignoring a
+  // node shape it wasn't updated for (audit finding 16: a schema with both declared
+  // properties AND additionalProperties: true -- e.g. a Python model with extra="allow"
+  // plus its own fields -- used to fall through to plain "object" with no signal that
+  // extra keys are allowed at all, only handled as `unknownRecord` below when there were
+  // no declared properties to begin with).
+  | { kind: "object"; properties: IrProperty[]; additionalProperties: boolean }
   | { kind: "enum"; values: string[] }
   | { kind: "nullable"; inner: IrNode }
   | { kind: "ref"; refName: string };
@@ -114,7 +121,8 @@ function parseNode(raw: unknown, context: string, depth: number): IrNode {
 
 function parseObjectNode(schema: Record<string, unknown>, context: string, depth: number): IrNode {
   const hasProperties = isRecord(schema.properties) && Object.keys(schema.properties).length > 0;
-  if (schema.additionalProperties === true && !hasProperties) {
+  const additionalProperties = schema.additionalProperties === true;
+  if (additionalProperties && !hasProperties) {
     return { kind: "unknownRecord" };
   }
   const rawProperties = isRecord(schema.properties) ? schema.properties : {};
@@ -131,7 +139,7 @@ function parseObjectNode(schema: Record<string, unknown>, context: string, depth
       schema: parseNode(propSchema, propContext, depth + 1),
     };
   });
-  return { kind: "object", properties };
+  return { kind: "object", properties, additionalProperties };
 }
 
 function parseAnyOf(anyOf: unknown[], context: string, depth: number): IrNode {
