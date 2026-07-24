@@ -133,4 +133,59 @@ describe("diffGeneratedSource -- against real generateClient output", () => {
     const second = await generateClient("https://x/client-manifest.json");
     expect(diffGeneratedSource(first, second)).toBeNull();
   });
+
+  // Audit finding 2's original symptom: --check silently reported "up to date" for a
+  // real required-field rename, because the renamed field lived in a $defs entry
+  // hoisted under a name that collided textually with an unrelated endpoint's own
+  // top-level name -- the second block silently overwrote the first in
+  // splitDeclarations's Map, on BOTH the committed and fresh sides, so the comparison
+  // never actually reached the changed content. Fixed at the source (naming.ts's
+  // NameRegistry now spans hoisted names too, see generate-client.test.ts), which this
+  // re-verifies from check-drift's own point of view: the two names no longer collide,
+  // so the field rename is visible again.
+  function manifestWithCollidingNames(nestedFieldName: string) {
+    return {
+      manifest_version: `sha256:${nestedFieldName}`,
+      version: 1,
+      manifest_schema_version: 2,
+      endpoints: [
+        {
+          operation: "POST /a",
+          name: "AAction",
+          domain: "TestDomain",
+          description: "x",
+          route: { method: "POST", path: "/a" },
+          params_schema: { type: "object", properties: {} },
+          result_schema: {
+            $defs: { XParams: { type: "object", properties: { [nestedFieldName]: { type: "string" } }, required: [nestedFieldName] } },
+            type: "object",
+            properties: { x_ref: { $ref: "#/$defs/XParams" } },
+            required: ["x_ref"],
+          },
+        },
+        {
+          operation: "POST /a-result-x",
+          name: "AResultXAction",
+          domain: "TestDomain",
+          description: "y",
+          route: { method: "POST", path: "/a-result-x" },
+          params_schema: { type: "object", properties: { own_field: { type: "boolean" } }, required: ["own_field"] },
+          result_schema: { type: "object", properties: {} },
+        },
+      ],
+      schemas: { ResolveResponse: RESOLVE_RESPONSE_SCHEMA_ENTRY },
+    };
+  }
+
+  it("detects a required field renamed inside a hoisted $defs entry, even when an unrelated endpoint's own name would otherwise collide with it", async () => {
+    stubFetchJson(manifestWithCollidingNames("z"));
+    const committed = await generateClient("https://x/client-manifest.json");
+
+    stubFetchJson(manifestWithCollidingNames("zed"));
+    const fresh = await generateClient("https://x/client-manifest.json");
+
+    const drift = diffGeneratedSource(committed, fresh);
+    expect(drift).not.toBeNull();
+    expect(drift).toContain("changed (same name, different shape -- schema drift): AResultXParams");
+  });
 });

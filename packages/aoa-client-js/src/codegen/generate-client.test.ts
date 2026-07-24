@@ -295,6 +295,66 @@ describe("generateClient", () => {
     assertGeneratedFileTypechecks(source);
   });
 
+  it("disambiguates an endpoint's own Params name from an unrelated endpoint's hoisted $defs name (audit finding 2)", async () => {
+    // Endpoint A's RESULT schema hoists a nested $defs entry named "XParams" -- the
+    // hoisted name becomes "AResult" + "XParams" = "AResultXParams" (see
+    // generate-client.ts's resolveRefName callback). Endpoint B's own base, "AResultX",
+    // independently derives the EXACT SAME string as its own Params interface name
+    // ("AResultX" + "Params"). Before the fix, NameRegistry never saw hoisted names at
+    // all, so this collision went undetected and one declaration silently won (via
+    // TypeScript's own interface declaration merging) at the other's expense.
+    const endpointA = {
+      operation: "POST /a",
+      name: "AAction",
+      domain: "TestDomain",
+      description: "Endpoint A",
+      route: { method: "POST", path: "/a" },
+      params_schema: { additionalProperties: false, properties: {}, title: "Params", type: "object" },
+      result_schema: {
+        $defs: { XParams: { properties: { z: { title: "Z", type: "string" } }, required: ["z"], title: "XParams", type: "object" } },
+        additionalProperties: false,
+        properties: { x_ref: { $ref: "#/$defs/XParams" } },
+        required: ["x_ref"],
+        title: "Result",
+        type: "object",
+      },
+    };
+    const endpointB = {
+      operation: "POST /a-result-x",
+      name: "AResultXAction",
+      domain: "TestDomain",
+      description: "Endpoint B -- unrelated to A, but its own base textually collides with A's hoisted name",
+      route: { method: "POST", path: "/a-result-x" },
+      params_schema: {
+        additionalProperties: false,
+        properties: { own_field: { title: "Own Field", type: "boolean" } },
+        required: ["own_field"],
+        title: "Params",
+        type: "object",
+      },
+      result_schema: { additionalProperties: false, properties: {}, title: "Result", type: "object" },
+    };
+    stubFetchJson(fakeManifest([endpointA, endpointB]));
+    const source = await generateClient("https://x/client-manifest.json");
+
+    // A's hoisted interface keeps the clean name and its own field.
+    expect(source).toContain("export interface AResultXParams {");
+    expect(source).toContain("z: string;");
+    // B's base was disambiguated to avoid colliding with A's hoisted name -- its own
+    // Params interface is NOT "AResultXParams" (that would silently merge with A's),
+    // it's the next free name, carrying B's own, distinct field.
+    expect(source).not.toMatch(/export interface AResultXParams \{\s*own_field/);
+    expect(source).toContain("export interface AResultX2Params {");
+    expect(source).toContain("own_field: boolean;");
+
+    // Exactly one declaration of each name -- neither silently overwrote the other.
+    expect(source.match(/export interface AResultXParams \{/g)).toHaveLength(1);
+    expect(source.match(/export interface AResultX2Params \{/g)).toHaveLength(1);
+
+    assertSyntacticallyValid(source);
+    assertGeneratedFileTypechecks(source);
+  });
+
   it("disambiguates two endpoints whose action class name collides", async () => {
     const duplicate = { ...CANCEL_ORDER_ENDPOINT, operation: "POST /admin/cancel-order", route: { method: "POST", path: "/admin/cancel-order" } };
     stubFetchJson(fakeManifest([CANCEL_ORDER_ENDPOINT, duplicate]));

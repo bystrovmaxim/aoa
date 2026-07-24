@@ -59,8 +59,19 @@ function renderEndpointTypes(endpoint: ManifestEndpoint, registry: NameRegistry)
   const parsedParams = parseRootSchema(endpoint.params_schema, `${endpoint.operation} params_schema`);
   const parsedResult = parseRootSchema(endpoint.result_schema, `${endpoint.operation} result_schema`);
 
-  const paramsSource = renderParamsOrResultInterface(paramsName, parsedParams, (ref) => `${paramsName}${ref}`);
-  const resultSource = renderParamsOrResultInterface(resultName, parsedResult, (ref) => `${resultName}${ref}`);
+  // A name hoisted from a nested $defs entry is a mechanical string concatenation with
+  // no uniqueness guarantee of its own (audit finding 2) -- claiming it through the same
+  // registry as endpoint base names guarantees it can't collide with (and, via
+  // TypeScript's own interface declaration merging, silently corrupt) another endpoint's
+  // own top-level Params/Result interface, or another hoisted name from elsewhere in the
+  // file. Idempotent for the same (name, operation) pair, so re-hoisting the same $ref
+  // twice within one endpoint's own interface still resolves to the same name.
+  const paramsSource = renderParamsOrResultInterface(paramsName, parsedParams, (ref) =>
+    registry.claimName(`${paramsName}${ref}`, endpoint.operation),
+  );
+  const resultSource = renderParamsOrResultInterface(resultName, parsedResult, (ref) =>
+    registry.claimName(`${resultName}${ref}`, endpoint.operation),
+  );
 
   return {
     source: [`// ${endpoint.operation}`, paramsSource, "", resultSource].join("\n"),
