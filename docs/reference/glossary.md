@@ -1,4 +1,4 @@
-<!-- translated-from: glossary_draft.md @ 2026-07-24T05:33:25Z (filesystem mtime; draft is gitignored, no git history) · sha256:7681a6ef5dfa -->
+<!-- translated-from: glossary_draft.md @ 2026-07-24T16:49:56Z (filesystem mtime; draft is gitignored, no git history) · sha256:fe7cf30eb8f9 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -174,6 +174,8 @@ Replaces the earlier `ResolveItemResult`/`AccessVerdict`/`ResolveItemKind` (a `S
 **ManifestEndpoint** — one catalog entry: `operation` (`"{method} {path}"`), `name` (the class behind the endpoint — informational only), `domain`, `description`, `route` (`method`/`path`), `params_schema`/`result_schema` (from `model_json_schema()` of the corresponding models).
 
 **`Primitive`** — the generated object for a single endpoint: statically, `generateClient(url)` from the separate `aoa-client-js/codegen` entry point; at runtime, `engine.loadFrom(url)`, a method on `AoaEngine` from the main `aoa-client-js` entry point, never from `codegen`. Either way, a thin wrapper over `AoaEngine` bound to that specific endpoint's parameter and result types. Up to three methods: `.verdict(params)` — the whole `Verdict`; `.can(params)` — a boolean question layered on top of it (`FailErrorVerdict` is thrown as `AoaResolveError`, not silently turned into `false`); `.run(params)` — the real invocation, whose call the library builds itself from the generated endpoint descriptor, with `actionInvoker` only executing the already-built call (it cannot substitute a different route or body). Not every `Primitive` has `.run()`: `createGateApi(engine)` builds a `GateApi` where `.run()` is absent at the type level, not merely unused; `createApi(engine, actionInvoker)` builds a `CallableApi` with the same `.verdict()`/`.can()` plus a working `.run()`. Layout in the `api` object is by full path always (`api.post["/actions/cancel-order"]`, an exact object with enumerated keys, not `Record<string, ...>`) plus a dot alias on a *clean* path (no `{param}`, hyphen, or dot, and no branch/leaf collision — e.g. `api.get.orders`) — both forms of access refer to the same `Primitive`, not two independent copies.
+
+**Precheck** — a fresh, never-cached `can()` question that `Primitive.run()` asks itself right before the real invocation (`skipCache: true` on `AoaEngine.resolve()` — the only place in the library where this flag is used). Narrows the window between "the button was shown as allowed" and "the server actually checked" down to a single network round trip, instead of the cache's whole lifetime. Distinguishes a real, just-confirmed denial (`FailSecurityVerdict` — don't execute) from "couldn't ask" (`FailErrorVerdict`/a network error — not a denial, propagated as-is rather than turned into a synthetic "no"). The calling code doesn't need to know this second question ever happened: a denial looks like an ordinary error, with no dedicated class.
 
 ## Common errors
 
