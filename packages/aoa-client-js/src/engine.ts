@@ -1,4 +1,7 @@
 // packages/aoa-client-js/src/engine.ts
+import { buildDynamicGateApi, type DynamicGateApi } from "./dynamic-api.ts";
+import { assertManifestShape } from "./manifest-types.ts";
+import { buildLayout, type LayoutEndpoint } from "./path-layout.ts";
 import type { FailErrorVerdict, FailSecurityVerdict, ResolveItem, ResolveResponse, Verdict } from "./types.ts";
 
 // The instance's identity and everything one network call needs. Identity
@@ -171,5 +174,44 @@ export class AoaEngine {
     }
     typedBody.results.forEach((item, index) => assertValidVerdict(item, index));
     return typedBody.results;
+  }
+
+  // Dynamic mode (chapter 5): fetches the same manifest generateClient reads, but builds
+  // the api object in memory instead of writing TypeScript to a file -- no build step,
+  // no compile-time per-endpoint types (the manifest's shape is only known once this
+  // actually runs). Reuses the exact same manifest -> layout logic as generateClient
+  // (path-layout.ts's buildLayout) so the static and dynamic outputs are identical in
+  // shape; only how a leaf gets built differs (a real GatePrimitive here, generated
+  // source there). Only ever builds the gate (verdict/can) surface -- there is no
+  // actionInvoker parameter to build a working .run() from.
+  async loadFrom(url: string): Promise<DynamicGateApi> {
+    const t = this.config.transport;
+    let res: Response;
+    try {
+      res = await t.fetchImpl(url);
+    } catch {
+      throw new NetworkUnavailable("manifest unreachable");
+    }
+    if (!res.ok) {
+      throw new ProtocolError(`unexpected status ${res.status} fetching manifest`);
+    }
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch {
+      throw new ProtocolError("manifest response body is not valid JSON");
+    }
+    try {
+      assertManifestShape(body, url);
+    } catch (error) {
+      throw new ProtocolError((error as Error).message);
+    }
+    const layoutEndpoints: LayoutEndpoint[] = body.endpoints.map((endpoint) => ({
+      operation: endpoint.operation,
+      method: endpoint.route.method,
+      path: endpoint.route.path,
+      baseName: endpoint.name, // unused by buildLayout/buildDynamicGateApi -- no TS identifiers to name here
+    }));
+    return buildDynamicGateApi(buildLayout(layoutEndpoints), this);
   }
 }

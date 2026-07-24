@@ -1,0 +1,271 @@
+// packages/aoa-client-js/src/codegen/json-schema-to-zod.test.ts
+import { z } from "zod";
+import { describe, expect, it } from "vitest";
+
+import { parseRootSchema, type ParsedSchema } from "./json-schema-ir.ts";
+import { renderResolveResponseZodSchema } from "./json-schema-to-zod.ts";
+
+/**
+ * `renderResolveResponseZodSchema` always wraps its output as
+ * `export const ResolveResponseSchema = <expr>;` — strip that wrapper and evaluate the
+ * expression against a REAL, installed zod, so these tests prove the generated code
+ * actually behaves correctly at runtime, not just that it looks plausible as text.
+ *
+ * Returns `any`, not `z.ZodTypeAny`: the schema's shape is only known once the
+ * generated text is evaluated, so there is nothing honest to statically type here — in
+ * zod v4, `ZodTypeAny`'s `Output` defaults to `unknown` (unlike v3's `any`), which would
+ * just force an `as any` at every call site instead of at this one, deliberate boundary.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function evalZodSchema(source: string): any {
+  const match = /^export const ResolveResponseSchema = ([\s\S]+);\n?$/.exec(source);
+  if (!match) throw new Error(`Unexpected rendered shape: ${source}`);
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  return new Function("z", `return (${match[1]});`)(z);
+}
+
+describe("renderResolveResponseZodSchema", () => {
+  it("renders and executes the real schemas.ResolveResponse wrapper shape", () => {
+    const parsed = parseRootSchema(
+      {
+        $defs: { BaseVerdict: { additionalProperties: false, properties: { kind: { default: "", type: "string" } }, type: "object" } },
+        additionalProperties: false,
+        properties: {
+          version: { type: "integer" },
+          results: { items: { $ref: "#/$defs/BaseVerdict" }, type: "array" },
+        },
+        required: ["version", "results"],
+        type: "object",
+      },
+      "test",
+    );
+    const source = renderResolveResponseZodSchema(parsed);
+    expect(source.startsWith("export const ResolveResponseSchema = ")).toBe(true);
+
+    const schema = evalZodSchema(source);
+    const allowed = schema.parse({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    expect(allowed).toEqual({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+
+    const withFailure = schema.parse({
+      version: 1,
+      results: [{ kind: "AllowedVerdict" }, { kind: "FailSecurityVerdict", reason: "only the order owner can cancel" }],
+    });
+    expect(withFailure.results[1]).toEqual({ kind: "FailSecurityVerdict", reason: "only the order owner can cancel" });
+  });
+
+  it("substitutes the fixed discriminated Verdict union for $ref: BaseVerdict — not a mechanical (kind-only) translation", () => {
+    const parsed = parseRootSchema(
+      {
+        $defs: { BaseVerdict: { additionalProperties: false, properties: { kind: { default: "", type: "string" } }, type: "object" } },
+        properties: { version: { type: "integer" }, results: { items: { $ref: "#/$defs/BaseVerdict" }, type: "array" } },
+        required: ["version", "results"],
+        type: "object",
+      },
+      "test",
+    );
+    const source = renderResolveResponseZodSchema(parsed);
+    expect(source).toContain("z.discriminatedUnion");
+    const schema = evalZodSchema(source);
+
+    // A mechanical translation of $defs.BaseVerdict ({kind: string} only) would accept
+    // this — the fixed Verdict union must not, since FailSecurityVerdict requires reason.
+    expect(() => schema.parse({ version: 1, results: [{ kind: "FailSecurityVerdict" }] })).toThrow();
+    expect(() => schema.parse({ version: 1, results: [{ kind: "FailErrorVerdict" }] })).toThrow();
+    expect(() => schema.parse({ version: 1, results: [{ kind: "FailSecurityVerdict", reason: "" }] })).toThrow();
+    // An unrecognized kind must also be rejected — the union is closed, not a passthrough.
+    expect(() => schema.parse({ version: 1, results: [{ kind: "SomethingElse" }] })).toThrow();
+  });
+
+  it("rejects a non-integer version and a cardinality/shape mismatch", () => {
+    const parsed = parseRootSchema(
+      {
+        $defs: { BaseVerdict: { properties: { kind: { type: "string" } }, type: "object" } },
+        properties: { version: { type: "integer" }, results: { items: { $ref: "#/$defs/BaseVerdict" }, type: "array" } },
+        required: ["version", "results"],
+        type: "object",
+      },
+      "test",
+    );
+    const schema = evalZodSchema(renderResolveResponseZodSchema(parsed));
+    expect(() => schema.parse({ version: 1.5, results: [] })).toThrow();
+    expect(() => schema.parse({ version: 1 })).toThrow();
+    expect(() => schema.parse({ version: 1, results: "not-an-array" })).toThrow();
+  });
+
+  it("exercises every other IR kind through a kitchen-sink object (string/number/boolean/nullable/enum/nested/unknownRecord)", () => {
+    const parsed = parseRootSchema(
+      {
+        $defs: {
+          Priority: { enum: ["low", "high"], type: "string" },
+          Address: { properties: { city: { type: "string" } }, required: ["city"], type: "object" },
+        },
+        properties: {
+          name: { type: "string" },
+          count: { type: "number" },
+          active: { type: "boolean" },
+          note: { anyOf: [{ type: "string" }, { type: "null" }] },
+          priority: { $ref: "#/$defs/Priority" },
+          address: { $ref: "#/$defs/Address" },
+          extra: { additionalProperties: true, type: "object" },
+        },
+        required: ["name", "count", "active", "priority", "address", "extra"],
+        type: "object",
+      },
+      "test",
+    );
+    const source = renderResolveResponseZodSchema(parsed);
+    const schema = evalZodSchema(source);
+
+    const valid = schema.parse({
+      name: "x",
+      count: 3.5,
+      active: true,
+      priority: "low",
+      address: { city: "Metropolis" },
+      extra: { anything: "goes", n: 1 },
+    });
+    expect(valid.note).toBeUndefined();
+    expect(valid.priority).toBe("low");
+    expect(valid.address).toEqual({ city: "Metropolis" });
+    expect(valid.extra).toEqual({ anything: "goes", n: 1 });
+
+    const withNullNote = schema.parse({
+      name: "x",
+      count: 1,
+      active: false,
+      note: null,
+      priority: "high",
+      address: { city: "Gotham" },
+      extra: {},
+    });
+    expect(withNullNote.note).toBeNull();
+
+    expect(() => schema.parse({ name: "x", count: 1, active: true, priority: "medium", address: { city: "X" }, extra: {} })).toThrow();
+  });
+
+  it("renders an object with zero properties as z.object({})", () => {
+    const parsed = parseRootSchema(
+      {
+        properties: { empty: { properties: {}, type: "object" }, version: { type: "integer" } },
+        required: ["empty", "version"],
+        type: "object",
+      },
+      "test",
+    );
+    const schema = evalZodSchema(renderResolveResponseZodSchema(parsed));
+    expect(schema.parse({ empty: {}, version: 1 })).toEqual({ empty: {}, version: 1 });
+  });
+
+  // Audit finding 6: `required` (can the key be absent) and nullable (can the value be
+  // null) are orthogonal, and the buggy renderer conflated them in two OPPOSITE
+  // directions. Both are exercised here independently of the other, unlike the
+  // kitchen-sink test above, whose one nullable field ("note") is also not required --
+  // so it can't distinguish which of the two mechanisms actually made it optional.
+  it("makes a non-required, non-nullable field optional -- renderZodObject must not ignore `required`", () => {
+    const parsed = parseRootSchema(
+      { properties: { label: { type: "string" } }, required: [], type: "object" },
+      "test",
+    );
+    const schema = evalZodSchema(renderResolveResponseZodSchema(parsed));
+    // Before the fix: renderZodObject never looked at `required` at all, so a plain,
+    // non-nullable, non-required field was rendered as mandatory -- {} failed to parse.
+    expect(schema.parse({})).toEqual({});
+    expect(schema.parse({ label: "x" })).toEqual({ label: "x" });
+  });
+
+  // Audit finding 16: a schema with declared properties AND additionalProperties: true
+  // (a Python model with extra="allow" plus its own fields) used to render as a plain
+  // z.object({...}) with no .passthrough() -- zod's default "strip unknown keys"
+  // behavior would then silently drop any real extra data the server actually sent.
+  it("keeps extra keys via .passthrough() when additionalProperties is true alongside declared properties", () => {
+    const parsed = parseRootSchema(
+      { properties: { known: { type: "string" } }, required: ["known"], additionalProperties: true, type: "object" },
+      "test",
+    );
+    const source = renderResolveResponseZodSchema(parsed);
+    expect(source).toContain(".passthrough()");
+    const schema = evalZodSchema(source);
+    // Before the fix: zod's default behavior strips "extra" -- this would come back as
+    // just { known: "x" }, silently losing data the server actually sent.
+    expect(schema.parse({ known: "x", extra: "unexpected but real" })).toEqual({ known: "x", extra: "unexpected but real" });
+  });
+
+  it("does not add .passthrough() when additionalProperties is false", () => {
+    const parsed = parseRootSchema(
+      { properties: { known: { type: "string" } }, required: ["known"], additionalProperties: false, type: "object" },
+      "test",
+    );
+    const source = renderResolveResponseZodSchema(parsed);
+    expect(source).not.toContain(".passthrough()");
+    const schema = evalZodSchema(source);
+    expect(schema.parse({ known: "x", extra: "dropped" })).toEqual({ known: "x" });
+  });
+
+  it("keeps a required-but-nullable field mandatory -- the key must be present even though its value may be null", () => {
+    const parsed = parseRootSchema(
+      { properties: { x: { anyOf: [{ type: "string" }, { type: "null" }] } }, required: ["x"], type: "object" },
+      "test",
+    );
+    const schema = evalZodSchema(renderResolveResponseZodSchema(parsed));
+    // Before the fix: the `nullable` branch unconditionally appended `.optional()`,
+    // so a required-but-nullable field silently accepted a missing key too.
+    expect(() => schema.parse({})).toThrow();
+    expect(schema.parse({ x: null })).toEqual({ x: null });
+    expect(schema.parse({ x: "y" })).toEqual({ x: "y" });
+  });
+
+  // Audit finding 7: recursive schemas are explicitly unsupported by this codegen (see
+  // json-schema-ir.ts's own docstring), but the two renderers used to disagree on HOW
+  // they failed. json-schema-to-ts.test.ts documents that the TS renderer keeps working
+  // on this exact input (an accident of its hoisting mechanism, not a deliberate cycle
+  // guard) -- this documents the zod renderer now failing the same clear, typed way
+  // every other unsupported input in this codegen already does, instead of overflowing
+  // the call stack with a raw RangeError.
+  it("throws a clear CodegenSchemaError on a genuine $defs cycle, not a raw stack overflow", () => {
+    const parsed: ParsedSchema = {
+      description: undefined,
+      defs: {
+        A: {
+          kind: "object",
+          properties: [{ name: "b", required: true, description: undefined, schema: { kind: "ref", refName: "B" } }],
+          additionalProperties: false,
+        },
+        B: {
+          kind: "object",
+          properties: [{ name: "a", required: true, description: undefined, schema: { kind: "ref", refName: "A" } }],
+          additionalProperties: false,
+        },
+      },
+      root: { kind: "ref", refName: "A" },
+    };
+    expect(() => renderResolveResponseZodSchema(parsed)).toThrow(/Cyclic \$ref detected at "A"/);
+    expect(() => renderResolveResponseZodSchema(parsed)).not.toThrow(RangeError);
+  });
+
+  it("does not false-positive on the same $ref used twice from unrelated, non-cyclic branches", () => {
+    const parsed = parseRootSchema(
+      {
+        $defs: { Shared: { properties: { id: { type: "integer" } }, required: ["id"], type: "object" } },
+        properties: { first: { $ref: "#/$defs/Shared" }, second: { $ref: "#/$defs/Shared" } },
+        required: ["first", "second"],
+        type: "object",
+      },
+      "test",
+    );
+    const schema = evalZodSchema(renderResolveResponseZodSchema(parsed));
+    expect(schema.parse({ first: { id: 1 }, second: { id: 2 } })).toEqual({ first: { id: 1 }, second: { id: 2 } });
+  });
+
+  it("throws a clear error rendering a $ref to a name missing from $defs (and not a well-known name like BaseVerdict)", () => {
+    const parsed: ParsedSchema = {
+      description: undefined,
+      root: {
+        kind: "object",
+        properties: [{ name: "x", required: true, description: undefined, schema: { kind: "ref", refName: "Missing" } }],
+        additionalProperties: false,
+      },
+      defs: {},
+    };
+    expect(() => renderResolveResponseZodSchema(parsed)).toThrow(/Unknown \$ref "Missing"/);
+  });
+});

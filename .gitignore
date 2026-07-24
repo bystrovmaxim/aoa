@@ -60,6 +60,10 @@ packages/aoa-maxitor/src/aoa/maxitor/static/
 packages/aoa-client-js/node_modules/
 packages/aoa-client-js/.vite/
 packages/aoa-client-js/coverage/
+packages/aoa-client-js/dist/
+packages/aoa-client-js/.codegen-tsc-check-*/
+packages/aoa-client-js/.codegen-runtime-check-*/
+packages/aoa-client-js/.codegen-example-*/
 
 # ============================================================================
 # IDE

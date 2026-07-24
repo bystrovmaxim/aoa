@@ -105,27 +105,41 @@ check_maxitor_client_component_readmes() {
   return "$fail"
 }
 
-# examples/step_27_ui_permissions_client/*.ts must each run to completion via
-# plain `node` -- these are the only exercised consumers of aoa-client-js's
-# public API outside its own test suite; nothing else catches a signature
-# drift in AoaEngine/Verdict/ResolveResponse breaking them (04-implementation-audit.md finding 9).
+# Every examples/step_27_ui_permissions_*/*.ts must run to completion via plain
+# `node` -- these are the only exercised consumers of aoa-client-js's public API
+# outside its own test suite; nothing else catches a signature drift in
+# AoaEngine/Verdict/ResolveResponse/generateClient breaking them
+# (04-implementation-audit.md finding 9). Originally hardcoded to the one
+# directory that existed at the time (.../step_27_ui_permissions_client); a
+# second one (.../step_27_ui_permissions_codegen, chapter 5) was invisible to
+# it until generalized here (05-implementation-audit.md finding 9) -- globbing
+# every step_27_ui_permissions_* directory means a third one (a future
+# chapter's examples) needs no further change to this script. Sibling
+# directories under the same prefix that hold only Python examples (chapter
+# 1/3's .../step_27_ui_permissions_catalog, .../step_27_ui_permissions_resolve)
+# simply contribute no .ts files and are silently skipped, not special-cased.
 check_client_js_examples_run() {
-  local examples_dir="$REPO_ROOT/examples/step_27_ui_permissions_client"
+  local examples_root="$REPO_ROOT/examples"
+  local dir
   local file
   local fail=0
+  local found_any=0
 
-  if [[ ! -d "$examples_dir" ]]; then
-    echo "Missing directory: $examples_dir"
+  while IFS= read -r -d '' dir; do
+    while IFS= read -r -d '' file; do
+      found_any=1
+      echo "--- node $file ---"
+      if ! node "$file"; then
+        echo "FAILED: node $file"
+        fail=1
+      fi
+    done < <(find "$dir" -maxdepth 1 -name '*.ts' -print0)
+  done < <(find "$examples_root" -mindepth 1 -maxdepth 1 -type d -name 'step_27_ui_permissions_*' -print0)
+
+  if [[ "$found_any" -eq 0 ]]; then
+    echo "No *.ts files found under $examples_root/step_27_ui_permissions_*"
     return 1
   fi
-
-  while IFS= read -r -d '' file; do
-    echo "--- node $file ---"
-    if ! node "$file"; then
-      echo "FAILED: node $file"
-      fail=1
-    fi
-  done < <(find "$examples_dir" -maxdepth 1 -name '*.ts' -print0)
 
   return "$fail"
 }
@@ -176,7 +190,7 @@ run_and_log "(cd packages/aoa-maxitor/client && npm ci && npm run build)" "Maxit
 
 run_and_log "(cd packages/aoa-client-js && npm ci && npm run typecheck && npm run test && npm run build)" "aoa-client-js: npm ci, typecheck, test, build"
 
-step_name="aoa-client-js: examples/step_27_ui_permissions_client/*.ts run via node"
+step_name="aoa-client-js: examples/step_27_ui_permissions_*/*.ts run via node"
 echo -e "${YELLOW}> ${step_name}${NC}"
 {
   echo "=== ${step_name} ==="

@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "results": [
+    { "kind": "AllowedVerdict" },
+    { "kind": "FailSecurityVerdict", "reason": "only the order owner can cancel" }
+  ]
+}
