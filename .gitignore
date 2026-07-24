@@ -63,6 +63,7 @@ packages/aoa-client-js/coverage/
 packages/aoa-client-js/dist/
 packages/aoa-client-js/.codegen-tsc-check-*/
 packages/aoa-client-js/.codegen-runtime-check-*/
+packages/aoa-client-js/.codegen-example-*/
 
 # ============================================================================
 # IDE
