@@ -49,6 +49,22 @@ describe("parseArgs", () => {
   it("throws on an unrecognized argument", () => {
     expect(() => parseArgs(["--url", "https://x/m.json", "--out", "out.ts", "--verbose"])).toThrow(/Unknown argument: --verbose/);
   });
+
+  it("rejects --out swallowing the next flag (unquoted empty shell variable in CI)", () => {
+    // `--out $OUT --check` with $OUT unset and unquoted: the shell drops the empty
+    // word entirely, so argv becomes exactly this -- `--out` must not silently accept
+    // "--check" as its own value (audit finding 1: this used to disable --check with
+    // no error at all, exit code 0).
+    expect(() => parseArgs(["--url", "https://x/m.json", "--out", "--check"])).toThrow(/--out requires a value/);
+  });
+
+  it("rejects --url swallowing the next flag the same way", () => {
+    expect(() => parseArgs(["--url", "--out", "out.ts"])).toThrow(/--url requires a value/);
+  });
+
+  it("rejects a flag value missing entirely at the end of argv", () => {
+    expect(() => parseArgs(["--out", "out.ts", "--url"])).toThrow(/--url requires a value/);
+  });
 });
 
 describe("aoa-codegen CLI (real subprocess)", () => {

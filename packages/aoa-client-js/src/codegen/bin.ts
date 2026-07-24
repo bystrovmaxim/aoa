@@ -31,10 +31,10 @@ export function parseArgs(argv: string[]): CliArgs {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--url") {
-      url = argv[i + 1];
+      url = requireFlagValue(argv, i, "--url");
       i += 1;
     } else if (arg === "--out") {
-      out = argv[i + 1];
+      out = requireFlagValue(argv, i, "--out");
       i += 1;
     } else if (arg === "--check") {
       check = true;
@@ -45,6 +45,21 @@ export function parseArgs(argv: string[]): CliArgs {
   if (!url) throw new Error("Missing required --url <manifest-url>");
   if (!out) throw new Error("Missing required --out <path>");
   return { url, out, check };
+}
+
+// An unquoted, empty shell variable (`--out $OUT` with $OUT unset) makes the shell
+// drop the word entirely -- argv[i + 1] then silently becomes the NEXT flag
+// (e.g. "--check"), which would otherwise be accepted as a literal path/URL and
+// disable the real --check without any error. A real path or URL never legitimately
+// starts with "--", so rejecting that shape catches this class of CI misconfiguration
+// instead of silently mis-parsing it.
+function requireFlagValue(argv: string[], flagIndex: number, flagName: string): string {
+  const value = argv[flagIndex + 1];
+  if (value === undefined || value.startsWith("--")) {
+    const got = value === undefined ? "nothing (end of arguments)" : `${JSON.stringify(value)} -- which looks like another flag`;
+    throw new Error(`${flagName} requires a value, got ${got}. Check for an unquoted, possibly-empty shell variable.`);
+  }
+  return value;
 }
 
 export async function main(argv: string[]): Promise<void> {
