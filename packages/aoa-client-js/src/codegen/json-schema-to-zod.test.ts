@@ -156,6 +156,36 @@ describe("renderResolveResponseZodSchema", () => {
     expect(schema.parse({ empty: {}, version: 1 })).toEqual({ empty: {}, version: 1 });
   });
 
+  // Audit finding 6: `required` (can the key be absent) and nullable (can the value be
+  // null) are orthogonal, and the buggy renderer conflated them in two OPPOSITE
+  // directions. Both are exercised here independently of the other, unlike the
+  // kitchen-sink test above, whose one nullable field ("note") is also not required --
+  // so it can't distinguish which of the two mechanisms actually made it optional.
+  it("makes a non-required, non-nullable field optional -- renderZodObject must not ignore `required`", () => {
+    const parsed = parseRootSchema(
+      { properties: { label: { type: "string" } }, required: [], type: "object" },
+      "test",
+    );
+    const schema = evalZodSchema(renderResolveResponseZodSchema(parsed));
+    // Before the fix: renderZodObject never looked at `required` at all, so a plain,
+    // non-nullable, non-required field was rendered as mandatory -- {} failed to parse.
+    expect(schema.parse({})).toEqual({});
+    expect(schema.parse({ label: "x" })).toEqual({ label: "x" });
+  });
+
+  it("keeps a required-but-nullable field mandatory -- the key must be present even though its value may be null", () => {
+    const parsed = parseRootSchema(
+      { properties: { x: { anyOf: [{ type: "string" }, { type: "null" }] } }, required: ["x"], type: "object" },
+      "test",
+    );
+    const schema = evalZodSchema(renderResolveResponseZodSchema(parsed));
+    // Before the fix: the `nullable` branch unconditionally appended `.optional()`,
+    // so a required-but-nullable field silently accepted a missing key too.
+    expect(() => schema.parse({})).toThrow();
+    expect(schema.parse({ x: null })).toEqual({ x: null });
+    expect(schema.parse({ x: "y" })).toEqual({ x: "y" });
+  });
+
   it("throws a clear error rendering a $ref to a name missing from $defs (and not a well-known name like BaseVerdict)", () => {
     const parsed: ParsedSchema = {
       description: undefined,

@@ -14,7 +14,7 @@
 // of the manifest's abstract entry — mirroring the same fixed Verdict contract already
 // hand-maintained in ../types.ts.
 
-import { CodegenSchemaError, type IrNode, type ParsedSchema } from "./json-schema-ir.ts";
+import { CodegenSchemaError, type IrNode, type IrProperty, type ParsedSchema } from "./json-schema-ir.ts";
 
 // Single-line by design: this renderer does no indentation-depth tracking (see
 // renderZodObject below), so a template with its own baked-in newlines would come out
@@ -49,7 +49,12 @@ function zodExpr(node: IrNode, defs: Record<string, IrNode>): string {
     case "array":
       return `z.array(${zodExpr(node.items, defs)})`;
     case "nullable":
-      return `${zodExpr(node.inner, defs)}.nullable().optional()`;
+      // Nullable is purely about the VALUE ("can this be null"), never about whether the
+      // key itself may be absent -- that's `required`, an orthogonal, property-level
+      // concern handled once in renderZodObject below (audit finding 6). A field that's
+      // both required AND nullable (Python's `Optional[str]` with no default -- the key
+      // must be present, its value may be null) must stay non-optional here.
+      return `${zodExpr(node.inner, defs)}.nullable()`;
     case "enum":
       return `z.enum([${node.values.map((value) => JSON.stringify(value)).join(", ")}])`;
     case "object":
@@ -66,8 +71,18 @@ function zodExpr(node: IrNode, defs: Record<string, IrNode>): string {
   }
 }
 
-function renderZodObject(properties: Array<{ name: string; schema: IrNode }>, defs: Record<string, IrNode>): string {
+function renderZodObject(properties: IrProperty[], defs: Record<string, IrNode>): string {
   if (properties.length === 0) return "z.object({})";
-  const fields = properties.map((prop) => `${JSON.stringify(prop.name)}: ${zodExpr(prop.schema, defs)}`).join(", ");
+  // `required` decides PRESENCE (can the key be missing), independent of the value's own
+  // form -- the same separation json-schema-to-ts.ts already makes via its own `?` (audit
+  // finding 6: this renderer used to ignore `required` entirely, and separately had
+  // `nullable` add `.optional()` unconditionally, which is a presence claim disguised as
+  // a value-shape one).
+  const fields = properties
+    .map((prop) => {
+      const expr = zodExpr(prop.schema, defs);
+      return `${JSON.stringify(prop.name)}: ${prop.required ? expr : `${expr}.optional()`}`;
+    })
+    .join(", ");
   return `z.object({ ${fields} })`;
 }
