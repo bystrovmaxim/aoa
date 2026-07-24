@@ -1,4 +1,4 @@
-<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-24T16:49:46Z (filesystem mtime; draft is gitignored, no git history) · sha256:8086cce95f11 -->
+<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-24T22:31:56Z (filesystem mtime; draft is gitignored, no git history) · sha256:f6a9503d70d8 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -441,7 +441,7 @@ From that fresh answer, `run()` tells two different cases apart:
 - **`FailSecurityVerdict`** — a real, just-confirmed denial. The action doesn't run.
 - **`FailErrorVerdict` or a network error** — the server couldn't answer: an unknown endpoint, a timeout, the network being down. That's not a denial of access, it's "couldn't ask." Turning a connectivity failure into a quiet "no access" would be exactly as wrong as ignoring a real denial.
 
-The calling code doesn't need to know anything about this internal second question. If access is gone, `run()` just throws an ordinary error with a human-readable reason — the same shape it would have gotten calling `.can()` directly:
+The calling code doesn't need to know anything about this internal second question. If the server couldn't answer (`FailErrorVerdict`), `run()` throws the same `AoaResolveError` as `.can()` — nothing new. But if access is genuinely gone (`FailSecurityVerdict`), `run()` throws an ordinary error with a human-readable reason — and there's no precedent for that one: neither `.can()` (quietly returns `false`) nor `.verdict()` (returns the `Verdict` object itself) ever throws for it. This is new behavior, introduced by the precheck:
 
 ```ts
 const gate = createApi(engine, actionInvoker);

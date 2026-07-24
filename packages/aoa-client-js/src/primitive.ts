@@ -67,9 +67,11 @@ export function makeCallablePrimitive<TParams, TResult>(
     ...makeGatePrimitive<TParams>(engine, operation),
     // Precheck (chapter 5.5): a fresh, non-cached can() right before the real call --
     // skipCache is mandatory here, a cache hit would defeat the whole point of asking
-    // again right before invoking. The caller doesn't need to know this check even
-    // happened: a denial here throws the same plain shape .can()/.verdict() callers
-    // would recognize, not a dedicated "precheck" error class.
+    // again right before invoking. FailErrorVerdict throws the same AoaResolveError
+    // .can() already throws for it (no new behavior). FailSecurityVerdict is new: a
+    // plain Error with no dedicated class -- neither .can() (returns false) nor
+    // .verdict() (returns the Verdict) ever throws for it, so there's no existing
+    // precedent to reuse, and the caller doesn't need to know a precheck happened.
     async run(params: TParams): Promise<TResult> {
       const [item] = await engine.resolve([{ operation, params: params as Record<string, unknown> }], {
         skipCache: true,
