@@ -15,7 +15,7 @@ import { assertManifestShape, type Manifest, type ManifestEndpoint } from "../ma
 import { parseRootSchema } from "./json-schema-ir.ts";
 import { renderParamsOrResultInterface } from "./json-schema-to-ts.ts";
 import { renderResolveResponseZodSchema } from "./json-schema-to-zod.ts";
-import { NameRegistry, deriveEndpointBaseName } from "./naming.ts";
+import { NameRegistry, assertValidBaseName, deriveEndpointBaseName } from "./naming.ts";
 import { renderApiLayout } from "./api-layout-to-ts.ts";
 import { buildLayout, type LayoutEndpoint } from "../path-layout.ts";
 
@@ -52,7 +52,14 @@ function renderClientSource(manifest: Manifest, url: string): string {
 }
 
 function renderEndpointTypes(endpoint: ManifestEndpoint, registry: NameRegistry): { source: string; layoutEndpoint: LayoutEndpoint } {
-  const base = registry.claimBase(deriveEndpointBaseName(endpoint.name), endpoint.operation);
+  const rawBase = deriveEndpointBaseName(endpoint.name);
+  // Reject an invalid or empty base before it ever reaches the registry (audit finding
+  // 3) -- claimBase's numeric-suffix disambiguation exists to resolve a collision
+  // between two otherwise-valid names, not to repair a base that was never a valid
+  // identifier to begin with (an empty base disambiguated against itself becomes the
+  // digit-led, still-invalid "2").
+  assertValidBaseName(rawBase, endpoint);
+  const base = registry.claimBase(rawBase, endpoint.operation);
   const paramsName = `${base}Params`;
   const resultName = `${base}Result`;
 

@@ -1,7 +1,7 @@
 // packages/aoa-client-js/src/codegen/naming.test.ts
 import { describe, expect, it } from "vitest";
 
-import { deriveEndpointBaseName, NameRegistry } from "./naming.ts";
+import { assertValidBaseName, deriveEndpointBaseName, isReservedWord, NameRegistry } from "./naming.ts";
 
 describe("deriveEndpointBaseName", () => {
   it("strips a trailing Action suffix", () => {
@@ -15,6 +15,49 @@ describe("deriveEndpointBaseName", () => {
 
   it("leaves the bare name 'Action' unchanged (suffix must not consume the whole name)", () => {
     expect(deriveEndpointBaseName("Action")).toBe("Action");
+  });
+});
+
+describe("isReservedWord", () => {
+  it("recognizes ECMAScript reserved words", () => {
+    expect(isReservedWord("delete")).toBe(true);
+    expect(isReservedWord("class")).toBe(true);
+    expect(isReservedWord("import")).toBe(true);
+  });
+
+  it("is case-sensitive -- a capitalized form is not reserved", () => {
+    expect(isReservedWord("Delete")).toBe(false);
+    expect(isReservedWord("Class")).toBe(false);
+  });
+
+  it("returns false for an ordinary identifier", () => {
+    expect(isReservedWord("CancelOrder")).toBe(false);
+  });
+});
+
+describe("assertValidBaseName (audit finding 3)", () => {
+  const endpoint = (name: string) => ({ name, operation: `POST /${name}` });
+
+  it("accepts an ordinary PascalCase base", () => {
+    expect(() => assertValidBaseName("CancelOrder", endpoint("CancelOrderAction"))).not.toThrow();
+  });
+
+  it("rejects an empty base (e.g. an action literally named just 'Action')", () => {
+    expect(() => assertValidBaseName("", endpoint("Action"))).toThrow(/empty/);
+  });
+
+  it("rejects a base containing characters invalid in a TypeScript identifier", () => {
+    expect(() => assertValidBaseName("Weird.Name", endpoint("Weird.Name"))).toThrow(/invalid.*"Weird\.Name"/);
+    expect(() => assertValidBaseName("Has Space", endpoint("Has Space"))).toThrow();
+    expect(() => assertValidBaseName("Has-Hyphen", endpoint("Has-HyphenAction"))).toThrow();
+  });
+
+  it("rejects a base that is a bare lowercase reserved word", () => {
+    expect(() => assertValidBaseName("delete", endpoint("deleteAction"))).toThrow(/reserved/);
+  });
+
+  it("names the offending operation and server action in the error message", () => {
+    expect(() => assertValidBaseName("", endpoint("Action"))).toThrow(/POST \/Action/);
   });
 });
 

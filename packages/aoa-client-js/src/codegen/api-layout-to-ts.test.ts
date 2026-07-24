@@ -105,4 +105,55 @@ describe("renderApiLayout -- descriptors + factories", () => {
     expect(factoriesSource).toMatch(/actions: \{\n\s*ping: ping,\n\s*\}/);
     expect(factoriesSource.match(/const ping = makeGatePrimitive/g)).toHaveLength(1);
   });
+
+  // Audit finding 3: a PascalCase base is a perfectly fine TypeScript identifier and not
+  // itself a reserved word, but lowerFirst's case-folded local-variable form can land on
+  // one -- "Delete" -> "delete" is a SyntaxError as `const delete = ...`, invisible to
+  // naming.ts's own base-name validation (a type-namespace check, never sees the
+  // lowerFirst transformation at all).
+  it("rejects a base whose lowerFirst local variable name is an ECMAScript reserved word", () => {
+    const layout = buildLayout([ep("POST", "/actions/delete", "Delete")]);
+    expect(() => renderApiLayout(layout)).toThrow(/reserved word "delete"/);
+  });
+
+  it("does not reject a base that merely CONTAINS a reserved word as a substring", () => {
+    const layout = buildLayout([ep("POST", "/actions/deleted-order", "DeletedOrder")]);
+    expect(() => renderApiLayout(layout)).not.toThrow();
+  });
+
+  // Audit finding 4: NameRegistry's own base-name claim is case-sensitive, so "Widget"
+  // and "widget" pass it as two distinct, non-colliding bases -- but BOTH case-fold to
+  // the same descriptor ("WIDGET_DESCRIPTOR") and local variable ("widget") once
+  // api-layout-to-ts.ts's lowerFirst/toScreamingSnakeCase are applied, a collision
+  // NameRegistry alone can't see.
+  it("disambiguates a descriptor const and local variable that only collide after case-folding", () => {
+    const layout = buildLayout([ep("POST", "/w1", "Widget"), ep("POST", "/w2", "widget")]);
+    const { factoriesSource } = renderApiLayout(layout);
+
+    // claimName disambiguates the whole candidate string it's given -- since the
+    // descriptor candidate already has "_DESCRIPTOR" appended before claiming, the
+    // numeric suffix lands at the very end ("WIDGET_DESCRIPTOR2"), not "WIDGET2_DESCRIPTOR".
+    expect(factoriesSource).toContain("const WIDGET_DESCRIPTOR =");
+    expect(factoriesSource).toContain("const WIDGET_DESCRIPTOR2 =");
+    expect(factoriesSource.match(/const WIDGET_DESCRIPTOR =/g)).toHaveLength(1);
+    expect(factoriesSource.match(/const WIDGET_DESCRIPTOR2 =/g)).toHaveLength(1);
+
+    expect(factoriesSource).toContain("const widget = makeGatePrimitive<WidgetParams>");
+    expect(factoriesSource).toContain("const widget2 = makeGatePrimitive<widgetParams>");
+    // Once per factory (createGateApi + createApi each declare their own local "widget"
+    // in their own function body -- different scopes, not a second collision).
+    expect(factoriesSource.match(/const widget = /g)).toHaveLength(2);
+    expect(factoriesSource.match(/const widget2 = /g)).toHaveLength(2);
+
+    assertSyntacticallyValid(
+      [
+        "interface GatePrimitive<P> { verdict(p: P): unknown; can(p: P): unknown; }",
+        "declare function makeGatePrimitive<P>(engine: unknown, op: string): GatePrimitive<P>;",
+        "declare const engine: unknown;",
+        "interface WidgetParams {}",
+        "interface widgetParams {}",
+        factoriesSource,
+      ].join("\n"),
+    );
+  });
 });

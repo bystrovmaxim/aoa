@@ -355,6 +355,45 @@ describe("generateClient", () => {
     assertGeneratedFileTypechecks(source);
   });
 
+  it("rejects a server action whose name would derive a reserved-word local variable (audit finding 3, case 1)", async () => {
+    const endpoint = { ...CANCEL_ORDER_ENDPOINT, operation: "POST /actions/delete", name: "DeleteAction", route: { method: "POST", path: "/actions/delete" } };
+    stubFetchJson(fakeManifest([endpoint]));
+    await expect(generateClient("https://x/client-manifest.json")).rejects.toThrow(/reserved word "delete"/);
+  });
+
+  it("rejects a server action whose name contains characters invalid in a TypeScript identifier (audit finding 3, case 2)", async () => {
+    const endpoint = { ...CANCEL_ORDER_ENDPOINT, operation: "POST /actions/weird", name: "Weird.Name", route: { method: "POST", path: "/actions/weird" } };
+    stubFetchJson(fakeManifest([endpoint]));
+    await expect(generateClient("https://x/client-manifest.json")).rejects.toThrow(/invalid.*"Weird\.Name"/);
+  });
+
+  it("rejects a server action with a literally empty name, which derives an empty base (audit finding 3, case 3)", async () => {
+    // deriveEndpointBaseName("Action") is explicitly preserved as "Action" (the suffix
+    // strip requires more than just the suffix itself) -- only a literally empty
+    // ManifestEndpoint.name (a valid, if degenerate, `str` -- the field has no format
+    // constraint) derives an empty base.
+    const endpoint = { ...CANCEL_ORDER_ENDPOINT, operation: "POST /actions/bare", name: "", route: { method: "POST", path: "/actions/bare" } };
+    stubFetchJson(fakeManifest([endpoint]));
+    await expect(generateClient("https://x/client-manifest.json")).rejects.toThrow(/empty/);
+  });
+
+  it("disambiguates two endpoints whose base names only collide after case-folding, end to end (audit finding 4)", async () => {
+    const widget = { ...PING_ENDPOINT, operation: "POST /w1", name: "WidgetAction", route: { method: "POST", path: "/w1" } };
+    const widgetLower = { ...PING_ENDPOINT, operation: "POST /w2", name: "widgetAction", route: { method: "POST", path: "/w2" } };
+    stubFetchJson(fakeManifest([widget, widgetLower]));
+    const source = await generateClient("https://x/client-manifest.json");
+
+    expect(source).toContain("export interface WidgetParams {");
+    expect(source).toContain("export interface widgetParams {");
+    expect(source).toContain("const WIDGET_DESCRIPTOR =");
+    expect(source).toContain("const WIDGET_DESCRIPTOR2 =");
+    expect(source).toContain("const widget = makeGatePrimitive<WidgetParams>");
+    expect(source).toContain("const widget2 = makeGatePrimitive<widgetParams>");
+
+    assertSyntacticallyValid(source);
+    assertGeneratedFileTypechecks(source);
+  });
+
   it("disambiguates two endpoints whose action class name collides", async () => {
     const duplicate = { ...CANCEL_ORDER_ENDPOINT, operation: "POST /admin/cancel-order", route: { method: "POST", path: "/admin/cancel-order" } };
     stubFetchJson(fakeManifest([CANCEL_ORDER_ENDPOINT, duplicate]));
