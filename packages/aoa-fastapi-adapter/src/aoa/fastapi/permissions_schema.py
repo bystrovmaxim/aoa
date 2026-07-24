@@ -83,9 +83,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
+from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny, field_validator
 
-from aoa.action_machine.intents.access_control import BaseVerdict
+from aoa.action_machine.intents.access_control import AllowedVerdict, BaseVerdict, FailErrorVerdict, FailSecurityVerdict
+
+_VERDICT_CLASSES_BY_KIND: dict[str, type[BaseVerdict]] = {
+    "AllowedVerdict": AllowedVerdict,
+    "FailSecurityVerdict": FailSecurityVerdict,
+    "FailErrorVerdict": FailErrorVerdict,
+}
 
 __all__ = [
     "SUPPORTED_VERSION",
@@ -138,6 +144,42 @@ class ResolveResponse(BaseModel):
         "FailSecurityVerdict (a real denial, reason mandatory), or FailErrorVerdict "
         "(the check could not be answered, never a denial, never cached as one)."
     )
+
+    @field_validator("results", mode="before")
+    @classmethod
+    def _dispatch_verdict_kind(cls, value: object) -> object:
+        """Parse each element as its own concrete BaseVerdict subclass, not the
+        abstract base -- SerializeAsAny above only fixes *serialization* (each item
+        serializes by its real runtime class); left to plain validation, pydantic
+        would try to construct the declared ``BaseVerdict`` itself for every
+        element, which ``BaseVerdict.__init__`` always rejects (it requires
+        ``kind == type(self).__name__``, and ``type(self)`` here is ``BaseVerdict``,
+        never a real ``kind`` value like ``"AllowedVerdict"``). This is why nothing
+        caught it until a real client tried to parse a real response: nothing else
+        in this codebase ever calls ``ResolveResponse.model_validate[_json]`` --
+        the server only ever constructs and serializes one, never parses one back.
+        """
+        if not isinstance(value, list):
+            return value
+        dispatched: list[object] = []
+        for item in value:
+            if not isinstance(item, dict):
+                dispatched.append(item)  # already a real instance (or malformed) -- let normal validation handle it
+                continue
+            verdict_cls = _VERDICT_CLASSES_BY_KIND.get(item.get("kind"))  # type: ignore[arg-type]
+            if verdict_cls is None:
+                dispatched.append(item)  # unrecognized kind -- let normal validation produce a clear error
+                continue
+            try:
+                dispatched.append(verdict_cls(**{k: v for k, v in item.items() if k != "kind"}))
+            except TypeError as exc:
+                # verdict_cls's own __init__ requires e.g. `reason` -- a missing
+                # field raises a plain TypeError here (Python's own argument
+                # binding), not a ValidationError. Pydantic only auto-wraps
+                # ValueError/AssertionError raised from validators, so re-raise
+                # as ValueError to get a proper ValidationError for the caller.
+                raise ValueError(f"invalid {item.get('kind')}: {exc}") from exc
+        return dispatched
 
 
 class ErrorDetail(BaseModel):

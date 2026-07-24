@@ -9,3 +9,6 @@ export {
   Unauthorized,
   isRetryableCheckError,
 } from "./engine.ts";
+export type { ActionInvoker, CallablePrimitive, GatePrimitive, Invocation } from "./primitive.ts";
+export { buildInvocation, makeCallablePrimitive, makeGatePrimitive } from "./primitive.ts";
+export type { DynamicApiNode, DynamicGateApi } from "./dynamic-api.ts";

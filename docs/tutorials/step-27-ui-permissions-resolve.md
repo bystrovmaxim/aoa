@@ -1,4 +1,4 @@
-<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-22T22:15:29Z (filesystem mtime; draft is gitignored, no git history) · sha256:6811ff2128ed -->
+<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-24T05:30:44Z (filesystem mtime; draft is gitignored, no git history) · sha256:ac352ee6808d -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -350,6 +350,84 @@ Examples — [`01_resolve_single.ts`](../../examples/step_27_ui_permissions_clie
 
 ---
 
+## From schema to types: codegen and Primitive
+
+`AoaEngine.resolve()` removed the manual HTTP wiring, but not the string. The endpoint is still written by hand (`"POST /actions/cancel-order"`), and the shape of the parameters is whatever the docs say — if they're even up to date:
+
+```tsx
+// BEFORE — no codegen, by hand
+const [item] = await engine.resolve([
+  { operation: "POST /actions/cancel-order", params: { order_id: order.id } }, // a string -- a typo goes uncaught
+]);
+if (item.kind === "FailErrorVerdict") throw new Error(item.reason);
+const canCancel = item.kind === "AllowedVerdict";
+```
+
+A typo in `"POST /actions/cancle-order"` doesn't surface at build time — only in production, when the resolver can't find the endpoint: `item.kind` comes back `"FailErrorVerdict"`, exactly as the code above expects. A parameter *schema* mismatch is a different animal, though, not a per-item outcome at all: the resolver validates `params` against the real server model before `access_decide` ever runs, and a mismatch fails the *whole request* — `engine.resolve(...)` itself throws `ProtocolError` before `results` even exists, so the `if (item.kind === ...)` line above never runs. A caller needs its own `try/catch` around `resolve()` for this case, not just a `kind` check inside it:
+
+```tsx
+try {
+  const [item] = await engine.resolve([{ operation: "POST /actions/cancel-order", params: { order_id: order.id } }]);
+  // ...
+} catch (error) {
+  if (error instanceof ProtocolError) { /* whole request rejected -- e.g. a params schema mismatch */ }
+}
+```
+
+The catalog (previous section) already publishes every raw ingredient needed — the parameter and result schema of each endpoint. `generateClient(url)` — a function from a separate entry point, `aoa-client-js/codegen` — reads that manifest and returns TypeScript source: `Params`/`Result` interfaces for each endpoint, and a typed `api` object:
+
+```tsx
+// AFTER — a generated facade over AoaEngine
+import { createGateApi } from "@/generated/aoa-client";
+
+const gate = createGateApi(engine);
+const canCancel = await gate.post["/actions/cancel-order"].can({ order_id: order.id });
+```
+
+Rename the parameter on the server, though, and *generation itself* still succeeds — silently, reflecting exactly what the manifest says now. What breaks is anything that used the old field name: once you regenerate, `tsc` refuses to compile your own call sites still written against `order_id` — before production, not after. Skip regenerating altogether and nothing catches it this way at all; that gap is exactly what the next section is for.
+
+### Two ways to get types: statically or at runtime
+
+`generateClient` can be invoked two equivalent ways — both call the same function, there's no second generator:
+
+```bash
+# 1. A thin CLI wrapper (package.json: "scripts": { "codegen": "aoa-codegen --url https://api.example.com/client-manifest.json --out src/generated/aoa-client.ts" })
+npm run codegen
+```
+
+```ts
+// 2. Directly from a build script
+import { generateClient } from "aoa-client-js/codegen";
+import { writeFile } from "node:fs/promises";
+
+const source = await generateClient("https://api.example.com/client-manifest.json");
+await writeFile("src/generated/aoa-client.ts", source);
+```
+
+The resulting `.ts` file is committed like any other vendored dependency — nobody edits it by hand, and `tsc` checks it as-is.
+
+A third mode is dynamic, with no build step at all: `engine.loadFrom(url)` (a method on `AoaEngine`) fetches the same manifest already at runtime and builds the same `api` object in memory. Calls look identical (`api.post["/actions/cancel-order"].can(...)`), but there are no compile-time types: accessing a path that's gone isn't caught by `tsc` — only the runtime catches it, once the code actually executes. This mode is for SSR and quick prototypes, where a build step is unwanted overhead.
+
+Notice the boundary: the `aoa-client-js/codegen` entry point is separate from the runtime (`aoa-client-js`). The generator builds a thin, typed facade for *your* endpoints — but everything it relies on internally (`AoaEngine`, and later the cache, the batcher, the SSE subscription, framework bindings, a test mock) is the hand-written library, the same for any application and installed once via `npm install`. The generated file's very first line imports `AoaEngine` from there. The server doesn't need to generate anything special for this either — it serves the same one JSON manifest it always did (previous section); codegen lives entirely on the client.
+
+### What a Primitive is
+
+`Primitive` is the generated object for a single endpoint: a thin wrapper over `AoaEngine`, bound to its parameter and result types. It has up to three methods:
+
+- **`.verdict(params)`** — the whole verdict, `Verdict` (the same `AllowedVerdict`/`FailSecurityVerdict`/`FailErrorVerdict` the server uses). Read it by `kind`, not by assuming that no error means allowed.
+- **`.can(params)`** — a boolean question layered over `.verdict()`: `true` on `AllowedVerdict`, `false` on `FailSecurityVerdict`, while `FailErrorVerdict` **is thrown** as a typed error (`AoaResolveError`), not silently turned into `false`. No answer is not the same thing as a denial.
+- **`.run(params)`** — the real invocation. The library builds the call itself (method, path, body) from the generated endpoint descriptor; the `actionInvoker` supplied from outside only executes an already-built call and cannot substitute a different URL or body. So "was it allowed" and "did it happen" are guaranteed to be about the same route.
+
+Not every `Primitive` has `.run()`. The generated file exports two factories: `createGateApi(engine)` builds an object whose `Primitive`s **lack** `.run()` — not merely unused, physically absent from the type, so accessing it doesn't compile. `createApi(engine, actionInvoker)` builds a second object, with the same `.verdict()`/`.can()` plus a working `.run()`. The split isn't decoration: code that was only ever meant to gate (show/hide a button) is statically unable to invoke the action at all.
+
+Layout in `api` follows the rule from the previous section: by full path — always (`api.post["/actions/cancel-order"]`, an exact object with enumerated keys — a route that's gone fails to compile), a dot alias — only on a clean path. `GET /orders` is a clean path, so it gets an alias: `api.get.orders.can(...)` and `api.get["/orders"].can(...)` call the same `Primitive`. `/actions/cancel-order` has a hyphen — it has no alias at all, under any form.
+
+The reactive `useCan` (cache, invalidation, component re-render) isn't part of the generated code — it's a separate, framework-specific layer (chapter 10) that subscribes to `AoaEngine` without touching the generator.
+
+Examples — [`01_static_codegen_and_primitive.ts`](../../examples/step_27_ui_permissions_codegen/01_static_codegen_and_primitive.ts) (full path and dot alias), [`02_dynamic_engine_loadfrom.ts`](../../examples/step_27_ui_permissions_codegen/02_dynamic_engine_loadfrom.ts) (the same `api`, no build step), [`03_endpoint_drift_unknown_endpoint.ts`](../../examples/step_27_ui_permissions_codegen/03_endpoint_drift_unknown_endpoint.ts) (a stale static client against a manifest that's moved on), and [`04_contract_fixture_resolve_response.ts`](../../examples/step_27_ui_permissions_codegen/04_contract_fixture_resolve_response.ts) (one fixture, Python and TypeScript alike). Each one runs directly: `node examples/step_27_ui_permissions_codegen/<file>.ts`.
+
+---
+
 ## The wire language's version, and the boundary of failure
 
 The resolver's "question and answer" language has its own version number — `version`, the same one the manifest publishes. The client always sends the version it was built for; the resolver checks it **first, before authentication** — a client speaking the wrong language shouldn't have to prove its identity first just to be told to upgrade. A mismatch is a `400` with body `{"error": {"code": "unsupported_version"}}` (`ErrorEnvelope`, the same envelope published under `schemas`).
@@ -371,7 +449,6 @@ The solution is a bespoke route registered right inside `FastApiAdapter.build()`
 This chapter is the base: role level (1-2) and object level (3) via `access_decide`, a list from day one, guest access, deduplication and per-item error isolation, one execution recipe, cache partitions, route shadowing, HTTP caching for the catalog, and wire-language versioning. Deliberately out of scope:
 
 - **Honest reporting of the object-level check.** Role-level and object-level checks are still indistinguishable on the wire in this chapter — both produce the same `kind: "FailSecurityVerdict"` (a minimal oracle contract: a caller can't tell "no such object" from "exists, but not yours" from `kind` alone — only from the text of `reason`). Revealing that detail is safe only together with generic deny — the same answer for "no such object" and "exists, but not yours"; without it, revealing the detail would hand an attacker a way to guess other people's object IDs from the shape of a denial. This mechanism arrives in chapter 8. Future channels like a disabled feature or a triggered operational rule are a separate, unrelated piece of future work; in this architecture each such channel will be its own subclass of `FailSecurityVerdict`, not a pre-reserved enum value.
-- **A typed client.** `aoa-client-js` already gives you `AoaEngine.resolve()` (see the section above) — but it's still a low-level call: the endpoint is written by hand as a string. A convenient, type-safe wrapper (`api.post["/actions/cancel-order"].can(...)`), generated from the catalog, doesn't exist yet.
 
 ---
 
@@ -394,12 +471,16 @@ This chapter is the base: role level (1-2) and object level (3) via `access_deci
 - **An unsupported wire-language version fails the whole request too.** `version` is checked before authentication; a mismatch is `400 unsupported_version`, the same error envelope (`ErrorEnvelope`) published under `schemas`.
 - **`AoaEngine` never mutates identity.** `cachePartition` is fixed at construction with no setter; switching subjects means a new `AoaEngine`, never reusing the old one.
 - **A transport failure is not a verdict.** `401`, an unreachable network, the wrong content-type/`version`/result cardinality — typed errors (`Unauthorized`/`ProtocolError`/`NetworkUnavailable`) that `AoaEngine.resolve()` throws, rather than returning as an element of `results`.
+- **`GateApi` has no `.run()` — neither the value nor the type does.** `createGateApi(engine)` builds an object where accessing `.run()` doesn't compile, not merely "exists but isn't called"; `.run()` exists only on `CallableApi` (`createApi(engine, actionInvoker)`).
+- **The CLI and `generateClient` can't drift apart from each other.** `aoa-codegen` is a thin wrapper with no generation logic of its own — it only parses arguments and writes to disk whatever `generateClient` returned. There is no second generator for it to drift from.
+- **A dot alias and a full path are the same `Primitive`.** `api.get.orders` and `api.get["/orders"]` aren't two different objects that happen to behave alike — they're the same reference; the `operation` sent to the resolver is identical regardless of which form of access was used.
+- **A dot alias exists only for a clean path.** No `{param}`, hyphen, dot, and no branch/leaf collision — otherwise only the full path survives as a string key (`api.post["/actions/cancel-order"]`), an exact object with enumerated keys, not a `Record<string, ...>`.
 
 ---
 
 ## Summary
 
-`POST /permissions/resolve` is a thin, but principled, layer over `machine.check_access_decide`: the frontend gets an honest "can I?" from the one place the rule is declared, instead of keeping a copy of the rule in the component. A list is the protocol's primary shape from day one; a guest isn't a special case for the resolver, but an ordinary role checked by the same cascade; one `EndpointExecutionPlan` keeps `.can()` and `.run()` from ever disagreeing. The batch, meanwhile, is resilient to its own duplicates (identical questions cost one real call but never shorten the response) and to one bad error (an unrecognized action only quenches its own position, not the whole request) — but not to a request that's invalid as a whole: the wrong wire-language version, a failed entry gate, or a server-side failure still take everything down. The catalog removes the hardcoded stub string, publishes the protocol's own reference schemas, and caches cheaply via `ETag`/`304` without fear of shadowing between routes; `cache_partition` gives the client a way to never mistake someone else's cached answer for its own. And `aoa-client-js` removes the last piece of manual duplication — the HTTP wrapper itself: one class, `AoaEngine`, one method, `resolve()`, immutable identity, typed transport errors instead of a synthetic denial.
+`POST /permissions/resolve` is a thin, but principled, layer over `machine.check_access_decide`: the frontend gets an honest "can I?" from the one place the rule is declared, instead of keeping a copy of the rule in the component. A list is the protocol's primary shape from day one; a guest isn't a special case for the resolver, but an ordinary role checked by the same cascade; one `EndpointExecutionPlan` keeps `.can()` and `.run()` from ever disagreeing. The batch, meanwhile, is resilient to its own duplicates (identical questions cost one real call but never shorten the response) and to one bad error (an unrecognized action only quenches its own position, not the whole request) — but not to a request that's invalid as a whole: the wrong wire-language version, a failed entry gate, or a server-side failure still take everything down. The catalog removes the hardcoded stub string, publishes the protocol's own reference schemas, and caches cheaply via `ETag`/`304` without fear of shadowing between routes; `cache_partition` gives the client a way to never mistake someone else's cached answer for its own. And `aoa-client-js` removes the last piece of manual duplication — the HTTP wrapper itself: one class, `AoaEngine`, one method, `resolve()`, immutable identity, typed transport errors instead of a synthetic denial. Codegen removes the string itself too: `generateClient(url)` (statically, as a file on disk — the `aoa-codegen` CLI or a direct call from a build script) or `engine.loadFrom(url)` (dynamically, at runtime, at the cost of compile-time types) build a typed `api` from the same catalog — `Primitive` with `.verdict()`/`.can()`/`.run()`, separate `GateApi`/`CallableApi`, a dot alias only on a clean path. The server, meanwhile, doesn't change at all — it serves the same one JSON manifest it always did; codegen lives entirely in the client library, and `aoa-codegen --check` in CI catches a schema out of sync before deploy, not after.
 
 ---
 
@@ -422,6 +503,11 @@ This chapter is the base: role level (1-2) and object level (3) via `access_deci
 15. Why is `manifest_version` hashed without itself? What would go wrong if the field hashed its own value too?
 16. A user logged out and logged back in as someone else. What should happen to the existing `AoaEngine` — and why would simply assigning a new value to `cachePartition` be a mistake?
 17. `fetchImpl` is passed into `AoaEngine` as a constructor parameter, rather than read off `window.fetch`. Why — and what would break during server-side rendering (SSR) if it were hard-wired to `window.fetch`?
+18. Why can't `generateClient` and the `aoa-codegen` CLI drift apart from each other, while the generated file and the live manifest very much can?
+19. What's the difference between `api.get.orders` and `api.get["/orders"]` — and what *isn't* different? Why does `/actions/cancel-order` have no dot alias at all, in any form?
+20. `.can()` returned `false`. Does that mean the action is forbidden? Give a case where `.can()` returns neither `true` nor `false`, but throws instead — and explain why that isn't the same thing as "forbidden."
+21. Why doesn't `GateApi` let you even *write* `.run()` in code (not just call it), and why have two separate factories (`createGateApi`/`createApi`) at all, instead of one with an optional `actionInvoker`?
+22. The server was deployed with a renamed parameter field, and the static client wasn't regenerated. Walk through it step by step: what does `tsc` notice when the frontend builds, what does the runtime notice on a real call, and what would `aoa-codegen --check` have noticed, had it run in CI before the deploy?
 
 > **Exercise.** Take `TrackOrderAction` from [`05_guest_gated_by_event.py`](../../examples/step_27_ui_permissions_resolve/05_guest_gated_by_event.py) and add a second reason for denial to `access_decide` — for example, that the tracking code is only valid for 30 days after shipping. Run `machine.check_access_decide` before shipping, after shipping, and after the 30 days have passed, and confirm `kind`/`reason` reflect exactly that reason in each case.
 
