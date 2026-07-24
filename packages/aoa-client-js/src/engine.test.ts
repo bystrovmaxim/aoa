@@ -358,6 +358,26 @@ describe("AoaEngine.loadFrom", () => {
     expect((error as ProtocolError).message).toMatch(/manifest_version/);
   });
 
+  // Audit finding 8: assertManifestShape only checked that `endpoints` was an array,
+  // never each element's own shape -- loadFrom read endpoint.route.method/.path
+  // immediately afterward with no guard of its own, so a malformed element crashed with
+  // a raw, uncaught TypeError ("Cannot read properties of undefined/null (reading
+  // 'method')") instead of the same ProtocolError every other untrustworthy manifest
+  // shape already produces here.
+  it.each([
+    ["route missing entirely", { operation: "POST /x", name: "X", domain: "D", description: "d", params_schema: {}, result_schema: {} }],
+    ["route: null", { operation: "POST /x", name: "X", domain: "D", description: "d", route: null, params_schema: {}, result_schema: {} }],
+  ])("throws ProtocolError, not a raw TypeError, when an endpoint has %s", async (_label, brokenEndpoint) => {
+    const manifest = { manifest_version: "sha256:x", version: 1, manifest_schema_version: 2, endpoints: [brokenEndpoint], schemas: {} };
+    const fetchImpl = (async () => fakeResponse(manifest)) as typeof fetch;
+    const error = await makeEngine(fetchImpl)
+      .loadFrom("https://x/client-manifest.json")
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ProtocolError);
+    expect(error).not.toBeInstanceOf(TypeError);
+    expect((error as ProtocolError).message).toMatch(/endpoints\[0\].*route/);
+  });
+
   it("produces the exact same key structure (methods, bracket paths, aliases) as the static renderer for the same manifest", async () => {
     const { renderApiLayout } = await import("./codegen/api-layout-to-ts.ts");
     const { buildLayout } = await import("./path-layout.ts");

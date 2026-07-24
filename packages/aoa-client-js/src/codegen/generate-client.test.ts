@@ -243,6 +243,14 @@ describe("generateClient", () => {
     await expect(generateClient("https://x/client-manifest.json")).rejects.toThrow(/is not a JSON object/);
   });
 
+  it("throws a clear error, not a raw TypeError, when a manifest endpoint has no route (audit finding 8)", async () => {
+    const brokenEndpoint = { operation: "POST /x", name: "X", domain: "D", description: "d", params_schema: {}, result_schema: {} };
+    stubFetchJson(fakeManifest([brokenEndpoint]));
+    const error = await generateClient("https://x/client-manifest.json").catch((e: unknown) => e);
+    expect(error).not.toBeInstanceOf(TypeError);
+    expect((error as Error).message).toMatch(/endpoints\[0\].*route/);
+  });
+
   it("generates a complete, valid client for zero endpoints", async () => {
     stubFetchJson(fakeManifest([]));
     const source = await generateClient("https://x/client-manifest.json");
