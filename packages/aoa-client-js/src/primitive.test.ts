@@ -1,7 +1,7 @@
 // packages/aoa-client-js/src/primitive.test.ts
 import { describe, expect, it } from "vitest";
 
-import { AoaEngine, AoaResolveError } from "./engine.ts";
+import { AoaEngine, AoaResolveError, NetworkUnavailable, ProtocolError, Unauthorized } from "./engine.ts";
 import { buildInvocation, makeCallablePrimitive, makeGatePrimitive } from "./primitive.ts";
 import type { ActionInvoker } from "./primitive.ts";
 import type { ResolveResponse } from "./types.ts";
@@ -211,6 +211,61 @@ describe("makeCallablePrimitive -- run() precheck (chapter 5.5)", () => {
     // wouldn't be testing the cache at all.
     await expect(primitive.can({ order_id: 7 })).resolves.toBe(false);
     expect(requestCount).toBe(2);
+  });
+
+  // Audit finding 3: every existing run() test fixture returns a valid 200/JSON
+  // response -- none exercises a transport-level failure inside the precheck
+  // itself. Correct today by construction (the `throw` on `await
+  // engine.resolve(...)` makes actionInvoker unreachable without an explicit
+  // try/catch), but unguarded by a test: a future refactor (e.g. wrapping the
+  // precheck in its own try/catch for logging) could silently break it.
+  it.each([
+    ["NetworkUnavailable", (async () => { throw new Error("network down"); }) as typeof fetch, NetworkUnavailable],
+    ["Unauthorized", (async () => new Response(null, { status: 401 })) as typeof fetch, Unauthorized],
+    [
+      "ProtocolError",
+      (async () => new Response("not valid json{{{", { status: 200, headers: { "content-type": "application/json" } })) as typeof fetch,
+      ProtocolError,
+    ],
+  ])("run()'s precheck propagates a %s from the transport layer untouched, no actionInvoker call", async (_label, fetchImpl, ErrorClass) => {
+    const engine = new AoaEngine({ transport: { baseUrl: "https://example.test", fetchImpl, cachePartition: "user:1" } });
+    const invoker: ActionInvoker = async () => {
+      throw new Error("actionInvoker must not be called");
+    };
+    const primitive = makeCallablePrimitive<CancelOrderParams, CancelOrderResult>(
+      engine,
+      "POST /actions/cancel-order",
+      descriptor,
+      invoker,
+    );
+
+    await expect(primitive.run({ order_id: 7 })).rejects.toBeInstanceOf(ErrorClass);
+  });
+
+  // Audit finding 5: engine.ts's own comment claims run()'s fresh answer is
+  // written through to the cache, but until now this was only ever verified
+  // against raw engine.resolve() in isolation (engine.test.ts) -- never through
+  // a real Primitive, where run() and can() share a closed-over `operation`.
+  it("run()'s fresh denial is written through to the cache -- the next can() on the same Primitive reads it, no second network call", async () => {
+    let networkCallCount = 0;
+    const fetchImpl = (async () => {
+      networkCallCount += 1;
+      return fakeResponse({ version: 1, results: [{ kind: "FailSecurityVerdict", reason: "access revoked" }] });
+    }) as typeof fetch;
+    const engine = new AoaEngine({ transport: { baseUrl: "https://example.test", fetchImpl, cachePartition: "user:1" } });
+    const invoker: ActionInvoker = async () => {
+      throw new Error("actionInvoker must not be called");
+    };
+    const primitive = makeCallablePrimitive<CancelOrderParams, CancelOrderResult>(
+      engine,
+      "POST /actions/cancel-order",
+      descriptor,
+      invoker,
+    );
+
+    await expect(primitive.run({ order_id: 7 })).rejects.toThrow("access revoked"); // network call #1
+    await expect(primitive.can({ order_id: 7 })).resolves.toBe(false); // must read run()'s write-through
+    expect(networkCallCount).toBe(1);
   });
 
   it("run() throws AoaResolveError for FailErrorVerdict, same as can() -- never a synthetic deny, no actionInvoker call", async () => {
