@@ -111,3 +111,72 @@ describe("makeCallablePrimitive", () => {
     await expect(primitive.run({ order_id: 7 })).resolves.toEqual({ status: "already-cancelled" });
   });
 });
+
+// Chapter 5.5 (issue #157): run() does its own fresh, non-cached precheck right before
+// invoking. actionInvoker throwing on any call it wasn't supposed to receive turns a
+// silent wrong-call bug into a failing test, rather than a passing test with the wrong
+// assertion.
+describe("makeCallablePrimitive -- run() precheck (chapter 5.5)", () => {
+  const descriptor = { method: "POST", path: "/actions/cancel-order" };
+
+  it("run()'s precheck bypasses the cache -- a grant revoked after can() cached 'allowed' is still caught", async () => {
+    let networkCallCount = 0;
+    const fetchImpl = (async () => {
+      networkCallCount += 1;
+      const body: ResolveResponse =
+        networkCallCount === 1
+          ? { version: 1, results: [{ kind: "AllowedVerdict" }] }
+          : { version: 1, results: [{ kind: "FailSecurityVerdict", reason: "access revoked" }] };
+      return fakeResponse(body);
+    }) as typeof fetch;
+    const engine = new AoaEngine({ transport: { baseUrl: "https://example.test", fetchImpl, cachePartition: "user:1" } });
+    const invoker: ActionInvoker = async () => {
+      throw new Error("actionInvoker must not be called once the precheck denies");
+    };
+    const primitive = makeCallablePrimitive<CancelOrderParams, CancelOrderResult>(
+      engine,
+      "POST /actions/cancel-order",
+      descriptor,
+      invoker,
+    );
+
+    await expect(primitive.can({ order_id: 7 })).resolves.toBe(true); // caches "allowed"
+    await expect(primitive.run({ order_id: 7 })).rejects.toThrow("access revoked"); // precheck re-asks for real
+
+    expect(networkCallCount).toBe(2); // proves run() didn't just read the stale cached "allowed"
+  });
+
+  it("run() throws a plain Error carrying the reason for FailSecurityVerdict -- not AoaResolveError, no actionInvoker call", async () => {
+    const engine = makeEngine({ version: 1, results: [{ kind: "FailSecurityVerdict", reason: "only the owner can cancel" }] });
+    const invoker: ActionInvoker = async () => {
+      throw new Error("actionInvoker must not be called");
+    };
+    const primitive = makeCallablePrimitive<CancelOrderParams, CancelOrderResult>(
+      engine,
+      "POST /actions/cancel-order",
+      descriptor,
+      invoker,
+    );
+
+    const error = await primitive.run({ order_id: 7 }).catch((e: unknown) => e);
+    expect(error).not.toBeInstanceOf(AoaResolveError);
+    expect((error as Error).message).toContain("only the owner can cancel");
+  });
+
+  it("run() throws AoaResolveError for FailErrorVerdict, same as can() -- never a synthetic deny, no actionInvoker call", async () => {
+    const engine = makeEngine({ version: 1, results: [{ kind: "FailErrorVerdict", reason: "UNKNOWN_ENDPOINT" }] });
+    const invoker: ActionInvoker = async () => {
+      throw new Error("actionInvoker must not be called");
+    };
+    const primitive = makeCallablePrimitive<CancelOrderParams, CancelOrderResult>(
+      engine,
+      "POST /actions/cancel-order",
+      descriptor,
+      invoker,
+    );
+
+    const error = await primitive.run({ order_id: 7 }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(AoaResolveError);
+    expect((error as AoaResolveError).reason).toBe("UNKNOWN_ENDPOINT");
+  });
+});

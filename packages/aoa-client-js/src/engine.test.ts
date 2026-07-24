@@ -22,7 +22,13 @@ function fakeResponse(body: unknown, init?: { status?: number; contentType?: str
 
 function makeEngine(
   fetchImpl: typeof fetch,
-  transportOverrides?: Partial<{ headers: Record<string, string>; generateTraceId: () => string }>,
+  transportOverrides?: Partial<{
+    headers: Record<string, string>;
+    generateTraceId: () => string;
+    clock: () => number;
+    cache: { ttlMs?: number };
+    cachePartition: string;
+  }>,
 ): AoaEngine {
   return new AoaEngine({
     transport: { baseUrl: "https://example.test", fetchImpl, cachePartition: "user:1", ...transportOverrides },
@@ -278,6 +284,110 @@ describe("AoaEngine.resolve -- header merging", () => {
 
     expect(capturedAuth).toBe("Bearer token123");
     expect(capturedTraceId).toBe("t-1");
+  });
+});
+
+describe("AoaEngine.resolve -- cache (chapter 5.5 prerequisite, issue #157)", () => {
+  it("a second identical call within the TTL is served from cache -- only one network call happens", async () => {
+    let networkCallCount = 0;
+    const fetchImpl = (async () => {
+      networkCallCount += 1;
+      return fakeResponse({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    }) as typeof fetch;
+    const engine = makeEngine(fetchImpl);
+
+    await expect(engine.resolve(oneItem)).resolves.toEqual([{ kind: "AllowedVerdict" }]);
+    await expect(engine.resolve(oneItem)).resolves.toEqual([{ kind: "AllowedVerdict" }]);
+
+    expect(networkCallCount).toBe(1);
+  });
+
+  it("skipCache always hits the network, even with a fresh cache entry, and still updates the cache", async () => {
+    let networkCallCount = 0;
+    const fetchImpl = (async () => {
+      networkCallCount += 1;
+      return fakeResponse({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    }) as typeof fetch;
+    const engine = makeEngine(fetchImpl);
+
+    await engine.resolve(oneItem); // network call #1, populates the cache
+    await engine.resolve(oneItem); // cache hit, no network call
+    await engine.resolve(oneItem, { skipCache: true }); // forced network call #2, despite a fresh entry
+    await engine.resolve(oneItem); // cache hit again (skipCache wrote the fresh answer through)
+
+    expect(networkCallCount).toBe(2);
+  });
+
+  it("a cache miss for one item in a batch still returns both items, merged in the original order", async () => {
+    const cachedItem = { operation: "GET /orders", params: { page: 1 } };
+    const freshItem = { operation: "POST /actions/cancel-order", params: { order_id: 7 } };
+    let capturedNetworkItems: unknown;
+    // Distinct verdicts per operation, not one fixed response -- so the assertion below
+    // can only pass if the cached answer and the fresh answer both survive untouched,
+    // rather than one accidentally being a copy of the other.
+    const fetchImpl = (async (_url: string, init: RequestInit) => {
+      const requestItems = JSON.parse(init.body as string).items as Array<{ operation: string }>;
+      capturedNetworkItems = requestItems;
+      const results = requestItems.map((item) =>
+        item.operation === cachedItem.operation
+          ? { kind: "AllowedVerdict" as const }
+          : { kind: "FailSecurityVerdict" as const, reason: "no access to this order" },
+      );
+      return fakeResponse({ version: 1, results });
+    }) as typeof fetch;
+    const engine = makeEngine(fetchImpl);
+    await engine.resolve([cachedItem]); // primes the cache with AllowedVerdict for cachedItem only
+
+    const results = await engine.resolve([cachedItem, freshItem]);
+
+    expect(capturedNetworkItems).toEqual([freshItem]); // only the miss went over the wire
+    expect(results).toEqual([{ kind: "AllowedVerdict" }, { kind: "FailSecurityVerdict", reason: "no access to this order" }]);
+  });
+
+  it("FailErrorVerdict is never cached -- an identical follow-up call goes to the network again", async () => {
+    let networkCallCount = 0;
+    const fetchImpl = (async () => {
+      networkCallCount += 1;
+      return fakeResponse({ version: 1, results: [{ kind: "FailErrorVerdict", reason: "UNKNOWN_ENDPOINT" }] });
+    }) as typeof fetch;
+    const engine = makeEngine(fetchImpl);
+
+    await engine.resolve(oneItem);
+    await engine.resolve(oneItem);
+
+    expect(networkCallCount).toBe(2);
+  });
+
+  it("an entry past its TTL is refetched instead of served stale", async () => {
+    let networkCallCount = 0;
+    const fetchImpl = (async () => {
+      networkCallCount += 1;
+      return fakeResponse({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    }) as typeof fetch;
+    let now = 0;
+    const engine = makeEngine(fetchImpl, { clock: () => now, cache: { ttlMs: 1_000 } });
+
+    await engine.resolve(oneItem);
+    now += 1_000; // exactly at the TTL boundary -- staleAt itself must not still count as fresh
+    await engine.resolve(oneItem);
+
+    expect(networkCallCount).toBe(2);
+  });
+
+  it("a custom ttlMs from transport.cache is honored, not a hardcoded default", async () => {
+    let networkCallCount = 0;
+    const fetchImpl = (async () => {
+      networkCallCount += 1;
+      return fakeResponse({ version: 1, results: [{ kind: "AllowedVerdict" }] });
+    }) as typeof fetch;
+    let now = 0;
+    const engine = makeEngine(fetchImpl, { clock: () => now, cache: { ttlMs: 10_000 } });
+
+    await engine.resolve(oneItem);
+    now += 5_000; // well past the 3s default, but inside this engine's own 10s ttlMs
+    await engine.resolve(oneItem);
+
+    expect(networkCallCount).toBe(1);
   });
 });
 
