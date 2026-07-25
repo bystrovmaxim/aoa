@@ -241,6 +241,12 @@ class BaseAction[P: BaseParams, R: BaseResult](
         connection) — the machine turns that into a ``FailErrorVerdict``, not a denial,
         on the check-only path; on the real ``machine.run()`` path it still blocks
         execution, same as any non-``AllowedVerdict`` outcome.
+
+        Raising ``AuthorizationError`` by hand to deny is **not** supported, even though it
+        is the exception the cascade itself raises: one built here carries no ``verdict=``,
+        so ``check_access_decide`` cannot tell it from a crash and reports
+        ``FailErrorVerdict("EVALUATION_FAILED")`` — the denial simply does not arrive. Return
+        a ``FailSecurityVerdict`` instead (audit-11 finding 1).
         """
         # pylint: disable-next=import-outside-toplevel
         from aoa.action_machine.intents.access_control import AllowedVerdict  # see TYPE_CHECKING note above

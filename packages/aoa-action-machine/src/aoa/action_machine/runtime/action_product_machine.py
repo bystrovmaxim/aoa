@@ -665,7 +665,15 @@ class ActionProductMachine(BaseActionMachine):
         since there is no real execution here to abort: whatever ``access_decide`` returns
         (``AllowedVerdict``/``FailSecurityVerdict``) *is* the answer for that item, no exception
         involved. A role/guard denial (``AuthorizationError`` from ``RoleChecker``) reports
-        ``exc.verdict`` — always set by ``RoleChecker`` (see its own module docstring).
+        ``exc.verdict`` — always set by ``RoleChecker`` (see its own module docstring). An
+        ``AuthorizationError`` *without* a verdict is not a denial at all: nothing decided
+        anything, so it joins the crash path below rather than becoming a
+        ``FailSecurityVerdict`` built from ``str(exc)``. That fallback used to exist and was
+        the one way both of this method's guarantees could be bypassed at once — the message
+        is free-form text that can differ per object (an oracle), and calling it a *denial*
+        makes it cacheable, so an infrastructure hiccup would be remembered as a permanent
+        "no" (audit-11 finding 1). Raising ``AuthorizationError`` from inside ``access_decide``
+        is therefore not a supported way to deny — return a ``FailSecurityVerdict`` instead.
         Anything else raised while evaluating that item (a bug in its ``access_decide``, an
         unreachable connection) becomes ``FailErrorVerdict("EVALUATION_FAILED")`` — not a
         denial, and never cached as one, since the check itself failed rather than producing
@@ -695,7 +703,10 @@ class ActionProductMachine(BaseActionMachine):
                         item_instance, await item_instance.access_decide(item_params, context, box, conns)
                     )
                 except AuthorizationError as exc:
-                    verdicts.append(exc.verdict if exc.verdict is not None else FailSecurityVerdict(str(exc)))
+                    # No verdict means no decision was ever reached -- fall through to the
+                    # same "could not check" answer as any other crash, never str(exc).
+                    # See the docstring above (audit-11 finding 1).
+                    verdicts.append(exc.verdict if exc.verdict is not None else FailErrorVerdict("EVALUATION_FAILED"))
                 except Exception:
                     # This item's own failure must not abort the rest of the list, and must not
                     # be mistaken for a real denial — the check itself failed, it did not run

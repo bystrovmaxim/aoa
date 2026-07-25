@@ -12,7 +12,8 @@ from pydantic import Field
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
+from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.intents.access_control import AllowedVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -34,6 +35,7 @@ _access_decide_calls = {"n": 0}
 _access_decide_result = {"value": True}
 _guard_result = {"value": True}
 _raise_for_keys: set[str] = set()
+_raise_bare_authz_for_keys: set[str] = set()
 _guard_deny_keys: set[str] = set()
 _access_decide_deny_keys: set[str] = set()
 _access_decide_unexpected_keys: set[str] = set()
@@ -52,6 +54,7 @@ def _reset() -> None:
     _access_decide_result["value"] = True
     _guard_result["value"] = True
     _raise_for_keys.clear()
+    _raise_bare_authz_for_keys.clear()
     _guard_deny_keys.clear()
     _access_decide_deny_keys.clear()
     _access_decide_unexpected_keys.clear()
@@ -85,6 +88,10 @@ class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.R
         _access_decide_calls["n"] += 1
         if params.key in _raise_for_keys:
             raise RuntimeError(f"boom for key={params.key!r}")
+        if params.key in _raise_bare_authz_for_keys:
+            # An AuthorizationError raised by hand, with no verdict= -- the one shape
+            # RoleChecker never produces, so nothing downstream fills the verdict in.
+            raise AuthorizationError(f"order {params.key} not found in orders_db (owner bob@corp.com)")
         if params.key in _access_decide_unexpected_keys:
             return None  # type: ignore[return-value]  # simulates a forgotten `return` in a real override
         if not _access_decide_result["value"] or params.key in _access_decide_deny_keys:
@@ -236,6 +243,68 @@ async def test_one_failing_item_does_not_affect_the_others(machine: ActionProduc
     # failure reason would itself be a probing surface (oracle safety).
     assert verdicts[1].reason == "EVALUATION_FAILED"
     assert verdicts[2] == AllowedVerdict()
+
+
+async def test_bare_authorization_error_never_carries_its_own_text_to_the_wire(
+    machine: ActionProductMachine,
+) -> None:
+    """audit-11 finding 1: an AuthorizationError raised without verdict= must not become a
+    FailSecurityVerdict built from str(exc).
+
+    Two guarantees break at once if it does: the message is free-form developer text that can
+    differ per object (an oracle, exactly what FORBIDDEN_OBJECT closes), and classifying it as
+    a *denial* makes it cacheable -- an infrastructure hiccup would be remembered as a
+    permanent "no" for the whole TTL."""
+    _reset()
+    _raise_bare_authz_for_keys.add("B")
+    verdicts = await machine.check_access_decide(
+        _admin_context(),
+        [
+            (CheckProbeAction, CheckProbeAction.Params(key="A")),
+            (CheckProbeAction, CheckProbeAction.Params(key="B")),
+            (CheckProbeAction, CheckProbeAction.Params(key="C")),
+        ],
+    )
+    assert verdicts[0] == AllowedVerdict()
+    # No decision was ever reached, so this is "could not check", not "no".
+    assert isinstance(verdicts[1], FailErrorVerdict)
+    assert verdicts[1].reason == "EVALUATION_FAILED"
+    assert verdicts[2] == AllowedVerdict()
+
+    # The raised text -- object id and an unrelated user's e-mail -- stays server-side.
+    assert "orders_db" not in verdicts[1].reason
+    assert "bob@corp.com" not in verdicts[1].reason
+    assert "B" not in verdicts[1].reason
+
+
+async def test_bare_authorization_error_is_indistinguishable_across_objects(
+    machine: ActionProductMachine,
+) -> None:
+    """audit-11 finding 1, the oracle half: two different objects that both raise a bare
+    AuthorizationError must answer byte-identically, or the message text becomes a probe."""
+    _reset()
+    _raise_bare_authz_for_keys.update({"MISSING-1", "ORD-alice-7"})
+    verdicts = await machine.check_access_decide(
+        _admin_context(),
+        [
+            (CheckProbeAction, CheckProbeAction.Params(key="MISSING-1")),
+            (CheckProbeAction, CheckProbeAction.Params(key="ORD-alice-7")),
+        ],
+    )
+    assert verdicts[0].model_dump() == verdicts[1].model_dump()
+    assert verdicts[0].model_dump() == {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"}
+
+
+async def test_role_denial_still_reports_the_checkers_own_verdict(machine: ActionProductMachine) -> None:
+    """audit-11 finding 1 must not regress the normal path: an AuthorizationError that *does*
+    carry a verdict (every one RoleChecker raises) still reports that verdict as a denial."""
+    _reset()
+    verdicts = await machine.check_access_decide(
+        Context(user=UserInfo(user_id="u1", roles=(ManagerRole,))),
+        [(CheckProbeAction, CheckProbeAction.Params(key="A"))],
+    )
+    assert isinstance(verdicts[0], FailSecurityVerdict)
+    assert verdicts[0].reason == "FORBIDDEN_ROLE"
 
 
 async def test_access_decide_returning_unexpected_value_becomes_isolated_fail_error_verdict(
