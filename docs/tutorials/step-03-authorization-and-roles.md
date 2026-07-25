@@ -1,4 +1,4 @@
-<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-25T19:42:13Z (filesystem mtime; draft is gitignored, no git history) · sha256:9dc4772bbdc6 -->
+<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-25T20:00:44Z (filesystem mtime; draft is gitignored, no git history) · sha256:08e1b7ef0376 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -237,7 +237,7 @@ By default (on `BaseAction`), `access_decide` returns `AllowedVerdict()` — lev
 
 Two rules for `access_decide` itself, when it looks at a specific object (not just the caller's role):
 
-- **"No such object" and "belongs to someone else" must answer identically.** If they differ by reason text, an outsider probing IDs learns which objects exist for other users — the server becomes an **oracle** without meaning to. The ready-made, reusable value for this is `FORBIDDEN_OBJECT` (`aoa.action_machine.intents.access_control`, the same `FailSecurityVerdict` as everywhere else, just with a fixed reason). Full example — `CancelOrderAction` in `aoa-demo`.
+- **"No such object" and "belongs to someone else" must answer identically.** If they differ by reason text, an outsider probing IDs learns which objects exist for other users — the server becomes an **oracle** without meaning to. The ready-made, reusable value for this is `FORBIDDEN_OBJECT` (`aoa.action_machine.intents.access_control`, the same `FailSecurityVerdict` as everywhere else, just with a fixed reason). Full example — `CancelOrderAction` in `aoa-demo`; a runnable one covering all four cases side by side is [`10_object_level_generic_deny_and_honest_error.py`](../../examples/step_27_ui_permissions_resolve/10_object_level_generic_deny_and_honest_error.py) (and its client-side twin, [`05_object_level_generic_deny_and_honest_error.ts`](../../examples/step_27_ui_permissions_client/05_object_level_generic_deny_and_honest_error.ts)).
 - **A crash inside the check is not a denial.** If the check itself breaks (the database falls over, a bug), that is not "no" — it is "could not check": `FailErrorVerdict("EVALUATION_FAILED")`. Treating a crash as a denial lies to the caller (nothing was actually checked) and reopens the same hole: "a real denial" and "a crash" become distinguishable by the response again.
 
 **Run:**

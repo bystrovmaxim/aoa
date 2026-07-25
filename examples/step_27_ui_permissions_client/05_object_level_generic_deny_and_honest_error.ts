@@ -1,6 +1,7 @@
-// examples/step_27_ui_permissions_resolve/11_object_level_generic_deny_and_honest_error.ts
+// examples/step_27_ui_permissions_client/05_object_level_generic_deny_and_honest_error.ts
 //
-// The same two rules as 10_object_level_generic_deny_and_honest_error.py,
+// The same two rules as
+// ../step_27_ui_permissions_resolve/10_object_level_generic_deny_and_honest_error.py,
 // from the client's side of the wire:
 // (1) "no such object" and "belongs to someone else" must look identical --
 // foreign and missing print the exact same {kind, reason} below; (2) a crash
