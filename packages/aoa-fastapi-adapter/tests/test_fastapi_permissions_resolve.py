@@ -29,6 +29,8 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.intents.access_control import FailSecurityVerdict
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
 from aoa.fastapi.reserved_route_path_error import ReservedRoutePathError
@@ -613,3 +615,74 @@ class TestParamsMapperIsolation:
             json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": "abc"}}]},
         )
         assert response.status_code == 400
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# prepare() failures stay per-operation (narrow-audit finding 3)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestPreparationIsolation:
+    """``plan.prepare()`` runs app code too -- a route's own ``auth_coordinator`` and its
+    connection factories -- and only ``AuthorizationError`` was caught around it.
+
+    Anything else escaped the resolver entirely and answered the whole request with a
+    500 and no results, the same "one bad item sinks the batch" outcome the mapper
+    handler was added to prevent one frame below.
+    """
+
+    _BATCH = {
+        "version": 1,
+        "items": [
+            {"operation": "GET /actions/ping", "params": {}},
+            {"operation": "POST /actions/cancel-order", "params": {"order_id": 7}},
+            {"operation": "GET /actions/ping", "params": {}},
+        ],
+    }
+    _ISOLATED = [
+        {"kind": "AllowedVerdict"},
+        {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"},
+        {"kind": "AllowedVerdict"},
+    ]
+
+    def _client(self, **cancel_kwargs: object) -> TestClient:
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+        adapter.post("/actions/cancel-order", CancelOrderAction, **cancel_kwargs)  # type: ignore[arg-type]
+        adapter.get("/actions/ping", PingAction)
+        return TestClient(adapter.build(), raise_server_exceptions=False)
+
+    def test_a_route_auth_coordinator_that_crashes_does_not_sink_the_batch(self) -> None:
+        exploding_auth = AsyncMock()
+        exploding_auth.process.side_effect = RuntimeError("token service unreachable for bob@corp.com")
+        response = self._client(auth_coordinator=exploding_auth).post("/permissions/resolve", json=self._BATCH)
+
+        assert response.status_code == 200
+        assert response.json()["results"] == self._ISOLATED
+        assert "bob@corp.com" not in response.text
+        assert "token service" not in response.text
+
+    def test_a_connection_factory_that_crashes_does_not_sink_the_batch(self) -> None:
+        def exploding_factory() -> BaseResource:
+            raise ConnectionError("orders_db unreachable")
+
+        response = self._client(connections={"orders_db": PerCallConnection(factory=exploding_factory)}).post(
+            "/permissions/resolve", json=self._BATCH
+        )
+
+        assert response.status_code == 200
+        assert response.json()["results"] == self._ISOLATED
+        assert "orders_db" not in response.text
+
+    def test_a_route_level_auth_rejection_is_still_a_denial_not_a_failure(self) -> None:
+        """Regression guard: AuthorizationError from prepare() keeps its own, distinct
+        answer -- UNAUTHORIZED, a denial -- and must not be swallowed by the new broad
+        handler sitting next to it."""
+        rejecting_auth = AsyncMock()
+        rejecting_auth.process.side_effect = AuthorizationError("Authentication required")
+        response = self._client(auth_coordinator=rejecting_auth).post("/permissions/resolve", json=self._BATCH)
+
+        assert response.status_code == 200
+        assert response.json()["results"][1] == {"kind": "FailSecurityVerdict", "reason": "UNAUTHORIZED"}

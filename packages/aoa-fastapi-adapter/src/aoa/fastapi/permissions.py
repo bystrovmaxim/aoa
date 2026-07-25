@@ -137,6 +137,7 @@ async def resolve_verdicts(
     machine: ActionProductMachine,
     *,
     unauthorized_operations: frozenset[str] = frozenset(),
+    unpreparable_operations: frozenset[str] = frozenset(),
 ) -> ResolveOutcome:
     """
     Resolve one verdict per ``items`` entry, deduplicating and isolating per-item errors.
@@ -176,6 +177,7 @@ async def resolve_verdicts(
     for the whole batch. Every operation reachable from ``items`` that has a matching
     entry in ``plan_index`` is expected to already have an entry in
     ``prepared_by_operation``, *unless* it is also named in ``unauthorized_operations``
+    or ``unpreparable_operations``
     (``prepare`` raised instead of returning) — this function only looks
     ``prepared_by_operation`` up, it never calls ``prepare`` itself (it has no
     ``Request`` to call it with).
@@ -199,6 +201,17 @@ async def resolve_verdicts(
 
         if item.operation in unauthorized_operations:
             synthetic[key] = _UNAUTHORIZED_VERDICT
+            continue
+
+        if item.operation in unpreparable_operations:
+            # ``prepare()`` raised something other than AuthorizationError -- a route's
+            # own auth_coordinator or one of its connection factories, both app code,
+            # failed outright. Nothing was decided for this operation, so its items get
+            # the same "could not check" answer a crashed access_decide gets. Isolated
+            # here rather than left to propagate: unprotected, one such failure answered
+            # the whole request with a 500 and no results at all, which is precisely what
+            # the per-item isolation contract rules out (narrow-audit finding 3).
+            synthetic[key] = _EVALUATION_FAILED_VERDICT
             continue
 
         req_model = cast(type[BaseModel], plan.record.effective_request_model)

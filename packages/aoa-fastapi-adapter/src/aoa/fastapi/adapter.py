@@ -1235,6 +1235,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
             prepared_by_operation: dict[str, PreparedEndpointContext] = {}
             unauthorized_operations: set[str] = set()
+            unpreparable_operations: set[str] = set()
             for operation in {item.operation for item in body.items}:
                 plan = plan_index.get(operation)
                 if plan is None:
@@ -1250,6 +1251,17 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                     # which *is* whole-request by design (identity is not established at
                     # all yet at that point, so there is no per-item granularity to keep).
                     unauthorized_operations.add(operation)
+                except Exception:  # pylint: disable=broad-exception-caught
+                    # prepare() runs app code -- the route's own auth_coordinator and its
+                    # connection factories -- so it can fail outright rather than decide.
+                    # Only AuthorizationError was caught here, so any other failure left
+                    # this handler and answered the whole request with a 500 and no
+                    # results: one unreachable connection factory sinking a batch of
+                    # twenty, the outcome per-item isolation exists to rule out
+                    # (narrow-audit finding 3). Isolated to this operation's own
+                    # positions as EVALUATION_FAILED via resolve_verdicts -- nothing was
+                    # decided for it, and the failure's own text stays server-side.
+                    unpreparable_operations.add(operation)
 
             outcome = await resolve_verdicts(
                 body.items,
@@ -1257,6 +1269,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 prepared_by_operation,
                 machine,
                 unauthorized_operations=frozenset(unauthorized_operations),
+                unpreparable_operations=frozenset(unpreparable_operations),
             )
             return ResolveResponse(version=SUPPORTED_VERSION, results=outcome.results)
 
