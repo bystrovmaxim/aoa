@@ -266,15 +266,20 @@ async def test_bare_authorization_error_never_carries_its_own_text_to_the_wire(
         ],
     )
     assert verdicts[0] == AllowedVerdict()
-    # No decision was ever reached, so this is "could not check", not "no".
-    assert isinstance(verdicts[1], FailErrorVerdict)
-    assert verdicts[1].reason == "EVALUATION_FAILED"
     assert verdicts[2] == AllowedVerdict()
 
-    # The raised text -- object id and an unrelated user's e-mail -- stays server-side.
-    assert "orders_db" not in verdicts[1].reason
-    assert "bob@corp.com" not in verdicts[1].reason
-    assert "B" not in verdicts[1].reason
+    # No decision was ever reached, so this is "could not check", not "no" -- and the
+    # whole serialized verdict is pinned, not just its reason. That is what makes the
+    # leak impossible rather than merely absent: any extra field, or any text carried
+    # over from the raised message, changes this dict.
+    #
+    # It replaces three `not in` checks that could not fail: `reason` was already
+    # asserted equal to the literal one line above, so nothing was left to vary. Worse,
+    # `assert "B" not in reason` (B being the probe key) passed by luck -- with a probe
+    # key of "A", "D", "E", "F" or "L" it would have failed against completely correct
+    # code, since those letters occur in "EVALUATION_FAILED" (narrow-audit finding 10).
+    assert isinstance(verdicts[1], FailErrorVerdict)
+    assert verdicts[1].model_dump() == {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"}
 
 
 async def test_bare_authorization_error_is_indistinguishable_across_objects(
