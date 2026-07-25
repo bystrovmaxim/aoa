@@ -107,9 +107,15 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
         purpose — see ``FORBIDDEN_OBJECT``'s own docstring for why a separate
         "does it exist" step followed by a separate "is it yours" step is the
         wrong shape here, even though both currently return the same verdict.
+        Once ownership is confirmed, a more specific reason (e.g. "already
+        cancelled") is safe to reveal: the caller has already proven this is
+        their own order, so a specific reason no longer helps them enumerate
+        anyone else's.
         """
         if params.order_id.startswith("MISSING-") or params.owner_user_id != context.user.user_id:
             return FORBIDDEN_OBJECT
+        if params.order_id.startswith("CANCELLED-"):
+            return FailSecurityVerdict("order is already cancelled")
         return AllowedVerdict()
 
     @summary_aspect("Cancel the order")

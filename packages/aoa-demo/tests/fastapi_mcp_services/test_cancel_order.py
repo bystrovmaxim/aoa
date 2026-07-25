@@ -8,7 +8,7 @@ import pytest
 from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError
-from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
+from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.demo.fastapi_mcp_services.actions.cancel_order import CancelOrderAction, CustomerRole
 
@@ -53,6 +53,34 @@ async def test_anonymous_caller_denied_level_1(machine: ActionProductMachine) ->
         await machine.run(Context(), CancelOrderAction(), _own_order_params())
     assert exc_info.value.level == 1
     assert exc_info.value.reason == "FORBIDDEN_ROLE"
+
+
+async def test_missing_order_gives_identical_verdict_to_foreign_order(machine: ActionProductMachine) -> None:
+    """Oracle safety: "doesn't exist" and "exists but isn't yours" must be indistinguishable."""
+    missing_params = CancelOrderAction.Params(order_id="MISSING-1", owner_user_id="alice")
+    missing = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, missing_params)
+
+    foreign = await machine.check_access_decide(_customer_context("bob"), CancelOrderAction, _own_order_params())
+
+    # Not just equal reason text -- the exact same shared verdict object, so the
+    # two cases can never accidentally drift apart on the wire.
+    assert missing is FORBIDDEN_OBJECT
+    assert foreign is FORBIDDEN_OBJECT
+    assert missing.model_dump() == foreign.model_dump()
+
+
+async def test_specific_reason_visible_only_to_confirmed_owner(machine: ActionProductMachine) -> None:
+    """A more specific denial reason is safe only once ownership is already confirmed."""
+    own_cancelled = CancelOrderAction.Params(order_id="CANCELLED-1", owner_user_id="alice")
+    own = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, own_cancelled)
+    assert isinstance(own, FailSecurityVerdict)
+    assert own.reason == "order is already cancelled"
+
+    # A non-owner probing the same order_id learns nothing beyond FORBIDDEN_OBJECT --
+    # the specific "already cancelled" reason never reaches someone who hasn't
+    # already proven ownership.
+    foreign_cancelled = await machine.check_access_decide(_customer_context("bob"), CancelOrderAction, own_cancelled)
+    assert foreign_cancelled is FORBIDDEN_OBJECT
 
 
 async def test_check_access_decide_matches_run_semantics(machine: ActionProductMachine) -> None:
