@@ -248,7 +248,10 @@ class TestExceptionHandlers:
     """Maps ``AuthorizationError`` → 403 and ``ValidationFieldError`` → 422."""
 
     def test_authorization_error_returns_403(self) -> None:
-        """``AuthorizationError`` from ``machine.run`` becomes HTTP 403."""
+        """``AuthorizationError`` from ``machine.run`` becomes HTTP 403.
+
+        A verdict-less error has no declared reason, so ``detail`` is the fixed fallback
+        rather than the exception's own message (narrow-audit finding 1)."""
         # Arrange
         adapter, _ = _make_app(
             run_side_effect=AuthorizationError("access denied"),
@@ -262,7 +265,36 @@ class TestExceptionHandlers:
 
         # Assert
         assert response.status_code == 403
-        assert "access denied" in response.json()["detail"]
+        assert response.json()["detail"] == "FORBIDDEN"
+
+    def test_authorization_error_never_puts_its_own_message_in_the_body(self) -> None:
+        """narrow-audit finding 1: the run() path used to answer 403 with ``str(exc)``.
+
+        An action raising AuthorizationError by hand can put anything in that message --
+        including text that differs per object, which is exactly the oracle
+        FORBIDDEN_OBJECT closes on the check path. Two different objects must produce
+        byte-identical bodies here too, or the guarantee holds only until the user
+        actually presses the button."""
+        # Arrange
+        bodies = []
+        for order_id in ("MISSING-1", "ORD-alice-7"):
+            adapter, _ = _make_app(
+                run_side_effect=AuthorizationError(f"order {order_id} not found in orders_db (owner bob@corp.com)"),
+            )
+            adapter.post("/ping", PingAction)
+            client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+            # Act
+            response = client.post("/ping", json={})
+
+            # Assert
+            assert response.status_code == 403
+            assert order_id not in response.text
+            assert "orders_db" not in response.text
+            assert "bob@corp.com" not in response.text
+            bodies.append(response.text)
+
+        assert bodies[0] == bodies[1]
 
     def test_authorization_error_surfaces_reason_and_level(self) -> None:
         """A real .call() denial (not just a resolver .can() prediction) must carry the
@@ -285,7 +317,10 @@ class TestExceptionHandlers:
         body = response.json()
         assert body["reason"] == "order is locked"
         assert body["level"] == 2
-        assert "guard=" in body["detail"]
+        # `detail` carries the declared reason, not the exception's message: the message
+        # here mentions `guard=`, an internal cascade detail (narrow-audit finding 1).
+        assert body["detail"] == "order is locked"
+        assert "guard=" not in response.text
 
     def test_authorization_error_without_reason_or_level_surfaces_null(self) -> None:
         """An entry-gate failure (e.g. "Authentication required") sets neither -- the

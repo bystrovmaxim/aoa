@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`CancelOrderAction` in `fastapi_mcp_services.orders_domain` — the full access-control cascade in one action.** Demonstrates `grant(CustomerRole)` (role), `guard=` (a `"LOCKED-"`-prefixed order can't be cancelled by anyone), and `access_decide` (a customer may only cancel their own order) together, exercised via both `machine.run` and `machine.check_access_decide`. ([#65](https://github.com/bystrovmaxim/aoa/issues/65))
+- **`CancelOrderAction` in `fastapi_mcp_services.orders_domain` — the full access-control cascade in one action.** Demonstrates `grant(CustomerRole)` (role), `guard=` (a `"LOCKED-"`-prefixed order can't be cancelled by anyone), and `access_decide` (a customer may only cancel their own order) together, exercised via both `machine.run` and `machine.check_access_decide`. ([#65](https://github.com/bystrovmaxim/aoa/issues/65)) Level 3 later became the reference usage of the shared `FORBIDDEN_OBJECT` verdict: "no such order" and "someone else's order" answer identically, and the owner is read from a module-level `_ORDERS` table rather than taken from `Params` — an earlier version accepted `owner_user_id` in the request, which let a caller simply claim any order. ([#159](https://github.com/bystrovmaxim/aoa/issues/159))
 
 ## [1.0.0] – 2026-06-27
 

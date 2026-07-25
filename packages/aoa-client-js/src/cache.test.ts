@@ -46,6 +46,15 @@ describe("isCacheableVerdict", () => {
     ["AllowedVerdict", { kind: "AllowedVerdict" }, true],
     ["FailSecurityVerdict", { kind: "FailSecurityVerdict", reason: "no access" }, true],
     ["FailErrorVerdict", { kind: "FailErrorVerdict", reason: "UNKNOWN_ENDPOINT" }, false],
+    // The server's other FailErrorVerdict reason: a crash inside access_decide.
+    // Cacheability keys off `kind`, so this holds for every reason -- but the
+    // guarantee is claimed specifically for EVALUATION_FAILED in three places
+    // (chapter 11 task 1.3(c), the machine's docstring, the CHANGELOG), and was
+    // pinned by none of them (audit-11 finding 8).
+    ["FailErrorVerdict/EVALUATION_FAILED", { kind: "FailErrorVerdict", reason: "EVALUATION_FAILED" }, false],
+    // A denial with the shared object-level reason stays cacheable -- it is a
+    // real answer, unlike the two above.
+    ["FailSecurityVerdict/FORBIDDEN_OBJECT", { kind: "FailSecurityVerdict", reason: "FORBIDDEN_OBJECT" }, true],
   ])("%s -> %s", (_label, verdict, expected) => {
     expect(isCacheableVerdict(verdict)).toBe(expected);
   });

@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Final
 
 from pydantic import ConfigDict, Field
 
@@ -57,6 +57,27 @@ class BaseVerdict(BaseSchema):
     changes, neither claim above holds for that call site (baseverdict-audit finding
     5, third document — this paragraph is that finding's resolution, extended to
     cover ``kind`` spoofing as a consequence of closing findings 4/6).
+
+    **Shared instances raise the stakes of that caveat.** ``FORBIDDEN_OBJECT`` below
+    is the first *public* module-level verdict (``FORBIDDEN_ROLE``/``UNKNOWN_ENDPOINT``
+    and friends are private to their modules), and callers are expected to compare it
+    by identity — ``verdict is FORBIDDEN_OBJECT``. All five mutation routes were
+    checked against it (audit-11 finding 14). ``setattr`` is blocked by
+    ``frozen=True``; ``model_copy(update=...)`` and ``model_construct(...)``, the two
+    escape hatches named above, are *safe here specifically* — they build and return a
+    **new** object, leaving the shared one intact. The two that do get through are
+    ``FORBIDDEN_OBJECT.__dict__["reason"] = ...`` and
+    ``object.__setattr__(FORBIDDEN_OBJECT, "reason", ...)``: both mutate the module-level
+    instance for the entire process, so every future denial silently carries the new
+    text. Neither idiom is exotic in this repository — both appear in production code
+    (``context_view.py``, ``base_graph_edge.py``, ``route_record.py``) — they are simply
+    never aimed at a verdict. Do not aim them here.
+
+    ``Final`` is an annotation, not a runtime lock: rebinding
+    ``access_verdict.FORBIDDEN_OBJECT`` is not blocked either, and would not reach the
+    already-bound re-export in ``access_control/__init__.py`` — leaving two diverging
+    constants and quietly breaking every ``is`` comparison against the stale one. A test
+    pins that the export and the definition are the same object.
 
     Abstract by construction, not by convention: raises ``TypeError`` if
     ``type(self) is BaseVerdict``, checked in both ``__init__`` (the normal
@@ -143,16 +164,49 @@ class FailSecurityVerdict(BaseVerdict):
         super().__init__(reason=reason, **kwargs)
 
 
+# Shared, reusable denial for "no such object" and "object belongs to someone
+# else" in an access_decide() implementation. Both cases must answer with this
+# exact same instance, not two separate FailSecurityVerdict("...") calls with
+# different text -- otherwise the reason string itself becomes an oracle for
+# which object IDs exist. See CancelOrderAction.access_decide (aoa-demo) for a
+# real usage.
+#
+# Check existence and ownership in ONE branch, not two steps. Writing
+#
+#     if order is None:            return FORBIDDEN_OBJECT   # step 1
+#     if order.owner != caller:    return FORBIDDEN_OBJECT   # step 2
+#
+# returns the same verdict today and is still the wrong shape, for two reasons:
+#
+#   * Two branches drift. They are edited at different times for different
+#     reasons, and the moment someone makes one of them more specific -- which
+#     reads like a harmless improvement, since ownership is not in question on
+#     the "missing" path -- the pair stops being indistinguishable. One combined
+#     condition cannot drift apart from itself.
+#   * Two branches take measurably different work. Step 1 returns without ever
+#     touching the ownership comparison (and, in a real action, often without
+#     the extra lookup that comparison needs), so "missing" answers sooner than
+#     "foreign" -- the same oracle, read off the clock instead of the text.
+#
+# Once ownership *is* confirmed, a more specific reason is safe: the caller has
+# proven the object is theirs, so a precise message tells them nothing about
+# anyone else's.
+FORBIDDEN_OBJECT: Final = FailSecurityVerdict("FORBIDDEN_OBJECT")
+
+
 class FailErrorVerdict(BaseVerdict):
     """
     The check itself could not be answered — not a denial, and must never be cached
     as one. Two sources: a structural "couldn't even route the question" (e.g.
     ``UNKNOWN_ENDPOINT`` — ``aoa-fastapi-adapter``, ``permissions.py``, an operation
     that never resolves to an action at all), or a genuinely unexpected exception
-    anywhere in the check path (``reason`` = ``type(exc).__name__``). Distinct from
-    ``FailSecurityVerdict`` on purpose: "we don't know" and "no" must stay
-    distinguishable, or a transient failure (a database hiccup during
-    ``access_decide()``) gets cached as a permanent, incorrect "no".
+    anywhere in the check path (``reason`` = the fixed ``"EVALUATION_FAILED"`` —
+    see ``ActionProductMachine.check_access_decide``, not the exception's own
+    type or message, for the same reason ``FORBIDDEN_OBJECT`` is one fixed value
+    rather than free text: a distinguishable failure reason is itself a probing
+    surface). Distinct from ``FailSecurityVerdict`` on purpose: "we don't know" and
+    "no" must stay distinguishable, or a transient failure (a database hiccup
+    during ``access_decide()``) gets cached as a permanent, incorrect "no".
 
     This classification only affects what a *check-only* caller
     (``machine.check_access_decide()``, the resolver) reports and caches. On the real

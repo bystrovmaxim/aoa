@@ -30,10 +30,18 @@ from .domain_model import (
     SystemDomain,
     TestDomain,
 )
-from .permissions_fixtures import CancelOrderAction, ManagerRole, UserRole
+from .permissions_fixtures import (
+    CRASHING_ORDER_ID,
+    ArchiveOrderAction,
+    CancelOrderAction,
+    ManagerRole,
+    UserRole,
+)
 
 __all__ = [
+    "CRASHING_ORDER_ID",
     "AdapterTestAction",
+    "ArchiveOrderAction",
     "CancelOrderAction",
     "DummyResourceManager",
     "EntityProjectionAdapterTestAction",

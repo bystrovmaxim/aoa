@@ -76,9 +76,10 @@ export class AoaResolveError extends Error {
 // entirely a client-side judgment call, the wire has no such concept.
 // TIMEOUT is transient, worth retrying. UNKNOWN_ENDPOINT and
 // EVALUATION_FAILED are durable configuration/logic failures, retrying
-// changes nothing. An unexpected exception's class name (when reason
-// doesn't match a known code) is treated the same way: an unplanned failure
-// has no basis for being assumed transient.
+// changes nothing. Any reason outside the known codes is treated the same
+// way: an unplanned failure has no basis for being assumed transient. (The
+// server sends only the closed set today -- an unknown reason means a newer
+// server, or something that is not our resolver at all.)
 export function isRetryableCheckError(reason: string): boolean {
   return reason === "TIMEOUT";
 }

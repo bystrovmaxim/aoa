@@ -1113,9 +1113,18 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             request: Request,
             exc: AuthorizationError,
         ) -> JSONResponse:
+            # ``detail`` carries the declared reason, never ``str(exc)``. The exception's
+            # message is free-form developer text: for a cascade-raised denial it is
+            # assembled from the reason anyway, but an action that raises
+            # AuthorizationError by hand can put anything in it -- including something
+            # that differs per object, which is the oracle FORBIDDEN_OBJECT closes on the
+            # check path. Closing it there and leaving it open here would mean the
+            # guarantee holds until the user actually presses the button
+            # (narrow-audit finding 1). A verdict-less error has no declared reason, so it
+            # falls back to a fixed string rather than borrowing the message.
             return JSONResponse(
                 status_code=403,
-                content={"detail": str(exc), "reason": exc.reason, "level": exc.level},
+                content={"detail": exc.reason or "FORBIDDEN", "reason": exc.reason, "level": exc.level},
             )
 
         @app.exception_handler(ValidationFieldError)
@@ -1165,7 +1174,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         ``auth_coordinator.process(request)`` (``403``) — see chapter 3.5 rules 7/8.
         Neither failure produces a ``results`` array at all; a per-item problem
         (unknown ``operation``, a failed check) never does either — it becomes a
-        ``CHECK_ERROR`` element inside an otherwise-normal ``200``.
+        ``FailErrorVerdict`` element inside an otherwise-normal ``200``.
 
         Always calls ``auth_coordinator.process(request)``; a ``403`` (via the
         existing ``AuthorizationError`` handler) follows only
@@ -1216,7 +1225,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         async def resolve(request: Request, body: ResolveRequest) -> ResolveResponse:
             # Whole-request checks first, in order: an unsupported wire language
             # (400) never even gets to prove its identity (401/403) — see chapter
-            # 3.5 rule 8. Both are all-or-nothing, unlike a per-item CHECK_ERROR.
+            # 3.5 rule 8. Both are all-or-nothing, unlike a per-item FailErrorVerdict.
             if body.version != SUPPORTED_VERSION:
                 raise UnsupportedVersionError(body.version, supported_version=SUPPORTED_VERSION)
 
@@ -1226,6 +1235,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
             prepared_by_operation: dict[str, PreparedEndpointContext] = {}
             unauthorized_operations: set[str] = set()
+            unpreparable_operations: set[str] = set()
             for operation in {item.operation for item in body.items}:
                 plan = plan_index.get(operation)
                 if plan is None:
@@ -1241,6 +1251,17 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                     # which *is* whole-request by design (identity is not established at
                     # all yet at that point, so there is no per-item granularity to keep).
                     unauthorized_operations.add(operation)
+                except Exception:  # pylint: disable=broad-exception-caught
+                    # prepare() runs app code -- the route's own auth_coordinator and its
+                    # connection factories -- so it can fail outright rather than decide.
+                    # Only AuthorizationError was caught here, so any other failure left
+                    # this handler and answered the whole request with a 500 and no
+                    # results: one unreachable connection factory sinking a batch of
+                    # twenty, the outcome per-item isolation exists to rule out
+                    # (narrow-audit finding 3). Isolated to this operation's own
+                    # positions as EVALUATION_FAILED via resolve_verdicts -- nothing was
+                    # decided for it, and the failure's own text stays server-side.
+                    unpreparable_operations.add(operation)
 
             outcome = await resolve_verdicts(
                 body.items,
@@ -1248,6 +1269,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 prepared_by_operation,
                 machine,
                 unauthorized_operations=frozenset(unauthorized_operations),
+                unpreparable_operations=frozenset(unpreparable_operations),
             )
             return ResolveResponse(version=SUPPORTED_VERSION, results=outcome.results)
 

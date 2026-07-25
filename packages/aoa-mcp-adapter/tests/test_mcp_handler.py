@@ -87,6 +87,7 @@ from pydantic import BaseModel, Field, field_validator
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
+from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
@@ -447,7 +448,10 @@ class TestHandlerErrors:
 
     @pytest.mark.asyncio
     async def test_authorization_error(self) -> None:
-        """AuthorizationError → isError=True, PERMISSION_DENIED envelope."""
+        """AuthorizationError → isError=True, PERMISSION_DENIED envelope.
+
+        A verdict-less error carries no declared reason, so ``message`` is the fixed
+        fallback rather than the exception's own text (narrow-audit finding 7)."""
         machine = _make_machine()
         machine.run = AsyncMock(side_effect=AuthorizationError("no access"))
         record = _make_record()
@@ -465,8 +469,48 @@ class TestHandlerErrors:
         env = _tool_result_envelope(result)
         assert env["ok"] is False
         assert env["code"] == "PERMISSION_DENIED"
-        assert "no access" in env["message"]
+        assert env["message"] == "FORBIDDEN"
         assert env["details"] == {}
+
+    @pytest.mark.asyncio
+    async def test_authorization_error_reports_the_declared_reason(self) -> None:
+        """When the denial carries a verdict, its developer-declared reason is what the
+        agent-facing caller sees -- the useful half of finding 7's fix."""
+        machine = _make_machine()
+        machine.run = AsyncMock(
+            side_effect=AuthorizationError("Access denied. guard= condition was not met.", level=2, verdict=FailSecurityVerdict("order is locked"))
+        )
+        record = _make_record()
+
+        handler = _make_tool_handler(record, machine, _make_auth(), machine.graph_coordinator)
+        result = await handler()
+
+        env = _tool_result_envelope(result)
+        assert env["message"] == "order is locked"
+        # `guard=` is internal cascade wording, present only in the exception message.
+        assert "guard=" not in json.dumps(env)
+
+    @pytest.mark.asyncio
+    async def test_authorization_error_never_carries_its_own_message(self) -> None:
+        """narrow-audit finding 7: MCP is a second transport over the same machine.run(),
+        and it answered with str(exc) exactly like the FastAPI 403 handler did. Two
+        different objects must produce identical envelopes here too."""
+        messages = []
+        for order_id in ("MISSING-1", "ORD-alice-7"):
+            machine = _make_machine()
+            machine.run = AsyncMock(
+                side_effect=AuthorizationError(f"order {order_id} not found in orders_db (owner bob@corp.com)")
+            )
+            handler = _make_tool_handler(_make_record(), machine, _make_auth(), machine.graph_coordinator)
+            result = await handler()
+
+            raw = json.dumps(_tool_result_envelope(result))
+            assert order_id not in raw
+            assert "orders_db" not in raw
+            assert "bob@corp.com" not in raw
+            messages.append(raw)
+
+        assert messages[0] == messages[1]
 
     @pytest.mark.asyncio
     async def test_validation_error(self) -> None:

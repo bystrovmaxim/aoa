@@ -265,8 +265,8 @@ def _validated_access_decide_verdict(
 
     The error message names only ``type(verdict).__name__``, never ``verdict`` itself: a broken
     override could return anything -- a domain object, raw params, something carrying sensitive
-    data -- and unlike the check-only path (which already keeps only the exception's class name,
-    never its message), the real ``machine.run()`` path lets this exception propagate uncaught,
+    data -- and unlike the check-only path (which keeps nothing of the exception at all --
+    just the fixed ``EVALUATION_FAILED``), the real ``machine.run()`` path lets this exception propagate uncaught,
     so its text can reach server logs or, depending on the app's own error handling, an HTTP 500
     body.
     """
@@ -665,11 +665,26 @@ class ActionProductMachine(BaseActionMachine):
         since there is no real execution here to abort: whatever ``access_decide`` returns
         (``AllowedVerdict``/``FailSecurityVerdict``) *is* the answer for that item, no exception
         involved. A role/guard denial (``AuthorizationError`` from ``RoleChecker``) reports
-        ``exc.verdict`` — always set by ``RoleChecker`` (see its own module docstring).
+        ``exc.verdict`` — always set by ``RoleChecker`` (see its own module docstring). An
+        ``AuthorizationError`` *without* a verdict is not a denial at all: nothing decided
+        anything, so it joins the crash path below rather than becoming a
+        ``FailSecurityVerdict`` built from ``str(exc)``. That fallback used to exist and was
+        the one way both of this method's guarantees could be bypassed at once — the message
+        is free-form text that can differ per object (an oracle), and calling it a *denial*
+        makes it cacheable, so an infrastructure hiccup would be remembered as a permanent
+        "no" (audit-11 finding 1). Raising ``AuthorizationError`` from inside ``access_decide``
+        is therefore not a supported way to deny — return a ``FailSecurityVerdict`` instead.
         Anything else raised while evaluating that item (a bug in its ``access_decide``, an
-        unreachable connection) becomes ``FailErrorVerdict(type(exc).__name__)`` — not a
+        unreachable connection) becomes ``FailErrorVerdict("EVALUATION_FAILED")`` — not a
         denial, and never cached as one, since the check itself failed rather than producing
-        a real answer. Either way, only that one item is affected, every other item in the
+        a real answer. The exception's own type/message is not included in the reason —
+        distinguishable failure reasons are themselves a probing surface (the same concern
+        ``FORBIDDEN_OBJECT`` closes for denials). That leaves the crash itself unrecorded
+        anywhere on the server: this path deliberately runs without plugin events (see
+        ``_build_check_box``), so there is no AOA-principled channel to emit it through
+        yet — tracked as its own issue, aoa#160. Not something to patch over with an
+        ad-hoc log call here.
+        Either way, only that one item is affected, every other item in the
         list is still evaluated normally. No exception reaches ``_run_internal`` from here the
         way it does from ``machine.run()``.
 
@@ -691,12 +706,16 @@ class ActionProductMachine(BaseActionMachine):
                         item_instance, await item_instance.access_decide(item_params, context, box, conns)
                     )
                 except AuthorizationError as exc:
-                    verdicts.append(exc.verdict if exc.verdict is not None else FailSecurityVerdict(str(exc)))
-                except Exception as exc:
+                    # No verdict means no decision was ever reached -- fall through to the
+                    # same "could not check" answer as any other crash, never str(exc).
+                    # See the docstring above (audit-11 finding 1).
+                    verdicts.append(exc.verdict if exc.verdict is not None else FailErrorVerdict("EVALUATION_FAILED"))
+                except Exception:
                     # This item's own failure must not abort the rest of the list, and must not
                     # be mistaken for a real denial — the check itself failed, it did not run
-                    # and say no. See the docstring above.
-                    verdicts.append(FailErrorVerdict(type(exc).__name__))
+                    # and say no. See the docstring above for why the reason is the fixed
+                    # "EVALUATION_FAILED", not the exception's own type or message.
+                    verdicts.append(FailErrorVerdict("EVALUATION_FAILED"))
                 else:
                     verdicts.append(verdict)
             return verdicts

@@ -38,14 +38,18 @@ batch whose own route-level ``auth_coordinator`` (an
 ``EndpointExecutionPlan.prepare`` override, not the resolver's whole-request
 entry gate) rejected the caller, isolated to that operation's own positions in
 ``results`` so one route's stricter auth requirement never fails every other
-question in the same batch. Object-level and role-level denials still collapse
-onto the same ``FailSecurityVerdict`` class today (minimal oracle contract: a
-caller cannot tell "missing" from "forbidden" from the class alone).
+question in the same batch. Object-level and role-level denials collapse onto
+the same ``FailSecurityVerdict`` class, and an object-level denial goes further:
+"no such object" and "object belongs to someone else" answer with the identical
+``reason`` — the framework's shared ``FORBIDDEN_OBJECT`` — so the two are
+indistinguishable by the whole verdict, not merely by its class.
 
 ``FailErrorVerdict`` is not a denial and must never be cached as one — the
-check itself could not be answered. ``UNKNOWN_ENDPOINT`` (an ``operation`` that
-names no registered route) is the resolver's own fixed code; any other
-``FailErrorVerdict`` carries the crashing exception's class name as ``reason``.
+check itself could not be answered. Its ``reason`` is drawn from a closed set,
+never free-form text and never an exception's own type or message (a
+distinguishable failure reason is itself a probing surface): ``UNKNOWN_ENDPOINT``
+— an ``operation`` naming no registered route — or ``EVALUATION_FAILED``, for
+any crash while evaluating one item's check.
 
 ``PermissionNamespace`` — the opaque ``cache_partition`` label a client attaches
 to every cached resolver answer, so a cache entry can never be mistakenly shared

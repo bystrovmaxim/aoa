@@ -116,7 +116,7 @@ def main() -> None:
     # (d) The native Params shape is NOT what the route publishes, so validating
     #     {"order_id": 7} against CancelOrderRequest fails ("oid" is required) before
     #     the params_mapper ever runs. Unlike an unknown operation (which isolates to
-    #     its own CHECK_ERROR result), a known endpoint's params failing validation
+    #     its own FailErrorVerdict result), a known endpoint's params failing validation
     #     fails the WHOLE request with HTTP 400 — see resolve_verdicts()'s docstring.
     r = client.post(
         "/permissions/resolve",
