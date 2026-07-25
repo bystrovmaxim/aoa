@@ -23,7 +23,8 @@ def _customer_context(user_id: str) -> Context:
 
 
 def _own_order_params() -> CancelOrderAction.Params:
-    return CancelOrderAction.Params(order_id="ORD-1", owner_user_id="alice")
+    """``ORD-1`` belongs to alice in the module's ``_ORDERS`` table."""
+    return CancelOrderAction.Params(order_id="ORD-1")
 
 
 async def test_own_order_cancel_succeeds(machine: ActionProductMachine) -> None:
@@ -41,7 +42,7 @@ async def test_foreign_order_raises_authorization_error_level_3(machine: ActionP
 
 
 async def test_locked_order_denied_by_guard_level_2(machine: ActionProductMachine) -> None:
-    params = CancelOrderAction.Params(order_id="LOCKED-1", owner_user_id="alice")
+    params = CancelOrderAction.Params(order_id="LOCKED-1")
     with pytest.raises(AuthorizationError) as exc_info:
         await machine.run(_customer_context("alice"), CancelOrderAction(), params)
     assert exc_info.value.level == 2
@@ -57,10 +58,12 @@ async def test_anonymous_caller_denied_level_1(machine: ActionProductMachine) ->
 
 async def test_missing_order_gives_identical_verdict_to_foreign_order(machine: ActionProductMachine) -> None:
     """Oracle safety: "doesn't exist" and "exists but isn't yours" must be indistinguishable."""
-    missing_params = CancelOrderAction.Params(order_id="MISSING-1", owner_user_id="alice")
+    missing_params = CancelOrderAction.Params(order_id="NO-SUCH-ORDER")
     missing = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, missing_params)
 
-    foreign = await machine.check_access_decide(_customer_context("bob"), CancelOrderAction, _own_order_params())
+    # ORD-2 exists and belongs to bob, so for alice it is a real foreign object.
+    foreign_params = CancelOrderAction.Params(order_id="ORD-2")
+    foreign = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, foreign_params)
 
     # Not just equal reason text -- the exact same shared verdict object, so the
     # two cases can never accidentally drift apart on the wire.
@@ -71,7 +74,7 @@ async def test_missing_order_gives_identical_verdict_to_foreign_order(machine: A
 
 async def test_specific_reason_visible_only_to_confirmed_owner(machine: ActionProductMachine) -> None:
     """A more specific denial reason is safe only once ownership is already confirmed."""
-    own_cancelled = CancelOrderAction.Params(order_id="CANCELLED-1", owner_user_id="alice")
+    own_cancelled = CancelOrderAction.Params(order_id="CANCELLED-1")  # alice's, already cancelled
     own = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, own_cancelled)
     assert isinstance(own, FailSecurityVerdict)
     assert own.reason == "order is already cancelled"
@@ -83,6 +86,25 @@ async def test_specific_reason_visible_only_to_confirmed_owner(machine: ActionPr
     assert foreign_cancelled is FORBIDDEN_OBJECT
 
 
+async def test_ownership_cannot_be_claimed_by_the_request(machine: ActionProductMachine) -> None:
+    """audit-11 finding 2: the caller must not be able to state who owns an order.
+
+    ``owner_user_id`` used to be a ``Params`` field, so sending one's own id was enough
+    to pass level 3 on somebody else's order. The owner now comes from ``_ORDERS``, and
+    ``Params`` has no such field at all -- pydantic's ``extra="forbid"`` makes the old
+    forged request a hard validation error rather than a silently accepted bypass."""
+    assert "owner_user_id" not in CancelOrderAction.Params.model_fields
+
+    with pytest.raises(ValueError):
+        CancelOrderAction.Params(order_id="ORD-1", owner_user_id="bob")  # type: ignore[call-arg]
+
+    # And the bypass it enabled is gone end to end: bob cannot reach alice's order.
+    verdict = await machine.check_access_decide(_customer_context("bob"), CancelOrderAction, _own_order_params())
+    assert verdict is FORBIDDEN_OBJECT
+    with pytest.raises(AuthorizationError):
+        await machine.run(_customer_context("bob"), CancelOrderAction(), _own_order_params())
+
+
 async def test_check_access_decide_matches_run_semantics(machine: ActionProductMachine) -> None:
     own = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, _own_order_params())
     assert own == AllowedVerdict()
@@ -91,7 +113,7 @@ async def test_check_access_decide_matches_run_semantics(machine: ActionProductM
     assert isinstance(foreign, FailSecurityVerdict)
     assert foreign.reason == "FORBIDDEN_OBJECT"
 
-    locked_params = CancelOrderAction.Params(order_id="LOCKED-1", owner_user_id="alice")
+    locked_params = CancelOrderAction.Params(order_id="LOCKED-1")
     locked = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, locked_params)
     assert isinstance(locked, FailSecurityVerdict)
     assert locked.reason == "order is locked"
