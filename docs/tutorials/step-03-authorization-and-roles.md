@@ -1,4 +1,4 @@
-<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-25T15:31:34Z (filesystem mtime; draft is gitignored, no git history) · sha256:c31c787a38c0 -->
+<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-25T19:42:13Z (filesystem mtime; draft is gitignored, no git history) · sha256:9dc4772bbdc6 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -217,12 +217,20 @@ Full code is in [`03_guard.py`](../../examples/step_03_authorization_and_roles/0
 Role and `guard=` both decide before the machine has loaded the object itself. Sometimes that's not enough: "a manager may cancel an order" is about a role, but "a customer may cancel *their own* order" is a fact about a specific order, not about the customer's role in general. The third, object-level check is the `access_decide` method on the action itself:
 
 ```python
+# Stands in for an orders_db lookup. The owner is resolved server-side: anything
+# the request can set cannot be the thing the request is checked against.
+ORDERS = {"ORD-1": "alice", "ORD-2": "bob"}
+
+
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 
     async def access_decide(self, params, context, box, connections) -> FailSecurityVerdict | AllowedVerdict:
-        if params.owner_user_id == context.user.user_id:
-            return AllowedVerdict()
-        return FailSecurityVerdict("order does not belong to the caller")
+        owner = ORDERS.get(params.order_id)
+        # Existence and ownership in one branch: "no such order" and "someone
+        # else's order" must be indistinguishable -- see the two rules below.
+        if owner is None or owner != context.user.user_id:
+            return FORBIDDEN_OBJECT
+        return AllowedVerdict()
 ```
 
 By default (on `BaseAction`), `access_decide` returns `AllowedVerdict()` — level 3 adds no restriction beyond role/`guard=` until an action explicitly overrides the method. `access_decide` runs only after role and `guard=` have already passed; a denial here is the same `AuthorizationError` as at levels 1-2, just with `level=3`.
