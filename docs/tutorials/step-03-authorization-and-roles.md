@@ -1,4 +1,4 @@
-<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-18T21:12:05Z (filesystem mtime; draft is gitignored, no git history) · sha256:c5469ee14907 -->
+<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-25T15:31:34Z (filesystem mtime; draft is gitignored, no git history) · sha256:c31c787a38c0 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -219,11 +219,18 @@ Role and `guard=` both decide before the machine has loaded the object itself. S
 ```python
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 
-    async def access_decide(self, params, context, box, connections) -> bool:
-        return params.owner_user_id == context.user.user_id
+    async def access_decide(self, params, context, box, connections) -> FailSecurityVerdict | AllowedVerdict:
+        if params.owner_user_id == context.user.user_id:
+            return AllowedVerdict()
+        return FailSecurityVerdict("order does not belong to the caller")
 ```
 
-By default (on `BaseAction`), `access_decide` returns `True` — level 3 adds no restriction beyond role/`guard=` until an action explicitly overrides the method. `access_decide` runs only after role and `guard=` have already passed; a denial here is the same `AuthorizationError` as at levels 1-2, just with `level=3`.
+By default (on `BaseAction`), `access_decide` returns `AllowedVerdict()` — level 3 adds no restriction beyond role/`guard=` until an action explicitly overrides the method. `access_decide` runs only after role and `guard=` have already passed; a denial here is the same `AuthorizationError` as at levels 1-2, just with `level=3`.
+
+Two rules for `access_decide` itself, when it looks at a specific object (not just the caller's role):
+
+- **"No such object" and "belongs to someone else" must answer identically.** If they differ by reason text, an outsider probing IDs learns which objects exist for other users — the server becomes an **oracle** without meaning to. The ready-made, reusable value for this is `FORBIDDEN_OBJECT` (`aoa.action_machine.intents.access_control`, the same `FailSecurityVerdict` as everywhere else, just with a fixed reason). Full example — `CancelOrderAction` in `aoa-demo`.
+- **A crash inside the check is not a denial.** If the check itself breaks (the database falls over, a bug), that is not "no" — it is "could not check": `FailErrorVerdict("EVALUATION_FAILED")`. Treating a crash as a denial lies to the caller (nothing was actually checked) and reopens the same hole: "a real denial" and "a crash" become distinguishable by the response again.
 
 **Run:**
 
@@ -241,11 +248,11 @@ A frontend deciding whether to show a "Cancel" button, or grey it out, cannot fi
 
 ```python
 verdict = await machine.check_access_decide(context, CancelOrderAction, params)
-if verdict.kind == ResolveItemKind.SUCCESS:
+if isinstance(verdict, AllowedVerdict):
     show_cancel_button()
 ```
 
-A denial here is not an exception but `verdict.kind` being something other than `SUCCESS` (`ResolveItemKind.SECURITY` for a role/`guard=`/`access_decide` rejection), with `verdict.reason` (a human-readable message; always an empty string for `SUCCESS`). The same method, `check_access_decide`, accepts either one action or a list of `(action, params)` pairs, returning a list of verdicts in the same order:
+A denial here is not an exception but the verdict itself: `FailSecurityVerdict` (role, `guard=`, or `access_decide` said "no" — `verdict.reason` carries a human-readable cause) or `FailErrorVerdict` (the check itself could not answer — a crash, not a denial). In Python code, checking the verdict's type via `isinstance` is more convenient than `verdict.kind` — that field exists for serializing to the client (its value is the class name: `"AllowedVerdict"`, `"FailSecurityVerdict"`, `"FailErrorVerdict"`). The same method, `check_access_decide`, accepts either one action or a list of `(action, params)` pairs, returning a list of verdicts in the same order:
 
 ```python
 verdicts = await machine.check_access_decide(context, [
@@ -296,7 +303,7 @@ This turns changing the role model from a risky operation into a managed one: a 
 - **Check before logic.** Roles, `guard=`, and `access_decide` are checked before the first aspect; denial at any of the three levels is an `AuthorizationError`, the aspects do not run.
 - **Role names.** A role class ends with `Role`, otherwise `NamingSuffixError`; `name`/`description` are mandatory and non-empty.
 - **`grant.when=`/`guard=` are synchronous and `bool`-only.** An `async def` in either raises `AccessConditionAsyncError` at class definition, not at runtime — an un-awaited coroutine is always truthy, and the check would silently wave everything through.
-- **`access_decide` defaults to `True`.** Level 3 restricts nothing beyond role/`guard=` until an action explicitly overrides the method.
+- **`access_decide` defaults to `AllowedVerdict()`.** Level 3 restricts nothing beyond role/`guard=` until an action explicitly overrides the method.
 - **Denial at any of the three cascade levels flies past `@on_error`/the saga.** Role/`guard=`/`access_decide` run before `_execute_pipeline_aspects` — no `@regular_aspect`/`@summary_aspect` has run yet, so there's nothing to roll back; `@on_error` is a recovery mechanism for business-logic failures inside the pipeline, not a place for authorization decisions.
 
 The full list is in [Intents and invariants](../reference/intents-and-invariants.md); the terms are in the [Glossary](../reference/glossary.md). Why access is made a mandatory declaration is in the [Philosophy](../explanation/philosophy.md).
@@ -322,7 +329,7 @@ Next — **[Saga and compensations](../index.md#iii-business-logic)**: what happ
 7. Why does a role need a lifecycle mode? What happens with `@check_roles` for a `UNUSED` role and for a `DEPRECATED` one?
 8. How does `grant(role, when=...)` differ from `guard=`? Which of the two sees the call's parameters, and which sees only the caller?
 9. A role matched, but its `grant.when=` returned `False`. Does that end the check or not? Why?
-10. `access_decide` returned `False`. What `level` will the `AuthorizationError` carry? What if the role hadn't matched at all?
+10. `access_decide` returned `FailSecurityVerdict(...)`. What `level` will the `AuthorizationError` carry? What if the role hadn't matched at all?
 11. How does `machine.check_access_decide` differ from `machine.run` on denial — what does the calling code get in each case?
 
 > **Exercise.** Add an `AuditorRole(ApplicationRole)` role and an `ExportOrdersAction` with `@check_roles([ManagerRole, AuditorRole])` to the example. Run it under a manager, an auditor, and an anonymous user and check the matrix. Then make `AuditorRole` a subclass of `ManagerRole` and explain how access to the "manager" operations changes.
