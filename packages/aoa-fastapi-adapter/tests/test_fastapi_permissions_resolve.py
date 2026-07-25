@@ -31,7 +31,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.fastapi.adapter import FastApiAdapter
 from aoa.fastapi.reserved_route_path_error import ReservedRoutePathError
 
-from .support import CancelOrderAction, ManagerRole, PingAction, UserRole
+from .support import CRASHING_ORDER_ID, ArchiveOrderAction, CancelOrderAction, ManagerRole, PingAction, UserRole
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -372,3 +372,104 @@ class TestVersioning:
         )
         assert response.status_code == 200
         assert response.json()["version"] == 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Object-level codes on the wire (audit-11 finding 9)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestObjectLevelCodesOverHttp:
+    """``FORBIDDEN_OBJECT`` and ``EVALUATION_FAILED`` as a real client sees them.
+
+    Every other test of these two codes works either in-process (against
+    ``machine.check_access_decide``) or against a hand-written fake ``fetch``. Nothing
+    asserted that they survive serialization and arrive in the JSON body — so a
+    regression such as losing ``SerializeAsAny`` on ``results`` (a pydantic trap
+    ``permissions_schema.py`` already documents as having bitten once) would strip
+    ``reason`` from the response while leaving every in-process test green.
+    """
+
+    def _archiving_client(self, *, context: Context | None) -> TestClient:
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = context
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+        adapter.post("/actions/archive-order", ArchiveOrderAction)
+        return TestClient(adapter.build())
+
+    def _resolve(self, client: TestClient, order_ids: list[int]) -> list[dict]:
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [
+                    {"operation": "POST /actions/archive-order", "params": {"order_id": oid}} for oid in order_ids
+                ],
+            },
+        )
+        assert response.status_code == 200
+        return response.json()["results"]
+
+    def test_missing_and_foreign_objects_are_byte_identical_in_the_json_body(self) -> None:
+        """The oracle guarantee where it actually matters: in the bytes the client receives."""
+        client = self._archiving_client(context=_manager_context())  # alice owns order 1
+        own, foreign, missing = self._resolve(client, [1, 2, 404])
+
+        assert own == {"kind": "AllowedVerdict"}
+        assert foreign == {"kind": "FailSecurityVerdict", "reason": "FORBIDDEN_OBJECT"}
+        assert missing == foreign  # whole dict, not just the reason
+
+    def test_crashed_check_arrives_as_evaluation_failed_inside_a_200(self) -> None:
+        """A crash is one item's honest error, not a denial and not a failed request."""
+        client = self._archiving_client(context=_manager_context())
+        (crashed,) = self._resolve(client, [CRASHING_ORDER_ID])
+
+        assert crashed == {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"}
+
+    def test_a_crash_does_not_disturb_the_other_items_in_the_batch(self) -> None:
+        """Per-item isolation, asserted over HTTP rather than in-process."""
+        client = self._archiving_client(context=_manager_context())
+        results = self._resolve(client, [1, CRASHING_ORDER_ID, 2, 1])
+
+        assert results == [
+            {"kind": "AllowedVerdict"},
+            {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"},
+            {"kind": "FailSecurityVerdict", "reason": "FORBIDDEN_OBJECT"},
+            {"kind": "AllowedVerdict"},  # deduplicated against item 0, same answer
+        ]
+
+    def test_the_crashing_exception_never_reaches_the_client(self) -> None:
+        """The raised ConnectionError names the db and the order id; neither may appear."""
+        client = self._archiving_client(context=_manager_context())
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [
+                    {"operation": "POST /actions/archive-order", "params": {"order_id": CRASHING_ORDER_ID}}
+                ],
+            },
+        )
+        body = response.text
+        assert "ConnectionError" not in body
+        assert "orders_db" not in body
+        assert "unreachable" not in body
+
+    def test_fail_error_reasons_on_the_wire_are_a_closed_set(self) -> None:
+        """Pins permissions_schema.py's own claim (audit-11 finding 4): the resolver emits
+        UNKNOWN_ENDPOINT or EVALUATION_FAILED, never anything else."""
+        client = self._archiving_client(context=_manager_context())
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [
+                    {"operation": "POST /actions/archive-order", "params": {"order_id": CRASHING_ORDER_ID}},
+                    {"operation": "POST /actions/no-such-route", "params": {}},
+                ],
+            },
+        )
+        assert response.status_code == 200
+        reasons = {r["reason"] for r in response.json()["results"] if r["kind"] == "FailErrorVerdict"}
+        assert reasons == {"EVALUATION_FAILED", "UNKNOWN_ENDPOINT"}
