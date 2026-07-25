@@ -158,10 +158,13 @@ class FailErrorVerdict(BaseVerdict):
     as one. Two sources: a structural "couldn't even route the question" (e.g.
     ``UNKNOWN_ENDPOINT`` — ``aoa-fastapi-adapter``, ``permissions.py``, an operation
     that never resolves to an action at all), or a genuinely unexpected exception
-    anywhere in the check path (``reason`` = ``type(exc).__name__``). Distinct from
-    ``FailSecurityVerdict`` on purpose: "we don't know" and "no" must stay
-    distinguishable, or a transient failure (a database hiccup during
-    ``access_decide()``) gets cached as a permanent, incorrect "no".
+    anywhere in the check path (``reason`` = the fixed ``"EVALUATION_FAILED"`` —
+    see ``ActionProductMachine.check_access_decide``, not the exception's own
+    type or message, for the same reason ``FORBIDDEN_OBJECT`` is one fixed value
+    rather than free text: a distinguishable failure reason is itself a probing
+    surface). Distinct from ``FailSecurityVerdict`` on purpose: "we don't know" and
+    "no" must stay distinguishable, or a transient failure (a database hiccup
+    during ``access_decide()``) gets cached as a permanent, incorrect "no".
 
     This classification only affects what a *check-only* caller
     (``machine.check_access_decide()``, the resolver) reports and caches. On the real

@@ -232,8 +232,9 @@ async def test_one_failing_item_does_not_affect_the_others(machine: ActionProduc
     )
     assert verdicts[0] == AllowedVerdict()
     assert verdicts[1].kind == "FailErrorVerdict"
-    # An unexpected exception's reason is its class name, not its message text.
-    assert verdicts[1].reason == "RuntimeError"
+    # Fixed reason, not the exception's class name or message -- a distinguishable
+    # failure reason would itself be a probing surface (oracle safety).
+    assert verdicts[1].reason == "EVALUATION_FAILED"
     assert verdicts[2] == AllowedVerdict()
 
 
@@ -256,7 +257,7 @@ async def test_access_decide_returning_unexpected_value_becomes_isolated_fail_er
     )
     assert verdicts[0] == AllowedVerdict()
     assert verdicts[1].kind == "FailErrorVerdict"
-    assert verdicts[1].reason == "TypeError"
+    assert verdicts[1].reason == "EVALUATION_FAILED"
     assert verdicts[2] == AllowedVerdict()
 
 

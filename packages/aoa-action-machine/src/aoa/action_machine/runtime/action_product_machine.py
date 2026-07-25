@@ -667,9 +667,13 @@ class ActionProductMachine(BaseActionMachine):
         involved. A role/guard denial (``AuthorizationError`` from ``RoleChecker``) reports
         ``exc.verdict`` — always set by ``RoleChecker`` (see its own module docstring).
         Anything else raised while evaluating that item (a bug in its ``access_decide``, an
-        unreachable connection) becomes ``FailErrorVerdict(type(exc).__name__)`` — not a
+        unreachable connection) becomes ``FailErrorVerdict("EVALUATION_FAILED")`` — not a
         denial, and never cached as one, since the check itself failed rather than producing
-        a real answer. Either way, only that one item is affected, every other item in the
+        a real answer. The exception's own type/message is not included in the reason —
+        distinguishable failure reasons are themselves a probing surface (the same concern
+        ``FORBIDDEN_OBJECT`` closes for denials); recording *what* crashed is a separate,
+        not-yet-built concern (the plugin/event system does not cover this check path yet).
+        Either way, only that one item is affected, every other item in the
         list is still evaluated normally. No exception reaches ``_run_internal`` from here the
         way it does from ``machine.run()``.
 
@@ -692,11 +696,12 @@ class ActionProductMachine(BaseActionMachine):
                     )
                 except AuthorizationError as exc:
                     verdicts.append(exc.verdict if exc.verdict is not None else FailSecurityVerdict(str(exc)))
-                except Exception as exc:
+                except Exception:
                     # This item's own failure must not abort the rest of the list, and must not
                     # be mistaken for a real denial — the check itself failed, it did not run
-                    # and say no. See the docstring above.
-                    verdicts.append(FailErrorVerdict(type(exc).__name__))
+                    # and say no. See the docstring above for why the reason is the fixed
+                    # "EVALUATION_FAILED", not the exception's own type or message.
+                    verdicts.append(FailErrorVerdict("EVALUATION_FAILED"))
                 else:
                     verdicts.append(verdict)
             return verdicts
