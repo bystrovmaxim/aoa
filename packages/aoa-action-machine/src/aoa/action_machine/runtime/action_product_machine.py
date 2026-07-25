@@ -679,8 +679,11 @@ class ActionProductMachine(BaseActionMachine):
         denial, and never cached as one, since the check itself failed rather than producing
         a real answer. The exception's own type/message is not included in the reason —
         distinguishable failure reasons are themselves a probing surface (the same concern
-        ``FORBIDDEN_OBJECT`` closes for denials); recording *what* crashed is a separate,
-        not-yet-built concern (the plugin/event system does not cover this check path yet).
+        ``FORBIDDEN_OBJECT`` closes for denials). That leaves the crash itself unrecorded
+        anywhere on the server: this path deliberately runs without plugin events (see
+        ``_build_check_box``), so there is no AOA-principled channel to emit it through
+        yet — tracked as its own issue, aoa#160. Not something to patch over with an
+        ad-hoc log call here.
         Either way, only that one item is affected, every other item in the
         list is still evaluated normally. No exception reaches ``_run_internal`` from here the
         way it does from ``machine.run()``.
