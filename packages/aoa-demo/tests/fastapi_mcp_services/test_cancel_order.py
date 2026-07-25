@@ -66,10 +66,13 @@ async def test_missing_order_gives_identical_verdict_to_foreign_order(machine: A
     foreign = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, foreign_params)
 
     # Not just equal reason text -- the exact same shared verdict object, so the
-    # two cases can never accidentally drift apart on the wire.
+    # two cases can never accidentally drift apart.
     assert missing is FORBIDDEN_OBJECT
     assert foreign is FORBIDDEN_OBJECT
-    assert missing.model_dump() == foreign.model_dump()
+    # And the serialized shape itself, pinned to a literal. Comparing the two
+    # dumps to each other would compare one object with itself and pass no matter
+    # what the constant says (audit-11 finding 5) -- this is what the client sees.
+    assert missing.model_dump() == {"kind": "FailSecurityVerdict", "reason": "FORBIDDEN_OBJECT"}
 
 
 async def test_specific_reason_visible_only_to_confirmed_owner(machine: ActionProductMachine) -> None:
