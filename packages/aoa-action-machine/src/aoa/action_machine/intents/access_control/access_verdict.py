@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Final
 
 from pydantic import ConfigDict, Field
 
@@ -141,6 +141,15 @@ class FailSecurityVerdict(BaseVerdict):
 
     def __init__(self, reason: str, **kwargs: Any) -> None:
         super().__init__(reason=reason, **kwargs)
+
+
+# Shared, reusable denial for "no such object" and "object belongs to someone
+# else" in an access_decide() implementation. Both cases must answer with this
+# exact same instance, not two separate FailSecurityVerdict("...") calls with
+# different text -- otherwise the reason string itself becomes an oracle for
+# which object IDs exist. See CancelOrderAction.access_decide (aoa-demo) for a
+# real usage.
+FORBIDDEN_OBJECT: Final = FailSecurityVerdict("FORBIDDEN_OBJECT")
 
 
 class FailErrorVerdict(BaseVerdict):

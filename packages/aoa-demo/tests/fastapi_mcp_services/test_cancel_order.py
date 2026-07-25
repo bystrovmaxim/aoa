@@ -35,9 +35,9 @@ async def test_foreign_order_raises_authorization_error_level_3(machine: ActionP
     with pytest.raises(AuthorizationError) as exc_info:
         await machine.run(_customer_context("bob"), CancelOrderAction(), _own_order_params())
     assert exc_info.value.level == 3
-    # access_decide's own clean reason= mechanism: it returns FailSecurityVerdict
-    # directly, with a developer-chosen reason -- no more raw exception text.
-    assert exc_info.value.reason == "order does not belong to the caller"
+    # Generic deny (oracle safety): a foreign order answers with the same
+    # FORBIDDEN_OBJECT reason as a missing one -- see the test below.
+    assert exc_info.value.reason == "FORBIDDEN_OBJECT"
 
 
 async def test_locked_order_denied_by_guard_level_2(machine: ActionProductMachine) -> None:
@@ -61,7 +61,7 @@ async def test_check_access_decide_matches_run_semantics(machine: ActionProductM
 
     foreign = await machine.check_access_decide(_customer_context("bob"), CancelOrderAction, _own_order_params())
     assert isinstance(foreign, FailSecurityVerdict)
-    assert foreign.reason == "order does not belong to the caller"
+    assert foreign.reason == "FORBIDDEN_OBJECT"
 
     locked_params = CancelOrderAction.Params(order_id="LOCKED-1", owner_user_id="alice")
     locked = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, locked_params)

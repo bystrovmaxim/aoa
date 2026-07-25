@@ -12,13 +12,19 @@ an order needs all three levels of the access-control cascade:
     1. Role     — ``grant(CustomerRole)``: caller must be a customer.
     2. Guard    — a locked order (``order_id`` starting with ``"LOCKED-"``)
                   cannot be cancelled by anyone, regardless of role.
-    3. Fact     — ``access_decide``: a customer may only cancel their *own*
-                  order (``params.owner_user_id == context.user.user_id``).
+    3. Fact     — ``access_decide``: the order must exist and belong to the
+                  caller. Both failure causes — no such order, or someone
+                  else's order — return the exact same ``FORBIDDEN_OBJECT``
+                  verdict, so probing order IDs cannot distinguish "doesn't
+                  exist" from "exists but isn't yours" (oracle safety).
 
 A real service would look the order's owner up via a connection
 (``connections["orders_db"].get(params.order_id)``); this demo takes it
-directly as a ``Params`` field to stay self-contained, matching
-``CreateOrderAction``/``GetOrderAction``'s hardcoded result data.
+directly as ``Params`` fields to stay self-contained, matching
+``CreateOrderAction``/``GetOrderAction``'s hardcoded result data. "No such
+order" is simulated the same way "locked" already is at level 2 — an
+``order_id`` prefix, ``"MISSING-"`` — rather than a real lookup that could
+fail to find anything.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -30,7 +36,8 @@ ARCHITECTURE / DATA FLOW
   RoleChecker.check   -> CustomerRole? guard passes (order not locked)?
       |
       v
-  access_decide        -> params.owner_user_id == context.user.user_id ?
+  access_decide        -> order exists (not "MISSING-") and belongs to caller?
+                           both "no" cases -> FORBIDDEN_OBJECT
       |
       v
   cancel_summary       -> Result(order_id, status="cancelled")
@@ -41,7 +48,7 @@ from pydantic import Field
 
 from aoa.action_machine.auth import ApplicationRole
 from aoa.action_machine.context import Context
-from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
+from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles, grant
 from aoa.action_machine.intents.meta import meta
@@ -94,10 +101,16 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> FailSecurityVerdict | AllowedVerdict:
-        """Level 3: the order must belong to the caller."""
-        if params.owner_user_id == context.user.user_id:
-            return AllowedVerdict()
-        return FailSecurityVerdict("order does not belong to the caller")
+        """Level 3: the order must exist and belong to the caller.
+
+        Existence and ownership are checked together, in one branch, on
+        purpose — see ``FORBIDDEN_OBJECT``'s own docstring for why a separate
+        "does it exist" step followed by a separate "is it yours" step is the
+        wrong shape here, even though both currently return the same verdict.
+        """
+        if params.order_id.startswith("MISSING-") or params.owner_user_id != context.user.user_id:
+            return FORBIDDEN_OBJECT
+        return AllowedVerdict()
 
     @summary_aspect("Cancel the order")
     async def cancel_summary(

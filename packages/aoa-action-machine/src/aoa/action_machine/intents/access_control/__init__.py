@@ -4,10 +4,11 @@
 from __future__ import annotations
 
 from aoa.action_machine.intents.access_control.access_verdict import (
+    FORBIDDEN_OBJECT,
     AllowedVerdict,
     BaseVerdict,
     FailErrorVerdict,
     FailSecurityVerdict,
 )
 
-__all__ = ["AllowedVerdict", "BaseVerdict", "FailErrorVerdict", "FailSecurityVerdict"]
+__all__ = ["FORBIDDEN_OBJECT", "AllowedVerdict", "BaseVerdict", "FailErrorVerdict", "FailSecurityVerdict"]
