@@ -136,6 +136,19 @@ class TestForbiddenObject:
         with pytest.raises(ValidationError):
             FORBIDDEN_OBJECT.reason = "something else"  # type: ignore[misc]
 
+    def test_the_documented_escape_hatches_do_not_poison_the_shared_instance(self) -> None:
+        """``model_copy(update=...)`` and ``model_construct(...)`` skip validation and even
+        ``frozen=True`` -- BaseVerdict's docstring says so. For a *shared* instance the
+        question is not whether they bypass validation but whether they mutate in place;
+        they do not, they build a new object (audit-11 finding 14). Pinned because that is
+        a pydantic behaviour, not ours, and an upgrade could change it under us."""
+        copied = FORBIDDEN_OBJECT.model_copy(update={"reason": "SOMETHING ELSE"})
+        constructed = FailSecurityVerdict.model_construct(kind="FailSecurityVerdict", reason="")
+
+        assert copied is not FORBIDDEN_OBJECT
+        assert constructed is not FORBIDDEN_OBJECT
+        assert FORBIDDEN_OBJECT.reason == "FORBIDDEN_OBJECT"
+
     def test_the_export_and_the_definition_are_the_same_object(self) -> None:
         """Callers compare by identity (`verdict is FORBIDDEN_OBJECT`), so the re-export
         must not be a copy -- two constants would silently break every such comparison."""

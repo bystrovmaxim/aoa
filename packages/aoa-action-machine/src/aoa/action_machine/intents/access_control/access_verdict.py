@@ -58,6 +58,27 @@ class BaseVerdict(BaseSchema):
     5, third document — this paragraph is that finding's resolution, extended to
     cover ``kind`` spoofing as a consequence of closing findings 4/6).
 
+    **Shared instances raise the stakes of that caveat.** ``FORBIDDEN_OBJECT`` below
+    is the first *public* module-level verdict (``FORBIDDEN_ROLE``/``UNKNOWN_ENDPOINT``
+    and friends are private to their modules), and callers are expected to compare it
+    by identity — ``verdict is FORBIDDEN_OBJECT``. All five mutation routes were
+    checked against it (audit-11 finding 14). ``setattr`` is blocked by
+    ``frozen=True``; ``model_copy(update=...)`` and ``model_construct(...)``, the two
+    escape hatches named above, are *safe here specifically* — they build and return a
+    **new** object, leaving the shared one intact. The two that do get through are
+    ``FORBIDDEN_OBJECT.__dict__["reason"] = ...`` and
+    ``object.__setattr__(FORBIDDEN_OBJECT, "reason", ...)``: both mutate the module-level
+    instance for the entire process, so every future denial silently carries the new
+    text. Neither idiom is exotic in this repository — both appear in production code
+    (``context_view.py``, ``base_graph_edge.py``, ``route_record.py``) — they are simply
+    never aimed at a verdict. Do not aim them here.
+
+    ``Final`` is an annotation, not a runtime lock: rebinding
+    ``access_verdict.FORBIDDEN_OBJECT`` is not blocked either, and would not reach the
+    already-bound re-export in ``access_control/__init__.py`` — leaving two diverging
+    constants and quietly breaking every ``is`` comparison against the stale one. A test
+    pins that the export and the definition are the same object.
+
     Abstract by construction, not by convention: raises ``TypeError`` if
     ``type(self) is BaseVerdict``, checked in both ``__init__`` (the normal
     construction path) and ``model_post_init`` (which pydantic also calls from
