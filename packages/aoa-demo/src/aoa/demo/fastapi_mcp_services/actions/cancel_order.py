@@ -51,6 +51,7 @@ ARCHITECTURE / DATA FLOW
 """
 
 from collections.abc import Mapping
+from types import MappingProxyType
 from typing import Final, NamedTuple
 
 from pydantic import Field
@@ -85,12 +86,22 @@ class _OrderRow(NamedTuple):
 # The stand-in for a real orders table (``connections["orders_db"]`` in a real
 # service). Deliberately module-level and not reachable from Params: the caller
 # must not be able to state who owns an order -- see the module docstring.
-_ORDERS: Final[Mapping[str, _OrderRow]] = {
-    "ORD-1": _OrderRow(owner_user_id="alice", status="pending"),
-    "ORD-2": _OrderRow(owner_user_id="bob", status="pending"),
-    "LOCKED-1": _OrderRow(owner_user_id="alice", status="pending"),
-    "CANCELLED-1": _OrderRow(owner_user_id="alice", status="cancelled"),
-}
+#
+# ``MappingProxyType`` rather than a plain dict, so the ``Final`` annotation is
+# true at runtime and not merely a note to the type-checker: without it,
+# ``cancel_order._ORDERS["ORD-1"] = ...`` reassigns an order's owner for the whole
+# process. Unreachable from a request either way, so this is hygiene rather than a
+# hole -- but it is the same point the sibling FORBIDDEN_OBJECT comment already
+# makes about Final, applied here too (narrow-audit finding 9). The rows are
+# ``NamedTuple``, hence already immutable.
+_ORDERS: Final[Mapping[str, _OrderRow]] = MappingProxyType(
+    {
+        "ORD-1": _OrderRow(owner_user_id="alice", status="pending"),
+        "ORD-2": _OrderRow(owner_user_id="bob", status="pending"),
+        "LOCKED-1": _OrderRow(owner_user_id="alice", status="pending"),
+        "CANCELLED-1": _OrderRow(owner_user_id="alice", status="cancelled"),
+    }
+)
 
 
 @meta(description="Cancel an order", domain=OrdersDomain)

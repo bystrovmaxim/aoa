@@ -108,6 +108,25 @@ async def test_ownership_cannot_be_claimed_by_the_request(machine: ActionProduct
         await machine.run(_customer_context("bob"), CancelOrderAction(), _own_order_params())
 
 
+def test_the_orders_table_is_read_only_at_runtime() -> None:
+    """narrow-audit finding 9: ``Final`` is an annotation, not a runtime lock.
+
+    As a plain dict this table accepted
+    ``cancel_order._ORDERS["ORD-1"] = _OrderRow("mallory", ...)``, reassigning an
+    order's owner for the whole process. Unreachable from a request either way -- the
+    point of finding 2 holds regardless -- but the annotation should not claim more
+    than it delivers, and the rows themselves are already NamedTuples."""
+    from aoa.demo.fastapi_mcp_services.actions import cancel_order
+
+    with pytest.raises(TypeError):
+        cancel_order._ORDERS["ORD-1"] = cancel_order._OrderRow(owner_user_id="mallory", status="pending")
+
+    with pytest.raises(AttributeError):
+        cancel_order._ORDERS["ORD-1"].owner_user_id = "mallory"  # type: ignore[misc]
+
+    assert cancel_order._ORDERS["ORD-1"].owner_user_id == "alice"
+
+
 async def test_check_access_decide_matches_run_semantics(machine: ActionProductMachine) -> None:
     own = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, _own_order_params())
     assert own == AllowedVerdict()
