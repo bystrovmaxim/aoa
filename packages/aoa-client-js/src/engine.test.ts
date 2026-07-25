@@ -607,7 +607,9 @@ describe("isRetryableCheckError", () => {
     expect(isRetryableCheckError("TIMEOUT")).toBe(true);
   });
 
-  it.each(["UNKNOWN_ENDPOINT", "EVALUATION_FAILED", "SomeUnexpectedException"])("%s is not retryable", (reason) => {
+  // The third value is deliberately outside the server's closed set: a reason this
+  // client does not know must still default to non-retryable.
+  it.each(["UNKNOWN_ENDPOINT", "EVALUATION_FAILED", "SOME_UNKNOWN_FUTURE_CODE"])("%s is not retryable", (reason) => {
     expect(isRetryableCheckError(reason)).toBe(false);
   });
 });

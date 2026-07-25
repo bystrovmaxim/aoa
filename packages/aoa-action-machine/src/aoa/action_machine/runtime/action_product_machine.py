@@ -265,8 +265,8 @@ def _validated_access_decide_verdict(
 
     The error message names only ``type(verdict).__name__``, never ``verdict`` itself: a broken
     override could return anything -- a domain object, raw params, something carrying sensitive
-    data -- and unlike the check-only path (which already keeps only the exception's class name,
-    never its message), the real ``machine.run()`` path lets this exception propagate uncaught,
+    data -- and unlike the check-only path (which keeps nothing of the exception at all --
+    just the fixed ``EVALUATION_FAILED``), the real ``machine.run()`` path lets this exception propagate uncaught,
     so its text can reach server logs or, depending on the app's own error handling, an HTTP 500
     body.
     """
