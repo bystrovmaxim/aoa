@@ -125,10 +125,11 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
     ) -> FailSecurityVerdict | AllowedVerdict:
         """Level 3: the order must exist and belong to the caller.
 
-        Existence and ownership are checked together, in one branch, on
-        purpose — see ``FORBIDDEN_OBJECT``'s own comment for why a separate
-        "does it exist" step followed by a separate "is it yours" step is the
-        wrong shape here, even though both currently return the same verdict.
+        Existence and ownership are checked together, in one branch, on purpose
+        — see ``FORBIDDEN_OBJECT``'s own comment (``access_verdict.py``) for why
+        a separate "does it exist" step followed by a separate "is it yours"
+        step is the wrong shape here, even though both currently return the same
+        verdict.
         Once ownership is confirmed, a more specific reason ("already
         cancelled") is safe to reveal: the caller *has* proven this is their
         own order — the owner came from ``_ORDERS``, not from the request — so

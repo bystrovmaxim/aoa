@@ -149,6 +149,27 @@ class FailSecurityVerdict(BaseVerdict):
 # different text -- otherwise the reason string itself becomes an oracle for
 # which object IDs exist. See CancelOrderAction.access_decide (aoa-demo) for a
 # real usage.
+#
+# Check existence and ownership in ONE branch, not two steps. Writing
+#
+#     if order is None:            return FORBIDDEN_OBJECT   # step 1
+#     if order.owner != caller:    return FORBIDDEN_OBJECT   # step 2
+#
+# returns the same verdict today and is still the wrong shape, for two reasons:
+#
+#   * Two branches drift. They are edited at different times for different
+#     reasons, and the moment someone makes one of them more specific -- which
+#     reads like a harmless improvement, since ownership is not in question on
+#     the "missing" path -- the pair stops being indistinguishable. One combined
+#     condition cannot drift apart from itself.
+#   * Two branches take measurably different work. Step 1 returns without ever
+#     touching the ownership comparison (and, in a real action, often without
+#     the extra lookup that comparison needs), so "missing" answers sooner than
+#     "foreign" -- the same oracle, read off the clock instead of the text.
+#
+# Once ownership *is* confirmed, a more specific reason is safe: the caller has
+# proven the object is theirs, so a precise message tells them nothing about
+# anyone else's.
 FORBIDDEN_OBJECT: Final = FailSecurityVerdict("FORBIDDEN_OBJECT")
 
 
