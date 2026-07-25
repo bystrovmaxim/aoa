@@ -1113,9 +1113,18 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             request: Request,
             exc: AuthorizationError,
         ) -> JSONResponse:
+            # ``detail`` carries the declared reason, never ``str(exc)``. The exception's
+            # message is free-form developer text: for a cascade-raised denial it is
+            # assembled from the reason anyway, but an action that raises
+            # AuthorizationError by hand can put anything in it -- including something
+            # that differs per object, which is the oracle FORBIDDEN_OBJECT closes on the
+            # check path. Closing it there and leaving it open here would mean the
+            # guarantee holds until the user actually presses the button
+            # (narrow-audit finding 1). A verdict-less error has no declared reason, so it
+            # falls back to a fixed string rather than borrowing the message.
             return JSONResponse(
                 status_code=403,
-                content={"detail": str(exc), "reason": exc.reason, "level": exc.level},
+                content={"detail": exc.reason or "FORBIDDEN", "reason": exc.reason, "level": exc.level},
             )
 
         @app.exception_handler(ValidationFieldError)
