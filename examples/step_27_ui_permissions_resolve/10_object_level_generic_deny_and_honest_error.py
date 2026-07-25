@@ -50,9 +50,15 @@ class CustomerRole(ApplicationRole):
     description = "Regular customer"
 
 
+# The owner is resolved server-side, never taken from Params: anything the request
+# can set cannot be the thing the request is checked against. Same shape as
+# aoa-demo's own CancelOrderAction (audit-11 finding 2, and this file's own
+# omission -- narrow-audit finding 4).
+ORDERS = {"ORD-1": "alice", "ORD-2": "bob"}
+
+
 class OrderParams(BaseParams):
     order_id: str = Field(description="Order identifier")
-    owner_user_id: str = Field(description="user_id of the order's owner")
 
 
 class OrderResult(BaseResult):
@@ -66,7 +72,10 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     async def access_decide(self, params, context, box, connections) -> FailSecurityVerdict | AllowedVerdict:
         if params.order_id.startswith("CRASH-"):
             raise RuntimeError("orders_db unreachable")  # a genuine bug/outage, not a denial
-        if params.order_id.startswith("MISSING-") or params.owner_user_id != context.user.user_id:
+        owner = ORDERS.get(params.order_id)
+        # Existence and ownership in one branch, one shared verdict: "no such order" and
+        # "someone else's order" must be indistinguishable.
+        if owner is None or owner != context.user.user_id:
             return FORBIDDEN_OBJECT
         return AllowedVerdict()
 
@@ -80,10 +89,10 @@ async def main() -> None:
     alice = Context(user=UserInfo(user_id="alice", roles=(CustomerRole,)))
 
     cases = [
-        ("own order", OrderParams(order_id="ORD-1", owner_user_id="alice")),
-        ("foreign order", OrderParams(order_id="ORD-2", owner_user_id="bob")),
-        ("missing order", OrderParams(order_id="MISSING-1", owner_user_id="alice")),
-        ("crash during check", OrderParams(order_id="CRASH-1", owner_user_id="alice")),
+        ("own order", OrderParams(order_id="ORD-1")),
+        ("foreign order", OrderParams(order_id="ORD-2")),  # belongs to bob
+        ("missing order", OrderParams(order_id="NO-SUCH-ORDER")),
+        ("crash during check", OrderParams(order_id="CRASH-1")),
     ]
 
     verdicts = await machine.check_access_decide(alice, [(CancelOrderAction, params) for _, params in cases])
