@@ -190,15 +190,22 @@ describe("renderResolveResponseZodSchema", () => {
     expect(schema.parse({ known: "x", extra: "unexpected but real" })).toEqual({ known: "x", extra: "unexpected but real" });
   });
 
-  it("does not add .passthrough() when additionalProperties is false", () => {
+  // Chapter 12 (#144): additionalProperties: false must REFUSE an undeclared key, not
+  // strip it. Bare z.object() strips -- a third behavior the input schema never asks for,
+  // and the one that hides a producer/consumer version mismatch. The Python models these
+  // schemas come from are extra="forbid" and reject; this used to accept a quietly
+  // trimmed copy, so the two halves of the contract disagreed in silence.
+  it("refuses undeclared keys via .strict() when additionalProperties is false", () => {
     const parsed = parseRootSchema(
       { properties: { known: { type: "string" } }, required: ["known"], additionalProperties: false, type: "object" },
       "test",
     );
     const source = renderResolveResponseZodSchema(parsed);
+    expect(source).toContain(".strict()");
     expect(source).not.toContain(".passthrough()");
     const schema = evalZodSchema(source);
-    expect(schema.parse({ known: "x", extra: "dropped" })).toEqual({ known: "x" });
+    expect(schema.parse({ known: "x" })).toEqual({ known: "x" });
+    expect(() => schema.parse({ known: "x", extra: "not silently dropped" })).toThrow();
   });
 
   it("keeps a required-but-nullable field mandatory -- the key must be present even though its value may be null", () => {
