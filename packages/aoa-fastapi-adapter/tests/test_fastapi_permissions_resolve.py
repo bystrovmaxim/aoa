@@ -27,6 +27,8 @@ from fastapi.testclient import TestClient
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
+from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
 from aoa.fastapi.reserved_route_path_error import ReservedRoutePathError
@@ -519,6 +521,55 @@ class TestParamsMapperIsolation:
             {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"},
             {"kind": "AllowedVerdict"},
         ]
+
+    def test_a_mapper_that_denies_reports_its_denial_not_a_failure(self) -> None:
+        """narrow-audit finding 2: a mapper can *decide*, not only fail.
+
+        One that resolves the caller's tenant may legitimately raise AuthorizationError.
+        Swallowed by the broad handler, that denial came back as EVALUATION_FAILED --
+        "could not check" -- which the client treats as "ask again", so the UI would show
+        the action as available. A failure is not a denial, and a denial is not a failure."""
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+
+        def denying_mapper(body: object) -> object:
+            raise AuthorizationError("wrong tenant", verdict=FailSecurityVerdict("FORBIDDEN_TENANT"))
+
+        adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=denying_mapper)
+        client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["results"] == [{"kind": "FailSecurityVerdict", "reason": "FORBIDDEN_TENANT"}]
+
+    def test_a_verdict_less_authorization_error_from_a_mapper_is_still_a_failure(self) -> None:
+        """The other half: no verdict means nothing was decided, so it stays
+        EVALUATION_FAILED rather than being reported as a denial -- and the message,
+        which names a customer here, does not reach the wire."""
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+
+        def bare_denying_mapper(body: object) -> object:
+            raise AuthorizationError("tenant lookup failed for bob@corp.com")
+
+        adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=bare_denying_mapper)
+        client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+        )
+
+        assert response.json()["results"] == [{"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"}]
+        assert "bob@corp.com" not in response.text
 
     def test_the_mapper_exception_text_never_reaches_the_client(self) -> None:
         """The raised message names an order and an e-mail; neither may cross the wire."""

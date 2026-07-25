@@ -57,6 +57,7 @@ from typing import Any, cast
 
 from pydantic import BaseModel, ValidationError
 
+from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.intents.access_control import BaseVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -212,6 +213,18 @@ async def resolve_verdicts(
         else:
             try:
                 params = mapper(body)
+            except AuthorizationError as exc:
+                # A mapper can *decide* rather than fail: one that resolves the caller's
+                # tenant, say, may legitimately raise AuthorizationError. Caught by the
+                # broad handler below, that decision would come back as
+                # EVALUATION_FAILED -- "could not check" -- and the UI would show the
+                # action as available. "A failure is not a denial" is only half the rule;
+                # a denial must not become a failure either (narrow-audit finding 2).
+                # Same shape as check_access_decide's own handler: report exc.verdict,
+                # and fall through to the failure answer only when there is none, since
+                # then nothing was decided.
+                synthetic[key] = exc.verdict if exc.verdict is not None else _EVALUATION_FAILED_VERDICT
+                continue
             except Exception:  # pylint: disable=broad-exception-caught
                 # A route's params_mapper is app-supplied code, so it can fail like any
                 # other check step. Unprotected, its exception left this function entirely
