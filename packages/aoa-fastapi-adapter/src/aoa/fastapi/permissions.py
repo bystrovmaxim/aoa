@@ -57,6 +57,7 @@ from typing import Any, cast
 
 from pydantic import BaseModel, ValidationError
 
+from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.intents.access_control import BaseVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -107,6 +108,10 @@ def canonical_key(params: dict[str, Any]) -> str:
 # and always returned the same value, so there was nothing to isolate them.
 _UNKNOWN_ENDPOINT_VERDICT = FailErrorVerdict("UNKNOWN_ENDPOINT")
 _UNAUTHORIZED_VERDICT = FailSecurityVerdict("UNAUTHORIZED")
+# Same reason the machine reports for a crash inside access_decide: one item's check
+# could not be answered. Built here rather than imported so this module keeps owning
+# every verdict it synthesizes itself.
+_EVALUATION_FAILED_VERDICT = FailErrorVerdict("EVALUATION_FAILED")
 
 
 @dataclass
@@ -132,6 +137,7 @@ async def resolve_verdicts(
     machine: ActionProductMachine,
     *,
     unauthorized_operations: frozenset[str] = frozenset(),
+    unpreparable_operations: frozenset[str] = frozenset(),
 ) -> ResolveOutcome:
     """
     Resolve one verdict per ``items`` entry, deduplicating and isolating per-item errors.
@@ -171,12 +177,18 @@ async def resolve_verdicts(
     for the whole batch. Every operation reachable from ``items`` that has a matching
     entry in ``plan_index`` is expected to already have an entry in
     ``prepared_by_operation``, *unless* it is also named in ``unauthorized_operations``
+    or ``unpreparable_operations``
     (``prepare`` raised instead of returning) — this function only looks
     ``prepared_by_operation`` up, it never calls ``prepare`` itself (it has no
     ``Request`` to call it with).
 
     Raises:
-        HTTPException: 400, when a known endpoint's params fail pydantic validation.
+        HTTPException: 400, when a known endpoint's params fail pydantic validation --
+            whether that happens on the way in or inside the route's own
+            ``params_mapper``. Also re-raised untouched when a ``params_mapper``
+            raises ``HTTPException`` itself, which is app code explicitly dictating
+            the response rather than failing. Every *other* mapper failure is that
+            one item's ``EVALUATION_FAILED``, not the whole request's.
     """
     item_keys: list[_DedupKey] = [(item.operation, canonical_key(item.params)) for item in items]
 
@@ -196,6 +208,17 @@ async def resolve_verdicts(
             synthetic[key] = _UNAUTHORIZED_VERDICT
             continue
 
+        if item.operation in unpreparable_operations:
+            # ``prepare()`` raised something other than AuthorizationError -- a route's
+            # own auth_coordinator or one of its connection factories, both app code,
+            # failed outright. Nothing was decided for this operation, so its items get
+            # the same "could not check" answer a crashed access_decide gets. Isolated
+            # here rather than left to propagate: unprotected, one such failure answered
+            # the whole request with a 500 and no results at all, which is precisely what
+            # the per-item isolation contract rules out (narrow-audit finding 3).
+            synthetic[key] = _EVALUATION_FAILED_VERDICT
+            continue
+
         req_model = cast(type[BaseModel], plan.record.effective_request_model)
         try:
             body = req_model.model_validate(item.params)
@@ -203,7 +226,45 @@ async def resolve_verdicts(
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         mapper = plan.record.params_mapper
-        params = mapper(body) if mapper is not None else body
+        if mapper is None:
+            params = body
+        else:
+            try:
+                params = mapper(body)
+            except AuthorizationError as exc:
+                # A mapper can *decide* rather than fail: one that resolves the caller's
+                # tenant, say, may legitimately raise AuthorizationError. Caught by the
+                # broad handler below, that decision would come back as
+                # EVALUATION_FAILED -- "could not check" -- and the UI would show the
+                # action as available. "A failure is not a denial" is only half the rule;
+                # a denial must not become a failure either (narrow-audit finding 2).
+                # Same shape as check_access_decide's own handler: report exc.verdict,
+                # and fall through to the failure answer only when there is none, since
+                # then nothing was decided.
+                synthetic[key] = exc.verdict if exc.verdict is not None else _EVALUATION_FAILED_VERDICT
+                continue
+            except ValidationError as exc:
+                # The mapped params did not validate -- the same kind of problem as the
+                # model_validate above, and answered the same way. Reporting it as
+                # EVALUATION_FAILED would tell the client "could not check, ask again"
+                # when the truth is "your request is malformed", which no amount of
+                # asking again fixes (narrow-audit finding 8).
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            except HTTPException:
+                # A mapper raising HTTPException is deliberately dictating the response.
+                # Swallowing that into a per-item verdict would discard an explicit
+                # signal from app code, so it propagates untouched.
+                raise
+            except Exception:  # pylint: disable=broad-exception-caught
+                # A route's params_mapper is app-supplied code, so it can fail like any
+                # other check step. Unprotected, its exception left this function entirely
+                # and became a whole-request 500 with no results at all -- one bad item
+                # sinking a batch of twenty, the exact outcome per-item isolation exists
+                # to prevent (audit-11 finding 11). Isolated to its own item now, with the
+                # same fixed reason a crash inside access_decide gets: nothing was decided,
+                # and the mapper's own message must not reach the wire.
+                synthetic[key] = _EVALUATION_FAILED_VERDICT
+                continue
         pending[key] = (plan.record.action_class, params, prepared_by_operation[item.operation])
 
     pending_keys = list(pending.keys())

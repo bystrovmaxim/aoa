@@ -1,4 +1,4 @@
-<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-24T22:31:56Z (filesystem mtime; draft is gitignored, no git history) · sha256:f6a9503d70d8 -->
+<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-25T21:16:46Z (filesystem mtime; draft is gitignored, no git history) · sha256:9a18105d1d63 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -346,7 +346,7 @@ Every call to `resolve()` carries its own `x-trace-id` (`crypto.randomUUID()` by
 
 What this chapter deliberately leaves out: `resolve()` doesn't cache identical questions yet (coming later), and doesn't merge concurrent calls into one network request either (also coming later) — one call to `resolve()` is always exactly one HTTP request. The endpoint is still written by hand as a string (`"POST /actions/cancel-order"`) — a type-safe wrapper (`api.post["/actions/cancel-order"].can(...)`) comes from code generation off the catalog, a separate topic.
 
-Examples — [`01_resolve_single.ts`](../../examples/step_27_ui_permissions_client/01_resolve_single.ts) (a single question), [`02_resolve_batch_of_questions.ts`](../../examples/step_27_ui_permissions_client/02_resolve_batch_of_questions.ts) (a batch of questions in one call), [`03_resolve_request_errors.ts`](../../examples/step_27_ui_permissions_client/03_resolve_request_errors.ts) (transport failures and `FailErrorVerdict`), and [`04_engine_with_fake_fetch_for_tests.ts`](../../examples/step_27_ui_permissions_client/04_engine_with_fake_fetch_for_tests.ts) (swapping in a fake `fetchImpl` for your own tests). Each one runs directly: `node examples/step_27_ui_permissions_client/<file>.ts`.
+Examples — [`01_resolve_single.ts`](../../examples/step_27_ui_permissions_client/01_resolve_single.ts) (a single question), [`02_resolve_batch_of_questions.ts`](../../examples/step_27_ui_permissions_client/02_resolve_batch_of_questions.ts) (a batch of questions in one call), [`03_resolve_request_errors.ts`](../../examples/step_27_ui_permissions_client/03_resolve_request_errors.ts) (transport failures and `FailErrorVerdict`), [`04_engine_with_fake_fetch_for_tests.ts`](../../examples/step_27_ui_permissions_client/04_engine_with_fake_fetch_for_tests.ts) (swapping in a fake `fetchImpl` for your own tests), and [`05_object_level_generic_deny_and_honest_error.ts`](../../examples/step_27_ui_permissions_client/05_object_level_generic_deny_and_honest_error.ts) (the two object-level codes as the client sees them). Each one runs directly: `node examples/step_27_ui_permissions_client/<file>.ts`.
 
 ---
 

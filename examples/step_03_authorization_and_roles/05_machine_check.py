@@ -26,7 +26,7 @@ from aoa.action_machine.auth import ApplicationRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
+from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -44,9 +44,13 @@ class CustomerRole(ApplicationRole):
     description = "Regular customer"
 
 
+# The owner is resolved server-side, never taken from Params -- see
+# 04_access_decide.py for why.
+ORDERS = {"ord-001": "alice", "ord-002": "bob", "ord-003": "alice"}
+
+
 class OrderParams(BaseParams):
     order_id: str = Field(description="Order identifier")
-    owner_user_id: str = Field(description="user_id of the order's owner")
 
 
 class OrderResult(BaseResult):
@@ -59,9 +63,10 @@ class OrderResult(BaseResult):
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 
     async def access_decide(self, params, context, box, connections) -> FailSecurityVerdict | AllowedVerdict:
-        if params.owner_user_id == context.user.user_id:
-            return AllowedVerdict()
-        return FailSecurityVerdict("order does not belong to the caller")
+        owner = ORDERS.get(params.order_id)
+        if owner is None or owner != context.user.user_id:
+            return FORBIDDEN_OBJECT
+        return AllowedVerdict()
 
     @summary_aspect("Cancel the order")
     async def cancel_summary(self, params, state, box, connections):
@@ -78,7 +83,7 @@ async def main() -> None:
 
     print("Single form — should the 'Cancel' button be shown for ord-001?")
     verdict = await machine.check_access_decide(
-        alice, CancelOrderAction, OrderParams(order_id="ord-001", owner_user_id="alice")
+        alice, CancelOrderAction, OrderParams(order_id="ord-001")
     )
     allowed = isinstance(verdict, AllowedVerdict)
     print(f"  kind={verdict.kind}  ->  {'show button' if allowed else 'grey out button'}")
@@ -87,9 +92,9 @@ async def main() -> None:
     verdicts = await machine.check_access_decide(
         alice,
         [
-            (CancelOrderAction, OrderParams(order_id="ord-001", owner_user_id="alice")),
-            (CancelOrderAction, OrderParams(order_id="ord-002", owner_user_id="bob")),
-            (CancelOrderAction, OrderParams(order_id="ord-003", owner_user_id="alice")),
+            (CancelOrderAction, OrderParams(order_id="ord-001")),
+            (CancelOrderAction, OrderParams(order_id="ord-002")),
+            (CancelOrderAction, OrderParams(order_id="ord-003")),
         ],
     )
     for order_id, verdict in zip(("ord-001", "ord-002", "ord-003"), verdicts, strict=True):

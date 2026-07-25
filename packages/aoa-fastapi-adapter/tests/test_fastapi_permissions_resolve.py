@@ -22,16 +22,21 @@ file only checks what a real client actually observes over HTTP.
 from unittest.mock import AsyncMock
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
+from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.intents.access_control import FailSecurityVerdict
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
 from aoa.fastapi.reserved_route_path_error import ReservedRoutePathError
 
-from .support import CancelOrderAction, ManagerRole, PingAction, UserRole
+from .support import CRASHING_ORDER_ID, ArchiveOrderAction, CancelOrderAction, ManagerRole, PingAction, UserRole
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -302,7 +307,7 @@ class TestErrorMapping:
         assert response.status_code == 422
 
     def test_known_endpoint_with_malformed_params_fails_the_whole_request_with_400(self) -> None:
-        """Unlike an unknown operation (isolated to its own CHECK_ERROR), a KNOWN endpoint's
+        """Unlike an unknown operation (isolated to its own FailErrorVerdict), a KNOWN endpoint's
         params failing validation is NOT isolated — it fails the whole request with 400,
         per resolve_verdicts()'s own documented contract."""
         client = _make_client(context=_manager_context())
@@ -372,3 +377,362 @@ class TestVersioning:
         )
         assert response.status_code == 200
         assert response.json()["version"] == 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Object-level codes on the wire (audit-11 finding 9)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestObjectLevelCodesOverHttp:
+    """``FORBIDDEN_OBJECT`` and ``EVALUATION_FAILED`` as a real client sees them.
+
+    Every other test of these two codes works either in-process (against
+    ``machine.check_access_decide``) or against a hand-written fake ``fetch``. Nothing
+    asserted that they survive serialization and arrive in the JSON body — so a
+    regression such as losing ``SerializeAsAny`` on ``results`` (a pydantic trap
+    ``permissions_schema.py`` already documents as having bitten once) would strip
+    ``reason`` from the response while leaving every in-process test green.
+    """
+
+    def _archiving_client(self, *, context: Context | None) -> TestClient:
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = context
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+        adapter.post("/actions/archive-order", ArchiveOrderAction)
+        return TestClient(adapter.build())
+
+    def _resolve(self, client: TestClient, order_ids: list[int]) -> list[dict]:
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [
+                    {"operation": "POST /actions/archive-order", "params": {"order_id": oid}} for oid in order_ids
+                ],
+            },
+        )
+        assert response.status_code == 200
+        return response.json()["results"]
+
+    def test_missing_and_foreign_objects_are_byte_identical_in_the_json_body(self) -> None:
+        """The oracle guarantee where it actually matters: in the bytes the client receives."""
+        client = self._archiving_client(context=_manager_context())  # alice owns order 1
+        own, foreign, missing = self._resolve(client, [1, 2, 404])
+
+        assert own == {"kind": "AllowedVerdict"}
+        assert foreign == {"kind": "FailSecurityVerdict", "reason": "FORBIDDEN_OBJECT"}
+        assert missing == foreign  # whole dict, not just the reason
+
+    def test_crashed_check_arrives_as_evaluation_failed_inside_a_200(self) -> None:
+        """A crash is one item's honest error, not a denial and not a failed request."""
+        client = self._archiving_client(context=_manager_context())
+        (crashed,) = self._resolve(client, [CRASHING_ORDER_ID])
+
+        assert crashed == {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"}
+
+    def test_a_crash_does_not_disturb_the_other_items_in_the_batch(self) -> None:
+        """Per-item isolation, asserted over HTTP rather than in-process."""
+        client = self._archiving_client(context=_manager_context())
+        results = self._resolve(client, [1, CRASHING_ORDER_ID, 2, 1])
+
+        assert results == [
+            {"kind": "AllowedVerdict"},
+            {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"},
+            {"kind": "FailSecurityVerdict", "reason": "FORBIDDEN_OBJECT"},
+            {"kind": "AllowedVerdict"},  # deduplicated against item 0, same answer
+        ]
+
+    def test_the_crashing_exception_never_reaches_the_client(self) -> None:
+        """The raised ConnectionError names the db and the order id; neither may appear."""
+        client = self._archiving_client(context=_manager_context())
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [
+                    {"operation": "POST /actions/archive-order", "params": {"order_id": CRASHING_ORDER_ID}}
+                ],
+            },
+        )
+        body = response.text
+        assert "ConnectionError" not in body
+        assert "orders_db" not in body
+        assert "unreachable" not in body
+
+    def test_fail_error_reasons_on_the_wire_are_a_closed_set(self) -> None:
+        """Pins permissions_schema.py's own claim (audit-11 finding 4): the resolver emits
+        UNKNOWN_ENDPOINT or EVALUATION_FAILED, never anything else."""
+        client = self._archiving_client(context=_manager_context())
+        response = client.post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [
+                    {"operation": "POST /actions/archive-order", "params": {"order_id": CRASHING_ORDER_ID}},
+                    {"operation": "POST /actions/no-such-route", "params": {}},
+                ],
+            },
+        )
+        assert response.status_code == 200
+        reasons = {r["reason"] for r in response.json()["results"] if r["kind"] == "FailErrorVerdict"}
+        assert reasons == {"EVALUATION_FAILED", "UNKNOWN_ENDPOINT"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# params_mapper failures stay per-item (audit-11 finding 11)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestParamsMapperIsolation:
+    """A route's ``params_mapper`` is app code and can fail like any other check step.
+
+    Unprotected, its exception escaped ``resolve_verdicts`` entirely and became a
+    whole-request 500 with no results -- one bad item sinking a batch of twenty, the
+    exact outcome the per-item isolation contract rules out.
+    """
+
+    @staticmethod
+    def _exploding_mapper(body: object) -> object:
+        raise RuntimeError("mapper blew up: order 7 of customer bob@corp.com")
+
+    def _client_with_broken_mapper(self) -> TestClient:
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+        adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=self._exploding_mapper)
+        adapter.get("/actions/ping", PingAction)
+        return TestClient(adapter.build(), raise_server_exceptions=False)
+
+    def test_a_failing_mapper_no_longer_sinks_the_whole_batch(self) -> None:
+        response = self._client_with_broken_mapper().post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [
+                    {"operation": "GET /actions/ping", "params": {}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 7}},
+                    {"operation": "GET /actions/ping", "params": {}},
+                ],
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["results"] == [
+            {"kind": "AllowedVerdict"},
+            {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"},
+            {"kind": "AllowedVerdict"},
+        ]
+
+    def test_a_mapper_that_denies_reports_its_denial_not_a_failure(self) -> None:
+        """narrow-audit finding 2: a mapper can *decide*, not only fail.
+
+        One that resolves the caller's tenant may legitimately raise AuthorizationError.
+        Swallowed by the broad handler, that denial came back as EVALUATION_FAILED --
+        "could not check" -- which the client treats as "ask again", so the UI would show
+        the action as available. A failure is not a denial, and a denial is not a failure."""
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+
+        def denying_mapper(body: object) -> object:
+            raise AuthorizationError("wrong tenant", verdict=FailSecurityVerdict("FORBIDDEN_TENANT"))
+
+        adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=denying_mapper)
+        client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["results"] == [{"kind": "FailSecurityVerdict", "reason": "FORBIDDEN_TENANT"}]
+
+    def test_a_verdict_less_authorization_error_from_a_mapper_is_still_a_failure(self) -> None:
+        """The other half: no verdict means nothing was decided, so it stays
+        EVALUATION_FAILED rather than being reported as a denial -- and the message,
+        which names a customer here, does not reach the wire."""
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+
+        def bare_denying_mapper(body: object) -> object:
+            raise AuthorizationError("tenant lookup failed for bob@corp.com")
+
+        adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=bare_denying_mapper)
+        client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+        )
+
+        assert response.json()["results"] == [{"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"}]
+        assert "bob@corp.com" not in response.text
+
+    def test_the_mapper_exception_text_never_reaches_the_client(self) -> None:
+        """The raised message names an order and an e-mail; neither may cross the wire."""
+        response = self._client_with_broken_mapper().post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}],
+            },
+        )
+        assert response.status_code == 200
+        assert "bob@corp.com" not in response.text
+        assert "blew up" not in response.text
+        assert "RuntimeError" not in response.text
+
+    def test_a_working_mapper_is_untouched(self) -> None:
+        """Regression guard: the happy path still maps and still resolves."""
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+        adapter.post(
+            "/actions/cancel-order",
+            CancelOrderAction,
+            params_mapper=lambda body: CancelOrderAction.Params(order_id=body.order_id + 1),
+        )
+        client = TestClient(adapter.build())
+
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+        )
+        assert response.status_code == 200
+        assert response.json()["results"] == [{"kind": "AllowedVerdict"}]
+
+    def test_params_validation_failure_is_still_a_400_for_the_whole_request(self) -> None:
+        """Bad params are the *client's* error, not a check failure, and keep the existing
+        whole-request 400 rather than becoming a per-item verdict.
+
+        Note this input fails at ``model_validate``, *before* the mapper runs, so it
+        passes with or without the mapper handler -- it pins the untouched path. The two
+        tests below cover the path the handler actually changed (narrow-audit finding 8)."""
+        response = self._client_with_broken_mapper().post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": "abc"}}]},
+        )
+        assert response.status_code == 400
+
+    def test_a_mapper_raising_validationerror_is_a_400_not_a_per_item_failure(self) -> None:
+        """narrow-audit finding 8: params that fail to validate *inside* the mapper are the
+        same kind of problem as ones that fail outside it -- the client's request is
+        malformed. Answering EVALUATION_FAILED would say "could not check, ask again",
+        which no amount of asking again fixes."""
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+
+        def validating_mapper(body: object) -> object:
+            return CancelOrderAction.Params(order_id="not-an-int")  # type: ignore[arg-type]
+
+        adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=validating_mapper)
+        client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+        )
+
+        assert response.status_code == 400
+
+    def test_a_mapper_raising_httpexception_dictates_the_response(self) -> None:
+        """An HTTPException from app code is an explicit instruction about the response.
+        Folding it into a per-item verdict would discard that signal."""
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+
+        def refusing_mapper(body: object) -> object:
+            raise HTTPException(status_code=400, detail="order_id must be positive")
+
+        adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=refusing_mapper)
+        client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "order_id must be positive"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# prepare() failures stay per-operation (narrow-audit finding 3)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestPreparationIsolation:
+    """``plan.prepare()`` runs app code too -- a route's own ``auth_coordinator`` and its
+    connection factories -- and only ``AuthorizationError`` was caught around it.
+
+    Anything else escaped the resolver entirely and answered the whole request with a
+    500 and no results, the same "one bad item sinks the batch" outcome the mapper
+    handler was added to prevent one frame below.
+    """
+
+    _BATCH = {
+        "version": 1,
+        "items": [
+            {"operation": "GET /actions/ping", "params": {}},
+            {"operation": "POST /actions/cancel-order", "params": {"order_id": 7}},
+            {"operation": "GET /actions/ping", "params": {}},
+        ],
+    }
+    _ISOLATED = [
+        {"kind": "AllowedVerdict"},
+        {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"},
+        {"kind": "AllowedVerdict"},
+    ]
+
+    def _client(self, **cancel_kwargs: object) -> TestClient:
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+        adapter.post("/actions/cancel-order", CancelOrderAction, **cancel_kwargs)  # type: ignore[arg-type]
+        adapter.get("/actions/ping", PingAction)
+        return TestClient(adapter.build(), raise_server_exceptions=False)
+
+    def test_a_route_auth_coordinator_that_crashes_does_not_sink_the_batch(self) -> None:
+        exploding_auth = AsyncMock()
+        exploding_auth.process.side_effect = RuntimeError("token service unreachable for bob@corp.com")
+        response = self._client(auth_coordinator=exploding_auth).post("/permissions/resolve", json=self._BATCH)
+
+        assert response.status_code == 200
+        assert response.json()["results"] == self._ISOLATED
+        assert "bob@corp.com" not in response.text
+        assert "token service" not in response.text
+
+    def test_a_connection_factory_that_crashes_does_not_sink_the_batch(self) -> None:
+        def exploding_factory() -> BaseResource:
+            raise ConnectionError("orders_db unreachable")
+
+        response = self._client(connections={"orders_db": PerCallConnection(factory=exploding_factory)}).post(
+            "/permissions/resolve", json=self._BATCH
+        )
+
+        assert response.status_code == 200
+        assert response.json()["results"] == self._ISOLATED
+        assert "orders_db" not in response.text
+
+    def test_a_route_level_auth_rejection_is_still_a_denial_not_a_failure(self) -> None:
+        """Regression guard: AuthorizationError from prepare() keeps its own, distinct
+        answer -- UNAUTHORIZED, a denial -- and must not be swallowed by the new broad
+        handler sitting next to it."""
+        rejecting_auth = AsyncMock()
+        rejecting_auth.process.side_effect = AuthorizationError("Authentication required")
+        response = self._client(auth_coordinator=rejecting_auth).post("/permissions/resolve", json=self._BATCH)
+
+        assert response.status_code == 200
+        assert response.json()["results"][1] == {"kind": "FailSecurityVerdict", "reason": "UNAUTHORIZED"}
