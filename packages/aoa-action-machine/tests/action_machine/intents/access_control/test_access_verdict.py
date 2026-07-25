@@ -7,7 +7,13 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from aoa.action_machine.intents.access_control import AllowedVerdict, BaseVerdict, FailErrorVerdict, FailSecurityVerdict
+from aoa.action_machine.intents.access_control import (
+    FORBIDDEN_OBJECT,
+    AllowedVerdict,
+    BaseVerdict,
+    FailErrorVerdict,
+    FailSecurityVerdict,
+)
 
 
 class TestBaseVerdictIsAbstract:
@@ -98,6 +104,44 @@ class TestFailErrorVerdict:
 
     def test_dumped_shape(self) -> None:
         assert FailErrorVerdict("KeyError").model_dump() == {"kind": "FailErrorVerdict", "reason": "KeyError"}
+
+
+class TestForbiddenObject:
+    """The shared object-level denial. Owned by this package, so pinned here rather than
+    only through aoa-demo's usage of it (audit-11 finding 10)."""
+
+    def test_is_a_security_denial_not_an_error(self) -> None:
+        """The class carries the whole meaning: a denial is cacheable, an error is not.
+        Retyping this constant to FailErrorVerdict would turn a real "no" into a
+        never-cached non-answer -- a semantic and a caching bug at once, and every test
+        that only asserts `.reason` would stay green."""
+        assert isinstance(FORBIDDEN_OBJECT, FailSecurityVerdict)
+        assert not isinstance(FORBIDDEN_OBJECT, FailErrorVerdict)
+        assert FORBIDDEN_OBJECT.kind == "FailSecurityVerdict"
+
+    def test_reason_is_the_fixed_code(self) -> None:
+        assert FORBIDDEN_OBJECT.reason == "FORBIDDEN_OBJECT"
+
+    def test_dumped_shape(self) -> None:
+        """The exact bytes a client receives for both "missing" and "foreign"."""
+        assert FORBIDDEN_OBJECT.model_dump() == {"kind": "FailSecurityVerdict", "reason": "FORBIDDEN_OBJECT"}
+
+    def test_round_trips_through_its_own_dump(self) -> None:
+        """Same guarantee the other verdicts get tested for, applied to the shared instance."""
+        restored = FailSecurityVerdict.model_validate(FORBIDDEN_OBJECT.model_dump())
+        assert restored == FORBIDDEN_OBJECT
+
+    def test_is_frozen_so_one_shared_instance_is_safe_to_hand_out(self) -> None:
+        """Why a module-level singleton is safe at all: nobody can mutate it in place."""
+        with pytest.raises(ValidationError):
+            FORBIDDEN_OBJECT.reason = "something else"  # type: ignore[misc]
+
+    def test_the_export_and_the_definition_are_the_same_object(self) -> None:
+        """Callers compare by identity (`verdict is FORBIDDEN_OBJECT`), so the re-export
+        must not be a copy -- two constants would silently break every such comparison."""
+        from aoa.action_machine.intents.access_control import access_verdict
+
+        assert FORBIDDEN_OBJECT is access_verdict.FORBIDDEN_OBJECT
 
 
 class TestDictLikeAccess:
