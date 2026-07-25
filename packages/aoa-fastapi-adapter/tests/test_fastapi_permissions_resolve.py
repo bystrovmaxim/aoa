@@ -22,6 +22,7 @@ file only checks what a real client actually observes over HTTP.
 from unittest.mock import AsyncMock
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from aoa.action_machine.auth.guest_role import GuestRole
@@ -608,13 +609,62 @@ class TestParamsMapperIsolation:
         assert response.json()["results"] == [{"kind": "AllowedVerdict"}]
 
     def test_params_validation_failure_is_still_a_400_for_the_whole_request(self) -> None:
-        """Unchanged by this fix: bad params are the *client's* error, not a check failure,
-        and keep the existing whole-request 400 rather than becoming a per-item verdict."""
+        """Bad params are the *client's* error, not a check failure, and keep the existing
+        whole-request 400 rather than becoming a per-item verdict.
+
+        Note this input fails at ``model_validate``, *before* the mapper runs, so it
+        passes with or without the mapper handler -- it pins the untouched path. The two
+        tests below cover the path the handler actually changed (narrow-audit finding 8)."""
         response = self._client_with_broken_mapper().post(
             "/permissions/resolve",
             json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": "abc"}}]},
         )
         assert response.status_code == 400
+
+    def test_a_mapper_raising_validationerror_is_a_400_not_a_per_item_failure(self) -> None:
+        """narrow-audit finding 8: params that fail to validate *inside* the mapper are the
+        same kind of problem as ones that fail outside it -- the client's request is
+        malformed. Answering EVALUATION_FAILED would say "could not check, ask again",
+        which no amount of asking again fixes."""
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+
+        def validating_mapper(body: object) -> object:
+            return CancelOrderAction.Params(order_id="not-an-int")  # type: ignore[arg-type]
+
+        adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=validating_mapper)
+        client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+        )
+
+        assert response.status_code == 400
+
+    def test_a_mapper_raising_httpexception_dictates_the_response(self) -> None:
+        """An HTTPException from app code is an explicit instruction about the response.
+        Folding it into a per-item verdict would discard that signal."""
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+
+        def refusing_mapper(body: object) -> object:
+            raise HTTPException(status_code=400, detail="order_id must be positive")
+
+        adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=refusing_mapper)
+        client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "order_id must be positive"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

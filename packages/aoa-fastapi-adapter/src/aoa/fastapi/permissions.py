@@ -183,7 +183,12 @@ async def resolve_verdicts(
     ``Request`` to call it with).
 
     Raises:
-        HTTPException: 400, when a known endpoint's params fail pydantic validation.
+        HTTPException: 400, when a known endpoint's params fail pydantic validation --
+            whether that happens on the way in or inside the route's own
+            ``params_mapper``. Also re-raised untouched when a ``params_mapper``
+            raises ``HTTPException`` itself, which is app code explicitly dictating
+            the response rather than failing. Every *other* mapper failure is that
+            one item's ``EVALUATION_FAILED``, not the whole request's.
     """
     item_keys: list[_DedupKey] = [(item.operation, canonical_key(item.params)) for item in items]
 
@@ -238,6 +243,18 @@ async def resolve_verdicts(
                 # then nothing was decided.
                 synthetic[key] = exc.verdict if exc.verdict is not None else _EVALUATION_FAILED_VERDICT
                 continue
+            except ValidationError as exc:
+                # The mapped params did not validate -- the same kind of problem as the
+                # model_validate above, and answered the same way. Reporting it as
+                # EVALUATION_FAILED would tell the client "could not check, ask again"
+                # when the truth is "your request is malformed", which no amount of
+                # asking again fixes (narrow-audit finding 8).
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            except HTTPException:
+                # A mapper raising HTTPException is deliberately dictating the response.
+                # Swallowing that into a per-item verdict would discard an explicit
+                # signal from app code, so it propagates untouched.
+                raise
             except Exception:  # pylint: disable=broad-exception-caught
                 # A route's params_mapper is app-supplied code, so it can fail like any
                 # other check step. Unprotected, its exception left this function entirely
