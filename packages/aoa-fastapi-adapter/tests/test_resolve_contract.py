@@ -1,19 +1,33 @@
 # tests/test_resolve_contract.py
 """
-Contract test: one fixture, read by both Python and TypeScript (chapter 5, "Случай 2").
+Contract test, Python half: every fixture in ``contracts/fixtures/`` (chapter 12, #144).
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``contracts/fixtures/resolve_response_basic.json`` is a real ``ResolveResponse``.
-This test parses it with the real pydantic model; the companion TypeScript example
-(``examples/step_27_ui_permissions_codegen/04_contract_fixture_resolve_response.ts``)
-parses the identical file with the generated ``ResolveResponseSchema`` (zod). If
-someone changes the shape of ``AllowedVerdict``/``FailSecurityVerdict``/
-``FailErrorVerdict`` on one side and not the other, one of the two goes red --
-this is the Python half of that guarantee, not a test of endpoint-set drift
-(that's runtime ``UNKNOWN_ENDPOINT`` plus ``aoa-codegen --check``, not a fixture).
+Each file in ``contracts/fixtures/`` is a complete ``POST /permissions/resolve``
+response body, read by BOTH halves of the system: here with the real pydantic
+model, and in ``packages/aoa-client-js/src/codegen/resolve-contract.test.ts``
+with the generated zod schema. If someone changes the shape of
+``AllowedVerdict``/``FailSecurityVerdict``/``FailErrorVerdict`` on one side and
+not the other, one of the two goes red.
+
+This is not a test of endpoint-set drift (that is runtime ``UNKNOWN_ENDPOINT``
+plus ``aoa-codegen --check``) -- only of the response *shape*.
+
+═══════════════════════════════════════════════════════════════════════════════
+HOW THE FIXTURES ARE SPLIT
+═══════════════════════════════════════════════════════════════════════════════
+
+By filename, because a convention both languages can apply is the only thing
+that keeps the two halves testing the same partition of the same directory:
+``resolve_response_invalid_*.json`` must be REJECTED, every other
+``resolve_response_*.json`` must PARSE. See ``contracts/fixtures/README.md``.
+
+Discovery is guarded (:func:`test_discovery_found_both_groups`): a glob-driven
+suite that silently finds zero files passes vacuously, which is the one failure
+mode a data-driven test has and a hand-written one does not.
 """
 
 import json
@@ -25,33 +39,137 @@ from pydantic import ValidationError
 from aoa.action_machine.intents.access_control import AllowedVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.fastapi.permissions_schema import ResolveResponse
 
-FIXTURE_PATH = Path(__file__).resolve().parents[3] / "contracts" / "fixtures" / "resolve_response_basic.json"
+FIXTURE_DIR = Path(__file__).resolve().parents[3] / "contracts" / "fixtures"
+
+VALID_FIXTURES = sorted(p for p in FIXTURE_DIR.glob("resolve_response_*.json") if "_invalid_" not in p.name)
+INVALID_FIXTURES = sorted(FIXTURE_DIR.glob("resolve_response_invalid_*.json"))
 
 
-def test_fixture_exists_and_is_valid_json() -> None:
-    assert FIXTURE_PATH.is_file(), f"missing fixture: {FIXTURE_PATH}"
-    json.loads(FIXTURE_PATH.read_text())
+def _ids(paths: list[Path]) -> list[str]:
+    return [p.stem for p in paths]
 
 
-def test_fixture_matches_python_schema() -> None:
-    fixture = FIXTURE_PATH.read_text()
-    resp = ResolveResponse.model_validate_json(fixture)
+def test_discovery_found_both_groups() -> None:
+    """Without this, renaming the fixtures to something the glob misses would turn
+    every parametrized test below into zero test cases -- a green suite that
+    checks nothing. The exact counts are deliberately not pinned (adding a
+    fixture should not require editing this file); only "both groups are
+    non-empty, and the valid ones outnumber a single file" is asserted.
+    """
+    assert FIXTURE_DIR.is_dir(), f"missing fixture directory: {FIXTURE_DIR}"
+    assert len(VALID_FIXTURES) >= 2, f"expected several valid fixtures, found {_ids(VALID_FIXTURES)}"
+    assert len(INVALID_FIXTURES) >= 2, f"expected several invalid fixtures, found {_ids(INVALID_FIXTURES)}"
 
-    assert resp.version == 1
-    assert len(resp.results) == 2
-    assert isinstance(resp.results[0], AllowedVerdict)
-    assert isinstance(resp.results[1], FailSecurityVerdict)
-    assert resp.results[1].reason == "only the order owner can cancel"
+
+@pytest.mark.parametrize("fixture", VALID_FIXTURES, ids=_ids(VALID_FIXTURES))
+def test_valid_fixture_is_valid_json(fixture: Path) -> None:
+    json.loads(fixture.read_text())
 
 
-def test_round_trips_all_three_verdict_kinds() -> None:
-    """Not just this one fixture -- every BaseVerdict subclass, serialized then
-    parsed back, must come back as itself (dispatch by kind, not the abstract base).
+@pytest.mark.parametrize("fixture", VALID_FIXTURES, ids=_ids(VALID_FIXTURES))
+def test_valid_fixture_parses_and_round_trips_without_loss(fixture: Path) -> None:
+    """Parse, then serialize back, then compare against the file's own JSON.
+
+    Plain "it parses" is too weak: pydantic would happily accept a file whose
+    fields it silently dropped. Comparing the re-serialized form against the
+    original catches both directions of loss -- a field the model ignored, and a
+    field the model invented.
+    """
+    raw = fixture.read_text()
+    parsed = ResolveResponse.model_validate_json(raw)
+
+    assert parsed.model_dump(mode="json") == json.loads(raw)
+
+
+@pytest.mark.parametrize("fixture", INVALID_FIXTURES, ids=_ids(INVALID_FIXTURES))
+def test_invalid_fixture_is_rejected(fixture: Path) -> None:
+    """A parser that accepts everything is not a parser. Each of these files
+    violates exactly one rule (see contracts/fixtures/README.md) and must be
+    refused, not repaired and not silently trimmed.
+    """
+    with pytest.raises(ValidationError):
+        ResolveResponse.model_validate_json(fixture.read_text())
+
+
+# ── Per-fixture meaning ───────────────────────────────────────────────────────
+# The parametrized tests above prove the whole set is well-formed. These prove
+# that specific files still mean what their names claim -- a fixture whose
+# content drifted would still parse, and the generic tests would not notice.
+
+
+def test_basic_fixture_still_carries_an_allow_and_a_role_denial() -> None:
+    parsed = ResolveResponse.model_validate_json((FIXTURE_DIR / "resolve_response_basic.json").read_text())
+
+    assert parsed.version == 1
+    assert len(parsed.results) == 2
+    assert isinstance(parsed.results[0], AllowedVerdict)
+    assert isinstance(parsed.results[1], FailSecurityVerdict)
+    assert parsed.results[1].reason == "only the order owner can cancel"
+
+
+def test_object_forbidden_fixture_answers_missing_and_foreign_byte_identically() -> None:
+    """Oracle safety, asserted on the parsed objects rather than on the file text.
+
+    "No such object" and "object belongs to someone else" are the two questions
+    in this fixture. If they ever stop matching, anyone can learn which IDs exist
+    for other users by reading the difference -- so the assertion is equality of
+    the WHOLE verdict, not merely of its class.
+    """
+    parsed = ResolveResponse.model_validate_json((FIXTURE_DIR / "resolve_response_object_forbidden.json").read_text())
+
+    missing, foreign = parsed.results
+    assert isinstance(missing, FailSecurityVerdict)
+    assert missing.model_dump() == foreign.model_dump()
+    assert missing.reason == "FORBIDDEN_OBJECT"
+
+
+def test_all_kinds_mixed_fixture_carries_every_class_in_one_response() -> None:
+    """One response can mix all three outcome classes, and position is what ties
+    an answer to its question -- there is no id, no echo of the operation.
+    """
+    parsed = ResolveResponse.model_validate_json((FIXTURE_DIR / "resolve_response_all_kinds_mixed.json").read_text())
+
+    assert [type(result) for result in parsed.results] == [
+        AllowedVerdict,
+        FailSecurityVerdict,
+        FailErrorVerdict,
+        AllowedVerdict,
+    ]
+
+
+@pytest.mark.parametrize(
+    ("fixture_name", "expected_reason"),
+    [
+        ("resolve_response_unknown_endpoint.json", "UNKNOWN_ENDPOINT"),
+        ("resolve_response_evaluation_failed.json", "EVALUATION_FAILED"),
+    ],
+)
+def test_check_error_fixtures_are_errors_and_not_denials(fixture_name: str, expected_reason: str) -> None:
+    """Both reasons arrive as FailErrorVerdict, never FailSecurityVerdict. The
+    distinction is the whole reason the third class exists: a client that renders
+    "not allowed" for these is lying about a check that never ran.
+    """
+    parsed = ResolveResponse.model_validate_json((FIXTURE_DIR / fixture_name).read_text())
+    errors = [result for result in parsed.results if isinstance(result, FailErrorVerdict)]
+
+    assert [error.reason for error in errors] == [expected_reason]
+    assert not any(isinstance(result, FailSecurityVerdict) for result in parsed.results)
+
+
+# ── Shape guarantees beyond the files ─────────────────────────────────────────
+
+
+def test_round_trips_all_three_verdict_kinds_constructed_in_python() -> None:
+    """The fixtures cover parsing files written by hand; this covers the opposite
+    direction -- a response this code CONSTRUCTS, serialized and parsed back, must
+    come back as the same concrete subclasses (dispatch by kind, not the abstract
+    base).
     """
     original = ResolveResponse(
         version=1,
         results=[AllowedVerdict(), FailSecurityVerdict(reason="no"), FailErrorVerdict(reason="UNKNOWN_ENDPOINT")],
     )
+
     reparsed = ResolveResponse.model_validate_json(original.model_dump_json())
 
     assert isinstance(reparsed.results[0], AllowedVerdict)
