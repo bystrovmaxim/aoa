@@ -473,3 +473,92 @@ class TestObjectLevelCodesOverHttp:
         assert response.status_code == 200
         reasons = {r["reason"] for r in response.json()["results"] if r["kind"] == "FailErrorVerdict"}
         assert reasons == {"EVALUATION_FAILED", "UNKNOWN_ENDPOINT"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# params_mapper failures stay per-item (audit-11 finding 11)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestParamsMapperIsolation:
+    """A route's ``params_mapper`` is app code and can fail like any other check step.
+
+    Unprotected, its exception escaped ``resolve_verdicts`` entirely and became a
+    whole-request 500 with no results -- one bad item sinking a batch of twenty, the
+    exact outcome the per-item isolation contract rules out.
+    """
+
+    @staticmethod
+    def _exploding_mapper(body: object) -> object:
+        raise RuntimeError("mapper blew up: order 7 of customer bob@corp.com")
+
+    def _client_with_broken_mapper(self) -> TestClient:
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+        adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=self._exploding_mapper)
+        adapter.get("/actions/ping", PingAction)
+        return TestClient(adapter.build(), raise_server_exceptions=False)
+
+    def test_a_failing_mapper_no_longer_sinks_the_whole_batch(self) -> None:
+        response = self._client_with_broken_mapper().post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [
+                    {"operation": "GET /actions/ping", "params": {}},
+                    {"operation": "POST /actions/cancel-order", "params": {"order_id": 7}},
+                    {"operation": "GET /actions/ping", "params": {}},
+                ],
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["results"] == [
+            {"kind": "AllowedVerdict"},
+            {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"},
+            {"kind": "AllowedVerdict"},
+        ]
+
+    def test_the_mapper_exception_text_never_reaches_the_client(self) -> None:
+        """The raised message names an order and an e-mail; neither may cross the wire."""
+        response = self._client_with_broken_mapper().post(
+            "/permissions/resolve",
+            json={
+                "version": 1,
+                "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}],
+            },
+        )
+        assert response.status_code == 200
+        assert "bob@corp.com" not in response.text
+        assert "blew up" not in response.text
+        assert "RuntimeError" not in response.text
+
+    def test_a_working_mapper_is_untouched(self) -> None:
+        """Regression guard: the happy path still maps and still resolves."""
+        machine = ActionProductMachine(loggers=[])
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
+        adapter.post(
+            "/actions/cancel-order",
+            CancelOrderAction,
+            params_mapper=lambda body: CancelOrderAction.Params(order_id=body.order_id + 1),
+        )
+        client = TestClient(adapter.build())
+
+        response = client.post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
+        )
+        assert response.status_code == 200
+        assert response.json()["results"] == [{"kind": "AllowedVerdict"}]
+
+    def test_params_validation_failure_is_still_a_400_for_the_whole_request(self) -> None:
+        """Unchanged by this fix: bad params are the *client's* error, not a check failure,
+        and keep the existing whole-request 400 rather than becoming a per-item verdict."""
+        response = self._client_with_broken_mapper().post(
+            "/permissions/resolve",
+            json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": "abc"}}]},
+        )
+        assert response.status_code == 400

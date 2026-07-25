@@ -107,6 +107,10 @@ def canonical_key(params: dict[str, Any]) -> str:
 # and always returned the same value, so there was nothing to isolate them.
 _UNKNOWN_ENDPOINT_VERDICT = FailErrorVerdict("UNKNOWN_ENDPOINT")
 _UNAUTHORIZED_VERDICT = FailSecurityVerdict("UNAUTHORIZED")
+# Same reason the machine reports for a crash inside access_decide: one item's check
+# could not be answered. Built here rather than imported so this module keeps owning
+# every verdict it synthesizes itself.
+_EVALUATION_FAILED_VERDICT = FailErrorVerdict("EVALUATION_FAILED")
 
 
 @dataclass
@@ -203,7 +207,21 @@ async def resolve_verdicts(
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         mapper = plan.record.params_mapper
-        params = mapper(body) if mapper is not None else body
+        if mapper is None:
+            params = body
+        else:
+            try:
+                params = mapper(body)
+            except Exception:  # pylint: disable=broad-exception-caught
+                # A route's params_mapper is app-supplied code, so it can fail like any
+                # other check step. Unprotected, its exception left this function entirely
+                # and became a whole-request 500 with no results at all -- one bad item
+                # sinking a batch of twenty, the exact outcome per-item isolation exists
+                # to prevent (audit-11 finding 11). Isolated to its own item now, with the
+                # same fixed reason a crash inside access_decide gets: nothing was decided,
+                # and the mapper's own message must not reach the wire.
+                synthetic[key] = _EVALUATION_FAILED_VERDICT
+                continue
         pending[key] = (plan.record.action_class, params, prepared_by_operation[item.operation])
 
     pending_keys = list(pending.keys())
