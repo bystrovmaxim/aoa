@@ -306,7 +306,7 @@ class TestErrorMapping:
         assert response.status_code == 422
 
     def test_known_endpoint_with_malformed_params_fails_the_whole_request_with_400(self) -> None:
-        """Unlike an unknown operation (isolated to its own CHECK_ERROR), a KNOWN endpoint's
+        """Unlike an unknown operation (isolated to its own FailErrorVerdict), a KNOWN endpoint's
         params failing validation is NOT isolated — it fails the whole request with 400,
         per resolve_verdicts()'s own documented contract."""
         client = _make_client(context=_manager_context())

@@ -1,4 +1,4 @@
-<!-- translated-from: glossary_draft.md @ 2026-07-25T15:33:22Z (filesystem mtime; draft is gitignored, no git history) · sha256:cf54be043d02 -->
+<!-- translated-from: glossary_draft.md @ 2026-07-25T21:12:42Z (filesystem mtime; draft is gitignored, no git history) · sha256:7ef0500a510f -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -171,7 +171,7 @@ Replaces the earlier `ResolveItemResult`/`AccessVerdict`/`ResolveItemKind` (a `S
 
 **`schemas`** — reference JSON Schemas (Draft 2020-12) for the protocol's own fixed messages, published under this manifest key: `ResolveRequest`, `ResolveResponse`, `BaseVerdict`, `ErrorEnvelope`, and the schema of `Manifest` itself. Every entry carries a `mode` — `"validation"` for `ResolveRequest` (the one thing the server validates on the way in) or `"serialization"` for everything the server only ever emits: the same pydantic model can produce a different schema depending on the mode. Doesn't replace each action's own `params_schema`/`result_schema` — this is a separate, closed set of the protocol's own messages.
 
-**`ErrorEnvelope`** — the body of a *whole-request* failure (`400`/`401`/`403`/`5xx`): `{"error": {"code": "..."}}` (package `aoa.fastapi.permissions_schema`). Never used for a single batch item's problem — that stays a `CHECK_ERROR` inside a normal `200`. The only code today is `"unsupported_version"`.
+**`ErrorEnvelope`** — the body of a *whole-request* failure (`400`/`401`/`403`/`5xx`): `{"error": {"code": "..."}}` (package `aoa.fastapi.permissions_schema`). Never used for a single batch item's problem — that stays a `FailErrorVerdict` element inside a normal `200`. The only code today is `"unsupported_version"`.
 
 **ManifestEndpoint** — one catalog entry: `operation` (`"{method} {path}"`), `name` (the class behind the endpoint — informational only), `domain`, `description`, `route` (`method`/`path`), `params_schema`/`result_schema` (from `model_json_schema()` of the corresponding models).
 

@@ -1174,7 +1174,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         ``auth_coordinator.process(request)`` (``403``) — see chapter 3.5 rules 7/8.
         Neither failure produces a ``results`` array at all; a per-item problem
         (unknown ``operation``, a failed check) never does either — it becomes a
-        ``CHECK_ERROR`` element inside an otherwise-normal ``200``.
+        ``FailErrorVerdict`` element inside an otherwise-normal ``200``.
 
         Always calls ``auth_coordinator.process(request)``; a ``403`` (via the
         existing ``AuthorizationError`` handler) follows only
@@ -1225,7 +1225,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         async def resolve(request: Request, body: ResolveRequest) -> ResolveResponse:
             # Whole-request checks first, in order: an unsupported wire language
             # (400) never even gets to prove its identity (401/403) — see chapter
-            # 3.5 rule 8. Both are all-or-nothing, unlike a per-item CHECK_ERROR.
+            # 3.5 rule 8. Both are all-or-nothing, unlike a per-item FailErrorVerdict.
             if body.version != SUPPORTED_VERSION:
                 raise UnsupportedVersionError(body.version, supported_version=SUPPORTED_VERSION)
 
