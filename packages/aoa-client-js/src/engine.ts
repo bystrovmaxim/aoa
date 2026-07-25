@@ -3,7 +3,14 @@ import { cacheKeyFor, isCacheableVerdict, ResolveCache } from "./cache.ts";
 import { buildDynamicGateApi, type DynamicGateApi } from "./dynamic-api.ts";
 import { assertManifestShape } from "./manifest-types.ts";
 import { buildLayout, type LayoutEndpoint } from "./path-layout.ts";
-import type { FailErrorVerdict, FailSecurityVerdict, ResolveItem, ResolveResponse, Verdict } from "./types.ts";
+import type {
+  FailErrorVerdict,
+  FailSecurityVerdict,
+  ResolveEngine,
+  ResolveItem,
+  ResolveResponse,
+  Verdict,
+} from "./types.ts";
 
 // The instance's identity and everything one network call needs. Identity
 // (cache_partition) is an opaque label the server hands out on
@@ -111,7 +118,10 @@ function assertValidVerdict(item: unknown, index: number): asserts item is Verdi
   }
 }
 
-export class AoaEngine {
+// `implements ResolveEngine` is not decoration: it makes a change to resolve()'s
+// signature fail HERE, at the class, instead of silently at every call site that
+// accepts the interface -- including the generated clients this package prints.
+export class AoaEngine implements ResolveEngine {
   private config: { transport: TransportConfig };
   private cache = new ResolveCache();
 

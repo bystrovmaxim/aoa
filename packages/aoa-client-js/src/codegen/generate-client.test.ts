@@ -295,8 +295,8 @@ describe("generateClient", () => {
     expect(source).toMatch(/actions: \{\n\s*ping: GatePrimitive<PingParams>;\n\s*\};/);
     expect(source).not.toContain("cancel-order: ");
     expect(source).not.toContain("demo-optional: ");
-    expect(source).toContain("export function createGateApi(engine: AoaEngine): GateApi {");
-    expect(source).toContain("export function createApi(engine: AoaEngine, actionInvoker: ActionInvoker): CallableApi {");
+    expect(source).toContain("export function createGateApi(engine: ResolveEngine): GateApi {");
+    expect(source).toContain("export function createApi(engine: ResolveEngine, actionInvoker: ActionInvoker): CallableApi {");
     expect(source).toContain('const CANCEL_ORDER_DESCRIPTOR = { method: "POST", path: "/actions/cancel-order" };');
 
     assertSyntacticallyValid(source);
