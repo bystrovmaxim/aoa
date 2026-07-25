@@ -9,7 +9,7 @@ import {
   Unauthorized,
   isRetryableCheckError,
 } from "./engine.ts";
-import type { ResolveResponse } from "./types.ts";
+import type { ResolveResponse, Verdict } from "./types.ts";
 
 function fakeResponse(body: unknown, init?: { status?: number; contentType?: string | null }): Response {
   const headers: Record<string, string> = {};
@@ -344,18 +344,42 @@ describe("AoaEngine.resolve -- cache (chapter 5.5 prerequisite, issue #157)", ()
     expect(results).toEqual([{ kind: "AllowedVerdict" }, { kind: "FailSecurityVerdict", reason: "no access to this order" }]);
   });
 
-  it("FailErrorVerdict is never cached -- an identical follow-up call goes to the network again", async () => {
-    let networkCallCount = 0;
-    const fetchImpl = (async () => {
-      networkCallCount += 1;
-      return fakeResponse({ version: 1, results: [{ kind: "FailErrorVerdict", reason: "UNKNOWN_ENDPOINT" }] });
-    }) as typeof fetch;
+  it.each(["UNKNOWN_ENDPOINT", "EVALUATION_FAILED"])(
+    "FailErrorVerdict/%s is never cached -- an identical follow-up call goes to the network again",
+    async (reason) => {
+      let networkCallCount = 0;
+      const fetchImpl = (async () => {
+        networkCallCount += 1;
+        return fakeResponse({ version: 1, results: [{ kind: "FailErrorVerdict", reason }] });
+      }) as typeof fetch;
+      const engine = makeEngine(fetchImpl);
+
+      await engine.resolve(oneItem);
+      await engine.resolve(oneItem);
+
+      expect(networkCallCount).toBe(2);
+    },
+  );
+
+  it("a crashed check does not poison the cache the way a denial would", async () => {
+    // The failure mode this guards: EVALUATION_FAILED cached *as a denial* would
+    // keep the UI saying "no" for the whole TTL after the outage cleared. Here the
+    // server recovers on the second call and the client must see the recovery
+    // immediately, not after the TTL (audit-11 finding 8).
+    const responses: Verdict[] = [
+      { kind: "FailErrorVerdict", reason: "EVALUATION_FAILED" },
+      { kind: "AllowedVerdict" },
+    ];
+    let call = 0;
+    const fetchImpl = (async () => fakeResponse({ version: 1, results: [responses[call++]] })) as typeof fetch;
     const engine = makeEngine(fetchImpl);
 
-    await engine.resolve(oneItem);
-    await engine.resolve(oneItem);
+    const [duringOutage] = await engine.resolve(oneItem);
+    const [afterRecovery] = await engine.resolve(oneItem); // same TTL window, same key
 
-    expect(networkCallCount).toBe(2);
+    expect(duringOutage).toEqual({ kind: "FailErrorVerdict", reason: "EVALUATION_FAILED" });
+    expect(afterRecovery).toEqual({ kind: "AllowedVerdict" });
+    expect(call).toBe(2);
   });
 
   it("an entry past its TTL is refetched instead of served stale", async () => {
