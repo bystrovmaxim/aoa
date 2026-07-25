@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "results": [
+    { "kind": "AllowedVerdict" },
+    { "kind": "FailErrorVerdict", "reason": "UNKNOWN_ENDPOINT" }
+  ]
+}
