@@ -529,6 +529,8 @@ The set deliberately includes broken files too, which both sides must **reject**
 
 A dedicated file, `resolve_response_object_forbidden.json`, encodes oracle safety directly in the data: two questions — about a nonexistent object and about someone else's — give a byte-identical `FORBIDDEN_OBJECT`. If those two ever become distinguishable, this is the fixture that goes red.
 
+> **Examples for this section.** [`06_mock_engine_three_verdicts.ts`](../../examples/step_27_ui_permissions_client/06_mock_engine_three_verdicts.ts) -- all three outcome classes through the double, and why `can()` throws on "could not check" instead of returning `false`; [`07_mock_engine_permission_revoked.ts`](../../examples/step_27_ui_permissions_client/07_mock_engine_permission_revoked.ts) -- "allowed, then denied" via `askedCount`, plus `run()`'s precheck; [`11_contract_fixture_and_its_broken_twin.py`](../../examples/step_27_ui_permissions_resolve/11_contract_fixture_and_its_broken_twin.py) -- what a red contract test looks like on each of the five broken twins.
+
 ---
 
 ## Invariants

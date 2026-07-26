@@ -145,9 +145,16 @@ def test_object_forbidden_fixture_answers_missing_and_foreign_byte_identically()
     """Oracle safety, asserted on the parsed objects rather than on the file text.
 
     "No such object" and "object belongs to someone else" are the two questions
-    in this fixture. If they ever stop matching, anyone can learn which IDs exist
-    for other users by reading the difference -- so the assertion is equality of
-    the WHOLE verdict, not merely of its class.
+    in this fixture, and the assertion is equality of the WHOLE verdict, not merely
+    of its class.
+
+    Being precise about what this can and cannot catch, since the two elements are
+    written identically in the file and a parser will not invent a difference: this
+    guards the FIXTURE, not the server. It fails when someone edits the file so the
+    two stop matching -- which is exactly how the documented invariant would be
+    weakened by hand. That the SERVER answers identically for a missing and a
+    foreign object is a different claim, tested against a real app in
+    test_fastapi_permissions_resolve.py's TestObjectLevelCodesOverHttp.
     """
     parsed = ResolveResponse.model_validate_json((FIXTURE_DIR / "resolve_response_object_forbidden.json").read_text())
 
@@ -268,6 +275,15 @@ def test_round_trips_all_three_verdict_kinds_constructed_in_python() -> None:
     assert reparsed.results[1].reason == "no"
     assert isinstance(reparsed.results[2], FailErrorVerdict)
     assert reparsed.results[2].reason == "UNKNOWN_ENDPOINT"
+
+
+def test_an_undeclared_field_on_the_ENVELOPE_is_rejected_too() -> None:
+    """Coverage asymmetry the fixtures cannot cover: every broken fixture puts its
+    extra field inside a verdict, so nothing checked the response object itself.
+    The TypeScript half already asserted this; the Python half did not.
+    """
+    with pytest.raises(ValidationError):
+        ResolveResponse.model_validate({"version": 1, "results": [], "serverTime": 123})
 
 
 def test_unrecognized_kind_still_raises() -> None:

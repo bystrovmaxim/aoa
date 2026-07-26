@@ -8,6 +8,7 @@
 // standalone because a reader building their own app will want this pattern
 // immediately, not after finding it buried in the package's own test suite.
 import { AoaEngine } from "../../packages/aoa-client-js/src/index.ts";
+import type { ResolveEngine } from "../../packages/aoa-client-js/src/index.ts";
 import type { ResolveResponse } from "../../packages/aoa-client-js/src/types.ts";
 
 // A tiny fake: always answers AllowedVerdict, and records what it was asked.
@@ -22,7 +23,7 @@ function fakeFetchThatAlwaysAllows(callLog: string[]): typeof fetch {
 
 // The function under test -- an ordinary component-level helper, no
 // awareness that fetchImpl is fake in this run.
-async function checkCanCancel(engine: AoaEngine, orderId: number): Promise<boolean> {
+async function checkCanCancel(engine: ResolveEngine, orderId: number): Promise<boolean> {
   const [result] = await engine.resolve([{ operation: "POST /actions/cancel-order", params: { order_id: orderId } }]);
   return result.kind === "AllowedVerdict";
 }
