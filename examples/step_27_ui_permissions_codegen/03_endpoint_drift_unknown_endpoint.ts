@@ -13,6 +13,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { AoaEngine, AoaResolveError } from "../../packages/aoa-client-js/src/index.ts";
+import type { ResolveEngine } from "../../packages/aoa-client-js/src/index.ts";
 import { generateClient } from "../../packages/aoa-client-js/src/codegen/generate-client.ts";
 import type { ResolveResponse, Verdict } from "../../packages/aoa-client-js/src/types.ts";
 
@@ -61,7 +62,7 @@ writeFileSync(generatedPath, source.replaceAll('"aoa-client-js"', '"../src/index
 
 try {
   const generated = (await import(pathToFileURL(generatedPath).href)) as {
-    createGateApi: (engine: AoaEngine) => {
+    createGateApi: (engine: ResolveEngine) => {
       post: Record<string, { verdict(params: unknown): Promise<Verdict>; can(params: unknown): Promise<boolean> }>;
     };
   };

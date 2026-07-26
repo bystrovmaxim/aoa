@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "results": [
+    { "kind": "AllowedVerdict" },
+    { "kind": "FailSecurityVerdict", "reason": "FORBIDDEN_ROLE" },
+    { "kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED" },
+    { "kind": "AllowedVerdict" }
+  ]
+}

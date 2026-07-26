@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "results": [
+    { "kind": "FailSecurityVerdict", "reason": "FORBIDDEN_OBJECT" },
+    { "kind": "FailSecurityVerdict", "reason": "FORBIDDEN_OBJECT" }
+  ]
+}

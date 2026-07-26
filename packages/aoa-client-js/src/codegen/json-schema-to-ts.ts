@@ -39,7 +39,7 @@ function renderInterfaceBody(
   }
   // A declared property's own type is always assignable to `unknown`, so this index
   // signature is compatible with any mix of property types above (audit finding 16).
-  if (node.additionalProperties) lines.push("  [key: string]: unknown;");
+  if (node.additionalProperties === "allow") lines.push("  [key: string]: unknown;");
   lines.push("}");
   return lines.join("\n");
 }
@@ -70,7 +70,7 @@ function typeText(
       const fields = node.properties.map(
         (prop) => `${propKey(prop.name)}${prop.required ? "" : "?"}: ${typeText(prop.schema, defs, resolveRefName, hoisted)}`,
       );
-      if (node.additionalProperties) fields.push("[key: string]: unknown");
+      if (node.additionalProperties === "allow") fields.push("[key: string]: unknown");
       return `{ ${fields.join("; ")} }`;
     }
     case "ref": {

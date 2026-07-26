@@ -98,7 +98,7 @@ function renderImports(): string {
   return [
     'import { z } from "zod";',
     'import { makeCallablePrimitive, makeGatePrimitive } from "aoa-client-js";',
-    'import type { ActionInvoker, AoaEngine, CallablePrimitive, GatePrimitive } from "aoa-client-js";',
+    'import type { ActionInvoker, CallablePrimitive, GatePrimitive, ResolveEngine } from "aoa-client-js";',
     'export type { AllowedVerdict, FailErrorVerdict, FailSecurityVerdict, Verdict } from "aoa-client-js";',
   ].join("\n");
 }

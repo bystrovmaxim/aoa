@@ -3,7 +3,14 @@ import { cacheKeyFor, isCacheableVerdict, ResolveCache } from "./cache.ts";
 import { buildDynamicGateApi, type DynamicGateApi } from "./dynamic-api.ts";
 import { assertManifestShape } from "./manifest-types.ts";
 import { buildLayout, type LayoutEndpoint } from "./path-layout.ts";
-import type { FailErrorVerdict, FailSecurityVerdict, ResolveItem, ResolveResponse, Verdict } from "./types.ts";
+import type {
+  FailErrorVerdict,
+  FailSecurityVerdict,
+  ResolveEngine,
+  ResolveItem,
+  ResolveResponse,
+  Verdict,
+} from "./types.ts";
 
 // The instance's identity and everything one network call needs. Identity
 // (cache_partition) is an opaque label the server hands out on
@@ -95,7 +102,7 @@ const KNOWN_VERDICT_KINDS = new Set(["AllowedVerdict", "FailSecurityVerdict", "F
 // echo the element's contents (matches the convention already used
 // server-side for a broken access_decide() override): a malformed element
 // could carry anything.
-function assertValidVerdict(item: unknown, index: number): asserts item is Verdict {
+export function assertValidVerdict(item: unknown, index: number): asserts item is Verdict {
   if (typeof item !== "object" || item === null) {
     throw new ProtocolError(`results[${index}] is not an object`);
   }
@@ -111,7 +118,14 @@ function assertValidVerdict(item: unknown, index: number): asserts item is Verdi
   }
 }
 
-export class AoaEngine {
+// `implements ResolveEngine` catches a renamed or removed method and a changed
+// return type at the class. It does NOT catch a narrowed parameter: methods are
+// bivariant in their parameters in TypeScript, so `resolve(items: [ResolveItem])`
+// satisfies an interface declaring `ResolveItem[]` without complaint (audit
+// finding 6, verified in isolation). The guard for that lives in
+// primitive.types.test.ts, which compares the two signatures' parameter TUPLES for
+// mutual assignability -- tuples compare strictly, with no bivariance escape hatch.
+export class AoaEngine implements ResolveEngine {
   private config: { transport: TransportConfig };
   private cache = new ResolveCache();
 

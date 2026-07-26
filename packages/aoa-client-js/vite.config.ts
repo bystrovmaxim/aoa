@@ -11,6 +11,7 @@ export default defineConfig({
       entry: {
         index: path.join(packageRoot, "src/index.ts"),
         codegen: path.join(packageRoot, "src/codegen/index.ts"),
+        testing: path.join(packageRoot, "src/testing/index.ts"),
       },
       name: "AoaClientJs",
       formats: ["es"],

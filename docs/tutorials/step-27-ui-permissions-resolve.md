@@ -1,4 +1,4 @@
-<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-25T21:16:46Z (filesystem mtime; draft is gitignored, no git history) · sha256:9a18105d1d63 -->
+<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-26T10:56:57Z (filesystem mtime; draft is gitignored, no git history) · sha256:04d5a16f798b -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -484,6 +484,55 @@ This chapter is the base: role level (1-2) and object level (3) via `access_deci
 
 ---
 
+## Testing without a server
+
+Everything above now has to be tested somehow — and not in a test of the library itself, but in a test of the code that uses it. The "Cancel" button calls `Primitive.can()`, which calls `AoaEngine.resolve()`, which goes to the network. Checking one thing — "the button is grey when it shouldn't be clickable" — would mean standing up a server, a database and a logged-in user. And the test would then fail not because the button is broken, but because the network hiccuped.
+
+### Faking the engine
+
+`aoa-client-js/testing` is a separate entry point holding the double:
+
+```ts
+import { createMockAoaEngine, success, denied, resolveError } from "aoa-client-js/testing";
+import { makeGatePrimitive } from "aoa-client-js";
+
+const engine = createMockAoaEngine((item) =>
+  item.operation === "POST /actions/cancel-order" ? success() : resolveError("UNKNOWN_ENDPOINT"),
+);
+
+const cancelOrder = makeGatePrimitive<{ order_id: string }>(engine, "POST /actions/cancel-order");
+await cancelOrder.can({ order_id: "ORD-1" }); // true, without a single network call
+```
+
+The function receives **one** `ResolveItem` and returns **one** `Verdict`, even though the real `resolve()` is batched: the double walks the list itself and collects answers of the same length, in the same order. Order isn't cosmetic here — every consumer above reads answer N as the answer to question N. The second argument is `askedCount`: how many questions the double has answered **before** this one, across its whole lifetime. That's what makes "allowed a moment ago, denied now" expressible without a counter inside the test. The questions themselves are recorded in `engine.calls` together with `opts` — so a test can prove `run()`'s precheck really asked again (`skipCache: true`) rather than taking a cached answer.
+
+Three ready-made verdicts: `success()`, `denied(reason)`, `resolveError(reason)`. Both failing ones require a non-empty reason: the real engine treats an empty reason as a broken response, and a double able to build something the server can never send would hollow out the whole test.
+
+### Why an interface, not a subclass
+
+`AoaEngine` is a class with private fields, and in TypeScript a private field makes a type **nominal**: an object with the same public method set is not assignable to it, however many methods match. So there was physically nowhere to substitute the double — `makeGatePrimitive`, the generated `createGateApi`/`createApi`, and `buildDynamicGateApi` all demanded the class itself.
+
+The fix was to name what is actually required of an engine: `ResolveEngine`, exactly one method, `resolve(items, opts?)`. All of those places now accept the interface, and `AoaEngine` declares `implements ResolveEngine` so that a signature change fails at the class rather than separately at every call site.
+
+### Two different doubles, and this isn't duplication
+
+The examples already include [`04_engine_with_fake_fetch_for_tests.ts`](../../examples/step_27_ui_permissions_client/04_engine_with_fake_fetch_for_tests.ts), where the engine is real and only `fetchImpl` is fake. The difference in meaning:
+
+- **testing the library itself** (is the request built correctly, is the response parsed correctly, does the cache hit) → fake `fetchImpl`, the engine must stay real;
+- **testing code above the library** (a button, a component, a piece of logic) → fake the engine via `createMockAoaEngine`; honestly parsing an HTTP response here is only an extra source of failures.
+
+### Contract fixtures: so the double lies plausibly
+
+A double is useless if it answers in a shape the server doesn't. That's what `contracts/fixtures/` is for — a set of shared JSON files, each read by **both** sides: by the Python model in `test_resolve_contract.py` and by the generated zod schema in `resolve-contract.test.ts`. Change a verdict's shape on one side and not the other, and one of the two halves goes red.
+
+The set deliberately includes broken files too, which both sides must **reject**: a missing required field, an empty reason, an unrecognized `kind`, an undeclared extra field, and a `reason` on an `AllowedVerdict` (success has no `reason` field at all — not an empty one, an absent one). A check that accepts any file isn't a check.
+
+A dedicated file, `resolve_response_object_forbidden.json`, encodes oracle safety directly in the data: two questions — about a nonexistent object and about someone else's — give a byte-identical `FORBIDDEN_OBJECT`. If those two ever become distinguishable, this is the fixture that goes red.
+
+> **Examples for this section.** [`06_mock_engine_three_verdicts.ts`](../../examples/step_27_ui_permissions_client/06_mock_engine_three_verdicts.ts) -- all three outcome classes through the double, and why `can()` throws on "could not check" instead of returning `false`; [`07_mock_engine_permission_revoked.ts`](../../examples/step_27_ui_permissions_client/07_mock_engine_permission_revoked.ts) -- "allowed, then denied" via `askedCount`, plus `run()`'s precheck; [`11_contract_fixture_and_its_broken_twin.py`](../../examples/step_27_ui_permissions_resolve/11_contract_fixture_and_its_broken_twin.py) -- what a red contract test looks like on each of the five broken twins.
+
+---
+
 ## Invariants
 
 - **The resolver doesn't change the machine.** Route registration is a thin wrapper in `aoa-fastapi-adapter`; the access rule is still declared only via `@check_roles`/`access_decide` on the action itself.
@@ -512,7 +561,7 @@ This chapter is the base: role level (1-2) and object level (3) via `access_deci
 
 ## Summary
 
-`POST /permissions/resolve` is a thin, but principled, layer over `machine.check_access_decide`: the frontend gets an honest "can I?" from the one place the rule is declared, instead of keeping a copy of the rule in the component. A list is the protocol's primary shape from day one; a guest isn't a special case for the resolver, but an ordinary role checked by the same cascade; one `EndpointExecutionPlan` keeps `.can()` and `.run()` from ever disagreeing. The batch, meanwhile, is resilient to its own duplicates (identical questions cost one real call but never shorten the response) and to one bad error (an unrecognized action only quenches its own position, not the whole request) — but not to a request that's invalid as a whole: the wrong wire-language version, a failed entry gate, or a server-side failure still take everything down. The catalog removes the hardcoded stub string, publishes the protocol's own reference schemas, and caches cheaply via `ETag`/`304` without fear of shadowing between routes; `cache_partition` gives the client a way to never mistake someone else's cached answer for its own. And `aoa-client-js` removes the last piece of manual duplication — the HTTP wrapper itself: one class, `AoaEngine`, one method, `resolve()`, immutable identity, typed transport errors instead of a synthetic denial. Codegen removes the string itself too: `generateClient(url)` (statically, as a file on disk — the `aoa-codegen` CLI or a direct call from a build script) or `engine.loadFrom(url)` (dynamically, at runtime, at the cost of compile-time types) build a typed `api` from the same catalog — `Primitive` with `.verdict()`/`.can()`/`.run()`, separate `GateApi`/`CallableApi`, a dot alias only on a clean path. The server, meanwhile, doesn't change at all — it serves the same one JSON manifest it always did; codegen lives entirely in the client library, and `aoa-codegen --check` in CI catches a schema out of sync before deploy, not after.
+`POST /permissions/resolve` is a thin, but principled, layer over `machine.check_access_decide`: the frontend gets an honest "can I?" from the one place the rule is declared, instead of keeping a copy of the rule in the component. A list is the protocol's primary shape from day one; a guest isn't a special case for the resolver, but an ordinary role checked by the same cascade; one `EndpointExecutionPlan` keeps `.can()` and `.run()` from ever disagreeing. The batch, meanwhile, is resilient to its own duplicates (identical questions cost one real call but never shorten the response) and to one bad error (an unrecognized action only quenches its own position, not the whole request) — but not to a request that's invalid as a whole: the wrong wire-language version, a failed entry gate, or a server-side failure still take everything down. The catalog removes the hardcoded stub string, publishes the protocol's own reference schemas, and caches cheaply via `ETag`/`304` without fear of shadowing between routes; `cache_partition` gives the client a way to never mistake someone else's cached answer for its own. And `aoa-client-js` removes the last piece of manual duplication — the HTTP wrapper itself: one class, `AoaEngine`, one method, `resolve()`, immutable identity, typed transport errors instead of a synthetic denial. Codegen removes the string itself too: `generateClient(url)` (statically, as a file on disk — the `aoa-codegen` CLI or a direct call from a build script) or `engine.loadFrom(url)` (dynamically, at runtime, at the cost of compile-time types) build a typed `api` from the same catalog — `Primitive` with `.verdict()`/`.can()`/`.run()`, separate `GateApi`/`CallableApi`, a dot alias only on a clean path. The server, meanwhile, doesn't change at all — it serves the same one JSON manifest it always did; codegen lives entirely in the client library, and `aoa-codegen --check` is what a consuming project points at its own committed client to catch a schema out of sync before deploy rather than after. It is not wired into anything here, and could not be: it needs both a committed generated file and a live manifest endpoint, and this repository commits no generated output at all — every consumer of the codegen generates into a temp directory at run time. What is checked here instead is the invariant that makes drift impossible rather than merely detectable: no tracked file may carry the generator's `AUTO-GENERATED` header.
 
 ---
 

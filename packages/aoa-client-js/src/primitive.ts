@@ -5,8 +5,8 @@
 // descriptor (for run) — the actual resolve/invoke logic lives here once, so a codegen
 // templating bug can't silently duplicate a mistake into every endpoint's output.
 
-import { AoaResolveError, type AoaEngine } from "./engine.ts";
-import type { Verdict } from "./types.ts";
+import { AoaResolveError } from "./engine.ts";
+import type { ResolveEngine, Verdict } from "./types.ts";
 
 // verdict()/can() only -- no .run() at the type level, not merely absent at runtime.
 // This is the whole point of the two-facade split: code that only ever received a
@@ -43,7 +43,7 @@ export function buildInvocation(descriptor: { method: string; path: string }, pa
 // signature), so it is never structurally assignable to ResolveItem.params
 // (Record<string, unknown>) without a cast -- see engine.ts/types.ts. Written once
 // here, not re-templated per endpoint by the generator.
-export function makeGatePrimitive<TParams>(engine: AoaEngine, operation: string): GatePrimitive<TParams> {
+export function makeGatePrimitive<TParams>(engine: ResolveEngine, operation: string): GatePrimitive<TParams> {
   return {
     async verdict(params: TParams): Promise<Verdict> {
       const [item] = await engine.resolve([{ operation, params: params as Record<string, unknown> }]);
@@ -58,7 +58,7 @@ export function makeGatePrimitive<TParams>(engine: AoaEngine, operation: string)
 }
 
 export function makeCallablePrimitive<TParams, TResult>(
-  engine: AoaEngine,
+  engine: ResolveEngine,
   operation: string,
   descriptor: { method: string; path: string },
   actionInvoker: ActionInvoker,

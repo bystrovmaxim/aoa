@@ -12,6 +12,9 @@
     },
     "./codegen": {
       "import": "./dist/codegen.js"
+    },
+    "./testing": {
+      "import": "./dist/testing.js"
     }
   },
   "scripts": {

@@ -42,3 +42,25 @@ export interface ResolveResponse {
   version: number;
   results: Verdict[];
 }
+
+// Everything the rest of this library actually needs from an engine: one
+// method. AoaEngine satisfies it (and says so with `implements`), and so does
+// the test double in aoa-client-js/testing.
+//
+// Why an interface at all, when AoaEngine is right there: AoaEngine has
+// private fields (config, cache), and a private field makes a TypeScript class
+// type NOMINAL, not structural. A hand-written object with the same public
+// surface is therefore NOT assignable to AoaEngine -- no amount of matching
+// methods helps. Every consumer that named the class (makeGatePrimitive,
+// makeCallablePrimitive, buildDynamicGateApi, and the generated
+// createGateApi/createApi) was consequently impossible to hand a test double
+// without an `as any`. Naming this interface instead costs nothing at runtime
+// and makes the double a first-class citizen rather than a cast.
+//
+// Deliberately narrow -- resolve() only. cachePartition, loadFrom() and the
+// cache stay on the concrete class: nothing between the engine and a primitive
+// reads them, and widening this interface later is additive, while narrowing
+// it would be a break.
+export interface ResolveEngine {
+  resolve(items: ResolveItem[], opts?: { traceId?: string; skipCache?: boolean }): Promise<Verdict[]>;
+}

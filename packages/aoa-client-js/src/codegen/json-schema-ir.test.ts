@@ -22,7 +22,7 @@ describe("parseRootSchema", () => {
     expect(parsed.root).toEqual({
       kind: "object",
       properties: [{ name: "order_id", required: true, description: "Order identifier", schema: { kind: "integer" } }],
-      additionalProperties: false,
+      additionalProperties: "forbid",
     });
   });
 
@@ -31,7 +31,7 @@ describe("parseRootSchema", () => {
       { additionalProperties: false, description: "PingAction parameters — empty; no input required.", properties: {}, title: "Params", type: "object" },
       "test",
     );
-    expect(parsed.root).toEqual({ kind: "object", properties: [], additionalProperties: false });
+    expect(parsed.root).toEqual({ kind: "object", properties: [], additionalProperties: "forbid" });
   });
 
   it("parses an untyped dict (additionalProperties: true, no properties key) as unknownRecord", () => {
@@ -63,7 +63,7 @@ describe("parseRootSchema", () => {
     expect(parsed.root).toEqual({
       kind: "object",
       properties: [{ name: "known", required: true, description: undefined, schema: { kind: "string" } }],
-      additionalProperties: true,
+      additionalProperties: "allow",
     });
   });
 
@@ -72,7 +72,7 @@ describe("parseRootSchema", () => {
       { properties: { known: { type: "string" } }, required: ["known"], additionalProperties: false, type: "object" },
       "test",
     );
-    expect(parsed.root).toMatchObject({ additionalProperties: false });
+    expect(parsed.root).toMatchObject({ additionalProperties: "forbid" });
   });
 
   it("parses an array of a primitive type", () => {
@@ -158,7 +158,7 @@ describe("parseRootSchema", () => {
         { name: "city", required: true, description: "City name", schema: { kind: "string" } },
         { name: "zip_code", required: true, description: "Postal code", schema: { kind: "string" } },
       ],
-      additionalProperties: false,
+      additionalProperties: "unspecified",
     });
   });
 
@@ -198,9 +198,14 @@ describe("parseRootSchema", () => {
     expect(parsed.defs.Priority).toEqual({ kind: "enum", values: ["low", "high"] });
   });
 
-  it("parses an object schema with no properties key at all (not additionalProperties:true) as empty, not unknownRecord", () => {
+  // Absent additionalProperties is its own state, distinct from an explicit false:
+  // JSON Schema reads it as "extras allowed". The object node is still empty rather
+  // than unknownRecord -- only an explicit `true` short-circuits to that -- but the
+  // renderers can now tell "the schema forbade extras" from "the schema said nothing",
+  // which is what stops absent from being rendered as a refusal (audit finding 12).
+  it("parses a bare object schema as empty with additionalProperties unspecified -- neither allow nor forbid", () => {
     const parsed = parseRootSchema({ type: "object" }, "test");
-    expect(parsed.root).toEqual({ kind: "object", properties: [], additionalProperties: false });
+    expect(parsed.root).toEqual({ kind: "object", properties: [], additionalProperties: "unspecified" });
   });
 
   it("throws a clear error when the root schema is not an object", () => {

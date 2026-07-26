@@ -8,14 +8,14 @@
 // rendering a type + a make call as text. No compile-time per-endpoint types are
 // possible here -- the manifest's shape is only known once this code actually runs.
 
-import type { AoaEngine } from "./engine.ts";
 import { makeGatePrimitive, type GatePrimitive } from "./primitive.ts";
 import type { AliasNode, LayoutEndpoint, MethodLayout } from "./path-layout.ts";
+import type { ResolveEngine } from "./types.ts";
 
 export type DynamicApiNode = GatePrimitive<unknown> | { [key: string]: DynamicApiNode };
 export type DynamicGateApi = Record<string, Record<string, DynamicApiNode>>;
 
-export function buildDynamicGateApi(layouts: MethodLayout[], engine: AoaEngine): DynamicGateApi {
+export function buildDynamicGateApi(layouts: MethodLayout[], engine: ResolveEngine): DynamicGateApi {
   const api: DynamicGateApi = {};
   for (const layout of layouts) {
     api[layout.method] = buildMethodBucket(layout, engine);
@@ -23,7 +23,7 @@ export function buildDynamicGateApi(layouts: MethodLayout[], engine: AoaEngine):
   return api;
 }
 
-function buildMethodBucket(layout: MethodLayout, engine: AoaEngine): Record<string, DynamicApiNode> {
+function buildMethodBucket(layout: MethodLayout, engine: ResolveEngine): Record<string, DynamicApiNode> {
   const primitivesByOperation = new Map<string, GatePrimitive<unknown>>();
   const primitiveFor = (endpoint: LayoutEndpoint): GatePrimitive<unknown> => {
     const existing = primitivesByOperation.get(endpoint.operation);

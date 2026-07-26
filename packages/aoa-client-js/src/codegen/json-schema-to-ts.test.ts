@@ -125,7 +125,7 @@ describe("renderParamsOrResultInterface", () => {
     const brokenRoot = {
       kind: "object" as const,
       properties: [{ name: "x", required: true, description: undefined, schema: { kind: "ref" as const, refName: "Ghost" } }],
-      additionalProperties: false,
+      additionalProperties: "forbid" as const,
     };
     expect(() => renderParamsOrResultInterface("X", { ...parsed, root: brokenRoot }, (ref) => `X${ref}`)).toThrow(
       /Unknown \$ref "Ghost" \(not present in \$defs\)/,
@@ -309,7 +309,7 @@ describe("renderParamsOrResultInterface", () => {
     const brokenRoot = {
       kind: "object" as const,
       properties: [{ name: "x", required: true, description: undefined, schema: { kind: "ref" as const, refName: "Weird" } }],
-      additionalProperties: false,
+      additionalProperties: "forbid" as const,
     };
     expect(() => renderParamsOrResultInterface("X", { ...broken, root: brokenRoot }, (ref) => `X${ref}`)).toThrow(
       /Unsupported \$defs entry kind for a named declaration: "string"/,
