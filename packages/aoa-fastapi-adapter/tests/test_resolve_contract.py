@@ -81,14 +81,46 @@ def test_valid_fixture_parses_and_round_trips_without_loss(fixture: Path) -> Non
     assert parsed.model_dump(mode="json") == json.loads(raw)
 
 
-@pytest.mark.parametrize("fixture", INVALID_FIXTURES, ids=_ids(INVALID_FIXTURES))
-def test_invalid_fixture_is_rejected(fixture: Path) -> None:
-    """A parser that accepts everything is not a parser. Each of these files
-    violates exactly one rule (see contracts/fixtures/README.md) and must be
-    refused, not repaired and not silently trimmed.
+# Which rule each broken fixture violates, as pydantic reports it: (error type,
+# location). Asserting only "it raised" is what let the whole set rot -- every one
+# of the five could be replaced with unrelated garbage (even invalid JSON) and both
+# halves of the contract stayed green, because *something* was still rejected. The
+# fixture then no longer tests what its name claims, and nothing says so.
+#
+# Type AND location together, because type alone does not separate them: "no reason
+# at all" and "unrecognized kind" both surface as value_error, differing only in
+# whether the failure is attributed to the whole list or to element 0.
+EXPECTED_REJECTION: dict[str, tuple[str, list[object]]] = {
+    "resolve_response_invalid_missing_reason": ("value_error", ["results"]),
+    "resolve_response_invalid_empty_reason": ("string_too_short", ["results", "reason"]),
+    "resolve_response_invalid_unknown_kind": ("value_error", ["results", 0]),
+    "resolve_response_invalid_extra_field": ("extra_forbidden", ["results", "cachedUntil"]),
+    "resolve_response_invalid_allowed_with_reason": ("extra_forbidden", ["results", "reason"]),
+}
+
+
+def test_every_invalid_fixture_has_a_declared_expected_rejection() -> None:
+    """The table above must cover the directory, or a newly added broken fixture
+    would silently fall back to no assertion at all about WHY it fails.
     """
-    with pytest.raises(ValidationError):
+    assert {p.stem for p in INVALID_FIXTURES} == set(EXPECTED_REJECTION)
+
+
+@pytest.mark.parametrize("fixture", INVALID_FIXTURES, ids=_ids(INVALID_FIXTURES))
+def test_invalid_fixture_is_rejected_for_the_rule_it_actually_violates(fixture: Path) -> None:
+    """A parser that accepts everything is not a parser -- and a test that only
+    checks "it raised" is barely better. Each of these files violates exactly one
+    rule (see contracts/fixtures/README.md), and the assertion names that rule, so
+    a fixture whose content drifts away from its filename fails instead of quietly
+    passing on some unrelated error.
+    """
+    expected_type, expected_loc = EXPECTED_REJECTION[fixture.stem]
+
+    with pytest.raises(ValidationError) as caught:
         ResolveResponse.model_validate_json(fixture.read_text())
+
+    first = caught.value.errors()[0]
+    assert (first["type"], list(first["loc"])) == (expected_type, expected_loc)
 
 
 # ── Per-fixture meaning ───────────────────────────────────────────────────────

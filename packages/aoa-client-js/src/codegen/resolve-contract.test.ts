@@ -121,8 +121,38 @@ describe("contract fixtures (TypeScript half)", () => {
     expect(schema.parse(fixture)).toEqual(fixture);
   });
 
-  it.each(INVALID_FIXTURES)("rejects %s", (name) => {
-    expect(() => schema.parse(readFixture(name))).toThrow();
+  // Which rule each broken fixture violates, as zod reports it: (issue code, path).
+  // Asserting only "it threw" is what let the whole set rot -- every one of the five
+  // could be replaced with unrelated garbage and both halves stayed green, because
+  // *something* was still rejected. The fixture then no longer tests what its name
+  // claims, and nothing says so. Mirrors EXPECTED_REJECTION on the Python side.
+  const EXPECTED_REJECTION: Record<string, { code: string; path: (string | number)[] }> = {
+    "resolve_response_invalid_missing_reason.json": { code: "invalid_type", path: ["results", 0, "reason"] },
+    "resolve_response_invalid_empty_reason.json": { code: "too_small", path: ["results", 0, "reason"] },
+    "resolve_response_invalid_unknown_kind.json": { code: "invalid_union", path: ["results", 0, "kind"] },
+    "resolve_response_invalid_extra_field.json": { code: "unrecognized_keys", path: ["results", 0] },
+    "resolve_response_invalid_allowed_with_reason.json": { code: "unrecognized_keys", path: ["results", 0] },
+  };
+
+  it("every invalid fixture has a declared expected rejection", () => {
+    expect(INVALID_FIXTURES.slice().sort()).toEqual(Object.keys(EXPECTED_REJECTION).sort());
+  });
+
+  it.each(INVALID_FIXTURES)("rejects %s for the rule it actually violates", (name) => {
+    const expected = EXPECTED_REJECTION[name];
+
+    let issue: { code: string; path: readonly (string | number | symbol)[] } | undefined;
+    try {
+      schema.parse(readFixture(name));
+    } catch (error) {
+      issue = (error as { issues?: { code: string; path: readonly (string | number | symbol)[] }[] }).issues?.[0];
+    }
+
+    expect(issue, `${name} parsed successfully -- it must be rejected`).toBeDefined();
+    expect({ code: issue?.code, path: issue?.path.map(String) }).toEqual({
+      code: expected?.code,
+      path: expected?.path.map(String),
+    });
   });
 });
 
