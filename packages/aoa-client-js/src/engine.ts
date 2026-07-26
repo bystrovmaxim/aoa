@@ -118,9 +118,13 @@ export function assertValidVerdict(item: unknown, index: number): asserts item i
   }
 }
 
-// `implements ResolveEngine` is not decoration: it makes a change to resolve()'s
-// signature fail HERE, at the class, instead of silently at every call site that
-// accepts the interface -- including the generated clients this package prints.
+// `implements ResolveEngine` catches a renamed or removed method and a changed
+// return type at the class. It does NOT catch a narrowed parameter: methods are
+// bivariant in their parameters in TypeScript, so `resolve(items: [ResolveItem])`
+// satisfies an interface declaring `ResolveItem[]` without complaint (audit
+// finding 6, verified in isolation). The guard for that lives in
+// primitive.types.test.ts, which compares the two signatures' parameter TUPLES for
+// mutual assignability -- tuples compare strictly, with no bivariance escape hatch.
 export class AoaEngine implements ResolveEngine {
   private config: { transport: TransportConfig };
   private cache = new ResolveCache();

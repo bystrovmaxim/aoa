@@ -18,9 +18,10 @@
 
 import { describe, expect, it } from "vitest";
 
+import type { AoaEngine } from "./engine.ts";
 import { makeCallablePrimitive, makeGatePrimitive, type CallablePrimitive, type GatePrimitive } from "./primitive.ts";
 import { createMockAoaEngine, success } from "./testing/index.ts";
-import type { Verdict } from "./types.ts";
+import type { ResolveEngine, Verdict } from "./types.ts";
 
 const CANCEL = "POST /actions/cancel-order";
 type CancelParams = { order_id: string };
@@ -76,6 +77,19 @@ describe("CallablePrimitive is the same gate plus the ability to invoke", () => 
 
     // @ts-expect-error .run takes the same params as .can() -- the two cannot drift apart.
     void callable.run({ order_id: 1 });
+
+    // Audit finding 5: the POSITIVE annotation above cannot pin the return type --
+    // `any` is assignable to anything, so `const result: { ok: boolean }` would
+    // compile just as happily if .run returned `any`. Only a NEGATIVE case pins it:
+    // assigning to a deliberately wrong type must be an error. Widen TResult to
+    // `any` and this directive goes unused, which fails the build.
+    //
+    // Without this, the sole objection to such a widening was TS6133 ("TResult is
+    // declared but never read") -- an accident of TResult appearing nowhere else in
+    // the interface, which vanishes the moment anyone adds a second use of it.
+    // @ts-expect-error run() returns this primitive's own TResult, not any.
+    const wrongType: string = await callable.run({ order_id: "ORD-1" });
+    void wrongType;
   });
 
   it("is usable anywhere a GatePrimitive is expected, but not the other way round", () => {
@@ -96,5 +110,36 @@ describe("CallablePrimitive is the same gate plus the ability to invoke", () => 
     // widened back into something that invokes.
     const asCallable: CallablePrimitive<CancelParams, void> = gate;
     void asCallable;
+  });
+});
+
+// Audit finding 6: `implements ResolveEngine` does NOT catch a narrowed parameter.
+// Methods are bivariant in their parameters in TypeScript, so a class declaring
+// `resolve(items: [ResolveItem])` satisfies an interface declaring
+// `resolve(items: ResolveItem[])` with no complaint. Verified in isolation: a class
+// implementing the interface with that narrowing and no callers compiles clean.
+//
+// In THIS repo the narrowing happens to be caught -- by callers in engine.test.ts
+// that pass two-element arrays. That is luck, not a guarantee: delete those callers
+// and the gap reopens silently. Since engine.ts, the tutorial and the glossary all
+// promise that a signature change "fails at the class", the promise needs a
+// mechanism, not a hope.
+//
+// Mutual assignability of the PARAMETER TUPLES is that mechanism. Parameters<> turns
+// each signature into a tuple type, and tuples compare strictly -- no bivariance
+// escape hatch -- so widening or narrowing either side breaks the check.
+type ExactlySame<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
+
+const _resolveParamsMatch: ExactlySame<Parameters<AoaEngine["resolve"]>, Parameters<ResolveEngine["resolve"]>> = true;
+const _resolveReturnMatches: ExactlySame<ReturnType<AoaEngine["resolve"]>, ReturnType<ResolveEngine["resolve"]>> = true;
+void _resolveParamsMatch;
+void _resolveReturnMatches;
+
+describe("AoaEngine and ResolveEngine cannot drift apart", () => {
+  it("keeps resolve()'s parameters and return type identical, not merely compatible", () => {
+    // The assertions are the two consts above -- evaluated by tsc, not at runtime.
+    // This case exists so the file reports something when the suite runs, and so the
+    // reason is discoverable from the test name rather than only from a comment.
+    expect(true).toBe(true);
   });
 });
