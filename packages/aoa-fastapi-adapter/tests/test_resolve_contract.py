@@ -215,8 +215,8 @@ def test_a_response_built_by_typescript_is_accepted_by_the_python_model() -> Non
         pytest.skip("node is not installed -- the cross-language direction cannot run here")
     assert EMITTER.is_file(), f"missing emitter: {EMITTER}"
 
-    emitted = subprocess.run(  # noqa: S603
-        ["node", "--experimental-strip-types", str(EMITTER)],  # noqa: S607
+    emitted = subprocess.run(
+        ["node", "--experimental-strip-types", str(EMITTER)],
         capture_output=True,
         text=True,
         check=True,
