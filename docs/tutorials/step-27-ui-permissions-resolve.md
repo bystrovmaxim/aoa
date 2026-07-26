@@ -1,4 +1,4 @@
-<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-25T21:16:46Z (filesystem mtime; draft is gitignored, no git history) · sha256:9a18105d1d63 -->
+<!-- translated-from: step-27-ui-permissions-resolve_draft.md @ 2026-07-26T10:56:57Z (filesystem mtime; draft is gitignored, no git history) · sha256:04d5a16f798b -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -481,6 +481,53 @@ The solution is a bespoke route registered right inside `FastApiAdapter.build()`
 This chapter is the base: role level (1-2) and object level (3) via `access_decide`, a list from day one, guest access, deduplication and per-item error isolation, one execution recipe, cache partitions, route shadowing, HTTP caching for the catalog, and wire-language versioning. Deliberately out of scope:
 
 - **Honest reporting of the object-level check.** Role-level and object-level checks are still indistinguishable on the wire in this chapter — both produce the same `kind: "FailSecurityVerdict"` (a minimal oracle contract: a caller can't tell "no such object" from "exists, but not yours" from `kind` alone — only from the text of `reason`). Revealing that detail is safe only together with generic deny — the same answer for "no such object" and "exists, but not yours"; without it, revealing the detail would hand an attacker a way to guess other people's object IDs from the shape of a denial. This mechanism arrives in chapter 8. Future channels like a disabled feature or a triggered operational rule are a separate, unrelated piece of future work; in this architecture each such channel will be its own subclass of `FailSecurityVerdict`, not a pre-reserved enum value.
+
+---
+
+## Testing without a server
+
+Everything above now has to be tested somehow — and not in a test of the library itself, but in a test of the code that uses it. The "Cancel" button calls `Primitive.can()`, which calls `AoaEngine.resolve()`, which goes to the network. Checking one thing — "the button is grey when it shouldn't be clickable" — would mean standing up a server, a database and a logged-in user. And the test would then fail not because the button is broken, but because the network hiccuped.
+
+### Faking the engine
+
+`aoa-client-js/testing` is a separate entry point holding the double:
+
+```ts
+import { createMockAoaEngine, success, denied, resolveError } from "aoa-client-js/testing";
+import { makeGatePrimitive } from "aoa-client-js";
+
+const engine = createMockAoaEngine((item) =>
+  item.operation === "POST /actions/cancel-order" ? success() : resolveError("UNKNOWN_ENDPOINT"),
+);
+
+const cancelOrder = makeGatePrimitive<{ order_id: string }>(engine, "POST /actions/cancel-order");
+await cancelOrder.can({ order_id: "ORD-1" }); // true, without a single network call
+```
+
+The function receives **one** `ResolveItem` and returns **one** `Verdict`, even though the real `resolve()` is batched: the double walks the list itself and collects answers of the same length, in the same order. Order isn't cosmetic here — every consumer above reads answer N as the answer to question N. The second argument is `askedCount`: how many questions the double has answered **before** this one, across its whole lifetime. That's what makes "allowed a moment ago, denied now" expressible without a counter inside the test. The questions themselves are recorded in `engine.calls` together with `opts` — so a test can prove `run()`'s precheck really asked again (`skipCache: true`) rather than taking a cached answer.
+
+Three ready-made verdicts: `success()`, `denied(reason)`, `resolveError(reason)`. Both failing ones require a non-empty reason: the real engine treats an empty reason as a broken response, and a double able to build something the server can never send would hollow out the whole test.
+
+### Why an interface, not a subclass
+
+`AoaEngine` is a class with private fields, and in TypeScript a private field makes a type **nominal**: an object with the same public method set is not assignable to it, however many methods match. So there was physically nowhere to substitute the double — `makeGatePrimitive`, the generated `createGateApi`/`createApi`, and `buildDynamicGateApi` all demanded the class itself.
+
+The fix was to name what is actually required of an engine: `ResolveEngine`, exactly one method, `resolve(items, opts?)`. All of those places now accept the interface, and `AoaEngine` declares `implements ResolveEngine` so that a signature change fails at the class rather than separately at every call site.
+
+### Two different doubles, and this isn't duplication
+
+The examples already include [`04_engine_with_fake_fetch_for_tests.ts`](../../examples/step_27_ui_permissions_client/04_engine_with_fake_fetch_for_tests.ts), where the engine is real and only `fetchImpl` is fake. The difference in meaning:
+
+- **testing the library itself** (is the request built correctly, is the response parsed correctly, does the cache hit) → fake `fetchImpl`, the engine must stay real;
+- **testing code above the library** (a button, a component, a piece of logic) → fake the engine via `createMockAoaEngine`; honestly parsing an HTTP response here is only an extra source of failures.
+
+### Contract fixtures: so the double lies plausibly
+
+A double is useless if it answers in a shape the server doesn't. That's what `contracts/fixtures/` is for — a set of shared JSON files, each read by **both** sides: by the Python model in `test_resolve_contract.py` and by the generated zod schema in `resolve-contract.test.ts`. Change a verdict's shape on one side and not the other, and one of the two halves goes red.
+
+The set deliberately includes broken files too, which both sides must **reject**: a missing required field, an empty reason, an unrecognized `kind`, an undeclared extra field, and a `reason` on an `AllowedVerdict` (success has no `reason` field at all — not an empty one, an absent one). A check that accepts any file isn't a check.
+
+A dedicated file, `resolve_response_object_forbidden.json`, encodes oracle safety directly in the data: two questions — about a nonexistent object and about someone else's — give a byte-identical `FORBIDDEN_OBJECT`. If those two ever become distinguishable, this is the fixture that goes red.
 
 ---
 
