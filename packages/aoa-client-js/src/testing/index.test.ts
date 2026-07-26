@@ -278,3 +278,39 @@ describe("the double refuses to answer with what the server could not send", () 
     ]);
   });
 });
+
+describe("recorded calls are a snapshot, not a live view", () => {
+  // `calls` is the record of what WAS asked. Holding the caller's own array made it
+  // a window onto something they still own -- a component reusing one items buffer
+  // across renders would make every recorded call show the newest questions, and the
+  // assertion "it asked about ORD-1" would pass or fail depending on what happened
+  // AFTER the call.
+  it("survives the caller mutating and growing the items array afterwards", async () => {
+    const engine = createMockAoaEngine(() => success());
+    const items = [{ operation: "GET /a", params: {} }];
+
+    await engine.resolve(items);
+    items[0] = { operation: "MUTATED AFTER THE CALL", params: {} };
+    items.push({ operation: "APPENDED AFTER THE CALL", params: {} });
+
+    expect(engine.calls[0]?.items).toEqual([{ operation: "GET /a", params: {} }]);
+  });
+
+  it("survives the caller mutating opts afterwards", async () => {
+    const engine = createMockAoaEngine(() => success());
+    const opts = { skipCache: true };
+
+    await engine.resolve([{ operation: "GET /a", params: {} }], opts);
+    opts.skipCache = false;
+
+    expect(engine.calls[0]?.opts?.skipCache).toBe(true);
+  });
+
+  it("still reports opts as undefined when none were passed", async () => {
+    const engine = createMockAoaEngine(() => success());
+
+    await engine.resolve([{ operation: "GET /a", params: {} }]);
+
+    expect(engine.calls[0]?.opts).toBeUndefined();
+  });
+});

@@ -89,7 +89,15 @@ export function createMockAoaEngine(answer: MockAnswer): MockAoaEngine {
   return {
     calls,
     async resolve(items: ResolveItem[], opts?: { traceId?: string; skipCache?: boolean }): Promise<Verdict[]> {
-      calls.push({ items, opts });
+      // Snapshot, not the caller's own array. `calls` is meant to be the record of
+      // what WAS asked; storing the reference makes it a live view of an array the
+      // caller still owns, so any later mutation silently rewrites history. The
+      // realistic version is not malice: a component reusing one items buffer
+      // across renders would make every recorded call show the newest questions.
+      // Shallow is enough -- ResolveItem's own fields are never mutated in place by
+      // anything here, and a deep clone would cost on every call to defend against
+      // a case that has not occurred.
+      calls.push({ items: [...items], opts: opts === undefined ? undefined : { ...opts } });
       const results: Verdict[] = [];
       for (const item of items) {
         const verdict = await answer(item, askedCount);
