@@ -277,7 +277,7 @@ def test_round_trips_all_three_verdict_kinds_constructed_in_python() -> None:
     assert reparsed.results[2].reason == "UNKNOWN_ENDPOINT"
 
 
-def test_an_undeclared_field_on_the_ENVELOPE_is_rejected_too() -> None:
+def test_an_undeclared_field_on_the_envelope_itself_is_rejected_too() -> None:
     """Coverage asymmetry the fixtures cannot cover: every broken fixture puts its
     extra field inside a verdict, so nothing checked the response object itself.
     The TypeScript half already asserted this; the Python half did not.
