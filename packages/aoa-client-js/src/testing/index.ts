@@ -39,6 +39,7 @@
 // validation) and the real cache, and a cache in a test double is a source of
 // confusing false passes, not a feature.
 
+import { assertValidVerdict } from "../engine.ts";
 import type { AllowedVerdict, FailErrorVerdict, FailSecurityVerdict, ResolveEngine, ResolveItem, Verdict } from "../types.ts";
 
 // One recorded round-trip. Kept because "did the component ask at all, and how
@@ -91,12 +92,59 @@ export function createMockAoaEngine(answer: MockAnswer): MockAoaEngine {
       calls.push({ items, opts });
       const results: Verdict[] = [];
       for (const item of items) {
-        results.push(await answer(item, askedCount));
+        const verdict = await answer(item, askedCount);
+        assertAnswerable(verdict, item, askedCount);
+        results.push(verdict);
         askedCount += 1;
       }
       return results;
     },
   };
+}
+
+/**
+ * Refuse to hand back anything the real server could not have sent.
+ *
+ * Without this, the double's central promise was enforced only by the `denied`/
+ * `resolveError` helpers -- which nobody is obliged to use. An `answer` returning
+ * `{ kind: "FailSecurityVerdict", reason: "" }` by hand produced a clean `false`
+ * out of `.can()`, so a test asserting "the button is greyed out" went green
+ * against a response `AoaEngine` would have rejected outright with a
+ * `ProtocolError`. That is exactly the failure this module exists to prevent,
+ * reproduced inside the tool built to prevent it.
+ *
+ * The rule is not restated here. `assertValidVerdict` is the same function the
+ * real engine runs on every element of every network response, imported from
+ * engine.ts -- one definition, so the double and the engine cannot drift apart
+ * at the one point whose whole purpose is keeping them together.
+ *
+ * The message, though, is deliberately NOT the engine's. A ProtocolError saying
+ * "results[3] is missing a non-empty reason" sends a test author looking at
+ * their server. The problem is in their own answer function, and the message
+ * says so, quotes what it returned, and names the question it was answering.
+ */
+function assertAnswerable(verdict: unknown, item: ResolveItem, askedCount: number): asserts verdict is Verdict {
+  // Called out separately because it is the overwhelmingly common way to get
+  // here: a lookup table plus a typo in an operation string. `table[op]` is
+  // `undefined`, `.verdict()` hands that straight back, and `.can()` dies with
+  // `Cannot read properties of undefined (reading 'kind')` pointing at
+  // primitive.ts -- a stack trace with no trace of the actual mistake.
+  if (verdict === undefined || verdict === null) {
+    throw new Error(
+      `createMockAoaEngine: the answer function returned ${String(verdict)} for question #${askedCount} ` +
+        `(${item.operation}). A lookup table with no entry for that operation is the usual cause -- ` +
+        `return resolveError("UNKNOWN_ENDPOINT") for questions the double should not know about.`,
+    );
+  }
+  try {
+    assertValidVerdict(verdict, askedCount);
+  } catch (error) {
+    throw new Error(
+      `createMockAoaEngine: the answer function returned something the real server could never send, ` +
+        `for question #${askedCount} (${item.operation}): ${JSON.stringify(verdict)}. ` +
+        `${(error as Error).message}. Use success()/denied(reason)/resolveError(reason) to build valid verdicts.`,
+    );
+  }
 }
 
 // ---- Ready-made verdicts ----

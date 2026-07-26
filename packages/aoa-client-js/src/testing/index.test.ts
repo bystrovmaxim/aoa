@@ -5,7 +5,7 @@ import { buildDynamicGateApi } from "../dynamic-api.ts";
 import { AoaEngine, AoaResolveError } from "../engine.ts";
 import { buildLayout } from "../path-layout.ts";
 import { makeCallablePrimitive, makeGatePrimitive } from "../primitive.ts";
-import type { ResolveEngine } from "../types.ts";
+import type { ResolveEngine, Verdict } from "../types.ts";
 import { createMockAoaEngine, denied, resolveError, success } from "./index.ts";
 
 const CANCEL = "POST /actions/cancel-order";
@@ -217,5 +217,64 @@ describe("ready-made verdicts", () => {
     ["resolveError", resolveError],
   ])("%s() refuses an empty reason, because the server can never send one", (_name, build) => {
     expect(() => build("")).toThrow(/non-empty reason/);
+  });
+});
+
+describe("the double refuses to answer with what the server could not send", () => {
+  // The whole module's promise was previously enforced only by the denied()/
+  // resolveError() helpers, which nobody is obliged to use. A hand-written
+  // verdict bypassed it entirely -- and produced a clean, plausible `false`.
+  it.each([
+    ["an empty reason on a denial", { kind: "FailSecurityVerdict", reason: "" }],
+    ["an empty reason on a check error", { kind: "FailErrorVerdict", reason: "" }],
+    ["a reason that is not a string", { kind: "FailSecurityVerdict", reason: 42 }],
+    ["a kind outside the closed set", { kind: "MaybeVerdict" }],
+    ["something that is not an object at all", "denied"],
+  ])("rejects %s", async (_label, bogus) => {
+    const engine = createMockAoaEngine(() => bogus as never);
+
+    await expect(engine.resolve([{ operation: CANCEL, params: {} }])).rejects.toThrow(/could never send/);
+  });
+
+  // The single most common way to get here, and the one with the worst symptom:
+  // before this guard, .verdict() returned undefined and .can() died with
+  // "Cannot read properties of undefined" pointing at primitive.ts.
+  it("rejects undefined with a message that names the operation and suggests the fix", async () => {
+    const table: Record<string, Verdict> = { "POST /actions/cancel-order": success() };
+    const engine = createMockAoaEngine((item) => table[item.operation] as Verdict);
+
+    await expect(engine.resolve([{ operation: "POST /actions/cancel-ordre", params: {} }])).rejects.toThrow(
+      /returned undefined for question #0 \(POST \/actions\/cancel-ordre\).*UNKNOWN_ENDPOINT/s,
+    );
+  });
+
+  it("names which question failed, not just that one did", async () => {
+    const engine = createMockAoaEngine((_item, askedCount) => (askedCount === 2 ? (undefined as never) : success()));
+
+    await expect(
+      engine.resolve([
+        { operation: "GET /a", params: {} },
+        { operation: "GET /b", params: {} },
+        { operation: "GET /c", params: {} },
+      ]),
+    ).rejects.toThrow(/question #2 \(GET \/c\)/);
+  });
+
+  it("still lets every valid verdict through untouched", async () => {
+    const engine = createMockAoaEngine((_item, askedCount) =>
+      askedCount === 0 ? success() : askedCount === 1 ? denied("nope") : resolveError("EVALUATION_FAILED"),
+    );
+
+    expect(
+      await engine.resolve([
+        { operation: "GET /a", params: {} },
+        { operation: "GET /b", params: {} },
+        { operation: "GET /c", params: {} },
+      ]),
+    ).toEqual([
+      { kind: "AllowedVerdict" },
+      { kind: "FailSecurityVerdict", reason: "nope" },
+      { kind: "FailErrorVerdict", reason: "EVALUATION_FAILED" },
+    ]);
   });
 });

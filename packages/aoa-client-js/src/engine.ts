@@ -102,7 +102,7 @@ const KNOWN_VERDICT_KINDS = new Set(["AllowedVerdict", "FailSecurityVerdict", "F
 // echo the element's contents (matches the convention already used
 // server-side for a broken access_decide() override): a malformed element
 // could carry anything.
-function assertValidVerdict(item: unknown, index: number): asserts item is Verdict {
+export function assertValidVerdict(item: unknown, index: number): asserts item is Verdict {
   if (typeof item !== "object" || item === null) {
     throw new ProtocolError(`results[${index}] is not an object`);
   }
