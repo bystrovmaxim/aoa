@@ -14,7 +14,7 @@
 // of the manifest's abstract entry — mirroring the same fixed Verdict contract already
 // hand-maintained in ../types.ts.
 
-import { CodegenSchemaError, type IrNode, type IrProperty, type ParsedSchema } from "./json-schema-ir.ts";
+import { CodegenSchemaError, type AdditionalProperties, type IrNode, type IrProperty, type ParsedSchema } from "./json-schema-ir.ts";
 
 // Single-line by design: this renderer does no indentation-depth tracking (see
 // renderZodObject below), so a template with its own baked-in newlines would come out
@@ -104,7 +104,7 @@ function zodExpr(node: IrNode, defs: Record<string, IrNode>, renderingRefs: Set<
 
 function renderZodObject(
   properties: IrProperty[],
-  additionalProperties: boolean,
+  additionalProperties: AdditionalProperties,
   defs: Record<string, IrNode>,
   renderingRefs: Set<string>,
 ): string {
@@ -126,12 +126,14 @@ function renderZodObject(
       return `${JSON.stringify(prop.name)}: ${prop.required ? expr : `${expr}.optional()`}`;
     })
     .join(", ");
-  // Three states, not two. additionalProperties: true -> .passthrough() (keep the
-  // extras). additionalProperties: false -> .strict() (REFUSE them). Bare
-  // z.object() is neither: it silently strips, which is a third behavior the
-  // input schema never asks for, and the one that hides a producer/consumer
-  // version mismatch instead of reporting it. The Python models these schemas
-  // come from are extra="forbid", so "strip" was always a mistranslation.
+  // Bare z.object() is neither keep nor refuse: it silently STRIPS, a third
+  // behavior no input schema asks for and the one that hides a producer/consumer
+  // version mismatch instead of reporting it. So neither branch below emits it.
+  //
+  // "forbid" is the only refusal. An ABSENT additionalProperties means extras are
+  // allowed in JSON Schema, so it renders exactly like an explicit `true` -- an
+  // earlier version of this renderer folded absent in with false and would have
+  // rejected responses the schema permits (audit finding 12).
   const object = `z.object({ ${fields} })`;
-  return additionalProperties ? `${object}.passthrough()` : `${object}.strict()`;
+  return additionalProperties === "forbid" ? `${object}.strict()` : `${object}.passthrough()`;
 }

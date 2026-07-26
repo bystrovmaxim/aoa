@@ -190,6 +190,23 @@ describe("renderResolveResponseZodSchema", () => {
     expect(schema.parse({ known: "x", extra: "unexpected but real" })).toEqual({ known: "x", extra: "unexpected but real" });
   });
 
+  // Audit finding 12, a regression introduced by the fix below it. JSON Schema has
+  // THREE states here and the IR used to collapse them to a boolean built as
+  // `=== true`, which folded ABSENT in with an explicit `false`. Once `false`
+  // started rendering as a refusal, "the schema said nothing about extras" became
+  // "the schema forbids extras" -- so a client would reject responses the schema
+  // explicitly permits. Absent must render exactly like an explicit `true`.
+  it("treats an ABSENT additionalProperties as allowed, not forbidden", () => {
+    const parsed = parseRootSchema({ properties: { known: { type: "string" } }, required: ["known"], type: "object" }, "test");
+    const source = renderResolveResponseZodSchema(parsed);
+
+    expect(source).not.toContain(".strict()");
+    const schema = evalZodSchema(source);
+    // Parses, and keeps the extra: the schema permitted it, so dropping it would
+    // lose real data just as surely as refusing it would reject a valid response.
+    expect(schema.parse({ known: "x", extra: "permitted" })).toEqual({ known: "x", extra: "permitted" });
+  });
+
   // Chapter 12 (#144): additionalProperties: false must REFUSE an undeclared key, not
   // strip it. Bare z.object() strips -- a third behavior the input schema never asks for,
   // and the one that hides a producer/consumer version mismatch. The Python models these
@@ -235,12 +252,12 @@ describe("renderResolveResponseZodSchema", () => {
         A: {
           kind: "object",
           properties: [{ name: "b", required: true, description: undefined, schema: { kind: "ref", refName: "B" } }],
-          additionalProperties: false,
+          additionalProperties: "forbid",
         },
         B: {
           kind: "object",
           properties: [{ name: "a", required: true, description: undefined, schema: { kind: "ref", refName: "A" } }],
-          additionalProperties: false,
+          additionalProperties: "forbid",
         },
       },
       root: { kind: "ref", refName: "A" },
@@ -269,7 +286,7 @@ describe("renderResolveResponseZodSchema", () => {
       root: {
         kind: "object",
         properties: [{ name: "x", required: true, description: undefined, schema: { kind: "ref", refName: "Missing" } }],
-        additionalProperties: false,
+        additionalProperties: "forbid",
       },
       defs: {},
     };
