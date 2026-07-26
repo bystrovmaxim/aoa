@@ -31,6 +31,8 @@ mode a data-driven test has and a hand-written one does not.
 """
 
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -186,6 +188,63 @@ def test_check_error_fixtures_are_errors_and_not_denials(fixture_name: str, expe
 
     assert [error.reason for error in errors] == [expected_reason]
     assert not any(isinstance(result, FailSecurityVerdict) for result in parsed.results)
+
+
+# ── The other direction: TypeScript builds, Python reads ─────────────────────
+#
+# Every fixture travels Python -> TypeScript. Each valid one is asserted
+# byte-equivalent to what this very model would emit (the round-trip test above),
+# and the TypeScript half then parses it -- so that direction genuinely is covered,
+# contrary to how it is sometimes described. What was NOT covered is the reverse: a
+# response shaped the way TYPESCRIPT believes it should be shaped had never been
+# handed to pydantic. A fixture cannot close this, by construction: it is one file
+# read by both, so it can only ever contain a shape both sides already agree on.
+
+EMITTER = FIXTURE_DIR.parent / "emit_response_from_ts.ts"
+
+
+def test_a_response_built_by_typescript_is_accepted_by_the_python_model() -> None:
+    """Spawn the TypeScript emitter and feed its stdout straight to the model.
+
+    Skipped rather than failed when node is absent: this is the one test in the
+    Python suite that needs the other toolchain, and a machine without it should
+    not be told the contract is broken. ``scripts/run_checks_with_log.sh`` installs
+    node before pytest runs, so the normal flow always exercises it.
+    """
+    if shutil.which("node") is None:
+        pytest.skip("node is not installed -- the cross-language direction cannot run here")
+    assert EMITTER.is_file(), f"missing emitter: {EMITTER}"
+
+    emitted = subprocess.run(  # noqa: S603
+        ["node", "--experimental-strip-types", str(EMITTER)],  # noqa: S607
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=EMITTER.parent.parent,
+    ).stdout
+
+    parsed = ResolveResponse.model_validate_json(emitted)
+
+    # All three classes, so a disagreement about any one of them is caught rather
+    # than only whichever happened to come first.
+    assert [type(result).__name__ for result in parsed.results] == [
+        "AllowedVerdict",
+        "FailSecurityVerdict",
+        "FailErrorVerdict",
+    ]
+
+
+@pytest.mark.parametrize("bad_version", ["1", True, 1.0])
+def test_version_is_strict_so_both_halves_agree_on_it(bad_version: object) -> None:
+    """The live divergence this phase existed to close.
+
+    pydantic used to coerce "1", true and 1.0 all to 1 while the generated zod
+    validator rejected them, so the two halves disagreed about real responses and
+    no fixture could reveal it. ResolveResponse.version is now strict; the two
+    sides accept and reject the same set.
+    """
+    with pytest.raises(ValidationError):
+        ResolveResponse.model_validate({"version": bad_version, "results": []})
 
 
 # ── Shape guarantees beyond the files ─────────────────────────────────────────

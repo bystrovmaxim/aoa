@@ -141,7 +141,14 @@ class ResolveResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    version: int = Field(description="Echoes the request's wire-language version.")
+    # strict: the generated zod validator rejects "1" and true, pydantic coerces both
+    # to 1. That asymmetry made the two halves of the contract disagree about a real
+    # response and no fixture could catch it -- a fixture is one file, read by both,
+    # so it can only cover shapes BOTH sides parse the same way. Only ResolveResponse
+    # is tightened: it describes what the server EMITS, where leniency buys nothing.
+    # ResolveRequest.version stays coercing on purpose -- it parses client input, and
+    # rejecting a caller who sent "1" is a separate policy decision, not this one.
+    version: int = Field(strict=True, description="Echoes the request's wire-language version.")
     results: list[SerializeAsAny[BaseVerdict]] = Field(
         description="One result per request item, in the same order. kind names which "
         "BaseVerdict subclass answered: AllowedVerdict (success, no reason field), "
