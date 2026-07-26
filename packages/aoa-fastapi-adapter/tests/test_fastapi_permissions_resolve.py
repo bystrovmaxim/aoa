@@ -19,7 +19,8 @@ internal accounting (``real_call_count``) is asserted directly against
 file only checks what a real client actually observes over HTTP.
 """
 
-from unittest.mock import AsyncMock
+import asyncio
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -736,3 +737,116 @@ class TestPreparationIsolation:
 
         assert response.status_code == 200
         assert response.json()["results"][1] == {"kind": "FailSecurityVerdict", "reason": "UNAUTHORIZED"}
+
+
+class TestCancellationIsNotAVerdict:
+    """A cancelled request must abort, never answer (chapter 12, #144).
+
+    When a caller hangs up mid-request, the ASGI server cancels the handler task and
+    ``asyncio.CancelledError`` is raised at whatever ``await`` the resolver is sitting
+    on. The resolver is full of deliberately broad ``except Exception`` handlers, one at
+    every step where app code runs, each turning a crash into a per-item
+    ``EVALUATION_FAILED`` so that one bad item cannot sink a batch of twenty.
+
+    If any of them ever caught cancellation too, the result would be worse than a hang:
+    the resolver would work through the remaining items and produce a full,
+    confident-looking ``200`` for a request nobody is listening to, with the cancelled
+    item reported as "could not check" -- which a client reads as "ask again" and renders
+    as available.
+
+    This holds today, but not for a reason the source states anywhere: ``CancelledError``
+    inherits from ``BaseException``, not ``Exception`` (changed in Python 3.8 precisely so
+    broad handlers stop swallowing it). Turning a single ``except Exception`` into
+    ``except BaseException`` -- which reads like harmless extra defensiveness -- silently
+    reintroduces the whole problem. Each isolation point therefore gets its own case
+    rather than one case standing in for all three.
+
+    What is asserted is the invariant, not a status code: no per-item verdict is produced.
+    The concrete failure mode here is an artifact of ``TestClient`` (which turns the
+    escaping BaseException into a 500); under a real ASGI server the connection is simply
+    gone and there is nobody left to answer. Both are correct, and both are "not a
+    verdict" -- which is the part that matters and the part that can regress.
+    """
+
+    @staticmethod
+    def _batch() -> dict[str, object]:
+        return {
+            "version": 1,
+            "items": [
+                {"operation": "GET /actions/ping", "params": {}},
+                {"operation": "POST /actions/cancel-order", "params": {"order_id": 7}},
+                {"operation": "GET /actions/ping", "params": {}},
+            ],
+        }
+
+    @staticmethod
+    def _assert_no_verdicts_were_produced(response: object) -> None:
+        status = response.status_code  # type: ignore[attr-defined]
+        assert status != 200, f"a cancelled request answered with {status}"
+        assert "results" not in response.text  # type: ignore[attr-defined]
+
+    def _adapter(self) -> FastApiAdapter:
+        auth = AsyncMock()
+        auth.process.return_value = _manager_context()
+        return FastApiAdapter(machine=ActionProductMachine(loggers=[]), auth_coordinator=auth)
+
+    def test_cancellation_inside_a_params_mapper_does_not_become_a_verdict(self) -> None:
+        def cancelling_mapper(body: object) -> object:
+            raise asyncio.CancelledError
+
+        adapter = self._adapter()
+        adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=cancelling_mapper)
+        adapter.get("/actions/ping", PingAction)
+        client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+        self._assert_no_verdicts_were_produced(client.post("/permissions/resolve", json=self._batch()))
+
+    def test_cancellation_inside_a_route_auth_coordinator_does_not_become_a_verdict(self) -> None:
+        route_auth = AsyncMock()
+        route_auth.process.side_effect = asyncio.CancelledError
+
+        adapter = self._adapter()
+        adapter.post("/actions/cancel-order", CancelOrderAction, auth_coordinator=route_auth)
+        adapter.get("/actions/ping", PingAction)
+        client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+        self._assert_no_verdicts_were_produced(client.post("/permissions/resolve", json=self._batch()))
+
+    def test_cancellation_inside_access_decide_does_not_become_a_verdict(self) -> None:
+        """The deepest of the three: app code inside the check itself, wrapped by
+        ``ActionProductMachine.check_access_decide``'s own ``except Exception``.
+        """
+        adapter = self._adapter()
+        adapter.post("/actions/cancel-order", CancelOrderAction)
+        adapter.get("/actions/ping", PingAction)
+        client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+        async def cancelling_access_decide(*_args: object, **_kwargs: object) -> object:
+            raise asyncio.CancelledError
+
+        with patch.object(CancelOrderAction, "access_decide", cancelling_access_decide):
+            self._assert_no_verdicts_were_produced(client.post("/permissions/resolve", json=self._batch()))
+
+    def test_an_ordinary_crash_in_the_same_place_is_still_isolated(self) -> None:
+        """The control case. Without it the three above would still pass against a
+        resolver with no per-item isolation at all -- "nothing was answered" proves
+        nothing unless an ordinary exception provably DOES get answered, in place,
+        without disturbing its neighbours.
+        """
+
+        def exploding_mapper(body: object) -> object:
+            raise RuntimeError("ordinary crash")
+
+        adapter = self._adapter()
+        adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=exploding_mapper)
+        adapter.get("/actions/ping", PingAction)
+        client = TestClient(adapter.build(), raise_server_exceptions=False)
+
+        response = client.post("/permissions/resolve", json=self._batch())
+
+        assert response.status_code == 200
+        assert response.json()["results"] == [
+            {"kind": "AllowedVerdict"},
+            {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"},
+            {"kind": "AllowedVerdict"},
+        ]
