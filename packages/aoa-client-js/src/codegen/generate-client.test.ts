@@ -511,4 +511,65 @@ describe("generateClient", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  // The other half of the same claim (chapter 12, #144). "GateApi lacks .run" is only
+  // interesting if the callable facade genuinely HAS it and has it typed -- otherwise the
+  // split would be satisfied by a codegen that simply never emits .run anywhere.
+  it("CallableApi's Primitive has .run, typed by the endpoint's own Params and Result", async () => {
+    stubFetchJson(fakeManifest([CANCEL_ORDER_ENDPOINT]));
+    const source = await generateClient("https://x/client-manifest.json");
+    const dir = mkdtempSync(path.join(packageRoot, ".codegen-tsc-check-"));
+    try {
+      writeFileSync(path.join(dir, "generated.ts"), source, "utf8");
+      writeFileSync(
+        path.join(dir, "probe.ts"),
+        [
+          'import type { CallableApi, CancelOrderParams, CancelOrderResult } from "./generated.ts";',
+          "declare const api: CallableApi;",
+          "declare const params: CancelOrderParams;",
+          "",
+          "// .run exists and returns this endpoint's own Result -- not any, not unknown.",
+          "// If it returned `any`, this annotation would still compile, so the negative",
+          "// cases below are what actually pin the type.",
+          'const result: Promise<CancelOrderResult> = api.post["/actions/cancel-order"].run(params);',
+          "void result;",
+          "",
+          "// @ts-expect-error .run takes the endpoint's Params -- an empty object is not it.",
+          'api.post["/actions/cancel-order"].run({});',
+          "",
+          "// @ts-expect-error the callable facade still carries the gate surface, and can()",
+          "// takes Params too -- the two cannot drift apart into different shapes.",
+          'api.post["/actions/cancel-order"].can({ definitely_not_a_field: true });',
+          "",
+          "// @ts-expect-error a Result is not interchangeable with Params.",
+          'const wrong: Promise<CancelOrderParams> = api.post["/actions/cancel-order"].run(params);',
+          "void wrong;",
+          "",
+        ].join("\n"),
+      );
+      writeFileSync(
+        path.join(dir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: {
+            target: "ES2022",
+            lib: ["ES2022", "DOM"],
+            module: "ESNext",
+            moduleResolution: "bundler",
+            allowImportingTsExtensions: true,
+            isolatedModules: true,
+            moduleDetection: "force",
+            noEmit: true,
+            strict: true,
+            skipLibCheck: true,
+            baseUrl: ".",
+            paths: { "aoa-client-js": ["../src/index.ts"] },
+          },
+          include: ["generated.ts", "probe.ts"],
+        }),
+      );
+      expect(() => execFileSync(tscBinary, ["--noEmit", "-p", dir], { cwd: packageRoot, stdio: "pipe" })).not.toThrow();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
