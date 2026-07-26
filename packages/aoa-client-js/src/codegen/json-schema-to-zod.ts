@@ -14,18 +14,28 @@
 // of the manifest's abstract entry — mirroring the same fixed Verdict contract already
 // hand-maintained in ../types.ts.
 
-import { CodegenSchemaError, type IrNode, type IrProperty, type ParsedSchema } from "./json-schema-ir.ts";
+import { CodegenSchemaError, type AdditionalProperties, type IrNode, type IrProperty, type ParsedSchema } from "./json-schema-ir.ts";
 
 // Single-line by design: this renderer does no indentation-depth tracking (see
 // renderZodObject below), so a template with its own baked-in newlines would come out
 // misaligned once substituted at an arbitrary nesting depth. A real consuming project's
 // own formatter reformats the whole generated file on save/commit regardless.
+// strictObject, not object: the server's own model is extra="forbid", and its
+// published schema says additionalProperties: false. Plain z.object() STRIPS an
+// undeclared key instead of refusing it, which would make the two halves of the
+// contract disagree in silence -- Python rejects the response, TypeScript accepts
+// a quietly trimmed version of it. An undeclared field on a verdict means the
+// server is newer than this client; that is exactly the moment to fail loudly,
+// and it cannot strand anyone, because the client is regenerated from the same
+// live manifest that would have introduced the field.
+// Also note AllowedVerdict: strict is what makes a `reason` on it an error rather
+// than a silently dropped key -- success has no reason field AT ALL.
 const WELL_KNOWN_REF_ZOD: Record<string, string> = {
   BaseVerdict:
     'z.discriminatedUnion("kind", [' +
-    'z.object({ kind: z.literal("AllowedVerdict") }), ' +
-    'z.object({ kind: z.literal("FailSecurityVerdict"), reason: z.string().min(1) }), ' +
-    'z.object({ kind: z.literal("FailErrorVerdict"), reason: z.string().min(1) })' +
+    'z.strictObject({ kind: z.literal("AllowedVerdict") }), ' +
+    'z.strictObject({ kind: z.literal("FailSecurityVerdict"), reason: z.string().min(1) }), ' +
+    'z.strictObject({ kind: z.literal("FailErrorVerdict"), reason: z.string().min(1) })' +
     "])",
 };
 
@@ -94,7 +104,7 @@ function zodExpr(node: IrNode, defs: Record<string, IrNode>, renderingRefs: Set<
 
 function renderZodObject(
   properties: IrProperty[],
-  additionalProperties: boolean,
+  additionalProperties: AdditionalProperties,
   defs: Record<string, IrNode>,
   renderingRefs: Set<string>,
 ): string {
@@ -116,6 +126,14 @@ function renderZodObject(
       return `${JSON.stringify(prop.name)}: ${prop.required ? expr : `${expr}.optional()`}`;
     })
     .join(", ");
+  // Bare z.object() is neither keep nor refuse: it silently STRIPS, a third
+  // behavior no input schema asks for and the one that hides a producer/consumer
+  // version mismatch instead of reporting it. So neither branch below emits it.
+  //
+  // "forbid" is the only refusal. An ABSENT additionalProperties means extras are
+  // allowed in JSON Schema, so it renders exactly like an explicit `true` -- an
+  // earlier version of this renderer folded absent in with false and would have
+  // rejected responses the schema permits (audit finding 12).
   const object = `z.object({ ${fields} })`;
-  return additionalProperties ? `${object}.passthrough()` : object;
+  return additionalProperties === "forbid" ? `${object}.strict()` : `${object}.passthrough()`;
 }

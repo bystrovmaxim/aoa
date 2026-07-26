@@ -12,6 +12,17 @@ export interface IrProperty {
   schema: IrNode;
 }
 
+// JSON Schema has THREE states here, and collapsing them to a boolean is what
+// let a bug in: an ABSENT `additionalProperties` means extras are ALLOWED, not
+// forbidden. A boolean built as `schema.additionalProperties === true` folds
+// "absent" in with "false", so a consumer that renders the false branch as a
+// refusal starts rejecting responses the schema explicitly permits.
+//
+// "unspecified" also covers `additionalProperties: <sub-schema>` — a constraint
+// this bounded subset does not enforce. It is reported as unspecified rather
+// than as a refusal precisely so nothing claims to enforce what it does not.
+export type AdditionalProperties = "allow" | "forbid" | "unspecified";
+
 export type IrNode =
   | { kind: "string" }
   | { kind: "integer" }
@@ -26,7 +37,7 @@ export type IrNode =
   // plus its own fields -- used to fall through to plain "object" with no signal that
   // extra keys are allowed at all, only handled as `unknownRecord` below when there were
   // no declared properties to begin with).
-  | { kind: "object"; properties: IrProperty[]; additionalProperties: boolean }
+  | { kind: "object"; properties: IrProperty[]; additionalProperties: AdditionalProperties }
   | { kind: "enum"; values: string[] }
   | { kind: "nullable"; inner: IrNode }
   | { kind: "ref"; refName: string };
@@ -121,8 +132,16 @@ function parseNode(raw: unknown, context: string, depth: number): IrNode {
 
 function parseObjectNode(schema: Record<string, unknown>, context: string, depth: number): IrNode {
   const hasProperties = isRecord(schema.properties) && Object.keys(schema.properties).length > 0;
-  const additionalProperties = schema.additionalProperties === true;
-  if (additionalProperties && !hasProperties) {
+  const additionalProperties: AdditionalProperties =
+    schema.additionalProperties === true ? "allow" : schema.additionalProperties === false ? "forbid" : "unspecified";
+  // Deliberately keyed on an EXPLICIT "allow", not on "not forbidden". By the
+  // letter of JSON Schema a bare `{ "type": "object" }` also means "any object",
+  // so "unspecified" arguably belongs here too -- but that is a separate,
+  // pre-existing design choice with its own test, and flipping it would silently
+  // turn every endpoint whose schema omits the key into `Record<string, unknown>`
+  // instead of a closed interface. Out of scope for the fix below; see the
+  // three-state note above for the part that WAS a bug.
+  if (additionalProperties === "allow" && !hasProperties) {
     return { kind: "unknownRecord" };
   }
   const rawProperties = isRecord(schema.properties) ? schema.properties : {};

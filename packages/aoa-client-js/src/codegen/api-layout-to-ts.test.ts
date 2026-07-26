@@ -81,7 +81,7 @@ describe("renderApiLayout -- descriptors + factories", () => {
   it("createGateApi builds one makeGatePrimitive call per endpoint, keyed by operation", () => {
     const layout = buildLayout([ep("POST", "/actions/cancel-order", "CancelOrder")]);
     const { factoriesSource } = renderApiLayout(layout);
-    expect(factoriesSource).toContain("export function createGateApi(engine: AoaEngine): GateApi {");
+    expect(factoriesSource).toContain("export function createGateApi(engine: ResolveEngine): GateApi {");
     expect(factoriesSource).toContain('const cancelOrder = makeGatePrimitive<CancelOrderParams>(engine, "POST /actions/cancel-order");');
     expect(factoriesSource).toContain('"/actions/cancel-order": cancelOrder,');
   });
@@ -90,7 +90,7 @@ describe("renderApiLayout -- descriptors + factories", () => {
     const layout = buildLayout([ep("POST", "/actions/cancel-order", "CancelOrder")]);
     const { factoriesSource } = renderApiLayout(layout);
     expect(factoriesSource).toContain(
-      "export function createApi(engine: AoaEngine, actionInvoker: ActionInvoker): CallableApi {",
+      "export function createApi(engine: ResolveEngine, actionInvoker: ActionInvoker): CallableApi {",
     );
     expect(factoriesSource).toContain(
       'const cancelOrder = makeCallablePrimitive<CancelOrderParams, CancelOrderResult>(engine, "POST /actions/cancel-order", CANCEL_ORDER_DESCRIPTOR, actionInvoker);',

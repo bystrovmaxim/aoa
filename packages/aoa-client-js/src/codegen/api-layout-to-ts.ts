@@ -123,7 +123,7 @@ function renderFactory(
   names: Map<string, DerivedNames>,
   opts: { withActionInvoker: boolean },
 ): string {
-  const params = opts.withActionInvoker ? "engine: AoaEngine, actionInvoker: ActionInvoker" : "engine: AoaEngine";
+  const params = opts.withActionInvoker ? "engine: ResolveEngine, actionInvoker: ActionInvoker" : "engine: ResolveEngine";
   const varLines = allEndpoints.map(
     (e) => `  const ${names.get(e.operation)!.localVarName} = ${renderMakeCall(e, names.get(e.operation)!, opts.withActionInvoker)};`,
   );
