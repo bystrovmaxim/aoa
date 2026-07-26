@@ -761,11 +761,26 @@ class TestCancellationIsNotAVerdict:
     reintroduces the whole problem. Each isolation point therefore gets its own case
     rather than one case standing in for all three.
 
-    What is asserted is the invariant, not a status code: no per-item verdict is produced.
-    The concrete failure mode here is an artifact of ``TestClient`` (which turns the
-    escaping BaseException into a 500); under a real ASGI server the connection is simply
-    gone and there is nobody left to answer. Both are correct, and both are "not a
-    verdict" -- which is the part that matters and the part that can regress.
+    What is asserted is the invariant, not a status code: no per-item verdict is
+    produced. The status code is deliberately left loose because the chain that
+    produces it was easy to get wrong, and an earlier version of this docstring did:
+    it claimed the ``500`` was a ``TestClient`` artifact and that a real ASGI server
+    would simply have nobody left to answer.
+
+    Traced instead of assumed, and it is neither. The ``500`` carries
+    ``{"detail": "Internal server error"}`` -- the body of this adapter's own
+    ``_CatchAllErrorsMiddleware`` -- and it appears with ``raise_server_exceptions``
+    set either way, so ``TestClient`` is not what produces it. Our middleware
+    catches ``Exception``, not ``BaseException``, so it does not see a
+    ``CancelledError`` directly; what reaches it is what Starlette's
+    ``BaseHTTPMiddleware`` hands over once the inner task has failed. The practical
+    upshot for a real deployment is the same shape: the request ends as a
+    whole-request error, not as an answer.
+
+    Also worth stating plainly: these tests raise ``CancelledError`` from app code
+    rather than cancelling a real task. That exercises the handler chain -- which is
+    where the regression would live -- but it is not a real client disconnect, and
+    nothing here claims to test one.
     """
 
     @staticmethod
