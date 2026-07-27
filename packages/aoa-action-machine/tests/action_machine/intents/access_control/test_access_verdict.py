@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -155,6 +157,37 @@ class TestForbiddenObject:
         from aoa.action_machine.intents.access_control import access_verdict
 
         assert FORBIDDEN_OBJECT is access_verdict.FORBIDDEN_OBJECT
+
+    @pytest.mark.parametrize(
+        "poison",
+        [
+            pytest.param(lambda v: object.__setattr__(v, "reason", "ORDER 42 IS NOT YOURS"), id="object.__setattr__"),
+            pytest.param(lambda v: v.__dict__.__setitem__("reason", "ORDER 42 IS NOT YOURS"), id="__dict__"),
+        ],
+    )
+    def test_in_place_mutation_of_the_shared_instance_is_a_process_wide_leak(self, poison: Callable[[Any], None]) -> None:
+        """The two routes that DO get past ``frozen=True`` and mutate the singleton itself.
+
+        Unlike ``model_copy``/``model_construct`` (tested above, they build a new object),
+        these write straight into the instance: every future denial in the process would
+        then carry the new text, and the oracle-safety guarantee -- "missing" and "foreign"
+        answer identically and say nothing specific -- dies silently everywhere at once.
+
+        Neither idiom is exotic here (both appear in production code elsewhere in this
+        repo), so this is a live foot-gun, not a theoretical one. Pinned as a test rather
+        than left as prose: prose cannot fail, and by the time someone reaches for
+        ``object.__setattr__`` they are reading a different file.
+        """
+        from aoa.action_machine.intents.access_control import access_verdict
+
+        original = FORBIDDEN_OBJECT.reason
+        try:
+            poison(FORBIDDEN_OBJECT)
+            assert FORBIDDEN_OBJECT.reason != original, "route no longer bypasses frozen -- rewrite this test"
+            assert access_verdict.FORBIDDEN_OBJECT.reason != original, "the whole process sees the poisoned value"
+        finally:
+            object.__setattr__(FORBIDDEN_OBJECT, "reason", original)
+        assert FORBIDDEN_OBJECT.reason == original
 
 
 class TestDictLikeAccess:

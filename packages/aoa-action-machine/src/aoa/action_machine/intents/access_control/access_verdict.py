@@ -19,53 +19,16 @@ class BaseVerdict(BaseSchema):
         INVARIANTS: Forbid-extra fields, frozen.
     AI-CORE-END
 
-    One class per outcome, not one class with a flag. ``kind`` is not a free field a
-    caller could set to a wrong or mismatched value: ``__init__`` (below) fills it in
-    from ``type(self).__name__`` when omitted, and raises ``ValueError`` if a caller
-    passes a ``kind=`` that disagrees with the class actually being constructed.
-    Whether a given ``kind``/``reason`` combination is legal is therefore not something
-    any validator checks: it is not expressible in the first place — you cannot
-    construct a ``FailSecurityVerdict`` with an empty ``reason``, because that class
-    simply has no way to represent "success", and you cannot construct an
-    ``AllowedVerdict`` with a ``reason`` at all, because that class has no such field.
-    Adding a new outcome is adding a new subclass, not editing a central enum.
+    One class per outcome, not one class with a flag: an illegal ``kind``/``reason``
+    combination is not rejected by a validator, it is unrepresentable. ``AllowedVerdict``
+    has no ``reason`` field at all; ``FailSecurityVerdict``/``FailErrorVerdict`` cannot
+    carry an empty one. A new outcome is a new subclass, not an edit to a central enum.
 
-    Both guarantees hold for the normal constructor only. ``model_construct()`` and
-    ``model_copy(update=...)`` are pydantic's own documented escape hatches for
-    building an instance from already-trusted data without running validators — or
-    ``__init__`` — at all: both can still produce e.g. ``FailSecurityVerdict(reason="")``,
-    bypassing ``Field(min_length=1)`` and even ``frozen=True``, and both can produce a
-    ``FailSecurityVerdict`` instance whose ``kind`` claims to be ``"AllowedVerdict"``,
-    since ``kind`` is a stored field rather than recomputed on every read. Nothing in
-    this codebase calls either method on a ``BaseVerdict``; if that ever changes,
-    neither guarantee holds for that call site.
-
-    **Shared instances raise the stakes of that caveat.** ``FORBIDDEN_OBJECT`` below
-    is the only *public* module-level verdict (``FORBIDDEN_ROLE``/``UNKNOWN_ENDPOINT``
-    and friends are private to their modules), and callers are expected to compare it
-    by identity — ``verdict is FORBIDDEN_OBJECT``. ``setattr`` is blocked by
-    ``frozen=True``; ``model_copy(update=...)`` and ``model_construct(...)``, the two
-    escape hatches named above, are *safe here specifically* — they build and return a
-    **new** object, leaving the shared one intact. The two that do get through are
-    ``FORBIDDEN_OBJECT.__dict__["reason"] = ...`` and
-    ``object.__setattr__(FORBIDDEN_OBJECT, "reason", ...)``: both mutate the module-level
-    instance for the entire process, so every future denial silently carries the new
-    text. Neither idiom is exotic in this repository — both appear in production code
-    (``context_view.py``, ``base_graph_edge.py``, ``route_record.py``) — they are simply
-    never aimed at a verdict. Do not aim them here.
-
-    ``Final`` is an annotation, not a runtime lock: rebinding
-    ``access_verdict.FORBIDDEN_OBJECT`` is not blocked either, and would not reach the
-    already-bound re-export in ``access_control/__init__.py`` — leaving two diverging
-    constants and quietly breaking every ``is`` comparison against the stale one. A test
-    pins that the export and the definition are the same object.
-
-    Abstract by construction, not by convention: raises ``TypeError`` if
-    ``type(self) is BaseVerdict``, checked in both ``__init__`` (the normal
-    construction path) and ``model_post_init`` (which pydantic also calls from
-    ``model_construct()``, the one construction path that skips ``__init__``
-    entirely) — ``pydantic.BaseModel`` combined with ``abc.ABC`` alone does not block
-    direct instantiation.
+    Bypasses that do exist, each pinned by a test in ``test_access_verdict.py``:
+    ``model_construct()``/``model_copy(update=...)`` skip validation and ``frozen=True``
+    but return a *new* object; ``object.__setattr__`` and ``__dict__`` assignment write
+    into the instance itself, which for the shared ``FORBIDDEN_OBJECT`` below poisons
+    every later denial in the process. ``Final`` is an annotation, not a runtime lock.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
