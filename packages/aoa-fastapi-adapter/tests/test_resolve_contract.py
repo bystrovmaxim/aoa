@@ -95,7 +95,7 @@ def test_valid_fixture_parses_and_round_trips_without_loss(fixture: Path) -> Non
 EXPECTED_REJECTION: dict[str, tuple[str, list[object]]] = {
     "resolve_response_invalid_missing_reason": ("value_error", ["results"]),
     "resolve_response_invalid_empty_reason": ("string_too_short", ["results", "reason"]),
-    "resolve_response_invalid_unknown_kind": ("value_error", ["results", 0]),
+    "resolve_response_invalid_unknown_kind": ("value_error", ["results"]),
     "resolve_response_invalid_extra_field": ("extra_forbidden", ["results", "cachedUntil"]),
     "resolve_response_invalid_allowed_with_reason": ("extra_forbidden", ["results", "reason"]),
 }
@@ -287,12 +287,15 @@ def test_an_undeclared_field_on_the_envelope_itself_is_rejected_too() -> None:
 
 
 def test_unrecognized_kind_still_raises() -> None:
-    """The dispatcher must not accidentally turn an invalid kind into a silent
-    pass-through -- an unrecognized kind falls through to normal validation
-    against the abstract BaseVerdict, which rejects it.
+    """The dispatcher must not turn an invalid kind into a silent pass-through. It
+    holds the only list of kinds that exist on the wire, so it rejects the unknown
+    one itself, naming both the offending index and the kind.
     """
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as caught:
         ResolveResponse.model_validate({"version": 1, "results": [{"kind": "SomethingElse"}]})
+
+    assert "results[0]" in str(caught.value)
+    assert "SomethingElse" in str(caught.value)
 
 
 def test_missing_required_reason_still_raises() -> None:

@@ -8,8 +8,8 @@ export interface ResolveItem {
 
 // Three outcome classes -- same names as the server's BaseVerdict/
 // AllowedVerdict/FailSecurityVerdict/FailErrorVerdict (aoa-action-machine).
-// kind is not a channel enum value, it's the class's own name
-// (type(self).__name__ on the server). AllowedVerdict is success -- no
+// kind is not a channel enum value, it's the name of the class that answered.
+// AllowedVerdict is success -- no
 // reason field at all, not an empty string. FailSecurityVerdict is a
 // durable denial (role/guard=/access_decide said no) -- reason is mandatory.
 // FailErrorVerdict is not a denial, it's the absence of a decision: the

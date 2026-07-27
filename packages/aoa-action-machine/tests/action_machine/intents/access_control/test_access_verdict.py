@@ -7,7 +7,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 
 from aoa.action_machine.intents.access_control import (
     FORBIDDEN_OBJECT,
@@ -18,25 +18,42 @@ from aoa.action_machine.intents.access_control import (
 )
 
 
-class TestBaseVerdictIsAbstract:
-    """BaseVerdict cannot be instantiated directly -- only its concrete subclasses can."""
+class TestKind:
+    """kind: the name of the answer, as it goes out on the wire.
 
-    def test_base_verdict_construction_raises(self) -> None:
-        with pytest.raises(TypeError, match="abstract"):
+    BaseVerdict has no value of its own for it, so constructing one takes an explicit
+    kind. Nothing stops that, and nothing needs to: a bare BaseVerdict is not one of the
+    two classes run() accepts, so it is refused there -- see
+    test_action_product_machine_access_decide.py.
+    """
+
+    def test_base_verdict_has_no_kind_of_its_own(self) -> None:
+        with pytest.raises(ValidationError):
             BaseVerdict()
 
-    def test_kind_is_derived_from_the_subclass_name_without_redeclaration(self) -> None:
-        """kind is filled in by BaseVerdict.__init__, inherited by every subclass --
-        not a free field a caller could set to a mismatched value."""
+    def test_each_concrete_class_declares_its_own_wire_name(self) -> None:
+        """The default a caller gets when they pass nothing."""
         assert AllowedVerdict().kind == "AllowedVerdict"
         assert FailSecurityVerdict("reason").kind == "FailSecurityVerdict"
         assert FailErrorVerdict("reason").kind == "FailErrorVerdict"
 
-    def test_mismatched_explicit_kind_raises(self) -> None:
-        """A caller cannot lie about kind through the normal constructor -- kind is
-        derived from the class being built, not a settable field."""
-        with pytest.raises(ValueError, match="kind must be 'AllowedVerdict'"):
-            AllowedVerdict(kind="FailSecurityVerdict")  # type: ignore[call-arg]
+    @pytest.mark.parametrize("given", ["OldWireName", "", "ЧтоУгодно 123 !@#"])
+    def test_kind_stores_whatever_it_is_given(self, given: str) -> None:
+        """kind is a plain stored string, not a closed set: it takes any value and keeps
+        it verbatim. That is what makes a class renameable without renaming what goes
+        out on the wire. Which values an adapter will *accept* off the wire is that
+        adapter's business, not this class's."""
+        assert AllowedVerdict(kind=given).kind == given
+        assert AllowedVerdict(kind=given).model_dump() == {"kind": given}
+
+    def test_a_subclass_can_pin_its_own_wire_name(self) -> None:
+        """The same freedom, declared once on the class instead of at every call site."""
+
+        class Legacy(FailSecurityVerdict):
+            kind: str = Field(default="OldWireName")
+
+        assert Legacy("no").kind == "OldWireName"
+        assert Legacy("no").model_dump() == {"kind": "OldWireName", "reason": "no"}
 
 
 class TestAllowedVerdict:
@@ -78,16 +95,20 @@ class TestFailSecurityVerdict:
             verdict.reason = "changed"  # type: ignore[misc]
 
     def test_subclass_may_add_its_own_fields(self) -> None:
-        """Same extensibility BaseVerdict.kind already demonstrates: a subclass adds
-        fields, kind keeps resolving to the subclass's own name, no redeclaration --
-        and the positional `reason` constructor still works without an override,
-        since FailSecurityVerdict.__init__ passes extra fields through **kwargs."""
+        """The positional `reason` constructor still works without an override, since
+        FailSecurityVerdict.__init__ passes extra fields through **kwargs.
+
+        kind keeps saying FailSecurityVerdict: a subclass that only adds a field is
+        still that kind of answer, and a client is not required to have heard of the
+        subclass to read it. A subclass that genuinely is a different kind says so by
+        declaring its own -- see test_a_subclass_can_pin_its_own_wire_name.
+        """
 
         class OwnershipDenied(FailSecurityVerdict):
             order_id: int
 
         verdict = OwnershipDenied("not your order", order_id=7)
-        assert verdict.kind == "OwnershipDenied"
+        assert verdict.kind == "FailSecurityVerdict"
         assert verdict.order_id == 7
         assert verdict.reason == "not your order"
 
@@ -110,7 +131,7 @@ class TestFailErrorVerdict:
 
 class TestForbiddenObject:
     """The shared object-level denial. Owned by this package, so pinned here rather than
-    only through aoa-demo's usage of it (audit-11 finding 10)."""
+    only through aoa-demo's usage of it."""
 
     def test_is_a_security_denial_not_an_error(self) -> None:
         """The class carries the meaning: a denial is cacheable, an error is not. Typed as

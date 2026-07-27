@@ -8,7 +8,7 @@ from pydantic import Field
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError
-from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
+from aoa.action_machine.intents.access_control import AllowedVerdict, BaseVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -183,4 +183,47 @@ async def test_access_decide_returning_neither_verdict_raises_and_blocks_run(mac
     _summary_calls["n"] = 0
     with pytest.raises(TypeError, match="access_decide"):
         await machine.run(_admin_context(), BrokenAccessDecideAction(), BrokenAccessDecideAction.Params())
+    assert _summary_calls["n"] == 0
+
+
+@meta(description="access_decide returns a bare BaseVerdict that says it is an allow", domain=SystemDomain)
+@check_roles(AdminRole)
+class BareVerdictAccessDecideAction(BaseAction["BareVerdictAccessDecideAction.Params", "BareVerdictAccessDecideAction.Result"]):
+    class Params(BaseParams):
+        pass
+
+    class Result(BaseResult):
+        ok: bool = Field(default=True)
+
+    async def access_decide(
+        self,
+        params: BareVerdictAccessDecideAction.Params,
+        context: Context,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> FailSecurityVerdict | AllowedVerdict:
+        # kind is a plain string that stores whatever it is given, so a bare BaseVerdict
+        # can be made to *say* "AllowedVerdict" without being one.
+        return BaseVerdict(kind="AllowedVerdict")  # type: ignore[return-value]
+
+    @summary_aspect("S")
+    async def probe_summary(
+        self,
+        params: BareVerdictAccessDecideAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> BareVerdictAccessDecideAction.Result:
+        _summary_calls["n"] += 1
+        return BareVerdictAccessDecideAction.Result(ok=True)
+
+
+async def test_a_bare_verdict_claiming_to_be_allowed_still_blocks_run(machine: ActionProductMachine) -> None:
+    """The verdict that reads as an allow to anything comparing the kind string, and is
+    not one to anything comparing the class. run() compares the class, so it blocks --
+    which is why BaseVerdict needs no constructor of its own to forbid this shape.
+    """
+    _summary_calls["n"] = 0
+    with pytest.raises(TypeError, match="access_decide"):
+        await machine.run(_admin_context(), BareVerdictAccessDecideAction(), BareVerdictAccessDecideAction.Params())
     assert _summary_calls["n"] == 0

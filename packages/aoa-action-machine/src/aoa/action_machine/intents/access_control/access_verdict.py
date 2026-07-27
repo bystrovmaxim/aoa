@@ -15,57 +15,46 @@ class BaseVerdict(BaseSchema):
     AI-CORE-BEGIN
         ROLE: Abstract root of every access-check outcome — the shape that goes out
               over the wire, one flat class per outcome.
-        CONTRACT: kind is always exactly type(self).__name__; cannot be instantiated directly.
+        CONTRACT: kind is a plain stored string, declared by each concrete class and
+                  kept verbatim when a caller passes one.
         INVARIANTS: Forbid-extra fields, frozen.
     AI-CORE-END
     """
 
+    # frozen: a verdict can never be edited after it is made. FORBIDDEN_OBJECT below is
+    # a single shared instance, so editing one in place would change what every other
+    # caller in the process gets back.
+    # forbid: a field nobody declared is refused, not quietly ignored. An "allowed"
+    # answer that somehow arrived carrying a reason looks like a refusal to anyone who
+    # reads the reason first.
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    # The default is only for mypy, which infers a constructor for subclasses that
-    # define none. At runtime __init__ below always supplies a real value.
-    kind: str = Field(default="")
-
-    def __init__(self, **kwargs: Any) -> None:
-        expected_kind = type(self).__name__
-        given_kind = kwargs.pop("kind", expected_kind)
-        if given_kind != expected_kind:
-            raise ValueError(
-                f"kind must be {expected_kind!r} for {expected_kind} (it is derived from the "
-                f"class being constructed, not a free field) -- got {given_kind!r}."
-            )
-        # mypy checks this call against BaseSchema, which declares no fields, so it
-        # does not see `kind`. Pydantic validates against the real class at runtime.
-        super().__init__(kind=expected_kind, **kwargs)  # type: ignore[call-arg]
-
-    # pylint infers a 0-argument signature for this hook; the real pydantic one takes
-    # a context argument, which is what this matches.
-    # pylint: disable-next=arguments-differ
-    def model_post_init(self, __context: Any) -> None:
-        # isinstance() would match subclasses too. Only BaseVerdict itself is abstract.
-        if type(self) is BaseVerdict:  # pylint: disable=unidiomatic-typecheck
-            raise TypeError(f"{type(self).__name__} is abstract and cannot be instantiated directly.")
+    # The name of this answer, as the client sees it. Each class below sets its own, and
+    # a value passed in is kept exactly as given. It is stored rather than taken from the
+    # class name so that renaming a class does not change what clients already receive.
+    kind: str
 
 
 class AllowedVerdict(BaseVerdict):
-    """Yes. No ``reason`` field at all -- there is nothing to explain when nothing
-    rejected the call. Also what ``BaseAction.access_decide()`` returns by default."""
+    """Yes, go ahead. Carries no reason at all: there is nothing to explain when nothing
+    objected. This is what an action answers unless it says otherwise."""
+
+    kind: str = "AllowedVerdict"
 
 
 class FailSecurityVerdict(BaseVerdict):
-    """No: the check ran, looked at who is asking, and refused.
+    """No. The check ran, looked at who is asking, and refused.
 
-    ``reason`` is mandatory and non-empty. It can be constructed positionally
-    (``FailSecurityVerdict("FORBIDDEN_ROLE")``) or by keyword -- pydantic calls
-    ``__init__`` with keywords when deserializing, so both must work. A subclass may
-    add fields and still get the positional ``reason`` without writing its own
-    ``__init__``.
+    Write the reason first: ``FailSecurityVerdict("FORBIDDEN_ROLE")``. It cannot be
+    empty -- a refusal that says nothing leaves the caller with nowhere to go.
     """
 
+    kind: str = "FailSecurityVerdict"
     reason: str = Field(min_length=1)
 
     def __init__(self, reason: str, **kwargs: Any) -> None:
-        super().__init__(reason=reason, **kwargs)
+        kwargs["reason"] = reason
+        super().__init__(**kwargs)
 
 
 # The one answer for both "no such object" and "this object is not yours". They must
@@ -88,18 +77,23 @@ FORBIDDEN_OBJECT: Final = FailSecurityVerdict("FORBIDDEN_OBJECT")
 
 
 class FailErrorVerdict(BaseVerdict):
-    """The check could not be answered -- a crash, a timeout, an unknown operation.
+    """Nobody could tell. The check itself broke -- a crash, a timeout, an operation
+    nobody recognises.
 
-    Not a denial, and never cached as one: otherwise one database hiccup would keep
-    answering "no" long after it was over. The reason is a fixed code, never the
-    exception's own text, for the same purpose ``FORBIDDEN_OBJECT`` serves -- a
-    distinguishable failure message is something to probe.
+    This is not a refusal and must never be stored as one, or a single database hiccup
+    would keep answering "no" long after it was over.
 
-    This only affects what a caller who merely *asked* sees. On the real execution
-    path anything other than ``AllowedVerdict`` still blocks the action.
+    The reason is a fixed code, never the text of whatever actually broke. That text
+    differs from one failure to the next, and anyone who can see the difference can use
+    it to map out what exists -- the same problem ``FORBIDDEN_OBJECT`` above solves.
+
+    This is only what somebody who *asked* is told. When the action really runs,
+    anything that is not ``AllowedVerdict`` stops it.
     """
 
+    kind: str = "FailErrorVerdict"
     reason: str = Field(min_length=1)
 
     def __init__(self, reason: str, **kwargs: Any) -> None:
-        super().__init__(reason=reason, **kwargs)
+        kwargs["reason"] = reason
+        super().__init__(**kwargs)

@@ -17,11 +17,11 @@ non-empty ``reason``). Imported from ``aoa-action-machine``
 (:class:`~aoa.action_machine.intents.access_control.BaseVerdict` and its
 subclasses), not redefined here — both HTTP and MCP adapters depend on
 ``aoa-action-machine``, so that is the one place a shared wire shape can live
-without either adapter depending on the other's package. ``kind`` is not a
-free-standing enum field a caller could set to a mismatched value — ``BaseVerdict.__init__``
-fills it in from ``type(self).__name__`` when omitted and rejects a mismatched
-explicit value; the set of possible ``kind`` values is exactly the set of
-``BaseVerdict`` subclasses that exist, not a central list to keep in sync.
+without either adapter depending on the other's package. ``kind`` defaults to the
+verdict class's own name, so the set of values a server emits is exactly the set
+of ``BaseVerdict`` subclasses that exist, not a central list to keep in sync.
+Reading a response back is the other direction: ``_dispatch_verdict_kind`` below
+holds the mapping of kinds this adapter accepts, and rejects anything else.
 ``results`` is typed ``list[SerializeAsAny[BaseVerdict]]``, not plain
 ``list[BaseVerdict]``, so each item serializes by its actual runtime class:
 pydantic v2 otherwise serializes a field by its *declared* container type,
@@ -160,27 +160,24 @@ class ResolveResponse(BaseModel):
     @classmethod
     def _dispatch_verdict_kind(cls, value: object) -> object:
         """Parse each element as its own concrete BaseVerdict subclass, not the
-        abstract base -- SerializeAsAny above only fixes *serialization* (each item
+        abstract base. ``SerializeAsAny`` above only fixes *serialization* (each item
         serializes by its real runtime class); left to plain validation, pydantic
-        would try to construct the declared ``BaseVerdict`` itself for every
-        element, which ``BaseVerdict.__init__`` always rejects (it requires
-        ``kind == type(self).__name__``, and ``type(self)`` here is ``BaseVerdict``,
-        never a real ``kind`` value like ``"AllowedVerdict"``). This is why nothing
-        caught it until a real client tried to parse a real response: nothing else
-        in this codebase ever calls ``ResolveResponse.model_validate[_json]`` --
-        the server only ever constructs and serializes one, never parses one back.
+        would construct the declared ``BaseVerdict`` for every element, losing the
+        subclass's own fields and rules.
+
+        This mapping is also the only place that knows which kinds exist on the wire,
+        so it is the only place that can reject one that does not.
         """
         if not isinstance(value, list):
             return value
         dispatched: list[object] = []
-        for item in value:
+        for index, item in enumerate(value):
             if not isinstance(item, dict):
                 dispatched.append(item)  # already a real instance (or malformed) -- let normal validation handle it
                 continue
             verdict_cls = _VERDICT_CLASSES_BY_KIND.get(item.get("kind"))  # type: ignore[arg-type]
             if verdict_cls is None:
-                dispatched.append(item)  # unrecognized kind -- let normal validation produce a clear error
-                continue
+                raise ValueError(f"results[{index}]: unknown verdict kind {item.get('kind')!r}")
             try:
                 dispatched.append(verdict_cls(**{k: v for k, v in item.items() if k != "kind"}))
             except TypeError as exc:
