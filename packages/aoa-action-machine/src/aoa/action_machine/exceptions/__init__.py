@@ -5,6 +5,7 @@ Framework-level exceptions for ActionMachine.
 Import public types from here, for example ``from aoa.action_machine.exceptions import NamingSuffixError``.
 """
 
+from aoa.action_machine.exceptions.abstract_verdict_error import AbstractVerdictError
 from aoa.action_machine.exceptions.access_condition_async_error import AccessConditionAsyncError
 from aoa.action_machine.exceptions.action_result_declaration_error import ActionResultDeclarationError
 from aoa.action_machine.exceptions.action_result_type_error import ActionResultTypeError
@@ -17,6 +18,7 @@ from aoa.action_machine.exceptions.connection_validation_error import Connection
 from aoa.action_machine.exceptions.context_access_error import ContextAccessError
 from aoa.action_machine.exceptions.cyclic_dependency_error import CyclicDependencyError
 from aoa.action_machine.exceptions.domain_graph_edge_resolution_error import DomainGraphEdgeResolutionError
+from aoa.action_machine.exceptions.empty_verdict_kind_error import EmptyVerdictKindError
 from aoa.action_machine.exceptions.graph_edge_resolution_error import GraphEdgeResolutionError
 from aoa.action_machine.exceptions.handle_error import HandleError
 from aoa.action_machine.exceptions.include_contract_violation_error import IncludeContractViolationError
@@ -36,6 +38,7 @@ from aoa.action_machine.exceptions.transaction_prohibited_error import Transacti
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 
 __all__ = [
+    "AbstractVerdictError",
     "AccessConditionAsyncError",
     "ActionResultDeclarationError",
     "ActionResultTypeError",
@@ -48,6 +51,7 @@ __all__ = [
     "ContextAccessError",
     "CyclicDependencyError",
     "DomainGraphEdgeResolutionError",
+    "EmptyVerdictKindError",
     "GraphEdgeResolutionError",
     "HandleError",
     "IncludeContractViolationError",

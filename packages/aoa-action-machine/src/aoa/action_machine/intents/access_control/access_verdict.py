@@ -7,6 +7,8 @@ from typing import Any, Final
 
 from pydantic import ConfigDict, Field
 
+from aoa.action_machine.exceptions.abstract_verdict_error import AbstractVerdictError
+from aoa.action_machine.exceptions.empty_verdict_kind_error import EmptyVerdictKindError
 from aoa.action_machine.model.base_schema import BaseSchema
 
 
@@ -16,7 +18,8 @@ class BaseVerdict(BaseSchema):
         ROLE: Abstract root of every access-check outcome — the shape that goes out
               over the wire, one flat class per outcome.
         CONTRACT: kind is a plain stored string, declared by each concrete class and
-                  kept verbatim when a caller passes one.
+                  kept verbatim when a caller passes one; never empty. BaseVerdict
+                  itself cannot be built directly.
         INVARIANTS: Forbid-extra fields, frozen.
     AI-CORE-END
     """
@@ -32,14 +35,30 @@ class BaseVerdict(BaseSchema):
     # The name of this answer, as the client sees it. Each class below sets its own, and
     # a value passed in is kept exactly as given. It is stored rather than taken from the
     # class name so that renaming a class does not change what clients already receive.
-    kind: str
+    #
+    # It can never be empty, and that rule is written in two places on purpose. Here it
+    # travels into the published schema, so the client's own generated validator refuses
+    # an empty name as well. In __init__ it becomes a message that names the class and
+    # the value, instead of a length complaint that names neither.
+    #
+    # Every class below repeats min_length: redeclaring the field to give it a name
+    # replaces this declaration outright, constraint included.
+    kind: str = Field(min_length=1)
+
+    def __init__(self, **kwargs: Any) -> None:
+        # A subclass passes its own class here, so only BaseVerdict itself is stopped.
+        if self.__class__ is BaseVerdict:
+            raise AbstractVerdictError(self.__class__.__name__)
+        if "kind" in kwargs and not kwargs["kind"]:
+            raise EmptyVerdictKindError(self.__class__.__name__, kwargs["kind"])
+        super().__init__(**kwargs)
 
 
 class AllowedVerdict(BaseVerdict):
     """Yes, go ahead. Carries no reason at all: there is nothing to explain when nothing
     objected. This is what an action answers unless it says otherwise."""
 
-    kind: str = "AllowedVerdict"
+    kind: str = Field(default="AllowedVerdict", min_length=1)
 
 
 class FailSecurityVerdict(BaseVerdict):
@@ -49,7 +68,7 @@ class FailSecurityVerdict(BaseVerdict):
     empty -- a refusal that says nothing leaves the caller with nowhere to go.
     """
 
-    kind: str = "FailSecurityVerdict"
+    kind: str = Field(default="FailSecurityVerdict", min_length=1)
     reason: str = Field(min_length=1)
 
     def __init__(self, reason: str, **kwargs: Any) -> None:
@@ -91,7 +110,7 @@ class FailErrorVerdict(BaseVerdict):
     anything that is not ``AllowedVerdict`` stops it.
     """
 
-    kind: str = "FailErrorVerdict"
+    kind: str = Field(default="FailErrorVerdict", min_length=1)
     reason: str = Field(min_length=1)
 
     def __init__(self, reason: str, **kwargs: Any) -> None:

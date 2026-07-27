@@ -7,8 +7,9 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
-from pydantic import Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
+from aoa.action_machine.exceptions import AbstractVerdictError, EmptyVerdictKindError
 from aoa.action_machine.intents.access_control import (
     FORBIDDEN_OBJECT,
     AllowedVerdict,
@@ -18,18 +19,34 @@ from aoa.action_machine.intents.access_control import (
 )
 
 
+class TestBaseVerdictCannotBeBuiltDirectly:
+    """BaseVerdict holds what every answer shares; on its own it is not an answer."""
+
+    @pytest.mark.parametrize(
+        "build",
+        [
+            pytest.param(lambda: BaseVerdict(), id="no arguments"),
+            pytest.param(lambda: BaseVerdict(kind="AllowedVerdict"), id="wearing another answer's name"),
+        ],
+    )
+    def test_direct_construction_is_refused(self, build: Callable[[], BaseVerdict]) -> None:
+        """Including the case that would otherwise be worst: a bare verdict carrying the
+        name of an allow. Whoever tries is told which classes to use instead."""
+        with pytest.raises(AbstractVerdictError, match="AllowedVerdict"):
+            build()
+
+    def test_subclasses_are_unaffected(self) -> None:
+        """The check names BaseVerdict itself, not "anything deriving from it"."""
+        assert AllowedVerdict().kind == "AllowedVerdict"
+
+        class Custom(FailSecurityVerdict):
+            pass
+
+        assert Custom("no").reason == "no"
+
+
 class TestKind:
-    """kind: the name of the answer, as it goes out on the wire.
-
-    BaseVerdict has no value of its own for it, so constructing one takes an explicit
-    kind. Nothing stops that, and nothing needs to: a bare BaseVerdict is not one of the
-    two classes run() accepts, so it is refused there -- see
-    test_action_product_machine_access_decide.py.
-    """
-
-    def test_base_verdict_has_no_kind_of_its_own(self) -> None:
-        with pytest.raises(ValidationError):
-            BaseVerdict()
+    """kind: the name of the answer, as it goes out on the wire."""
 
     def test_each_concrete_class_declares_its_own_wire_name(self) -> None:
         """The default a caller gets when they pass nothing."""
@@ -37,14 +54,50 @@ class TestKind:
         assert FailSecurityVerdict("reason").kind == "FailSecurityVerdict"
         assert FailErrorVerdict("reason").kind == "FailErrorVerdict"
 
-    @pytest.mark.parametrize("given", ["OldWireName", "", "ЧтоУгодно 123 !@#"])
+    @pytest.mark.parametrize("given", ["OldWireName", "x", "ЧтоУгодно 123 !@#"])
     def test_kind_stores_whatever_it_is_given(self, given: str) -> None:
-        """kind is a plain stored string, not a closed set: it takes any value and keeps
-        it verbatim. That is what makes a class renameable without renaming what goes
-        out on the wire. Which values an adapter will *accept* off the wire is that
-        adapter's business, not this class's."""
+        """kind is a plain stored string, not a closed set: any non-empty value is kept
+        verbatim. That is what makes a class renameable without renaming what goes out on
+        the wire. Which values an adapter will *accept* off the wire is that adapter's
+        business, not this class's."""
         assert AllowedVerdict(kind=given).kind == given
         assert AllowedVerdict(kind=given).model_dump() == {"kind": given}
+
+    @pytest.mark.parametrize("empty", ["", None])
+    def test_an_empty_kind_is_refused_by_name(self, empty: object) -> None:
+        """The one value kind cannot hold: nameless, it matches nothing the client knows,
+        so a real refusal arrives as an answer nobody can act on. The error names the
+        class and the value, which a bare length complaint would not."""
+        with pytest.raises(EmptyVerdictKindError) as caught:
+            AllowedVerdict(kind=empty)  # type: ignore[arg-type]
+
+        assert "AllowedVerdict" in str(caught.value)
+        assert repr(empty) in str(caught.value)
+
+    def test_an_empty_kind_is_refused_on_a_verdict_that_also_carries_a_reason(self) -> None:
+        """The check lives on BaseVerdict, so it runs for the subclasses with their own
+        constructors too, not only for the one that takes nothing."""
+        with pytest.raises(EmptyVerdictKindError):
+            FailSecurityVerdict("no", kind="")
+
+    def test_nested_validation_refuses_an_empty_kind_too(self) -> None:
+        """A verdict read back as part of a bigger payload, which is how a client gets it.
+        EmptyVerdictKindError is a ValueError, so pydantic reports it as a normal
+        validation failure rather than letting it escape as an unhandled crash."""
+
+        class Envelope(BaseModel):
+            verdict: AllowedVerdict
+
+        with pytest.raises(ValidationError):
+            Envelope.model_validate({"verdict": {"kind": ""}})
+
+    @pytest.mark.parametrize("verdict_class", [AllowedVerdict, FailSecurityVerdict, FailErrorVerdict])
+    def test_the_published_schema_says_kind_cannot_be_empty(self, verdict_class: type[BaseVerdict]) -> None:
+        """The rule has to reach the client, which validates against this schema and never
+        runs the constructor. Declaring a default on a subclass replaces the whole field,
+        so each class has to carry the constraint itself -- checked here rather than
+        trusted to inheritance."""
+        assert verdict_class.model_json_schema()["properties"]["kind"]["minLength"] == 1
 
     def test_a_subclass_can_pin_its_own_wire_name(self) -> None:
         """The same freedom, declared once on the class instead of at every call site."""

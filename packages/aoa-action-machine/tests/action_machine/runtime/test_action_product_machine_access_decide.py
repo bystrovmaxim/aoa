@@ -202,9 +202,9 @@ class BareVerdictAccessDecideAction(BaseAction["BareVerdictAccessDecideAction.Pa
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> FailSecurityVerdict | AllowedVerdict:
-        # kind is a plain string that stores whatever it is given, so a bare BaseVerdict
-        # can be made to *say* "AllowedVerdict" without being one.
-        return BaseVerdict(kind="AllowedVerdict")  # type: ignore[return-value]
+        # model_construct skips the constructor, which is the only thing forbidding a bare
+        # BaseVerdict. What comes out says "AllowedVerdict" without being one.
+        return BaseVerdict.model_construct(kind="AllowedVerdict")  # type: ignore[return-value]
 
     @summary_aspect("S")
     async def probe_summary(
@@ -220,8 +220,8 @@ class BareVerdictAccessDecideAction(BaseAction["BareVerdictAccessDecideAction.Pa
 
 async def test_a_bare_verdict_claiming_to_be_allowed_still_blocks_run(machine: ActionProductMachine) -> None:
     """The verdict that reads as an allow to anything comparing the kind string, and is
-    not one to anything comparing the class. run() compares the class, so it blocks --
-    which is why BaseVerdict needs no constructor of its own to forbid this shape.
+    not one to anything comparing the class. run() compares the class, so it blocks even
+    though this one was built past the constructor that would have refused it.
     """
     _summary_calls["n"] = 0
     with pytest.raises(TypeError, match="access_decide"):
