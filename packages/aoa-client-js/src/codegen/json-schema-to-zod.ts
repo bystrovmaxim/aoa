@@ -5,7 +5,7 @@
 // One deliberate exception: `schemas.ResolveResponse` in the manifest carries
 // `results: { items: { $ref: "#/$defs/BaseVerdict" } }`, but `$defs.BaseVerdict` is the
 // *abstract* base's own published schema — `{ kind: string }` only, no `reason`, no
-// per-subclass shape (see access_verdict.py: BaseVerdict is deliberately abstract, one
+// per-subclass shape (see base_verdict.py: BaseVerdict is deliberately abstract, one
 // flat class per concrete outcome). The manifest does not publish separate schema
 // entries for AllowedVerdict/FailSecurityVerdict/FailErrorVerdict, so there is no
 // mechanical way to derive the real, concrete discriminated shape from this input alone.

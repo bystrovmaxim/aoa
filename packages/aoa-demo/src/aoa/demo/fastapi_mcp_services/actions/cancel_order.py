@@ -137,7 +137,7 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
         """Level 3: the order must exist and belong to the caller.
 
         Existence and ownership are checked together, in one branch, on purpose
-        — see ``FORBIDDEN_OBJECT``'s own comment (``access_verdict.py``) for why
+        — see ``FORBIDDEN_OBJECT``'s own comment (``forbidden_object.py``) for why
         a separate "does it exist" step followed by a separate "is it yours"
         step is the wrong shape here, even though both currently return the same
         verdict.

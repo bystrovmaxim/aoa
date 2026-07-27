@@ -140,7 +140,7 @@ from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 if TYPE_CHECKING:
-    # Deferred: access_control.access_verdict imports model.base_schema, which
+    # Deferred: access_control.base_verdict imports model.base_schema, which
     # triggers model/__init__.py -> base_action (this file, still mid-import) --
     # a real transitive cycle, same shape as the Context one below. AllowedVerdict/
     # FailSecurityVerdict are only ever used as type annotations below; the one
