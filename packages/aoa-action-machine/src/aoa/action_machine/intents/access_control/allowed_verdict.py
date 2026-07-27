@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from typing import Any
 
 from aoa.action_machine.intents.access_control.base_verdict import BaseVerdict
 
@@ -12,4 +12,5 @@ class AllowedVerdict(BaseVerdict):
     """Yes, go ahead. Carries no reason at all: there is nothing to explain when nothing
     objected. This is what an action answers unless it says otherwise."""
 
-    kind: str = Field(default="AllowedVerdict", min_length=1)
+    def __init__(self, kind: str = "AllowedVerdict", **kwargs: Any) -> None:
+        super().__init__(kind=kind, **kwargs)

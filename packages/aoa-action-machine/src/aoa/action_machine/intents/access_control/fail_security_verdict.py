@@ -17,9 +17,7 @@ class FailSecurityVerdict(BaseVerdict):
     empty -- a refusal that says nothing leaves the caller with nowhere to go.
     """
 
-    kind: str = Field(default="FailSecurityVerdict", min_length=1)
     reason: str = Field(min_length=1)
 
-    def __init__(self, reason: str, **kwargs: Any) -> None:
-        kwargs["reason"] = reason
-        super().__init__(**kwargs)
+    def __init__(self, reason: str, kind: str = "FailSecurityVerdict", **kwargs: Any) -> None:
+        super().__init__(kind=kind, reason=reason, **kwargs)

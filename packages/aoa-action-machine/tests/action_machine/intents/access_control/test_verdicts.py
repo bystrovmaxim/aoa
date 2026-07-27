@@ -7,7 +7,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ValidationError
 
 from aoa.action_machine.exceptions import AbstractVerdictError, EmptyVerdictKindError
 from aoa.action_machine.intents.access_control import (
@@ -22,18 +22,17 @@ from aoa.action_machine.intents.access_control import (
 class TestBaseVerdictCannotBeBuiltDirectly:
     """BaseVerdict holds what every answer shares; on its own it is not an answer."""
 
-    @pytest.mark.parametrize(
-        "build",
-        [
-            pytest.param(lambda: BaseVerdict(), id="no arguments"),
-            pytest.param(lambda: BaseVerdict(kind="AllowedVerdict"), id="wearing another answer's name"),
-        ],
-    )
-    def test_direct_construction_is_refused(self, build: Callable[[], BaseVerdict]) -> None:
+    def test_direct_construction_is_refused(self) -> None:
         """Including the case that would otherwise be worst: a bare verdict carrying the
         name of an allow. Whoever tries is told which classes to use instead."""
         with pytest.raises(AbstractVerdictError, match="AllowedVerdict"):
-            build()
+            BaseVerdict(kind="AllowedVerdict")
+
+    def test_direct_construction_without_a_kind_is_refused_too(self) -> None:
+        """The check runs on the way in, so it needs a kind bound to reach it at all. That
+        leaves Python's own error for this case -- still a TypeError, still no instance."""
+        with pytest.raises(TypeError):
+            BaseVerdict()  # type: ignore[call-arg]
 
     def test_subclasses_are_unaffected(self) -> None:
         """The check names BaseVerdict itself, not "anything deriving from it"."""
@@ -100,10 +99,12 @@ class TestKind:
         assert verdict_class.model_json_schema()["properties"]["kind"]["minLength"] == 1
 
     def test_a_subclass_can_pin_its_own_wire_name(self) -> None:
-        """The same freedom, declared once on the class instead of at every call site."""
+        """The same freedom, fixed once in the subclass's own constructor instead of
+        repeated at every call site -- which is how the three answers set theirs."""
 
         class Legacy(FailSecurityVerdict):
-            kind: str = Field(default="OldWireName")
+            def __init__(self, reason: str, kind: str = "OldWireName", **kwargs: Any) -> None:
+                super().__init__(reason=reason, kind=kind, **kwargs)
 
         assert Legacy("no").kind == "OldWireName"
         assert Legacy("no").model_dump() == {"kind": "OldWireName", "reason": "no"}
