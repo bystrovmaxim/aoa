@@ -113,10 +113,9 @@ class TestForbiddenObject:
     only through aoa-demo's usage of it (audit-11 finding 10)."""
 
     def test_is_a_security_denial_not_an_error(self) -> None:
-        """The class carries the whole meaning: a denial is cacheable, an error is not.
-        Retyping this constant to FailErrorVerdict would turn a real "no" into a
-        never-cached non-answer -- a semantic and a caching bug at once, and every test
-        that only asserts `.reason` would stay green."""
+        """The class carries the meaning: a denial is cacheable, an error is not. Typed as
+        FailErrorVerdict this would become a never-cached non-answer, and any test that
+        only checks .reason would stay green."""
         assert isinstance(FORBIDDEN_OBJECT, FailSecurityVerdict)
         assert not isinstance(FORBIDDEN_OBJECT, FailErrorVerdict)
         assert FORBIDDEN_OBJECT.kind == "FailSecurityVerdict"
@@ -138,12 +137,10 @@ class TestForbiddenObject:
         with pytest.raises(ValidationError):
             FORBIDDEN_OBJECT.reason = "something else"  # type: ignore[misc]
 
-    def test_the_documented_escape_hatches_do_not_poison_the_shared_instance(self) -> None:
-        """``model_copy(update=...)`` and ``model_construct(...)`` skip validation and even
-        ``frozen=True`` -- BaseVerdict's docstring says so. For a *shared* instance the
-        question is not whether they bypass validation but whether they mutate in place;
-        they do not, they build a new object (audit-11 finding 14). Pinned because that is
-        a pydantic behaviour, not ours, and an upgrade could change it under us."""
+    def test_model_copy_and_model_construct_do_not_poison_the_shared_instance(self) -> None:
+        """These skip validation and frozen=True, but return a new object instead of mutating,
+        so the shared instance survives. Pydantic's behaviour, not ours -- an upgrade could
+        change it."""
         copied = FORBIDDEN_OBJECT.model_copy(update={"reason": "SOMETHING ELSE"})
         constructed = FailSecurityVerdict.model_construct(kind="FailSecurityVerdict", reason="")
 
@@ -166,17 +163,10 @@ class TestForbiddenObject:
         ],
     )
     def test_in_place_mutation_of_the_shared_instance_is_a_process_wide_leak(self, poison: Callable[[Any], None]) -> None:
-        """The two routes that DO get past ``frozen=True`` and mutate the singleton itself.
+        """The two routes that get past ``frozen=True`` and write into the singleton itself.
 
-        Unlike ``model_copy``/``model_construct`` (tested above, they build a new object),
-        these write straight into the instance: every future denial in the process would
-        then carry the new text, and the oracle-safety guarantee -- "missing" and "foreign"
-        answer identically and say nothing specific -- dies silently everywhere at once.
-
-        Neither idiom is exotic here (both appear in production code elsewhere in this
-        repo), so this is a live foot-gun, not a theoretical one. Pinned as a test rather
-        than left as prose: prose cannot fail, and by the time someone reaches for
-        ``object.__setattr__`` they are reading a different file.
+        Every later denial in the process then carries the new text, so "missing" and
+        "foreign" stop answering identically and the object-level denial becomes an oracle.
         """
         from aoa.action_machine.intents.access_control import access_verdict
 
@@ -210,10 +200,8 @@ class TestDictLikeAccess:
         assert "nonexistent" not in verdict
 
     def test_kind_appears_in_keys_and_items(self) -> None:
-        """baseverdict-audit finding 6, third document: kind used to be a
-        @computed_field, invisible to BaseSchema's keys()/items() (which only look
-        at declared model_fields) even though direct access (verdict["kind"]) always
-        worked -- kind is now a real field, so both agree."""
+        """kind is a real field, so keys()/items() see it -- BaseSchema's dict-like access
+        only looks at declared model_fields."""
         verdict = AllowedVerdict()
         assert verdict.keys() == ["kind"]
         assert verdict.items() == [("kind", "AllowedVerdict")]
@@ -226,9 +214,7 @@ class TestJsonRoundTrip:
         assert dumped == {"kind": "FailSecurityVerdict", "reason": "not a manager"}
 
     def test_model_dump_round_trips_through_model_validate(self) -> None:
-        """baseverdict-audit finding 4, third document: kind used to be a
-        @computed_field -- present in model_dump() output, but rejected as an
-        unknown field (extra="forbid") by model_validate() on the same class, so a
-        verdict could never be honestly reconstructed from its own wire shape."""
+        """A verdict can be reconstructed from its own wire shape: extra="forbid" would
+        reject kind on the way back if it were not a declared field."""
         verdict = FailSecurityVerdict("FORBIDDEN_ROLE")
         assert FailSecurityVerdict.model_validate(verdict.model_dump()) == verdict
