@@ -17,9 +17,8 @@ class BaseVerdict(BaseSchema):
     AI-CORE-BEGIN
         ROLE: Abstract root of every access-check outcome — the shape that goes out
               over the wire, one flat class per outcome.
-        CONTRACT: kind is a plain stored string, declared by each concrete class and
-                  kept verbatim when a caller passes one; never empty. BaseVerdict
-                  itself cannot be built directly.
+        CONTRACT: kind is the name of this answer on the wire — any non-empty string,
+                  kept exactly as given. BaseVerdict itself cannot be built directly.
         INVARIANTS: Forbid-extra fields, frozen.
     AI-CORE-END
     """
@@ -32,9 +31,8 @@ class BaseVerdict(BaseSchema):
     # reason first.
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    # The name of this answer, as the client sees it. Every concrete class passes its own
-    # through the constructor below, and a caller may pass a different one, which is kept
-    # exactly as given: renaming a class then does not change what clients already receive.
+    # The name of this answer, as the client sees it. Any name given is kept exactly as
+    # given, so a class can be renamed without changing what clients already receive.
     #
     # It can never be empty. min_length is what travels into the published schema, so the
     # client's own generated validator refuses an empty name too -- the client never runs
@@ -43,7 +41,6 @@ class BaseVerdict(BaseSchema):
     kind: str = Field(min_length=1)
 
     def __init__(self, kind: str, **kwargs: Any) -> None:
-        # A subclass passes its own class here, so only BaseVerdict itself is stopped.
         if self.__class__ is BaseVerdict:
             raise AbstractVerdictError(self.__class__.__name__)
         if not kind:
