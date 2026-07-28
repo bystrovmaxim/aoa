@@ -11,14 +11,23 @@ if TYPE_CHECKING:
 
 class AuthorizationError(Exception):
     """
-    Authorization failure (insufficient role permissions).
+    Raised when a caller is not allowed to do something.
 
-    ``level`` says which of the three gates said no: ``1`` no role matched, ``2`` a role
-    matched but a condition rejected the call, ``3`` ``access_decide`` rejected it.
-    ``None`` when the refusal came from outside those gates.
+    Access is decided by three gates in a row, and ``level`` says which one refused:
 
-    ``verdict`` is the refusal itself, and ``None`` for the same case. For the text
-    alone, read ``reason`` below rather than reaching into it.
+    * ``1`` — the caller has none of the roles the action requires.
+    * ``2`` — the caller has a role, but a condition attached to it turned the call down.
+    * ``3`` — the action itself looked at the object in question and said no.
+    * ``None`` — nobody reached those gates. Something in front of them refused first,
+      such as the route's own authentication.
+
+    ``verdict`` is that refusal as an object, carrying the reason to show the caller. It
+    is ``None`` in exactly the same situation as ``level``: no gate ran, so no gate
+    produced one.
+
+    To display the reason, use the ``reason`` property below. It answers ``None`` when
+    there is no verdict, so reading ``verdict.reason`` directly crashes in the one case
+    the property already handles.
     """
 
     def __init__(self, message: str, *, level: int | None = None, verdict: FailSecurityVerdict | None = None) -> None:
