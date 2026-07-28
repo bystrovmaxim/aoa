@@ -17,8 +17,12 @@ class AllowedVerdict(BaseVerdict):
         INVARIANTS: No reason field exists here, so an allow cannot carry one.
     AI-CORE-END
 
-    An allow has no reason field. It does not need one -- nothing was wrong, so there is
-    nothing to name. Attaching one anyway is refused, not ignored.
+    An allow has no reason field, and needs none: nothing was wrong, so there is nothing
+    to name.
+
+    An answer that turns up with a reason anyway -- read off the wire, or passed by a
+    caller -- is rejected, not quietly stripped of it. "Allowed, and here is why not" is
+    incoherent; dropping the text would turn a broken answer into a clean allow.
     """
 
     def __init__(self, kind: str = "AllowedVerdict", **kwargs: Any) -> None:
