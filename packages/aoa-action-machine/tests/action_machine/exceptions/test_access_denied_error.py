@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from aoa.action_machine.exceptions import AccessDeniedError, AccessGate
+from aoa.action_machine.exceptions import AccessDeniedError, AccessGate, AllowedVerdictAsReasonError
 from aoa.action_machine.intents.access_control import (
     AllowedVerdict,
     BaseVerdict,
@@ -120,10 +120,13 @@ class TestVerdict:
         with pytest.raises(TypeError, match="verdict="):
             _denial(verdict=verdict)
 
-    def test_an_allow_is_refused(self) -> None:
-        """A real verdict, just the one that cannot be a reason for refusing. Reading it
-        back would report the call as permitted."""
-        with pytest.raises(TypeError, match="not an allow"):
+    def test_an_allow_is_refused_and_says_why_it_cannot_be_one(self) -> None:
+        """Not a wiring mistake -- the type is right. It is a contradiction, so it gets its
+        own error rather than sharing the wrong-type one.
+
+        It matters because the verdict travels: asked "may I?", the machine hands this one
+        straight back, and an allow in there answers "yes" to a call that was refused."""
+        with pytest.raises(AllowedVerdictAsReasonError, match="told the call is permitted"):
             _denial(verdict=AllowedVerdict())
 
     @pytest.mark.parametrize(

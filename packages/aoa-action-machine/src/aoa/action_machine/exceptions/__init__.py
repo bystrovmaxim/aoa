@@ -10,6 +10,7 @@ from aoa.action_machine.exceptions.access_condition_async_error import AccessCon
 from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError, AccessGate
 from aoa.action_machine.exceptions.action_result_declaration_error import ActionResultDeclarationError
 from aoa.action_machine.exceptions.action_result_type_error import ActionResultTypeError
+from aoa.action_machine.exceptions.allowed_verdict_as_reason_error import AllowedVerdictAsReasonError
 from aoa.action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
@@ -45,6 +46,7 @@ __all__ = [
     "AccessGate",
     "ActionResultDeclarationError",
     "ActionResultTypeError",
+    "AllowedVerdictAsReasonError",
     "AspectPipelineError",
     "CacheContractError",
     "ConnectionAlreadyOpenError",

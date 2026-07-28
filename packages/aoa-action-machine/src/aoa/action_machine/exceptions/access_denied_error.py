@@ -6,6 +6,8 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
+from aoa.action_machine.exceptions.allowed_verdict_as_reason_error import AllowedVerdictAsReasonError
+
 if TYPE_CHECKING:
     from aoa.action_machine.intents.access_control import BaseVerdict
 
@@ -65,11 +67,13 @@ class AccessDeniedError(Exception):
                 f"AccessDeniedError: refused_by= names which check said no and must be an AccessGate "
                 f"({', '.join(AccessGate)}). Got {refused_by!r}."
             )
-        if not isinstance(verdict, BaseVerdict) or isinstance(verdict, AllowedVerdict):
+        if not isinstance(verdict, BaseVerdict):
             raise TypeError(
-                f"AccessDeniedError: verdict= carries the reason this call was refused, so it has "
-                f"to be a verdict, and not an allow. Got {type(verdict).__name__}."
+                f"AccessDeniedError: verdict= carries the reason this call was refused and has to "
+                f"be a verdict. Got {type(verdict).__name__}."
             )
+        if isinstance(verdict, AllowedVerdict):
+            raise AllowedVerdictAsReasonError(type(verdict).__name__)
         super().__init__(message)
         self.refused_by = refused_by
         self.verdict = verdict
