@@ -218,19 +218,9 @@ class BaseAction[P: BaseParams, R: BaseResult](
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> FailSecurityVerdict | AllowedVerdict:
-        """``AllowedVerdict()`` by default — level 3 adds no restriction beyond roles/guard.
-
-        Return ``AllowedVerdict()`` to allow, or ``FailSecurityVerdict(reason)`` (or a
-        subclass adding its own fields) to deny with a specific, developer-declared reason
-        — this is the cascade's own denial-reason mechanism (no more raw exception text).
-        Raising instead of returning is for genuine failures (a bug, an unreachable
-        connection) — the machine turns that into a ``FailErrorVerdict``, not a denial,
-        on the check-only path; on the real ``machine.run()`` path it still blocks
-        execution, same as any non-``AllowedVerdict`` outcome.
-
-        Returning is the way to deny. Raising ``AccessDeniedError`` by hand works too --
-        it carries a verdict like any other refusal -- but returning says the same thing
-        without an exception, and reads as a decision rather than a failure.
+        """Return ``AllowedVerdict()`` when nothing here restricts access, which is the
+        default. To refuse, return a ``FailSecurityVerdict`` -- a subclass carrying extra
+        fields of its own is fine.
         """
         from aoa.action_machine.intents.access_control import AllowedVerdict
 
