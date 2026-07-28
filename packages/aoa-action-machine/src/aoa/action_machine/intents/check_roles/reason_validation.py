@@ -34,8 +34,7 @@ def require_reason_alongside(
         TypeError: ``reason`` was given but is not a ``FailSecurityVerdict``.
         ValueError: ``reason`` was given without ``condition``.
     """
-    # pylint: disable-next=import-outside-toplevel
-    from aoa.action_machine.intents.access_control import FailSecurityVerdict  # see TYPE_CHECKING note above
+    from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
     if reason is not None and not isinstance(reason, FailSecurityVerdict):
         raise TypeError(f"{context}: reason= must be a FailSecurityVerdict instance, got {type(reason).__name__}.")

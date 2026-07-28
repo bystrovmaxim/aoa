@@ -109,8 +109,6 @@ Returns ``{"status": "ok"}``.
 
 """
 
-# Ruff/isort lists first-party ``action_machine`` before FastAPI (known-first-party).
-# pylint: disable=wrong-import-order
 from __future__ import annotations
 
 import inspect

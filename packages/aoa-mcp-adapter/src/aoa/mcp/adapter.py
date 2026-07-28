@@ -116,8 +116,6 @@ JSON-serializable object produced by ``_serialize_result`` (one outer
 
 """
 
-# Ruff/isort lists first-party ``action_machine`` before MCP SDK imports (known-first-party).
-# pylint: disable=wrong-import-order
 from __future__ import annotations
 
 import json

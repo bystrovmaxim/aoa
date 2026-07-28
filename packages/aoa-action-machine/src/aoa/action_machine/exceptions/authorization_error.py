@@ -30,8 +30,7 @@ class AuthorizationError(Exception):
                 "an authorization failure must carry some description of what went wrong."
             )
         if verdict is not None:
-            # pylint: disable-next=import-outside-toplevel
-            from aoa.action_machine.intents.access_control import FailSecurityVerdict  # see TYPE_CHECKING note above
+            from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
             if not isinstance(verdict, FailSecurityVerdict):
                 raise TypeError(

@@ -248,8 +248,7 @@ class BaseAction[P: BaseParams, R: BaseResult](
         ``FailErrorVerdict("EVALUATION_FAILED")`` — the denial simply does not arrive. Return
         a ``FailSecurityVerdict`` instead (audit-11 finding 1).
         """
-        # pylint: disable-next=import-outside-toplevel
-        from aoa.action_machine.intents.access_control import AllowedVerdict  # see TYPE_CHECKING note above
+        from aoa.action_machine.intents.access_control import AllowedVerdict
 
         return AllowedVerdict()
 

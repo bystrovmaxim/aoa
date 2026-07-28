@@ -40,8 +40,6 @@ connections do not depend on ``params``), via
 :func:`build_execution_plan_index` + :meth:`EndpointExecutionPlan.prepare`.
 """
 
-# Ruff/isort lists first-party ``action_machine`` before FastAPI (known-first-party).
-# pylint: disable=wrong-import-order
 from __future__ import annotations
 
 from collections.abc import Callable
