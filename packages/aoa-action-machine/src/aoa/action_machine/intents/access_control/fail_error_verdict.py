@@ -11,11 +11,19 @@ from aoa.action_machine.intents.access_control.base_verdict import BaseVerdict
 
 
 class FailErrorVerdict(BaseVerdict):
-    """Nobody could tell. The check itself broke -- a crash, a timeout, an operation
-    nobody recognises.
+    """
+    AI-CORE-BEGIN
+        ROLE: The "nobody could tell" of the three access-check answers — the check
+              itself broke: a crash, a timeout, an operation nobody recognises.
+        CONTRACT: Takes the reason first (``FailErrorVerdict("UNKNOWN_ENDPOINT")``);
+                  kind is "FailErrorVerdict". The reason is a fixed code chosen by the
+                  framework, never text taken from the failure.
+        INVARIANTS: reason is present and never empty. Never treated or stored as a
+                    refusal.
+    AI-CORE-END
 
-    This is not a refusal and must never be stored as one, or a single database hiccup
-    would keep answering "no" long after it was over.
+    This is the absence of a decision, not a decision to say no, and storing it as one
+    would let a single database hiccup keep answering "no" long after it was over.
 
     The reason is a fixed code, never the text of whatever actually broke. That text
     differs from one failure to the next, and anyone who can see the difference can use
