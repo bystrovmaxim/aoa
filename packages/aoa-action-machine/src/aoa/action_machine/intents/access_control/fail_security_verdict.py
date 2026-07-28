@@ -21,10 +21,11 @@ class FailSecurityVerdict(BaseVerdict):
         INVARIANTS: reason is present and never empty.
     AI-CORE-END
 
-    A refusal that says nothing leaves the caller with nowhere to go, which is why the
-    reason is required. What it may say is a separate question: see FORBIDDEN_OBJECT for
-    the case where a precise reason would tell an outsider something they should not
-    learn.
+    The reason is required. A refusal that says nothing leaves the caller with no idea
+    what to do next.
+
+    What the reason may say is a separate question. Sometimes a precise one tells an
+    outsider something they should not learn -- see FORBIDDEN_OBJECT.
     """
 
     reason: str = Field(min_length=1)

@@ -22,15 +22,15 @@ class FailErrorVerdict(BaseVerdict):
                     refusal.
     AI-CORE-END
 
-    This is the absence of a decision, not a decision to say no, and storing it as one
-    would let a single database hiccup keep answering "no" long after it was over.
+    This is not a refusal. Nobody decided anything -- the check never got an answer. Save
+    it as a refusal and one brief database outage keeps saying "no" long after it ended.
 
-    The reason is a fixed code, never the text of whatever actually broke. That text
-    differs from one failure to the next, and anyone who can see the difference can use
-    it to map out what exists -- the same problem ``FORBIDDEN_OBJECT`` solves.
+    The reason is a fixed code, never the text of what broke. That text differs from one
+    failure to the next, and whoever can see the difference can use it to work out what
+    exists -- the same problem ``FORBIDDEN_OBJECT`` solves.
 
-    This is only what somebody who *asked* is told. When the action really runs,
-    anything that is not ``AllowedVerdict`` stops it.
+    This is what somebody who only *asked* is told. When the action really runs, anything
+    that is not ``AllowedVerdict`` stops it.
     """
 
     reason: str = Field(min_length=1)
