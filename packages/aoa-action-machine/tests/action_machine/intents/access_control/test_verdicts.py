@@ -306,9 +306,9 @@ class TestForbiddenObject:
     def test_the_export_and_the_definition_are_the_same_object(self) -> None:
         """Callers compare by identity (`verdict is FORBIDDEN_OBJECT`), so the re-export
         must not be a copy -- two constants would silently break every such comparison."""
-        from aoa.action_machine.intents.access_control import forbidden_object
+        from aoa.action_machine.intents.access_control import fail_security_verdict
 
-        assert FORBIDDEN_OBJECT is forbidden_object.FORBIDDEN_OBJECT
+        assert FORBIDDEN_OBJECT is fail_security_verdict.FORBIDDEN_OBJECT
 
     @pytest.mark.parametrize(
         "poison",
@@ -323,13 +323,13 @@ class TestForbiddenObject:
         Every later denial in the process then carries the new text, so "missing" and
         "foreign" stop answering identically and the object-level denial becomes an oracle.
         """
-        from aoa.action_machine.intents.access_control import forbidden_object
+        from aoa.action_machine.intents.access_control import fail_security_verdict
 
         original = FORBIDDEN_OBJECT.reason
         try:
             poison(FORBIDDEN_OBJECT)
             assert FORBIDDEN_OBJECT.reason != original, "route no longer bypasses frozen -- rewrite this test"
-            assert forbidden_object.FORBIDDEN_OBJECT.reason != original, "the whole process sees the poisoned value"
+            assert fail_security_verdict.FORBIDDEN_OBJECT.reason != original, "the whole process sees the poisoned value"
         finally:
             object.__setattr__(FORBIDDEN_OBJECT, "reason", original)
         assert FORBIDDEN_OBJECT.reason == original
