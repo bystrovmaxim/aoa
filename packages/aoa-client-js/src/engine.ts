@@ -22,9 +22,7 @@ export interface TransportConfig {
   credentials?: RequestCredentials; // "include" for cookie sessions
   headers?: Record<string, string>; // shared headers (e.g. Authorization); overrides defaults case-insensitively
   clock?: () => number; // time source; defaults to Date.now
-  // Minimal cache config (chapter 5.5, issue #157) -- only ttlMs so far. Chapter 6
-  // (#139) is expected to extend this same object (maxStaleMs, maxEntries,
-  // onUnavailable), not replace it.
+  // How long an answer may be reused. More knobs are expected to join it here.
   cache?: { ttlMs?: number };
   // Trace-id generator; defaults to crypto.randomUUID. Injectable for the same
   // reason fetchImpl is: crypto.randomUUID() isn't available identically
@@ -64,11 +62,10 @@ export class NetworkUnavailable extends Error {
   }
 }
 
-// Error for a single question, FailErrorVerdict class. AoaEngine.resolve
-// itself never throws this -- it returns a FailErrorVerdict element as-is;
-// Primitive.can() (chapter 5) is what throws it. `.message` is a sentence
-// (matching the other three classes here), `.reason` is the raw wire code --
-// the two carry different meaning, not the same string twice.
+// The server could not answer one question. resolve() hands that answer back as an
+// ordinary element and never throws; asking a single yes/no question is what turns it
+// into this. `.message` is a sentence for a person, `.reason` is the server's own code
+// for a program -- two different things, not the same string twice.
 export class AoaResolveError extends Error {
   reason: string;
 
@@ -118,22 +115,17 @@ export function assertValidVerdict(item: unknown, index: number): asserts item i
   }
 }
 
-// `implements ResolveEngine` catches a renamed or removed method and a changed
-// return type at the class. It does NOT catch a narrowed parameter: methods are
-// bivariant in their parameters in TypeScript, so `resolve(items: [ResolveItem])`
-// satisfies an interface declaring `ResolveItem[]` without complaint (audit
-// finding 6, verified in isolation). The guard for that lives in
-// primitive.types.test.ts, which compares the two signatures' parameter TUPLES for
-// mutual assignability -- tuples compare strictly, with no bivariance escape hatch.
+// `implements ResolveEngine` catches a renamed method or a changed return type, but
+// not a narrowed parameter: TypeScript accepts `resolve(items: [ResolveItem])` against
+// an interface asking for `ResolveItem[]`. primitive.types.test.ts covers that gap.
 export class AoaEngine implements ResolveEngine {
   private config: { transport: TransportConfig };
   private cache = new ResolveCache();
 
   constructor(config: { transport: TransportConfig }) {
-    // Validated once, here, rather than on every resolve() call: a NaN ttlMs
-    // (e.g. from an unvalidated env var) would make staleAt = now + NaN = NaN,
-    // and `now >= NaN` is always false in JS -- the entry would never expire,
-    // silently becoming "eternally fresh" (audit finding 8, chapter 5.5).
+    // Checked here, once, rather than on every call. A NaN ttlMs -- an unvalidated
+    // env var, say -- makes the expiry NaN too, and every comparison against NaN is
+    // false, so the entry would never expire and quietly answer forever.
     const ttlMs = config.transport.cache?.ttlMs;
     if (ttlMs !== undefined && !(Number.isFinite(ttlMs) && ttlMs >= 0)) {
       throw new Error(`transport.cache.ttlMs must be a finite number >= 0, got ${ttlMs}`);
@@ -147,11 +139,10 @@ export class AoaEngine implements ResolveEngine {
     return this.config.transport.cachePartition;
   }
 
-  // Per item: read the cache unless opts.skipCache -- Primitive.run()'s precheck
-  // (chapter 5.5) sets it, since a cache hit there would defeat the whole point of a
-  // fresh check right before the real invocation. A fresh network answer is written
-  // through to the cache regardless of skipCache, so the next ordinary call benefits.
-  // Only the actual misses go to the network, in one batched call.
+  // Read the cache per item, unless the caller asked to skip it -- the check that runs
+  // immediately before a real invocation does, since answering it from cache would
+  // defeat the point of checking right then. A fresh answer is always written back, so
+  // skipping the read does not cost the next caller. Misses go out in one batched call.
   async resolve(items: ResolveItem[], opts?: { traceId?: string; skipCache?: boolean }): Promise<Verdict[]> {
     const t = this.config.transport;
     const now = (t.clock ?? Date.now)();
@@ -251,14 +242,11 @@ export class AoaEngine implements ResolveEngine {
     return typedBody.results;
   }
 
-  // Dynamic mode (chapter 5): fetches the same manifest generateClient reads, but builds
-  // the api object in memory instead of writing TypeScript to a file -- no build step,
-  // no compile-time per-endpoint types (the manifest's shape is only known once this
-  // actually runs). Reuses the exact same manifest -> layout logic as generateClient
-  // (path-layout.ts's buildLayout) so the static and dynamic outputs are identical in
-  // shape; only how a leaf gets built differs (a real GatePrimitive here, generated
-  // source there). Only ever builds the gate (verdict/can) surface -- there is no
-  // actionInvoker parameter to build a working .run() from.
+  // Builds the same api object the code generator would write to a file, but in memory
+  // and at run time. No build step, and no per-endpoint types, since nothing knows the
+  // shape until the server answers. Both paths share the manifest -> layout step, so the
+  // two outputs have the same shape and only the leaves differ. Asking is all this can
+  // do: nothing here knows how to actually invoke an action.
   async loadFrom(url: string): Promise<DynamicGateApi> {
     const t = this.config.transport;
     let res: Response;
