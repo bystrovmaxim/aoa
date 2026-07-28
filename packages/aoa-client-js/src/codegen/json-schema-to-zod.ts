@@ -2,17 +2,12 @@
 //
 // Renders a parsed IR tree (see json-schema-ir.ts) into zod schema source text.
 //
-// One deliberate exception: `schemas.ResolveResponse` in the manifest carries
-// `results: { items: { $ref: "#/$defs/BaseVerdict" } }`, but `$defs.BaseVerdict` is the
-// *abstract* base's own published schema — `{ kind: string }` only, no `reason`, no
-// per-subclass shape (see base_verdict.py: BaseVerdict is deliberately abstract, one
-// flat class per concrete outcome). The manifest does not publish separate schema
-// entries for AllowedVerdict/FailSecurityVerdict/FailErrorVerdict, so there is no
-// mechanical way to derive the real, concrete discriminated shape from this input alone.
-// A `$ref` to a well-known name in WELL_KNOWN_REF_ZOD is therefore substituted with a
-// fixed, hand-authored zod schema instead of a literal (and under-specified) translation
-// of the manifest's abstract entry — mirroring the same fixed Verdict contract already
-// hand-maintained in ../types.ts.
+// One deliberate exception. The manifest describes an answer only by what all three kinds
+// share -- a name and nothing else. It publishes no entry per kind, so the real shape
+// cannot be derived from it: a literal translation would accept a refusal with no reason.
+//
+// So a reference to one of those well-known names is replaced by a hand-written schema
+// instead, matching the same three answers spelled out in ../types.ts.
 
 import { CodegenSchemaError, type AdditionalProperties, type IrNode, type IrProperty, type ParsedSchema } from "./json-schema-ir.ts";
 
@@ -46,15 +41,12 @@ export function renderResolveResponseZodSchema(parsed: ParsedSchema): string {
 
 // `renderingRefs` tracks the names currently being rendered. A real cycle means reaching
 // the SAME name again before it has finished -- not merely referencing it twice from
-// unrelated branches, which is ordinary and must not be mistaken for one. Marked on entry,
-// unmarked on exit
-// (`finally`), matching a standard DFS cycle check: the TS renderer's own accidental
-// protection (json-schema-to-ts.ts's `typeText`) relies on interfaces being able to
-// forward-reference each other by name, which a zod schema -- an eagerly-constructed
-// value, not a lazily-resolved type -- cannot do; without an explicit check here, a real
-// cycle recurses until the JS call stack overflows with a raw RangeError instead of the
-// same clear, typed CodegenSchemaError every other unsupported-input case in this
-// codegen already produces.
+// unrelated branches, which is ordinary and must not be mistaken for one.
+//
+// The check has to be explicit here. A type can name itself and be resolved later; a zod
+// schema is a value, built there and then, so a cycle simply recurses until the stack
+// overflows. That would surface as a raw crash instead of the clear error every other
+// unsupported input produces.
 function zodExpr(node: IrNode, defs: Record<string, IrNode>, renderingRefs: Set<string>): string {
   switch (node.kind) {
     case "string":

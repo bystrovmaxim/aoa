@@ -34,16 +34,14 @@ export function isReservedWord(name: string): boolean {
 }
 
 /**
- * Rejects an endpoint's derived base name at the earliest possible point -- before
- * `NameRegistry.claimBase` ever sees it -- if it isn't a valid, non-reserved TypeScript
- * identifier on its own. `ManifestEndpoint.name` is an arbitrary server-side string with
- * nothing guarantees the server's action name is a legal identifier. A stray space or
- * dot -- or an empty name, left when stripping the "Action" suffix from something that
- * was only "Action" -- reaches every name derived from it. Adding a number to
- * disambiguate does not repair that; it produces "2", which is no better.
+ * Refuses a name that cannot legally be a TypeScript declaration, before anything is
+ * derived from it. Nothing guarantees the server's action name is a legal identifier: a
+ * stray space or dot, or an empty name left after stripping the "Action" suffix from
+ * something that was only "Action", reaches every name built from it. Adding a number to
+ * disambiguate does not repair that -- it produces "2".
  *
- * Failing loudly while generating, naming the server action at fault, beats handing back
- * a broken file that only fails when somebody tries to compile it.
+ * Failing here, naming the action at fault, beats handing back a file that only fails
+ * when somebody tries to compile it.
  */
 export function assertValidBaseName(base: string, endpoint: { name: string; operation: string }): void {
   if (isValidIdentifier(base) && !isReservedWord(base)) return;
@@ -55,14 +53,14 @@ export function assertValidBaseName(base: string, endpoint: { name: string; oper
 }
 
 /**
- * Tracks every top-level TypeScript declaration name in the generated file — not just
- * endpoint base names, but the full derived and hoisted forms too — in one shared
- * namespace. `ManifestEndpoint.name` is documented as informational only (manifest.py):
- * nothing guarantees it's unique across endpoints, and a name hoisted from a nested
- * `$defs` entry (`${paramsName}${refName}`, see json-schema-to-ts.ts's `resolveRefName`
- * callback) is a mechanical string concatenation with no uniqueness guarantee of its
- * own either. Unchecked, a collision does not fail -- TypeScript merges two interfaces
- * that share a name, quietly splicing one endpoint's fields into an unrelated one.
+ * Tracks every name the generated file declares, in one shared namespace -- not only the
+ * names taken from actions, but the ones derived and lifted out of nested definitions too.
+ * Nothing guarantees any of them is unique: the server's action names carry no such
+ * promise, and a lifted name is built by gluing strings together.
+ *
+ * A collision has to be caught here, because it does not fail on its own. TypeScript
+ * merges two interfaces that share a name, quietly splicing one action's fields into
+ * another.
  */
 export class NameRegistry {
   private readonly ownerByName = new Map<string, string>();

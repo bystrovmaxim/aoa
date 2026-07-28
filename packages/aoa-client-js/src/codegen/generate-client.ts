@@ -4,9 +4,9 @@
 // as text: a parameter and result type per action, the api object over them, and the
 // validator for what the server sends back. The three answer types are re-exported from
 // the runtime package instead of being regenerated -- the published schema for them
-// carries only the name, so there is nothing to generate the `reason` field
-// from, and redeclaring a second, hand-maintained copy would be exactly the kind of
-// dual-source-of-truth this whole chapter exists to avoid.
+// carries only the name, so there is nothing to generate a `reason` field from -- and
+// writing a second copy by hand is exactly the duplication this generator exists to
+// remove.
 
 import { assertManifestShape, type Manifest, type ManifestEndpoint } from "../manifest-types.ts";
 import { parseRootSchema } from "./json-schema-ir.ts";

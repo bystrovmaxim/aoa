@@ -38,10 +38,9 @@ export function buildInvocation(descriptor: { method: string; path: string }, pa
   return { method: descriptor.method, path: descriptor.path, body: params };
 }
 
-// TParams is always one of the generated, closed Params interfaces (no index
-// signature), so it is never structurally assignable to ResolveItem.params
-// (Record<string, unknown>) without a cast -- see engine.ts/types.ts. Written once
-// here, not re-templated per endpoint by the generator.
+// The generated parameter types are closed -- they declare their fields and nothing
+// else -- so handing one to something expecting an open bag of keys needs a cast. Written
+// once here rather than repeated into every generated action.
 export function makeGatePrimitive<TParams>(engine: ResolveEngine, operation: string): GatePrimitive<TParams> {
   return {
     async verdict(params: TParams): Promise<Verdict> {

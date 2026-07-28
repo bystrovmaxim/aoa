@@ -95,23 +95,16 @@ export function createMockAoaEngine(answer: MockAnswer): MockAoaEngine {
 /**
  * Refuse to hand back anything the real server could not have sent.
  *
- * Without this, the double's central promise was enforced only by the `denied`/
- * `resolveError` helpers -- which nobody is obliged to use. An `answer` returning
- * `{ kind: "FailSecurityVerdict", reason: "" }` by hand produced a clean `false`
- * out of `.can()`, so a test asserting "the button is greyed out" went green
- * against a response `AoaEngine` would have rejected outright with a
- * `ProtocolError`. That is exactly the failure this module exists to prevent,
- * reproduced inside the tool built to prevent it.
+ * A hand-written answer can be shaped wrongly -- a refusal with an empty reason, say --
+ * and without this it would sail through, so a test could pass against a response the
+ * real engine refuses outright. That is the exact failure this module exists to prevent.
  *
- * The rule is not restated here. `assertValidVerdict` is the same function the
- * real engine runs on every element of every network response, imported from
- * engine.ts -- one definition, so the double and the engine cannot drift apart
- * at the one point whose whole purpose is keeping them together.
+ * The rule itself is not restated: this runs the same check the engine runs on every
+ * network response, imported rather than copied, so the two cannot drift apart.
  *
- * The message, though, is deliberately NOT the engine's. A ProtocolError saying
- * "results[3] is missing a non-empty reason" sends a test author looking at
- * their server. The problem is in their own answer function, and the message
- * says so, quotes what it returned, and names the question it was answering.
+ * The message is deliberately not the engine's. "results[3] is missing a reason" sends a
+ * test author to look at their server. The fault is in their own answer function, so the
+ * message says that, quotes what it returned, and names the question it answered.
  */
 function assertAnswerable(verdict: unknown, item: ResolveItem, askedCount: number): asserts verdict is Verdict {
   // Called out separately because it is the overwhelmingly common way to get

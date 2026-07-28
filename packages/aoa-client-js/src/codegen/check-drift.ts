@@ -1,12 +1,12 @@
 // packages/aoa-client-js/src/codegen/check-drift.ts
 //
 // Compares the committed generated file against one generated from the server right now.
-// Not a second generator: it only describes where the one generator's two outputs differ --
-// the
-// manifest_version, and which named declaration (interface/type/function/const) is
-// missing, stale, or changed. The `// Source: <url>` header line is deliberately
-// excluded -- --check may legitimately run against a different URL (staging, localhost)
-// than the one baked into the committed file's header, which is not real drift.
+// Not a second generator: it only reports where the one generator's two outputs differ --
+// the manifest version, and which declaration is missing, extra, or changed.
+//
+// The `// Source: <url>` header line is skipped on purpose. A check may legitimately run
+// against staging or localhost while the committed file names production, and that is not
+// drift.
 
 const MANIFEST_VERSION_PATTERN = /^\/\/ Manifest version: (.+)$/m;
 const DECLARATION_NAME_PATTERN = /^export (?:interface|type|function|const)\s+(\w+)/m;

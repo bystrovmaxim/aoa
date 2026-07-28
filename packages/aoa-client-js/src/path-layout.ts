@@ -1,11 +1,12 @@
 // packages/aoa-client-js/src/path-layout.ts
 //
 // Where each action ends up on the api object. Every one is always reachable by its full
-// path, grouped by HTTP method. A short dot alias
-// (api.get.orders) additionally exists only when the path is "clean" -- every segment is
-// a valid identifier (no {param}, hyphen, or dot) -- and does not collide with a deeper
-// path sharing the same prefix (a segment cannot be both a callable leaf and a branch
-// namespace on the same generated object).
+// path, grouped by HTTP method.
+//
+// A short alias (api.get.orders) exists as well, but only when every segment of the path
+// could be a name on its own -- no {param}, no hyphen, no dot -- and only when nothing
+// deeper shares the prefix. One segment cannot be both something you call and something
+// you reach through.
 //
 // Both ways of building the api use this: one renders the layout to TypeScript text, the
 // other builds it as a real object at run time. Sharing it is what keeps the two from
