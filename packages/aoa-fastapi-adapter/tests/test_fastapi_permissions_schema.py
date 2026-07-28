@@ -15,6 +15,7 @@ rejection, and that every ``BaseVerdict`` subclass is exactly its own flat shape
 import pytest
 from pydantic import ValidationError
 
+from aoa.action_machine.exceptions import InvalidVerdictReasonError
 from aoa.action_machine.intents.access_control import AllowedVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.fastapi.permissions_schema import (
     SUPPORTED_VERSION,
@@ -95,8 +96,12 @@ class TestBaseVerdictSubclasses:
             AllowedVerdict(reason="")  # type: ignore[call-arg]
 
     def test_fail_security_verdict_requires_a_non_empty_reason(self) -> None:
-        with pytest.raises(ValidationError):
+        """Refused by the verdict's own constructor, which names the class and the value,
+        rather than by a length rule that names neither. A run of spaces counts as empty."""
+        with pytest.raises(InvalidVerdictReasonError):
             FailSecurityVerdict("")
+        with pytest.raises(InvalidVerdictReasonError):
+            FailSecurityVerdict("   ")
 
     def test_fail_security_verdict_round_trips(self) -> None:
         result = FailSecurityVerdict("not a manager")

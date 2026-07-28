@@ -9,7 +9,11 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from aoa.action_machine.exceptions import AbstractVerdictError, InvalidVerdictKindError
+from aoa.action_machine.exceptions import (
+    AbstractVerdictError,
+    InvalidVerdictKindError,
+    InvalidVerdictReasonError,
+)
 from aoa.action_machine.intents.access_control import (
     FORBIDDEN_OBJECT,
     AllowedVerdict,
@@ -152,6 +156,63 @@ class TestAllowedVerdict:
         assert AllowedVerdict().model_dump() == {"kind": "AllowedVerdict"}
 
 
+class TestReason:
+    """reason: carried by the two answers that say no, or could not tell."""
+
+    @pytest.mark.parametrize("verdict_class", [FailSecurityVerdict, FailErrorVerdict])
+    @pytest.mark.parametrize(
+        "given",
+        [
+            pytest.param("", id="empty"),
+            pytest.param("   ", id="spaces"),
+            pytest.param("\t\n", id="whitespace"),
+            pytest.param(None, id="None"),
+            pytest.param(123, id="a number"),
+            pytest.param([], id="a list"),
+        ],
+    )
+    def test_only_a_string_with_something_in_it_is_accepted(
+        self, verdict_class: type[BaseVerdict], given: object
+    ) -> None:
+        """The reason is the only thing the caller gets to act on. Blank, it leaves them
+        knowing they were stopped and nothing else -- the same as not answering. Spaces
+        read as blank to whoever has to show the text, so they count as blank here."""
+        with pytest.raises(InvalidVerdictReasonError) as caught:
+            verdict_class(given)  # type: ignore[call-arg]
+
+        assert verdict_class.__name__ in str(caught.value)
+
+    @pytest.mark.parametrize("verdict_class", [FailSecurityVerdict, FailErrorVerdict])
+    @pytest.mark.parametrize("given", ["FORBIDDEN_ROLE", " padded ", "нет доступа"])
+    def test_a_reason_with_something_in_it_is_kept_as_given(
+        self, verdict_class: type[BaseVerdict], given: str
+    ) -> None:
+        """Only blankness is refused. The text itself is the developer's business."""
+        assert verdict_class(given).reason == given  # type: ignore[call-arg,attr-defined]
+
+    @pytest.mark.parametrize("verdict_class", [FailSecurityVerdict, FailErrorVerdict])
+    def test_the_published_schema_carries_the_same_rule(self, verdict_class: type[BaseVerdict]) -> None:
+        """The client validates against this schema and never runs the constructor, so
+        the rule has to be stated there too. minLength alone would accept "   "."""
+        reason_schema = verdict_class.model_json_schema()["properties"]["reason"]
+
+        assert reason_schema["type"] == "string"
+        assert reason_schema["minLength"] == 1
+        assert reason_schema["pattern"] == r"\S"
+
+    @pytest.mark.parametrize("bad", ["", "   "])
+    def test_nested_validation_refuses_a_blank_reason_as_a_validation_error(self, bad: str) -> None:
+        """A verdict read back inside a bigger payload, which is how a client gets one.
+        InvalidVerdictReasonError is a ValueError, so pydantic reports it as an ordinary
+        validation failure rather than letting it escape as an unhandled crash."""
+
+        class Envelope(BaseModel):
+            verdict: FailSecurityVerdict
+
+        with pytest.raises(ValidationError):
+            Envelope.model_validate({"verdict": {"kind": "FailSecurityVerdict", "reason": bad}})
+
+
 class TestFailSecurityVerdict:
     """A real access-control denial -- reason mandatory and non-empty."""
 
@@ -159,10 +220,6 @@ class TestFailSecurityVerdict:
         verdict = FailSecurityVerdict("FORBIDDEN_ROLE")
         assert verdict.kind == "FailSecurityVerdict"
         assert verdict.reason == "FORBIDDEN_ROLE"
-
-    def test_empty_reason_raises(self) -> None:
-        with pytest.raises(ValidationError):
-            FailSecurityVerdict("")
 
     def test_dumped_shape(self) -> None:
         assert FailSecurityVerdict("not your order").model_dump() == {
@@ -201,10 +258,6 @@ class TestFailErrorVerdict:
         verdict = FailErrorVerdict("UNKNOWN_ENDPOINT")
         assert verdict.kind == "FailErrorVerdict"
         assert verdict.reason == "UNKNOWN_ENDPOINT"
-
-    def test_empty_reason_raises(self) -> None:
-        with pytest.raises(ValidationError):
-            FailErrorVerdict("")
 
     def test_dumped_shape(self) -> None:
         assert FailErrorVerdict("KeyError").model_dump() == {"kind": "FailErrorVerdict", "reason": "KeyError"}

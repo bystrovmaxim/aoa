@@ -7,6 +7,7 @@ from typing import Any
 
 from pydantic import Field
 
+from aoa.action_machine.exceptions.invalid_verdict_reason_error import InvalidVerdictReasonError
 from aoa.action_machine.intents.access_control.base_verdict import BaseVerdict
 
 
@@ -33,7 +34,12 @@ class FailErrorVerdict(BaseVerdict):
     that is not ``AllowedVerdict`` stops it.
     """
 
-    reason: str = Field(min_length=1)
+    # Same rule as kind, and stated in the same two places: the constraints reach the
+    # client through the published schema, the constructor produces a message that
+    # names the class and the value. min_length alone would accept a run of spaces.
+    reason: str = Field(min_length=1, pattern=r"\S")
 
     def __init__(self, reason: str, kind: str = "FailErrorVerdict", **kwargs: Any) -> None:
+        if not isinstance(reason, str) or not reason.strip():
+            raise InvalidVerdictReasonError(self.__class__.__name__, reason)
         super().__init__(kind=kind, reason=reason, **kwargs)

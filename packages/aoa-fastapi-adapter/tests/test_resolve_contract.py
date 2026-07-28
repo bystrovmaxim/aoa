@@ -89,15 +89,16 @@ def test_valid_fixture_parses_and_round_trips_without_loss(fixture: Path) -> Non
 # halves of the contract stayed green, because *something* was still rejected. The
 # fixture then no longer tests what its name claims, and nothing says so.
 #
-# Type AND location together, because type alone does not separate them: "no reason
-# at all" and "unrecognized kind" both surface as value_error, differing only in
-# whether the failure is attributed to the whole list or to element 0.
-EXPECTED_REJECTION: dict[str, tuple[str, list[object]]] = {
-    "resolve_response_invalid_missing_reason": ("value_error", ["results"]),
-    "resolve_response_invalid_empty_reason": ("string_too_short", ["results", "reason"]),
-    "resolve_response_invalid_unknown_kind": ("value_error", ["results"]),
-    "resolve_response_invalid_extra_field": ("extra_forbidden", ["results", "cachedUntil"]),
-    "resolve_response_invalid_allowed_with_reason": ("extra_forbidden", ["results", "reason"]),
+# Type, location AND a fragment of the message. The first two do not separate these
+# on their own: "no reason at all", "a blank reason" and "unrecognized kind" all fail
+# inside the same list validator, so all three read as value_error on ["results"].
+# Only the message says which rule was broken.
+EXPECTED_REJECTION: dict[str, tuple[str, list[object], str]] = {
+    "resolve_response_invalid_missing_reason": ("value_error", ["results"], "missing 1 required positional"),
+    "resolve_response_invalid_empty_reason": ("value_error", ["results"], "reason=''"),
+    "resolve_response_invalid_unknown_kind": ("value_error", ["results"], "unknown verdict kind 'MaybeVerdict'"),
+    "resolve_response_invalid_extra_field": ("extra_forbidden", ["results", "cachedUntil"], "Extra inputs"),
+    "resolve_response_invalid_allowed_with_reason": ("extra_forbidden", ["results", "reason"], "Extra inputs"),
 }
 
 
@@ -116,13 +117,14 @@ def test_invalid_fixture_is_rejected_for_the_rule_it_actually_violates(fixture: 
     a fixture whose content drifts away from its filename fails instead of quietly
     passing on some unrelated error.
     """
-    expected_type, expected_loc = EXPECTED_REJECTION[fixture.stem]
+    expected_type, expected_loc, expected_msg = EXPECTED_REJECTION[fixture.stem]
 
     with pytest.raises(ValidationError) as caught:
         ResolveResponse.model_validate_json(fixture.read_text())
 
     first = caught.value.errors()[0]
     assert (first["type"], list(first["loc"])) == (expected_type, expected_loc)
+    assert expected_msg in first["msg"]
 
 
 # ── Per-fixture meaning ───────────────────────────────────────────────────────
