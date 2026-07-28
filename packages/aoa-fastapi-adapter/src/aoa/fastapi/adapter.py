@@ -1249,7 +1249,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                     # which *is* whole-request by design (identity is not established at
                     # all yet at that point, so there is no per-item granularity to keep).
                     unauthorized_operations.add(operation)
-                except Exception:  # pylint: disable=broad-exception-caught
+                except Exception:
                     # prepare() runs app code -- the route's own auth_coordinator and its
                     # connection factories -- so it can fail outright rather than decide.
                     # Only AuthorizationError was caught here, so any other failure left

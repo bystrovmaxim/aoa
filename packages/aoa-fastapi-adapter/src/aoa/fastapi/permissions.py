@@ -244,7 +244,7 @@ async def resolve_verdicts(
                 # Swallowing that into a per-item verdict would discard an explicit
                 # signal from app code, so it propagates untouched.
                 raise
-            except Exception:  # pylint: disable=broad-exception-caught
+            except Exception:
                 # A route's params_mapper is app-supplied code, so it can fail like any
                 # other step. Kept to its own item: one bad mapper must not sink a batch of
                 # twenty. The reason is the fixed code a crashed check gets -- nothing was
