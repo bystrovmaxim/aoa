@@ -185,7 +185,7 @@ class RoleChecker:
             if not active:
                 raise AccessDeniedError(
                     "Authentication required: user must have at least one role",
-                    level=AccessGate.ROLE,
+                    refused_by=AccessGate.CHECK_ROLES,
                     verdict=_FORBIDDEN_ROLE_VERDICT,
                 )
 
@@ -195,7 +195,7 @@ class RoleChecker:
             name = "GuestRole" if role_spec is GuestRole else "AnyRole"
             raise AccessDeniedError(
                 f"Access denied. {name} grant's when= condition was not met.",
-                level=AccessGate.CONDITION,
+                refused_by=AccessGate.WHEN_OR_GUARD,
                 verdict=edge.properties.get("when_reason") or _FORBIDDEN_GRANT_VERDICT,
             )
         _enforce_guard(
@@ -234,11 +234,11 @@ class RoleChecker:
 def _enforce_guard(
     user: Any, params: Any, guard: Callable[..., bool] | None, guard_reason: FailSecurityVerdict | None
 ) -> None:
-    """Raise ``AccessDeniedError(level=AccessGate.CONDITION)`` if ``guard`` is set and returns falsy."""
+    """Raise ``AccessDeniedError(refused_by=AccessGate.WHEN_OR_GUARD)`` if ``guard`` is set and returns falsy."""
     if guard is not None and not guard(user, params):
         raise AccessDeniedError(
             "Access denied. guard= condition was not met.",
-            level=AccessGate.CONDITION,
+            refused_by=AccessGate.WHEN_OR_GUARD,
             verdict=guard_reason or _FORBIDDEN_GUARD_VERDICT,
         )
 
@@ -283,23 +283,23 @@ def _denial_error(
             return AccessDeniedError(
                 f"Access denied. Required one of the roles: {names}, matched but a "
                 f"condition rejected the request; user roles: {user_names}",
-                level=AccessGate.CONDITION,
+                refused_by=AccessGate.WHEN_OR_GUARD,
                 verdict=verdict,
             )
         return AccessDeniedError(
             f"Access denied. Required one of the roles: {names}, " f"user roles: {user_names}",
-            level=AccessGate.ROLE,
+            refused_by=AccessGate.CHECK_ROLES,
             verdict=verdict,
         )
     if role_matched:
         return AccessDeniedError(
             f"Access denied. Required role: '{role_spec.name}', matched but a "
             f"condition rejected the request; user roles: {user_names}",
-            level=AccessGate.CONDITION,
+            refused_by=AccessGate.WHEN_OR_GUARD,
             verdict=verdict,
         )
     return AccessDeniedError(
         f"Access denied. Required role: '{role_spec.name}', " f"user roles: {user_names}",
-        level=AccessGate.ROLE,
+        refused_by=AccessGate.CHECK_ROLES,
         verdict=verdict,
     )

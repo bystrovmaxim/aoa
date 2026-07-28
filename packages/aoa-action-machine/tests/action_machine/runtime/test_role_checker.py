@@ -15,7 +15,7 @@ from aoa.action_machine.auth.application_role import ApplicationRole
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AccessDeniedError
+from aoa.action_machine.exceptions import AccessDeniedError, AccessGate
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.edges.role_graph_edge import RoleGraphEdge
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
@@ -285,7 +285,7 @@ def test_denied_without_any_role_match_sets_level_1(coordinator_module) -> None:
     ctx = Context(user=UserInfo(user_id="u1", roles=(UserRole,)))
     with pytest.raises(AccessDeniedError) as excinfo:
         checker.check(ctx, _action_node(coordinator_module, GrantGuardProbeAction), GrantGuardProbeAction.Params())
-    assert excinfo.value.level == 1
+    assert excinfo.value.refused_by is AccessGate.CHECK_ROLES
     assert excinfo.value.reason == "FORBIDDEN_ROLE"
     # baseverdict-audit finding 8, third document: same fixed instance, not rebuilt.
     assert excinfo.value.verdict is _FORBIDDEN_ROLE_VERDICT
@@ -304,7 +304,7 @@ def test_grant_when_false_falls_through_to_level_2(coordinator_module) -> None:
     ctx = Context(user=UserInfo(user_id="not_sales", roles=(ManagerRole,)))
     with pytest.raises(AccessDeniedError) as excinfo:
         checker.check(ctx, _action_node(coordinator_module, GrantGuardProbeAction), GrantGuardProbeAction.Params())
-    assert excinfo.value.level == 2
+    assert excinfo.value.refused_by is AccessGate.WHEN_OR_GUARD
     assert excinfo.value.reason == "not the sales agent"
 
 
@@ -325,7 +325,7 @@ def test_guard_false_denies_with_level_2(coordinator_module) -> None:
             _action_node(coordinator_module, GrantGuardProbeAction),
             GrantGuardProbeAction.Params(order_id="ARCHIVED-1"),
         )
-    assert excinfo.value.level == 2
+    assert excinfo.value.refused_by is AccessGate.WHEN_OR_GUARD
     assert excinfo.value.reason == "order archived"
 
 
@@ -368,7 +368,7 @@ def test_guest_role_grant_when_false_denies_with_level_2(coordinator_module) -> 
     checker = RoleChecker()
     with pytest.raises(AccessDeniedError) as excinfo:
         checker.check(Context(), _action_node(coordinator_module, GuestWhenProbeAction))
-    assert excinfo.value.level == 2
+    assert excinfo.value.refused_by is AccessGate.WHEN_OR_GUARD
     assert excinfo.value.reason == "guest when rejected"
 
 
@@ -399,5 +399,5 @@ def test_any_role_grant_when_false_denies_with_level_2(coordinator_module) -> No
     ctx = Context(user=UserInfo(user_id="u", roles=(UserRole,)))
     with pytest.raises(AccessDeniedError) as excinfo:
         checker.check(ctx, _action_node(coordinator_module, AnyWhenProbeAction))
-    assert excinfo.value.level == 2
+    assert excinfo.value.refused_by is AccessGate.WHEN_OR_GUARD
     assert excinfo.value.reason == "any-role when rejected"

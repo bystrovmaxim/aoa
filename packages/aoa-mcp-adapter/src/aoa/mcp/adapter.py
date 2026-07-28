@@ -410,7 +410,7 @@ async def _execute_tool_call(
     if context is None:
         raise AccessDeniedError(
                 "Authentication required",
-                level=AccessGate.IDENTITY,
+                refused_by=AccessGate.AUTH_COORDINATOR,
                 verdict=FailSecurityVerdict("UNAUTHENTICATED"),
             )
 

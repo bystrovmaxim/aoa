@@ -3,33 +3,36 @@
 
 from __future__ import annotations
 
-from enum import IntEnum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 
-class AccessGate(IntEnum):
+class AccessGate(StrEnum):
     """Which check refused a call.
 
-    They run in this order, and the first one to say no stops the call there.
-
-    The number, not the name, is what a transport publishes, so a client reading a
-    denial reads the number. In code, use the name.
+    Each value names the thing a developer actually wrote, so a refusal says where to go
+    and look. Listed in the order they run: the first to say no stops the call, and the
+    ones after it never see it.
     """
 
-    IDENTITY = 0
-    """Nobody could tell who the caller is. Nothing further was even attempted."""
+    AUTH_COORDINATOR = "AUTH_COORDINATOR"
+    """The ``auth_coordinator`` could not tell who is calling. This runs before any
+    question of permissions, so nothing after it was even attempted."""
 
-    ROLE = 1
-    """The caller has none of the roles the action requires."""
+    CHECK_ROLES = "CHECK_ROLES"
+    """``@check_roles`` on the action: the caller is known, and has none of the roles it
+    lists."""
 
-    CONDITION = 2
-    """The caller has a role, but a condition attached to it turned the call down."""
+    WHEN_OR_GUARD = "WHEN_OR_GUARD"
+    """A condition the developer attached alongside the role turned the call down --
+    either ``grant(when=...)`` on one role, or ``guard=`` on the action as a whole."""
 
-    OBJECT = 3
-    """The action looked at the object in question and said no."""
+    ACCESS_DECIDE = "ACCESS_DECIDE"
+    """``access_decide()`` on the action. Roles and conditions all passed; this looked at
+    the particular object being touched -- whose order it is, say -- and said no."""
 
 
 class AccessDeniedError(Exception):
@@ -40,14 +43,14 @@ class AccessDeniedError(Exception):
     why, is not a refusal anybody can act on -- it is indistinguishable from a crash.
 
     * ``message`` is the sentence a person reads.
-    * ``level`` is the :class:`AccessGate` that said no.
+    * ``refused_by`` is the :class:`AccessGate` that said no.
     * ``verdict`` carries the reason as a code a program can match on.
 
     A message and a reason are not interchangeable: one is for a reader, the other for
     a caller deciding what to do next. Both are always present.
     """
 
-    def __init__(self, message: str, *, level: AccessGate, verdict: FailSecurityVerdict) -> None:
+    def __init__(self, message: str, *, refused_by: AccessGate, verdict: FailSecurityVerdict) -> None:
         from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
         if not isinstance(message, str) or not message.strip():
@@ -55,12 +58,10 @@ class AccessDeniedError(Exception):
                 f"AccessDeniedError: message= is the text shown when this is raised, so it has "
                 f"to be a string with something in it. Got {message!r}."
             )
-        # Checking the type as well as the value: anything merely EQUAL to a gate number
-        # passes a membership test on its own, and True and 1.0 both are.
-        if type(level) not in (int, AccessGate) or level not in tuple(AccessGate):
+        if not isinstance(refused_by, AccessGate):
             raise ValueError(
-                f"AccessDeniedError: level= names which check refused and must be an AccessGate "
-                f"({', '.join(g.name for g in AccessGate)}). Got {level!r}."
+                f"AccessDeniedError: refused_by= names which check said no and must be an AccessGate "
+                f"({', '.join(AccessGate)}). Got {refused_by!r}."
             )
         if not isinstance(verdict, FailSecurityVerdict):
             raise TypeError(
@@ -68,7 +69,7 @@ class AccessDeniedError(Exception):
                 f"instance, got {type(verdict).__name__}."
             )
         super().__init__(message)
-        self.level = AccessGate(level)
+        self.refused_by = refused_by
         self.verdict = verdict
 
     @property

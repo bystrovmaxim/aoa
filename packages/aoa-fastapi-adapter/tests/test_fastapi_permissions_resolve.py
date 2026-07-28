@@ -538,7 +538,7 @@ class TestParamsMapperIsolation:
 
         def denying_mapper(body: object) -> object:
             raise AccessDeniedError(
-                "wrong tenant", level=AccessGate.OBJECT, verdict=FailSecurityVerdict("FORBIDDEN_TENANT")
+                "wrong tenant", refused_by=AccessGate.ACCESS_DECIDE, verdict=FailSecurityVerdict("FORBIDDEN_TENANT")
             )
 
         adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=denying_mapper)
@@ -564,7 +564,7 @@ class TestParamsMapperIsolation:
         def bare_denying_mapper(body: object) -> object:
             raise AccessDeniedError(
                 "tenant lookup failed for bob@corp.com",
-                level=AccessGate.OBJECT,
+                refused_by=AccessGate.ACCESS_DECIDE,
                 verdict=FailSecurityVerdict("FORBIDDEN_OBJECT"),
             )
 
@@ -737,7 +737,7 @@ class TestPreparationIsolation:
         handler sitting next to it."""
         rejecting_auth = AsyncMock()
         rejecting_auth.process.side_effect = AccessDeniedError(
-            "Authentication required", level=AccessGate.IDENTITY, verdict=FailSecurityVerdict("UNAUTHENTICATED")
+            "Authentication required", refused_by=AccessGate.AUTH_COORDINATOR, verdict=FailSecurityVerdict("UNAUTHENTICATED")
         )
         response = self._client(auth_coordinator=rejecting_auth).post("/permissions/resolve", json=self._BATCH)
 

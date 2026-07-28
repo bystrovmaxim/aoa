@@ -7,7 +7,7 @@ from pydantic import Field
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AccessDeniedError
+from aoa.action_machine.exceptions import AccessDeniedError, AccessGate
 from aoa.action_machine.intents.access_control import AllowedVerdict, BaseVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -69,7 +69,7 @@ async def test_access_decide_false_raises_before_any_aspect(machine: ActionProdu
     _summary_calls["n"] = 0
     with pytest.raises(AccessDeniedError) as excinfo:
         await machine.run(_admin_context(), DenyAllAccessDecideAction(), DenyAllAccessDecideAction.Params())
-    assert excinfo.value.level == 3
+    assert excinfo.value.refused_by is AccessGate.ACCESS_DECIDE
     assert excinfo.value.verdict == FailSecurityVerdict("denied unconditionally")
     assert _summary_calls["n"] == 0
 
@@ -80,7 +80,7 @@ async def test_role_check_still_denies_before_access_decide(machine: ActionProdu
     _summary_calls["n"] = 0
     with pytest.raises(AccessDeniedError) as excinfo:
         await machine.run(Context(), DenyAllAccessDecideAction(), DenyAllAccessDecideAction.Params())
-    assert excinfo.value.level == 1
+    assert excinfo.value.refused_by is AccessGate.CHECK_ROLES
     assert _summary_calls["n"] == 0
 
 

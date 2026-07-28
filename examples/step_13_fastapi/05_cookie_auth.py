@@ -118,7 +118,7 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         if record is None or record[0] != params.password:
             raise AccessDeniedError(
                 "Invalid username or password",
-                level=AccessGate.IDENTITY,
+                refused_by=AccessGate.AUTH_COORDINATOR,
                 verdict=FailSecurityVerdict("INVALID_CREDENTIALS"),
             )
         _password, role_names = record

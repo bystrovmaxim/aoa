@@ -7,7 +7,7 @@ import pytest
 
 from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AccessDeniedError
+from aoa.action_machine.exceptions import AccessDeniedError, AccessGate
 from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.demo.fastapi_mcp_services.actions.cancel_order import CancelOrderAction, CustomerRole
@@ -35,7 +35,7 @@ async def test_own_order_cancel_succeeds(machine: ActionProductMachine) -> None:
 async def test_foreign_order_raises_access_denied_error_level_3(machine: ActionProductMachine) -> None:
     with pytest.raises(AccessDeniedError) as exc_info:
         await machine.run(_customer_context("bob"), CancelOrderAction(), _own_order_params())
-    assert exc_info.value.level == 3
+    assert exc_info.value.refused_by is AccessGate.ACCESS_DECIDE
     # Generic deny (oracle safety): a foreign order answers with the same
     # FORBIDDEN_OBJECT reason as a missing one -- see the test below.
     assert exc_info.value.reason == "FORBIDDEN_OBJECT"
@@ -45,14 +45,14 @@ async def test_locked_order_denied_by_guard_level_2(machine: ActionProductMachin
     params = CancelOrderAction.Params(order_id="LOCKED-1")
     with pytest.raises(AccessDeniedError) as exc_info:
         await machine.run(_customer_context("alice"), CancelOrderAction(), params)
-    assert exc_info.value.level == 2
+    assert exc_info.value.refused_by is AccessGate.WHEN_OR_GUARD
     assert exc_info.value.reason == "order is locked"
 
 
 async def test_anonymous_caller_denied_level_1(machine: ActionProductMachine) -> None:
     with pytest.raises(AccessDeniedError) as exc_info:
         await machine.run(Context(), CancelOrderAction(), _own_order_params())
-    assert exc_info.value.level == 1
+    assert exc_info.value.refused_by is AccessGate.CHECK_ROLES
     assert exc_info.value.reason == "FORBIDDEN_ROLE"
 
 

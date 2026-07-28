@@ -93,7 +93,7 @@ class EndpointExecutionPlan:
         if context is None:
             raise AccessDeniedError(
                 "Authentication required",
-                level=AccessGate.IDENTITY,
+                refused_by=AccessGate.AUTH_COORDINATOR,
                 verdict=FailSecurityVerdict("UNAUTHENTICATED"),
             )
         connections = resolve_connections(self.record.connections)

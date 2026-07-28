@@ -254,7 +254,7 @@ class TestExceptionHandlers:
         adapter, _ = _make_app(
             run_side_effect=AccessDeniedError(
                 "access denied",
-                level=AccessGate.ROLE,
+                refused_by=AccessGate.CHECK_ROLES,
                 verdict=FailSecurityVerdict("FORBIDDEN_ROLE"),
             ),
         )
@@ -284,7 +284,7 @@ class TestExceptionHandlers:
             adapter, _ = _make_app(
                 run_side_effect=AccessDeniedError(
                     f"order {order_id} not found in orders_db (owner bob@corp.com)",
-                    level=AccessGate.OBJECT,
+                    refused_by=AccessGate.ACCESS_DECIDE,
                     verdict=FailSecurityVerdict("FORBIDDEN_OBJECT"),
                 ),
             )
@@ -303,13 +303,13 @@ class TestExceptionHandlers:
 
         assert bodies[0] == bodies[1]
 
-    def test_access_denied_error_surfaces_reason_and_level(self) -> None:
+    def test_a_refusal_body_names_the_reason_and_the_check_that_said_no(self) -> None:
         """A real .call() denial (not just a resolver .can() prediction) must carry the
         developer-declared reason= -- audit finding 2: it used to be dropped by str(exc)."""
         # Arrange
         adapter, _ = _make_app(
             run_side_effect=AccessDeniedError(
-                "Access denied. guard= condition was not met.", level=2, verdict=FailSecurityVerdict("order is locked")
+                "Access denied. guard= condition was not met.", refused_by=AccessGate.WHEN_OR_GUARD, verdict=FailSecurityVerdict("order is locked")
             ),
         )
         adapter.post("/ping", PingAction)
@@ -323,7 +323,7 @@ class TestExceptionHandlers:
         assert response.status_code == 403
         body = response.json()
         assert body["reason"] == "order is locked"
-        assert body["level"] == 2
+        assert body["refused_by"] == "WHEN_OR_GUARD"
         # `detail` carries the declared reason, not the exception's message: the message
         # here mentions `guard=`, an internal cascade detail (narrow-audit finding 1).
         assert body["detail"] == "order is locked"
@@ -336,7 +336,7 @@ class TestExceptionHandlers:
         adapter, _ = _make_app(
             run_side_effect=AccessDeniedError(
                 "Authentication required",
-                level=AccessGate.IDENTITY,
+                refused_by=AccessGate.AUTH_COORDINATOR,
                 verdict=FailSecurityVerdict("UNAUTHENTICATED"),
             ),
         )
@@ -351,7 +351,7 @@ class TestExceptionHandlers:
         assert response.status_code == 403
         body = response.json()
         assert body["reason"] == "UNAUTHENTICATED"
-        assert body["level"] == AccessGate.IDENTITY
+        assert body["refused_by"] == AccessGate.AUTH_COORDINATOR
 
     def test_validation_error_returns_422(self) -> None:
         """``ValidationFieldError`` from ``machine.run`` becomes HTTP 422."""

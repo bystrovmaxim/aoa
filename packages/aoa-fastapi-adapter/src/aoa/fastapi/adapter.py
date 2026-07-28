@@ -1119,7 +1119,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             # the guarantee holds right up until somebody presses the button.
             return JSONResponse(
                 status_code=403,
-                content={"detail": exc.reason, "reason": exc.reason, "level": exc.level},
+                content={"detail": exc.reason, "reason": exc.reason, "refused_by": exc.refused_by},
             )
 
         @app.exception_handler(ValidationFieldError)
@@ -1228,7 +1228,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             if context is None:
                 raise AccessDeniedError(
                 "Authentication required",
-                level=AccessGate.IDENTITY,
+                refused_by=AccessGate.AUTH_COORDINATOR,
                 verdict=FailSecurityVerdict("UNAUTHENTICATED"),
             )
 
@@ -1301,7 +1301,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             if context is None:
                 raise AccessDeniedError(
                 "Authentication required",
-                level=AccessGate.IDENTITY,
+                refused_by=AccessGate.AUTH_COORDINATOR,
                 verdict=FailSecurityVerdict("UNAUTHENTICATED"),
             )
             if _if_none_match_hits(request.headers.get("if-none-match"), manifest_etag):
@@ -1320,7 +1320,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             if context is None:
                 raise AccessDeniedError(
                 "Authentication required",
-                level=AccessGate.IDENTITY,
+                refused_by=AccessGate.AUTH_COORDINATOR,
                 verdict=FailSecurityVerdict("UNAUTHENTICATED"),
             )
             # Freshly derived from this call's identity, never stored — see

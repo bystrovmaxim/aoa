@@ -456,7 +456,7 @@ class TestHandlerErrors:
         machine = _make_machine()
         machine.run = AsyncMock(
             side_effect=AccessDeniedError(
-                "no access", level=AccessGate.ROLE, verdict=FailSecurityVerdict("FORBIDDEN_ROLE")
+                "no access", refused_by=AccessGate.CHECK_ROLES, verdict=FailSecurityVerdict("FORBIDDEN_ROLE")
             )
         )
         record = _make_record()
@@ -483,7 +483,7 @@ class TestHandlerErrors:
         agent-facing caller sees -- the useful half of finding 7's fix."""
         machine = _make_machine()
         machine.run = AsyncMock(
-            side_effect=AccessDeniedError("Access denied. guard= condition was not met.", level=2, verdict=FailSecurityVerdict("order is locked"))
+            side_effect=AccessDeniedError("Access denied. guard= condition was not met.", refused_by=AccessGate.WHEN_OR_GUARD, verdict=FailSecurityVerdict("order is locked"))
         )
         record = _make_record()
 
@@ -506,7 +506,7 @@ class TestHandlerErrors:
             machine.run = AsyncMock(
                 side_effect=AccessDeniedError(
                     f"order {order_id} not found in orders_db (owner bob@corp.com)",
-                    level=AccessGate.OBJECT,
+                    refused_by=AccessGate.ACCESS_DECIDE,
                     verdict=FailSecurityVerdict("FORBIDDEN_OBJECT"),
                 )
             )

@@ -233,7 +233,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return AllowedVerdict()
 ```
 
-By default (on `BaseAction`), `access_decide` returns `AllowedVerdict()` — level 3 adds no restriction beyond role/`guard=` until an action explicitly overrides the method. `access_decide` runs only after role and `guard=` have already passed; a denial here is the same `AccessDeniedError` as at the other gates, just with `level=AccessGate.OBJECT`.
+By default (on `BaseAction`), `access_decide` returns `AllowedVerdict()` — level 3 adds no restriction beyond role/`guard=` until an action explicitly overrides the method. `access_decide` runs only after role and `guard=` have already passed; a denial here is the same `AccessDeniedError` as at the other gates, just with `refused_by=AccessGate.ACCESS_DECIDE`.
 
 Two rules for `access_decide` itself, when it looks at a specific object (not just the caller's role):
 

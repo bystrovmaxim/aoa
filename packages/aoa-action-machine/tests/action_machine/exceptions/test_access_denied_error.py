@@ -11,7 +11,7 @@ from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecuri
 def _denial(**overrides: object) -> AccessDeniedError:
     args: dict[str, object] = {
         "message": "Access denied. Required role: 'Admin'.",
-        "level": AccessGate.ROLE,
+        "refused_by": AccessGate.CHECK_ROLES,
         "verdict": FailSecurityVerdict("FORBIDDEN_ROLE"),
     }
     args.update(overrides)
@@ -22,12 +22,12 @@ def _denial(**overrides: object) -> AccessDeniedError:
 class TestAllThreePartsAreRequired:
     """A refusal that cannot say who refused, or why, is not one anybody can act on."""
 
-    @pytest.mark.parametrize("missing", ["level", "verdict", "both"])
+    @pytest.mark.parametrize("missing", ["refused_by", "verdict", "both"])
     def test_omitting_any_of_them_is_refused(self, missing: str) -> None:
         """Not defaulted to None: leaving one out is a call that cannot be built at all,
         so the mistake surfaces where it is made rather than wherever it is read."""
         kwargs: dict[str, object] = {
-            "level": AccessGate.ROLE,
+            "refused_by": AccessGate.CHECK_ROLES,
             "verdict": FailSecurityVerdict("FORBIDDEN_ROLE"),
         }
         if missing == "both":
@@ -41,7 +41,7 @@ class TestAllThreePartsAreRequired:
     def test_all_three_are_stored_and_readable(self) -> None:
         err = _denial()
         assert str(err) == "Access denied. Required role: 'Admin'."
-        assert err.level is AccessGate.ROLE
+        assert err.refused_by is AccessGate.CHECK_ROLES
         assert err.verdict == FailSecurityVerdict("FORBIDDEN_ROLE")
         assert err.reason == "FORBIDDEN_ROLE"
 
@@ -73,34 +73,31 @@ class TestMessage:
             _denial(message=message)
 
 
-class TestLevel:
+class TestRefusedBy:
     @pytest.mark.parametrize("gate", list(AccessGate))
     def test_every_gate_is_accepted(self, gate: AccessGate) -> None:
-        assert _denial(level=gate).level is gate
+        assert _denial(refused_by=gate).refused_by is gate
 
-    def test_a_plain_number_naming_a_gate_still_works(self) -> None:
-        """The number is what a transport publishes, so it has to be a value the class
-        accepts back."""
-        assert _denial(level=3).level is AccessGate.OBJECT
+    def test_the_value_is_what_goes_out_to_the_caller(self) -> None:
+        """It is a string, so a refusal reads without a table to decode it."""
+        assert _denial(refused_by=AccessGate.ACCESS_DECIDE).refused_by == "ACCESS_DECIDE"
 
     @pytest.mark.parametrize(
-        "level",
+        "refused_by",
         [
-            pytest.param(4, id="past the last gate"),
-            pytest.param(-1, id="negative"),
-            pytest.param(99, id="far out of range"),
-            pytest.param("two", id="a string"),
-            pytest.param(1.0, id="a float equal to a gate"),
-            pytest.param(True, id="a bool equal to a gate"),
+            pytest.param("ACCESS_DECIDE", id="the right text, but a plain string"),
+            pytest.param("no such gate", id="text naming nothing"),
+            pytest.param(3, id="a number"),
+            pytest.param(True, id="a bool"),
             pytest.param(None, id="None"),
         ],
     )
-    def test_anything_that_names_no_gate_is_refused(self, level: object) -> None:
-        """level answers "which check said no", so a value naming none of them answers
-        nothing. True and 1.0 are refused too: both equal 1 in Python and would otherwise
-        be stored as a gate nobody passed."""
-        with pytest.raises(ValueError, match="level="):
-            _denial(level=level)
+    def test_anything_that_is_not_a_gate_is_refused(self, refused_by: object) -> None:
+        """It answers "which check said no", so it has to BE one of them. A bare string
+        that happens to spell one is refused too -- it would leave the caller unable to
+        tell a real answer from a typo somewhere upstream."""
+        with pytest.raises(ValueError, match="refused_by="):
+            _denial(refused_by=refused_by)
 
 
 class TestVerdict:

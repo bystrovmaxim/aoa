@@ -734,7 +734,7 @@ class ActionProductMachine(BaseActionMachine):
         not shared, so changing one does not risk silently changing the other)."""
         log = ScopedLogger(
             coordinator=self._log_coordinator,
-            nest_level=AccessGate.ROLE,
+            nest_level=1,
             action_name=action_node.node_id,
             aspect_name="",
             context=context,
@@ -743,10 +743,10 @@ class ActionProductMachine(BaseActionMachine):
             domain=action_node.domain.target_node.node_obj,
         )
         return ToolsBox(
-            run_child=partial(self._run_internal, context=context, resources=None, nested_level=AccessGate.ROLE, rollup=False),
+            run_child=partial(self._run_internal, context=context, resources=None, nested_level=1, rollup=False),
             resources=None,
             log=log,
-            nested_level=AccessGate.ROLE,
+            nested_level=1,
             rollup=False,
             factory=DependencyFactory(action_node.resolved_dependency_infos()),
         )
@@ -759,7 +759,7 @@ class ActionProductMachine(BaseActionMachine):
         connections: dict[str, BaseResource],
         context: Context,
     ) -> None:
-        """Level 3 of the access-control cascade: raise ``AccessDeniedError(level=AccessGate.OBJECT)`` if
+        """Level 3 of the access-control cascade: raise ``AccessDeniedError(refused_by=AccessGate.ACCESS_DECIDE)`` if
         ``access_decide`` returns a ``FailSecurityVerdict``.
 
         Called from ``_run_internal`` *after* ``emit_global_start`` — deliberately: the
@@ -779,7 +779,7 @@ class ActionProductMachine(BaseActionMachine):
         if isinstance(verdict, FailSecurityVerdict):
             raise AccessDeniedError(
                 f"Access denied: {type(action_instance).__name__}.access_decide() rejected — {verdict.reason}.",
-                level=AccessGate.OBJECT,
+                refused_by=AccessGate.ACCESS_DECIDE,
                 verdict=verdict,
             )
 
