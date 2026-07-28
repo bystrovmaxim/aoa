@@ -6,8 +6,6 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from aoa.action_machine.exceptions.allowed_verdict_as_reason_error import AllowedVerdictAsReasonError
-
 if TYPE_CHECKING:
     from aoa.action_machine.intents.access_control import BaseVerdict
 
@@ -72,8 +70,15 @@ class AccessDeniedError(Exception):
                 f"AccessDeniedError: verdict= carries the reason this call was refused and has to "
                 f"be a verdict. Got {type(verdict).__name__}."
             )
+        # The type is right -- an allow is a verdict -- so this is a contradiction rather
+        # than a wiring mistake, and it matters because the verdict travels: asked "may I?",
+        # the caller is handed this one back, and an allow answers "yes" to a refused call.
         if isinstance(verdict, AllowedVerdict):
-            raise AllowedVerdictAsReasonError(type(verdict).__name__)
+            raise ValueError(
+                f"AccessDeniedError: verdict= is the reason this call was refused, so it cannot be "
+                f"{type(verdict).__name__}, which says the opposite. Whoever asks would be told "
+                f"the call is permitted."
+            )
         super().__init__(message)
         self.refused_by = refused_by
         self.verdict = verdict
