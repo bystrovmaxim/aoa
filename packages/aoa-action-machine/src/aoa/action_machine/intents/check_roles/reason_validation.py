@@ -20,24 +20,15 @@ def require_reason_alongside(
     default_reason: str,
 ) -> FailSecurityVerdict | None:
     """
-    Enforce ``reason=``'s type and its pairing with its condition (``when=``/``guard=``), and default it.
+    Pair ``reason=`` with its condition (``when=``/``guard=``), and supply one when missing.
 
-    ``reason=`` must actually be a ``FailSecurityVerdict`` (subclasses included) when given —
-    the parameter is typed that way, but Python does not enforce annotations at runtime, and
-    ``reason`` was a plain ``str`` before the ``BaseVerdict`` redesign, so a caller migrating
-    old code (or simply not running mypy over the call site) can otherwise pass an ordinary
-    string through unnoticed. That string then reaches ``AuthorizationError.verdict`` and
-    crashes the first time something reads ``.verdict.reason`` off it — in production, at the
-    exact moment a real denial needs to explain itself (baseverdict-audit finding 3, third
-    document).
+    A condition with no reason gets a generic framework-owned one, so a developer who has
+    nothing specific to say is not forced to invent something. A reason with no condition
+    is refused: nothing can reject, so there is nothing to explain.
 
-    ``reason=`` without the condition is meaningless — nothing can reject, so there is
-    nothing to explain. The condition without ``reason=`` defaults to a framework-owned
-    ``FailSecurityVerdict(default_reason)``, so a developer who doesn't care to write a
-    specific reason gets a generic one instead of being forced to invent one (fix-audit
-    finding 15, second document: this was the same check, written twice, once for
-    ``grant()``'s ``when=`` and once for ``check_roles()``'s ``guard=``, differing only
-    in these names and the default string).
+    The type is checked here rather than left to the annotation, because Python does not
+    enforce annotations and a plain string would pass silently. It would then surface much
+    later, at the moment a real denial tries to read its own reason.
 
     Raises:
         TypeError: ``reason`` was given but is not a ``FailSecurityVerdict``.
