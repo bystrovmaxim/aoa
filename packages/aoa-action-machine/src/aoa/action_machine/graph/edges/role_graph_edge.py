@@ -56,8 +56,6 @@ from aoa.action_machine.intents.check_roles.check_roles_intent_resolver import C
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 if TYPE_CHECKING:
-    # Deferred: same transitive-cycle reason as check_roles_intent_resolver.py.
-    # Only ever used as a type annotation below, never constructed here.
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 

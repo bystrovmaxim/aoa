@@ -11,8 +11,6 @@ from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.intents.check_roles.reason_validation import require_reason_alongside
 
 if TYPE_CHECKING:
-    # Deferred: access_control pulls in most of the package, and that chain leads back
-    # here, so importing it at the top raises ImportError.
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 

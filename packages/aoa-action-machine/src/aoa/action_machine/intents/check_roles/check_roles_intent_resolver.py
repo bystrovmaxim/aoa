@@ -13,8 +13,6 @@ from aoa.action_machine.intents.check_roles.grant import Grant
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 if TYPE_CHECKING:
-    # Deferred: access_control pulls in most of the package, and that chain leads back
-    # here, so importing it at the top raises ImportError.
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 
