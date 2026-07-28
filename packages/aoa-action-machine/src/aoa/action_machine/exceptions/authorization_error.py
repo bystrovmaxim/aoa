@@ -6,16 +6,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    # Deferred: access_control transitively imports nearly the whole package (model,
-    # context, auth) via model.base_schema -- and this module is itself imported from
-    # deep inside that same chain (auth.base_role -> exceptions.naming_suffix_error ->
-    # exceptions/__init__.py -> here), so a top-level import would cycle. Confirmed
-    # empirically (baseverdict-audit finding 8, third document's methodology, applied
-    # here too): importing access_control, or auth.base_role, before this module
-    # reproducibly raises ImportError -- unlike role_checker.py's now-stale version of
-    # this same comment, this one is still accurate. `verdict` is only ever
-    # stored/read, never constructed here, so the runtime isinstance check below
-    # imports locally instead.
+    # Deferred: access_control pulls in most of the package, and that chain leads back
+    # here, so importing it at the top raises ImportError.
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 
@@ -23,19 +15,12 @@ class AuthorizationError(Exception):
     """
     Authorization failure (insufficient role permissions).
 
-    ``level`` is optional and set by the raiser: ``1`` (no role matched at all),
-    ``2`` (a role matched but its grant's ``when=`` or the action's ``guard=``
-    rejected the request), ``3`` (``access_decide`` rejected), or ``None`` when
-    not specified (e.g. authentication failures raised outside ``RoleChecker``).
+    ``level`` says which of the three gates said no: ``1`` no role matched, ``2`` a role
+    matched but a condition rejected the call, ``3`` ``access_decide`` rejected it.
+    ``None`` when the refusal came from outside those gates.
 
-    ``verdict`` is the ``FailSecurityVerdict`` this failure carries — set by
-    ``RoleChecker`` for level 1/2 (``FailSecurityVerdict("FORBIDDEN_ROLE")``, or the
-    ``when=``/``guard=`` grant's own reason), or by whatever raises this on
-    ``access_decide``'s behalf for level 3. ``None`` for authorization failures raised
-    outside the role cascade entirely (e.g. a route's own ``auth_coordinator``
-    rejecting the caller before there is any role to check — ``aoa-fastapi-adapter``).
-    Callers that need the reason as a bare string (e.g. building an HTTP error body)
-    use the ``reason`` property below rather than reaching into ``verdict`` themselves.
+    ``verdict`` is the refusal itself, and ``None`` for the same case. For the text
+    alone, read ``reason`` below rather than reaching into it.
     """
 
     def __init__(self, message: str, *, level: int | None = None, verdict: FailSecurityVerdict | None = None) -> None:

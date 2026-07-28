@@ -6,12 +6,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    # Deferred: access_control transitively imports nearly the whole package (via
-    # model.base_schema); this module sits inside that same transitive chain (loaded
-    # by intents/check_roles/__init__.py via grant.py/check_roles_decorator.py), so a
-    # top-level import would cycle depending on which module happens to be imported
-    # first. The one runtime construction (the default FailSecurityVerdict below)
-    # imports locally instead.
+    # Deferred: access_control pulls in most of the package, and that chain leads back
+    # here, so importing it at the top raises ImportError.
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 

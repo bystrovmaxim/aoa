@@ -11,11 +11,8 @@ from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.intents.check_roles.reason_validation import require_reason_alongside
 
 if TYPE_CHECKING:
-    # Deferred: access_control transitively imports nearly the whole package (via
-    # model.base_schema); grant.py sits inside that same transitive chain (loaded by
-    # intents/check_roles/__init__.py), so a top-level import would cycle depending
-    # on which module happens to be imported first. Only the type annotations below
-    # need it -- the one runtime construction lives in reason_validation.py now.
+    # Deferred: access_control pulls in most of the package, and that chain leads back
+    # here, so importing it at the top raises ImportError.
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 

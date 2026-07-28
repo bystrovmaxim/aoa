@@ -13,11 +13,8 @@ from aoa.action_machine.intents.check_roles.grant import Grant
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 if TYPE_CHECKING:
-    # Deferred: access_control transitively imports nearly the whole package (via
-    # model.base_schema); this module sits deep inside that same transitive chain
-    # (reachable from base_action.py through auth/graph), so a top-level import
-    # would cycle depending on which module happens to be imported first. Only
-    # ever used as a type annotation / cast target below, never constructed here.
+    # Deferred: access_control pulls in most of the package, and that chain leads back
+    # here, so importing it at the top raises ImportError.
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 
