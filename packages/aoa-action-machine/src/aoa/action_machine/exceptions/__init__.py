@@ -10,7 +10,7 @@ from aoa.action_machine.exceptions.access_condition_async_error import AccessCon
 from aoa.action_machine.exceptions.action_result_declaration_error import ActionResultDeclarationError
 from aoa.action_machine.exceptions.action_result_type_error import ActionResultTypeError
 from aoa.action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.authorization_error import AccessGate, AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from aoa.action_machine.exceptions.connection_not_open_error import ConnectionNotOpenError
@@ -41,6 +41,7 @@ from aoa.action_machine.exceptions.validation_field_error import ValidationField
 __all__ = [
     "AbstractVerdictError",
     "AccessConditionAsyncError",
+    "AccessGate",
     "ActionResultDeclarationError",
     "ActionResultTypeError",
     "AspectPipelineError",

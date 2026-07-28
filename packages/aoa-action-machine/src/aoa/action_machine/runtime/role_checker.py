@@ -76,7 +76,7 @@ from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.authorization_error import AccessGate, AuthorizationError
 from aoa.action_machine.graph.edges.role_graph_edge import RoleGraphEdge
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
@@ -181,7 +181,7 @@ class RoleChecker:
             if not active:
                 raise AuthorizationError(
                     "Authentication required: user must have at least one role",
-                    level=1,
+                    level=AccessGate.ROLE,
                     verdict=_FORBIDDEN_ROLE_VERDICT,
                 )
 
@@ -191,7 +191,7 @@ class RoleChecker:
             name = "GuestRole" if role_spec is GuestRole else "AnyRole"
             raise AuthorizationError(
                 f"Access denied. {name} grant's when= condition was not met.",
-                level=2,
+                level=AccessGate.CONDITION,
                 verdict=edge.properties.get("when_reason"),
             )
         _enforce_guard(
@@ -230,9 +230,9 @@ class RoleChecker:
 def _enforce_guard(
     user: Any, params: Any, guard: Callable[..., bool] | None, guard_reason: FailSecurityVerdict | None
 ) -> None:
-    """Raise ``AuthorizationError(level=2)`` if ``guard`` is set and returns falsy."""
+    """Raise ``AuthorizationError(level=AccessGate.CONDITION)`` if ``guard`` is set and returns falsy."""
     if guard is not None and not guard(user, params):
-        raise AuthorizationError("Access denied. guard= condition was not met.", level=2, verdict=guard_reason)
+        raise AuthorizationError("Access denied. guard= condition was not met.", level=AccessGate.CONDITION, verdict=guard_reason)
 
 
 def _active_user_roles(
@@ -275,23 +275,23 @@ def _denial_error(
             return AuthorizationError(
                 f"Access denied. Required one of the roles: {names}, matched but a "
                 f"condition rejected the request; user roles: {user_names}",
-                level=2,
+                level=AccessGate.CONDITION,
                 verdict=verdict,
             )
         return AuthorizationError(
             f"Access denied. Required one of the roles: {names}, " f"user roles: {user_names}",
-            level=1,
+            level=AccessGate.ROLE,
             verdict=verdict,
         )
     if role_matched:
         return AuthorizationError(
             f"Access denied. Required role: '{role_spec.name}', matched but a "
             f"condition rejected the request; user roles: {user_names}",
-            level=2,
+            level=AccessGate.CONDITION,
             verdict=verdict,
         )
     return AuthorizationError(
         f"Access denied. Required role: '{role_spec.name}', " f"user roles: {user_names}",
-        level=1,
+        level=AccessGate.ROLE,
         verdict=verdict,
     )

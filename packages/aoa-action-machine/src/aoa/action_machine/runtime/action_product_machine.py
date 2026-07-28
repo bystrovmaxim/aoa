@@ -138,7 +138,7 @@ from functools import partial
 from typing import Any, TypeVar, cast, overload
 
 from aoa.action_machine.context.context import Context
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.authorization_error import AccessGate, AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
@@ -734,7 +734,7 @@ class ActionProductMachine(BaseActionMachine):
         not shared, so changing one does not risk silently changing the other)."""
         log = ScopedLogger(
             coordinator=self._log_coordinator,
-            nest_level=1,
+            nest_level=AccessGate.ROLE,
             action_name=action_node.node_id,
             aspect_name="",
             context=context,
@@ -743,10 +743,10 @@ class ActionProductMachine(BaseActionMachine):
             domain=action_node.domain.target_node.node_obj,
         )
         return ToolsBox(
-            run_child=partial(self._run_internal, context=context, resources=None, nested_level=1, rollup=False),
+            run_child=partial(self._run_internal, context=context, resources=None, nested_level=AccessGate.ROLE, rollup=False),
             resources=None,
             log=log,
-            nested_level=1,
+            nested_level=AccessGate.ROLE,
             rollup=False,
             factory=DependencyFactory(action_node.resolved_dependency_infos()),
         )
@@ -759,7 +759,7 @@ class ActionProductMachine(BaseActionMachine):
         connections: dict[str, BaseResource],
         context: Context,
     ) -> None:
-        """Level 3 of the access-control cascade: raise ``AuthorizationError(level=3)`` if
+        """Level 3 of the access-control cascade: raise ``AuthorizationError(level=AccessGate.OBJECT)`` if
         ``access_decide`` returns a ``FailSecurityVerdict``.
 
         Called from ``_run_internal`` *after* ``emit_global_start`` — deliberately: the
@@ -779,7 +779,7 @@ class ActionProductMachine(BaseActionMachine):
         if isinstance(verdict, FailSecurityVerdict):
             raise AuthorizationError(
                 f"Access denied: {type(action_instance).__name__}.access_decide() rejected — {verdict.reason}.",
-                level=3,
+                level=AccessGate.OBJECT,
                 verdict=verdict,
             )
 
