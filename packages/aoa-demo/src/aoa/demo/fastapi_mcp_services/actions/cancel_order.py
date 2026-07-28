@@ -87,13 +87,10 @@ class _OrderRow(NamedTuple):
 # service). Deliberately module-level and not reachable from Params: the caller
 # must not be able to state who owns an order -- see the module docstring.
 #
-# ``MappingProxyType`` rather than a plain dict, so the ``Final`` annotation is
-# true at runtime and not merely a note to the type-checker: without it,
-# ``cancel_order._ORDERS["ORD-1"] = ...`` reassigns an order's owner for the whole
-# process. Unreachable from a request either way, so this is hygiene rather than a
-# hole -- but it is the same point the sibling FORBIDDEN_OBJECT comment already
-# makes about Final, applied here too (narrow-audit finding 9). The rows are
-# ``NamedTuple``, hence already immutable.
+# A read-only mapping rather than a plain dict, so "constant" is true when the program
+# runs and not merely a note to the type checker. Otherwise one assignment reassigns an
+# order's owner for the whole process. Nothing reachable from a request does that, so this
+# is hygiene rather than a hole. The rows themselves are already immutable.
 _ORDERS: Final[Mapping[str, _OrderRow]] = MappingProxyType(
     {
         "ORD-1": _OrderRow(owner_user_id="alice", status="pending"),

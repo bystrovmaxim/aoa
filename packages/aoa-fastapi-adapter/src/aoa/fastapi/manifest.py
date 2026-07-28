@@ -127,10 +127,8 @@ from aoa.fastapi.permissions_schema import (
 )
 from aoa.fastapi.route_record import FastApiRouteRecord
 
-# Version of the manifest's own shape (this module's models) — independent of
-# SUPPORTED_VERSION and of manifest_version's content hash. Bumped to 2 when
-# `schemas` was added (chapter 3.5, task 7). Draft until chapter 3.5's contract
-# settles, same as SUPPORTED_VERSION.
+# Version of the manifest's own shape — not the wire-language version, and not the hash
+# of its contents. Bumped whenever a field is added to or removed from these models.
 _MANIFEST_SCHEMA_VERSION = 2
 
 _JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"

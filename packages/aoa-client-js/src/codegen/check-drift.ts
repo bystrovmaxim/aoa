@@ -1,8 +1,8 @@
 // packages/aoa-client-js/src/codegen/check-drift.ts
 //
-// Compares a committed generated file against a freshly generated one from the live
-// manifest -- for `aoa-codegen --check` (chapter 5, task 5). Not a second generator: this
-// only describes where the ONE generator's two outputs (committed vs. fresh) differ: the
+// Compares the committed generated file against one generated from the server right now.
+// Not a second generator: it only describes where the one generator's two outputs differ --
+// the
 // manifest_version, and which named declaration (interface/type/function/const) is
 // missing, stale, or changed. The `// Source: <url>` header line is deliberately
 // excluded -- --check may legitimately run against a different URL (staging, localhost)

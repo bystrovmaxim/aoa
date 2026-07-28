@@ -108,9 +108,8 @@ __all__ = [
     "ResolveResponse",
 ]
 
-# Wire-language version this server speaks. Draft until chapter 3.5's contract
-# settles, then becomes v1 — see rule 8. Echoed by ResolveResponse.version and
-# published as Manifest.version, so both live sources agree by construction.
+# Wire-language version this server speaks. Read straight into the response and into the
+# published manifest, so the two can never claim different versions.
 SUPPORTED_VERSION = 1
 
 
