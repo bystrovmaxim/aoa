@@ -1,4 +1,4 @@
-<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-25T20:00:44Z (filesystem mtime; draft is gitignored, no git history) · sha256:08e1b7ef0376 -->
+<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-28T15:17:07Z (filesystem mtime; draft is gitignored, no git history) · sha256:912e1e038904 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -233,7 +233,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return AllowedVerdict()
 ```
 
-By default (on `BaseAction`), `access_decide` returns `AllowedVerdict()` — level 3 adds no restriction beyond role/`guard=` until an action explicitly overrides the method. `access_decide` runs only after role and `guard=` have already passed; a denial here is the same `AccessDeniedError` as at levels 1-2, just with `level=3`.
+By default (on `BaseAction`), `access_decide` returns `AllowedVerdict()` — level 3 adds no restriction beyond role/`guard=` until an action explicitly overrides the method. `access_decide` runs only after role and `guard=` have already passed; a denial here is the same `AccessDeniedError` as at the other gates, just with `level=AccessGate.OBJECT`.
 
 Two rules for `access_decide` itself, when it looks at a specific object (not just the caller's role):
 

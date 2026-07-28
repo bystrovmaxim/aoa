@@ -1,4 +1,4 @@
-<!-- translated-from: fastapi_draft.md @ 2026-07-11T15:01:29Z (filesystem mtime; draft is gitignored, no git history) · sha256:a602e2e4e2ef -->
+<!-- translated-from: fastapi_draft.md @ 2026-07-28T15:16:53Z (filesystem mtime; draft is gitignored, no git history) · sha256:7f3703edc8bd -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

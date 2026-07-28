@@ -1,4 +1,4 @@
-<!-- translated-from: step-13-fastapi_draft.md @ 2026-07-11T15:02:03Z (filesystem mtime; draft is gitignored, no git history) · sha256:e9c82664b0dc -->
+<!-- translated-from: step-13-fastapi_draft.md @ 2026-07-28T15:16:53Z (filesystem mtime; draft is gitignored, no git history) · sha256:89fbba0f7991 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

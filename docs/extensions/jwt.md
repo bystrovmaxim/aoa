@@ -1,4 +1,4 @@
-<!-- translated-from: jwt_draft.md @ 2026-07-11T14:10:43Z (filesystem mtime; draft is gitignored, no git history) · sha256:fbf9dce9a47c -->
+<!-- translated-from: jwt_draft.md @ 2026-07-28T15:16:53Z (filesystem mtime; draft is gitignored, no git history) · sha256:bf1832ee70f4 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

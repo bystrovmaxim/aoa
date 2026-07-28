@@ -1,4 +1,4 @@
-<!-- translated-from: authoring-auth-coordinator_draft.md @ 2026-07-11T14:58:38Z (filesystem mtime; draft is gitignored, no git history) · sha256:be6efa8fed5f -->
+<!-- translated-from: authoring-auth-coordinator_draft.md @ 2026-07-28T15:16:53Z (filesystem mtime; draft is gitignored, no git history) · sha256:5af77622573f -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

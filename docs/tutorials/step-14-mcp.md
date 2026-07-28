@@ -1,4 +1,4 @@
-<!-- translated-from: step-14-mcp_draft.md @ 2026-07-11T15:01:41Z (filesystem mtime; draft is gitignored, no git history) · sha256:2c1da3e2be76 -->
+<!-- translated-from: step-14-mcp_draft.md @ 2026-07-28T15:16:53Z (filesystem mtime; draft is gitignored, no git history) · sha256:6e0fa55780c8 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>

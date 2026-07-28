@@ -1,4 +1,4 @@
-<!-- translated-from: intents-and-invariants_draft.md @ 2026-07-25T15:31:55Z (filesystem mtime; draft is gitignored, no git history) · sha256:4dd33e7815ed -->
+<!-- translated-from: intents-and-invariants_draft.md @ 2026-07-28T15:16:53Z (filesystem mtime; draft is gitignored, no git history) · sha256:d0dabdff6ae1 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
