@@ -31,28 +31,32 @@ def test_message_without_verdict_is_fine() -> None:
     assert err.reason is None
 
 
-def test_empty_message_with_a_verdict_is_fine() -> None:
-    """An empty message is fine as long as a verdict is given -- the exception has
-    somewhere to point a reader for a real description of what went wrong."""
-    err = AuthorizationError("", verdict=FailSecurityVerdict("order is locked"))
-    assert str(err) == ""
-    assert err.reason == "order is locked"
+def test_the_message_and_the_verdict_carry_different_things() -> None:
+    """The message is the sentence a person reads; the verdict's reason is the code a
+    program matches on. Both are kept, neither replaces the other."""
+    err = AuthorizationError("this order is locked", verdict=FailSecurityVerdict("ORDER_LOCKED"))
+    assert str(err) == "this order is locked"
+    assert err.reason == "ORDER_LOCKED"
 
 
-def test_empty_message_without_verdict_raises() -> None:
-    """message="" and verdict=None together leave nothing describing the failure --
-    rejected at construction (audit finding 1, third document: this guard was lost
-    as a side effect of the BaseVerdict refactor renaming its own reason= parameter
-    to verdict=, and silently reopened the batch-crashing bug it was written to close)."""
-    with pytest.raises(ValueError, match="cannot both be empty"):
-        AuthorizationError("")
+@pytest.mark.parametrize("message", ["", "   ", "\t\n", None, 123])
+def test_a_message_that_says_nothing_is_refused(message: object) -> None:
+    """message is the text a person sees when this is raised. Blank, the failure arrives
+    describing nothing -- and a reason on the verdict does not help, since that is a code
+    for a program, not a sentence for a reader."""
+    with pytest.raises(ValueError, match="message="):
+        AuthorizationError(message)  # type: ignore[arg-type]
+
+
+def test_a_message_is_required_even_when_a_verdict_is_given() -> None:
+    """The two are not interchangeable, so carrying one does not excuse the other."""
+    with pytest.raises(ValueError, match="message="):
+        AuthorizationError("", verdict=FailSecurityVerdict("FORBIDDEN_ROLE"))
 
 
 def test_verdict_as_plain_string_raises() -> None:
-    """baseverdict-audit finding 2, fourth document: verdict= was only checked for
-    absence (is None), never for type -- a plain string sailed through construction
-    and crashed the first time something read .reason off it, in the shared HTTP
-    403 handler that runs for every real denial."""
+    """A plain string would sail through and crash the first time anything read .reason
+    off it -- in the shared 403 handler that runs for every real denial."""
     with pytest.raises(TypeError, match="FailSecurityVerdict"):
         AuthorizationError("denied", verdict="not a verdict object")  # type: ignore[arg-type]
 
@@ -63,3 +67,18 @@ def test_verdict_as_allowed_verdict_raises() -> None:
     not only values of the wrong type entirely."""
     with pytest.raises(TypeError, match="FailSecurityVerdict"):
         AuthorizationError("denied", verdict=AllowedVerdict())  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("level", [1, 2, 3, None])
+def test_a_level_naming_a_real_gate_is_accepted(level: int | None) -> None:
+    """Three gates decide access, and None means the refusal came from in front of them."""
+    assert AuthorizationError("denied", level=level).level == level
+
+
+@pytest.mark.parametrize("level", [0, 4, 99, -1, "two", 1.0, True])
+def test_a_level_naming_no_gate_is_refused(level: object) -> None:
+    """level answers "which gate said no", so a value naming no gate answers nothing and
+    a caller cannot tell it apart from a real answer. True and 1.0 are refused too: both
+    equal 1 in Python and would be stored as a level that was never passed."""
+    with pytest.raises(ValueError, match="level="):
+        AuthorizationError("denied", level=level)  # type: ignore[arg-type]

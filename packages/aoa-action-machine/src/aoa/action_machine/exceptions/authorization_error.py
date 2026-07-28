@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
@@ -30,20 +30,28 @@ class AuthorizationError(Exception):
     the property already handles.
     """
 
-    def __init__(self, message: str, *, level: int | None = None, verdict: FailSecurityVerdict | None = None) -> None:
-        if not message and verdict is None:
-            raise ValueError(
-                "AuthorizationError: message and verdict cannot both be empty — "
-                "an authorization failure must carry some description of what went wrong."
-            )
-        if verdict is not None:
-            from aoa.action_machine.intents.access_control import FailSecurityVerdict
+    LEVELS: Final = (1, 2, 3)
 
-            if not isinstance(verdict, FailSecurityVerdict):
-                raise TypeError(
-                    f"AuthorizationError: verdict= must be a FailSecurityVerdict instance, "
-                    f"got {type(verdict).__name__}."
-                )
+    def __init__(self, message: str, *, level: int | None = None, verdict: FailSecurityVerdict | None = None) -> None:
+        from aoa.action_machine.intents.access_control import FailSecurityVerdict
+
+        if not isinstance(message, str) or not message.strip():
+            raise ValueError(
+                f"AuthorizationError: message= is the text shown when this is raised, so it has "
+                f"to be a string with something in it. Got {message!r}."
+            )
+        # `type(...) is int` rather than isinstance: True and 1.0 both equal 1 in Python, so
+        # both would pass a membership test and be stored as a level nobody can act on.
+        if level is not None and (type(level) is not int or level not in self.LEVELS):
+            raise ValueError(
+                f"AuthorizationError: level= names which gate refused and must be one of "
+                f"{self.LEVELS}, or None when none of them ran. Got {level!r}."
+            )
+        if verdict is not None and not isinstance(verdict, FailSecurityVerdict):
+            raise TypeError(
+                f"AuthorizationError: verdict= must be a FailSecurityVerdict instance, "
+                f"got {type(verdict).__name__}."
+            )
         super().__init__(message)
         self.level = level
         self.verdict = verdict
