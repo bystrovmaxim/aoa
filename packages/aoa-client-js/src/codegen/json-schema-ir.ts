@@ -1,9 +1,9 @@
 // packages/aoa-client-js/src/codegen/json-schema-ir.ts
 //
-// Parses the bounded JSON Schema subset the server actually emits (plain types, lists,
-// enums, in-document $refs — no recursive types, no custom formats; see chapter 3's
-// "Эталонные схемы") into a small intermediate representation shared by the TS and zod
-// renderers, so both target the same parse instead of each re-deriving it independently.
+// Parses the limited slice of JSON Schema the server actually emits -- plain types,
+// lists, enums, references within the same document; no recursion, no custom formats --
+// into a small shared shape. Both renderers read that shape, so neither has to work out
+// what the schema means on its own, and they cannot quietly disagree about it.
 
 export interface IrProperty {
   name: string;
@@ -30,13 +30,9 @@ export type IrNode =
   | { kind: "boolean" }
   | { kind: "unknownRecord" }
   | { kind: "array"; items: IrNode }
-  // `additionalProperties` is required, not optional, so both renderers have to
-  // consciously decide what to do with it rather than a stale one silently ignoring a
-  // node shape it wasn't updated for (audit finding 16: a schema with both declared
-  // properties AND additionalProperties: true -- e.g. a Python model with extra="allow"
-  // plus its own fields -- used to fall through to plain "object" with no signal that
-  // extra keys are allowed at all, only handled as `unknownRecord` below when there were
-  // no declared properties to begin with).
+  // Not optional on purpose: every renderer must state what it does about extra keys.
+  // Left optional, one that had not been updated would ignore the question and silently
+  // drop keys the schema allows.
   | { kind: "object"; properties: IrProperty[]; additionalProperties: AdditionalProperties }
   | { kind: "enum"; values: string[] }
   | { kind: "nullable"; inner: IrNode }

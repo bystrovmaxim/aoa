@@ -44,10 +44,10 @@ export function renderResolveResponseZodSchema(parsed: ParsedSchema): string {
   return `export const ResolveResponseSchema = ${expr};`;
 }
 
-// `renderingRefs` tracks $defs names currently on the recursion stack -- a real cycle
-// (audit finding 7) means calling into the SAME name again before it's finished
-// rendering, not merely referencing it twice from unrelated branches (a common,
-// legitimate pattern this must not false-positive on). Marked on entry, unmarked on exit
+// `renderingRefs` tracks the names currently being rendered. A real cycle means reaching
+// the SAME name again before it has finished -- not merely referencing it twice from
+// unrelated branches, which is ordinary and must not be mistaken for one. Marked on entry,
+// unmarked on exit
 // (`finally`), matching a standard DFS cycle check: the TS renderer's own accidental
 // protection (json-schema-to-ts.ts's `typeText`) relies on interfaces being able to
 // forward-reference each other by name, which a zod schema -- an eagerly-constructed
@@ -70,11 +70,9 @@ function zodExpr(node: IrNode, defs: Record<string, IrNode>, renderingRefs: Set<
     case "array":
       return `z.array(${zodExpr(node.items, defs, renderingRefs)})`;
     case "nullable":
-      // Nullable is purely about the VALUE ("can this be null"), never about whether the
-      // key itself may be absent -- that's `required`, an orthogonal, property-level
-      // concern handled once in renderZodObject below (audit finding 6). A field that's
-      // both required AND nullable (Python's `Optional[str]` with no default -- the key
-      // must be present, its value may be null) must stay non-optional here.
+      // Nullable is about the VALUE -- may it be null. Whether the key may be missing at
+      // all is a separate question, answered by `required` below. A field can be both:
+      // the key must be there, and its value may be null.
       return `${zodExpr(node.inner, defs, renderingRefs)}.nullable()`;
     case "enum":
       return `z.enum([${node.values.map((value) => JSON.stringify(value)).join(", ")}])`;
@@ -108,18 +106,13 @@ function renderZodObject(
   defs: Record<string, IrNode>,
   renderingRefs: Set<string>,
 ): string {
-  // `.passthrough()` keeps extra keys zod would otherwise silently strip on `.parse()`
-  // (its default behavior) -- a schema with both declared properties AND
-  // additionalProperties: true (e.g. a Python model with extra="allow" plus its own
-  // fields) used to lose that signal entirely (audit finding 16); `properties.length ===
-  // 0` with additionalProperties true never reaches here, since the IR itself resolves
-  // that combination to `unknownRecord` instead (json-schema-ir.ts's parseObjectNode).
+  // `.passthrough()` keeps extra keys, which zod otherwise strips without saying so. A
+  // schema that declares its own properties AND allows extras means both, and both have
+  // to survive. The all-extras-and-nothing-declared case never arrives here; it is
+  // already resolved to a plain record earlier.
   if (properties.length === 0) return "z.object({})";
-  // `required` decides PRESENCE (can the key be missing), independent of the value's own
-  // form -- the same separation json-schema-to-ts.ts already makes via its own `?` (audit
-  // finding 6: this renderer used to ignore `required` entirely, and separately had
-  // `nullable` add `.optional()` unconditionally, which is a presence claim disguised as
-  // a value-shape one).
+  // `required` decides PRESENCE -- may the key be missing -- and nothing about the shape
+  // of the value. Confusing the two makes "may be null" quietly mean "may be absent".
   const fields = properties
     .map((prop) => {
       const expr = zodExpr(prop.schema, defs, renderingRefs);
@@ -130,10 +123,9 @@ function renderZodObject(
   // behavior no input schema asks for and the one that hides a producer/consumer
   // version mismatch instead of reporting it. So neither branch below emits it.
   //
-  // "forbid" is the only refusal. An ABSENT additionalProperties means extras are
-  // allowed in JSON Schema, so it renders exactly like an explicit `true` -- an
-  // earlier version of this renderer folded absent in with false and would have
-  // rejected responses the schema permits (audit finding 12).
+  // "forbid" is the only refusal. In JSON Schema, saying nothing about extra keys means
+  // they are allowed, so an absent setting renders exactly like an explicit yes. Folding
+  // it in with "no" instead would reject responses the schema actually permits.
   const object = `z.object({ ${fields} })`;
   return additionalProperties === "forbid" ? `${object}.strict()` : `${object}.passthrough()`;
 }

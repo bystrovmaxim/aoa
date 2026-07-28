@@ -41,13 +41,10 @@ export function diffGeneratedSource(committed: string, fresh: string): string | 
   }
   if (changed.length > 0) {
     lines.push(`changed (same name, different shape -- schema drift): ${changed.join(", ")}`);
-    // "(endpoint descriptors)" is one combined block for the whole file (audit finding
-    // 2's fix for check-drift.ts's own naming collision only merges blocks that share a
-    // NAME; this one is deliberately one block by construction, api-layout-to-ts.ts's
-    // renderDescriptorConst output joined by a single "\n" -- see its own comment). A
-    // pure route/method rename with no schema change reports only this one opaque name
-    // -- audit finding 15 -- so when it's among the changed blocks, name the specific
-    // descriptor(s) whose own line actually differs, not just the block as a whole.
+    // Every endpoint descriptor lives in one combined block, so renaming a single route
+    // would otherwise be reported as "that whole block changed" and tell the reader
+    // nothing. When this block is among the changed ones, name the individual
+    // descriptors whose own line differs.
     if (changed.includes(DESCRIPTOR_BLOCK_NAME)) {
       const detail = diffDescriptorRoutes(committedDecls.get(DESCRIPTOR_BLOCK_NAME)!, freshDecls.get(DESCRIPTOR_BLOCK_NAME)!);
       if (detail) lines.push(detail);
@@ -106,13 +103,10 @@ function declarationName(block: string, index: number): string {
   // first one found would misreport which endpoint's descriptor actually changed, so
   // this whole block is named as a single unit instead.
   if (DESCRIPTOR_CONST_PATTERN.test(block)) return DESCRIPTOR_BLOCK_NAME;
-  // generate-client.ts's renderImports() always emits the file's first content block
-  // (right after the header) as `import ...`/`export type { ... } from ...` lines --
-  // neither matches DECLARATION_NAME_PATTERN (bare `import` isn't `export`, and
-  // `export type { X } from "..."` isn't `export type NAME =`), so this always fell
-  // through to the generic "(unrecognized block 0)" (audit finding 17). Checked by
-  // content, not position (block 0), so it stays correct even if generateClient's own
-  // section order ever changes -- no other block starts with a bare `import`.
+  // The imports block declares no name of its own, so without this it is reported as an
+  // unrecognised block and the reader has to go and look. Recognised by what it starts
+  // with rather than by its position, so reordering the generated file does not break
+  // it -- nothing else begins with a bare `import`.
   if (block.startsWith("import ")) return IMPORTS_BLOCK_NAME;
   const match = DECLARATION_NAME_PATTERN.exec(block);
   return match ? match[1] : `(unrecognized block ${index})`;

@@ -1,14 +1,11 @@
 // packages/aoa-client-js/src/cache.ts
 //
-// Minimal cache for AoaEngine.resolve() -- built as a prerequisite for the run()
-// precheck's skipCache option (chapter 5.5, issue #157). Chapter 6 (issue #139) owns
-// the full freshness/invalidation design (three-timestamp staleAt/hardExpireAt model,
-// canonical-JSON keys scoped by cache_partition, maxEntries/LRU, onUnavailable, entity
-// tags) and is expected to extend this module rather than replace it. What's here is
-// deliberately narrower: a single fresh/stale cutover, no stale-while-revalidate, no
-// eviction limit, no canonical JSON -- the key below sorts nothing, so two calls with
-// the same params built in a different key order currently miss the cache twice;
-// chapter 6 fixes that.
+// A small cache for answers already received, so the same question is not asked twice.
+//
+// Deliberately narrow: an answer is either fresh or gone, there is no size limit, and
+// nothing is served while a new answer is fetched. The key is not canonicalised either,
+// so the same parameters written in a different order count as a different question and
+// miss. Widening any of this is expected to extend this module, not replace it.
 
 import type { ResolveItem, Verdict } from "./types.ts";
 
@@ -19,14 +16,14 @@ export interface CacheEntry {
   staleAt: number;
 }
 
-// Not canonical JSON: relies on the caller building `params` with the same key order
-// every time. Chapter 6 replaces this with a canonical, cache_partition-scoped key.
+// Relies on the caller building `params` with the same key order every time: the key is
+// the raw JSON text, so a different order is a different key.
 export function cacheKeyFor(cachePartition: string, item: ResolveItem): string {
   return `${cachePartition}::${item.operation}::${JSON.stringify(item.params)}`;
 }
 
-// FailErrorVerdict is never cached -- it's the absence of a decision (see types.ts's
-// own comment on Verdict), not an answer worth remembering.
+// "Could not check" is never cached. It is the absence of a decision, and remembering it
+// would keep answering "no" long after whatever broke was fixed.
 export function isCacheableVerdict(verdict: Verdict): boolean {
   return verdict.kind !== "FailErrorVerdict";
 }
@@ -40,11 +37,9 @@ export class ResolveCache {
     return entry;
   }
 
-  // A slower, out-of-order response must never roll back a fresher one already
-  // recorded here -- e.g. a slow .can() that lands after a fast run() precheck
-  // already wrote a just-revoked FailSecurityVerdict for the same key (audit
-  // finding 2). Only refuse to overwrite something strictly newer; anything
-  // else (no entry yet, or an equal/older fetchedAt) writes through as before.
+  // Answers can arrive out of order, and a slow one must never overwrite a newer answer
+  // already recorded -- that would resurrect a permission that has just been revoked.
+  // Only a strictly newer entry is protected; everything else writes through.
   set(key: string, entry: CacheEntry): void {
     const existing = this.entries.get(key);
     if (existing && existing.fetchedAt > entry.fetchedAt) return;
