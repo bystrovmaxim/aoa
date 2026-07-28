@@ -5,7 +5,12 @@ from __future__ import annotations
 import pytest
 
 from aoa.action_machine.exceptions import AccessDeniedError, AccessGate
-from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
+from aoa.action_machine.intents.access_control import (
+    AllowedVerdict,
+    BaseVerdict,
+    FailErrorVerdict,
+    FailSecurityVerdict,
+)
 
 
 def _denial(**overrides: object) -> AccessDeniedError:
@@ -101,23 +106,47 @@ class TestRefusedBy:
 
 
 class TestVerdict:
-    def test_a_plain_string_is_refused(self) -> None:
-        """It would sail through and crash the first time anything read .reason off it --
-        in the shared denial handler that runs for every refusal."""
-        with pytest.raises(TypeError, match="FailSecurityVerdict"):
-            _denial(verdict="not a verdict object")
+    @pytest.mark.parametrize(
+        "verdict",
+        [
+            pytest.param("not a verdict object", id="a plain string"),
+            pytest.param(None, id="None"),
+            pytest.param(123, id="a number"),
+        ],
+    )
+    def test_anything_that_is_not_a_verdict_is_refused(self, verdict: object) -> None:
+        """It would sail through and crash the first time anything read the reason off it --
+        in the shared handler that runs for every refusal."""
+        with pytest.raises(TypeError, match="verdict="):
+            _denial(verdict=verdict)
 
     def test_an_allow_is_refused(self) -> None:
-        """A real verdict class, just the wrong one. An allow attached to a refusal is a
-        contradiction, and reading it back would report the call as permitted."""
-        with pytest.raises(TypeError, match="FailSecurityVerdict"):
+        """A real verdict, just the one that cannot be a reason for refusing. Reading it
+        back would report the call as permitted."""
+        with pytest.raises(TypeError, match="not an allow"):
             _denial(verdict=AllowedVerdict())
 
-    def test_none_is_refused(self) -> None:
-        """There is no such thing as a refusal that cannot say why. Without a verdict,
-        whatever reads this cannot tell a denial from a crash."""
-        with pytest.raises(TypeError, match="FailSecurityVerdict"):
-            _denial(verdict=None)
+    @pytest.mark.parametrize(
+        "verdict",
+        [
+            pytest.param(FailSecurityVerdict("FORBIDDEN_ROLE"), id="a security refusal"),
+            pytest.param(FailErrorVerdict("DB_UNREACHABLE"), id="a check that could not answer"),
+        ],
+    )
+    def test_any_verdict_but_an_allow_can_be_the_reason(self, verdict: BaseVerdict) -> None:
+        """Refusing a call is not only a security matter. A feature flag that turns
+        something off refuses it just as much as a role that did not match, and this
+        carries whatever reason the caller decided on."""
+        assert _denial(verdict=verdict).verdict is verdict
+
+    def test_a_verdict_that_declares_no_reason_of_its_own_answers_with_its_name(self) -> None:
+        """Nothing obliges a refusal to carry reason text. Its own name says the same
+        thing, and there is always one."""
+
+        class FeatureDisabled(BaseVerdict):
+            kind: str = "FEATURE_DISABLED"
+
+        assert _denial(verdict=FeatureDisabled(kind="FEATURE_DISABLED")).reason == "FEATURE_DISABLED"
 
     def test_a_subclass_carrying_extra_fields_is_accepted(self) -> None:
         """Refusals are free to say more than the reason -- only the base shape is required."""

@@ -7,7 +7,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from aoa.action_machine.intents.access_control import FailSecurityVerdict
+    from aoa.action_machine.intents.access_control import BaseVerdict
 
 
 class AccessGate(StrEnum):
@@ -44,14 +44,16 @@ class AccessDeniedError(Exception):
 
     * ``message`` is the sentence a person reads.
     * ``refused_by`` is the :class:`AccessGate` that said no.
-    * ``verdict`` carries the reason as a code a program can match on.
+    * ``verdict`` carries the reason as a code a program can match on. Any verdict but an
+      allow -- refusing a call is not only a security matter, and a feature flag turning
+      something off is as good a reason as a role that did not match.
 
     A message and a reason are not interchangeable: one is for a reader, the other for
     a caller deciding what to do next. Both are always present.
     """
 
-    def __init__(self, message: str, *, refused_by: AccessGate, verdict: FailSecurityVerdict) -> None:
-        from aoa.action_machine.intents.access_control import FailSecurityVerdict
+    def __init__(self, message: str, *, refused_by: AccessGate, verdict: BaseVerdict) -> None:
+        from aoa.action_machine.intents.access_control import AllowedVerdict, BaseVerdict
 
         if not isinstance(message, str) or not message.strip():
             raise ValueError(
@@ -63,10 +65,10 @@ class AccessDeniedError(Exception):
                 f"AccessDeniedError: refused_by= names which check said no and must be an AccessGate "
                 f"({', '.join(AccessGate)}). Got {refused_by!r}."
             )
-        if not isinstance(verdict, FailSecurityVerdict):
+        if not isinstance(verdict, BaseVerdict) or isinstance(verdict, AllowedVerdict):
             raise TypeError(
-                f"AccessDeniedError: verdict= carries the reason and must be a FailSecurityVerdict "
-                f"instance, got {type(verdict).__name__}."
+                f"AccessDeniedError: verdict= carries the reason this call was refused, so it has "
+                f"to be a verdict, and not an allow. Got {type(verdict).__name__}."
             )
         super().__init__(message)
         self.refused_by = refused_by
@@ -74,5 +76,9 @@ class AccessDeniedError(Exception):
 
     @property
     def reason(self) -> str:
-        """The verdict's reason -- the code a program matches on, not the message."""
-        return self.verdict.reason
+        """The code a program matches on, not the message a person reads.
+
+        A verdict is free to declare no reason text of its own; then its own name answers
+        the same question, and there is always one.
+        """
+        return getattr(self.verdict, "reason", self.verdict.kind)

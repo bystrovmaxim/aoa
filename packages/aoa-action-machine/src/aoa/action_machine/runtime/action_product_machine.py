@@ -251,24 +251,15 @@ def _all_aspect_states_from_saga_stack(
 def _validated_access_decide_verdict(
     action_instance: BaseAction[Any, Any], verdict: FailSecurityVerdict | AllowedVerdict
 ) -> FailSecurityVerdict | AllowedVerdict:
-    """Reject anything ``access_decide()`` returns other than ``AllowedVerdict``/``FailSecurityVerdict``.
+    """Reject anything ``access_decide()`` returns other than an allow or a refusal.
 
-    The base implementation always returns ``AllowedVerdict()`` (see ``BaseAction.access_decide``),
-    so a subclass override that reaches this function with anything else -- ``None`` (a forgotten
-    ``return``), a bare ``bool``, a ``FailErrorVerdict`` -- has a bug, not an ambiguous or partial
-    answer. That is not the same failure as "the check itself broke" (a crash, an unreachable
-    connection -- genuinely unknown, `FailErrorVerdict`'s own job) and must not be folded into
-    either "allowed" or "denied": it is raised here as a plain ``TypeError``, so each caller's own
-    existing exception handling decides what that means for it -- `_enforce_access_decide` lets it
-    propagate and abort the real call, `check_access_decide`'s list form already turns any
-    non-`AccessDeniedError` exception into an isolated `FailErrorVerdict` for that one item.
+    This method answers one question -- may this call proceed -- so those are the only two
+    answers it has. ``None`` from a forgotten ``return``, a bare ``bool``, or a "could not
+    check" are not answers to it, and folding any of them into "allowed" would open the
+    action to everyone.
 
-    The error message names only ``type(verdict).__name__``, never ``verdict`` itself: a broken
-    override could return anything -- a domain object, raw params, something carrying sensitive
-    data -- and unlike the check-only path (which keeps nothing of the exception at all --
-    just the fixed ``EVALUATION_FAILED``), the real ``machine.run()`` path lets this exception propagate uncaught,
-    so its text can reach server logs or, depending on the app's own error handling, an HTTP 500
-    body.
+    The message names only the type, never the value: a broken override could return
+    anything, including something carrying data that must not reach a log.
     """
     if isinstance(verdict, (AllowedVerdict, FailSecurityVerdict)):
         return verdict
@@ -749,8 +740,7 @@ class ActionProductMachine(BaseActionMachine):
         connections: dict[str, BaseResource],
         context: Context,
     ) -> None:
-        """Level 3 of the access-control cascade: raise ``AccessDeniedError(refused_by=AccessGate.ACCESS_DECIDE)`` if
-        ``access_decide`` returns a ``FailSecurityVerdict``.
+        """Raise ``AccessDeniedError`` unless ``access_decide`` allowed the call.
 
         Called from ``_run_internal`` *after* ``emit_global_start`` — deliberately: the
         action's start is still recorded even when ``access_decide`` ultimately denies it,
@@ -766,7 +756,7 @@ class ActionProductMachine(BaseActionMachine):
         verdict = _validated_access_decide_verdict(
             action_instance, await action_instance.access_decide(params, context, box, connections)
         )
-        if isinstance(verdict, FailSecurityVerdict):
+        if not isinstance(verdict, AllowedVerdict):
             raise AccessDeniedError(
                 f"Access denied: {type(action_instance).__name__}.access_decide() rejected — {verdict.reason}.",
                 refused_by=AccessGate.ACCESS_DECIDE,

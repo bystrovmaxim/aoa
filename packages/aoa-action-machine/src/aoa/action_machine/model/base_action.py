@@ -141,7 +141,6 @@ from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 if TYPE_CHECKING:
     from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
-
     from aoa.action_machine.runtime.tools_box import ToolsBox
 
     from aoa.action_machine.context.context import Context
