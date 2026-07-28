@@ -18,19 +18,14 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class Grant:
-    """One role alternative inside ``@check_roles``, with its own optional ``when=`` condition.
+    """One role alternative inside ``@check_roles``: the role, plus an optional condition
+    the caller must also satisfy, plus the reason to give when that condition says no.
 
-    ``reason`` is ``when``'s companion — see :func:`grant`. It travels with
-    ``when`` all the way to :class:`~aoa.action_machine.graph.edges.role_graph_edge.RoleGraphEdge`
-    (``properties["when_reason"]``), which is where :class:`~aoa.action_machine.runtime.role_checker.RoleChecker`
-    reads it back at denial time and passes it straight into the ``AuthorizationError`` it raises.
+    The reason travels with the condition all the way to the moment of refusal, so the
+    denial can explain itself in the developer's own words.
 
-    ``reason=``'s pairing with ``when=`` (type-checked, required together, defaulted
-    when ``when=`` is given alone) is enforced here, in ``__post_init__`` — not only
-    in :func:`grant`'s own body — because ``Grant`` is public and importable on its
-    own; constructing it directly bypasses any validation that lives solely in the
-    factory function (baseverdict-audit finding 1, fourth document). ``grant()``
-    itself is now a thin wrapper that only checks ``role``.
+    Pairing the two is checked here rather than only in :func:`grant`, because ``Grant``
+    can be built directly and would otherwise skip the check entirely.
     """
 
     role: type[BaseRole]
@@ -51,13 +46,6 @@ def grant(
     reason: FailSecurityVerdict | None = None,
 ) -> Grant:
     """Build a ``Grant``: match ``role``, and if ``when`` is given, only when it returns ``True``.
-
-    ``reason=`` without ``when=`` is meaningless — nothing can reject, so there is
-    nothing to explain. ``when=`` without ``reason=`` defaults to
-    ``FailSecurityVerdict("FORBIDDEN_GRANT")`` rather than erroring: a developer who
-    does not care to write a specific reason gets a generic, framework-owned one
-    instead of being forced to invent one. Enforced by ``Grant.__post_init__``, not
-    here — this function only checks ``role``.
 
     Raises:
         TypeError: ``role`` is not a ``BaseRole`` subclass.

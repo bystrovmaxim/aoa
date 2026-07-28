@@ -37,13 +37,10 @@ Small, independent pieces of glue between the wire protocol
   endpoint) — ``real_call_count`` is never serialized onto the wire; the client has
   no business knowing which items were deduplicated internally.
 
-``ResolveOutcome.results`` holds real ``AllowedVerdict``/``FailSecurityVerdict``
-instances for every item that reached the cascade, no conversion step — each *is*
-a ``BaseVerdict`` (``aoa-action-machine``), so there is nothing left to project;
-the ``to_wire()`` function this module used to export is gone (fix-audit finding
-7's follow-up). The two synthetic outcomes that never reach the cascade at all —
-unknown ``operation``, route-level auth rejection — build a ``FailErrorVerdict``/
-``FailSecurityVerdict`` directly instead.
+``ResolveOutcome.results`` holds the verdicts themselves, with no conversion step:
+what the cascade answers is already the shape that goes out on the wire. The two
+outcomes that never reach the cascade at all — an unknown ``operation``, and a
+caller the route itself rejected — build their verdict here instead.
 """
 
 from __future__ import annotations
@@ -99,11 +96,8 @@ def canonical_key(params: dict[str, Any]) -> str:
     return json.dumps(params, sort_keys=True)
 
 
-# Fixed, key-independent verdicts for items resolved without a real access_decide
-# call. BaseVerdict is frozen, so one shared instance per synthetic outcome is safe
-# to hand out for every key that needs it (fix-audit finding 13: this used to be two
-# parallel {set of keys + builder function} pairs; both builders took no arguments
-# and always returned the same value, so there was nothing to isolate them.
+# Answers for items that never reached a real check. The same value every time, and a
+# verdict cannot be edited, so one shared instance each is enough.
 _UNKNOWN_ENDPOINT_VERDICT = FailErrorVerdict("UNKNOWN_ENDPOINT")
 _UNAUTHORIZED_VERDICT = FailSecurityVerdict("UNAUTHORIZED")
 # Same reason the machine reports for a crash inside access_decide: one item's check
@@ -211,9 +205,9 @@ async def resolve_verdicts(
             # own auth_coordinator or one of its connection factories, both app code,
             # failed outright. Nothing was decided for this operation, so its items get
             # the same "could not check" answer a crashed access_decide gets. Isolated
-            # here rather than left to propagate: unprotected, one such failure answered
-            # the whole request with a 500 and no results at all, which is precisely what
-            # the per-item isolation contract rules out (narrow-audit finding 3).
+            # here rather than left to propagate: on its own it would answer the whole
+            # batch with a 500 and no results, which is the one outcome per-item
+            # isolation exists to stop.
             synthetic[key] = _EVALUATION_FAILED_VERDICT
             continue
 
@@ -231,22 +225,19 @@ async def resolve_verdicts(
                 params = mapper(body)
             except AuthorizationError as exc:
                 # A mapper can *decide* rather than fail: one that resolves the caller's
-                # tenant, say, may legitimately raise AuthorizationError. Caught by the
-                # broad handler below, that decision would come back as
-                # EVALUATION_FAILED -- "could not check" -- and the UI would show the
-                # action as available. "A failure is not a denial" is only half the rule;
-                # a denial must not become a failure either (narrow-audit finding 2).
-                # Same shape as check_access_decide's own handler: report exc.verdict,
-                # and fall through to the failure answer only when there is none, since
-                # then nothing was decided.
+                # tenant, say, may legitimately refuse. Left to the broad handler below,
+                # that refusal would come back as "could not check", and the caller would
+                # be shown the action as available. "A failure is not a denial" is only
+                # half the rule -- a denial must not become a failure either. Falls
+                # through to the failure answer only when the refusal carries no verdict,
+                # because then nothing was decided after all.
                 synthetic[key] = exc.verdict if exc.verdict is not None else _EVALUATION_FAILED_VERDICT
                 continue
             except ValidationError as exc:
                 # The mapped params did not validate -- the same kind of problem as the
-                # model_validate above, and answered the same way. Reporting it as
-                # EVALUATION_FAILED would tell the client "could not check, ask again"
-                # when the truth is "your request is malformed", which no amount of
-                # asking again fixes (narrow-audit finding 8).
+                # model_validate above, and answered the same way. Calling it "could not
+                # check" would tell the caller to ask again, when the truth is that the
+                # request is malformed and asking again changes nothing.
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
             except HTTPException:
                 # A mapper raising HTTPException is deliberately dictating the response.
@@ -255,12 +246,9 @@ async def resolve_verdicts(
                 raise
             except Exception:  # pylint: disable=broad-exception-caught
                 # A route's params_mapper is app-supplied code, so it can fail like any
-                # other check step. Unprotected, its exception left this function entirely
-                # and became a whole-request 500 with no results at all -- one bad item
-                # sinking a batch of twenty, the exact outcome per-item isolation exists
-                # to prevent (audit-11 finding 11). Isolated to its own item now, with the
-                # same fixed reason a crash inside access_decide gets: nothing was decided,
-                # and the mapper's own message must not reach the wire.
+                # other step. Kept to its own item: one bad mapper must not sink a batch of
+                # twenty. The reason is the fixed code a crashed check gets -- nothing was
+                # decided, and the mapper's own message must not reach the wire.
                 synthetic[key] = _EVALUATION_FAILED_VERDICT
                 continue
         pending[key] = (plan.record.action_class, params, prepared_by_operation[item.operation])
