@@ -37,8 +37,8 @@ function renderInterfaceBody(
     const type = typeText(prop.schema, defs, resolveRefName, hoisted);
     lines.push(`  ${propKey(prop.name)}${optional}: ${type};`);
   }
-  // A declared property's own type is always assignable to `unknown`, so this index
-  // signature is compatible with any mix of property types above (audit finding 16).
+  // Every declared property fits `unknown`, so this stays compatible whatever mix of
+  // types is above it.
   if (node.additionalProperties === "allow") lines.push("  [key: string]: unknown;");
   lines.push("}");
   return lines.join("\n");

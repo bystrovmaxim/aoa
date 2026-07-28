@@ -39,13 +39,11 @@ export interface Manifest {
  * Boundary check on fetched, untrusted JSON -- not a full schema validation (still no
  * opinion on `params_schema`/`result_schema`/`json_schema`'s own internal shape, which
  * is the codegen's and `parseRootSchema`'s job, not this one's). It does validate every
- * `endpoints[]` element and `schemas{}` entry, though: both `generateClient` and
- * `AoaEngine.loadFrom` read `endpoint.route.method`/`.path` directly, with no guard of
- * their own, immediately after this assertion returns -- an `asserts value is Manifest`
- * signature is a promise to the compiler that the FULL shape checks out, not just the
- * top level, and before this fix it wasn't honored: a malformed element crashed both
- * callers with a raw, uncaught TypeError instead of the same typed ProtocolError every
- * other kind of "manifest can't be trusted" already produces here (audit finding 8).
+ * `endpoints[]` element and `schemas{}` entry, though. Callers read the fields inside
+ * them straight after this returns, with no guard of their own, because the signature
+ * promises the compiler that the WHOLE shape checks out -- not just the top level.
+ * Checking only the top level would make a malformed element a raw crash instead of the
+ * same clear "this manifest cannot be trusted" error everything else here produces.
  */
 export function assertManifestShape(value: unknown, url: string): asserts value is Manifest {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {

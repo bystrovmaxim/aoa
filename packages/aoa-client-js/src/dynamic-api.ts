@@ -1,12 +1,9 @@
 // packages/aoa-client-js/src/dynamic-api.ts
 //
-// Builds the same hybrid bracket/dot-alias `api` shape as the static codegen
-// (api-layout-to-ts.ts), but as a real in-memory object rather than TypeScript source --
-// used by AoaEngine.loadFrom (chapter 5, dynamic mode). Both consume the exact same
-// path-layout.ts MethodLayout[], so the two outputs are identical in shape; this module
-// only differs in what it does with a leaf: build a real GatePrimitive instead of
-// rendering a type + a make call as text. No compile-time per-endpoint types are
-// possible here -- the manifest's shape is only known once this code actually runs.
+// Builds the same api object the code generator writes out, but as a real object at run
+// time instead of as text. Both read the same layout, so the two have the same shape and
+// differ only at the leaves. No per-action types are possible here: nothing knows the
+// shape until the server answers.
 
 import { makeGatePrimitive, type GatePrimitive } from "./primitive.ts";
 import type { AliasNode, LayoutEndpoint, MethodLayout } from "./path-layout.ts";

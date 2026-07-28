@@ -29,11 +29,9 @@ export interface FailErrorVerdict {
   reason: string;
 }
 
-// Discriminated union: after a check like result.kind === "FailErrorVerdict",
-// TypeScript narrows result to FailErrorVerdict inside that branch, so reason
-// is visible without a cast. The client-side stale flag (chapter 6) lives on
-// a SEPARATE client type, not here. The set of three classes is fixed and
-// stable -- later chapters only add new reason values, never a new class.
+// Checking `kind` narrows the type inside that branch, so `reason` is reachable without
+// a cast. There are three answers and there will stay three: new situations get a new
+// reason, never a fourth kind of answer.
 export type Verdict = AllowedVerdict | FailSecurityVerdict | FailErrorVerdict;
 
 // The resolver's whole response body: the wire-language version plus one

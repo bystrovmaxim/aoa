@@ -7,10 +7,9 @@
 // generateClient's output are identical by construction -- there is no second generator
 // here to drift from the first.
 //
-// --check (recommended CI default for a committed generated file): instead of writing
-// --out, reads its current content and diffs it against a fresh generateClient(--url)
-// call -- catching schema drift (an endpoint stayed but a field was renamed) before
-// deploy, not just the route-set drift the runtime itself already surfaces.
+// --check reads the committed file instead of writing it, and compares it against what
+// the server would produce now. That catches a field renamed inside an action that still
+// exists -- a change no route list would reveal -- before it ships.
 
 import { readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";

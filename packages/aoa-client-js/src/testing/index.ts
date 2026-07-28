@@ -55,10 +55,9 @@ export interface MockResolveCall {
 // time even though the real resolve() is batched -- per-item is how tests
 // actually read.
 //
-// `askedCount` is the number of questions this double has answered BEFORE this
-// one, across the double's whole lifetime (not reset per batch). It is what
-// makes "allowed the first time, denied the second" expressible without the
-// test having to close over its own counter.
+// `askedCount` is how many questions this double has already answered, over its whole
+// life. It is what lets a test say "allowed the first time, denied the second" without
+// keeping a counter of its own.
 export type MockAnswer = (item: ResolveItem, askedCount: number) => Verdict | Promise<Verdict>;
 
 export interface MockAoaEngine extends ResolveEngine {

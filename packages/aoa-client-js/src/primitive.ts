@@ -1,9 +1,8 @@
 // packages/aoa-client-js/src/primitive.ts
 //
-// Shared, hand-written machinery behind every generated `Primitive` (chapter 5): the
-// generated file only supplies a per-endpoint operation string (for verdict/can) and a
-// descriptor (for run) — the actual resolve/invoke logic lives here once, so a codegen
-// templating bug can't silently duplicate a mistake into every endpoint's output.
+// The hand-written machinery behind every generated action object. The generated file
+// supplies only names and a descriptor; the logic lives here once, so a mistake in the
+// generator cannot copy itself into every action.
 
 import { AoaResolveError } from "./engine.ts";
 import type { ResolveEngine, Verdict } from "./types.ts";
@@ -65,9 +64,9 @@ export function makeCallablePrimitive<TParams, TResult>(
 ): CallablePrimitive<TParams, TResult> {
   return {
     ...makeGatePrimitive<TParams>(engine, operation),
-    // Precheck (chapter 5.5): a fresh, non-cached can() right before the real call --
-    // skipCache is mandatory here, a cache hit would defeat the whole point of asking
-    // again right before invoking. FailErrorVerdict throws the same AoaResolveError
+    // Ask once more, for real, immediately before invoking. Skipping the cache is the
+    // point: a remembered answer would say nothing about right now. "Could not check"
+    // throws the same error
     // .can() already throws for it (no new behavior). FailSecurityVerdict is new: a
     // plain Error with no dedicated class -- neither .can() (returns false) nor
     // .verdict() (returns the Verdict) ever throws for it, so there's no existing

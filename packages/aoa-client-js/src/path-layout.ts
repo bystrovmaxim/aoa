@@ -1,16 +1,15 @@
 // packages/aoa-client-js/src/path-layout.ts
 //
-// The hybrid api layout rule (chapter 3 / chapter 5): every endpoint is always reachable
-// by its full path (api[method]["/path"]), grouped by lowercase HTTP method. A dot alias
+// Where each action ends up on the api object. Every one is always reachable by its full
+// path, grouped by HTTP method. A short dot alias
 // (api.get.orders) additionally exists only when the path is "clean" -- every segment is
 // a valid identifier (no {param}, hyphen, or dot) -- and does not collide with a deeper
 // path sharing the same prefix (a segment cannot be both a callable leaf and a branch
 // namespace on the same generated object).
 //
-// Shared by both entry points: generateClient (codegen) renders this layout to
-// TypeScript text; AoaEngine.loadFrom (runtime) builds the same layout into a real
-// in-memory object -- see the module docstring in dynamic-api.ts and chapter 5's "та же
-// раскладка «манифест → api», что и generateClient" requirement.
+// Both ways of building the api use this: one renders the layout to TypeScript text, the
+// other builds it as a real object at run time. Sharing it is what keeps the two from
+// drifting into different shapes.
 
 import { isValidIdentifier } from "./identifier.ts";
 
