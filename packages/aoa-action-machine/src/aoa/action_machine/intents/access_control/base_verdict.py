@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import ConfigDict, Field
 
 from aoa.action_machine.exceptions.abstract_verdict_error import AbstractVerdictError
-from aoa.action_machine.exceptions.empty_verdict_kind_error import EmptyVerdictKindError
+from aoa.action_machine.exceptions.invalid_verdict_kind_error import InvalidVerdictKindError
 from aoa.action_machine.model.base_schema import BaseSchema
 
 
@@ -34,16 +34,17 @@ class BaseVerdict(BaseSchema):
     # The name of this answer, as the client sees it. Any name given is kept exactly as
     # given, so a class can be renamed without changing what clients already receive.
     #
-    # It can never be empty. min_length is what travels into the published schema, so the
-    # client's own generated validator refuses an empty name too -- the client never runs
-    # this constructor. The constructor's own check is what produces a message naming the
-    # class and the value, instead of a length complaint that names neither.
-    kind: str = Field(min_length=1)
+    # It has to be a string with something in it -- spaces alone are as unusable as no
+    # name. These constraints are what travel into the published schema, so the client's
+    # own generated validator refuses the same values; the client never runs the
+    # constructor. The constructor's own check is what produces a message naming the class
+    # and the value, instead of a length complaint that names neither.
+    kind: str = Field(min_length=1, pattern=r"\S")
 
     def __init__(self, kind: str, **kwargs: Any) -> None:
         if self.__class__ is BaseVerdict:
             raise AbstractVerdictError(self.__class__.__name__)
-        if not kind:
-            raise EmptyVerdictKindError(self.__class__.__name__, kind)
+        if not isinstance(kind, str) or not kind.strip():
+            raise InvalidVerdictKindError(self.__class__.__name__, kind)
         kwargs["kind"] = kind
         super().__init__(**kwargs)

@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from aoa.action_machine.exceptions import AbstractVerdictError, EmptyVerdictKindError
+from aoa.action_machine.exceptions import AbstractVerdictError, InvalidVerdictKindError
 from aoa.action_machine.intents.access_control import (
     FORBIDDEN_OBJECT,
     AllowedVerdict,
@@ -62,41 +62,68 @@ class TestKind:
         assert AllowedVerdict(kind=given).kind == given
         assert AllowedVerdict(kind=given).model_dump() == {"kind": given}
 
-    @pytest.mark.parametrize("empty", ["", None])
-    def test_an_empty_kind_is_refused_by_name(self, empty: object) -> None:
-        """The one value kind cannot hold: nameless, it matches nothing the client knows,
-        so a real refusal arrives as an answer nobody can act on. The error names the
-        class and the value, which a bare length complaint would not."""
-        with pytest.raises(EmptyVerdictKindError) as caught:
-            AllowedVerdict(kind=empty)  # type: ignore[arg-type]
+    @pytest.mark.parametrize(
+        "given",
+        [
+            pytest.param("", id="empty"),
+            pytest.param("   ", id="spaces"),
+            pytest.param("\t", id="tab"),
+            pytest.param("\n", id="newline"),
+            pytest.param(" \t\n ", id="mixed whitespace"),
+            pytest.param(None, id="None"),
+            pytest.param(123, id="a number"),
+            pytest.param(0, id="zero"),
+            pytest.param(True, id="a bool"),
+            pytest.param([], id="a list"),
+        ],
+    )
+    def test_only_a_string_with_something_in_it_is_accepted(self, given: object) -> None:
+        """Nameless, kind matches nothing the client knows, so a real refusal arrives as an
+        answer nobody can act on -- and a name of spaces matches exactly as little as no
+        name. The error names the class and the value, which a length complaint would not.
+        """
+        with pytest.raises(InvalidVerdictKindError) as caught:
+            AllowedVerdict(kind=given)  # type: ignore[arg-type]
 
         assert "AllowedVerdict" in str(caught.value)
-        assert repr(empty) in str(caught.value)
+        assert repr(given) in str(caught.value)
 
-    def test_an_empty_kind_is_refused_on_a_verdict_that_also_carries_a_reason(self) -> None:
-        """The check lives on BaseVerdict, so it runs for the subclasses with their own
-        constructors too, not only for the one that takes nothing."""
-        with pytest.raises(EmptyVerdictKindError):
-            FailSecurityVerdict("no", kind="")
+    @pytest.mark.parametrize("given", ["x", " x ", "Имя", "Old.Wire-Name_2"])
+    def test_a_name_with_something_in_it_is_kept_as_given(self, given: str) -> None:
+        """Only blankness is refused. Nothing else about the name is this class's business:
+        it is not trimmed, reshaped, or checked against a list of known names."""
+        assert AllowedVerdict(kind=given).kind == given
 
-    def test_nested_validation_refuses_an_empty_kind_too(self) -> None:
-        """A verdict read back as part of a bigger payload, which is how a client gets it.
-        EmptyVerdictKindError is a ValueError, so pydantic reports it as a normal
+    def test_the_check_covers_the_verdicts_that_carry_a_reason_too(self) -> None:
+        """It lives on BaseVerdict, so the subclasses with their own constructors reach it
+        through super() rather than each repeating it."""
+        with pytest.raises(InvalidVerdictKindError):
+            FailSecurityVerdict("no", kind="   ")
+        with pytest.raises(InvalidVerdictKindError):
+            FailErrorVerdict("no", kind="   ")
+
+    @pytest.mark.parametrize("bad", ["", "   "])
+    def test_nested_validation_refuses_a_blank_kind_as_a_validation_error(self, bad: str) -> None:
+        """A verdict read back as part of a bigger payload, which is how a client gets one.
+        InvalidVerdictKindError is a ValueError, so pydantic reports it as an ordinary
         validation failure rather than letting it escape as an unhandled crash."""
 
         class Envelope(BaseModel):
             verdict: AllowedVerdict
 
         with pytest.raises(ValidationError):
-            Envelope.model_validate({"verdict": {"kind": ""}})
+            Envelope.model_validate({"verdict": {"kind": bad}})
 
     @pytest.mark.parametrize("verdict_class", [AllowedVerdict, FailSecurityVerdict, FailErrorVerdict])
-    def test_the_published_schema_says_kind_cannot_be_empty(self, verdict_class: type[BaseVerdict]) -> None:
+    def test_the_published_schema_carries_the_same_rule(self, verdict_class: type[BaseVerdict]) -> None:
         """The rule has to reach the client, which validates against this schema and never
-        runs the constructor. Declaring a default on a subclass replaces the whole field,
-        so each class has to carry the constraint itself -- checked here rather than
-        trusted to inheritance."""
-        assert verdict_class.model_json_schema()["properties"]["kind"]["minLength"] == 1
+        runs the constructor. minLength alone would let a name of spaces through, so the
+        schema states both."""
+        kind_schema = verdict_class.model_json_schema()["properties"]["kind"]
+
+        assert kind_schema["type"] == "string"
+        assert kind_schema["minLength"] == 1
+        assert kind_schema["pattern"] == r"\S"
 
     def test_a_subclass_can_pin_its_own_wire_name(self) -> None:
         """The same freedom, fixed once in the subclass's own constructor instead of
