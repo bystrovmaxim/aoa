@@ -50,7 +50,7 @@ class TestGrantConstruction:
         """baseverdict-audit finding 3, third document: reason= was a plain str before the
         BaseVerdict redesign -- a caller passing an ordinary string through (migrated code,
         or simply unchecked by mypy) must be rejected at declaration, not reach a real
-        AuthorizationError and crash the first time something reads .verdict.reason off it."""
+        AccessDeniedError and crash the first time something reads .verdict.reason off it."""
         with pytest.raises(TypeError, match="FailSecurityVerdict"):
             grant(AdminRole, when=_sales_only, reason="sales only")  # type: ignore[arg-type]
 

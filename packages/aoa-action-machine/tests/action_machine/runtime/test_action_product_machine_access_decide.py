@@ -7,7 +7,7 @@ from pydantic import Field
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.exceptions import AccessDeniedError
 from aoa.action_machine.intents.access_control import AllowedVerdict, BaseVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -67,7 +67,7 @@ class DenyAllAccessDecideAction(BaseAction["DenyAllAccessDecideAction.Params", "
 
 async def test_access_decide_false_raises_before_any_aspect(machine: ActionProductMachine) -> None:
     _summary_calls["n"] = 0
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDeniedError) as excinfo:
         await machine.run(_admin_context(), DenyAllAccessDecideAction(), DenyAllAccessDecideAction.Params())
     assert excinfo.value.level == 3
     assert excinfo.value.verdict == FailSecurityVerdict("denied unconditionally")
@@ -78,7 +78,7 @@ async def test_role_check_still_denies_before_access_decide(machine: ActionProdu
     """Level 1 (role) must still win over level 3 (access_decide) for an anonymous user —
     access_decide (which unconditionally returns False here) is never even reached."""
     _summary_calls["n"] = 0
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDeniedError) as excinfo:
         await machine.run(Context(), DenyAllAccessDecideAction(), DenyAllAccessDecideAction.Params())
     assert excinfo.value.level == 1
     assert _summary_calls["n"] == 0

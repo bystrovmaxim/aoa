@@ -53,7 +53,7 @@ The roles you put on the user via `with_user(roles=...)` are **exactly** what `@
 
 ```python
 await TestBench().run(WhoamiAction(), EmptyParams(), rollup=False)
-# AuthorizationError: Access denied. Required role: 'admin', user roles: ['tester']
+# AccessDeniedError: Access denied. Required role: 'admin', user roles: ['tester']
 ```
 
 `TestBench` defaults to an anonymous test user with the stub role `tester`; since the operation requires `admin` and it was not given, it is refused. Authorization cannot be bypassed in a test: it is part of the same machine.
@@ -81,7 +81,7 @@ uv run python examples/step_25_context/01_context.py
 
 ```text
 1) with_user/request/runtime -> user_id=u-test trace_id=t-1 service=orders-svc
-2) no admin role             -> AuthorizationError: Access denied. Required role: 'admin', user roles: ['tester']
+2) no admin role             -> AccessDeniedError: Access denied. Required role: 'admin', user roles: ['tester']
 3) undeclared field          -> client_ip refused: True  (it was set, but not declared)
 ```
 
@@ -107,7 +107,7 @@ Under the hood `TestBench` creates a dynamic `Context` subclass with the necessa
 ## Invariants
 
 - **The context is assembled via `TestBench`.** `with_user`/`with_request`/`with_runtime` give `UserInfo`/`RequestInfo`/`RuntimeInfo` with defaults and `**kwargs`.
-- **Roles are the input to `@check_roles`.** What you put on the user is what authorization checks; no required role → `AuthorizationError`.
+- **Roles are the input to `@check_roles`.** What you put on the user is what authorization checks; no required role → `AccessDeniedError`.
 - **Only the declared is visible.** An aspect reads `Context` through the `@context_requires` slice; an undeclared field → `ContextAccessError`, even if it is set.
 - **`@env` — via `.with_env`.** `.with_env(key, value)` registers a constant directly on `TestBench`; calls merge, the last call wins for the same key.
 - **No global state.** It is enough to assemble the input and the environment; there is no object to set up in advance.
@@ -132,7 +132,7 @@ With this the **Testing** part is assembled: the run depth ([TestBench](step-23-
 6. What happens if you call `.with_env("region", "v1").with_env("region", "v2")`? Which value does the aspect receive?
 7. How does `.with_env` let you avoid creating a `TestAppContext` in every test?
 
-> **Exercise.** In [01_context.py](../../examples/step_25_context/01_context.py) add `Ctx.Request.client_ip` to `LeakAction`'s `@context_requires` and confirm that the read now passes and `client_ip_refused` became `False`. Then give the test user the `AdminRole` via `with_user` for a second `WhoamiAction` run and watch the `AuthorizationError` disappear.
+> **Exercise.** In [01_context.py](../../examples/step_25_context/01_context.py) add `Ctx.Request.client_ip` to `LeakAction`'s `@context_requires` and confirm that the read now passes and `client_ip_refused` became `False`. Then give the test user the `AdminRole` via `with_user` for a second `WhoamiAction` run and watch the `AccessDeniedError` disappear.
 >
 > **Exercise (@env).** Add an aspect with `@context_requires("env.region")` to the action in the example. Register the provider via `.with_env("region", "test-eu")` and run via `bench.run(...)`. Confirm that `ctx.get("env.region")` returns `"test-eu"`. Then call `.with_env("region", "ap-test")` on the same bench — confirm you get a new bench with `"ap-test"` while the original still gives `"test-eu"`.
 

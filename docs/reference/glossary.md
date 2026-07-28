@@ -79,7 +79,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **`guard=`** — a shared condition on `@check_roles`, one for every grant on the operation; checked once, after some grant has already won. Unlike `grant.when=(user)`, it also sees the call's parameters: `guard=(user, params)`.
 
-**`access_decide`** — a method on `BaseAction`, the third, object-level access check (after role and `guard=`): `access_decide(self, params, context, box, connections) -> FailSecurityVerdict | AllowedVerdict`. Defaults to returning `AllowedVerdict()`. Denial is `AuthorizationError(level=3, verdict=...)`, the same error as at levels 1-2, carrying the same `FailSecurityVerdict` that `access_decide` returned.
+**`access_decide`** — a method on `BaseAction`, the third, object-level access check (after role and `guard=`): `access_decide(self, params, context, box, connections) -> FailSecurityVerdict | AllowedVerdict`. Defaults to returning `AllowedVerdict()`. Denial is `AccessDeniedError(level=3, verdict=...)`, the same error as at levels 1-2, carrying the same `FailSecurityVerdict` that `access_decide` returned.
 
 **`BaseVerdict`** — the abstract root of the outcome of any access check (`aoa.action_machine.intents.access_control`); it cannot be instantiated directly (the constructor raises `TypeError`). `kind` is an ordinary field that `BaseVerdict.__init__` fills in and checks: omit `kind=` and it's set to `type(self).__name__`; pass one that doesn't match the class name and it raises `ValueError`. Defined once on the base class, inherited without redeclaration. Three concrete descendants:
 

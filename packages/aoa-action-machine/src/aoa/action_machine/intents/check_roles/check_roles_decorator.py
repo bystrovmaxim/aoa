@@ -40,7 +40,7 @@ same path as the condition they belong to: ``Grant.reason`` becomes
 ``RoleGraphEdge.properties["when_reason"]``, the decorator's ``reason=`` becomes
 ``cls._role_info["guard_reason"]`` and then
 ``ActionGraphNode.properties["guard_reason"]``. ``RoleChecker`` reads both back
-at denial time and passes the matching one straight into the ``AuthorizationError``
+at denial time and passes the matching one straight into the ``AccessDeniedError``
 it raises (``verdict=``).
 
 ═══════════════════════════════════════════════════════════════════════════════

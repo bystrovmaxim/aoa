@@ -1,0 +1,124 @@
+{
+    "name": "validate_aspect",
+    "context": {
+        "trace_id": "0x0811c5f7d243bc210f551b3c9aad8ad9",
+        "span_id": "0xbf040a4671f2de7a",
+        "trace_state": "[]"
+    },
+    "kind": "SpanKind.INTERNAL",
+    "parent_id": "0x90030c11e63c373d",
+    "start_time": "2026-07-25T21:24:42.962650Z",
+    "end_time": "2026-07-25T21:24:42.962701Z",
+    "status": {
+        "status_code": "OK"
+    },
+    "attributes": {
+        "aoa.aspect": "validate_aspect",
+        "aoa.action": "CheckoutAction",
+        "aoa.duration_ms": 0.01621246337890625
+    },
+    "events": [],
+    "links": [],
+    "resource": {
+        "attributes": {
+            "telemetry.sdk.language": "python",
+            "telemetry.sdk.name": "opentelemetry",
+            "telemetry.sdk.version": "1.42.1",
+            "service.name": "unknown_service"
+        },
+        "schema_url": ""
+    }
+}
+{
+    "name": "enrich_aspect",
+    "context": {
+        "trace_id": "0x0811c5f7d243bc210f551b3c9aad8ad9",
+        "span_id": "0x9c73a7b9d990f6b3",
+        "trace_state": "[]"
+    },
+    "kind": "SpanKind.INTERNAL",
+    "parent_id": "0x90030c11e63c373d",
+    "start_time": "2026-07-25T21:24:42.963168Z",
+    "end_time": "2026-07-25T21:24:42.963221Z",
+    "status": {
+        "status_code": "OK"
+    },
+    "attributes": {
+        "aoa.aspect": "enrich_aspect",
+        "aoa.action": "CheckoutAction",
+        "aoa.duration_ms": 0.019073486328125
+    },
+    "events": [],
+    "links": [],
+    "resource": {
+        "attributes": {
+            "telemetry.sdk.language": "python",
+            "telemetry.sdk.name": "opentelemetry",
+            "telemetry.sdk.version": "1.42.1",
+            "service.name": "unknown_service"
+        },
+        "schema_url": ""
+    }
+}
+{
+    "name": "confirm_summary",
+    "context": {
+        "trace_id": "0x0811c5f7d243bc210f551b3c9aad8ad9",
+        "span_id": "0x25fa4c5a9ade02c1",
+        "trace_state": "[]"
+    },
+    "kind": "SpanKind.INTERNAL",
+    "parent_id": "0x90030c11e63c373d",
+    "start_time": "2026-07-25T21:24:42.963366Z",
+    "end_time": "2026-07-25T21:24:42.963400Z",
+    "status": {
+        "status_code": "OK"
+    },
+    "attributes": {
+        "aoa.aspect": "confirm_summary",
+        "aoa.action": "CheckoutAction",
+        "aoa.duration_ms": 0.014066696166992188
+    },
+    "events": [],
+    "links": [],
+    "resource": {
+        "attributes": {
+            "telemetry.sdk.language": "python",
+            "telemetry.sdk.name": "opentelemetry",
+            "telemetry.sdk.version": "1.42.1",
+            "service.name": "unknown_service"
+        },
+        "schema_url": ""
+    }
+}
+{
+    "name": "CheckoutAction",
+    "context": {
+        "trace_id": "0x0811c5f7d243bc210f551b3c9aad8ad9",
+        "span_id": "0x90030c11e63c373d",
+        "trace_state": "[]"
+    },
+    "kind": "SpanKind.INTERNAL",
+    "parent_id": null,
+    "start_time": "2026-07-25T21:24:42.962592Z",
+    "end_time": "2026-07-25T21:24:42.963483Z",
+    "status": {
+        "status_code": "OK"
+    },
+    "attributes": {
+        "aoa.action": "CheckoutAction",
+        "aoa.nest_level": 1,
+        "aoa.duration_ms": 0.9627342224121094
+    },
+    "events": [],
+    "links": [],
+    "resource": {
+        "attributes": {
+            "telemetry.sdk.language": "python",
+            "telemetry.sdk.name": "opentelemetry",
+            "telemetry.sdk.version": "1.42.1",
+            "service.name": "unknown_service"
+        },
+        "schema_url": ""
+    }
+}

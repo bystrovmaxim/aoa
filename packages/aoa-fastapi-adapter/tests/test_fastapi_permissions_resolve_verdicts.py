@@ -118,7 +118,7 @@ class TestPerItemIsolation:
 
     async def test_route_level_auth_rejection_is_isolated_not_fatal(self) -> None:
         """A route whose own auth_coordinator rejected the caller (reported via
-        unauthorized_operations, mirroring adapter.py catching AuthorizationError from
+        unauthorized_operations, mirroring adapter.py catching AccessDeniedError from
         EndpointExecutionPlan.prepare) fails only its own position -- FailSecurityVerdict,
         reason="UNAUTHORIZED" -- never the whole batch."""
         items = [_order_item(1), ResolveItem(operation="GET /actions/ping", params={})]

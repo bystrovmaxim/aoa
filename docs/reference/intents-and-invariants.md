@@ -147,8 +147,8 @@ class GetOrderStatusAction(BaseAction[...]): ...
 Access is a cascade of three levels, each of which can deny: role (`@check_roles`) → `guard=`/`grant.when=` → `access_decide`. Each level carries its own invariants:
 
 - **`grant.when=`/`guard=` are synchronous functions returning strictly `bool`.** Checked at class definition, not at runtime: an `async def` in either raises `AccessConditionAsyncError` immediately — an un-awaited coroutine is always truthy, and an async condition would silently wave every check through.
-- **`access_decide` defaults to `AllowedVerdict()`.** The method is declared on `BaseAction`; level 3 restricts nothing until an action explicitly overrides it. Denial at any of the three levels is the same `AuthorizationError`, differing only in `level` (`1` — role, `2` — `guard=`/`grant.when=`, `3` — `access_decide`).
-- **Denial at any of the three levels is an `AuthorizationError` that flies past `@on_error`/the saga.** Role, `guard=`, and `access_decide` are checked before `_execute_pipeline_aspects`: no `@regular_aspect`/`@summary_aspect` has run yet, so there's nothing to roll back. `@on_error` is a recovery mechanism for business-logic failures inside the pipeline, not a place for authorization decisions.
+- **`access_decide` defaults to `AllowedVerdict()`.** The method is declared on `BaseAction`; level 3 restricts nothing until an action explicitly overrides it. Denial at any of the three levels is the same `AccessDeniedError`, differing only in `level` (`1` — role, `2` — `guard=`/`grant.when=`, `3` — `access_decide`).
+- **Denial at any of the three levels is an `AccessDeniedError` that flies past `@on_error`/the saga.** Role, `guard=`, and `access_decide` are checked before `_execute_pipeline_aspects`: no `@regular_aspect`/`@summary_aspect` has run yet, so there's nothing to roll back. `@on_error` is a recovery mechanism for business-logic failures inside the pipeline, not a place for authorization decisions.
 
 ---
 

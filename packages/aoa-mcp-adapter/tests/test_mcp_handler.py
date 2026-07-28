@@ -86,7 +86,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
+from aoa.action_machine.exceptions import AccessDeniedError, AccessGate, ValidationFieldError
 from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.resources.base_resource import BaseResource
@@ -447,13 +447,18 @@ class TestHandlerErrors:
     """Verify handler catches exceptions and returns CallToolResult with isError=True."""
 
     @pytest.mark.asyncio
-    async def test_authorization_error(self) -> None:
-        """AuthorizationError → isError=True, PERMISSION_DENIED envelope.
+    async def test_access_denied_error(self) -> None:
+        """AccessDeniedError → isError=True, PERMISSION_DENIED envelope.
 
-        A verdict-less error carries no declared reason, so ``message`` is the fixed
-        fallback rather than the exception's own text (narrow-audit finding 7)."""
+        The declared reason, never the exception's own text -- MCP is a second transport
+        over the same machine, so a message that differs per object would leak here what
+        the shared refusal hides everywhere else."""
         machine = _make_machine()
-        machine.run = AsyncMock(side_effect=AuthorizationError("no access"))
+        machine.run = AsyncMock(
+            side_effect=AccessDeniedError(
+                "no access", level=AccessGate.ROLE, verdict=FailSecurityVerdict("FORBIDDEN_ROLE")
+            )
+        )
         record = _make_record()
 
         handler = _make_tool_handler(
@@ -469,16 +474,16 @@ class TestHandlerErrors:
         env = _tool_result_envelope(result)
         assert env["ok"] is False
         assert env["code"] == "PERMISSION_DENIED"
-        assert env["message"] == "FORBIDDEN"
+        assert env["message"] == "FORBIDDEN_ROLE"
         assert env["details"] == {}
 
     @pytest.mark.asyncio
-    async def test_authorization_error_reports_the_declared_reason(self) -> None:
+    async def test_access_denied_error_reports_the_declared_reason(self) -> None:
         """When the denial carries a verdict, its developer-declared reason is what the
         agent-facing caller sees -- the useful half of finding 7's fix."""
         machine = _make_machine()
         machine.run = AsyncMock(
-            side_effect=AuthorizationError("Access denied. guard= condition was not met.", level=2, verdict=FailSecurityVerdict("order is locked"))
+            side_effect=AccessDeniedError("Access denied. guard= condition was not met.", level=2, verdict=FailSecurityVerdict("order is locked"))
         )
         record = _make_record()
 
@@ -491,7 +496,7 @@ class TestHandlerErrors:
         assert "guard=" not in json.dumps(env)
 
     @pytest.mark.asyncio
-    async def test_authorization_error_never_carries_its_own_message(self) -> None:
+    async def test_access_denied_error_never_carries_its_own_message(self) -> None:
         """narrow-audit finding 7: MCP is a second transport over the same machine.run(),
         and it answered with str(exc) exactly like the FastAPI 403 handler did. Two
         different objects must produce identical envelopes here too."""
@@ -499,7 +504,11 @@ class TestHandlerErrors:
         for order_id in ("MISSING-1", "ORD-alice-7"):
             machine = _make_machine()
             machine.run = AsyncMock(
-                side_effect=AuthorizationError(f"order {order_id} not found in orders_db (owner bob@corp.com)")
+                side_effect=AccessDeniedError(
+                    f"order {order_id} not found in orders_db (owner bob@corp.com)",
+                    level=AccessGate.OBJECT,
+                    verdict=FailSecurityVerdict("FORBIDDEN_OBJECT"),
+                )
             )
             handler = _make_tool_handler(_make_record(), machine, _make_auth(), machine.graph_coordinator)
             result = await handler()

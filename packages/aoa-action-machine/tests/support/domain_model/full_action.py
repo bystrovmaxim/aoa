@@ -38,7 +38,7 @@ ASPECT PIPELINE
 USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Role tests: only "manager" passes; "user" gets AuthorizationError.
+- Role tests: only "manager" passes; "user" gets AccessDeniedError.
 - Connection tests: "db" required; wrong/missing keys fail.
 - Depends tests: PaymentService and NotificationService are mocked.
 - Checker tests: txn_id (string), total (float).

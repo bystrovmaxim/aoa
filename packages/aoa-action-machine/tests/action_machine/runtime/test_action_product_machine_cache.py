@@ -10,7 +10,7 @@ from pydantic import Field
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
@@ -490,7 +490,7 @@ async def test_unauthorized_after_cache_does_not_return_cached() -> None:
     machine = _machine(cache=cache)
     ctx_ok = _ctx_manager()
     await machine.run(ctx_ok, ManagerOnlyCacheAction(), ManagerOnlyCacheAction.Params())
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(AccessDeniedError):
         await machine.run(_ctx_anon(), ManagerOnlyCacheAction(), ManagerOnlyCacheAction.Params())
 
 

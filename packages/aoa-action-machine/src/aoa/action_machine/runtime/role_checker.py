@@ -19,11 +19,11 @@ semantics: the first grant whose role matches *and* whose ``when=`` (if any) ret
 ``True`` wins — a grant whose role matches but whose ``when=`` returns ``False`` is
 skipped, not fatal, so a later grant can still win. Once a grant wins, the action's
 shared ``guard=`` (``action_node.properties["guard"]``) is evaluated once against
-``context.user`` and ``params``. ``AuthorizationError.level`` records which gate
+``context.user`` and ``params``. ``AccessDeniedError.level`` records which gate
 rejected the request: ``1`` — no role matched at all; ``2`` — a role matched but its
 ``when=`` or the ``guard=`` rejected the request.
 
-Every denial also carries ``AuthorizationError.verdict`` — a ``FailSecurityVerdict``.
+Every denial also carries ``AccessDeniedError.verdict`` — a ``FailSecurityVerdict``.
 No role matched at all (level 1) is the one case ``RoleChecker`` decides on its
 own: the framework-fixed ``FailSecurityVerdict("FORBIDDEN_ROLE")``, never declared
 by the action's author. A matched role whose ``when=`` rejected, or a shared
@@ -76,7 +76,7 @@ from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
-from aoa.action_machine.exceptions.authorization_error import AccessGate, AuthorizationError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError, AccessGate
 from aoa.action_machine.graph.edges.role_graph_edge import RoleGraphEdge
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
@@ -91,6 +91,10 @@ from aoa.action_machine.model.base_action import BaseAction
 # (baseverdict-audit finding 8, third document; same pattern as
 # aoa-fastapi-adapter's permissions.py _UNKNOWN_ENDPOINT_VERDICT/_UNAUTHORIZED_VERDICT).
 _FORBIDDEN_ROLE_VERDICT = FailSecurityVerdict("FORBIDDEN_ROLE")
+# A condition that rejected without naming a reason. grant()/check_roles() supply one
+# by default, so this is what a hand-built graph edge falls back to.
+_FORBIDDEN_GRANT_VERDICT = FailSecurityVerdict("FORBIDDEN_GRANT")
+_FORBIDDEN_GUARD_VERDICT = FailSecurityVerdict("FORBIDDEN_GUARD")
 
 
 class RoleChecker:
@@ -142,7 +146,7 @@ class RoleChecker:
     ) -> None:
         """Validate role access, per-grant ``when=``, and ``guard=``.
 
-        Raises ``AuthorizationError`` (``level`` 1 or 2, ``verdict`` always set) or
+        Raises ``AccessDeniedError`` (``level`` 1 or 2, ``verdict`` always set) or
         ``TypeError`` on failure.
         """
         if not action_node.roles:
@@ -179,7 +183,7 @@ class RoleChecker:
         if role_spec is AnyRole:
             active = _active_user_roles(context.user.roles)
             if not active:
-                raise AuthorizationError(
+                raise AccessDeniedError(
                     "Authentication required: user must have at least one role",
                     level=AccessGate.ROLE,
                     verdict=_FORBIDDEN_ROLE_VERDICT,
@@ -189,10 +193,10 @@ class RoleChecker:
         when = edge.properties.get("when")
         if when is not None and not when(context.user):
             name = "GuestRole" if role_spec is GuestRole else "AnyRole"
-            raise AuthorizationError(
+            raise AccessDeniedError(
                 f"Access denied. {name} grant's when= condition was not met.",
                 level=AccessGate.CONDITION,
-                verdict=edge.properties.get("when_reason"),
+                verdict=edge.properties.get("when_reason") or _FORBIDDEN_GRANT_VERDICT,
             )
         _enforce_guard(
             context.user, params, action_node.properties.get("guard"), action_node.properties.get("guard_reason")
@@ -230,9 +234,13 @@ class RoleChecker:
 def _enforce_guard(
     user: Any, params: Any, guard: Callable[..., bool] | None, guard_reason: FailSecurityVerdict | None
 ) -> None:
-    """Raise ``AuthorizationError(level=AccessGate.CONDITION)`` if ``guard`` is set and returns falsy."""
+    """Raise ``AccessDeniedError(level=AccessGate.CONDITION)`` if ``guard`` is set and returns falsy."""
     if guard is not None and not guard(user, params):
-        raise AuthorizationError("Access denied. guard= condition was not met.", level=AccessGate.CONDITION, verdict=guard_reason)
+        raise AccessDeniedError(
+            "Access denied. guard= condition was not met.",
+            level=AccessGate.CONDITION,
+            verdict=guard_reason or _FORBIDDEN_GUARD_VERDICT,
+        )
 
 
 def _active_user_roles(
@@ -258,8 +266,8 @@ def _denial_error(
     raw_roles: tuple[type[BaseRole], ...],
     role_matched: bool,
     rejection_reason: FailSecurityVerdict | None,
-) -> AuthorizationError:
-    """Build the ``AuthorizationError`` for a concrete-role(s) denial (level 1 or 2).
+) -> AccessDeniedError:
+    """Build the ``AccessDeniedError`` for a concrete-role(s) denial (level 1 or 2).
 
     ``rejection_reason`` is only meaningful when ``role_matched`` is ``True`` — it
     is the last rejecting grant's ``when_reason`` tried in the search (see
@@ -268,29 +276,29 @@ def _denial_error(
     developer-declared reason.
     """
     user_names = [r.name for r in raw_roles]
-    verdict = rejection_reason if role_matched else _FORBIDDEN_ROLE_VERDICT
+    verdict = (rejection_reason or _FORBIDDEN_GRANT_VERDICT) if role_matched else _FORBIDDEN_ROLE_VERDICT
     if isinstance(role_spec, tuple):
         names = [r.name for r in role_spec]
         if role_matched:
-            return AuthorizationError(
+            return AccessDeniedError(
                 f"Access denied. Required one of the roles: {names}, matched but a "
                 f"condition rejected the request; user roles: {user_names}",
                 level=AccessGate.CONDITION,
                 verdict=verdict,
             )
-        return AuthorizationError(
+        return AccessDeniedError(
             f"Access denied. Required one of the roles: {names}, " f"user roles: {user_names}",
             level=AccessGate.ROLE,
             verdict=verdict,
         )
     if role_matched:
-        return AuthorizationError(
+        return AccessDeniedError(
             f"Access denied. Required role: '{role_spec.name}', matched but a "
             f"condition rejected the request; user roles: {user_names}",
             level=AccessGate.CONDITION,
             verdict=verdict,
         )
-    return AuthorizationError(
+    return AccessDeniedError(
         f"Access denied. Required role: '{role_spec.name}', " f"user roles: {user_names}",
         level=AccessGate.ROLE,
         verdict=verdict,

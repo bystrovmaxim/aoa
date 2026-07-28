@@ -30,7 +30,7 @@ Small, independent pieces of glue between the wire protocol
   would use — before ``access_decide``. An unknown ``operation`` is isolated to
   that one item's result (a ``FailErrorVerdict("UNKNOWN_ENDPOINT")``) instead
   of failing the whole batch; an operation whose own route-level ``auth_coordinator``
-  rejected the caller (``EndpointExecutionPlan.prepare`` raised ``AuthorizationError``,
+  rejected the caller (``EndpointExecutionPlan.prepare`` raised ``AccessDeniedError``,
   reported by the caller via ``unauthorized_operations``) is isolated the same way,
   as a ``FailSecurityVerdict("UNAUTHORIZED")``. Returns a :class:`ResolveOutcome` whose ``real_call_count`` lets
   tests assert on deduplication directly (by calling this function, not the HTTP
@@ -52,7 +52,7 @@ from typing import Any, cast
 
 from pydantic import BaseModel, ValidationError
 
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError
 from aoa.action_machine.intents.access_control import BaseVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -201,7 +201,7 @@ async def resolve_verdicts(
             continue
 
         if item.operation in unpreparable_operations:
-            # ``prepare()`` raised something other than AuthorizationError -- a route's
+            # ``prepare()`` raised something other than AccessDeniedError -- a route's
             # own auth_coordinator or one of its connection factories, both app code,
             # failed outright. Nothing was decided for this operation, so its items get
             # the same "could not check" answer a crashed access_decide gets. Isolated
@@ -223,15 +223,13 @@ async def resolve_verdicts(
         else:
             try:
                 params = mapper(body)
-            except AuthorizationError as exc:
+            except AccessDeniedError as exc:
                 # A mapper can *decide* rather than fail: one that resolves the caller's
                 # tenant, say, may legitimately refuse. Left to the broad handler below,
                 # that refusal would come back as "could not check", and the caller would
                 # be shown the action as available. "A failure is not a denial" is only
-                # half the rule -- a denial must not become a failure either. Falls
-                # through to the failure answer only when the refusal carries no verdict,
-                # because then nothing was decided after all.
-                synthetic[key] = exc.verdict if exc.verdict is not None else _EVALUATION_FAILED_VERDICT
+                # half the rule -- a denial must not become a failure either.
+                synthetic[key] = exc.verdict
                 continue
             except ValidationError as exc:
                 # The mapped params did not validate -- the same kind of problem as the

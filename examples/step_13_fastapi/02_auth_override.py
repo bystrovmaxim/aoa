@@ -47,7 +47,7 @@ class DenyAllCoordinator:
     """
     Stand-in for a real strict coordinator (JWT, API key, ...).
 
-    Always returns ``None`` — the adapter turns that into ``AuthorizationError``
+    Always returns ``None`` — the adapter turns that into ``AccessDeniedError``
     (HTTP 403). Represents the adapter-wide default in this demo.
     """
 

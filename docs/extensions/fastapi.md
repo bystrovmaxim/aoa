@@ -39,7 +39,7 @@ app = (
 - **OpenAPI is derived from the code** — `Params`/`Result`, `Field(description=…)`, `@meta`; Swagger at `/docs`.
 - **`auth_coordinator` is mandatory** (`None` → `TypeError`); for open access use `NoAuthCoordinator(context=Context())`. See [Authentication](../tutorials/step-12-authentication.md).
 - **Per-route override.** `.post(path, Action, auth_coordinator=...)` — one route uses its own coordinator instead of the adapter's default (e.g. an open `/login` next to a strict default). Without an explicit value, the adapter's default applies.
-- Machine errors → HTTP codes: `AuthorizationError` → 403, `ValidationFieldError` → 422, anything else → 500; an auto `GET /health`.
+- Machine errors → HTTP codes: `AccessDeniedError` → 403, `ValidationFieldError` → 422, anything else → 500; an auto `GET /health`.
 - A mismatch between the external schema and the contract — `request_model`/`response_model` + `params_mapper`/`response_mapper` (see [Schema converters](../tutorials/step-18-converters.md)); open resources per request — the `connections=` argument (see [Connections at the boundary](../tutorials/step-17-connections.md)).
 
 In full, broken down by section and with review questions — in the chapter [Step 13 — FastAPI adapter](../tutorials/step-13-fastapi.md).

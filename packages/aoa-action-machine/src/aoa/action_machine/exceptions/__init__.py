@@ -7,10 +7,10 @@ Import public types from here, for example ``from aoa.action_machine.exceptions 
 
 from aoa.action_machine.exceptions.abstract_verdict_error import AbstractVerdictError
 from aoa.action_machine.exceptions.access_condition_async_error import AccessConditionAsyncError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError, AccessGate
 from aoa.action_machine.exceptions.action_result_declaration_error import ActionResultDeclarationError
 from aoa.action_machine.exceptions.action_result_type_error import ActionResultTypeError
 from aoa.action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
-from aoa.action_machine.exceptions.authorization_error import AccessGate, AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from aoa.action_machine.exceptions.connection_not_open_error import ConnectionNotOpenError
@@ -41,11 +41,11 @@ from aoa.action_machine.exceptions.validation_field_error import ValidationField
 __all__ = [
     "AbstractVerdictError",
     "AccessConditionAsyncError",
+    "AccessDeniedError",
     "AccessGate",
     "ActionResultDeclarationError",
     "ActionResultTypeError",
     "AspectPipelineError",
-    "AuthorizationError",
     "CacheContractError",
     "ConnectionAlreadyOpenError",
     "ConnectionNotOpenError",

@@ -4,7 +4,7 @@
 The same Action becomes an HTTP endpoint without changing its code. The adapter
 builds a FastAPI app: it validates the request, calls auth_coordinator to build a
 Context, runs the Action, and maps the Result back to JSON. OpenAPI is generated
-from Params/Result and @meta. AuthorizationError -> 403, ValidationFieldError -> 422.
+from Params/Result and @meta. AccessDeniedError -> 403, ValidationFieldError -> 422.
 
 This example uses FastAPI's in-process TestClient, so it runs without starting a
 server. In production you serve the returned app with `uvicorn app:app`.

@@ -113,7 +113,7 @@ On failure — `isError=true` and a stable code:
 | `code` | When |
 |--------|------|
 | `OK` | success; the payload is in `data` |
-| `PERMISSION_DENIED` | `AuthorizationError` (failed `@check_roles`) |
+| `PERMISSION_DENIED` | `AccessDeniedError` (failed `@check_roles`) |
 | `INVALID_PARAMS` | `ValidationFieldError` (for the tool input, the details are in `details.errors`) |
 | `INTERNAL_ERROR` | any other error |
 

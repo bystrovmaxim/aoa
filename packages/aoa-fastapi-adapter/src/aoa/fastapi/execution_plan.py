@@ -47,7 +47,8 @@ from dataclasses import dataclass
 
 from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
 from aoa.action_machine.context.context import Context
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError, AccessGate
+from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.per_call_connection import resolve_connections
 from aoa.fastapi.route_record import FastApiRouteRecord
@@ -86,11 +87,15 @@ class EndpointExecutionPlan:
         this exact ``auth_coordinator`` (see ``resolve_verdicts``' caller in ``adapter.py``).
 
         Raises:
-            AuthorizationError: ``auth_coordinator.process(request)`` returned ``None``.
+            AccessDeniedError: ``auth_coordinator.process(request)`` returned ``None``.
         """
         context = reuse_context if reuse_context is not None else await self.auth_coordinator.process(request)
         if context is None:
-            raise AuthorizationError("Authentication required")
+            raise AccessDeniedError(
+                "Authentication required",
+                level=AccessGate.IDENTITY,
+                verdict=FailSecurityVerdict("UNAUTHENTICATED"),
+            )
         connections = resolve_connections(self.record.connections)
         return PreparedEndpointContext(context=context, connections=connections)
 

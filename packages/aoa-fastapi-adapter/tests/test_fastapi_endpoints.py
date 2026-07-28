@@ -27,7 +27,7 @@ ARCHITECTURE / DATA FLOW
                            |
               +------------+-------------+
               |                          |
-        success (Result)          AuthorizationError / ValidationFieldError
+        success (Result)          AccessDeniedError / ValidationFieldError
               |                          |
          HTTP 200                   HTTP 403 / 422 (handlers)
 
@@ -46,7 +46,7 @@ from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 
 from aoa.action_machine.context.context import Context
-from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
+from aoa.action_machine.exceptions import AccessDeniedError, AccessGate, ValidationFieldError
 from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -245,16 +245,18 @@ class TestPerRouteConnections:
 
 
 class TestExceptionHandlers:
-    """Maps ``AuthorizationError`` → 403 and ``ValidationFieldError`` → 422."""
+    """Maps ``AccessDeniedError`` → 403 and ``ValidationFieldError`` → 422."""
 
-    def test_authorization_error_returns_403(self) -> None:
-        """``AuthorizationError`` from ``machine.run`` becomes HTTP 403.
-
-        A verdict-less error has no declared reason, so ``detail`` is the fixed fallback
-        rather than the exception's own message (narrow-audit finding 1)."""
+    def test_access_denied_error_returns_403(self) -> None:
+        """A refusal from machine.run becomes HTTP 403, and detail is the declared reason
+        rather than the exception's own message."""
         # Arrange
         adapter, _ = _make_app(
-            run_side_effect=AuthorizationError("access denied"),
+            run_side_effect=AccessDeniedError(
+                "access denied",
+                level=AccessGate.ROLE,
+                verdict=FailSecurityVerdict("FORBIDDEN_ROLE"),
+            ),
         )
         adapter.post("/ping", PingAction)
         app = adapter.build()
@@ -265,12 +267,13 @@ class TestExceptionHandlers:
 
         # Assert
         assert response.status_code == 403
-        assert response.json()["detail"] == "FORBIDDEN"
+        assert response.json()["detail"] == "FORBIDDEN_ROLE"
 
-    def test_authorization_error_never_puts_its_own_message_in_the_body(self) -> None:
-        """narrow-audit finding 1: the run() path used to answer 403 with ``str(exc)``.
+    def test_access_denied_error_never_puts_its_own_message_in_the_body(self) -> None:
+        """The message can differ per object, so putting it in the body would reopen the
+        oracle the shared refusal closes on the asking path.
 
-        An action raising AuthorizationError by hand can put anything in that message --
+        An action raising AccessDeniedError by hand can put anything in that message --
         including text that differs per object, which is exactly the oracle
         FORBIDDEN_OBJECT closes on the check path. Two different objects must produce
         byte-identical bodies here too, or the guarantee holds only until the user
@@ -279,7 +282,11 @@ class TestExceptionHandlers:
         bodies = []
         for order_id in ("MISSING-1", "ORD-alice-7"):
             adapter, _ = _make_app(
-                run_side_effect=AuthorizationError(f"order {order_id} not found in orders_db (owner bob@corp.com)"),
+                run_side_effect=AccessDeniedError(
+                    f"order {order_id} not found in orders_db (owner bob@corp.com)",
+                    level=AccessGate.OBJECT,
+                    verdict=FailSecurityVerdict("FORBIDDEN_OBJECT"),
+                ),
             )
             adapter.post("/ping", PingAction)
             client = TestClient(adapter.build(), raise_server_exceptions=False)
@@ -296,12 +303,12 @@ class TestExceptionHandlers:
 
         assert bodies[0] == bodies[1]
 
-    def test_authorization_error_surfaces_reason_and_level(self) -> None:
+    def test_access_denied_error_surfaces_reason_and_level(self) -> None:
         """A real .call() denial (not just a resolver .can() prediction) must carry the
         developer-declared reason= -- audit finding 2: it used to be dropped by str(exc)."""
         # Arrange
         adapter, _ = _make_app(
-            run_side_effect=AuthorizationError(
+            run_side_effect=AccessDeniedError(
                 "Access denied. guard= condition was not met.", level=2, verdict=FailSecurityVerdict("order is locked")
             ),
         )
@@ -322,12 +329,16 @@ class TestExceptionHandlers:
         assert body["detail"] == "order is locked"
         assert "guard=" not in response.text
 
-    def test_authorization_error_without_reason_or_level_surfaces_null(self) -> None:
-        """An entry-gate failure (e.g. "Authentication required") sets neither -- the
-        body must carry null, not omit the keys or crash on a missing attribute."""
+    def test_a_refusal_before_the_gates_names_the_identity_check(self) -> None:
+        """Nobody could tell who the caller is. That is a check like any other, so the
+        body carries its gate and its reason -- neither is ever null."""
         # Arrange
         adapter, _ = _make_app(
-            run_side_effect=AuthorizationError("Authentication required"),
+            run_side_effect=AccessDeniedError(
+                "Authentication required",
+                level=AccessGate.IDENTITY,
+                verdict=FailSecurityVerdict("UNAUTHENTICATED"),
+            ),
         )
         adapter.post("/ping", PingAction)
         app = adapter.build()
@@ -339,8 +350,8 @@ class TestExceptionHandlers:
         # Assert
         assert response.status_code == 403
         body = response.json()
-        assert body["reason"] is None
-        assert body["level"] is None
+        assert body["reason"] == "UNAUTHENTICATED"
+        assert body["level"] == AccessGate.IDENTITY
 
     def test_validation_error_returns_422(self) -> None:
         """``ValidationFieldError`` from ``machine.run`` becomes HTTP 422."""

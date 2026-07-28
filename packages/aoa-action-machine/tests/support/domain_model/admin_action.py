@@ -16,7 +16,7 @@ as admin_note. Summary returns Result with success=True and target from params.
 USAGE IN TESTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- Role tests: AdminRole passes; UserRole only or no roles → AuthorizationError.
+- Role tests: AdminRole passes; UserRole only or no roles → AccessDeniedError.
 - ``@check_roles(AdminRole)`` — a single concrete role type.
 - run_aspect: execute_admin in isolation.
 
@@ -30,7 +30,7 @@ USAGE IN TESTS
     assert result.target == "user_456"
 
     user_bench = bench.with_user(user_id="user_1", roles=(UserRole,))
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(AccessDeniedError):
         await user_bench.run(
             AdminAction(),
             AdminAction.Params(target="user_456"),

@@ -68,7 +68,7 @@ ERROR HANDLING
 
 Exception handlers are registered at application level:
 
-    AuthorizationError   -> HTTP 403 {"detail": "..."}
+    AccessDeniedError   -> HTTP 403 {"detail": "..."}
     ValidationFieldError -> HTTP 422 {"detail": "..."}
 
 Unhandled exceptions are caught by middleware wrapping each request in
@@ -127,10 +127,11 @@ from aoa.action_machine.adapters.base_adapter import BaseAdapter
 from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
 from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
 from aoa.action_machine.auth.permission_namespace import compute_cache_partition
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError, AccessGate
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
+from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.resources.per_call_connection import ConnectionValue
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -1091,10 +1092,10 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         """
         Register ActionMachine exception handlers at app level.
 
-            AuthorizationError   -> HTTP 403 Forbidden
+            AccessDeniedError   -> HTTP 403 Forbidden
             ValidationFieldError -> HTTP 422 Unprocessable Entity
 
-        ``AuthorizationError`` -> 403 body carries ``reason``/``level`` alongside the
+        ``AccessDeniedError`` -> 403 body carries ``reason``/``level`` alongside the
         existing ``detail`` -- additively, ``detail`` is unchanged -- so the
         developer-declared ``reason=`` a ``grant(when=...)``/``check_roles(guard=...)``
         was rejected with (or the framework-fixed ``"FORBIDDEN_ROLE"``) actually reaches
@@ -1106,23 +1107,19 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         ``BaseVerdict`` hierarchy), not a raw ``bool``.
         """
 
-        @app.exception_handler(AuthorizationError)
-        async def handle_authorization_error(
+        @app.exception_handler(AccessDeniedError)
+        async def handle_access_denied_error(
             request: Request,
-            exc: AuthorizationError,
+            exc: AccessDeniedError,
         ) -> JSONResponse:
-            # ``detail`` carries the declared reason, never ``str(exc)``. The exception's
-            # message is free-form developer text: for a cascade-raised denial it is
-            # assembled from the reason anyway, but an action that raises
-            # AuthorizationError by hand can put anything in it -- including something
-            # that differs per object, which is the oracle FORBIDDEN_OBJECT closes on the
-            # check path. Closing it there and leaving it open here would mean the
-            # guarantee holds until the user actually presses the button
-            # (narrow-audit finding 1). A verdict-less error has no declared reason, so it
-            # falls back to a fixed string rather than borrowing the message.
+            # detail carries the declared reason, never the exception's message. That
+            # message is free-form text an action can build however it likes, including
+            # differently per object -- which is exactly the oracle the shared refusal
+            # closes. Closing it on the asking path and leaving it open here would mean
+            # the guarantee holds right up until somebody presses the button.
             return JSONResponse(
                 status_code=403,
-                content={"detail": exc.reason or "FORBIDDEN", "reason": exc.reason, "level": exc.level},
+                content={"detail": exc.reason, "reason": exc.reason, "level": exc.level},
             )
 
         @app.exception_handler(ValidationFieldError)
@@ -1175,7 +1172,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         ``FailErrorVerdict`` element inside an otherwise-normal ``200``.
 
         Always calls ``auth_coordinator.process(request)``; a ``403`` (via the
-        existing ``AuthorizationError`` handler) follows only
+        existing ``AccessDeniedError`` handler) follows only
         when that returns ``None`` (e.g. invalid credentials on a strict
         coordinator) — a resolved anonymous ``Context`` (``NoAuthCoordinator``)
         proceeds normally, so ``@check_roles(GuestRole)`` actions resolve correctly
@@ -1192,7 +1189,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         against this same ``request``, reusing the entry-gate ``context`` outright
         when that route does not override the adapter's default coordinator. When a
         route *does* override it and that coordinator rejects the caller, ``prepare``
-        raises ``AuthorizationError`` -- caught here per operation (not left to
+        raises ``AccessDeniedError`` -- caught here per operation (not left to
         propagate into the app-wide 403 handler) and passed to ``resolve_verdicts`` as
         ``unauthorized_operations``, so only that operation's own positions in
         ``results`` come back ``kind=SECURITY, reason="UNAUTHORIZED"``; every other
@@ -1229,7 +1226,11 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
             context = await auth_coordinator.process(request)
             if context is None:
-                raise AuthorizationError("Authentication required")
+                raise AccessDeniedError(
+                "Authentication required",
+                level=AccessGate.IDENTITY,
+                verdict=FailSecurityVerdict("UNAUTHENTICATED"),
+            )
 
             prepared_by_operation: dict[str, PreparedEndpointContext] = {}
             unauthorized_operations: set[str] = set()
@@ -1241,7 +1242,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 reuse_context = context if plan.record.auth_coordinator is None else None
                 try:
                     prepared_by_operation[operation] = await plan.prepare(request, reuse_context=reuse_context)
-                except AuthorizationError:
+                except AccessDeniedError:
                     # This operation's own route-level auth_coordinator rejected the
                     # caller -- isolate it to this operation's positions (kind=SECURITY,
                     # reason="UNAUTHORIZED" via resolve_verdicts), not a blanket 403 for
@@ -1252,7 +1253,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                 except Exception:
                     # prepare() runs app code -- the route's own auth_coordinator and its
                     # connection factories -- so it can fail outright rather than decide.
-                    # Only AuthorizationError was caught here, so any other failure left
+                    # Only AccessDeniedError was caught here, so any other failure left
                     # this handler and answered the whole request with a 500 and no
                     # results: one unreachable connection factory sinking a batch of
                     # twenty, the outcome per-item isolation exists to rule out
@@ -1298,7 +1299,11 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         async def client_manifest(request: Request) -> StarletteResponse:
             context = await auth_coordinator.process(request)
             if context is None:
-                raise AuthorizationError("Authentication required")
+                raise AccessDeniedError(
+                "Authentication required",
+                level=AccessGate.IDENTITY,
+                verdict=FailSecurityVerdict("UNAUTHENTICATED"),
+            )
             if _if_none_match_hits(request.headers.get("if-none-match"), manifest_etag):
                 return StarletteResponse(status_code=304, headers=manifest_headers)
             # A fresh Response per request: cheap (wraps the already-rendered bytes
@@ -1313,7 +1318,11 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         async def permission_namespace(request: Request) -> PermissionNamespace:
             context = await auth_coordinator.process(request)
             if context is None:
-                raise AuthorizationError("Authentication required")
+                raise AccessDeniedError(
+                "Authentication required",
+                level=AccessGate.IDENTITY,
+                verdict=FailSecurityVerdict("UNAUTHENTICATED"),
+            )
             # Freshly derived from this call's identity, never stored — see
             # compute_cache_partition's own docstring for why that is enough to
             # behave like a generation counter without needing one.

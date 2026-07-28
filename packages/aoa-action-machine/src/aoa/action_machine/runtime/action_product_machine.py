@@ -138,7 +138,7 @@ from functools import partial
 from typing import Any, TypeVar, cast, overload
 
 from aoa.action_machine.context.context import Context
-from aoa.action_machine.exceptions.authorization_error import AccessGate, AuthorizationError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError, AccessGate
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
@@ -261,7 +261,7 @@ def _validated_access_decide_verdict(
     either "allowed" or "denied": it is raised here as a plain ``TypeError``, so each caller's own
     existing exception handling decides what that means for it -- `_enforce_access_decide` lets it
     propagate and abort the real call, `check_access_decide`'s list form already turns any
-    non-`AuthorizationError` exception into an isolated `FailErrorVerdict` for that one item.
+    non-`AccessDeniedError` exception into an isolated `FailErrorVerdict` for that one item.
 
     The error message names only ``type(verdict).__name__``, never ``verdict`` itself: a broken
     override could return anything -- a domain object, raw params, something carrying sensitive
@@ -664,15 +664,15 @@ class ActionProductMachine(BaseActionMachine):
         then ``access_decide(...)`` itself — called directly, not through ``_enforce_access_decide``,
         since there is no real execution here to abort: whatever ``access_decide`` returns
         (``AllowedVerdict``/``FailSecurityVerdict``) *is* the answer for that item, no exception
-        involved. A role/guard denial (``AuthorizationError`` from ``RoleChecker``) reports
+        involved. A role/guard denial (``AccessDeniedError`` from ``RoleChecker``) reports
         ``exc.verdict`` — always set by ``RoleChecker`` (see its own module docstring). An
-        ``AuthorizationError`` *without* a verdict is not a denial at all: nothing decided
+        ``AccessDeniedError`` *without* a verdict is not a denial at all: nothing decided
         anything, so it joins the crash path below rather than becoming a
         ``FailSecurityVerdict`` built from ``str(exc)``. That fallback used to exist and was
         the one way both of this method's guarantees could be bypassed at once — the message
         is free-form text that can differ per object (an oracle), and calling it a *denial*
         makes it cacheable, so an infrastructure hiccup would be remembered as a permanent
-        "no" (audit-11 finding 1). Raising ``AuthorizationError`` from inside ``access_decide``
+        "no" (audit-11 finding 1). Raising ``AccessDeniedError`` from inside ``access_decide``
         is therefore not a supported way to deny — return a ``FailSecurityVerdict`` instead.
         Anything else raised while evaluating that item (a bug in its ``access_decide``, an
         unreachable connection) becomes ``FailErrorVerdict("EVALUATION_FAILED")`` — not a
@@ -705,7 +705,7 @@ class ActionProductMachine(BaseActionMachine):
                     verdict = _validated_access_decide_verdict(
                         item_instance, await item_instance.access_decide(item_params, context, box, conns)
                     )
-                except AuthorizationError as exc:
+                except AccessDeniedError as exc:
                     # No verdict means no decision was ever reached -- fall through to the
                     # same "could not check" answer as any other crash, never str(exc).
                     # See the docstring above (audit-11 finding 1).
@@ -759,7 +759,7 @@ class ActionProductMachine(BaseActionMachine):
         connections: dict[str, BaseResource],
         context: Context,
     ) -> None:
-        """Level 3 of the access-control cascade: raise ``AuthorizationError(level=AccessGate.OBJECT)`` if
+        """Level 3 of the access-control cascade: raise ``AccessDeniedError(level=AccessGate.OBJECT)`` if
         ``access_decide`` returns a ``FailSecurityVerdict``.
 
         Called from ``_run_internal`` *after* ``emit_global_start`` — deliberately: the
@@ -777,7 +777,7 @@ class ActionProductMachine(BaseActionMachine):
             action_instance, await action_instance.access_decide(params, context, box, connections)
         )
         if isinstance(verdict, FailSecurityVerdict):
-            raise AuthorizationError(
+            raise AccessDeniedError(
                 f"Access denied: {type(action_instance).__name__}.access_decide() rejected — {verdict.reason}.",
                 level=AccessGate.OBJECT,
                 verdict=verdict,

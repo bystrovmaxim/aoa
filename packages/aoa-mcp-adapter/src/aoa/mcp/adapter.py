@@ -104,7 +104,7 @@ ERROR HANDLING
 
 Exceptions are converted to JSON error envelopes with ``isError=True``:
 
-    AuthorizationError      → ``{"ok":false,"code":"PERMISSION_DENIED","message":...,"details":{}}``
+    AccessDeniedError      → ``{"ok":false,"code":"PERMISSION_DENIED","message":...,"details":{}}``
     ValidationFieldError    → ``code`` ``INVALID_PARAMS``, ``message`` from ``exc.message``,
                               ``details`` from ``exc.details`` (tool input: ``errors`` from Pydantic)
     Exception               → ``code`` ``INTERNAL_ERROR``, fixed ``message`` ``"Unexpected failure"``;
@@ -131,11 +131,12 @@ from pydantic import ValidationError as PydanticValidationError
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
 from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
 from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError, AccessGate
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
+from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -328,10 +329,10 @@ def _make_tool_handler(
                 content=[TextContent(type="text", text=_envelope_ok(payload))],
                 isError=False,
             )
-        except AuthorizationError as exc:
+        except AccessDeniedError as exc:
             # The declared reason, never ``str(exc)``. Same rule, and the same reason for
             # it, as the FastAPI adapter's 403 handler: an action raising
-            # AuthorizationError by hand can put per-object text in the message, which
+            # AccessDeniedError by hand can put per-object text in the message, which
             # re-opens the oracle ``FORBIDDEN_OBJECT`` closes on the check path. MCP is a
             # second transport over the same ``machine.run()``, so closing it on one and
             # not the other would leave the guarantee half-applied (narrow-audit
@@ -407,7 +408,11 @@ async def _execute_tool_call(
 
     context = await auth_coordinator.process(None)
     if context is None:
-        raise AuthorizationError("Authentication required")
+        raise AccessDeniedError(
+                "Authentication required",
+                level=AccessGate.IDENTITY,
+                verdict=FailSecurityVerdict("UNAUTHENTICATED"),
+            )
 
     connections = resolve_connections(record.connections)
 
