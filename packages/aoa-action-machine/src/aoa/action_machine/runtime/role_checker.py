@@ -84,12 +84,9 @@ from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
 from aoa.action_machine.model.base_action import BaseAction
 
-# No role matched at all (level 1) is the one denial RoleChecker decides on its own --
-# always this exact, framework-fixed reason, never a developer-declared one (see
-# _check_sentinel/_denial_error below) -- so one frozen instance, built once here, is
-# safe to hand out for every such denial instead of rebuilding it per request
-# (baseverdict-audit finding 8, third document; same pattern as
-# aoa-fastapi-adapter's permissions.py _UNKNOWN_ENDPOINT_VERDICT/_UNAUTHORIZED_VERDICT).
+# "No role matched at all" is the one refusal this decides by itself, and it always says
+# exactly this -- never anything a developer wrote. Always the same value, and a verdict
+# cannot be edited, so one shared instance is enough.
 _FORBIDDEN_ROLE_VERDICT = FailSecurityVerdict("FORBIDDEN_ROLE")
 # A condition that rejected without naming a reason. grant()/check_roles() supply one
 # by default, so this is what a hand-built graph edge falls back to.

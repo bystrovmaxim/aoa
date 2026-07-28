@@ -189,7 +189,7 @@ def _get_action_class_description(
     """
     Extract description from action ``@meta`` declaration.
 
-    Used to auto-fill endpoint summary when summary is not provided explicitly
+    Fills in the endpoint summary when none was given explicitly
     during route registration.
 
     Args:
@@ -356,10 +356,9 @@ def _check_for_route_shadowing(routes: list[tuple[str, str]]) -> None:
     fields this check ever reads — so the caller can feed it the adapter's own bespoke
     routes (``/health``, ``/permissions/resolve``, ...) alongside ``self._routes``
     without fabricating a fake ``FastApiRouteRecord`` (which would need a real
-    ``action_class``) for each one. Audit finding 5: those four used to be invisible
-    to this check entirely, registered a different way and never added to the list
-    it was called with — an app-registered route could structurally shadow the
-    framework's own health check or resolver and ``build()`` would not notice.
+    ``action_class``) for each one. The adapter's own routes have to take part: otherwise
+    an app-registered route can structurally shadow the health check or the resolver, and
+    nothing notices.
 
     Exact ``(method, path)`` duplicates are a separate, non-fatal case (a dev-time
     ``UserWarning`` in ``_register``, first-wins in the manifest/resolver) — skipped
@@ -724,8 +723,8 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     #: so an app-registered route on the same path would be silently shadowed by
     #: Starlette's first-match-wins routing — see ``ReservedRoutePathError``). Single
     #: source of truth for both ``_RESERVED_PATHS`` (exact-path collisions) and the
-    #: route-shadowing check in ``build()`` (template overlaps) — audit finding 5: the
-    #: two used to be checked separately, and only one of them knew these paths existed.
+    #: route-shadowing check in ``build()`` (template overlaps). One list, because two
+    #: lists drift and only one of them ends up knowing about a new reserved path.
     _RESERVED_ROUTES: tuple[tuple[str, str], ...] = (
         ("GET", "/health"),
         ("POST", "/permissions/resolve"),
@@ -1013,7 +1012,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         built once here (``plan_index``) and shared by both step 6 and step 7 — a
         real call and the resolver's own prediction for the same route always read
         the identical plan object, not two independently-built ones that merely
-        happen to agree today (chapter 3.5 rule 1; audit finding 9).
+        happen to agree today.
 
         Raises:
             RouteShadowError: two registered routes, same method, have path
@@ -1058,7 +1057,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
         Reads this route's plan from ``plan_index`` (built once in ``build()``) rather
         than constructing its own -- the resolver reads the exact same plan object for
-        the exact same route, per chapter 3.5 rule 1 (audit finding 9). An exact
+        the exact same route. An exact
         ``(method, path)`` duplicate (allowed, first-wins, a non-fatal ``UserWarning``
         elsewhere) resolves to the *first* registration's plan here too; the second
         registration is already unreachable via Starlette's own first-match routing,
@@ -1154,9 +1153,9 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     ) -> None:
         """
         Add ``POST /permissions/resolve`` (list-shaped role-gate resolver, PR 1 + PR 2),
-        ``GET /client-manifest.json`` (endpoint catalog, chapter 3), and
+        ``GET /client-manifest.json`` (the catalog of endpoints), and
         ``GET /permissions/namespace`` (``PermissionNamespace``/``cache_partition``,
-        chapter 3.5) — all issue #130.
+        the wire protocol).
 
         Registered as a bespoke route, not a ``BaseAction`` — it needs ``machine``
         and a full ``Context`` to call ``machine.check_access_decide`` on *other*
@@ -1166,7 +1165,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         ``POST /permissions/resolve`` checks the whole request before touching any
         item, in order: ``body.version`` first (``400`` via ``UnsupportedVersionError``
         -> ``ErrorEnvelope``, before authentication even runs), then
-        ``auth_coordinator.process(request)`` (``403``) — see chapter 3.5 rules 7/8.
+        ``auth_coordinator.process(request)`` (``403``).
         Neither failure produces a ``results`` array at all; a per-item problem
         (unknown ``operation``, a failed check) never does either — it becomes a
         ``FailErrorVerdict`` element inside an otherwise-normal ``200``.
@@ -1197,7 +1196,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         entry gate above (``auth_coordinator.process(request)`` at the top of this
         handler) stays whole-request on purpose -- identity is not established at all
         yet at that point, so there is no per-item granularity to preserve.
-        Deduplication and per-item error isolation (PR 2, chapter 2) live in
+        Deduplication and per-item error isolation live in
         :func:`~aoa.fastapi.permissions.resolve_verdicts`, not here — this endpoint
         only wires auth + the wire response around it.
 
@@ -1210,8 +1209,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         machine = self._machine
         auth_coordinator = self._auth_coordinator
         # plan_index and route_index are both built once in build() and shared with
-        # _register_endpoint / this method -- not rebuilt here (audit finding 9;
-        # route_index reuse is audit finding 16, second document). Projected once:
+        # _register_endpoint / this method -- not rebuilt here. Projected once:
         # self._routes is already fixed by the time build() runs (every
         # .post/.get/... has registered), so nothing is recomputed per request.
         manifest = build_manifest_from_route_index(route_index)
@@ -1257,7 +1255,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
                     # this handler and answered the whole request with a 500 and no
                     # results: one unreachable connection factory sinking a batch of
                     # twenty, the outcome per-item isolation exists to rule out
-                    # (narrow-audit finding 3). Isolated to this operation's own
+                    # Isolated to this operation's own
                     # positions as EVALUATION_FAILED via resolve_verdicts -- nothing was
                     # decided for it, and the failure's own text stays server-side.
                     unpreparable_operations.add(operation)
@@ -1280,10 +1278,10 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         # about its content varying by caller. Neither headers nor body depend on
         # anything request-scoped, and self._routes is already fixed by build()
         # time, so the JSON bytes are computed exactly once here, not per request:
-        # audit finding 8 — JSONResponse(...) itself re-runs model_dump() *and*
+        # JSONResponse(...) itself re-runs model_dump() *and*
         # json.dumps() on every construction, so precomputing only the dict passed
         # to it would still re-serialize to JSON on every single request. What is
-        # NOT cached is the Response object itself (audit finding 2): Response.raw_
+        # NOT cached is the Response object itself: Response.raw_
         # headers is a plain mutable list, and Response.__call__ hands that exact
         # list, by reference, into the ASGI "http.response.start" message on every
         # call. Middleware that rewrites headers in place -- e.g. GZipMiddleware,

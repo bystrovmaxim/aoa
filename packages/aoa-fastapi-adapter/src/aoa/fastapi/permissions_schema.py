@@ -73,13 +73,13 @@ it from the catalog before ever calling the resolver. ``ResolveRequest.version``
 is the version the client built its request for; the resolver checks it *first*,
 before authentication, and rejects a mismatch with ``UnsupportedVersionError``
 (``aoa.fastapi.unsupported_version_error``) rather than guessing at a request
-shaped for a contract it does not speak — see chapter 3.5 rule 8.
+shaped for a contract it does not speak.
 
 ``ErrorEnvelope`` (``{"error": {"code": "..."}}``) is the body of a *whole-request*
 failure — unsupported version, failed authentication, an uncaught server error —
 never a per-item problem. A single bad item inside an otherwise-valid batch stays
 a normal ``200`` with a ``FailErrorVerdict`` element inside ``results``; only a
-request that never got that far uses this envelope. See chapter 3.5 rule 7's
+request that never got that far uses this envelope. See the
 "whole request vs. partial response" boundary.
 """
 

@@ -330,19 +330,15 @@ def _make_tool_handler(
                 isError=False,
             )
         except AccessDeniedError as exc:
-            # The declared reason, never ``str(exc)``. Same rule, and the same reason for
-            # it, as the FastAPI adapter's 403 handler: an action raising
-            # AccessDeniedError by hand can put per-object text in the message, which
-            # re-opens the oracle ``FORBIDDEN_OBJECT`` closes on the check path. MCP is a
-            # second transport over the same ``machine.run()``, so closing it on one and
-            # not the other would leave the guarantee half-applied (narrow-audit
-            # finding 7). A verdict-less error has no declared reason and falls back to a
-            # fixed string.
+            # The declared reason, never the exception's own message. That message is
+            # free-form and can differ per object, which re-opens the oracle a shared
+            # refusal closes. This is a second transport over the same machine, so closing
+            # it on one and not the other would leave the guarantee half-applied.
             return CallToolResult(
                 content=[
                     TextContent(
                         type="text",
-                        text=_envelope_error("PERMISSION_DENIED", exc.reason or "FORBIDDEN"),
+                        text=_envelope_error("PERMISSION_DENIED", exc.reason),
                     )
                 ],
                 isError=True,

@@ -6,7 +6,7 @@ EndpointExecutionPlan / PreparedEndpointContext — one recipe for ``.can()`` an
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Before this module, the real endpoint handlers (:mod:`aoa.fastapi.adapter`) and the
+Both the real endpoint handlers (:mod:`aoa.fastapi.adapter`) and the
 permissions resolver (:mod:`aoa.fastapi.permissions`) authenticated requests two
 different ways: real handlers ran each route's own
 ``BaseAdapter.effective_auth_coordinator(record)`` and resolved that route's own

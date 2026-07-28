@@ -3,7 +3,7 @@
 export interface ResolveItem {
   operation: string;
   params: Record<string, unknown>;
-  context?: Record<string, unknown>; // reserved for future client-supplied ABAC hints (chapter 8); server ignores it today
+  context?: Record<string, unknown>; // reserved for client-supplied hints; the server ignores it today
 }
 
 // The three answers, named exactly as the server names them. `kind` is the name of the

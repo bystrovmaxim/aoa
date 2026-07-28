@@ -12,7 +12,7 @@ Small, independent pieces of glue between the wire protocol
 
 - :func:`build_route_index` — map a wire ``operation`` string to its registered
   route. ``operation`` is the endpoint identifier ``"{method} {path}"`` (e.g.
-  ``"POST /actions/cancel-order"``), the same string the manifest (chapter 3)
+  ``"POST /actions/cancel-order"``), the same string the manifest
   publishes. The index is a projection of the adapter's ``self._routes``, not a
   graph traversal; a duplicate (method, path) is first-wins like the router,
   not an error.

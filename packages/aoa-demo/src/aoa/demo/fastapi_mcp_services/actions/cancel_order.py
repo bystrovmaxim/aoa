@@ -29,7 +29,7 @@ That distinction is the whole point, not a detail: an earlier version of this
 action took ``owner_user_id`` as a ``Params`` field, so the caller *claimed*
 ownership rather than proving it. Sending ``owner_user_id`` set to one's own id
 was enough to walk straight past level 3 and cancel someone else's order
-(audit-11 finding 2). Anything the request can set cannot be the thing the
+Anything the request can set cannot be the thing the
 request is checked against.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -141,7 +141,7 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
         Once ownership is confirmed, a more specific reason ("already
         cancelled") is safe to reveal: the caller *has* proven this is their
         own order — the owner came from ``_ORDERS``, not from the request — so
-        a specific reason no longer helps them enumerate anyone else's.
+        a specific reason does not help them enumerate anyone else's.
         """
         order = _ORDERS.get(params.order_id)
         if order is None or order.owner_user_id != context.user.user_id:

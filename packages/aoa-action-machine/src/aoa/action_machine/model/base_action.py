@@ -228,11 +228,9 @@ class BaseAction[P: BaseParams, R: BaseResult](
         on the check-only path; on the real ``machine.run()`` path it still blocks
         execution, same as any non-``AllowedVerdict`` outcome.
 
-        Raising ``AccessDeniedError`` by hand to deny is **not** supported, even though it
-        is the exception the cascade itself raises: one built here carries no ``verdict=``,
-        so ``check_access_decide`` cannot tell it from a crash and reports
-        ``FailErrorVerdict("EVALUATION_FAILED")`` — the denial simply does not arrive. Return
-        a ``FailSecurityVerdict`` instead (audit-11 finding 1).
+        Returning is the way to deny. Raising ``AccessDeniedError`` by hand works too --
+        it carries a verdict like any other refusal -- but returning says the same thing
+        without an exception, and reads as a decision rather than a failure.
         """
         from aoa.action_machine.intents.access_control import AllowedVerdict
 
