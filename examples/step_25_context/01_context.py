@@ -26,7 +26,7 @@ from pydantic import Field
 from aoa.action_machine.auth import ApplicationRole, GuestRole
 from aoa.action_machine.context import Ctx
 from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError
 from aoa.action_machine.exceptions.context_access_error import ContextAccessError
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -102,8 +102,8 @@ async def main() -> None:
     # 2. The roles on the user are what @check_roles checks — drop them and it fails.
     try:
         await TestBench().run(WhoamiAction(), EmptyParams(), rollup=False)   # default user: no admin
-    except AuthorizationError as exc:
-        print(f"2) no admin role             -> AuthorizationError: {exc}")
+    except AccessDeniedError as exc:
+        print(f"2) no admin role             -> AccessDeniedError: {exc}")
 
     # 3. A field present in the Context but NOT declared is refused.
     leak_bench = TestBench().with_request(client_ip="10.0.0.7")   # client_ip IS set...

@@ -1,4 +1,4 @@
-<!-- translated-from: jwt_draft.md @ 2026-07-11T14:10:43Z (filesystem mtime; draft is gitignored, no git history) · sha256:fbf9dce9a47c -->
+<!-- translated-from: jwt_draft.md @ 2026-07-28T15:16:53Z (filesystem mtime; draft is gitignored, no git history) · sha256:bf1832ee70f4 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -67,7 +67,7 @@ This shape has the service play both issuer and verifier. When the issuer is an 
 
 A working, run-verified example in two files:
 
-**Issuing** — [`examples/step_13_fastapi/03_login_action.py`](../../examples/step_13_fastapi/03_login_action.py) ([▶ Try in Colab](#03_login_action.ipynb)). `LoginAction` — two aspects: check the username/password (on mismatch — `AuthorizationError`, the same message for a wrong password and for an unknown user — no username enumeration), sign the JWT (`sub`, `roles`, `iat`, `exp`).
+**Issuing** — [`examples/step_13_fastapi/03_login_action.py`](../../examples/step_13_fastapi/03_login_action.py) ([▶ Try in Colab](#03_login_action.ipynb)). `LoginAction` — two aspects: check the username/password (on mismatch — `AccessDeniedError`, the same message for a wrong password and for an unknown user — no username enumeration), sign the JWT (`sub`, `roles`, `iat`, `exp`).
 
 **Verifying** — [`examples/step_13_fastapi/04_bearer_auth.py`](../../examples/step_13_fastapi/04_bearer_auth.py) ([▶ Try in Colab](#04_bearer_auth.ipynb)). `JwtAuthCoordinator` is the adapter's strict default; `/auth/login` is an explicit [route-level override](../tutorials/step-12-authentication.md#route-level-override) (`NoAuthCoordinator`), because login has no token to present yet:
 

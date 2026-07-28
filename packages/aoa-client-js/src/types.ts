@@ -3,18 +3,16 @@
 export interface ResolveItem {
   operation: string;
   params: Record<string, unknown>;
-  context?: Record<string, unknown>; // reserved for future client-supplied ABAC hints (chapter 8); server ignores it today
+  context?: Record<string, unknown>; // reserved for client-supplied hints; the server ignores it today
 }
 
-// Three outcome classes -- same names as the server's BaseVerdict/
-// AllowedVerdict/FailSecurityVerdict/FailErrorVerdict (aoa-action-machine).
-// kind is not a channel enum value, it's the class's own name
-// (type(self).__name__ on the server). AllowedVerdict is success -- no
-// reason field at all, not an empty string. FailSecurityVerdict is a
-// durable denial (role/guard=/access_decide said no) -- reason is mandatory.
-// FailErrorVerdict is not a denial, it's the absence of a decision: the
-// server could not check (unknown endpoint, unhandled exception) -- the one
-// class that must never be shown as a denial or cached as one.
+// The three answers, named exactly as the server names them. `kind` is the name of the
+// class that answered, not a value from some list of codes.
+//
+// AllowedVerdict is yes, and has no reason field at all -- not an empty one.
+// FailSecurityVerdict is no: somebody looked and refused, and the reason is always there.
+// FailErrorVerdict is neither. Nobody could tell, so it must never be shown as a refusal
+// or remembered as one.
 export interface AllowedVerdict {
   kind: "AllowedVerdict";
 }
@@ -29,11 +27,9 @@ export interface FailErrorVerdict {
   reason: string;
 }
 
-// Discriminated union: after a check like result.kind === "FailErrorVerdict",
-// TypeScript narrows result to FailErrorVerdict inside that branch, so reason
-// is visible without a cast. The client-side stale flag (chapter 6) lives on
-// a SEPARATE client type, not here. The set of three classes is fixed and
-// stable -- later chapters only add new reason values, never a new class.
+// Checking `kind` narrows the type inside that branch, so `reason` is reachable without
+// a cast. There are three answers and there will stay three: new situations get a new
+// reason, never a fourth kind of answer.
 export type Verdict = AllowedVerdict | FailSecurityVerdict | FailErrorVerdict;
 
 // The resolver's whole response body: the wire-language version plus one
@@ -43,24 +39,16 @@ export interface ResolveResponse {
   results: Verdict[];
 }
 
-// Everything the rest of this library actually needs from an engine: one
-// method. AoaEngine satisfies it (and says so with `implements`), and so does
-// the test double in aoa-client-js/testing.
+// Everything the rest of this library needs from an engine: one method. The real engine
+// satisfies it, and so does the test double.
 //
-// Why an interface at all, when AoaEngine is right there: AoaEngine has
-// private fields (config, cache), and a private field makes a TypeScript class
-// type NOMINAL, not structural. A hand-written object with the same public
-// surface is therefore NOT assignable to AoaEngine -- no amount of matching
-// methods helps. Every consumer that named the class (makeGatePrimitive,
-// makeCallablePrimitive, buildDynamicGateApi, and the generated
-// createGateApi/createApi) was consequently impossible to hand a test double
-// without an `as any`. Naming this interface instead costs nothing at runtime
-// and makes the double a first-class citizen rather than a cast.
+// It has to be an interface rather than the class itself. A TypeScript class with private
+// fields can only be satisfied by that class -- a hand-written object with an identical
+// public surface is still rejected, however well it matches. Asking for the one method
+// instead costs nothing at runtime and makes a test double a first-class value rather
+// than a cast.
 //
-// Deliberately narrow -- resolve() only. cachePartition, loadFrom() and the
-// cache stay on the concrete class: nothing between the engine and a primitive
-// reads them, and widening this interface later is additive, while narrowing
-// it would be a break.
+// Narrow on purpose. Adding to this later is harmless; taking something away is not.
 export interface ResolveEngine {
   resolve(items: ResolveItem[], opts?: { traceId?: string; skipCache?: boolean }): Promise<Verdict[]>;
 }

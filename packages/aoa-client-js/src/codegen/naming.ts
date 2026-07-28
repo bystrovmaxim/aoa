@@ -18,11 +18,9 @@ export function deriveEndpointBaseName(endpointName: string): string {
     : endpointName;
 }
 
-// ECMAScript reserved words -- cannot legally name a `const`, `interface`, or `type`
-// declaration in ANY position, unlike `isValidIdentifier` (identifier.ts), which
-// deliberately allows them for property-key contexts where they're perfectly valid
-// (`{ delete: true }`, `path-layout.ts`'s dot-alias segments). Declaration positions
-// need this separate, stricter check (audit finding 3).
+// Words JavaScript reserves. They cannot name a declaration anywhere, which is stricter
+// than the identifier check used elsewhere: as a property key, `delete` is perfectly
+// fine. Declarations need their own, stricter list.
 const RESERVED_WORDS = new Set([
   "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete",
   "do", "else", "enum", "export", "extends", "false", "finally", "for", "function", "if",
@@ -36,17 +34,14 @@ export function isReservedWord(name: string): boolean {
 }
 
 /**
- * Rejects an endpoint's derived base name at the earliest possible point -- before
- * `NameRegistry.claimBase` ever sees it -- if it isn't a valid, non-reserved TypeScript
- * identifier on its own. `ManifestEndpoint.name` is an arbitrary server-side string with
- * no format guarantee (manifest.py): a stray space/hyphen/dot, or an empty base left
- * over after `deriveEndpointBaseName` strips "Action" from a name that WAS just
- * "Action", reaches every position derived from `base` (`${base}Params`, the
- * SCREAMING_SNAKE descriptor, the lowerFirst local variable) as an invalid identifier a
- * disambiguating numeric suffix cannot repair -- `claimBase("", ...)` on a second
- * collision would happily return the digit-led, still-invalid "2" (audit finding 3).
- * A clear generation-time error naming the offending server action is preferable to a
- * silently-corrupted generated file discovered only once someone tries to compile it.
+ * Refuses a name that cannot legally be a TypeScript declaration, before anything is
+ * derived from it. Nothing guarantees the server's action name is a legal identifier: a
+ * stray space or dot, or an empty name left after stripping the "Action" suffix from
+ * something that was only "Action", reaches every name built from it. Adding a number to
+ * disambiguate does not repair that -- it produces "2".
+ *
+ * Failing here, naming the action at fault, beats handing back a file that only fails
+ * when somebody tries to compile it.
  */
 export function assertValidBaseName(base: string, endpoint: { name: string; operation: string }): void {
   if (isValidIdentifier(base) && !isReservedWord(base)) return;
@@ -58,17 +53,14 @@ export function assertValidBaseName(base: string, endpoint: { name: string; oper
 }
 
 /**
- * Tracks every top-level TypeScript declaration name in the generated file — not just
- * endpoint base names, but the full derived and hoisted forms too — in one shared
- * namespace. `ManifestEndpoint.name` is documented as informational only (manifest.py):
- * nothing guarantees it's unique across endpoints, and a name hoisted from a nested
- * `$defs` entry (`${paramsName}${refName}`, see json-schema-to-ts.ts's `resolveRefName`
- * callback) is a mechanical string concatenation with no uniqueness guarantee of its
- * own either. Left unchecked, either kind of collision would silently splice one
- * declaration's fields into an unrelated one via TypeScript's own interface declaration
- * merging (audit finding 2: this used to be entirely invisible, since only bare endpoint
- * base names were tracked, and only against each other — never against an endpoint's
- * own derived `Params`/`Result` names, and never against a hoisted name at all).
+ * Tracks every name the generated file declares, in one shared namespace -- not only the
+ * names taken from actions, but the ones derived and lifted out of nested definitions too.
+ * Nothing guarantees any of them is unique: the server's action names carry no such
+ * promise, and a lifted name is built by gluing strings together.
+ *
+ * A collision has to be caught here, because it does not fail on its own. TypeScript
+ * merges two interfaces that share a name, quietly splicing one action's fields into
+ * another.
  */
 export class NameRegistry {
   private readonly ownerByName = new Map<string, string>();

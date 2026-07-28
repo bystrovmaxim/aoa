@@ -87,7 +87,7 @@ def main() -> None:
     rejected_client = _make_client(resolved_context=None)
     rejected_response = rejected_client.post("/permissions/resolve", json=resolve_body)
     print("(b) process() returned None:")
-    print(f"    status = {rejected_response.status_code}")  # 403 — AuthorizationError's handler
+    print(f"    status = {rejected_response.status_code}")  # 403 — AccessDeniedError's handler
 
 
 main()

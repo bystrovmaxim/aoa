@@ -267,6 +267,10 @@ disable = [
 
     # ── Архитектурные решения фреймворка (осознанные) ──
     "R0401",  # cyclic-import — цепочка BaseAction ↔ gate-host inspectors разорвана ленивыми импортами; граф pylint всё равно видит цикл
+    "C0415",  # import-outside-toplevel — тот же ленивый импорт, что разрывает R0401 выше;
+              # решение архитектурное, поэтому живёт здесь, а не прагмой в каждом файле
+    "C0411",  # wrong-import-order — ruff/isort и pylint расходятся в порядке first-party;
+              # порядок задаёт ruff, спор двух линтеров не должен быть комментарием в коде
     "R0903",  # too-few-public-methods
     "R0801",  # duplicate-code
     "R0913",  # too-many-arguments — pipeline-методы принимают контекстные данные

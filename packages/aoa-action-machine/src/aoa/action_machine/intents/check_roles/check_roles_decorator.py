@@ -40,7 +40,7 @@ same path as the condition they belong to: ``Grant.reason`` becomes
 ``RoleGraphEdge.properties["when_reason"]``, the decorator's ``reason=`` becomes
 ``cls._role_info["guard_reason"]`` and then
 ``ActionGraphNode.properties["guard_reason"]``. ``RoleChecker`` reads both back
-at denial time and passes the matching one straight into the ``AuthorizationError``
+at denial time and passes the matching one straight into the ``AccessDeniedError``
 it raises (``verdict=``).
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -99,8 +99,6 @@ from aoa.action_machine.intents.check_roles.reason_validation import require_rea
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 if TYPE_CHECKING:
-    # Deferred: same transitive-cycle reason as grant.py. Only the type annotations
-    # below need it -- the one runtime construction lives in reason_validation.py now.
     from aoa.action_machine.intents.access_control import FailSecurityVerdict
 
 

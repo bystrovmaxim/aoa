@@ -5,11 +5,12 @@ Framework-level exceptions for ActionMachine.
 Import public types from here, for example ``from aoa.action_machine.exceptions import NamingSuffixError``.
 """
 
+from aoa.action_machine.exceptions.abstract_verdict_error import AbstractVerdictError
 from aoa.action_machine.exceptions.access_condition_async_error import AccessConditionAsyncError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError, AccessGate
 from aoa.action_machine.exceptions.action_result_declaration_error import ActionResultDeclarationError
 from aoa.action_machine.exceptions.action_result_type_error import ActionResultTypeError
 from aoa.action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from aoa.action_machine.exceptions.connection_not_open_error import ConnectionNotOpenError
@@ -20,6 +21,8 @@ from aoa.action_machine.exceptions.domain_graph_edge_resolution_error import Dom
 from aoa.action_machine.exceptions.graph_edge_resolution_error import GraphEdgeResolutionError
 from aoa.action_machine.exceptions.handle_error import HandleError
 from aoa.action_machine.exceptions.include_contract_violation_error import IncludeContractViolationError
+from aoa.action_machine.exceptions.invalid_verdict_kind_error import InvalidVerdictKindError
+from aoa.action_machine.exceptions.invalid_verdict_reason_error import InvalidVerdictReasonError
 from aoa.action_machine.exceptions.log_template_error import LogTemplateError
 from aoa.action_machine.exceptions.missing_check_roles_error import MissingCheckRolesError
 from aoa.action_machine.exceptions.missing_entity_info_error import MissingEntityInfoError
@@ -36,11 +39,13 @@ from aoa.action_machine.exceptions.transaction_prohibited_error import Transacti
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 
 __all__ = [
+    "AbstractVerdictError",
     "AccessConditionAsyncError",
+    "AccessDeniedError",
+    "AccessGate",
     "ActionResultDeclarationError",
     "ActionResultTypeError",
     "AspectPipelineError",
-    "AuthorizationError",
     "CacheContractError",
     "ConnectionAlreadyOpenError",
     "ConnectionNotOpenError",
@@ -51,6 +56,8 @@ __all__ = [
     "GraphEdgeResolutionError",
     "HandleError",
     "IncludeContractViolationError",
+    "InvalidVerdictKindError",
+    "InvalidVerdictReasonError",
     "LogTemplateError",
     "MissingCheckRolesError",
     "MissingEntityInfoError",

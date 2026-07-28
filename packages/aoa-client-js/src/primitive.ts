@@ -1,9 +1,8 @@
 // packages/aoa-client-js/src/primitive.ts
 //
-// Shared, hand-written machinery behind every generated `Primitive` (chapter 5): the
-// generated file only supplies a per-endpoint operation string (for verdict/can) and a
-// descriptor (for run) — the actual resolve/invoke logic lives here once, so a codegen
-// templating bug can't silently duplicate a mistake into every endpoint's output.
+// The hand-written machinery behind every generated action object. The generated file
+// supplies only names and a descriptor; the logic lives here once, so a mistake in the
+// generator cannot copy itself into every action.
 
 import { AoaResolveError } from "./engine.ts";
 import type { ResolveEngine, Verdict } from "./types.ts";
@@ -39,10 +38,9 @@ export function buildInvocation(descriptor: { method: string; path: string }, pa
   return { method: descriptor.method, path: descriptor.path, body: params };
 }
 
-// TParams is always one of the generated, closed Params interfaces (no index
-// signature), so it is never structurally assignable to ResolveItem.params
-// (Record<string, unknown>) without a cast -- see engine.ts/types.ts. Written once
-// here, not re-templated per endpoint by the generator.
+// The generated parameter types are closed -- they declare their fields and nothing
+// else -- so handing one to something expecting an open bag of keys needs a cast. Written
+// once here rather than repeated into every generated action.
 export function makeGatePrimitive<TParams>(engine: ResolveEngine, operation: string): GatePrimitive<TParams> {
   return {
     async verdict(params: TParams): Promise<Verdict> {
@@ -65,9 +63,9 @@ export function makeCallablePrimitive<TParams, TResult>(
 ): CallablePrimitive<TParams, TResult> {
   return {
     ...makeGatePrimitive<TParams>(engine, operation),
-    // Precheck (chapter 5.5): a fresh, non-cached can() right before the real call --
-    // skipCache is mandatory here, a cache hit would defeat the whole point of asking
-    // again right before invoking. FailErrorVerdict throws the same AoaResolveError
+    // Ask once more, for real, immediately before invoking. Skipping the cache is the
+    // point: a remembered answer would say nothing about right now. "Could not check"
+    // throws the same error
     // .can() already throws for it (no new behavior). FailSecurityVerdict is new: a
     // plain Error with no dedicated class -- neither .can() (returns false) nor
     // .verdict() (returns the Verdict) ever throws for it, so there's no existing

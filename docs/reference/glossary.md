@@ -1,4 +1,4 @@
-<!-- translated-from: glossary_draft.md @ 2026-07-26T10:51:11Z (filesystem mtime; draft is gitignored, no git history) · sha256:139e720d25b8 -->
+<!-- translated-from: glossary_draft.md @ 2026-07-28T15:17:07Z (filesystem mtime; draft is gitignored, no git history) · sha256:b11229bdc89b -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -79,7 +79,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **`guard=`** — a shared condition on `@check_roles`, one for every grant on the operation; checked once, after some grant has already won. Unlike `grant.when=(user)`, it also sees the call's parameters: `guard=(user, params)`.
 
-**`access_decide`** — a method on `BaseAction`, the third, object-level access check (after role and `guard=`): `access_decide(self, params, context, box, connections) -> FailSecurityVerdict | AllowedVerdict`. Defaults to returning `AllowedVerdict()`. Denial is `AuthorizationError(level=3, verdict=...)`, the same error as at levels 1-2, carrying the same `FailSecurityVerdict` that `access_decide` returned.
+**`access_decide`** — a method on `BaseAction`, the third, object-level access check (after role and `guard=`): `access_decide(self, params, context, box, connections) -> FailSecurityVerdict | AllowedVerdict`. Defaults to returning `AllowedVerdict()`. Denial is `AccessDeniedError(refused_by=AccessGate.ACCESS_DECIDE, verdict=...)`, the same error as at the other gates, carrying the same `FailSecurityVerdict` that `access_decide` returned.
 
 **`BaseVerdict`** — the abstract root of the outcome of any access check (`aoa.action_machine.intents.access_control`); it cannot be instantiated directly (the constructor raises `TypeError`). `kind` is an ordinary field that `BaseVerdict.__init__` fills in and checks: omit `kind=` and it's set to `type(self).__name__`; pass one that doesn't match the class name and it raises `ValueError`. Defined once on the base class, inherited without redeclaration. Three concrete descendants:
 

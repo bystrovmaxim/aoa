@@ -28,15 +28,11 @@ export function renderApiLayout(layouts: MethodLayout[]): RenderedApiLayout {
   );
 
   const allEndpoints = layouts.flatMap((layout) => layout.bracketEntries);
-  // Params/Result/hoisted names live in the TYPE namespace (naming.ts's NameRegistry,
-  // audit finding 2); the descriptor const and the local variable below live in the
-  // VALUE namespace instead -- a plain `const`, so `Foo` and `foo` (case-distinct
-  // endpoint base names, both structurally valid) land on the exact same
-  // SCREAMING_SNAKE_CASE / lowerFirst string once case-folded, even though
-  // NameRegistry's own base-name claim (case-sensitive) never saw them as colliding
-  // (audit finding 4). Two independent registries, since a descriptor name and a local
-  // var name never collide with each other (distinct casing conventions) but each must
-  // stay unique against its own kind across every endpoint in the file.
+  // Type names and value names live in separate namespaces, and the value names here are
+  // case-folded. Two endpoints called `Foo` and `foo` never clash as types, but fold to
+  // the same constant and the same variable. Hence two registries of their own -- a
+  // constant and a variable never clash with each other, but each must stay unique
+  // against its own kind.
   const names = computeDerivedNames(allEndpoints);
 
   const descriptors = allEndpoints.map((e) => renderDescriptorConst(e, names.get(e.operation)!)).join("\n");
@@ -56,10 +52,9 @@ function computeDerivedNames(endpoints: LayoutEndpoint[]): Map<string, DerivedNa
   for (const endpoint of endpoints) {
     const descriptorCandidate = `${toScreamingSnakeCase(endpoint.baseName)}_DESCRIPTOR`;
     const localVarCandidate = lowerFirst(endpoint.baseName);
-    // A PascalCase base ("Delete") is a fine identifier on its own -- only lowerFirst's
-    // case-folded form ("delete") can accidentally land on an ECMAScript reserved word,
-    // which the type-namespace validation in naming.ts's assertValidBaseName never sees
-    // (audit finding 3, case 1: "const delete = ..." is a SyntaxError, not a type error).
+    // "Delete" is a perfectly good name; lowercasing it lands on `delete`, which
+    // JavaScript reserves. `const delete = ...` does not compile at all, and the check on
+    // the type side never sees this form.
     if (isReservedWord(localVarCandidate)) {
       throw new CodegenSchemaError(
         `Endpoint "${endpoint.operation}" derives the reserved word "${localVarCandidate}" as its local ` +

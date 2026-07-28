@@ -1,7 +1,7 @@
 # packages/aoa-fastapi-adapter/src/aoa/fastapi/manifest.py
 """
 Client manifest — projection of registered routes for ``GET /client-manifest.json``
-(issue #130, chapter 3).
+.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -29,7 +29,7 @@ deduplicated, first-wins: Starlette's real router only ever reaches the first
 registration (the second is unreachable), so the manifest must agree with it
 instead of listing an endpoint no request can actually reach. This reuses
 :func:`~aoa.fastapi.permissions.build_route_index` directly rather than
-reimplementing the same rule a second time (audit finding 10) — one function
+reimplementing the same rule a second time — one function
 decides "first wins" for both the catalog and the resolver, not two
 independently-written ones that merely agree today.
 Deduplication happens *before* ``manifest_version`` is computed, so the hash
@@ -127,10 +127,8 @@ from aoa.fastapi.permissions_schema import (
 )
 from aoa.fastapi.route_record import FastApiRouteRecord
 
-# Version of the manifest's own shape (this module's models) — independent of
-# SUPPORTED_VERSION and of manifest_version's content hash. Bumped to 2 when
-# `schemas` was added (chapter 3.5, task 7). Draft until chapter 3.5's contract
-# settles, same as SUPPORTED_VERSION.
+# Version of the manifest's own shape — not the wire-language version, and not the hash
+# of its contents. Bumped whenever a field is added to or removed from these models.
 _MANIFEST_SCHEMA_VERSION = 2
 
 _JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
@@ -273,7 +271,7 @@ def build_manifest(routes: list[FastApiRouteRecord]) -> Manifest:
     function directly when a ``route_index`` already exists (``FastApiAdapter.build()``
     builds one for :func:`~aoa.fastapi.permissions.build_route_index`'s own callers too;
     reusing it here avoids computing the identical index twice from the identical
-    input, fix-audit finding 16, second document).
+    input).
     """
     return build_manifest_from_route_index(build_route_index(routes))
 

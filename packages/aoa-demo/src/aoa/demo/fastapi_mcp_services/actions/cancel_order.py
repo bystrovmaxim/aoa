@@ -29,7 +29,7 @@ That distinction is the whole point, not a detail: an earlier version of this
 action took ``owner_user_id`` as a ``Params`` field, so the caller *claimed*
 ownership rather than proving it. Sending ``owner_user_id`` set to one's own id
 was enough to walk straight past level 3 and cancel someone else's order
-(audit-11 finding 2). Anything the request can set cannot be the thing the
+Anything the request can set cannot be the thing the
 request is checked against.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -87,13 +87,10 @@ class _OrderRow(NamedTuple):
 # service). Deliberately module-level and not reachable from Params: the caller
 # must not be able to state who owns an order -- see the module docstring.
 #
-# ``MappingProxyType`` rather than a plain dict, so the ``Final`` annotation is
-# true at runtime and not merely a note to the type-checker: without it,
-# ``cancel_order._ORDERS["ORD-1"] = ...`` reassigns an order's owner for the whole
-# process. Unreachable from a request either way, so this is hygiene rather than a
-# hole -- but it is the same point the sibling FORBIDDEN_OBJECT comment already
-# makes about Final, applied here too (narrow-audit finding 9). The rows are
-# ``NamedTuple``, hence already immutable.
+# A read-only mapping rather than a plain dict, so "constant" is true when the program
+# runs and not merely a note to the type checker. Otherwise one assignment reassigns an
+# order's owner for the whole process. Nothing reachable from a request does that, so this
+# is hygiene rather than a hole. The rows themselves are already immutable.
 _ORDERS: Final[Mapping[str, _OrderRow]] = MappingProxyType(
     {
         "ORD-1": _OrderRow(owner_user_id="alice", status="pending"),
@@ -137,14 +134,14 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
         """Level 3: the order must exist and belong to the caller.
 
         Existence and ownership are checked together, in one branch, on purpose
-        — see ``FORBIDDEN_OBJECT``'s own comment (``access_verdict.py``) for why
+        — see ``FORBIDDEN_OBJECT``'s own comment (``fail_security_verdict.py``) for why
         a separate "does it exist" step followed by a separate "is it yours"
         step is the wrong shape here, even though both currently return the same
         verdict.
         Once ownership is confirmed, a more specific reason ("already
         cancelled") is safe to reveal: the caller *has* proven this is their
         own order — the owner came from ``_ORDERS``, not from the request — so
-        a specific reason no longer helps them enumerate anyone else's.
+        a specific reason does not help them enumerate anyone else's.
         """
         order = _ORDERS.get(params.order_id)
         if order is None or order.owner_user_id != context.user.user_id:

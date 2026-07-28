@@ -7,7 +7,7 @@ WHY THIS EXISTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 An exact ``(method, path)`` duplicate is harmless — Starlette's router (and, since
-issue #130 chapter 3.5, both the manifest and the resolver) already agree on
+both the manifest and the resolver) already agree on
 "first registration wins", exactly like a real ``APIRouter`` would. But two
 *different* templates whose matched URL sets overlap — ``/users/me`` registered
 alongside ``/users/{id}``, or ``/users/{id}`` alongside ``/users/{name}`` — are a

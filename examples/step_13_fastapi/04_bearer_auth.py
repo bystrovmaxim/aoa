@@ -24,7 +24,8 @@ from aoa.action_machine.auth import ApplicationRole, GuestRole, NoAuthCoordinato
 from aoa.action_machine.auth.jwt_auth import JwtAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.exceptions import AccessDeniedError, AccessGate
+from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance, result_string
@@ -101,7 +102,11 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         store: UserStoreResource = connections["user_store"]
         record = await store.find(params.username)
         if record is None or record[0] != params.password:
-            raise AuthorizationError("Invalid username or password")
+            raise AccessDeniedError(
+                "Invalid username or password",
+                refused_by=AccessGate.AUTH_COORDINATOR,
+                verdict=FailSecurityVerdict("INVALID_CREDENTIALS"),
+            )
         _password, role_names = record
         return {"user_id": params.username, "role_names": role_names}
 

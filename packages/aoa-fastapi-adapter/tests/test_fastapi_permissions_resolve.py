@@ -29,7 +29,7 @@ from fastapi.testclient import TestClient
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError, AccessGate
 from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
@@ -254,7 +254,7 @@ class TestGuestAndAnonymous:
             "/permissions/resolve",
             json={"version": 1, "items": [{"operation": "GET /actions/ping", "params": {}}]},
         )
-        assert response.status_code == 403  # AuthorizationError -> 403 per this adapter's exception handler
+        assert response.status_code == 403  # AccessDeniedError -> 403 per this adapter's exception handler
         # Whole-request failure: no results array at all, not even a partial/empty one.
         assert "results" not in response.json()
 
@@ -527,19 +527,19 @@ class TestParamsMapperIsolation:
         ]
 
     def test_a_mapper_that_denies_reports_its_denial_not_a_failure(self) -> None:
-        """narrow-audit finding 2: a mapper can *decide*, not only fail.
-
-        One that resolves the caller's tenant may legitimately raise AuthorizationError.
-        Swallowed by the broad handler, that denial came back as EVALUATION_FAILED --
-        "could not check" -- which the client treats as "ask again", so the UI would show
-        the action as available. A failure is not a denial, and a denial is not a failure."""
+        """A mapper can *decide*, not only fail. One that resolves the caller's tenant may
+        legitimately refuse. Left to the broad handler, that refusal comes back as "could
+        not check", which the caller reads as "ask again" and shows the action as
+        available. A failure is not a denial, and a denial is not a failure."""
         machine = ActionProductMachine(loggers=[])
         auth = AsyncMock()
         auth.process.return_value = _manager_context()
         adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
 
         def denying_mapper(body: object) -> object:
-            raise AuthorizationError("wrong tenant", verdict=FailSecurityVerdict("FORBIDDEN_TENANT"))
+            raise AccessDeniedError(
+                "wrong tenant", refused_by=AccessGate.ACCESS_DECIDE, verdict=FailSecurityVerdict("FORBIDDEN_TENANT")
+            )
 
         adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=denying_mapper)
         client = TestClient(adapter.build(), raise_server_exceptions=False)
@@ -552,17 +552,21 @@ class TestParamsMapperIsolation:
         assert response.status_code == 200
         assert response.json()["results"] == [{"kind": "FailSecurityVerdict", "reason": "FORBIDDEN_TENANT"}]
 
-    def test_a_verdict_less_authorization_error_from_a_mapper_is_still_a_failure(self) -> None:
-        """The other half: no verdict means nothing was decided, so it stays
-        EVALUATION_FAILED rather than being reported as a denial -- and the message,
-        which names a customer here, does not reach the wire."""
+    def test_a_mapper_refusal_reports_its_reason_and_never_its_message(self) -> None:
+        """The refusal is reported by its declared reason. The message is free-form text
+        an application writes for a log -- here it names a customer -- and it must not
+        cross the wire, however the refusal itself is answered."""
         machine = ActionProductMachine(loggers=[])
         auth = AsyncMock()
         auth.process.return_value = _manager_context()
         adapter = FastApiAdapter(machine=machine, auth_coordinator=auth)
 
         def bare_denying_mapper(body: object) -> object:
-            raise AuthorizationError("tenant lookup failed for bob@corp.com")
+            raise AccessDeniedError(
+                "tenant lookup failed for bob@corp.com",
+                refused_by=AccessGate.ACCESS_DECIDE,
+                verdict=FailSecurityVerdict("FORBIDDEN_OBJECT"),
+            )
 
         adapter.post("/actions/cancel-order", CancelOrderAction, params_mapper=bare_denying_mapper)
         client = TestClient(adapter.build(), raise_server_exceptions=False)
@@ -572,7 +576,7 @@ class TestParamsMapperIsolation:
             json={"version": 1, "items": [{"operation": "POST /actions/cancel-order", "params": {"order_id": 7}}]},
         )
 
-        assert response.json()["results"] == [{"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"}]
+        assert response.json()["results"] == [{"kind": "FailSecurityVerdict", "reason": "FORBIDDEN_OBJECT"}]
         assert "bob@corp.com" not in response.text
 
     def test_the_mapper_exception_text_never_reaches_the_client(self) -> None:
@@ -675,7 +679,7 @@ class TestParamsMapperIsolation:
 
 class TestPreparationIsolation:
     """``plan.prepare()`` runs app code too -- a route's own ``auth_coordinator`` and its
-    connection factories -- and only ``AuthorizationError`` was caught around it.
+    connection factories -- and only ``AccessDeniedError`` was caught around it.
 
     Anything else escaped the resolver entirely and answered the whole request with a
     500 and no results, the same "one bad item sinks the batch" outcome the mapper
@@ -728,11 +732,13 @@ class TestPreparationIsolation:
         assert "orders_db" not in response.text
 
     def test_a_route_level_auth_rejection_is_still_a_denial_not_a_failure(self) -> None:
-        """Regression guard: AuthorizationError from prepare() keeps its own, distinct
+        """Regression guard: AccessDeniedError from prepare() keeps its own, distinct
         answer -- UNAUTHORIZED, a denial -- and must not be swallowed by the new broad
         handler sitting next to it."""
         rejecting_auth = AsyncMock()
-        rejecting_auth.process.side_effect = AuthorizationError("Authentication required")
+        rejecting_auth.process.side_effect = AccessDeniedError(
+            "Authentication required", refused_by=AccessGate.AUTH_COORDINATOR, verdict=FailSecurityVerdict("UNAUTHENTICATED")
+        )
         response = self._client(auth_coordinator=rejecting_auth).post("/permissions/resolve", json=self._BATCH)
 
         assert response.status_code == 200

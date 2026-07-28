@@ -1,4 +1,4 @@
-<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-25T20:00:44Z (filesystem mtime; draft is gitignored, no git history) · sha256:08e1b7ef0376 -->
+<!-- translated-from: step-03-authorization-and-roles_draft.md @ 2026-07-28T15:17:07Z (filesystem mtime; draft is gitignored, no git history) · sha256:912e1e038904 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -143,7 +143,7 @@ User: admin
   PurgeOrders [AdminRole]    -> allowed
 ```
 
-The matrix reads at a glance: an anonymous user passes only into the open operation; a manager — into the open one and the "manager" one; an admin, being a manager, passes everywhere. On denial the machine raises `AuthorizationError` — before a single aspect has run.
+The matrix reads at a glance: an anonymous user passes only into the open operation; a manager — into the open one and the "manager" one; an admin, being a manager, passes everywhere. On denial the machine raises `AccessDeniedError` — before a single aspect has run.
 
 ---
 
@@ -233,7 +233,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return AllowedVerdict()
 ```
 
-By default (on `BaseAction`), `access_decide` returns `AllowedVerdict()` — level 3 adds no restriction beyond role/`guard=` until an action explicitly overrides the method. `access_decide` runs only after role and `guard=` have already passed; a denial here is the same `AuthorizationError` as at levels 1-2, just with `level=3`.
+By default (on `BaseAction`), `access_decide` returns `AllowedVerdict()` — level 3 adds no restriction beyond role/`guard=` until an action explicitly overrides the method. `access_decide` runs only after role and `guard=` have already passed; a denial here is the same `AccessDeniedError` as at the other gates, just with `refused_by=AccessGate.ACCESS_DECIDE`.
 
 Two rules for `access_decide` itself, when it looks at a specific object (not just the caller's role):
 
@@ -308,7 +308,7 @@ This turns changing the role model from a risky operation into a managed one: a 
 - **Classes only.** `@check_roles` accepts `GuestRole`, `AnyRole`, a role class, a non-empty list of classes, or `grant(...)` instances mixed with bare roles. Strings are rejected (`TypeError`), an empty list is a `ValueError`.
 - **Inheritance = authority.** The check is `issubclass(user_role, required_role)`; a subclass satisfies the parent's requirement.
 - **Sentinels are sealed.** `GuestRole`/`AnyRole` cannot be subclassed and cannot be assigned to a user.
-- **Check before logic.** Roles, `guard=`, and `access_decide` are checked before the first aspect; denial at any of the three levels is an `AuthorizationError`, the aspects do not run.
+- **Check before logic.** Roles, `guard=`, and `access_decide` are checked before the first aspect; denial at any of the three levels is an `AccessDeniedError`, the aspects do not run.
 - **Role names.** A role class ends with `Role`, otherwise `NamingSuffixError`; `name`/`description` are mandatory and non-empty.
 - **`grant.when=`/`guard=` are synchronous and `bool`-only.** An `async def` in either raises `AccessConditionAsyncError` at class definition, not at runtime — an un-awaited coroutine is always truthy, and the check would silently wave everything through.
 - **`access_decide` defaults to `AllowedVerdict()`.** Level 3 restricts nothing beyond role/`guard=` until an action explicitly overrides the method.
@@ -337,7 +337,7 @@ Next — **[Saga and compensations](../index.md#iii-business-logic)**: what happ
 7. Why does a role need a lifecycle mode? What happens with `@check_roles` for a `UNUSED` role and for a `DEPRECATED` one?
 8. How does `grant(role, when=...)` differ from `guard=`? Which of the two sees the call's parameters, and which sees only the caller?
 9. A role matched, but its `grant.when=` returned `False`. Does that end the check or not? Why?
-10. `access_decide` returned `FailSecurityVerdict(...)`. What `level` will the `AuthorizationError` carry? What if the role hadn't matched at all?
+10. `access_decide` returned `FailSecurityVerdict(...)`. What `level` will the `AccessDeniedError` carry? What if the role hadn't matched at all?
 11. How does `machine.check_access_decide` differ from `machine.run` on denial — what does the calling code get in each case?
 
 > **Exercise.** Add an `AuditorRole(ApplicationRole)` role and an `ExportOrdersAction` with `@check_roles([ManagerRole, AuditorRole])` to the example. Run it under a manager, an auditor, and an anonymous user and check the matrix. Then make `AuditorRole` a subclass of `ManagerRole` and explain how access to the "manager" operations changes.

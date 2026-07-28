@@ -12,7 +12,7 @@ from pydantic import Field
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError
 from aoa.action_machine.intents.access_control import AllowedVerdict, FailErrorVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
@@ -89,9 +89,9 @@ class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.R
         if params.key in _raise_for_keys:
             raise RuntimeError(f"boom for key={params.key!r}")
         if params.key in _raise_bare_authz_for_keys:
-            # An AuthorizationError raised by hand, with no verdict= -- the one shape
+            # An AccessDeniedError raised by hand, with no verdict= -- the one shape
             # RoleChecker never produces, so nothing downstream fills the verdict in.
-            raise AuthorizationError(f"order {params.key} not found in orders_db (owner bob@corp.com)")
+            raise AccessDeniedError(f"order {params.key} not found in orders_db (owner bob@corp.com)")
         if params.key in _access_decide_unexpected_keys:
             return None  # type: ignore[return-value]  # simulates a forgotten `return` in a real override
         if not _access_decide_result["value"] or params.key in _access_decide_deny_keys:
@@ -174,7 +174,7 @@ async def test_level_2_when_guard_rejects(machine: ActionProductMachine) -> None
 async def test_level_3_when_access_decide_rejects(machine: ActionProductMachine) -> None:
     """access_decide's own denial-reason mechanism: it returns FailSecurityVerdict
     directly, with whatever reason the action's author chose -- no more raw
-    AuthorizationError text."""
+    AccessDeniedError text."""
     _reset()
     _access_decide_result["value"] = False
     verdict = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params())
@@ -245,10 +245,10 @@ async def test_one_failing_item_does_not_affect_the_others(machine: ActionProduc
     assert verdicts[2] == AllowedVerdict()
 
 
-async def test_bare_authorization_error_never_carries_its_own_text_to_the_wire(
+async def test_bare_access_denied_error_never_carries_its_own_text_to_the_wire(
     machine: ActionProductMachine,
 ) -> None:
-    """audit-11 finding 1: an AuthorizationError raised without verdict= must not become a
+    """audit-11 finding 1: an AccessDeniedError raised without verdict= must not become a
     FailSecurityVerdict built from str(exc).
 
     Two guarantees break at once if it does: the message is free-form developer text that can
@@ -282,11 +282,11 @@ async def test_bare_authorization_error_never_carries_its_own_text_to_the_wire(
     assert verdicts[1].model_dump() == {"kind": "FailErrorVerdict", "reason": "EVALUATION_FAILED"}
 
 
-async def test_bare_authorization_error_is_indistinguishable_across_objects(
+async def test_bare_access_denied_error_is_indistinguishable_across_objects(
     machine: ActionProductMachine,
 ) -> None:
     """audit-11 finding 1, the oracle half: two different objects that both raise a bare
-    AuthorizationError must answer byte-identically, or the message text becomes a probe."""
+    AccessDeniedError must answer byte-identically, or the message text becomes a probe."""
     _reset()
     _raise_bare_authz_for_keys.update({"MISSING-1", "ORD-alice-7"})
     verdicts = await machine.check_access_decide(
@@ -301,7 +301,7 @@ async def test_bare_authorization_error_is_indistinguishable_across_objects(
 
 
 async def test_role_denial_still_reports_the_checkers_own_verdict(machine: ActionProductMachine) -> None:
-    """audit-11 finding 1 must not regress the normal path: an AuthorizationError that *does*
+    """audit-11 finding 1 must not regress the normal path: an AccessDeniedError that *does*
     carry a verdict (every one RoleChecker raises) still reports that verdict as a denial."""
     _reset()
     verdicts = await machine.check_access_decide(

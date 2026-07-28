@@ -26,7 +26,7 @@ from aoa.action_machine.auth import ApplicationRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.access_denied_error import AccessDeniedError
 from aoa.action_machine.intents.access_control import FailSecurityVerdict
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles, grant
@@ -111,7 +111,7 @@ async def main() -> None:
         try:
             await machine.run(ctx, CancelOrderAction(), OrderParams(order_id="ord-001"))
             print(f"{user_name:<24} -> allowed")
-        except AuthorizationError:
+        except AccessDeniedError:
             print(f"{user_name:<24} -> denied")
 
 

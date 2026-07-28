@@ -1,43 +1,26 @@
 // packages/aoa-client-js/src/testing/index.ts
 //
-// The test double half of chapter 12 (issue #144): everything needed to test code
-// that sits ON TOP of this library, without a server, a database, or a network.
+// A stand-in for the engine, so code built on this library can be tested without a
+// server, a database, or a network.
 //
-// ─────────────────────────────────────────────────────────────────────────────
-// WHICH DOUBLE TO REACH FOR
-// ─────────────────────────────────────────────────────────────────────────────
+// There are two ways to take the network out of a test, and they answer different
+// questions:
 //
-// There are two ways to get the network out of a test, and they are not
-// interchangeable:
+//   * Give a real engine a fake fetch. The engine still builds the request, still checks
+//     the answer, still uses its cache. Reach for this when the ENGINE is what you are
+//     testing -- does it send the right thing, does it refuse a malformed answer.
 //
-//   * Fake `fetchImpl` on a REAL AoaEngine -- see
-//     examples/step_27_ui_permissions_client/04_engine_with_fake_fetch_for_tests.ts.
-//     The engine stays real: it genuinely builds the request body, genuinely
-//     parses and validates the response, genuinely consults its cache. Use this
-//     when the ENGINE is what's under test (does it send the right body? does it
-//     reject a malformed response? does the cache hit?).
+//   * Replace the engine entirely, which is what this module does. Nothing is sent or
+//     parsed and there is no cache. Reach for this when the engine is NOT what you are
+//     testing -- a button, a screen, a piece of business logic that only needs a fast,
+//     predictable answer.
 //
-//   * createMockAoaEngine (this module). The engine itself is replaced. Nothing
-//     is serialized, nothing is parsed, no cache exists. Use this when the engine
-//     is NOT what's under test -- a button, a component, a piece of business
-//     logic -- and all that code needs is a fast, predictable answer.
+// Testing the library itself: fake the fetch. Testing code that uses it: fake the engine.
 //
-// Rule of thumb: testing the library -> fake fetchImpl; testing code that USES
-// the library -> fake the engine.
-//
-// ─────────────────────────────────────────────────────────────────────────────
-// WHY THIS IS A PLAIN OBJECT AND NOT AN AoaEngine SUBCLASS
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// AoaEngine has private fields, which makes its class type nominal -- a
-// hand-written object can never be assignable to it. The fix was to name what
-// consumers actually need (`ResolveEngine` in types.ts, exactly one method) and
-// have every consumer accept that instead: makeGatePrimitive,
-// makeCallablePrimitive, buildDynamicGateApi, and the generated
-// createGateApi/createApi. Subclassing AoaEngine was the alternative and was
-// rejected: the double would inherit the real constructor (including its ttlMs
-// validation) and the real cache, and a cache in a test double is a source of
-// confusing false passes, not a feature.
+// This is a plain object rather than a subclass of the real engine. A subclass would
+// inherit the real constructor and the real cache, and a cache inside a test double
+// produces confusing passes rather than useful ones. So consumers accept the one method
+// they actually need instead of the whole class.
 
 import { assertValidVerdict } from "../engine.ts";
 import type { AllowedVerdict, FailErrorVerdict, FailSecurityVerdict, ResolveEngine, ResolveItem, Verdict } from "../types.ts";
@@ -55,10 +38,9 @@ export interface MockResolveCall {
 // time even though the real resolve() is batched -- per-item is how tests
 // actually read.
 //
-// `askedCount` is the number of questions this double has answered BEFORE this
-// one, across the double's whole lifetime (not reset per batch). It is what
-// makes "allowed the first time, denied the second" expressible without the
-// test having to close over its own counter.
+// `askedCount` is how many questions this double has already answered, over its whole
+// life. It is what lets a test say "allowed the first time, denied the second" without
+// keeping a counter of its own.
 export type MockAnswer = (item: ResolveItem, askedCount: number) => Verdict | Promise<Verdict>;
 
 export interface MockAoaEngine extends ResolveEngine {
@@ -113,23 +95,16 @@ export function createMockAoaEngine(answer: MockAnswer): MockAoaEngine {
 /**
  * Refuse to hand back anything the real server could not have sent.
  *
- * Without this, the double's central promise was enforced only by the `denied`/
- * `resolveError` helpers -- which nobody is obliged to use. An `answer` returning
- * `{ kind: "FailSecurityVerdict", reason: "" }` by hand produced a clean `false`
- * out of `.can()`, so a test asserting "the button is greyed out" went green
- * against a response `AoaEngine` would have rejected outright with a
- * `ProtocolError`. That is exactly the failure this module exists to prevent,
- * reproduced inside the tool built to prevent it.
+ * A hand-written answer can be shaped wrongly -- a refusal with an empty reason, say --
+ * and without this it would sail through, so a test could pass against a response the
+ * real engine refuses outright. That is the exact failure this module exists to prevent.
  *
- * The rule is not restated here. `assertValidVerdict` is the same function the
- * real engine runs on every element of every network response, imported from
- * engine.ts -- one definition, so the double and the engine cannot drift apart
- * at the one point whose whole purpose is keeping them together.
+ * The rule itself is not restated: this runs the same check the engine runs on every
+ * network response, imported rather than copied, so the two cannot drift apart.
  *
- * The message, though, is deliberately NOT the engine's. A ProtocolError saying
- * "results[3] is missing a non-empty reason" sends a test author looking at
- * their server. The problem is in their own answer function, and the message
- * says so, quotes what it returned, and names the question it was answering.
+ * The message is deliberately not the engine's. "results[3] is missing a reason" sends a
+ * test author to look at their server. The fault is in their own answer function, so the
+ * message says that, quotes what it returned, and names the question it answered.
  */
 function assertAnswerable(verdict: unknown, item: ResolveItem, askedCount: number): asserts verdict is Verdict {
   // Called out separately because it is the overwhelmingly common way to get

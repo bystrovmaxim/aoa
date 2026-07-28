@@ -6,12 +6,12 @@
 WHY THIS EXISTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Chapter 3.5 rule 8: the "language" of questions and answers between client and
+The "language" of questions and answers between client and
 server has its own version number (``ResolveRequest.version``, echoed back on
 ``ResolveResponse.version`` and separately published as ``Manifest.version``) —
 distinct from the manifest's own shape (``manifest_schema_version``) and from its
 content hash (``manifest_version``). A client built against a version this server
-no longer speaks must be told so plainly, before the server tries to "half
+does not speak must be told so plainly, before the server tries to "half
 understand" a request shaped for a different contract — the most dangerous
 failure mode, since fields can silently change meaning between versions.
 ``POST /permissions/resolve`` checks ``version`` first, before authentication, so

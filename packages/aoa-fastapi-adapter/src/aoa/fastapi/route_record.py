@@ -130,10 +130,7 @@ class FastApiRouteRecord(BaseRouteRecord):
         """
         The wire-protocol operation identifier for this route: ``"{method} {path}"``.
 
-        Canonical source of this format (fix-audit finding 10, second document):
-        callers must read this property rather than reformat ``method``/``path``
-        independently — every previous independent copy agreed only by accident
-        (both fields are already normalized here, in ``__post_init__``), not
-        because they called shared code.
+        Read this rather than joining ``method`` and ``path`` yourself. Both are already
+        normalised here, so a copy assembled elsewhere agrees only by luck.
         """
         return f"{self.method} {self.path}"

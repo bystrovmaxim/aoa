@@ -62,7 +62,7 @@ def _framed(value: str) -> str:
     (``"|"``, ``","``) can collide whenever a field's own content happens to
     contain that separator — ``"a|b" + "|" + "c"`` and ``"a" + "|" + "b|c"`` are
     both ``"a|b|c"``, so two genuinely different identities could hash to the
-    same ``cache_partition`` (audit finding 3). Length-prefixing removes the
+    same ``cache_partition``. Length-prefixing removes the
     ambiguity structurally: the digits before the mandatory ``":"`` say exactly
     how many characters of *opaque* payload follow — including any ``":"`` or
     digit the payload itself contains — so concatenating framed fields can never

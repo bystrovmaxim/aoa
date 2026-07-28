@@ -1,4 +1,4 @@
-<!-- translated-from: step-13-fastapi_draft.md @ 2026-07-11T15:02:03Z (filesystem mtime; draft is gitignored, no git history) · sha256:e9c82664b0dc -->
+<!-- translated-from: step-13-fastapi_draft.md @ 2026-07-28T15:16:53Z (filesystem mtime; draft is gitignored, no git history) · sha256:89fbba0f7991 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -127,7 +127,7 @@ The adapter translates machine errors into HTTP codes:
 
 | Exception | Code |
 |-----------|------|
-| `AuthorizationError` | 403 |
+| `AccessDeniedError` | 403 |
 | `ValidationFieldError` | 422 |
 | everything else (uncaught) | 500 |
 
@@ -160,7 +160,7 @@ Everything is visible at once: the open operation answers 200, the one protected
 - **Parameters by method.** POST/PUT/PATCH → body, GET/DELETE → query and path, empty `Params` → no body.
 - **OpenAPI from code.** The schema and `/docs` are derived from the contract; no separate specification is needed.
 - **Schema translation at the boundary.** `request_model`/`response_model` + `params_mapper`/`response_mapper` reconcile the external shape with the contract, without touching the `Action`.
-- **Errors → codes.** `AuthorizationError` → 403, `ValidationFieldError` → 422, the rest → 500; `GET /health` is added automatically.
+- **Errors → codes.** `AccessDeniedError` → 403, `ValidationFieldError` → 422, the rest → 500; `GET /health` is added automatically.
 
 The full list is in [Intents and invariants](../reference/intents-and-invariants.md); the terms are in the [Glossary](../reference/glossary.md). Why the transport is moved into the adapter is in the [Comparison with FastAPI](../explanation/comparison.md#fastapi).
 
@@ -180,7 +180,7 @@ Next — **[MCP](step-14-mcp.md)**: how to publish the same operation as a tool 
 4. How does the adapter decide where to take parameters from — the body, the query, or the path?
 5. Where does the OpenAPI schema come from? What do you need to write additionally for it?
 6. An external API renamed a request field. How do you reconcile it with the operation's contract without changing the `Action`?
-7. Into which HTTP codes are `AuthorizationError` and `ValidationFieldError` translated?
+7. Into which HTTP codes are `AccessDeniedError` and `ValidationFieldError` translated?
 8. A route needs open access, but the adapter default is strict. How do you express that without weakening the default for every other route?
 
 > **Exercise.** In [01_service.py](../../examples/step_13_fastapi/01_service.py) add a `GET` route for an operation with non-empty `Params` and verify through `TestClient` that the parameters are read from the query. Then add a `response_model`/`response_mapper` to one of the routes and confirm that the external response schema changed, while the `Action` itself stayed the same.

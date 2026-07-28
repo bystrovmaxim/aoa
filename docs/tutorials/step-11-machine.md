@@ -1,4 +1,4 @@
-<!-- translated-from: step-11-machine_draft.md @ 2026-07-10T14:55:05Z (filesystem mtime; draft is gitignored, no git history) · sha256:b1b3ecd55a2b -->
+<!-- translated-from: step-11-machine_draft.md @ 2026-07-28T15:16:53Z (filesystem mtime; draft is gitignored, no git history) · sha256:eefd81e122aa -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -42,7 +42,7 @@ There are no other entrances. You cannot call an aspect directly, you cannot ski
 
 `run` leads an operation along a fixed path — strictly in this order:
 
-1. **Access check.** [`@check_roles`](step-03-authorization-and-roles.md) is matched against `context.user.roles` — before anything else. No decorator — `MissingCheckRolesError`; the role does not fit — `AuthorizationError`. Important: access is checked **before the cache**, so a cached result will not reach someone the operation forbids.
+1. **Access check.** [`@check_roles`](step-03-authorization-and-roles.md) is matched against `context.user.roles` — before anything else. No decorator — `MissingCheckRolesError`; the role does not fit — `AccessDeniedError`. Important: access is checked **before the cache**, so a cached result will not reach someone the operation forbids.
 2. **Connection validation.** The declared `@connection` keys are checked against the supplied ones.
 3. **`global_start`** — [plugins](step-09-plugins.md) receive the start event.
 4. **Cache.** If a [cache coordinator](step-08-cache.md) is wired: an entry is looked up by `cache_key`; a hit returns the ready result, **bypassing the pipeline**.

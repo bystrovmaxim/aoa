@@ -1,4 +1,4 @@
-<!-- translated-from: authoring-auth-coordinator_draft.md @ 2026-07-11T14:58:38Z (filesystem mtime; draft is gitignored, no git history) · sha256:be6efa8fed5f -->
+<!-- translated-from: authoring-auth-coordinator_draft.md @ 2026-07-28T15:16:53Z (filesystem mtime; draft is gitignored, no git history) · sha256:5af77622573f -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -34,7 +34,7 @@ A coordinator is an object with one async method:
 async def process(self, request_data) -> Context | None
 ```
 
-`Context` — success (identity + request metadata). `None` — a hard reject at the boundary: the shipped adapters raise `AuthorizationError` (HTTP 403 / MCP `PERMISSION_DENIED`), and the request never reaches [`@check_roles`](../tutorials/step-03-authorization-and-roles.md) at all — that is not the same thing as anonymous access, which a coordinator declares explicitly rather than gets as a side effect of `None`. Authentication **produces** the identity, authorization **checks** the one already produced. For an open API there is `NoAuthCoordinator(context=Context())`: it does not participate in verification at all and always returns the same declared `Context` (usually anonymous — `user_id=None`, `roles=()`), leaving what an anonymous caller may do to `@check_roles`.
+`Context` — success (identity + request metadata). `None` — a hard reject at the boundary: the shipped adapters raise `AccessDeniedError` (HTTP 403 / MCP `PERMISSION_DENIED`), and the request never reaches [`@check_roles`](../tutorials/step-03-authorization-and-roles.md) at all — that is not the same thing as anonymous access, which a coordinator declares explicitly rather than gets as a side effect of `None`. Authentication **produces** the identity, authorization **checks** the one already produced. For an open API there is `NoAuthCoordinator(context=Context())`: it does not participate in verification at all and always returns the same declared `Context` (usually anonymous — `user_id=None`, `roles=()`), leaving what an anonymous caller may do to `@check_roles`.
 
 ## Path 1. Three parts on top of the ready AuthCoordinator
 
@@ -108,7 +108,7 @@ class SsoCoordinator:
 
 ## What is important to know
 
-- **`None` is already a reject at the boundary.** The adapter raises `AuthorizationError("Authentication required")` (HTTP 403 / MCP `PERMISSION_DENIED`) — the request never reaches the machine or `@check_roles`. Need a more precise reason for the reject (an expired token, distinguished from a missing one, say) — **raise `AuthorizationError` with the message you want directly from `process`**, instead of relying on the generic default message.
+- **`None` is already a reject at the boundary.** The adapter raises `AccessDeniedError("Authentication required")` (HTTP 403 / MCP `PERMISSION_DENIED`) — the request never reaches the machine or `@check_roles`. Need a more precise reason for the reject (an expired token, distinguished from a missing one, say) — **raise `AccessDeniedError` with the message you want directly from `process`**, instead of relying on the generic default message.
 - **Invalid data is `None`, not an exception** (the `Authenticator` contract): "wrong key" is a regular path, not a failure.
 - **Where it is wired:** the coordinator is passed to the constructor of any adapter — `FastApiAdapter(machine, auth_coordinator=...)`, `McpAdapter(...)`, [your own adapter](authoring-adapter.md). The argument is mandatory (it cannot be forgotten), so for a public API you put `NoAuthCoordinator(context=Context())` explicitly. A single route can override it: `.post(path, Action, auth_coordinator=...)` — see [«What the base guarantees»](authoring-adapter.md#what-the-base-guarantees).
 - **One mechanism — any transport:** the same coordinator serves HTTP, MCP, and your transport; `request_data` is what the specific adapter passes (a FastAPI request object, `None` for MCP).

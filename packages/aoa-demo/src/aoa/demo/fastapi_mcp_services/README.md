@@ -134,7 +134,7 @@ Nothing is duplicated — descriptions are written once in the Pydantic models.
 
 | Exception              | HTTP status               | Description              |
 | ---------------------- | ------------------------- | ------------------------ |
-| `AuthorizationError`   | 403 Forbidden             | Insufficient permissions |
+| `AccessDeniedError`   | 403 Forbidden             | Insufficient permissions |
 | `ValidationFieldError` | 422 Unprocessable Entity  | Field validation error   |
 | Anything else          | 500 Internal Server Error | Internal error           |
 
@@ -166,7 +166,7 @@ Nothing is duplicated — descriptions are written once in the Pydantic models.
 
 | Exception              | MCP response             |
 | ---------------------- | ------------------------ |
-| `AuthorizationError`   | `PERMISSION_DENIED: ...` |
+| `AccessDeniedError`   | `PERMISSION_DENIED: ...` |
 | `ValidationFieldError` | `INVALID_PARAMS: ...`    |
 | Anything else          | `INTERNAL_ERROR: ...`    |
 

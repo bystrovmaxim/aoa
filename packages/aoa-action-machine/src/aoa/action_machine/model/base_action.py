@@ -140,24 +140,9 @@ from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 if TYPE_CHECKING:
-    # Deferred: access_control.access_verdict imports model.base_schema, which
-    # triggers model/__init__.py -> base_action (this file, still mid-import) --
-    # a real transitive cycle, same shape as the Context one below. AllowedVerdict/
-    # FailSecurityVerdict are only ever used as type annotations below; the one
-    # runtime construction (the default access_decide's `return AllowedVerdict()`)
-    # imports locally, inside the method, once every module has finished loading.
     from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
-
-    # Deferred: runtime.tools_box imports BaseAction at module level, so a top-level
-    # import here would cycle. ToolsBox is only ever used as a type annotation below.
     from aoa.action_machine.runtime.tools_box import ToolsBox
 
-    # Deferred: context.context's own imports don't touch base_action directly, but
-    # model/__init__.py eagerly imports base_action — so context.context (imported
-    # first, e.g. by aoa-otel/aoa-fastapi-adapter/aoa-mcp-adapter before anything
-    # touches `model`) -> context.request_info -> model.base_schema -> triggers
-    # model/__init__.py -> base_action -> context.context (still mid-import) is a
-    # real transitive cycle. Context is only ever used as a type annotation below.
     from aoa.action_machine.context.context import Context
 
 _REQUIRED_SUFFIX = "Action"
@@ -232,24 +217,11 @@ class BaseAction[P: BaseParams, R: BaseResult](
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> FailSecurityVerdict | AllowedVerdict:
-        """``AllowedVerdict()`` by default — level 3 adds no restriction beyond roles/guard.
-
-        Return ``AllowedVerdict()`` to allow, or ``FailSecurityVerdict(reason)`` (or a
-        subclass adding its own fields) to deny with a specific, developer-declared reason
-        — this is the cascade's own denial-reason mechanism (no more raw exception text).
-        Raising instead of returning is for genuine failures (a bug, an unreachable
-        connection) — the machine turns that into a ``FailErrorVerdict``, not a denial,
-        on the check-only path; on the real ``machine.run()`` path it still blocks
-        execution, same as any non-``AllowedVerdict`` outcome.
-
-        Raising ``AuthorizationError`` by hand to deny is **not** supported, even though it
-        is the exception the cascade itself raises: one built here carries no ``verdict=``,
-        so ``check_access_decide`` cannot tell it from a crash and reports
-        ``FailErrorVerdict("EVALUATION_FAILED")`` — the denial simply does not arrive. Return
-        a ``FailSecurityVerdict`` instead (audit-11 finding 1).
+        """Return ``AllowedVerdict()`` when nothing here restricts access, which is the
+        default. To refuse, return a ``FailSecurityVerdict`` -- a subclass carrying extra
+        fields of its own is fine.
         """
-        # pylint: disable-next=import-outside-toplevel
-        from aoa.action_machine.intents.access_control import AllowedVerdict  # see TYPE_CHECKING note above
+        from aoa.action_machine.intents.access_control import AllowedVerdict
 
         return AllowedVerdict()
 

@@ -15,7 +15,7 @@ from aoa.action_machine.auth.application_role import ApplicationRole
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.exceptions import AccessDeniedError, AccessGate
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.edges.role_graph_edge import RoleGraphEdge
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
@@ -88,7 +88,7 @@ def test_ping_none_role_allows_anonymous_context(coordinator_module) -> None:
 def test_admin_denied_without_role(coordinator_module) -> None:
     checker = RoleChecker()
     ctx = Context(user=UserInfo(user_id="u1", roles=(UserRole,)))
-    with pytest.raises(AuthorizationError, match="admin"):
+    with pytest.raises(AccessDeniedError, match="admin"):
         checker.check(ctx, _action_node(coordinator_module, AdminAction))
 
 
@@ -127,7 +127,7 @@ def test_or_roles_one_alternative_matches(coordinator_module) -> None:
 def test_or_roles_none_match(coordinator_module) -> None:
     checker = RoleChecker()
     ctx = Context(user=UserInfo(user_id="u1", roles=(UserRole,)))
-    with pytest.raises(AuthorizationError, match="one of"):
+    with pytest.raises(AccessDeniedError, match="one of"):
         checker.check(ctx, _action_node(coordinator_module, OrRolesProbeAction))
 
 
@@ -154,7 +154,7 @@ class AnyRoleProbeAction(BaseAction["AnyRoleProbeAction.Params", "AnyRoleProbeAc
 def test_any_role_requires_nonempty_active_roles(coordinator_module) -> None:
     checker = RoleChecker()
     ctx = Context(user=UserInfo(user_id="anon", roles=()))
-    with pytest.raises(AuthorizationError, match="Authentication required"):
+    with pytest.raises(AccessDeniedError, match="Authentication required"):
         checker.check(ctx, _action_node(coordinator_module, AnyRoleProbeAction))
 
 
@@ -163,7 +163,7 @@ def test_any_role_denial_reuses_the_module_level_forbidden_role_verdict(coordina
     verdict -- the same instance every time, not rebuilt per denial."""
     checker = RoleChecker()
     ctx = Context(user=UserInfo(user_id="anon", roles=()))
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDeniedError) as excinfo:
         checker.check(ctx, _action_node(coordinator_module, AnyRoleProbeAction))
     assert excinfo.value.verdict is _FORBIDDEN_ROLE_VERDICT
 
@@ -215,7 +215,7 @@ def test_silenced_roles_dropped_before_match(coordinator_module) -> None:
 def test_only_silenced_roles_fail_admin(coordinator_module) -> None:
     checker = RoleChecker()
     ctx = Context(user=UserInfo(user_id="u", roles=(SilencedRole,)))
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(AccessDeniedError):
         checker.check(ctx, _action_node(coordinator_module, AdminAction))
 
 
@@ -283,9 +283,9 @@ class GrantGuardProbeAction(BaseAction["GrantGuardProbeAction.Params", "GrantGua
 def test_denied_without_any_role_match_sets_level_1(coordinator_module) -> None:
     checker = RoleChecker()
     ctx = Context(user=UserInfo(user_id="u1", roles=(UserRole,)))
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDeniedError) as excinfo:
         checker.check(ctx, _action_node(coordinator_module, GrantGuardProbeAction), GrantGuardProbeAction.Params())
-    assert excinfo.value.level == 1
+    assert excinfo.value.refused_by is AccessGate.CHECK_ROLES
     assert excinfo.value.reason == "FORBIDDEN_ROLE"
     # baseverdict-audit finding 8, third document: same fixed instance, not rebuilt.
     assert excinfo.value.verdict is _FORBIDDEN_ROLE_VERDICT
@@ -302,9 +302,9 @@ def test_grant_when_false_falls_through_to_level_2(coordinator_module) -> None:
     grant matches a ManagerRole-only user, so this is a level-2, not level-1, denial."""
     checker = RoleChecker()
     ctx = Context(user=UserInfo(user_id="not_sales", roles=(ManagerRole,)))
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDeniedError) as excinfo:
         checker.check(ctx, _action_node(coordinator_module, GrantGuardProbeAction), GrantGuardProbeAction.Params())
-    assert excinfo.value.level == 2
+    assert excinfo.value.refused_by is AccessGate.WHEN_OR_GUARD
     assert excinfo.value.reason == "not the sales agent"
 
 
@@ -319,13 +319,13 @@ def test_grant_when_true_allows_a_later_grant_to_win(coordinator_module) -> None
 def test_guard_false_denies_with_level_2(coordinator_module) -> None:
     checker = RoleChecker()
     ctx = Context(user=UserInfo(user_id="a1", roles=(AdminRole,)))
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDeniedError) as excinfo:
         checker.check(
             ctx,
             _action_node(coordinator_module, GrantGuardProbeAction),
             GrantGuardProbeAction.Params(order_id="ARCHIVED-1"),
         )
-    assert excinfo.value.level == 2
+    assert excinfo.value.refused_by is AccessGate.WHEN_OR_GUARD
     assert excinfo.value.reason == "order archived"
 
 
@@ -366,9 +366,9 @@ def test_guest_role_grant_when_false_denies_with_level_2(coordinator_module) -> 
     ordinary BaseRole subclass as far as grant() is concerned) — its when= must not be
     silently ignored just because GuestRole normally bypasses role matching entirely."""
     checker = RoleChecker()
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDeniedError) as excinfo:
         checker.check(Context(), _action_node(coordinator_module, GuestWhenProbeAction))
-    assert excinfo.value.level == 2
+    assert excinfo.value.refused_by is AccessGate.WHEN_OR_GUARD
     assert excinfo.value.reason == "guest when rejected"
 
 
@@ -397,7 +397,7 @@ def test_any_role_grant_when_false_denies_with_level_2(coordinator_module) -> No
     (AnyRole's own gate passes), but the grant's own when= must still be honored."""
     checker = RoleChecker()
     ctx = Context(user=UserInfo(user_id="u", roles=(UserRole,)))
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDeniedError) as excinfo:
         checker.check(ctx, _action_node(coordinator_module, AnyWhenProbeAction))
-    assert excinfo.value.level == 2
+    assert excinfo.value.refused_by is AccessGate.WHEN_OR_GUARD
     assert excinfo.value.reason == "any-role when rejected"

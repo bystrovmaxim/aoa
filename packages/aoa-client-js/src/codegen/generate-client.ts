@@ -1,15 +1,12 @@
 // packages/aoa-client-js/src/codegen/generate-client.ts
 //
-// generateClient(url) — the static codegen entry point (chapter 5). Fetches
-// GET /client-manifest.json and returns a self-contained TypeScript source string: one
-// Params/Result interface pair per endpoint, the GateApi/CallableApi facades over them
-// (hybrid path/dot-alias layout, see path-layout.ts), and the wire-contract zod
-// validator ResolveResponseSchema. The three Verdict outcome types are re-exported from
-// the runtime package rather than redeclared here — the manifest's own BaseVerdict entry
-// is deliberately abstract (kind only, see json-schema-to-zod.ts), so there is no schema
-// data to mechanically regenerate FailSecurityVerdict/FailErrorVerdict's `reason` field
-// from, and redeclaring a second, hand-maintained copy would be exactly the kind of
-// dual-source-of-truth this whole chapter exists to avoid.
+// Fetches the server's published list of actions and returns a complete TypeScript file
+// as text: a parameter and result type per action, the api object over them, and the
+// validator for what the server sends back. The three answer types are re-exported from
+// the runtime package instead of being regenerated -- the published schema for them
+// carries only the name, so there is nothing to generate a `reason` field from -- and
+// writing a second copy by hand is exactly the duplication this generator exists to
+// remove.
 
 import { assertManifestShape, type Manifest, type ManifestEndpoint } from "../manifest-types.ts";
 import { parseRootSchema } from "./json-schema-ir.ts";
@@ -53,11 +50,9 @@ function renderClientSource(manifest: Manifest, url: string): string {
 
 function renderEndpointTypes(endpoint: ManifestEndpoint, registry: NameRegistry): { source: string; layoutEndpoint: LayoutEndpoint } {
   const rawBase = deriveEndpointBaseName(endpoint.name);
-  // Reject an invalid or empty base before it ever reaches the registry (audit finding
-  // 3) -- claimBase's numeric-suffix disambiguation exists to resolve a collision
-  // between two otherwise-valid names, not to repair a base that was never a valid
-  // identifier to begin with (an empty base disambiguated against itself becomes the
-  // digit-led, still-invalid "2").
+  // Refuse an unusable name before the registry ever sees it. Adding a number resolves a
+  // clash between two otherwise valid names; it cannot repair a name that was never valid,
+  // and would turn an empty one into "2".
   assertValidBaseName(rawBase, endpoint);
   const base = registry.claimBase(rawBase, endpoint.operation);
   const paramsName = `${base}Params`;
@@ -66,12 +61,10 @@ function renderEndpointTypes(endpoint: ManifestEndpoint, registry: NameRegistry)
   const parsedParams = parseRootSchema(endpoint.params_schema, `${endpoint.operation} params_schema`);
   const parsedResult = parseRootSchema(endpoint.result_schema, `${endpoint.operation} result_schema`);
 
-  // A name hoisted from a nested $defs entry is a mechanical string concatenation with
-  // no uniqueness guarantee of its own (audit finding 2) -- claiming it through the same
-  // registry as endpoint base names guarantees it can't collide with (and, via
-  // TypeScript's own interface declaration merging, silently corrupt) another endpoint's
-  // own top-level Params/Result interface, or another hoisted name from elsewhere in the
-  // file. Idempotent for the same (name, operation) pair, so re-hoisting the same $ref
+  // A name lifted out of a nested definition is built by gluing strings together and is
+  // unique by luck. Claiming it from the same registry as everything else makes the clash
+  // impossible instead of silent: TypeScript merges two interfaces sharing a name rather
+  // than complaining. Idempotent for the same pair, so re-hoisting the same reference
   // twice within one endpoint's own interface still resolves to the same name.
   const paramsSource = renderParamsOrResultInterface(paramsName, parsedParams, (ref) =>
     registry.claimName(`${paramsName}${ref}`, endpoint.operation),
