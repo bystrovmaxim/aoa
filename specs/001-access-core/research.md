@@ -8,23 +8,26 @@ Every decision below is either forced by the specification, settled in the clari
 - **Rationale**: the answer travels as data (spec FR-003); `kind` is the word a caller branches on, and because it is a literal rather than a class name, renaming a class never changes the contract. A base that cannot be constructed means "an answer of no particular kind" is unrepresentable.
 - **Alternatives considered**: a plain `Enum` (loses per-answer fields such as `gate` and `reason`); one exception type per outcome (exceptions are not data and cannot be returned by the question path); `dataclass` (drops the validation the rest of the engine's models rely on).
 
-## D2. Gates are an ordered tuple of callables with one signature
+## D2. Four steps with one signature, and five words for what refused
 
-- **Decision**: `GATES = (auth_gate, roles_gate, condition_gate, object_gate)`, in that order. A gate is `(Context, type[BaseAction], BaseParams | None, ToolsBox, dict[str, BaseResource]) -> Awaitable[Refused | Undecided | None]`. `None` means the call may continue; the first non-`None` answer ends the decision.
-- **Rationale**: the order is part of the contract (spec FR-007), and it is the reason the identity and role gates can run before the parameters are examined (FR-008). One signature per gate keeps the cascade readable and the matrix testable.
-- **Alternatives considered**: separate methods on the machine (order becomes implicit in the call sequence); a gate registry with priority numbers (more machinery than four fixed steps need); gates that raise (a gate that raises is a defect, not a decision — see D3).
+- **Decision**: `GATES = (auth_gate, roles_gate, guard_gate, object_gate)`, in that order. A step is `(Context, type[BaseAction], BaseParams | None, ToolsBox, dict[str, BaseResource]) -> Awaitable[Refused | Undecided | None]`; `None` means the call may continue, and the first non-`None` answer ends the decision. The steps publish five words between them: `auth_gate` answers `AUTH_COORDINATOR`, `guard_gate` answers `GUARD`, `object_gate` answers `ACCESS_DECIDE`, and `roles_gate` answers **two** — `CHECK_ROLES` when the caller holds none of the roles the operation lists, `WHEN` when a listed role is held but the condition its grant declared refused.
+- **Rationale**: the order is part of the contract (FR-007), and it is why the identity and roles steps run before the parameters are examined (FR-008) while `guard_gate` may read them. `when=` is evaluated *inside* the roles step rather than as a step of its own, because it takes part in choosing the role: a grant whose role matches but whose condition says no is skipped and another grant may still win, and a cascade that stops at the first refusal cannot express "try the next grant". The word can still be separate, because the step already knows which of the two happened — the existing code carries the same distinction as `level` 1 versus 2 (`role_matched` in `role_checker`). Separation of *names* costs nothing; separation of *steps* would change the rule.
+- **Alternatives considered**: a step per condition (changes role matching, see above); one `WHEN_OR_GUARD` word carrying the difference in a second vocabulary (rejected in D4: it publishes a reason list that only restates what a word can say); separate methods on the machine (order becomes implicit in the call sequence); a registry with priority numbers (more machinery than four fixed steps need); steps that raise (a step that raises is a defect, not a decision — see D3).
+
 
 ## D3. A gate may answer "undecided" itself, and a gate that raises is turned into the same answer
 
-- **Decision**: a gate that cannot tell returns `Undecided("EVALUATION_FAILED", cause=...)`; a gate that raises is caught by the cascade and becomes `Undecided("EVALUATION_FAILED", cause=exc)` — the same answer with the same fixed reason.
-- **Rationale**: settled in `spec.md` (clarification Q2, FR-005). A gate that catches a store error inside its own logic must have a way to say so; forcing it to re-raise would make the developer invent an exception to express a normal outcome.
-- **Alternatives considered**: only a raise produces undecided (two spellings for one outcome, and the developer must know to re-raise); a distinct answer for "gate crashed" versus "gate could not tell" (the caller can act on neither, and the difference is already in the event).
+- **Decision**: a gate that cannot tell returns `Undecided(gate=…, cause=...)`, naming itself; a gate that raises is caught by the cascade and becomes `Undecided(gate=…, cause=exc)` for the gate that raised — the same answer, differing only in which step it names.
+- **Rationale**: settled in `spec.md` (clarification Q2, FR-005). A gate that catches a store error inside its own logic must have a way to say so; forcing it to re-raise would make the developer invent an exception to express a normal outcome. Naming the gate is what makes the answer actionable and costs nothing, because the gate is already a published word.
+- **Alternatives considered**: only a raise produces undecided (two spellings for one outcome, and the developer must know to re-raise); a distinct answer for "gate crashed" versus "gate could not tell" (the caller can act on neither, and the difference is already in the failure event).
 
-## D4. The reason vocabulary lives in one module; developer reasons are additive
 
-- **Decision**: `reasons.py` holds the six fixed codes — `UNAUTHENTICATED`, `FORBIDDEN_ROLE`, `FORBIDDEN_GRANT`, `FORBIDDEN_GUARD`, `FORBIDDEN_OBJECT`, `EVALUATION_FAILED`. A declared `reason=` is any non-empty string, defaulted to the fixed code for that condition when the developer declares none.
-- **Rationale**: spec FR-012 and FR-010. One list makes the framework's own vocabulary reviewable in one place; a default per condition means a developer who does not care still gets a reason the caller can branch on.
-- **Alternatives considered**: an enum for all reasons (a developer could not add their own without editing the framework); free strings everywhere (the framework's own prose drifts between gates).
+## D4. There is no reason vocabulary: the words are the gates
+
+- **Decision**: the framework publishes five gate words and invents no reason text of its own. `reason` is the developer's: it carries whatever they declared beside their condition, and it is absent when they declared none.
+- **Rationale**: an earlier draft kept a `reasons.py` with six codes beside the gates, and five of them restated a gate (`UNAUTHENTICATED` for `AUTH_COORDINATOR`, `FORBIDDEN_ROLE` for `CHECK_ROLES`, `FORBIDDEN_OBJECT` for `ACCESS_DECIDE`, `FORBIDDEN_GRANT`/`FORBIDDEN_GUARD` for the two conditions). The only information a reason carried beyond a gate was the `when=` versus `guard=` distinction, and a step name can carry that itself: `WHEN` and `GUARD` are separate words (D2), so nothing is left for a second vocabulary to say. Two lists that must stay in step are worse than one list that says everything.
+- **Alternatives considered**: keeping all six codes in one module (duplication with a tidier address); making `reason` an enum (a developer could not add their own text); dropping `reason` entirely (a developer's own words are the most useful thing a refusal can carry, and FR-010 keeps them).
+
 
 ## D5. The object answer is one shared instance, decided in one branch
 

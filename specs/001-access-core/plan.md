@@ -6,7 +6,7 @@
 
 ## Summary
 
-One ordered cascade of four gates decides access for both the execution path and the question path, and every decision is exactly one of three answers: allowed, refused (naming the gate and a reason), or undecided (a gate could not tell). A developer declares the reason a condition refuses with, beside the condition. Every decision and every failed gate publishes a new event, carrying the answer and the request identity the context already holds. The work lives inside `packages/aoa-action-machine`; the only touch outside it is the `except` clause in the two adapters, so that a refusal keeps leaving as a refusal (see [research.md](./research.md), D7).
+One ordered cascade of four steps decides access for both the execution path and the question path, and every decision is exactly one of three answers: allowed, refused (naming the gate, and the reason a developer declared if any), or undecided (naming the gate that could not tell). A developer declares the reason a condition refuses with, beside the condition. Every decision and every failed gate publishes a new event, carrying the answer and the request identity the context already holds. The work lives inside `packages/aoa-action-machine`; the only touch outside it is the `except` clause in the two adapters, so that a refusal keeps leaving as a refusal (see [research.md](./research.md), D7).
 
 ## Technical Context
 
@@ -26,7 +26,7 @@ One ordered cascade of four gates decides access for both the execution path and
 
 **Constraints**: the request identity the events carry is `context.request.trace_id`, published by the OpenTelemetry plugin as `aoa.trace_id` — the only identity the context has today, and it is populated nowhere yet (#170), so an event carries it only when it is set and never invents one; no batch form of the question in the core; the reason vocabulary is additive; the two events are additions to the plugin contract; the existing adapter tests keep passing; `bash scripts/run_checks_with_log.sh` green at the end
 
-**Scale/Scope**: 3 answer types, 4 gates, 6 fixed reasons, 2 new event types, 1 declared-reason validator, nine phases of work as ordered in issue #189
+**Scale/Scope**: 3 answer types, 5 gate words over 4 steps, 2 new event types, 1 declared-reason validator, nine phases of work as ordered in issue #189
 
 ## Constitution Check
 
@@ -75,10 +75,9 @@ packages/aoa-action-machine/
 │   │   │   ├── verdict.py                  # Verdict: the base answer, with kind
 │   │   │   ├── allowed.py                  # Allowed
 │   │   │   ├── refused.py                  # Refused, plus the shared FORBIDDEN_OBJECT
-│   │   │   ├── undecided.py                # Undecided: fixed reason code, private cause
-│   │   │   ├── gate.py                     # Gate: the four published names
-│   │   │   ├── reasons.py                  # the fixed vocabulary, one list
-│   │   │   ├── cascade.py                  # the four gates, GATES, decide()
+│   │   │   ├── undecided.py                # Undecided: the gate that could not tell, private cause
+│   │   │   ├── gate.py                     # Gate: the five published words
+│   │   │   ├── cascade.py                  # the four steps, GATES, decide()
 │   │   │   └── access_verdict.py           # removed in phase 9
 │   │   └── check_roles/
 │   │       ├── reason_validation.py        # reason= beside when= and guard=

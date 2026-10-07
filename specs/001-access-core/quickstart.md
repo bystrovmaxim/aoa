@@ -27,7 +27,7 @@ Answer `access_decide()` with `FORBIDDEN_OBJECT` for an object that does not exi
 
 Make one gate fail (inject a store that raises), then read the answer and the published events.
 
-**Expected**: the answer is `undecided` with `EVALUATION_FAILED`; a failed-gate event is published carrying the failure's type; neither the answer nor any event contains the text of the failure; the outcome is never cached or reused as a refusal.
+**Expected**: the answer is `undecided` and names the gate that could not tell; a failed-gate event is published carrying the failure's type; neither the answer nor any event contains the text of the failure; the outcome is never cached or reused as a refusal.
 
 **Proves**: FR-005, FR-006, FR-014, FR-016, SC-004, SC-007.
 
@@ -51,7 +51,7 @@ Build a machine containing an operation with no access declaration.
 
 Present rejected credentials to an operation declared open to guests.
 
-**Expected**: a refusal naming the identity gate with `UNAUTHENTICATED`.
+**Expected**: a refusal naming the identity gate, with no reason text invented.
 
 **Proves**: FR-009, FR-013.
 

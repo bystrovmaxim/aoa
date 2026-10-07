@@ -14,7 +14,7 @@ The result of a decision. Exactly one of three shapes, never a base instance and
 | | `gate` | `Gate` | Always set; names the gate that refused (FR-004). Defaults to `ACCESS_DECIDE`, the one gate a developer writes |
 | | `reason` | `str` | Non-empty, no whitespace-only value (FR-004). Either a fixed code or the developer's declared reason (FR-010, FR-012) |
 | **Undecided** | `kind` | `Literal["undecided"]` | The answer a gate gives when it cannot tell (FR-003, FR-005) |
-| | `reason` | `str` | A fixed code; `EVALUATION_FAILED` is the only one the core produces (FR-005) |
+| | `gate` | `Gate` | Names the step that could not tell; the answer says where it stopped, not why (FR-005) |
 | | `_cause` | `BaseException \| None` | Private: never in `model_dump()`, never in an event, never in an answer (FR-016, D9) |
 
 **Validation rules**
@@ -29,28 +29,29 @@ An ordered step of the decision.
 
 | Field | Type | Rules |
 | --- | --- | --- |
-| name | one of `AUTH_COORDINATOR`, `CHECK_ROLES`, `WHEN_OR_GUARD`, `ACCESS_DECIDE` | Published; travels on a refusal (FR-004) |
-| order | fixed tuple position | who is calling → which roles → declared conditions → the object (FR-007) |
+| name | one of `AUTH_COORDINATOR`, `CHECK_ROLES`, `WHEN`, `GUARD`, `ACCESS_DECIDE` | Published; travels on a refusal and on an undecided answer (FR-004, FR-005) |
+| order | fixed tuple position | who is calling → the roles and each matching grant's condition (answering `CHECK_ROLES` or `WHEN`) → the operation's shared condition → the object (FR-007) |
 | answer | `Refused \| Undecided \| None` | `None` means the call may continue; the first non-`None` ends the decision |
 
 **Rules**
 
 - The first two gates never read the call's parameters and run before they are examined (FR-008).
-- A gate that fails and a gate that answers undecided produce the same answer, with the same fixed reason (FR-005).
+- A gate that fails and a gate that answers undecided produce the same answer, naming the step that could not tell (FR-005).
 - Nothing in the engine inspects or restricts what a gate does with data it reads (clarification Q4).
 
-## Reason vocabulary
+## No framework vocabulary
 
-| Constant | Produced by | Meaning |
-| --- | --- | --- |
-| `UNAUTHENTICATED` | the identity gate | Credentials were presented and rejected (FR-009) |
-| `FORBIDDEN_ROLE` | the roles gate | No role the operation lists is held by the caller |
-| `FORBIDDEN_GRANT` | the condition gate | A role's `when=` refused and no `reason=` was declared |
-| `FORBIDDEN_GUARD` | the condition gate | The operation's `guard=` refused and no `reason=` was declared |
-| `FORBIDDEN_OBJECT` | the object gate | One shared answer for "no such object" and "someone else's object" (FR-011) |
-| `EVALUATION_FAILED` | the cascade | A gate could not tell — always `Undecided`, never `Refused` (FR-005) |
+The framework publishes the gate words and invents no reason text of its own (FR-012). A refusal names what refused; a reason appears only where a developer declared one beside their condition, and then it is their text, carried unchanged (FR-010).
 
-**Rules**: the list is fixed and published; a developer-declared reason is an addition to it, never a redefinition (FR-012). `FORBIDDEN_OBJECT` is one shared instance, and both cases must be answered from one branch (D5).
+| Word | What it means |
+| --- | --- |
+| `AUTH_COORDINATOR` | The credentials the caller presented were rejected (FR-009) |
+| `CHECK_ROLES` | The caller holds none of the roles the operation lists |
+| `WHEN` | A listed role is held, but the condition its grant declared refused |
+| `GUARD` | The operation's shared condition refused |
+| `ACCESS_DECIDE` | The object may not be touched; "no such object" and "someone else's object" are one shared answer, from one branch (FR-011, D5) |
+
+**Rules**: the five words are the whole vocabulary; a `FORBIDDEN_OBJECT`-style shared refusal is one instance, and both of its cases must be answered from one branch.
 
 ## Events (two new types)
 
