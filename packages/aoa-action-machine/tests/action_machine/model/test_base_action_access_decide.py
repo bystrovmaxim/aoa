@@ -7,7 +7,6 @@ import pytest
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
-from aoa.action_machine.intents.access_control import AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.params_stub import ParamsStub
 from aoa.action_machine.model.result_stub import ResultStub
@@ -28,19 +27,19 @@ class DenyingAccessDecideAction(BaseAction[ParamsStub, ResultStub]):
         context: Context,
         box: object,
         connections: dict[str, object],
-    ) -> FailSecurityVerdict | AllowedVerdict:
-        return FailSecurityVerdict("denied")
+    ) -> bool:
+        return False
 
 
 class TestDefaultAccessDecide:
     @pytest.mark.asyncio
-    async def test_default_access_decide_returns_allowed(self) -> None:
+    async def test_default_access_decide_returns_true(self) -> None:
         got = await DefaultAccessDecideAction().access_decide(ParamsStub(), Context(), None, {})
-        assert got == AllowedVerdict()
+        assert got is True
 
 
 class TestSubclassAccessDecide:
     @pytest.mark.asyncio
     async def test_subclass_can_deny_access(self) -> None:
         got = await DenyingAccessDecideAction().access_decide(ParamsStub(), Context(), None, {})
-        assert got == FailSecurityVerdict("denied")
+        assert got is False

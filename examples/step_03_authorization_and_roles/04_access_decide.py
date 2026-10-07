@@ -5,8 +5,7 @@ A role says who someone is; it knows nothing about the specific object a call
 touches — the same CustomerRole covers every customer's order alike.
 access_decide is the third, object-level check: it runs after the role has
 already matched, loads or receives the concrete object, and decides based on
-it. Its default (on BaseAction) is AllowedVerdict() — no extra restriction
-beyond roles.
+it. Its default (on BaseAction) is True — no extra restriction beyond roles.
 
 This example has no grant(when=...) and no guard=, on purpose: the only thing
 that can deny a call here is access_decide, so a denial is unambiguously the
@@ -27,7 +26,6 @@ from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
-from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -47,18 +45,15 @@ class CustomerRole(ApplicationRole):
 
 
 # ---------------------------------------------------------------------------
-# The owner is resolved server-side, from this table — never taken from Params.
-# A real service would do the same lookup through a connection; the in-module
-# dict keeps the example self-contained, same shape as aoa-demo's own
-# CancelOrderAction. What the request can set cannot be what it is checked
-# against: an owner_user_id field here would let any caller claim any order.
+# Params carries who the order actually belongs to (owner_user_id) — a real
+# service would look this up via a connection instead; this example takes it
+# directly to stay self-contained, same simplification as aoa-demo's own
+# CancelOrderAction.
 # ---------------------------------------------------------------------------
-
-ORDERS = {"ord-001": "alice", "ord-002": "bob"}
-
 
 class OrderParams(BaseParams):
     order_id: str = Field(description="Order identifier")
+    owner_user_id: str = Field(description="user_id of the order's owner")
 
 
 class OrderResult(BaseResult):
@@ -81,14 +76,8 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         context: Context,
         box: ToolsBox,
         connections: dict,
-    ) -> FailSecurityVerdict | AllowedVerdict:
-        owner = ORDERS.get(params.order_id)
-        # Existence and ownership in one branch, answering with one shared
-        # verdict: "no such order" and "someone else's order" must be
-        # indistinguishable, or probing ids reveals which orders exist.
-        if owner is None or owner != context.user.user_id:
-            return FORBIDDEN_OBJECT
-        return AllowedVerdict()
+    ) -> bool:
+        return params.owner_user_id == context.user.user_id
 
     @summary_aspect("Cancel the order")
     async def cancel_summary(self, params, state, box, connections):
@@ -104,9 +93,8 @@ async def main() -> None:
     alice = Context(user=UserInfo(user_id="alice", roles=(CustomerRole,)))
 
     cases = [
-        ("alice, her own order", OrderParams(order_id="ord-001")),
-        ("alice, bob's order", OrderParams(order_id="ord-002")),
-        ("alice, no such order", OrderParams(order_id="ord-404")),
+        ("alice, her own order", OrderParams(order_id="ord-001", owner_user_id="alice")),
+        ("alice, bob's order", OrderParams(order_id="ord-002", owner_user_id="bob")),
     ]
 
     for label, params in cases:
