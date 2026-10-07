@@ -2,7 +2,7 @@
 
 ## Where the governing text lives
 
-`.specify/memory/constitution.md` is the binding text for this project. It is the maintainer's, written gradually, and nothing else in the repository overrides it. Today it still holds the Spec Kit template.
+`.specify/memory/constitution.md` is the binding text for this project. It is the maintainer's, written gradually, and nothing else in the repository overrides it. Today its first principle is written; the rest is still the toolkit's template.
 
 The rationale behind it lives in `docs/explanation/architectural-constitution.md` (the nine primitives) and `docs/reference/intents-and-invariants.md` (the invariants of each intent).
 
@@ -12,12 +12,13 @@ This repository uses Spec Kit (`specify 1.1.1`, `sh` scripts). Its commands are 
 
 - **Short path:** `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement` → `/speckit-converge`
 - **Full path** adds `/speckit-clarify`, `/speckit-checklist` and `/speckit-analyze` as quality gates
-- `/speckit-constitution` edits the constitution — the maintainer's text, never an agent's
+- `/speckit-constitution` edits the constitution — the maintainer's text: an agent writes in it only when explicitly asked in the current turn
 
 The skills are installed for the two integrations this repository configures: Claude Code (`.claude/skills/speckit-*`) and Cursor (`.cursor/skills/speckit-*`).
 
 ## House rules that already apply
 
+- **Nothing is committed, pushed, opened as a pull request or merged without an explicit instruction** from the maintainer in the current conversation. Prepare the change, show the diff, wait. This is Principle I of the constitution (`.specify/memory/constitution.md`).
 - **One phase = one commit.** A phase that is not a commit is a procedure, not a phase.
 - **English** in commit messages and issues.
 - **The changelog is the maintainer's**; agents leave it alone unless explicitly asked (`.cursor/rules/changelog-hands-off.mdc`).

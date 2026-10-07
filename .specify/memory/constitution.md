@@ -3,10 +3,9 @@
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. The maintainer decides — commits, pull requests and merges happen only on instruction (NON-NEGOTIABLE)
+
+Commits, pushes, pull requests and merges are made **only on an explicit instruction from the maintainer, given in the current conversation**. An agent may read, edit and run checks, and it must show what it changed — but it does not commit, push, open a pull request or merge on its own initiative: not as a side effect of finishing a task, not because a plan or an issue lists it as a phase, and not because the work looks complete. Preparing a change and shipping it are two separate decisions, and the second one belongs to the maintainer.
 
 ### [PRINCIPLE_2_NAME]
 <!-- Example: II. CLI Interface -->

@@ -5,8 +5,9 @@ alwaysApply: true
 
 # The constitution and the workflow
 
-- The binding text for this project is **`.specify/memory/constitution.md`**. Read it before proposing a plan, a task list or an implementation. It is the maintainer's text, written gradually; today it still holds the Spec Kit template.
+- The binding text for this project is **`.specify/memory/constitution.md`**. Read it before proposing a plan, a task list or an implementation. It is the maintainer's text, written gradually; today its first principle is written and the rest is still the toolkit's template.
 - The workflow and the house rules are in **`AGENTS.md`** at the repository root.
 - The commands are agent skills: `/speckit-specify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-implement`, `/speckit-converge` (short path), plus `/speckit-clarify`, `/speckit-checklist`, `/speckit-analyze` (full path). Skills live under `.claude/skills/` and `.cursor/skills/`.
+- **Commits, pushes, pull requests and merges only on the maintainer's explicit instruction in the current conversation** (Principle I of the constitution). Prepare the change, show the diff, wait.
 - **Do not edit `.specify/memory/constitution.md`** unless the user explicitly asks in the current turn — the same hands-off rule as the changelog (see `changelog-hands-off.mdc`).
 - The rationale behind the constitution is `docs/explanation/architectural-constitution.md` and `docs/reference/intents-and-invariants.md`; the four existing rules in this directory stay in force as they are.
