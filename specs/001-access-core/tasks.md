@@ -44,7 +44,7 @@ Monorepo, one package under change:
 
 **Independent test**: the answer types can be constructed, validated and serialised, and no invalid answer can be built.
 
-- [ ] T003 [P] Create the answer base in `packages/aoa-action-machine/src/aoa/action_machine/intents/access_control/verdict.py` — frozen schema, `kind: str` with **no default**, so the base cannot be built; module header per principle III, AI-CORE block per principle IV, one-line docstrings per principle V (FR-003)
+- [x] T003 [P] Create the answer base in `packages/aoa-action-machine/src/aoa/action_machine/intents/access_control/verdict.py` — frozen schema, `kind: str` with **no default**, so the base cannot be built; module header per principle III, AI-CORE block per principle IV, one-line docstrings per principle V (FR-003) — **done: `verdict.py` (63 lines), ruff/mypy clean, pylint 10.00/10; `Verdict()` fails naming `kind`, frozen, extra forbidden; suite still 2081 passed**
 - [ ] T004 [P] Create the gate names in `packages/aoa-action-machine/src/aoa/action_machine/intents/access_control/gate.py` — `Gate` with exactly `AUTH_COORDINATOR`, `CHECK_ROLES`, `WHEN_OR_GUARD`, `ACCESS_DECIDE` (FR-004, FR-007)
 - [ ] T005 [P] Create the fixed vocabulary in `packages/aoa-action-machine/src/aoa/action_machine/intents/access_control/reasons.py` — `UNAUTHENTICATED`, `FORBIDDEN_ROLE`, `FORBIDDEN_GRANT`, `FORBIDDEN_GUARD`, `FORBIDDEN_OBJECT`, `EVALUATION_FAILED`, declared once (FR-012)
 - [ ] T006 Create `Allowed` in `packages/aoa-action-machine/src/aoa/action_machine/intents/access_control/allowed.py` — `kind: Literal["allowed"]` (FR-003)
