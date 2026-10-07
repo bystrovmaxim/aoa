@@ -2,7 +2,7 @@
 
 ## Where the governing text lives
 
-`.specify/memory/constitution.md` is the binding text for this project. It is the maintainer's, written gradually, and nothing else in the repository overrides it. Today its first principle is written; the rest is still the toolkit's template.
+`.specify/memory/constitution.md` is the binding text for this project. It is the maintainer's, written gradually, and nothing else in the repository overrides it. Today its five principles are written plus the section on the final check run; the remaining sections are still the toolkit's template.
 
 The rationale behind it lives in `docs/explanation/architectural-constitution.md` (the nine primitives) and `docs/reference/intents-and-invariants.md` (the invariants of each intent).
 
@@ -14,13 +14,13 @@ This repository uses Spec Kit (`specify 1.1.1`, `sh` scripts). Its commands are 
 - **Full path** adds `/speckit-clarify`, `/speckit-checklist` and `/speckit-analyze` as quality gates
 - `/speckit-constitution` edits the constitution — the maintainer's text: an agent writes in it only when explicitly asked in the current turn
 
-The skills are installed for the two integrations this repository configures: Claude Code (`.claude/skills/speckit-*`) and Cursor (`.cursor/skills/speckit-*`).
+The skills are installed for the tools this repository configures: DeepSeek Harness (`.dsh/skills/speckit-*`, the environment this work is actually done in), Claude Code (`.claude/skills/speckit-*`) and Cursor (`.cursor/skills/speckit-*`).
 
 ## House rules that already apply
 
 - **Nothing is committed, pushed, opened as a pull request or merged without an explicit instruction** from the maintainer in the current conversation. Prepare the change, show the diff, wait. This is Principle I of the constitution (`.specify/memory/constitution.md`).
 - **One phase = one commit.** A phase that is not a commit is a procedure, not a phase.
-- **English** in commit messages and issues.
+- **English wherever it is read as code or as history** — commit messages, issues, pull requests, review comments, and every comment, docstring or example in the code (Principle II of the constitution).
 - **The changelog is the maintainer's**; agents leave it alone unless explicitly asked (`.cursor/rules/changelog-hands-off.mdc`).
 - **The constitution is the maintainer's** too: do not edit `.specify/memory/constitution.md` unless the user asks in the current turn.
 - **Verification is adversarial**: break the code the way the new test must catch, confirm that test fails and no other does, restore.
