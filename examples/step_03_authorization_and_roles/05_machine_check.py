@@ -5,7 +5,7 @@ A frontend deciding whether to show a "Cancel" button, or grey it out, cannot
 find out by actually trying to cancel the order. machine.check_access_decide
 answers "would this be allowed?" — evaluating the exact same role/guard/
 access_decide cascade as machine.run(), but never running the aspect pipeline:
-a denial here is a FailSecurityVerdict(reason=...), not an exception.
+a denial here is AccessVerdict(allowed=False, level=...), not an exception.
 
 This example reuses the same access-controlled action as 04_access_decide.py
 (role + access_decide only) — it does not redefine the three levels again, it
@@ -26,7 +26,6 @@ from aoa.action_machine.auth import ApplicationRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, AllowedVerdict, FailSecurityVerdict
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -44,13 +43,9 @@ class CustomerRole(ApplicationRole):
     description = "Regular customer"
 
 
-# The owner is resolved server-side, never taken from Params -- see
-# 04_access_decide.py for why.
-ORDERS = {"ord-001": "alice", "ord-002": "bob", "ord-003": "alice"}
-
-
 class OrderParams(BaseParams):
     order_id: str = Field(description="Order identifier")
+    owner_user_id: str = Field(description="user_id of the order's owner")
 
 
 class OrderResult(BaseResult):
@@ -62,11 +57,8 @@ class OrderResult(BaseResult):
 @check_roles(CustomerRole)
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 
-    async def access_decide(self, params, context, box, connections) -> FailSecurityVerdict | AllowedVerdict:
-        owner = ORDERS.get(params.order_id)
-        if owner is None or owner != context.user.user_id:
-            return FORBIDDEN_OBJECT
-        return AllowedVerdict()
+    async def access_decide(self, params, context, box, connections) -> bool:
+        return params.owner_user_id == context.user.user_id
 
     @summary_aspect("Cancel the order")
     async def cancel_summary(self, params, state, box, connections):
@@ -83,23 +75,21 @@ async def main() -> None:
 
     print("Single form — should the 'Cancel' button be shown for ord-001?")
     verdict = await machine.check_access_decide(
-        alice, CancelOrderAction, OrderParams(order_id="ord-001")
+        alice, CancelOrderAction, OrderParams(order_id="ord-001", owner_user_id="alice")
     )
-    allowed = isinstance(verdict, AllowedVerdict)
-    print(f"  kind={verdict.kind}  ->  {'show button' if allowed else 'grey out button'}")
+    print(f"  allowed={verdict.allowed}  ->  {'show button' if verdict.allowed else 'grey out button'}")
 
     print("\nList form — checking three orders in Alice's order history at once:")
     verdicts = await machine.check_access_decide(
         alice,
         [
-            (CancelOrderAction, OrderParams(order_id="ord-001")),
-            (CancelOrderAction, OrderParams(order_id="ord-002")),
-            (CancelOrderAction, OrderParams(order_id="ord-003")),
+            (CancelOrderAction, OrderParams(order_id="ord-001", owner_user_id="alice")),
+            (CancelOrderAction, OrderParams(order_id="ord-002", owner_user_id="bob")),
+            (CancelOrderAction, OrderParams(order_id="ord-003", owner_user_id="alice")),
         ],
     )
     for order_id, verdict in zip(("ord-001", "ord-002", "ord-003"), verdicts, strict=True):
-        reason = verdict.reason if isinstance(verdict, FailSecurityVerdict) else ""
-        print(f"  {order_id:<10} kind={verdict.kind}  reason={reason!r}")
+        print(f"  {order_id:<10} allowed={verdict.allowed}  level={verdict.level}")
 
 
 asyncio.run(main())
