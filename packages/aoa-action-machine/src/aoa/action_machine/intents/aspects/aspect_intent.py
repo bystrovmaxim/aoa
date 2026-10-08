@@ -34,6 +34,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from aoa.action_machine.exceptions.aspect_declaration_error import AspectDeclarationError
+from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
+from aoa.action_machine.exceptions.duplicate_declaration_error import DuplicateDeclarationError
 from aoa.action_machine.intents.base_intent import BaseIntent
 
 
@@ -55,7 +58,7 @@ def require_aspect_intent_marker(cls: type, aspects: list[Any]) -> None:
     """
     if aspects and not issubclass(cls, AspectIntent):
         aspect_names = ", ".join(a.method_name for a in aspects)
-        raise TypeError(
+        raise DeclarationStructureError(
             f"Class {cls.__name__} declares aspects ({aspect_names}) "
             f"but does not inherit AspectIntent. Decorators @regular_aspect "
             f"and @summary_aspect are allowed only on classes inheriting "
@@ -76,20 +79,20 @@ def validate_aspects(cls: type, aspects: list[Any]) -> None:
 
     if len(summaries) > 1:
         names = ", ".join(s.method_name for s in summaries)
-        raise ValueError(
+        raise DuplicateDeclarationError(
             f"Class {cls.__name__} declares {len(summaries)} summary aspects "
             f"({names}); only one summary aspect is allowed."
         )
 
     if regulars and not summaries:
-        raise ValueError(
+        raise AspectDeclarationError(
             f"Class {cls.__name__} declares {len(regulars)} regular aspects "
             f"but has no summary aspect. Action pipelines must end with a "
             f"summary aspect that returns Result."
         )
 
     if summaries and aspects[-1].aspect_type != "summary":
-        raise ValueError(
+        raise AspectDeclarationError(
             f"Class {cls.__name__}: summary aspect '{summaries[0].method_name}' "
             f"must be declared last among aspect methods. "
             f"Current last aspect is '{aspects[-1].method_name}' "

@@ -54,6 +54,8 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
+from aoa.action_machine.exceptions.checker_declaration_error import CheckerDeclarationError
+from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
 from aoa.action_machine.intents.base_intent import BaseIntent
 
 
@@ -73,7 +75,7 @@ def require_checker_intent_marker(cls: type, checkers: list[Any]) -> None:
     """Require ``CheckerIntent`` marker when checkers are declared."""
     if checkers and not issubclass(cls, CheckerIntent):
         checker_fields = ", ".join(c.field_name for c in checkers)
-        raise TypeError(
+        raise DeclarationStructureError(
             f"Class {cls.__name__} declares checkers for fields ({checker_fields}) "
             f"but does not inherit CheckerIntent. Checker decorators "
             f"(@result_string, @result_int, etc.) are allowed only on classes "
@@ -91,7 +93,7 @@ def validate_checkers_belong_to_aspects(
     aspect_names = {a.method_name for a in aspects}
     for checker in checkers:
         if checker.method_name not in aspect_names:
-            raise ValueError(
+            raise CheckerDeclarationError(
                 f"Class {cls.__name__}: checker '{checker.checker_class.__name__}' "
                 f"for field '{checker.field_name}' is attached to method "
                 f"'{checker.method_name}', which is not an aspect method. "

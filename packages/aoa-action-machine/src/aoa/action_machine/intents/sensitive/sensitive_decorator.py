@@ -42,6 +42,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from aoa.action_machine.exceptions.decorator_argument_type_error import DecoratorArgumentTypeError
+from aoa.action_machine.exceptions.decorator_argument_value_error import DecoratorArgumentValueError
+from aoa.action_machine.exceptions.decorator_target_error import DecoratorTargetError
+
 # ============================================================================
 # Parameter validation helpers (split to reduce cyclomatic complexity)
 # ============================================================================
@@ -60,25 +64,25 @@ def _validate_sensitive_params(
     Raises ``TypeError`` or ``ValueError`` when contract is violated.
     """
     if not isinstance(enabled, bool):
-        raise TypeError(f"@sensitive: parameter enabled must be bool, " f"got {type(enabled).__name__}.")
+        raise DecoratorArgumentTypeError(f"@sensitive: parameter enabled must be bool, " f"got {type(enabled).__name__}.")
 
     if not isinstance(max_chars, int):
-        raise TypeError(f"@sensitive: parameter max_chars must be int, " f"got {type(max_chars).__name__}.")
+        raise DecoratorArgumentTypeError(f"@sensitive: parameter max_chars must be int, " f"got {type(max_chars).__name__}.")
 
     if max_chars < 0:
-        raise ValueError(f"@sensitive: max_chars cannot be negative, got {max_chars}.")
+        raise DecoratorArgumentValueError(f"@sensitive: max_chars cannot be negative, got {max_chars}.")
 
     if not isinstance(char, str):
-        raise TypeError(f"@sensitive: parameter char must be a string, " f"got {type(char).__name__}.")
+        raise DecoratorArgumentTypeError(f"@sensitive: parameter char must be a string, " f"got {type(char).__name__}.")
 
     if len(char) != 1:
-        raise ValueError(f"@sensitive: char must be exactly one character, " f"got {len(char)} characters: {char!r}.")
+        raise DecoratorArgumentValueError(f"@sensitive: char must be exactly one character, " f"got {len(char)} characters: {char!r}.")
 
     if not isinstance(max_percent, int):
-        raise TypeError(f"@sensitive: parameter max_percent must be int, " f"got {type(max_percent).__name__}.")
+        raise DecoratorArgumentTypeError(f"@sensitive: parameter max_percent must be int, " f"got {type(max_percent).__name__}.")
 
     if not 0 <= max_percent <= 100:
-        raise ValueError(f"@sensitive: max_percent must be in range 0..100, " f"got {max_percent}.")
+        raise DecoratorArgumentValueError(f"@sensitive: max_percent must be in range 0..100, " f"got {max_percent}.")
 
 
 # ============================================================================
@@ -117,7 +121,7 @@ def sensitive(
         if isinstance(target, property):
             fget = target.fget
             if fget is None:
-                raise TypeError(
+                raise DecoratorTargetError(
                     "@sensitive: received property without getter. "
                     "Ensure @sensitive is applied to a property with getter."
                 )
@@ -131,7 +135,7 @@ def sensitive(
             return target
 
         # Unsupported target type.
-        raise TypeError(
+        raise DecoratorTargetError(
             f"@sensitive can only be applied to property objects or callables. "
             f"Got object of type {type(target).__name__}: {target!r}."
         )

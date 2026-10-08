@@ -98,7 +98,13 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from aoa.action_machine.exceptions.async_required_error import AsyncRequiredError
+from aoa.action_machine.exceptions.decorator_argument_type_error import DecoratorArgumentTypeError
+from aoa.action_machine.exceptions.decorator_target_error import DecoratorTargetError
+from aoa.action_machine.exceptions.description_contract_error import DescriptionContractError
+from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
+from aoa.action_machine.exceptions.signature_contract_error import SignatureContractError
 
 # Parameter count without @context_requires.
 _BASE_PARAM_COUNT = 6
@@ -125,24 +131,24 @@ def _normalize_exception_types(
     """Normalize exception_types argument to tuple of Exception subclasses."""
     if isinstance(exception_types, type):
         if not issubclass(exception_types, Exception):
-            raise TypeError(f"@on_error: type {exception_types.__name__} is not an " f"Exception subclass.")
+            raise DecoratorArgumentTypeError(f"@on_error: type {exception_types.__name__} is not an " f"Exception subclass.")
         return (exception_types,)
 
     if isinstance(exception_types, tuple):
         if len(exception_types) == 0:
-            raise TypeError("@on_error: empty exception type tuple provided. " "Specify at least one type.")
+            raise DecoratorArgumentTypeError("@on_error: empty exception type tuple provided. " "Specify at least one type.")
         for i, exc_type in enumerate(exception_types):
             if not isinstance(exc_type, type):
-                raise TypeError(
+                raise DecoratorArgumentTypeError(
                     f"@on_error: tuple element [{i}] is not a type, " f"got {type(exc_type).__name__}: {exc_type!r}."
                 )
             if not issubclass(exc_type, Exception):
-                raise TypeError(
+                raise DecoratorArgumentTypeError(
                     f"@on_error: tuple element [{i}] ({exc_type.__name__}) " f"is not an Exception subclass."
                 )
         return exception_types
 
-    raise TypeError(
+    raise DecoratorArgumentTypeError(
         f"@on_error: first argument must be an Exception type "
         f"or a tuple of Exception types, got "
         f"{type(exception_types).__name__}: {exception_types!r}."
@@ -158,11 +164,11 @@ def _exception_types_invariant(
 def _validate_description(description: Any) -> None:
     """Validate that description is a non-empty string."""
     if not isinstance(description, str):
-        raise TypeError(
+        raise DescriptionTypeError(
             f"@on_error: parameter description must be a string, " f"got {type(description).__name__}: {description!r}."
         )
     if not description.strip():
-        raise ValueError("@on_error: description cannot be empty. " "Provide a handler description.")
+        raise DescriptionContractError("@on_error: description cannot be empty. " "Provide a handler description.")
 
 
 def _description_invariant(description: Any) -> None:
@@ -173,14 +179,14 @@ def _validate_method(func: Any, description: str) -> None:
     """Validate handler target: callable, async, signature, and name suffix."""
     # Target must be callable.
     if not callable(func):
-        raise TypeError(
+        raise DecoratorTargetError(
             f"@on_error can only be applied to methods/callables. "
             f"Got object of type {type(func).__name__}: {func!r}."
         )
 
     # Handler must be async.
     if not asyncio.iscoroutinefunction(func):
-        raise TypeError(
+        raise AsyncRequiredError(
             f'@on_error("{description}"): method {func.__name__} '
             f"must be async (async def). "
             f"Synchronous handlers are not supported."
@@ -194,7 +200,7 @@ def _validate_method(func: Any, description: str) -> None:
     sig = inspect.signature(func)
     param_count = len(sig.parameters)
     if param_count != expected_count:
-        raise TypeError(
+        raise SignatureContractError(
             f'@on_error("{description}"): method {func.__name__} '
             f"must accept {expected_count} parameters "
             f"({expected_names}), got {param_count}."

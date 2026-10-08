@@ -7,6 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from aoa.action_machine.auth.base_role import BaseRole
+from aoa.action_machine.exceptions.role_spec_type_error import RoleSpecTypeError
 
 
 @dataclass(frozen=True)
@@ -20,5 +21,5 @@ class Grant:
 def grant(role: type[BaseRole], when: Callable[..., bool] | None = None) -> Grant:
     """Build a ``Grant``: match ``role``, and if ``when`` is given, only when it returns ``True``."""
     if not isinstance(role, type) or not issubclass(role, BaseRole):
-        raise TypeError(f"grant() expected a BaseRole subclass, got {role!r}.")
+        raise RoleSpecTypeError(f"grant() expected a BaseRole subclass, got {role!r}.")
     return Grant(role=role, when=when)

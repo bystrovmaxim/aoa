@@ -47,6 +47,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, cast
 
+from aoa.action_machine.exceptions.decorator_argument_type_error import DecoratorArgumentTypeError
+from aoa.action_machine.exceptions.decorator_argument_value_error import DecoratorArgumentValueError
+from aoa.action_machine.exceptions.decorator_target_error import DecoratorTargetError
+from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
+from aoa.action_machine.exceptions.duplicate_declaration_error import DuplicateDeclarationError
 from aoa.action_machine.resources.base_resource import BaseResource
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -84,24 +89,24 @@ def _validate_connection_args(klass: Any, key: str, description: str) -> None:
     Validate ``@connection`` decorator arguments.
     """
     if not isinstance(klass, type):
-        raise TypeError(
+        raise DecoratorArgumentTypeError(
             f"@connection expects a class, got {type(klass).__name__}: {klass!r}. " f"Pass a resource manager class."
         )
 
     if not issubclass(klass, BaseResource):
-        raise TypeError(
+        raise DecoratorArgumentTypeError(
             f"@connection: class {klass.__name__} is not a BaseResource "
             f"subclass. Resource manager must inherit BaseResource."
         )
 
     if not isinstance(key, str):
-        raise TypeError(f"@connection: key must be a string, " f"got {type(key).__name__}: {key!r}.")
+        raise DecoratorArgumentTypeError(f"@connection: key must be a string, " f"got {type(key).__name__}: {key!r}.")
 
     if not key.strip():
-        raise ValueError("@connection: key cannot be empty. " "Provide a key identifier, for example 'db'.")
+        raise DecoratorArgumentValueError("@connection: key cannot be empty. " "Provide a key identifier, for example 'db'.")
 
     if not isinstance(description, str):
-        raise TypeError(f"@connection: description must be a string, " f"got {type(description).__name__}.")
+        raise DescriptionTypeError(f"@connection: description must be a string, " f"got {type(description).__name__}.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -122,7 +127,7 @@ def connection(klass: Any, *, key: str, description: str = "") -> Callable[[type
         """
         # Target must be a class
         if not isinstance(cls, type):
-            raise TypeError(
+            raise DecoratorTargetError(
                 f"@connection can only be applied to classes. " f"Got object of type {type(cls).__name__}: {cls!r}."
             )
 
@@ -134,7 +139,7 @@ def connection(klass: Any, *, key: str, description: str = "") -> Callable[[type
 
         # Duplicate key check
         if any(info.key == key for info in target._connection_info):
-            raise ValueError(
+            raise DuplicateDeclarationError(
                 f'@connection(key="{key}"): key "{key}" is already declared '
                 f"for class {cls.__name__}. Each key must be unique."
             )
