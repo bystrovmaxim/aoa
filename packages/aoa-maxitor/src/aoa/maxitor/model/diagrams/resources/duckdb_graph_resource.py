@@ -176,6 +176,11 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL
     );""",
+            """CREATE TABLE access_decide (
+      id VARCHAR NOT NULL PRIMARY KEY,
+      label VARCHAR NOT NULL,
+      description VARCHAR
+    );""",
             """CREATE TABLE compensator (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
@@ -277,6 +282,12 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       is_dag BOOLEAN NOT NULL
     );""",
             """CREATE TABLE summary_aspect_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE access_decide_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
@@ -481,6 +492,7 @@ _EDGE_TABLE_NAMES: tuple[str, ...] = (
     "check_roles_edges",
     "regular_aspect_edges",
     "summary_aspect_edges",
+    "access_decide_edges",
     "compensate_edges",
     "on_error_edges",
     "result_checker_edges",
@@ -520,6 +532,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT id, label, CAST('property_field' AS VARCHAR) AS type, json_object('prop_required', prop_required, 'entity_schema', entity_schema) AS payload FROM property_field",
         "SELECT id, label, CAST('regular_aspect' AS VARCHAR) AS type, json_object('description', description) AS payload FROM regular_aspect",
         "SELECT id, label, CAST('summary_aspect' AS VARCHAR) AS type, json_object('description', description) AS payload FROM summary_aspect",
+        "SELECT id, label, CAST('access_decide' AS VARCHAR) AS type, json_object('description', description) AS payload FROM access_decide",
         "SELECT id, label, CAST('compensator' AS VARCHAR) AS type, json_object('description', description, 'target_aspect_name', target_aspect_name) AS payload FROM compensator",
         "SELECT id, label, CAST('error_handler' AS VARCHAR) AS type, json_object('description', description, 'exception_types', exception_types) AS payload FROM error_handler",
         "SELECT id, label, CAST('checker' AS VARCHAR) AS type, json_object('type_checker', type_checker, 'checker_required', checker_required) AS payload FROM checker",
@@ -540,6 +553,7 @@ def _graph_union_view_ddls() -> list[str]:
         f"SELECT source_id, target_id, relationship, is_dag, CAST('check_roles_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM check_roles_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('regular_aspect_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM regular_aspect_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('summary_aspect_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM summary_aspect_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('access_decide_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM access_decide_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('compensate_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM compensate_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('on_error_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM on_error_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('result_checker_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM result_checker_edges",
@@ -998,6 +1012,7 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
         "@check_roles": "check_roles_edges",
         "@regular_aspect": "regular_aspect_edges",
         "@summary_aspect": "summary_aspect_edges",
+        "@access_decide": "access_decide_edges",
         "@compensate": "compensate_edges",
         "@on_error": "on_error_edges",
         "@result_checker": "result_checker_edges",
@@ -1100,6 +1115,14 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     )
     _executemany(
         con,
+        "INSERT INTO access_decide VALUES (?, ?, ?)",
+        [
+            [n["id"], n["label"], _get_properties(n).get("description")]
+            for n in nodes_by_type.get("AccessDecide", [])
+        ],
+    )
+    _executemany(
+        con,
         "INSERT INTO compensator VALUES (?, ?, ?, ?)",
         [
             [n["id"], n["label"], _get_properties(n).get("description"), _get_properties(n).get("target_aspect_name")]
@@ -1189,6 +1212,7 @@ def _assert_no_unknown_graph_types(
         "PropertyField",
         "RegularAspect",
         "SummaryAspect",
+        "AccessDecide",
         "Compensator",
         "ErrorHandler",
         "Checker",
@@ -1211,6 +1235,7 @@ def _assert_no_unknown_graph_types(
         "@check_roles",
         "@regular_aspect",
         "@summary_aspect",
+        "@access_decide",
         "@compensate",
         "@on_error",
         "@result_checker",

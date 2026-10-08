@@ -75,6 +75,7 @@ _DUCKDB_TO_SIDEBAR_TYPE: dict[str, str] = {
     "state_initial": "StateInitial",
     "state_intermediate": "StateIntermediate",
     "summary_aspect": "SummaryAspect",
+    "access_decide": "AccessDecide",
 }
 
 
