@@ -140,7 +140,8 @@ from functools import partial
 from typing import Any, TypeVar, cast, overload
 
 from aoa.action_machine.context.context import Context
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.access_denied import AccessDenied
+from aoa.action_machine.exceptions.access_undecided import AccessUndecided
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
     CheckAccessDecideBatchSizeExceededError,
@@ -254,10 +255,6 @@ def _all_aspect_states_from_saga_stack(
         for frame in saga_stack
         if isinstance(frame.state_after, BaseState)
     )
-
-
-_LEVEL_OF_GATE: dict[Gate, int] = {Gate.CHECK_ROLES: 1, Gate.WHEN: 2, Gate.GUARD: 2, Gate.ACCESS_DECIDE: 3}
-"""The levels the bridge still speaks; the cascade publishes words instead (goes with the cascade wiring)."""
 
 
 class ActionProductMachine(BaseActionMachine):
@@ -645,17 +642,13 @@ class ActionProductMachine(BaseActionMachine):
         would otherwise silently bind to different parameters depending on which overload the
         caller thinks they're using — keyword-only removes that ambiguity entirely.
 
-        Per list item, in the same order as ``_run_internal``'s own gates (role/guard before
-        connections): build a throwaway ``ToolsBox`` (no cache, no plugin events — never runs
-        the real pipeline), then ``RoleChecker.check(...)``, then ``ConnectionValidator.validate(...)``,
-        then ``_enforce_access_decide(...)`` from ``machine.run()``'s own level-3 gate — all in
-        ``try``/``except``. A caught ``AuthorizationError`` becomes
-        ``AccessVerdict(allowed=False, level=getattr(exc, "level", None), reason=str(exc))``;
-        anything else raised while evaluating that item (a bug in its ``access_decide``, an
-        unreachable connection) becomes ``allowed=False, level=None`` the same way — either
-        way, only that one item is affected, every other item in the list is still evaluated
-        normally. No exception reaches ``_run_internal`` from here the way it does from
-        ``machine.run()``.
+        Per list item, in the same order as ``_run_internal``'s own gates (identity and roles
+        before connections): build a throwaway ``ToolsBox`` (no cache, no plugin events — it
+        never runs the real pipeline), ask the cascade for the phase that decides whether a run
+        may start, validate that item's connections, then ask the object phase. Nothing raises
+        from here the way it does from ``machine.run()``: every item's answer is a verdict —
+        ``Allowed``, ``Refused(gate=…)`` or ``Undecided(gate=…)`` — and one item's answer never
+        touches another's.
 
         ``connections`` is not in the ADR's original sketch but is required in practice:
         ``access_decide`` implementations typically need to look up a real object
@@ -866,19 +859,15 @@ class ActionProductMachine(BaseActionMachine):
     def _react_to(self, verdict: Verdict) -> None:
         """Stop the call when the decision says so.
 
-        Until the exceptions carry the verdict (phase 5), a refusal is still the
-        historical ``AuthorizationError`` with a level, and an undecided answer re-raises
-        the failure that caused it — the shape the machine has always had.
+        The two outcomes leave differently: a refusal is ``AccessDenied`` carrying the
+        verdict, and a gate that could not tell is ``AccessUndecided`` carrying its own
+        verdict and raised ``from`` the failure that stopped it, so a traceback keeps what
+        really happened while the answer and the events publish only its kind.
         """
         if isinstance(verdict, Refused):
-            raise AuthorizationError(f"Access denied by {verdict.gate.value}.", level=_LEVEL_OF_GATE[verdict.gate])
+            raise AccessDenied(verdict)
         if isinstance(verdict, Undecided):
-            if verdict.cause is not None:
-                raise verdict.cause
-            raise AuthorizationError(
-                f"Access could not be decided by {verdict.gate.value}.",
-                level=_LEVEL_OF_GATE[verdict.gate],
-            )
+            raise AccessUndecided(verdict) from verdict.cause
 
     async def _run_internal(  # pylint: disable=too-many-branches,too-many-statements
         self,

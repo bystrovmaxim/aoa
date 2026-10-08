@@ -7,8 +7,8 @@ from pydantic import Field
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AuthorizationError
-from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Refused
+from aoa.action_machine.exceptions import AccessDenied
+from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Gate, Refused
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -70,9 +70,9 @@ class DenyAllAccessDecideAction(BaseAction["DenyAllAccessDecideAction.Params", "
 
 async def test_the_declared_check_refuses_before_any_aspect(machine: ActionProductMachine) -> None:
     _summary_calls["n"] = 0
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDenied) as excinfo:
         await machine.run(_admin_context(), DenyAllAccessDecideAction(), DenyAllAccessDecideAction.Params())
-    assert excinfo.value.level == 3
+    assert excinfo.value.verdict.gate is Gate.ACCESS_DECIDE
     assert _summary_calls["n"] == 0
 
 
@@ -80,9 +80,9 @@ async def test_role_check_still_denies_before_the_object_check(machine: ActionPr
     """Level 1 (role) must still win over level 3 (the object check) for an anonymous user —
     the declared check (which refuses every object here) is never even reached."""
     _summary_calls["n"] = 0
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDenied) as excinfo:
         await machine.run(Context(), DenyAllAccessDecideAction(), DenyAllAccessDecideAction.Params())
-    assert excinfo.value.level == 1
+    assert excinfo.value.verdict.gate is Gate.CHECK_ROLES
     assert _summary_calls["n"] == 0
 
 

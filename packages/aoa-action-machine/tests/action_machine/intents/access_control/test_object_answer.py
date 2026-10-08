@@ -35,7 +35,7 @@ from pydantic import Field
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.exceptions import AccessDenied
 from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Gate, Refused, Verdict
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.check_roles import check_roles
@@ -154,13 +154,13 @@ class TestTheExecutionPathAgrees:
     async def test_executing_both_stops_the_call_the_same_way(
         self, machine: ActionProductMachine, missing_id: str, foreign_id: str
     ) -> None:
-        with pytest.raises(AuthorizationError) as absent_exc:
+        with pytest.raises(AccessDenied) as absent_exc:
             await machine.run(_caller(), ObjectScopedAction(), ObjectScopedAction.Params(object_id=missing_id))
-        with pytest.raises(AuthorizationError) as foreign_exc:
+        with pytest.raises(AccessDenied) as foreign_exc:
             await machine.run(_caller(), ObjectScopedAction(), ObjectScopedAction.Params(object_id=foreign_id))
 
         assert str(absent_exc.value) == str(foreign_exc.value)
-        assert absent_exc.value.level == foreign_exc.value.level
+        assert absent_exc.value.verdict == foreign_exc.value.verdict
 
 
 class TestNothingLeaks:

@@ -16,7 +16,7 @@ from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.exceptions import AccessDenied
 from aoa.action_machine.intents.access_control import Allowed, Gate, Refused
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
@@ -147,15 +147,15 @@ async def test_an_early_refusal_does_not_wait_for_the_parameters(
 ) -> None:
     """A caller without the role is refused whether the parameters exist, are usable, or are not."""
     handed = None if params is None else _malformed_params()
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDenied) as excinfo:
         await machine.run(_user_without_the_role(), GuardedAction(), handed)
-    assert excinfo.value.level == 1
+    assert excinfo.value.verdict.gate is Gate.CHECK_ROLES
     assert _SEEN == {"guard": [], "object": []}
 
 
 async def test_a_refusal_is_never_a_parameter_error(machine: ActionProductMachine) -> None:
     """Malformed parameters do not turn a refusal into a validation failure."""
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(AccessDenied):
         await machine.run(_user_without_the_role(), GuardedAction(), _malformed_params())
     assert _SEEN == {"guard": [], "object": []}
 
@@ -196,6 +196,6 @@ async def test_an_operation_that_asks_for_any_role_refuses_a_caller_without_role
     machine: ActionProductMachine,
 ) -> None:
     """Asking for "any role" refuses a caller who holds none — today's shape of an identity refusal."""
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDenied) as excinfo:
         await machine.run(_caller_without_roles(), AnyRoleAction(), AnyRoleAction.Params())
-    assert excinfo.value.level == 1
+    assert excinfo.value.verdict.gate is Gate.CHECK_ROLES

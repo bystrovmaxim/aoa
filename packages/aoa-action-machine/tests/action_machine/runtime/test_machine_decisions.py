@@ -13,7 +13,7 @@ import pytest
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.exceptions import AccessDenied, AccessUndecided
 from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Undecided
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
@@ -239,14 +239,14 @@ class AllowedAction(BaseAction["AllowedAction.Params", "AllowedAction.Result"]):
 
 async def test_a_step_before_the_run_refuses_without_announcing_anything(machine: ActionProductMachine) -> None:
     """A refusal by the roles step leaves no lifecycle event at all: nothing had started."""
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(AccessDenied):
         await machine.run(_user_without_the_role(), RoleGatedAction(), RoleGatedAction.Params())
     assert _SEEN == []
 
 
 async def test_a_condition_that_refuses_before_the_run_announces_nothing(machine: ActionProductMachine) -> None:
     """The same holds for the shared condition: it decides before the run is announced."""
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(AccessDenied):
         await machine.run(_admin(), GuardRefusedAction(), GuardRefusedAction.Params())
     assert _SEEN == []
 
@@ -254,7 +254,7 @@ async def test_a_condition_that_refuses_before_the_run_announces_nothing(machine
 async def test_the_object_step_refuses_after_the_run_was_announced(machine: ActionProductMachine) -> None:
     """The object step runs after the run has started, so its refusal leaves a start — and
     the check announces itself, finishing with a refusal it decided."""
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(AccessDenied):
         await machine.run(_admin(), ObjectDeniedAction(), ObjectDeniedAction.Params())
     assert _SEEN == ["GlobalStartEvent", "BeforeAccessDecideAspectEvent", "AfterAccessDecideAspectEvent"]
 
@@ -299,9 +299,11 @@ async def test_the_question_path_announces_only_the_object_check(
 
 async def test_a_gate_that_cannot_tell_publishes_the_failed_gate(machine: ActionProductMachine) -> None:
     """A gate that breaks is the one thing about a decision an operator cannot see otherwise."""
-    with pytest.raises(RuntimeError, match="store is down"):
+    with pytest.raises(AccessUndecided) as raised:
         await machine.run(_admin(), ObjectCrashAction(), ObjectCrashAction.Params())
 
+    assert isinstance(raised.value.__cause__, RuntimeError)
+    assert "store is down" not in str(raised.value)
     assert "AccessGateFailedEvent" in _SEEN
     assert _SEEN[0] == "GlobalStartEvent"
 
@@ -317,9 +319,11 @@ async def test_asking_in_advance_publishes_no_failed_gate(machine: ActionProduct
 
 async def test_a_garbled_answer_never_lets_a_call_through(machine: ActionProductMachine) -> None:
     """A check that answers something else is a developer's mistake, and it is loud."""
-    with pytest.raises(TypeError, match="answered True"):
+    with pytest.raises(AccessUndecided) as garbled:
         await machine.run(_admin(), ObjectGarbledAction(), ObjectGarbledAction.Params())
 
+    assert isinstance(garbled.value.__cause__, TypeError)
+    assert "answered True" in str(garbled.value.__cause__)
     assert "GlobalStartEvent" in _SEEN
     assert "AfterAccessDecideAspectEvent" not in _SEEN
 

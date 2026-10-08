@@ -24,6 +24,7 @@ The skills are installed for the tools this repository configures: DeepSeek Harn
 - **The changelog ships with the change**, written by the agent as the second-to-last step and reviewed like any other part of it; the documentation comes last (Principle VI of the constitution). Planning reserves a task for each of the two.
 - **The constitution is the maintainer's** too: do not edit `.specify/memory/constitution.md` unless the user asks in the current turn.
 - **Verification is adversarial**: break the code the way the new test must catch, confirm that test fails and no other does, restore.
+- **A finished task is reported with examples** — always, without being asked: what changed, the code before and after where it matters, one real call with the answer it gives (not a paraphrase of it), how it was verified and what the adversarial breaks were, and what is left. A claim without an example is not a report.
 - **Documentation ships with the change** it describes.
 
 ## Where work is tracked

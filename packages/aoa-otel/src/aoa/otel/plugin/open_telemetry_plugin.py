@@ -142,7 +142,10 @@ from aoa.action_machine.intents.on import (
     on,
 )
 from aoa.action_machine.plugin.core import Plugin
-from aoa.action_machine.plugin.core.events import BasePluginEvent
+from aoa.action_machine.plugin.core.events import (
+    AccessGateFailedEvent,
+    BasePluginEvent,
+)
 
 _SPAN_KEY = "root_span"
 _CTX_KEY = "root_ctx"
@@ -252,6 +255,35 @@ class OpenTelemetryPlugin(Plugin):
             event=event,
         )
         return {**state, _SPAN_KEY: None, _CTX_KEY: None}
+
+    @on(AccessGateFailedEvent, ignore_exceptions=False)
+    async def on_access_gate_failed(
+        self,
+        state: dict[str, Any],
+        event: AccessGateFailedEvent,
+        log: Any,
+    ) -> dict[str, Any]:
+        """Record a gate that could not complete (Logs): which step, and what kind of failure.
+
+        The kind travels and the message does not (FR-013, FR-015), so an operator reads
+        ``aoa.gate`` and ``aoa.error_type`` and nothing else — no host, no query, no text a
+        store chose to include. The record is written where the run is: the failure happens
+        inside it, and the root span is still open, so the log is correlated with the run it
+        stopped. ``aoa.trace_id`` is added by :meth:`_emit_log` from the event's context when
+        the request carries one.
+        """
+        self._emit_log(
+            body="aoa.access.gate_failed",
+            attributes={
+                "aoa.action": event.action_name,
+                "aoa.gate": event.gate,
+                "aoa.error_type": event.exception_type,
+            },
+            severity=SeverityNumber.ERROR,
+            span=state.get(_SPAN_KEY),
+            event=event,
+        )
+        return state
 
     @on(UnhandledErrorEvent, ignore_exceptions=False)
     async def on_unhandled_error(

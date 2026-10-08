@@ -17,7 +17,7 @@ import pytest
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.exceptions import AccessDenied, AccessUndecided
 from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Gate, Refused, Undecided
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
@@ -275,9 +275,10 @@ async def test_the_execution_path_answers_each_step(machine: ActionProductMachin
     if row.word == "allowed":
         await machine.run(row.caller(), row.action(), row.action().Params())
         return
-    with pytest.raises(AuthorizationError) as excinfo:
+    with pytest.raises(AccessDenied) as excinfo:
         await machine.run(row.caller(), row.action(), row.action().Params())
     assert row.word in str(excinfo.value)
+    assert excinfo.value.verdict.gate.value == row.word
 
 
 @pytest.mark.parametrize("row", ROWS, ids=lambda row: row.name)
@@ -301,7 +302,7 @@ async def test_both_paths_agree(machine: ActionProductMachine, row: Row) -> None
     try:
         await machine.run(row.caller(), row.action(), row.action().Params())
         executed_word = "allowed"
-    except AuthorizationError as exc:
+    except AccessDenied as exc:
         executed_word = next(word for word in row.word.split("|") if word in str(exc))
     asked_word = "allowed" if isinstance(verdict, Allowed) else verdict.gate.value
     assert asked_word == executed_word
@@ -314,16 +315,16 @@ def test_the_matrix_names_the_word_every_row_will_publish() -> None:
 
 async def test_a_step_that_refuses_stops_the_steps_after_it(machine: ActionProductMachine) -> None:
     """A refusal by an early step means the later steps are never asked."""
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(AccessDenied):
         await machine.run(_user_without_the_role(), RoleOnlyAction(), RoleOnlyAction.Params())
     assert _CALLS["access_decide"] == 0
     assert _CALLS["summary"] == 0
 
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(AccessDenied):
         await machine.run(_manager(), WhenAction(), WhenAction.Params())
     assert _CALLS["access_decide"] == 0
 
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(AccessDenied):
         await machine.run(_admin(), GuardAction(), GuardAction.Params())
     assert _CALLS["access_decide"] == 0
 
@@ -338,9 +339,9 @@ async def test_an_allowed_call_reaches_every_step(machine: ActionProductMachine)
 async def test_a_step_that_cannot_tell_is_not_a_refusal(machine: ActionProductMachine) -> None:
     """The defect the cascade replaced: "I cannot tell" used to be reported as "not allowed".
 
-    Now the answer says undecided and names the step, and the failure's own text stays out
-    of it. The execution path still lets the raw failure escape — the shape it has always
-    had, until the exceptions carry the verdict.
+    The answer says undecided and names the step, and the failure's own text stays out of it.
+    The execution path says the same thing in its own way: ``AccessUndecided``, never
+    ``AccessDenied``, with the failure kept as its cause for a reader in process.
     """
     action = ObjectCrashAction()
     verdict = await machine.check_access_decide(_admin(), ObjectCrashAction, action.Params())
@@ -349,5 +350,8 @@ async def test_a_step_that_cannot_tell_is_not_a_refusal(machine: ActionProductMa
     assert verdict.gate is Gate.ACCESS_DECIDE
     assert "store is down" not in str(verdict.model_dump())
 
-    with pytest.raises(RuntimeError, match="store is down"):
+    with pytest.raises(AccessUndecided) as raised:
         await machine.run(_admin(), ObjectCrashAction(), action.Params())
+    assert not isinstance(raised.value, AccessDenied)
+    assert isinstance(raised.value.__cause__, RuntimeError)
+    assert "store is down" not in str(raised.value)
