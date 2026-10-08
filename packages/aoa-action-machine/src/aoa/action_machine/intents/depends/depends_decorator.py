@@ -40,6 +40,11 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, cast
 
+from aoa.action_machine.exceptions.decorator_argument_type_error import DecoratorArgumentTypeError
+from aoa.action_machine.exceptions.decorator_target_error import DecoratorTargetError
+from aoa.action_machine.exceptions.dependency_declaration_error import DependencyDeclarationError
+from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
+from aoa.action_machine.exceptions.duplicate_declaration_error import DuplicateDeclarationError
 from aoa.action_machine.intents.depends.use_case import VALID_USE_CASE_MODES
 from aoa.action_machine.runtime.dependency_info import DependencyInfo
 
@@ -69,11 +74,11 @@ def _validate_dependency_mode(klass: type, mode: str | None) -> str | None:
 
     if klass is BaseAction:
         msg = "@depends(BaseAction): use a concrete action subclass, not BaseAction itself."
-        raise ValueError(msg)
+        raise DependencyDeclarationError(msg)
 
     if _is_action_target(klass):
         if mode is None or mode not in VALID_USE_CASE_MODES:
-            raise ValueError(
+            raise DependencyDeclarationError(
                 f"@depends({klass.__name__}): BaseAction dependencies require "
                 f"mode=UseCase.include or mode=UseCase.extend, got {mode!r}.",
             )
@@ -81,13 +86,13 @@ def _validate_dependency_mode(klass: type, mode: str | None) -> str | None:
 
     if _is_resource_target(klass):
         if mode is not None:
-            raise ValueError(
+            raise DependencyDeclarationError(
                 f"@depends({klass.__name__}): resource dependencies must not set mode (got {mode!r}).",
             )
         return None
 
     if mode is not None:
-        raise ValueError(
+        raise DependencyDeclarationError(
             f"@depends({klass.__name__}): mode is only valid for BaseAction targets; got {mode!r}.",
         )
     return None
@@ -132,18 +137,18 @@ def depends(
     # ── Validate decorator arguments ──
 
     if not isinstance(klass, type):
-        raise TypeError(
+        raise DecoratorTargetError(
             f"@depends expects a class, got {type(klass).__name__}: {klass!r}. "
             f"Pass a class, not an instance or string."
         )
 
     if mode is not None and not isinstance(mode, str):
-        raise TypeError(
+        raise DecoratorArgumentTypeError(
             f"@depends: parameter 'mode' must be str or None, got {type(mode).__name__}.",
         )
 
     if not isinstance(description, str):
-        raise TypeError(f"@depends: parameter 'description' must be a string, " f"got {type(description).__name__}.")
+        raise DescriptionTypeError(f"@depends: parameter 'description' must be a string, " f"got {type(description).__name__}.")
 
     def decorator(cls: type) -> type:
         """
@@ -160,14 +165,14 @@ def depends(
         """
         # ── Validate target ──
         if not isinstance(cls, type):
-            raise TypeError(
+            raise DecoratorTargetError(
                 f"@depends can only be applied to a class. " f"Got object of type {type(cls).__name__}: {cls!r}."
             )
 
         allowed: tuple[type, ...] = cls.get_depends_bounds() if hasattr(cls, "get_depends_bounds") else (object,)
         if not any(issubclass(klass, b) for b in allowed):
             allowed_names = ", ".join(b.__name__ for b in allowed)
-            raise TypeError(
+            raise DecoratorArgumentTypeError(
                 f"@depends({klass.__name__}): class {klass.__name__} "
                 f"is not a subclass of any allowed dependency type "
                 f"({allowed_names}) for {cls.__name__}."
@@ -183,7 +188,7 @@ def depends(
 
         # ── Check for duplicates ──
         if any(info.cls is klass for info in target._depends_info):
-            raise ValueError(
+            raise DuplicateDeclarationError(
                 f"@depends({klass.__name__}) already declared for class {cls.__name__}. "
                 f"Remove the duplicate decorator."
             )

@@ -60,6 +60,7 @@ from typing import Any
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.context_view import ContextView
+from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
 from aoa.action_machine.intents.access_control.allowed import Allowed
 from aoa.action_machine.intents.access_control.gate import Gate
 from aoa.action_machine.intents.access_control.refused import Refused
@@ -191,7 +192,7 @@ async def object_gate(
 
     answer = await _call_declared(declared, action, params, context, box, connections)
     if not isinstance(answer, Allowed | Refused | Undecided):
-        raise TypeError(
+        raise DeclarationStructureError(
             f"{type(action).__name__}.{declared.__name__} answered {answer!r} "
             f"({type(answer).__name__}); an object check answers Allowed, Refused or Undecided."
         )

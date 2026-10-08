@@ -39,6 +39,8 @@ import inspect
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, get_type_hints
 
+from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
+
 if TYPE_CHECKING:  # loaded while the model is still being built
     pass
 
@@ -80,7 +82,7 @@ def validate_names(func: Callable[..., Any]) -> None:
     expected = expected_names(func)
     actual = tuple(inspect.signature(func).parameters)
     if actual != expected:
-        raise TypeError(
+        raise DeclarationStructureError(
             f"@access_decide: method '{func.__name__}' must declare its parameters as "
             f"({', '.join(expected)}), got ({', '.join(actual)}). {RUNTIME_NOTE.capitalize()}, "
             f"and Python binds by position, so a renamed or reordered parameter would receive "
@@ -123,13 +125,13 @@ def validate_annotated(func: Callable[..., Any]) -> None:
         if name != "self" and parameter.annotation is inspect.Parameter.empty
     ]
     if unannotated:
-        raise TypeError(
+        raise DeclarationStructureError(
             f"@access_decide: method '{func.__name__}' must annotate every parameter it "
             f"receives; ({', '.join(unannotated)}) carry no annotation. "
             f"{RUNTIME_NOTE.capitalize()}."
         )
     if signature.return_annotation is inspect.Signature.empty:
-        raise TypeError(
+        raise DeclarationStructureError(
             f"@access_decide: method '{func.__name__}' must annotate what it returns "
             f"(-> Verdict, or one of Allowed / Refused / Undecided)."
         )
@@ -148,7 +150,7 @@ def validate_types(action_cls: type[Any], check: Callable[..., Any]) -> None:
     try:
         hints = get_type_hints(check)
     except Exception as exc:
-        raise TypeError(
+        raise DeclarationStructureError(
             f"@access_decide: {action_cls.__name__}.{check.__name__} annotates its signature "
             f"with names that cannot be resolved ({exc}); the signature is part of the "
             f"contract, so its annotations must be importable."
@@ -161,7 +163,7 @@ def validate_types(action_cls: type[Any], check: Callable[..., Any]) -> None:
         if name == "connections":
             _validate_connections(action_cls, check, actual)
         elif not (isinstance(actual, type) and issubclass(actual, expected)):
-            raise TypeError(
+            raise DeclarationStructureError(
                 f"@access_decide: {action_cls.__name__}.{check.__name__} annotates "
                 f"'{name}' as {_name_of(actual)}, but {RUNTIME_NOTE}: it must be "
                 f"{_name_of(expected)} or a subclass of it."
@@ -186,7 +188,7 @@ def _validate_connections(action_cls: type[Any], check: Callable[..., Any], actu
     )
     if well_formed:
         return
-    raise TypeError(
+    raise DeclarationStructureError(
         f"@access_decide: {action_cls.__name__}.{check.__name__} annotates 'connections' as "
         f"{_name_of(actual)}, but {RUNTIME_NOTE}: it must be dict[str, BaseResource]."
     )
@@ -200,7 +202,7 @@ def _validate_return(action_cls: type[Any], check: Callable[..., Any], actual: A
     candidates = members if members else (actual,)
     if all(isinstance(one, type) and issubclass(one, Verdict) for one in candidates):
         return
-    raise TypeError(
+    raise DeclarationStructureError(
         f"@access_decide: {action_cls.__name__}.{check.__name__} annotates its return as "
         f"{_name_of(actual)}, but an object check answers with a Verdict — Allowed, Refused "
         f"or Undecided."

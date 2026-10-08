@@ -94,6 +94,14 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from aoa.action_machine.exceptions.async_required_error import AsyncRequiredError
+from aoa.action_machine.exceptions.decorator_argument_type_error import DecoratorArgumentTypeError
+from aoa.action_machine.exceptions.decorator_argument_value_error import DecoratorArgumentValueError
+from aoa.action_machine.exceptions.description_contract_error import DescriptionContractError
+from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
+from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
+from aoa.action_machine.exceptions.signature_contract_error import SignatureContractError
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants
 # ─────────────────────────────────────────────────────────────────────────────
@@ -126,38 +134,38 @@ Attribute name written by @context_requires decorator.
 
 def _target_aspect_callable_invariant(target_aspect: Any) -> None:
     if not callable(target_aspect):
-        raise TypeError(
+        raise DecoratorArgumentTypeError(
             f"@compensate: target_aspect must be a callable, got {type(target_aspect).__name__}"
         )
 
 
 def _target_aspect_has_name_invariant(target_aspect: Any) -> None:
     if not hasattr(target_aspect, "__name__"):
-        raise TypeError(
+        raise DecoratorArgumentTypeError(
             f"@compensate: target_aspect must have __name__, got {type(target_aspect).__name__}"
         )
     if not target_aspect.__name__.strip():
-        raise ValueError("@compensate: target_aspect.__name__ cannot be empty")
+        raise DecoratorArgumentValueError("@compensate: target_aspect.__name__ cannot be empty")
 
 
 def _description_type_invariant(description: Any) -> None:
     if not isinstance(description, str):
-        raise TypeError(f"@compensate: description must be a string, " f"got {type(description).__name__}")
+        raise DescriptionTypeError(f"@compensate: description must be a string, " f"got {type(description).__name__}")
 
 
 def _description_non_empty_invariant(description: str) -> None:
     if not description.strip():
-        raise ValueError("@compensate: description cannot be empty")
+        raise DescriptionContractError("@compensate: description cannot be empty")
 
 
 def _method_suffix_invariant(method_name: str) -> None:
     if not method_name.endswith(_COMPENSATE_SUFFIX):
-        raise ValueError(f"@compensate: method name '{method_name}' must end with " f"'{_COMPENSATE_SUFFIX}'.")
+        raise NamingSuffixError(f"@compensate: method name '{method_name}' must end with " f"'{_COMPENSATE_SUFFIX}'.")
 
 
 def _method_async_invariant(func: Callable[..., Any], method_name: str) -> None:
     if not asyncio.iscoroutinefunction(func):
-        raise TypeError(f"@compensate: method '{method_name}' must be async (async def).")
+        raise AsyncRequiredError(f"@compensate: method '{method_name}' must be async (async def).")
 
 
 def _method_params_count_invariant(func: Callable[..., Any], method_name: str) -> None:
@@ -171,7 +179,7 @@ def _method_params_count_invariant(func: Callable[..., Any], method_name: str) -
         else:
             params_desc = "self, params, state_before, state_after, " "box, connections, error"
 
-        raise TypeError(
+        raise SignatureContractError(
             f"@compensate: method '{method_name}' must accept "
             f"{expected_params} parameters ({params_desc}), "
             f"got {actual_params}. "

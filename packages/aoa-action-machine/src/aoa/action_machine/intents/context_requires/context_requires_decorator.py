@@ -92,6 +92,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from aoa.action_machine.exceptions.decorator_argument_type_error import DecoratorArgumentTypeError
+from aoa.action_machine.exceptions.decorator_argument_value_error import DecoratorArgumentValueError
+from aoa.action_machine.exceptions.decorator_target_error import DecoratorTargetError
+
 
 def context_requires(*keys: str) -> Callable[[Any], Any]:
     """
@@ -120,16 +124,16 @@ def context_requires(*keys: str) -> Callable[[Any], Any]:
     """
     # ── Validate at least one key ──
     if not keys:
-        raise ValueError(
+        raise DecoratorArgumentValueError(
             "@context_requires: at least one key is required. " "Example: @context_requires(Ctx.User.user_id)"
         )
 
     # ── Validate each key ──
     for i, key in enumerate(keys):
         if not isinstance(key, str):
-            raise TypeError(f"@context_requires: key [{i}] must be a string, " f"got {type(key).__name__}: {key!r}.")
+            raise DecoratorArgumentTypeError(f"@context_requires: key [{i}] must be a string, " f"got {type(key).__name__}: {key!r}.")
         if not key.strip():
-            raise ValueError(
+            raise DecoratorArgumentValueError(
                 f"@context_requires: key [{i}] cannot be empty. " f"Provide a dot-path such as 'user.user_id'."
             )
 
@@ -141,7 +145,7 @@ def context_requires(*keys: str) -> Callable[[Any], Any]:
         Inner decorator applied to target callable.
         """
         if not callable(func):
-            raise TypeError(
+            raise DecoratorTargetError(
                 f"@context_requires can only be applied to methods/callables. "
                 f"Got object of type {type(func).__name__}: {func!r}."
             )

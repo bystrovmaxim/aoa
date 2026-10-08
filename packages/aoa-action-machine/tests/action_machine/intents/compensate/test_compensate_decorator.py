@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import pytest
 
+from aoa.action_machine.exceptions import NamingSuffixError
 from aoa.action_machine.intents.compensate import compensate
 from aoa.action_machine.intents.context_requires import context_requires
 
@@ -228,7 +229,7 @@ class TestCompensateNamingSuffix:
 
     def test_method_without_compensate_suffix(self) -> None:
         """Method name not ending with '_compensate' → ValueError."""
-        with pytest.raises(ValueError, match="must end with '_compensate'"):
+        with pytest.raises(NamingSuffixError, match="must end with '_compensate'"):
 
             @compensate(_stub_aspect, "Description")
             async def rollback_wrong(self, params, state_before, state_after, box, connections, error):
@@ -236,7 +237,7 @@ class TestCompensateNamingSuffix:
 
     def test_method_with_wrong_suffix(self) -> None:
         """Method name with wrong suffix → ValueError."""
-        with pytest.raises(ValueError, match="must end with '_compensate'"):
+        with pytest.raises(NamingSuffixError, match="must end with '_compensate'"):
 
             @compensate(_stub_aspect, "Description")
             async def rollback_rollback(self, params, state_before, state_after, box, connections, error):

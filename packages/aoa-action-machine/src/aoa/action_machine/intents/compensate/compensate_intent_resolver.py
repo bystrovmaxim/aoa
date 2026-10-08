@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from aoa.action_machine.exceptions.missing_declaration_error import MissingDeclarationError
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 
@@ -32,7 +33,7 @@ class CompensateIntentResolver:
         func = TypeIntrospection.unwrap_declaring_class_member(call_like)
         meta = getattr(func, "_compensate_meta", None)
         if not isinstance(meta, dict):
-            raise ValueError(
+            raise MissingDeclarationError(
                 f"{TypeIntrospection.qualname_of(func)} has no usable @compensate description "
                 "required for graph metadata resolution.",
             )
@@ -44,7 +45,7 @@ class CompensateIntentResolver:
         func = TypeIntrospection.unwrap_declaring_class_member(call_like)
         meta = getattr(func, "_compensate_meta", None)
         if not isinstance(meta, dict):
-            raise ValueError(
+            raise MissingDeclarationError(
                 f"{TypeIntrospection.qualname_of(func)} has no usable @compensate target_aspect "
                 "required for graph metadata resolution.",
             )

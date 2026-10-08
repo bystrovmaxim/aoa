@@ -51,6 +51,7 @@ from aoa.action_machine.adapters.base_route_record import (
     ensure_protocol_response,
     extract_action_types,
 )
+from aoa.action_machine.exceptions import ActionResultDeclarationError
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 
@@ -156,9 +157,9 @@ class TestTypeExtraction:
         assert p_type is SimpleAction.Params
         assert r_type is SimpleAction.Result
 
-    def test_non_action_extract_raises_value_error(self) -> None:
+    def test_non_action_extract_raises_declaration_error(self) -> None:
         """``extract_action_types`` on a plain class triggers resolver ``ValueError``."""
-        with pytest.raises(ValueError, match="Failed to resolve params type"):
+        with pytest.raises(ActionResultDeclarationError, match="Failed to resolve params type"):
             extract_action_types(_NotAnAction)
 
 

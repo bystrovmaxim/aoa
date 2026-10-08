@@ -44,7 +44,12 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from aoa.action_machine.exceptions.async_required_error import AsyncRequiredError
+from aoa.action_machine.exceptions.decorator_target_error import DecoratorTargetError
+from aoa.action_machine.exceptions.description_contract_error import DescriptionContractError
+from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
+from aoa.action_machine.exceptions.signature_contract_error import SignatureContractError
 
 # Parameter count without @context_requires.
 _BASE_PARAM_COUNT = 5
@@ -65,12 +70,12 @@ _BARE_NAME = "summary"
 
 def _description_type_invariant(description: Any) -> None:
     if not isinstance(description, str):
-        raise TypeError(f"@summary_aspect expects a string description, " f"got {type(description).__name__}.")
+        raise DescriptionTypeError(f"@summary_aspect expects a string description, " f"got {type(description).__name__}.")
 
 
 def _description_non_empty_invariant(description: str) -> None:
     if not description.strip():
-        raise ValueError(
+        raise DescriptionContractError(
             "@summary_aspect: description cannot be empty or whitespace. "
             "Provide a non-empty description for the final step."
         )
@@ -78,14 +83,14 @@ def _description_non_empty_invariant(description: str) -> None:
 
 def _method_callable_invariant(func: Any) -> None:
     if not callable(func):
-        raise TypeError(
+        raise DecoratorTargetError(
             f"@summary_aspect can only be applied to methods. " f"Got object of type {type(func).__name__}: {func!r}."
         )
 
 
 def _method_async_invariant(func: Any, description: str) -> None:
     if not asyncio.iscoroutinefunction(func):
-        raise TypeError(
+        raise AsyncRequiredError(
             f'@summary_aspect("{description}"): method {func.__name__} '
             f"must be async (async def). "
             f"Synchronous methods are not supported."
@@ -99,7 +104,7 @@ def _method_params_count_invariant(func: Any, description: str) -> None:
     sig = inspect.signature(func)
     param_count = len(sig.parameters)
     if param_count != expected_count:
-        raise TypeError(
+        raise SignatureContractError(
             f'@summary_aspect("{description}"): method {func.__name__} '
             f"must accept {expected_count} parameters "
             f"({expected_names}), got {param_count}."

@@ -48,15 +48,19 @@ from collections.abc import Callable
 from typing import Any
 
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.exceptions.decorator_argument_type_error import DecoratorArgumentTypeError
+from aoa.action_machine.exceptions.decorator_target_error import DecoratorTargetError
+from aoa.action_machine.exceptions.description_contract_error import DescriptionContractError
+from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
 
 
 def _validate_meta_description(description: Any) -> None:
     """Ensure ``description`` is a non-empty string."""
     if not isinstance(description, str):
-        raise TypeError(f"@meta: description must be str, got {type(description).__name__}: " f"{description!r}.")
+        raise DescriptionTypeError(f"@meta: description must be str, got {type(description).__name__}: " f"{description!r}.")
 
     if not description.strip():
-        raise ValueError(
+        raise DescriptionContractError(
             "@meta: description cannot be empty or whitespace-only. "
             'Example: @meta(description="Creates a new order", domain=MyDomain).'
         )
@@ -65,21 +69,21 @@ def _validate_meta_description(description: Any) -> None:
 def _validate_meta_domain(domain: Any) -> None:
     """Ensure ``domain`` is a ``BaseDomain`` subclass."""
     if domain is None:
-        raise TypeError(
+        raise DecoratorArgumentTypeError(
             "@meta: domain is required (keyword-only). " "Pass a BaseDomain subclass, e.g. domain=OrdersDomain."
         )
 
     if not isinstance(domain, type):
-        raise TypeError(f"@meta: domain must be a BaseDomain subclass, got " f"{type(domain).__name__}: {domain!r}.")
+        raise DecoratorArgumentTypeError(f"@meta: domain must be a BaseDomain subclass, got " f"{type(domain).__name__}: {domain!r}.")
 
     if not issubclass(domain, BaseDomain):
-        raise TypeError(f"@meta: domain must be a BaseDomain subclass; {domain.__name__!r} " f"is not.")
+        raise DecoratorArgumentTypeError(f"@meta: domain must be a BaseDomain subclass; {domain.__name__!r} " f"is not.")
 
 
 def _validate_meta_target(cls: Any) -> None:
     """Ensure ``@meta`` is applied only to classes."""
     if not isinstance(cls, type):
-        raise TypeError(f"@meta applies only to classes, got {type(cls).__name__}: {cls!r}.")
+        raise DecoratorTargetError(f"@meta applies only to classes, got {type(cls).__name__}: {cls!r}.")
 
 
 def meta(

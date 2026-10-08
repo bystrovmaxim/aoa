@@ -6,6 +6,7 @@ from __future__ import annotations
 import pytest
 
 from aoa.action_machine.auth.base_role import BaseRole
+from aoa.action_machine.exceptions import RoleSpecTypeError
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 
@@ -46,7 +47,7 @@ def test_role_mro_implies_viewer_via_subclass() -> None:
 
 
 def test_check_roles_unused_raises() -> None:
-    with pytest.raises(ValueError, match="UNUSED"):
+    with pytest.raises(RoleSpecTypeError, match="UNUSED"):
         check_roles(RetiredRole)
 
 

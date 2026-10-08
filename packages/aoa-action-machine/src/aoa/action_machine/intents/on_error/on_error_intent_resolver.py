@@ -12,6 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, cast
 
+from aoa.action_machine.exceptions.missing_declaration_error import MissingDeclarationError
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 
@@ -49,7 +50,7 @@ class OnErrorIntentResolver:
         func = TypeIntrospection.unwrap_declaring_class_member(call_like)
         meta = getattr(func, "_on_error_meta", None)
         if not isinstance(meta, dict):
-            raise ValueError(
+            raise MissingDeclarationError(
                 f"{TypeIntrospection.qualname_of(func)} has no usable @on_error description "
                 "required for graph metadata resolution.",
             )

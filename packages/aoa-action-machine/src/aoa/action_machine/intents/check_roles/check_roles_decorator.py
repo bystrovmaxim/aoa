@@ -82,6 +82,9 @@ from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.exceptions.access_condition_async_error import AccessConditionAsyncError
+from aoa.action_machine.exceptions.decorator_argument_value_error import DecoratorArgumentValueError
+from aoa.action_machine.exceptions.decorator_target_error import DecoratorTargetError
+from aoa.action_machine.exceptions.role_spec_type_error import RoleSpecTypeError
 from aoa.action_machine.intents.check_roles.grant import Grant
 from aoa.action_machine.intents.check_roles.reason_validation import require_reason_alongside
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
@@ -92,33 +95,33 @@ def _normalize_check_roles_spec(spec: Any) -> Any:
         return spec
 
     if isinstance(spec, str):
-        raise TypeError(
+        raise RoleSpecTypeError(
             "@check_roles does not accept role name strings; pass a BaseRole "
             f"subclass, not {spec!r}. Use GuestRole or AnyRole for sentinel modes."
         )
 
     if isinstance(spec, type):
         if not issubclass(spec, BaseRole):
-            raise TypeError(f"@check_roles expected a BaseRole subclass, got {spec!r}.")
+            raise RoleSpecTypeError(f"@check_roles expected a BaseRole subclass, got {spec!r}.")
         return spec
 
     if isinstance(spec, list):
         if len(spec) == 0:
-            raise ValueError(
+            raise DecoratorArgumentValueError(
                 "@check_roles: an empty role list was provided. " "Specify at least one role or use GuestRole."
             )
         if any(isinstance(x, str) for x in spec):
-            raise TypeError("@check_roles does not accept list[str]; use a list of BaseRole " "subclasses only.")
+            raise RoleSpecTypeError("@check_roles does not accept list[str]; use a list of BaseRole " "subclasses only.")
         if not all(isinstance(x, type) for x in spec):
-            raise TypeError("@check_roles: role list must contain only BaseRole subclasses; " f"got {spec!r}.")
+            raise RoleSpecTypeError("@check_roles: role list must contain only BaseRole subclasses; " f"got {spec!r}.")
         bad = [x for x in spec if not issubclass(x, BaseRole)]
         if bad:
-            raise TypeError(
+            raise RoleSpecTypeError(
                 "@check_roles: every list element must be a BaseRole " f"subclass; offending values: {bad!r}."
             )
         return tuple(spec)
 
-    raise TypeError(
+    raise RoleSpecTypeError(
         f"@check_roles expects GuestRole, AnyRole, a BaseRole type, or a non-empty "
         f"list of BaseRole types; got {type(spec).__name__}: {spec!r}."
     )
@@ -143,7 +146,7 @@ def _normalize_grants(specs: tuple[Any, ...]) -> list[Grant]:
         elif isinstance(item, type) and issubclass(item, BaseRole):
             grants.append(Grant(role=item, when=None))
         else:
-            raise TypeError(f"@check_roles expected a BaseRole subclass or grant(...), got {item!r}.")
+            raise RoleSpecTypeError(f"@check_roles expected a BaseRole subclass or grant(...), got {item!r}.")
     return grants
 
 
@@ -167,7 +170,7 @@ def _validate_required_role_modes(normalized: Any) -> None:
     for r in reqs:
         mode = RoleMode.declared_for(r)
         if mode is RoleMode.UNUSED:
-            raise ValueError(f"@check_roles cannot require role {r.__qualname__!r}: " f"it is marked RoleMode.UNUSED.")
+            raise RoleSpecTypeError(f"@check_roles cannot require role {r.__qualname__!r}: " f"it is marked RoleMode.UNUSED.")
         if mode is RoleMode.DEPRECATED:
             warnings.warn(
                 f"@check_roles references deprecated role {r.__qualname__!r}.",
@@ -178,7 +181,7 @@ def _validate_required_role_modes(normalized: Any) -> None:
 
 def _target_is_class_invariant(cls: Any) -> None:
     if not isinstance(cls, type):
-        raise TypeError(
+        raise DecoratorTargetError(
             f"@check_roles can only be applied to a class. " f"Got object of type {type(cls).__name__}: {cls!r}."
         )
 
@@ -203,7 +206,7 @@ def check_roles(
     See module docstring for details.
     """
     if len(specs) == 0:
-        raise TypeError("@check_roles requires at least one role or grant(...).")
+        raise RoleSpecTypeError("@check_roles requires at least one role or grant(...).")
 
     if len(specs) == 1 and not isinstance(specs[0], Grant):
         normalized_spec = _normalize_check_roles_spec(specs[0])

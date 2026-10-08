@@ -33,6 +33,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from aoa.action_machine.exceptions.condition_reason_error import ConditionReasonError
+from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
+
 
 def require_reason_alongside(
     condition: Callable[..., Any] | None,
@@ -58,19 +61,19 @@ def require_reason_alongside(
     if condition is None and reason is None:
         return
     if condition is None:
-        raise ValueError(
+        raise ConditionReasonError(
             f"{reason_name} can only be declared beside a condition ({condition_name}=): "
             "a reason explains a refusal, and the framework invents none of its own."
         )
     if reason is None:
-        raise ValueError(
+        raise ConditionReasonError(
             f"{condition_name}= must say why it refuses: declare {reason_name}= beside it, "
             "because a caller must not have to guess."
         )
     if not isinstance(reason, str):
-        raise TypeError(f"{reason_name} must be a string, got {type(reason).__name__}.")
+        raise DeclarationStructureError(f"{reason_name} must be a string, got {type(reason).__name__}.")
     if not reason.strip():
-        raise ValueError(f"{reason_name} must be text a caller can read, not blank.")
+        raise ConditionReasonError(f"{reason_name} must be text a caller can read, not blank.")
 
 
 __all__ = ["require_reason_alongside"]

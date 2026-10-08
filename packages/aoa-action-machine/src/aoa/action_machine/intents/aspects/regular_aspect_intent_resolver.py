@@ -6,6 +6,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from aoa.action_machine.exceptions.intent_resolution_error import IntentResolutionError
+from aoa.action_machine.exceptions.missing_declaration_error import MissingDeclarationError
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 
@@ -38,11 +40,11 @@ class RegularAspectIntentResolver:
         """Return ``@regular_aspect`` ``description`` from scratch (exact ``dict`` value); raise when scratch is absent."""
         func = TypeIntrospection.unwrap_declaring_class_member(call_like)
         if not callable(func):
-            raise ValueError(
+            raise IntentResolutionError(
                 "Expected an aspect callable or property exposing one; "
                 f"got {type(call_like).__name__}: {call_like!r}.",
             )
         meta = getattr(func, "_new_aspect_meta", None)
         if not isinstance(meta, dict):
-            raise ValueError(_missing_regular_aspect_description_message(func))
+            raise MissingDeclarationError(_missing_regular_aspect_description_message(func))
         return meta.get("description")

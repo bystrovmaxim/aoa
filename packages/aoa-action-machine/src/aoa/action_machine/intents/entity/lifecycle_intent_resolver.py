@@ -11,6 +11,7 @@ from types import MappingProxyType
 from typing import Annotated, Any, get_args, get_origin
 
 from aoa.action_machine.domain.lifecycle import Lifecycle, StateInfo
+from aoa.action_machine.exceptions.missing_declaration_error import MissingDeclarationError
 
 
 @dataclass(frozen=True)
@@ -145,4 +146,4 @@ class LifeCycleIntentResolver:
             )
 
         msg = f"{entity_cls!r} has no resolved lifecycle template for field {field_name!r}"
-        raise ValueError(msg)
+        raise MissingDeclarationError(msg)
