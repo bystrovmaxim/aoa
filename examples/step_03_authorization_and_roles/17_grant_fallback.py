@@ -1,4 +1,4 @@
-"""A condition applies to one role."""
+"""A later grant may allow a caller."""
 
 from __future__ import annotations
 
@@ -45,8 +45,15 @@ class OrderResult(BaseResult):
     order_id: str = Field(description="Cancelled order identifier")
 
 
+class AdminRole(ManagerRole):
+    """Include manager permissions with an additional grant."""
+
+    name = "admin"
+    description = "Global administrator"
+
+
 @meta(description="Cancel an order", domain=StoreDomain)
-@check_roles(grant(ManagerRole, when=lambda user: user.user_id.startswith("eu-"), reason="EU_TEAM_ONLY"))
+@check_roles(grant(ManagerRole, when=lambda user: user.user_id.startswith("eu-"), reason="EU_TEAM_ONLY"), AdminRole)
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
@@ -60,15 +67,16 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 
 
 async def main() -> None:
-    """A condition applies to one role."""
+    """A later grant may allow a caller."""
     machine = ActionProductMachine(cache_coordinator=None)
-    eu = Context(user=UserInfo(user_id="eu-m1", roles=(ManagerRole,)))
-    us = Context(user=UserInfo(user_id="us-m1", roles=(ManagerRole,)))
+    manager = Context(user=UserInfo(user_id="us-m1", roles=(ManagerRole,)))
+    admin = Context(user=UserInfo(user_id="us-a1", roles=(AdminRole,)))
+    params = OrderParams(order_id="ord-001")
 
-    answer = await machine.check_access_decide(eu, CancelOrderAction, OrderParams(order_id="ord-001"))
-    print("EU manager:", answer.model_dump(mode="json"))
-    answer = await machine.check_access_decide(us, CancelOrderAction, OrderParams(order_id="ord-001"))
+    answer = await machine.check_access_decide(manager, CancelOrderAction, params)
     print("US manager:", answer.model_dump(mode="json"))
+    answer = await machine.check_access_decide(admin, CancelOrderAction, params)
+    print("US admin:", answer.model_dump(mode="json"))
 
 
 if __name__ == "__main__":

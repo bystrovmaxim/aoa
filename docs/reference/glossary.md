@@ -75,15 +75,18 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **AuthCoordinator** — builds `Context` from a transport request (credential extraction, verification, assembling the environment).
 
-**`grant(role, when=...)`** — a role paired with an optional condition on the caller, inside `@check_roles`. Grants are tried in declaration order, `any()` semantics: a role matches and `when=` (if given) returns `True` — the role-level check passes. A bare role is equivalent to `grant(role)` with no condition.
+**`grant(role, when=..., reason=...)`** — a role paired with an optional condition on the caller, inside `@check_roles`. Grants are tried in declaration order, `any()` semantics: a role matches and `when=` (if given) returns `True` — the role-level check passes. A condition **must declare the reason it refuses with** (`reason=`, and `guard_reason=` for the shared condition): the sentence travels into `Refused.reason`, and a refusal caused this way names the step `WHEN`, not `CHECK_ROLES`. A bare role is equivalent to `grant(role)` with no condition.
 
 **`guard=`** — a shared condition on `@check_roles`, one for every grant on the operation; checked once, after some grant has already won. Unlike `grant.when=(user)`, it also sees the call's parameters: `guard=(user, params)`.
 
-**`access_decide`** — a method on `BaseAction`, the third, object-level access check (after role and `guard=`): `access_decide(self, params, context, box, connections) -> bool`. Defaults to `True`. Denial is `AuthorizationError(level=3)`, the same error as at levels 1-2.
+**`@access_decide`** — the declaration of an operation's object-level rule, beside `@check_roles` in the header: a method named `..._access_decide`, `async`, with a required non-empty description, at most one per operation and never inherited. Its signature is fixed — `(self, params, box, connections)`, plus the trailing `ctx: ContextView` that `@context_requires` adds — and it answers with a **verdict**. The description and the declared context keys travel into the assembled graph, where the check is a node of its own type.
+**`Verdict`, `Allowed`, `Refused`, `Undecided`** — the answers to "may I?", and there are exactly three. `Refused` and `Undecided` name the step that answered, through `gate`; only `Refused` may carry a `reason`, and only when the developer declared one. `Undecided` carries the step alone — never the failure's text.
+**The five words** — `AUTH_COORDINATOR`, `CHECK_ROLES`, `WHEN`, `GUARD`, `ACCESS_DECIDE`: the steps of the cascade, and the value of `gate` on a refusal. `WHEN` is a role's own condition refusing while the role matched; `GUARD` is the operation's shared condition.
+**`AccessDenied`, `AccessUndecided`** — what the executing path raises instead of returning: `AccessDenied(verdict)` carries the refusal, `AccessUndecided(verdict)` is raised `from` the original failure and says only which step could not decide. A refusal is an answer; a failure is not.
+**`FORBIDDEN_OBJECT`** — the framework's refusal for an object-scoped check: "there is no such object, or it is not yours" in one answer, so the error channel cannot be used to enumerate what exists.
+**`machine.check_access_decide`** — ask "would this be allowed?" without running the operation: the same cascade as `machine.run`, without the pipeline, the cache or the lifecycle events. One call, one answer, always one of the three words — a refusal here is an answer, not an exception.
 
-**`AccessVerdict`** — the result of `machine.check_access_decide`: `allowed: bool`, `action`, `level: int | None` (1, 2, or 3 — which level denied it), `reason: str | None`.
 
-**`machine.check_access_decide`** — ask "would this be allowed?" without running the operation: the same role/`guard=`/`access_decide` cascade as `machine.run`, but without the pipeline, cache, or plugin events. The same overload accepts either one action or a list of `(action, params)` pairs — the list is the primary form, a single check is implemented as a one-item list.
 
 ## Reliability
 

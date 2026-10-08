@@ -1,4 +1,4 @@
-"""An administrator inherits the manager role."""
+"""Either listed role is sufficient."""
 
 from __future__ import annotations
 
@@ -34,32 +34,32 @@ class ManagerRole(ApplicationRole):
 
 
 class OrderParams(BaseParams):
-    """Identify the order to cancel."""
+    """Identify the order to view."""
 
     order_id: str = Field(description="Order identifier")
 
 
 class OrderResult(BaseResult):
-    """Report the cancelled order."""
+    """Report the requested order."""
 
-    order_id: str = Field(description="Cancelled order identifier")
-
-
-class AdminRole(ManagerRole):
-    """Include every manager permission."""
-
-    name = "admin"
-    description = "Includes manager permissions"
+    order_id: str = Field(description="Requested order identifier")
 
 
-@meta(description="Cancel an order", domain=StoreDomain)
-@check_roles(ManagerRole)
-class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
-    """Cancel an order after checking access."""
+class AuditorRole(ApplicationRole):
+    """Permit reviewing order operations."""
 
-    @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
-        """Return the cancellation result."""
+    name = "auditor"
+    description = "Can review orders"
+
+
+@meta(description="View an order", domain=StoreDomain)
+@check_roles([ManagerRole, AuditorRole])
+class ViewOrderAction(BaseAction[OrderParams, OrderResult]):
+    """View an order after checking access."""
+
+    @summary_aspect("View the order")
+    async def view_summary(self, params, state, box, connections):
+        """Return the order identifier."""
         return OrderResult(order_id=params.order_id)
 
 
@@ -67,15 +67,18 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 
 
 async def main() -> None:
-    """An administrator inherits the manager role."""
+    """Either listed role is sufficient."""
     machine = ActionProductMachine(cache_coordinator=None)
     manager = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
-    admin = Context(user=UserInfo(user_id="a-1", roles=(AdminRole,)))
+    auditor = Context(user=UserInfo(user_id="a-1", roles=(AuditorRole,)))
+    params = OrderParams(order_id="ord-001")
 
-    result = await machine.run(manager, CancelOrderAction(), OrderParams(order_id="ord-001"))
-    print("manager:", result.model_dump())
-    result = await machine.run(admin, CancelOrderAction(), OrderParams(order_id="ord-001"))
-    print("admin:", result.model_dump())
+    answer = await machine.check_access_decide(manager, ViewOrderAction, params)
+    print("manager:", answer.kind)
+    answer = await machine.check_access_decide(auditor, ViewOrderAction, params)
+    print("auditor:", answer.kind)
+    answer = await machine.check_access_decide(Context(), ViewOrderAction, params)
+    print("anonymous:", answer.model_dump(mode="json"))
 
 
 if __name__ == "__main__":

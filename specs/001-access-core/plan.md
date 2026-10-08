@@ -88,7 +88,7 @@ packages/aoa-action-machine/
 │   ├── graph/
 │   │   ├── nodes/access_decide_graph_node.py   # AccessDecideGraphNode: the declared check
 │   │   ├── edges/access_decide_graph_edge.py   # @access_decide composition edge
-│   │   └── edges/role_graph_edge.py        # properties["when_reason"]
+│   │   └── edges/role_graph_edge.py        # properties["reason"]
 │   │   └── nodes/action_graph_node.py      # properties["guard_reason"]
 │   ├── runtime/
 │   │   ├── action_product_machine.py       # _decide_and_emit, both paths
