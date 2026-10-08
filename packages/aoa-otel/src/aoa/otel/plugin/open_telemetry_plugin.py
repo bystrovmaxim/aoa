@@ -123,10 +123,12 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.trace import Span, StatusCode, TraceFlags
 
 from aoa.action_machine.intents.on import (
+    AfterAccessDecideAspectEvent,
     AfterCompensateAspectEvent,
     AfterOnErrorAspectEvent,
     AfterRegularAspectEvent,
     AfterSummaryAspectEvent,
+    BeforeAccessDecideAspectEvent,
     BeforeCompensateAspectEvent,
     BeforeOnErrorAspectEvent,
     BeforeRegularAspectEvent,
@@ -337,6 +339,52 @@ class OpenTelemetryPlugin(Plugin):
     # ─────────────────────────────────────────────────────────────────────────
     # Summary aspect
     # ─────────────────────────────────────────────────────────────────────────
+
+    @on(BeforeAccessDecideAspectEvent, ignore_exceptions=False)
+    async def on_access_decide_start(
+        self,
+        state: dict[str, Any],
+        event: BeforeAccessDecideAspectEvent,
+        log: Any,
+    ) -> dict[str, Any]:
+        """Start child span for the declared object check (Traces) and emit before-log (Logs)."""
+        new_state = state
+        if self._tracer is not None:
+            new_state = _start_aspect_span(state, event.aspect_name, event.action_name, self._tracer)
+
+        self._emit_log(
+            body="aoa.access_decide.before",
+            attributes={
+                "aoa.action": event.action_name,
+                "aoa.aspect": event.aspect_name,
+            },
+            span=state.get(_SPAN_KEY),
+            event=event,
+        )
+        return new_state
+
+    @on(AfterAccessDecideAspectEvent, ignore_exceptions=False)
+    async def on_access_decide_end(
+        self,
+        state: dict[str, Any],
+        event: AfterAccessDecideAspectEvent,
+        log: Any,
+    ) -> dict[str, Any]:
+        """Close the object check's span (Traces) and emit after-log (Logs)."""
+        aspect_span: Span | None = state.get(_ASPECT_SPANS_KEY, {}).get(event.aspect_name) if self._tracer else None
+        new_state = _end_aspect_span(state, event.aspect_name, event.duration_ms) if self._tracer else state
+
+        self._emit_log(
+            body="aoa.access_decide.after",
+            attributes={
+                "aoa.action": event.action_name,
+                "aoa.aspect": event.aspect_name,
+                "aoa.duration_ms": event.duration_ms,
+            },
+            span=aspect_span if aspect_span is not None else state.get(_SPAN_KEY),
+            event=event,
+        )
+        return new_state
 
     @on(BeforeSummaryAspectEvent, ignore_exceptions=False)
     async def on_summary_aspect_start(

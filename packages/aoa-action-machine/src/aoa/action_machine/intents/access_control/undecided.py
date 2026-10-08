@@ -66,6 +66,11 @@ class Undecided(Verdict):
 
     _cause: BaseException | None = PrivateAttr(default=None)
 
+    @property
+    def cause(self) -> BaseException | None:
+        """The failure that stopped this step from telling; it never leaves memory."""
+        return self._cause
+
     def __init__(
         self,
         gate: Gate = Gate.ACCESS_DECIDE,

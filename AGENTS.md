@@ -2,7 +2,7 @@
 
 ## Where the governing text lives
 
-`.specify/memory/constitution.md` is the binding text for this project. It is the maintainer's, written gradually, and nothing else in the repository overrides it. Today its five principles are written plus the section on the final check run; the remaining sections are still the toolkit's template.
+`.specify/memory/constitution.md` is the binding text for this project. It is the maintainer's, written gradually, and nothing else in the repository overrides it. Today its six principles are written plus the section on the final check run; the remaining sections are still the toolkit's template.
 
 The rationale behind it lives in `docs/explanation/architectural-constitution.md` (the nine primitives) and `docs/reference/intents-and-invariants.md` (the invariants of each intent).
 
@@ -21,7 +21,7 @@ The skills are installed for the tools this repository configures: DeepSeek Harn
 - **Nothing is committed, pushed, opened as a pull request or merged without an explicit instruction** from the maintainer in the current conversation. Prepare the change, show the diff, wait. This is Principle I of the constitution (`.specify/memory/constitution.md`).
 - **One phase = one commit.** A phase that is not a commit is a procedure, not a phase.
 - **English wherever it is read as code or as history** — commit messages, issues, pull requests, review comments, and every comment, docstring or example in the code (Principle II of the constitution).
-- **The changelog is the maintainer's**; agents leave it alone unless explicitly asked (`.cursor/rules/changelog-hands-off.mdc`).
+- **The changelog ships with the change**, written by the agent as the second-to-last step and reviewed like any other part of it; the documentation comes last (Principle VI of the constitution). Planning reserves a task for each of the two.
 - **The constitution is the maintainer's** too: do not edit `.specify/memory/constitution.md` unless the user asks in the current turn.
 - **Verification is adversarial**: break the code the way the new test must catch, confirm that test fails and no other does, restore.
 - **Documentation ships with the change** it describes.

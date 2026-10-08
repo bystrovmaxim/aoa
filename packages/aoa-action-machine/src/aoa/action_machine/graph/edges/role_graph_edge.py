@@ -21,7 +21,7 @@ One edge per declared ``grant(...)`` (or bare role, normalized to a grant with
 with different ``when=`` conditions are structurally distinct. Each edge carries
 its grant's ``when`` condition in ``properties["when"]`` (runtime-only, like
 ``DependsGraphEdge``'s ``factory`` — never exported by :meth:`to_dict`) for
-:class:`~aoa.action_machine.runtime.role_checker.RoleChecker` to evaluate.
+:class:`~aoa.action_machine.intents.access_control.roles.RoleChecker` to evaluate.
 
 Why ``when`` lives here and not on :class:`~aoa.action_machine.graph.nodes.role_graph_node.RoleGraphNode`:
 ``RoleGraphNode`` is built once **per role** and shared/deduplicated across every

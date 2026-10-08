@@ -1,4 +1,4 @@
-"""ActionProductMachine — access_decide() gates run() before any aspect executes (step 6)."""
+"""ActionProductMachine — the declared object check gates run() before any aspect executes."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ from pydantic import Field
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Refused
+from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -34,7 +36,7 @@ def _admin_context() -> Context:
     return Context(user=UserInfo(user_id="a1", roles=(AdminRole,)))
 
 
-@meta(description="access_decide denies unconditionally", domain=SystemDomain)
+@meta(description="the declared object check denies unconditionally", domain=SystemDomain)
 @check_roles(AdminRole)
 class DenyAllAccessDecideAction(BaseAction["DenyAllAccessDecideAction.Params", "DenyAllAccessDecideAction.Result"]):
     class Params(BaseParams):
@@ -43,14 +45,16 @@ class DenyAllAccessDecideAction(BaseAction["DenyAllAccessDecideAction.Params", "
     class Result(BaseResult):
         ok: bool = Field(default=True)
 
-    async def access_decide(
+    @access_decide
+    async def deny_all_access_decide(
         self,
         params: DenyAllAccessDecideAction.Params,
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> bool:
-        return False
+    ) -> Refused:
+        """Refuse every object, without a reason of its own."""
+        return FORBIDDEN_OBJECT
 
     @summary_aspect("S")
     async def probe_summary(
@@ -64,7 +68,7 @@ class DenyAllAccessDecideAction(BaseAction["DenyAllAccessDecideAction.Params", "
         return DenyAllAccessDecideAction.Result(ok=True)
 
 
-async def test_access_decide_false_raises_before_any_aspect(machine: ActionProductMachine) -> None:
+async def test_the_declared_check_refuses_before_any_aspect(machine: ActionProductMachine) -> None:
     _summary_calls["n"] = 0
     with pytest.raises(AuthorizationError) as excinfo:
         await machine.run(_admin_context(), DenyAllAccessDecideAction(), DenyAllAccessDecideAction.Params())
@@ -72,9 +76,9 @@ async def test_access_decide_false_raises_before_any_aspect(machine: ActionProdu
     assert _summary_calls["n"] == 0
 
 
-async def test_role_check_still_denies_before_access_decide(machine: ActionProductMachine) -> None:
-    """Level 1 (role) must still win over level 3 (access_decide) for an anonymous user —
-    access_decide (which unconditionally returns False here) is never even reached."""
+async def test_role_check_still_denies_before_the_object_check(machine: ActionProductMachine) -> None:
+    """Level 1 (role) must still win over level 3 (the object check) for an anonymous user —
+    the declared check (which refuses every object here) is never even reached."""
     _summary_calls["n"] = 0
     with pytest.raises(AuthorizationError) as excinfo:
         await machine.run(Context(), DenyAllAccessDecideAction(), DenyAllAccessDecideAction.Params())
@@ -82,7 +86,7 @@ async def test_role_check_still_denies_before_access_decide(machine: ActionProdu
     assert _summary_calls["n"] == 0
 
 
-@meta(description="access_decide allows explicitly", domain=SystemDomain)
+@meta(description="the declared object check allows explicitly", domain=SystemDomain)
 @check_roles(AdminRole)
 class AllowAccessDecideAction(BaseAction["AllowAccessDecideAction.Params", "AllowAccessDecideAction.Result"]):
     class Params(BaseParams):
@@ -91,14 +95,16 @@ class AllowAccessDecideAction(BaseAction["AllowAccessDecideAction.Params", "Allo
     class Result(BaseResult):
         ok: bool = Field(default=True)
 
-    async def access_decide(
+    @access_decide
+    async def allow_everything_access_decide(
         self,
         params: AllowAccessDecideAction.Params,
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> bool:
-        return True
+    ) -> Allowed:
+        """Allow every object."""
+        return Allowed()
 
     @summary_aspect("S")
     async def probe_summary(
@@ -111,14 +117,14 @@ class AllowAccessDecideAction(BaseAction["AllowAccessDecideAction.Params", "Allo
         return AllowAccessDecideAction.Result(ok=True)
 
 
-async def test_access_decide_true_allows_run(machine: ActionProductMachine) -> None:
+async def test_a_declared_check_that_allows_lets_the_run_continue(machine: ActionProductMachine) -> None:
     result = await machine.run(_admin_context(), AllowAccessDecideAction(), AllowAccessDecideAction.Params())
     assert result.ok is True
 
 
-@meta(description="access_decide not overridden — default True", domain=SystemDomain)
+@meta(description="no object check declared at all", domain=SystemDomain)
 @check_roles(AdminRole)
-class DefaultAccessDecideAction(BaseAction["DefaultAccessDecideAction.Params", "DefaultAccessDecideAction.Result"]):
+class NoDeclaredCheckAction(BaseAction["NoDeclaredCheckAction.Params", "NoDeclaredCheckAction.Result"]):
     class Params(BaseParams):
         pass
 
@@ -128,15 +134,15 @@ class DefaultAccessDecideAction(BaseAction["DefaultAccessDecideAction.Params", "
     @summary_aspect("S")
     async def probe_summary(
         self,
-        params: DefaultAccessDecideAction.Params,
+        params: NoDeclaredCheckAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> DefaultAccessDecideAction.Result:
-        return DefaultAccessDecideAction.Result(ok=True)
+    ) -> NoDeclaredCheckAction.Result:
+        return NoDeclaredCheckAction.Result(ok=True)
 
 
-async def test_default_access_decide_true_does_not_block_run(machine: ActionProductMachine) -> None:
-    """Regression: actions that never override access_decide must keep working exactly as before."""
-    result = await machine.run(_admin_context(), DefaultAccessDecideAction(), DefaultAccessDecideAction.Params())
+async def test_an_operation_that_declares_no_check_still_runs(machine: ActionProductMachine) -> None:
+    """Regression: an operation with no object check is not restricted by one."""
+    result = await machine.run(_admin_context(), NoDeclaredCheckAction(), NoDeclaredCheckAction.Params())
     assert result.ok is True

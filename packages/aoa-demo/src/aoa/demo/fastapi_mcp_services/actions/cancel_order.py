@@ -41,6 +41,8 @@ from pydantic import Field
 
 from aoa.action_machine.auth import ApplicationRole
 from aoa.action_machine.context import Context
+from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Verdict
+from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles, grant
 from aoa.action_machine.intents.meta import meta
@@ -85,15 +87,18 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
         order_id: str = Field(description="Order identifier", examples=["ORD-user_123-001"])
         status: str = Field(description="Order status after cancellation", examples=["cancelled"])
 
-    async def access_decide(
+    @access_decide
+    async def cancel_order_access_decide(
         self,
         params: "CancelOrderAction.Params",
         context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> bool:
-        """Level 3: the order must belong to the caller."""
-        return params.owner_user_id == context.user.user_id
+    ) -> Verdict:
+        """The order must belong to the caller; anyone else is refused, with no reason."""
+        if params.owner_user_id == context.user.user_id:
+            return Allowed()
+        return FORBIDDEN_OBJECT
 
     @summary_aspect("Cancel the order")
     async def cancel_summary(

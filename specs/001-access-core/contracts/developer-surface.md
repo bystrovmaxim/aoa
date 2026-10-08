@@ -27,14 +27,20 @@ async def cancel_order(self, params: CancelOrderParams) -> OrderResult: ...
 ## Answering about a particular object
 
 ```python
-async def access_decide(self, context, params, tools, connections) -> Verdict:
+@access_decide
+async def cancel_order_access_decide(self, params, context, box, connections) -> Verdict:
     order = await connections["db"].get(params.order_id)
     if order is None or order.owner_id != context.user.user_id:
-        return FORBIDDEN_OBJECT                      # one branch, one answer
+        return FORBIDDEN_OBJECT                       # one branch, one answer
     if order.status == "cancelled":
-        return Refused("ORDER_ALREADY_CANCELLED")     # ownership proven, precise text is safe
+        return Refused("ORDER_ALREADY_CANCELLED")      # ownership proven, precise text is safe
     return Allowed()
 ```
+
+- The check is **declared**, like every other behaviour of an operation: it is not a method an operation inherits, and a subclass does not inherit its parent's check. An operation that declares none has no object check (FR-018).
+- **At most one** per operation: a second declaration is a declaration error, and so is a name that does not follow the declared suffix.
+- The check is **visible in the assembled capability**, and it announces itself with its own before and after events, after the run is announced and before the aspect pipeline (FR-019).
+- The check **answers with one of the three answers** and nothing else: `Allowed()`, `Refused(...)` or `Undecided(...)`. Anything else — a `bool`, a string, `None` — is a mistake, not an answer, and it is never read as "allowed": while the call executes it fails with that mistake, and a question about the call is answered `undecided` naming this step.
 
 - `FORBIDDEN_OBJECT` is a ready-made refusal for "no such object" and "someone else's object" — the two must not be told apart (FR-011).
 - Returning anything that is not one of the three answers is a defect and must not be read as "allowed" or as "refused".
@@ -55,8 +61,8 @@ The first refusal ends the decision; later gates are never called (FR-007). Reje
 
 ## Asking in advance
 
-- Asking runs no step of the operation and publishes no run lifecycle (FR-017).
-- The advance answer and the executed outcome for the same circumstances must not diverge (FR-018).
+- Asking runs no step of the operation and publishes no run lifecycle (FR-016).
+- The advance answer and the executed outcome for the same circumstances must not diverge (FR-017).
 - The core answers about one call; it has no batch form (D8).
 
 ## What is *not* part of this contract

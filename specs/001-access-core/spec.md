@@ -16,6 +16,9 @@
 - Q: Can a gate answer "undecided" itself, or does that answer arise only when a gate fails? → A: Both are allowed and they mean the same thing — a gate that catches a failure inside its own logic returns undecided, and a gate that fails outright produces the same answer.
 - Q: Is a question about an operation that does not exist a refusal, a caller error, or a separate "not found" answer? → A: A caller error, distinct from a refusal. Resolving operation names is the wire layer's job; the core is handed the operation, and a nonexistent object stays indistinguishable from another caller's object (FR-011).
 - Q: May the gates change data while a question is being asked, or must they only read? → A: Neither — the engine adds no control over what a gate does. Whether a gate only reads or also writes is the developer's decision, and the engine's own guarantee stays narrower: asking in advance runs no step of the operation.
+- Decision after the session: the object check announces itself on both paths, a gate that cannot tell is published only while a call executes, and no access decision reaches the operation's failure handling (FR-013, FR-019).
+- Decision after the session: the decision event was dropped — a decision is not published, because a refusal already leaves as an exception on the execution path and as the answer on the question path, and only a gate that cannot complete is an event (FR-013, contracts/plugin-events.md).
+- Decision after the session: the object check is a declaration of its own
 - Scope: the core has no way to ask about several calls at once. Asking in advance is one call about one operation; batching, endpoints, request limits and rate limiting belong to the wire layer and are not specified here.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -63,7 +66,7 @@ When a gate itself cannot complete — the store is unreachable, the gate raises
 **Acceptance Scenarios**:
 
 1. **Given** a gate that raises, **When** the decision is produced, **Then** the answer is "undecided" and names the gate that could not tell, and the text of the failure is not carried in the answer or in any published event.
-2. **Given** any decision on either path, **Then** exactly one decision event is published, carrying the answer word, the gate that refused, the reason, and whether the call asked in advance or executed.
+2. **Given** a question asked in advance that ends in a refusal, **Then** no event about it is published at all: the answer is the record.
 3. **Given** a question asked in advance, **Then** no execution lifecycle event is published for it: nothing was run.
 
 ---
@@ -94,33 +97,38 @@ When a gate itself cannot complete — the store is unreachable, the gate raises
 - **FR-010**: A declared condition that refuses MUST be reportable with a reason chosen by the developer; when the developer declares none, the answer carries the gate alone, because the framework invents no reason text.
 - **FR-011**: A refusal about a particular object MUST be identical — same word, same gate, same reason — whether the object does not exist or belongs to another caller, and both cases MUST be decided in a single step of the gate.
 - **FR-012**: The framework MUST NOT invent reason text of its own: the published word a caller branches on is the gate, and a reason exists only where a developer declared one.
-- **FR-013**: Every decision MUST publish a **new event type** on the engine's event bus, carrying the answer word, the gate that refused, the reason, whether the call asked in advance or executed, and the identity of the request taken from the context when the context carries one — never invented locally.
-- **FR-014**: A gate that cannot complete MUST publish a **second, distinct new event type** carrying the kind of failure and the same request identity, while the decision itself is undecided.
-- **FR-015**: Both new event types MUST be additions: no existing event is renamed, removed, or changed in what it carries.
-- **FR-016**: Nothing about the internal cause of a failure may be published: neither the answer nor any published event carries the text of a failure raised inside a gate, and a caller can branch only on the answer word, the name of the refusing gate and the reason.
-- **FR-017**: Asking in advance MUST be possible without running any step of the operation, and MUST NOT publish the execution lifecycle of a run.
-- **FR-018**: For the same circumstances, the advance answer and the outcome of executing the same call MUST NOT diverge.
+- **FR-013**: A gate that cannot complete MUST publish a **new event type** while the call is executing, carrying the gate that could not tell, the kind of failure, and the identity of the request taken from the context when the context carries one — never invented locally — and the decision itself is undecided. Asking in advance publishes nothing of the kind.
+- **FR-014**: The new event type MUST be an addition: no existing event is renamed, removed, or changed in what it carries.
+- **FR-015**: Nothing about the internal cause of a failure may be published: neither the answer nor any published event carries the text of a failure raised inside a gate, and a caller can branch only on the answer word, the name of the refusing gate and the reason.
+- **FR-016**: Asking in advance MUST be possible without running any step of the operation, and MUST NOT publish the execution lifecycle of a run. The access checks themselves are not steps of the operation: asking runs them, and what they announce is theirs to announce (FR-019).
+- **FR-017**: For the same circumstances, the advance answer and the outcome of executing the same call MUST NOT diverge.
+- **FR-018**: The object check MUST be a declaration of the operation that needs it: an operation without one has no object check at all, a second declaration MUST be refused when the capability is assembled, and an operation MUST NOT inherit the check of the operation it extends.
+- **FR-019**: The declared object check MUST be observable the way the other declared behaviours are: whenever it runs — executing the call or asking in advance, alike — it publishes a before event when it starts and an after event when it finishes, whatever it answered. A check that fails finishes nothing and publishes no after event, and an operation that declares none publishes none of them.
+- **FR-020**: The decision MUST reach the caller carrying the same fields on both paths and nothing besides them: executing raises an exception that carries the answer, asking in advance returns the answer itself, and neither carries more than the answer contract lists. The cause of a failure stays in memory and is never published, serialised or handed to the caller (FR-005, FR-015).
 
 ### Key Entities *(include if feature involves data)*
 
 - **Answer (decision)**: one of three published words — allowed, refused, undecided; a refusal carries the gate that refused and the reason the developer declared, if any, and an undecided answer names the gate that could not tell and keeps the underlying failure out of everything published.
+- **Object check (declared)**: the operation's own answer about the object it is called on — optional, at most one, never inherited, and visible in the assembled capability like every other declaration.
 - **Gate**: one ordered step of the decision, named with one of five published words — the caller's credentials (`AUTH_COORDINATOR`), no listed role held (`CHECK_ROLES`), a role held but its condition refused (`WHEN`), the operation's shared condition refused (`GUARD`), the object may not be touched (`ACCESS_DECIDE`). It answers either "the call may continue", a refusal, or undecided, and the first refusal ends the decision.
-- **Decision event** (new event type): published for every decision on both paths, carrying the request identity whenever the context provides one.
-- **Failed-gate event** (new event type): published when a gate cannot complete, carrying the kind of failure rather than its text, with the same request identity.
+- **Failed-gate event** (new event type): the only event a decision adds — published when a gate cannot complete, carrying the kind of failure rather than its text, with the request identity whenever the context provides one. A decision itself is not published: it reaches the caller as an exception when executing and as the answer when asking.
+- **Decision** *(not an event)*: an answer, delivered to one caller at a time; a refusal is not published anywhere, and a run that ends in one shows it in the events the run already has.
 - **Question**: a call that asks in advance what would happen, about one operation and the object it names. The core has no batch form of the question.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Across the full decision matrix of three answers × four steps × two paths — with the roles step taken in both of its answers — every decision publishes exactly one decision event, and the question path publishes zero run-lifecycle events.
+- **SC-001**: Across the full decision matrix of three answers × four steps × two paths — with the roles step taken in both of its answers — 100% of decisions are exactly one of the three answers and name their gate whenever they are not allowed, and the question path publishes zero run-lifecycle events.
 - **SC-002**: 100% of refusals carry the gate that refused, and 100% of developer-declared reasons reach the caller unchanged.
 - **SC-003**: In at least 10 sampled object-scoped refusals, the answer for "object does not exist" and the answer for "object belongs to another caller" are identical in word, gate and reason.
 - **SC-004**: In 100 runs where a gate cannot complete — half raising outright, half returning undecided from inside the gate — every outcome is undecided, zero read as a refusal, and zero are stored or reused as one.
 - **SC-005**: An operation without an access declaration prevents start-up in 100% of attempts, measured at start-up, before any call is handled.
 - **SC-006**: In a shared scenario set, the advance answer and the executed outcome agree in 100% of cases — no case where the advance answer is "allowed" and execution refuses, or the reverse.
 - **SC-007**: In 100 runs with an injected failure, neither the answer nor any published event carries the text of the failure.
-- **SC-008**: In a set of calls where the context carries a request identity and a set where it does not, 100% of published decision events carry the identity when it is present, and no event carries an identity that was not in the context.
+- **SC-008**: In a set of calls where the context carries a request identity and a set where it does not, 100% of published failed-gate events carry the identity when it is present, and no event carries an identity that was not in the context.
+- **SC-009**: In 100% of operations that declare an object check, exactly one check is reachable from the assembled capability; a second declaration, and a method that does not follow the declared naming, fail assembly with a declaration error before any call is served.
+- **SC-010**: In 100% of calls, the decision reaches the caller carrying exactly the fields the answer contract lists — an exception on the execution path and the answer on the question path — and in no case does a failure's cause appear in what the caller receives.
 
 ## Assumptions
 
@@ -130,6 +138,8 @@ When a gate itself cannot complete — the store is unreachable, the gate raises
 - The order of the gates is fixed and observable, and the identity and role gates never look at the call's parameters.
 - Reason text is the developer's: the framework publishes the gate words and invents no reason, so a caller branches on the gate and reads a reason as declared text.
 - The answer names the difference between "we cannot tell who you are" and "you may not" through the gate and the reason; what any transport does with that difference (which status code, which header) is not part of this capability.
-- The two new events are additions to the event contract: every existing event keeps its name and what it carries, so an observer that does not care about access decisions needs no change.
-- The engine adds no control over what a gate does with the data it reads: reading only, or also writing, is the developer's decision. The engine's own guarantee is that a question runs no step of the operation (FR-017).
+- Deciding the identity step is the transport's: a transport that authenticates refuses before it asks for a decision, so the engine's identity gate keeps its place and its word without ever answering (see the answer contract).
+- Routing an access decision into the operation's own failure handling is not part of this capability: the engine builds no such logic, because a handler able to answer a refusal would be answering a call the decision refused.
+- The new event is an addition to the event contract: every existing event keeps its name and what it carries, so an observer that does not care about access failures needs no change.
+- The engine adds no control over what a gate does with the data it reads: reading only, or also writing, is the developer's decision. The engine's own guarantee is that a question runs no step of the operation (FR-016).
 - The project constitution applies: English in commits, in git and in code; module headers; AI-CORE blocks on public classes; one-line docstrings; and the full gate run as the last step of the work.

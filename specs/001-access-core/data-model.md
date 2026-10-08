@@ -15,7 +15,7 @@ The result of a decision. Exactly one of three shapes, never a base instance and
 | | `reason` | `str` | Non-empty, no whitespace-only value (FR-004). Either a fixed code or the developer's declared reason (FR-010, FR-012) |
 | **Undecided** | `kind` | `Literal["undecided"]` | The answer a gate gives when it cannot tell (FR-003, FR-005) |
 | | `gate` | `Gate` | Names the step that could not tell; the answer says where it stopped, not why (FR-005) |
-| | `_cause` | `BaseException \| None` | Private: never in `model_dump()`, never in an event, never in an answer (FR-016, D9) |
+| | `_cause` | `BaseException \| None` | Private: never in `model_dump()`, never in an event, never in an answer (FR-015, D9) |
 
 **Validation rules**
 
@@ -53,28 +53,41 @@ The framework publishes the gate words and invents no reason text of its own (FR
 
 **Rules**: the five words are the whole vocabulary; a `FORBIDDEN_OBJECT`-style shared refusal is one instance, and both of its cases must be answered from one branch.
 
-## Events (two new types)
+## Object check (declared)
+
+The operation's own answer about the object it is called on. Declared, never inherited, at most one; an operation that declares none has no object check (FR-018).
+
+| Field | Rules |
+| --- | --- |
+| the declared callable | Reachable from the assembled capability as a node of its own, joined to the operation by a composition edge, the way the other declared behaviours are (FR-018) |
+| its answer | One of the three answers; anything else, and any failure, becomes `Undecided` naming `ACCESS_DECIDE` (FR-005, FR-011) |
+| its events | A before event whenever it starts and an after event whenever it finishes, whatever it answered — executing and asking in advance alike; a check that fails publishes no after event (FR-019) |
+
+## The new event (one type)
 
 | Entity | Field | Rules |
 | --- | --- | --- |
-| **AccessDecidedEvent** | the answer | The whole verdict, including `gate` and `reason` when refused (FR-013) |
-| | which path | Whether the call asked in advance or executed |
+| **AccessGateFailedEvent** | the gate | Which step could not tell (FR-013) |
+| | the failure kind | The type of the failure, never its text (FR-013, FR-015) |
 | | request identity | Taken from the context when present; never invented (FR-013, SC-008) |
-| **AccessGateFailedEvent** | the failure kind | The type of the failure, never its text (FR-014, FR-016) |
-| | request identity | The same source and the same rule (FR-014) |
+
+A decision itself is not an entity of this model: it is an answer, delivered to one
+caller at a time — raised as an exception when the call executes, returned when
+someone asks in advance (FR-020).
 
 **Rules**
 
-- Every decision publishes exactly one decision event, on both paths (FR-013, SC-001).
-- A failed gate publishes the failed-gate event in addition to the decision event for the resulting undecided answer (FR-014).
-- No event carries the text of a failure (FR-016, SC-007).
-- Both are additions: every existing event keeps its name and what it carries (FR-015).
-- The question path publishes no run-lifecycle event, because nothing was run (FR-017).
+- A gate that cannot complete publishes the failed-gate event while the call executes, and the decision itself is undecided (FR-013). Asking in advance publishes nothing of the kind.
+- A refusal is published nowhere: the caller receives it, and a run that ends in one shows its `GlobalStart` without a `GlobalFinish`.
+- No access decision reaches the operation's own failure handling: the engine builds no such logic in this capability (scope, not a requirement).
+- No event carries the text of a failure (FR-014, SC-007).
+- The event is an addition: every existing event keeps its name and what it carries (FR-013).
+- The question path publishes no run-lifecycle event, because nothing was run (FR-015).
 
 ## Relationships
 
 ```text
-call ──▶ decision ──▶ exactly one answer ──▶ exactly one decision event
+call ──▶ decision ──▶ exactly one answer ──▶ the caller (exception or answer)
               │
               ├─ refused ──▶ names its gate and its reason
               └─ undecided ──▶ keeps its cause in memory, publishes a failed-gate event
@@ -82,6 +95,6 @@ call ──▶ decision ──▶ exactly one answer ──▶ exactly one decis
 
 ## What this model does not contain
 
-- No storage, no cache, no persisted state: a decision exists for the duration of a call (FR-017).
+- No storage, no cache, no persisted state: a decision exists for the duration of a call (FR-016).
 - No batch or list shape: one call, one answer (D8).
 - No transport fields: no status codes, no headers, no response bodies (spec Assumptions).

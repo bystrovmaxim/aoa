@@ -8,7 +8,7 @@ PURPOSE
 
 Declare which **role types** are required to execute an action. The decorator
 writes a normalized specification to ``cls._role_info["spec"]``, consumed by
-``ActionProductMachine`` / :class:`~aoa.action_machine.runtime.role_checker.RoleChecker`. The
+``ActionProductMachine`` / :class:`~aoa.action_machine.intents.access_control.roles.RoleChecker`. The
 spec must be ``GuestRole``, ``AnyRole``, a ``BaseRole`` subclass, or a
 non-empty list of ``BaseRole`` subclasses (OR semantics). ``Context.user.roles``
 holds the same ``BaseRole`` subclasses assigned to the user.
@@ -24,7 +24,7 @@ per grant, ``when`` in ``edge.properties["when"]``) and
 :class:`~aoa.action_machine.graph.nodes.action_graph_node.ActionGraphNode`
 (``guard`` in ``node.properties["guard"]``) when the interchange graph is built,
 same as every other ``@check_roles`` fact.
-:class:`~aoa.action_machine.runtime.role_checker.RoleChecker` reads the wired
+:class:`~aoa.action_machine.intents.access_control.roles.RoleChecker` reads the wired
 graph, not ``_role_info``, at runtime in a later step — this decorator only
 declares and validates the surface. ``when=``/``guard=`` must be synchronous
 callables: ``async def`` raises

@@ -14,7 +14,7 @@ One ordered cascade of four steps decides access for both the execution path and
 
 **Primary Dependencies**: pydantic v2 (`BaseSchema`, already the engine's model base), the engine's own plugin bus and graph — no new dependency is introduced
 
-**Storage**: none. The core stores nothing: it reads whatever a developer's gate reads and returns an answer (spec FR-017, Assumptions)
+**Storage**: none. The core stores nothing: it reads whatever a developer's gate reads and returns an answer (spec FR-016, Assumptions)
 
 **Testing**: pytest, per package (`packages/aoa-action-machine/tests/action_machine/**`), plus the existing adapter tests that must keep seeing a refusal
 
@@ -26,7 +26,7 @@ One ordered cascade of four steps decides access for both the execution path and
 
 **Constraints**: the request identity the events carry is `context.request.trace_id`, published by the OpenTelemetry plugin as `aoa.trace_id` — the only identity the context has today, and it is populated nowhere yet (#170), so an event carries it only when it is set and never invents one; no batch form of the question in the core; the reason vocabulary is additive; the two events are additions to the plugin contract; the existing adapter tests keep passing; `bash scripts/run_checks_with_log.sh` green at the end
 
-**Scale/Scope**: 3 answer types, 5 gate words over 4 steps, 2 new event types, 1 declared-reason validator, nine phases of work as ordered in issue #189
+**Scale/Scope**: 3 answer types, 5 gate words over 4 steps, 1 declared object check with its own graph node type, 1 decision matrix (4 points × 3 situations × 2 modes) fixed in the contracts, 1 new event type plus the check's own before/after events, 1 declared-reason validator, nine phases of work as ordered in issue #189
 
 ## Constitution Check
 
@@ -71,6 +71,7 @@ specs/001-access-core/
 packages/aoa-action-machine/
 ├── src/aoa/action_machine/
 │   ├── intents/
+│   │   ├── access_decide/                  # the declared object check (decorator, intent, resolver)
 │   │   ├── access_control/                 # the answers and the cascade
 │   │   │   ├── verdict.py                  # Verdict: the base answer, with kind
 │   │   │   ├── allowed.py                  # Allowed
@@ -85,7 +86,9 @@ packages/aoa-action-machine/
 │   │       ├── check_roles_decorator.py    # carries the declared guard= reason
 │   │       └── check_roles_intent_resolver.py
 │   ├── graph/
-│   │   ├── edges/role_graph_edge.py        # properties["when_reason"]
+│   │   ├── nodes/access_decide_graph_node.py   # AccessDecideGraphNode: the declared check
+│   │   ├── edges/access_decide_graph_edge.py   # @access_decide composition edge
+│   │   └── edges/role_graph_edge.py        # properties["when_reason"]
 │   │   └── nodes/action_graph_node.py      # properties["guard_reason"]
 │   ├── runtime/
 │   │   ├── action_product_machine.py       # _decide_and_emit, both paths
@@ -95,8 +98,8 @@ packages/aoa-action-machine/
 │   │   ├── access_undecided.py             # AccessUndecided(verdict)
 │   │   └── authorization_error.py          # stays until the transport follow-up
 │   └── plugin/core/
-│       ├── events.py                       # AccessDecidedEvent, AccessGateFailedEvent
-│       └── plugin_coordinator.py           # emit_access_decided, emit_access_gate_failed
+│       ├── events.py                       # AccessGateFailedEvent
+│       └── plugin_coordinator.py           # emit_access_gate_failed
 └── tests/action_machine/
     ├── intents/access_control/             # answers, reasons, the decision matrix
     ├── intents/check_roles/                # declared reasons and their validation
@@ -104,7 +107,9 @@ packages/aoa-action-machine/
     ├── runtime/                            # both paths, ordering, events
     └── exceptions/                         # the new exceptions, and the old one's tests
 
-packages/aoa-otel/src/aoa/otel/plugin/open_telemetry_plugin.py   # handler for the decision event
+packages/aoa-otel/src/aoa/otel/plugin/open_telemetry_plugin.py   # handler for the failed-gate event
+packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py   # the new node type
+packages/aoa-maxitor/client/src/lib/icons/graph_node_disk_icons.ts                      # its icon
 packages/aoa-fastapi-adapter/src/aoa/fastapi/adapter.py          # except clause only
 packages/aoa-mcp-adapter/src/aoa/mcp/adapter.py                  # except clause only
 docs/tutorials/, docs/reference/glossary.md, CHANGELOG.md        # phase 9

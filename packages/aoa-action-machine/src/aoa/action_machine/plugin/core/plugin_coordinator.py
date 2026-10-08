@@ -62,8 +62,11 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.plugin.core.events import (
+    AccessGateFailedEvent,
+    AfterAccessDecideAspectEvent,
     AfterRegularAspectEvent,
     AfterSummaryAspectEvent,
+    BeforeAccessDecideAspectEvent,
     BeforeRegularAspectEvent,
     BeforeSummaryAspectEvent,
     GlobalFinishEvent,
@@ -184,6 +187,77 @@ class PluginCoordinator(BaseCoordinator):
                 result=result,
                 duration_ms=duration_ms,
                 all_aspect_states=all_aspect_states,
+            ),
+            **kwargs,
+        )
+
+    async def emit_access_gate_failed(
+        self,
+        plugin_ctx: PluginRunContext,
+        *,
+        action: BaseAction[Any, Any],
+        context: Context,
+        params: BaseParams,
+        nest_level: int,
+        gate: str,
+        exception_type: str,
+    ) -> None:
+        """Emit ``AccessGateFailedEvent`` when an access gate cannot tell."""
+        base = self.base_fields(action, context, params, nest_level)
+        kwargs = self.emit_extra_kwargs(nest_level)
+        await plugin_ctx.emit_event(
+            AccessGateFailedEvent(
+                **base,
+                gate=gate,
+                exception_type=exception_type,
+            ),
+            **kwargs,
+        )
+
+    async def emit_before_access_decide(
+        self,
+        plugin_ctx: PluginRunContext,
+        *,
+        action: BaseAction[Any, Any],
+        context: Context,
+        params: BaseParams,
+        nest_level: int,
+        aspect_name: str,
+        state_snapshot: dict[str, Any],
+    ) -> None:
+        """Emit ``BeforeAccessDecideAspectEvent`` before the declared object check runs."""
+        base = self.base_fields(action, context, params, nest_level)
+        kwargs = self.emit_extra_kwargs(nest_level)
+        await plugin_ctx.emit_event(
+            BeforeAccessDecideAspectEvent(
+                **base,
+                aspect_name=aspect_name,
+                state_snapshot=state_snapshot,
+            ),
+            **kwargs,
+        )
+
+    async def emit_after_access_decide(
+        self,
+        plugin_ctx: PluginRunContext,
+        *,
+        action: BaseAction[Any, Any],
+        context: Context,
+        params: BaseParams,
+        nest_level: int,
+        aspect_name: str,
+        state_snapshot: dict[str, Any],
+        duration_ms: float,
+    ) -> None:
+        """Emit ``AfterAccessDecideAspectEvent`` after the declared object check finished."""
+        base = self.base_fields(action, context, params, nest_level)
+        kwargs = self.emit_extra_kwargs(nest_level)
+        await plugin_ctx.emit_event(
+            AfterAccessDecideAspectEvent(
+                **base,
+                aspect_name=aspect_name,
+                state_snapshot=state_snapshot,
+                duration_ms=duration_ms,
             ),
             **kwargs,
         )

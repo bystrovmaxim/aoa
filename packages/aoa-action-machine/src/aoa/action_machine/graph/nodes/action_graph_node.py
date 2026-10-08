@@ -54,6 +54,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.runtime.dependency_info import DependencyInfo
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
+from ..edges.access_decide_graph_edge import AccessDecideGraphEdge
 from ..edges.compensator_graph_edge import CompensatorGraphEdge
 from ..edges.connection_graph_edge import ConnectionGraphEdge
 from ..edges.depends_graph_edge import DependsGraphEdge
@@ -64,6 +65,7 @@ from ..edges.regular_aspect_graph_edge import RegularAspectGraphEdge
 from ..edges.result_graph_edge import ResultGraphEdge
 from ..edges.role_graph_edge import RoleGraphEdge
 from ..edges.summary_aspect_graph_edge import SummaryAspectGraphEdge
+from .access_decide_graph_node import AccessDecideGraphNode
 from .compensator_graph_node import CompensatorGraphNode
 from .error_handler_graph_node import ErrorHandlerGraphNode
 from .regular_aspect_graph_node import RegularAspectGraphNode
@@ -92,6 +94,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     roles: list[RoleGraphEdge]
     regular_aspect: list[RegularAspectGraphEdge]
     summary_aspect: list[SummaryAspectGraphEdge]
+    access_decide: list[AccessDecideGraphEdge]
     compensators: list[CompensatorGraphEdge]
     on_error_handlers: list[ErrorHandlerGraphEdge]
     parent_actions: list[ParentActionGraphEdge]
@@ -118,6 +121,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         object.__setattr__(self, "roles", RoleGraphEdge.get_role_edges(action_cls))
         object.__setattr__(self, "regular_aspect", RegularAspectGraphEdge.get_regular_aspect_edges(action_cls))
         object.__setattr__(self, "summary_aspect", SummaryAspectGraphEdge.get_summary_aspect_edges(action_cls))
+        object.__setattr__(self, "access_decide", AccessDecideGraphEdge.get_access_decide_edges(action_cls))
         object.__setattr__(self, "compensators", CompensatorGraphEdge.get_compensator_edges(action_cls))
         object.__setattr__(self, "on_error_handlers", ErrorHandlerGraphEdge.get_on_error_handlers_edges(action_cls))
         object.__setattr__(
@@ -188,6 +192,12 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             raise MissingSummaryAspectError(msg)
         return cast(SummaryAspectGraphNode, self.summary_aspect[0].target_node)
 
+    def get_access_decide_graph_node(self) -> AccessDecideGraphNode | None:
+        """Interchange vertex for the declared object check, or ``None`` when the operation declares none."""
+        if not self.access_decide:
+            return None
+        return cast(AccessDecideGraphNode, self.access_decide[0].target_node)
+
     def get_compensator_graph_nodes(self) -> list[CompensatorGraphNode]:
         """Interchange vertices for ``@compensate`` methods, in composition edge order."""
         out: list[CompensatorGraphNode] = []
@@ -222,6 +232,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             *self.roles,
             *self.regular_aspect,
             *self.summary_aspect,
+            *self.access_decide,
             *self.compensators,
             *self.on_error_handlers,
             *self.parent_actions,
@@ -230,11 +241,13 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         summary = self.get_summary_aspect_graph_node() if self.summary_aspect else None
         regular = self.get_regular_aspect_graph_nodes()
+        access_decide = self.get_access_decide_graph_node()
         compensators = self.get_compensator_graph_nodes()
         error_handlers = self.get_error_handler_graph_nodes()
         return [
             *(cast(BaseGraphNode[Any], n) for n in regular),
             *((cast(BaseGraphNode[Any], summary),) if summary is not None else ()),
+            *((cast(BaseGraphNode[Any], access_decide),) if access_decide is not None else ()),
             *(cast(BaseGraphNode[Any], n) for n in compensators),
             *(cast(BaseGraphNode[Any], n) for n in error_handlers),
         ]

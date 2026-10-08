@@ -17,6 +17,8 @@ from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.intents.access_control import Allowed, Gate, Refused
+from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -65,12 +67,13 @@ class GuardedAction(BaseAction["GuardedAction.Params", "GuardedAction.Result"]):
     class Result(BaseResult):
         """No outputs."""
 
-    async def access_decide(
+    @access_decide
+    async def guarded_access_decide(
         self, params: GuardedAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
-    ) -> bool:
+    ) -> Allowed:
         """Record the parameters the object step was handed, and allow."""
         _SEEN["object"].append(params)
-        return True
+        return Allowed()
 
     @summary_aspect("S")
     async def probe_summary(
@@ -160,8 +163,8 @@ async def test_a_refusal_is_never_a_parameter_error(machine: ActionProductMachin
 async def test_the_question_path_decides_without_parameters_too(machine: ActionProductMachine) -> None:
     """Asking in advance needs no parameters to answer about the early steps."""
     verdict = await machine.check_access_decide(_user_without_the_role(), GuardedAction, None)
-    assert verdict.allowed is False
-    assert verdict.level == 1
+    assert isinstance(verdict, Refused)
+    assert verdict.gate is Gate.CHECK_ROLES
     assert _SEEN == {"guard": [], "object": []}
 
 

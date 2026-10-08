@@ -1,9 +1,10 @@
 """The decision matrix: which caller, which step, which path — and what comes back.
 
-Written against the machine's current paths (T011) and switched to the cascade once
-it drives them (T015, T017). Today's ``level`` encodes the same distinction the five
-gate words will publish, so every row carries both: the level it must answer today,
-and the word it will answer with.
+Written against the machine's paths (T011) and now driving the cascade itself: every
+row asks the same question of both paths and reads the answer the way a caller does —
+``Allowed``, or ``Refused`` naming the step that refused. On the execution path the
+answer still arrives as the historical exception, whose text names the same word; that
+shape goes away when the exceptions carry the verdict.
 """
 
 from __future__ import annotations
@@ -17,6 +18,8 @@ import pytest
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Gate, Refused, Undecided
+from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles, grant
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -83,12 +86,13 @@ class PlainAction(BaseAction["PlainAction.Params", "PlainAction.Result"]):
     class Result(BaseResult):
         """No outputs."""
 
-    async def access_decide(
+    @access_decide
+    async def plain_access_decide(
         self, params: PlainAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
-    ) -> bool:
+    ) -> Allowed:
         """Allow the object, recording that the step was reached."""
         _CALLS["access_decide"] += 1
-        return True
+        return Allowed()
 
     @summary_aspect("S")
     async def probe_summary(
@@ -110,12 +114,13 @@ class RoleOnlyAction(BaseAction["RoleOnlyAction.Params", "RoleOnlyAction.Result"
     class Result(BaseResult):
         """No outputs."""
 
-    async def access_decide(
+    @access_decide
+    async def role_only_access_decide(
         self, params: RoleOnlyAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
-    ) -> bool:
+    ) -> Allowed:
         """Allow the object if this step is ever reached."""
         _CALLS["access_decide"] += 1
-        return True
+        return Allowed()
 
     @summary_aspect("S")
     async def probe_summary(
@@ -137,12 +142,13 @@ class WhenAction(BaseAction["WhenAction.Params", "WhenAction.Result"]):
     class Result(BaseResult):
         """No outputs."""
 
-    async def access_decide(
+    @access_decide
+    async def when_access_decide(
         self, params: WhenAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
-    ) -> bool:
+    ) -> Allowed:
         """Allow the object if this step is ever reached."""
         _CALLS["access_decide"] += 1
-        return True
+        return Allowed()
 
     @summary_aspect("S")
     async def probe_summary(
@@ -164,12 +170,13 @@ class GuardAction(BaseAction["GuardAction.Params", "GuardAction.Result"]):
     class Result(BaseResult):
         """No outputs."""
 
-    async def access_decide(
+    @access_decide
+    async def guard_access_decide(
         self, params: GuardAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
-    ) -> bool:
+    ) -> Allowed:
         """Allow the object if this step is ever reached."""
         _CALLS["access_decide"] += 1
-        return True
+        return Allowed()
 
     @summary_aspect("S")
     async def probe_summary(
@@ -191,12 +198,13 @@ class ObjectDeniedAction(BaseAction["ObjectDeniedAction.Params", "ObjectDeniedAc
     class Result(BaseResult):
         """No outputs."""
 
-    async def access_decide(
+    @access_decide
+    async def object_denied_access_decide(
         self, params: ObjectDeniedAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
-    ) -> bool:
+    ) -> Allowed:
         """Refuse the object, recording that the step was reached."""
         _CALLS["access_decide"] += 1
-        return False
+        return FORBIDDEN_OBJECT
 
     @summary_aspect("S")
     async def probe_summary(
@@ -218,9 +226,10 @@ class ObjectCrashAction(BaseAction["ObjectCrashAction.Params", "ObjectCrashActio
     class Result(BaseResult):
         """No outputs."""
 
-    async def access_decide(
+    @access_decide
+    async def object_crash_access_decide(
         self, params: ObjectCrashAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
-    ) -> bool:
+    ) -> Allowed:
         """Fail the way a store fails."""
         _CALLS["access_decide"] += 1
         raise RuntimeError("store is down")
@@ -236,23 +245,22 @@ class ObjectCrashAction(BaseAction["ObjectCrashAction.Params", "ObjectCrashActio
 
 @dataclass(frozen=True)
 class Row:
-    """One cell of the matrix: an operation, a caller, and what each path answers."""
+    """One cell of the matrix: an operation, a caller, and the word each path answers."""
 
     name: str
     action: Callable[[], BaseAction[Any, Any]]
     caller: Callable[[], Context]
-    today_level: int | None
     word: str
 
 
 ROWS = (
-    Row("role held, object allowed", PlainAction, _admin, None, "allowed"),
-    Row("no listed role is held", RoleOnlyAction, _user_without_the_role, 1, "CHECK_ROLES"),
-    Row("role held, its condition refused", WhenAction, _manager, 2, "WHEN"),
-    Row("the shared condition refused", GuardAction, _admin, 2, "GUARD"),
-    Row("the object step refused", ObjectDeniedAction, _admin, 3, "ACCESS_DECIDE"),
+    Row("role held, object allowed", PlainAction, _admin, "allowed"),
+    Row("no listed role is held", RoleOnlyAction, _user_without_the_role, "CHECK_ROLES"),
+    Row("role held, its condition refused", WhenAction, _manager, "WHEN"),
+    Row("the shared condition refused", GuardAction, _admin, "GUARD"),
+    Row("the object step refused", ObjectDeniedAction, _admin, "ACCESS_DECIDE"),
 )
-"""The steps the machine can express today; the identity step lands with T018."""
+"""The steps the machine runs; the identity step answers nobody yet."""
 
 
 @pytest.fixture(scope="module")
@@ -263,22 +271,25 @@ def machine() -> ActionProductMachine:
 
 @pytest.mark.parametrize("row", ROWS, ids=lambda row: row.name)
 async def test_the_execution_path_answers_each_step(machine: ActionProductMachine, row: Row) -> None:
-    """An allowed call runs; a refused one fails with the level of the step that refused."""
-    if row.today_level is None:
+    """An allowed call runs; a refused one stops, and the exception names the same word."""
+    if row.word == "allowed":
         await machine.run(row.caller(), row.action(), row.action().Params())
         return
     with pytest.raises(AuthorizationError) as excinfo:
         await machine.run(row.caller(), row.action(), row.action().Params())
-    assert excinfo.value.level == row.today_level
+    assert row.word in str(excinfo.value)
 
 
 @pytest.mark.parametrize("row", ROWS, ids=lambda row: row.name)
 async def test_the_question_path_answers_each_step(machine: ActionProductMachine, row: Row) -> None:
-    """Asking in advance answers the same way, without running anything."""
+    """Asking in advance answers the same word, without running anything."""
     action = row.action()
     verdict = await machine.check_access_decide(row.caller(), type(action), action.Params())
-    assert verdict.allowed is (row.today_level is None)
-    assert verdict.level == row.today_level
+    if row.word == "allowed":
+        assert isinstance(verdict, Allowed)
+    else:
+        assert isinstance(verdict, Refused)
+        assert verdict.gate.value == row.word
     assert _CALLS["summary"] == 0
 
 
@@ -289,10 +300,11 @@ async def test_both_paths_agree(machine: ActionProductMachine, row: Row) -> None
     verdict = await machine.check_access_decide(row.caller(), type(action), action.Params())
     try:
         await machine.run(row.caller(), row.action(), row.action().Params())
-        executed_level = None
+        executed_word = "allowed"
     except AuthorizationError as exc:
-        executed_level = exc.level
-    assert executed_level == verdict.level
+        executed_word = next(word for word in row.word.split("|") if word in str(exc))
+    asked_word = "allowed" if isinstance(verdict, Allowed) else verdict.gate.value
+    assert asked_word == executed_word
 
 
 def test_the_matrix_names_the_word_every_row_will_publish() -> None:
@@ -323,18 +335,19 @@ async def test_an_allowed_call_reaches_every_step(machine: ActionProductMachine)
     assert _CALLS["summary"] == 1
 
 
-async def test_a_step_that_cannot_tell_is_answered_as_a_refusal_today(machine: ActionProductMachine) -> None:
-    """The defect the cascade replaces: "I cannot tell" is reported as "not allowed".
+async def test_a_step_that_cannot_tell_is_not_a_refusal(machine: ActionProductMachine) -> None:
+    """The defect the cascade replaced: "I cannot tell" used to be reported as "not allowed".
 
-    Today the question path answers ``allowed: False`` and puts the failure's own text
-    into the reason, while the execution path lets the raw error escape. The cascade
-    answers ``Undecided`` naming the step instead, and T017 flips this test.
+    Now the answer says undecided and names the step, and the failure's own text stays out
+    of it. The execution path still lets the raw failure escape — the shape it has always
+    had, until the exceptions carry the verdict.
     """
     action = ObjectCrashAction()
     verdict = await machine.check_access_decide(_admin(), ObjectCrashAction, action.Params())
-    assert verdict.allowed is False
-    assert verdict.level is None
-    assert verdict.reason == "store is down"
+    assert isinstance(verdict, Undecided)
+    assert not isinstance(verdict, Refused)
+    assert verdict.gate is Gate.ACCESS_DECIDE
+    assert "store is down" not in str(verdict.model_dump())
 
     with pytest.raises(RuntimeError, match="store is down"):
         await machine.run(_admin(), ObjectCrashAction(), action.Params())

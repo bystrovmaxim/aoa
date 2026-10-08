@@ -14,6 +14,8 @@ import pytest
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError
+from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Undecided
+from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -90,11 +92,12 @@ class RoleGatedAction(BaseAction["RoleGatedAction.Params", "RoleGatedAction.Resu
     class Result(BaseResult):
         """No outputs."""
 
-    async def access_decide(
+    @access_decide
+    async def role_gated_access_decide(
         self, params: RoleGatedAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
-    ) -> bool:
+    ) -> Allowed:
         """Allow the object if this step is ever reached."""
-        return True
+        return Allowed()
 
     @summary_aspect("S")
     async def probe_summary(
@@ -115,11 +118,12 @@ class GuardRefusedAction(BaseAction["GuardRefusedAction.Params", "GuardRefusedAc
     class Result(BaseResult):
         """No outputs."""
 
-    async def access_decide(
+    @access_decide
+    async def guard_refused_access_decide(
         self, params: GuardRefusedAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
-    ) -> bool:
+    ) -> Allowed:
         """Allow the object if this step is ever reached."""
-        return True
+        return Allowed()
 
     @summary_aspect("S")
     async def probe_summary(
@@ -127,6 +131,58 @@ class GuardRefusedAction(BaseAction["GuardRefusedAction.Params", "GuardRefusedAc
     ) -> GuardRefusedAction.Result:
         """Produce the operation's result."""
         return GuardRefusedAction.Result()
+
+
+@meta(description="lifecycle: the object check answers something else", domain=SystemDomain)
+@check_roles(AdminRole)
+class ObjectGarbledAction(BaseAction["ObjectGarbledAction.Params", "ObjectGarbledAction.Result"]):
+    """An operation whose check answers a word the vocabulary does not know."""
+
+    class Params(BaseParams):
+        """No inputs."""
+
+    class Result(BaseResult):
+        """No outputs."""
+
+    @access_decide
+    async def object_garbled_access_decide(
+        self, params: ObjectGarbledAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+    ) -> Any:
+        """Answer with a ``bool``."""
+        return True
+
+    @summary_aspect("S")
+    async def probe_summary(
+        self, params: ObjectGarbledAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+    ) -> ObjectGarbledAction.Result:
+        """Produce the operation's result."""
+        return ObjectGarbledAction.Result()
+
+
+@meta(description="lifecycle: the object check could not tell", domain=SystemDomain)
+@check_roles(AdminRole)
+class ObjectCrashAction(BaseAction["ObjectCrashAction.Params", "ObjectCrashAction.Result"]):
+    """An operation whose object check fails the way a store fails."""
+
+    class Params(BaseParams):
+        """No inputs."""
+
+    class Result(BaseResult):
+        """No outputs."""
+
+    @access_decide
+    async def object_crash_access_decide(
+        self, params: ObjectCrashAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+    ) -> Allowed:
+        """Fail to tell anything about the object."""
+        raise RuntimeError("store is down")
+
+    @summary_aspect("S")
+    async def probe_summary(
+        self, params: ObjectCrashAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+    ) -> ObjectCrashAction.Result:
+        """Produce the operation's result."""
+        return ObjectCrashAction.Result()
 
 
 @meta(description="lifecycle: the object step refused", domain=SystemDomain)
@@ -140,11 +196,12 @@ class ObjectDeniedAction(BaseAction["ObjectDeniedAction.Params", "ObjectDeniedAc
     class Result(BaseResult):
         """No outputs."""
 
-    async def access_decide(
+    @access_decide
+    async def object_denied_access_decide(
         self, params: ObjectDeniedAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
-    ) -> bool:
+    ) -> Allowed:
         """Refuse the object."""
-        return False
+        return FORBIDDEN_OBJECT
 
     @summary_aspect("S")
     async def probe_summary(
@@ -165,11 +222,12 @@ class AllowedAction(BaseAction["AllowedAction.Params", "AllowedAction.Result"]):
     class Result(BaseResult):
         """No outputs."""
 
-    async def access_decide(
+    @access_decide
+    async def allowed_access_decide(
         self, params: AllowedAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
-    ) -> bool:
+    ) -> Allowed:
         """Allow the object."""
-        return True
+        return Allowed()
 
     @summary_aspect("S")
     async def probe_summary(
@@ -194,10 +252,11 @@ async def test_a_condition_that_refuses_before_the_run_announces_nothing(machine
 
 
 async def test_the_object_step_refuses_after_the_run_was_announced(machine: ActionProductMachine) -> None:
-    """The object step runs after the run has started, so its refusal still leaves a start."""
+    """The object step runs after the run has started, so its refusal leaves a start — and
+    the check announces itself, finishing with a refusal it decided."""
     with pytest.raises(AuthorizationError):
         await machine.run(_admin(), ObjectDeniedAction(), ObjectDeniedAction.Params())
-    assert _SEEN == ["GlobalStartEvent"]
+    assert _SEEN == ["GlobalStartEvent", "BeforeAccessDecideAspectEvent", "AfterAccessDecideAspectEvent"]
 
 
 async def test_an_allowed_call_runs_from_start_to_finish(machine: ActionProductMachine) -> None:
@@ -208,19 +267,65 @@ async def test_an_allowed_call_runs_from_start_to_finish(machine: ActionProductM
 
 
 @pytest.mark.parametrize(
-    ("action", "caller"),
+    ("action", "caller", "expected"),
     [
-        pytest.param(RoleGatedAction, _user_without_the_role, id="roles refused"),
-        pytest.param(GuardRefusedAction, _admin, id="condition refused"),
-        pytest.param(ObjectDeniedAction, _admin, id="object refused"),
-        pytest.param(AllowedAction, _admin, id="allowed"),
+        pytest.param(RoleGatedAction, _user_without_the_role, [], id="roles refused"),
+        pytest.param(GuardRefusedAction, _admin, [], id="condition refused"),
+        pytest.param(
+            ObjectDeniedAction,
+            _admin,
+            ["BeforeAccessDecideAspectEvent", "AfterAccessDecideAspectEvent"],
+            id="object refused",
+        ),
+        pytest.param(
+            AllowedAction,
+            _admin,
+            ["BeforeAccessDecideAspectEvent", "AfterAccessDecideAspectEvent"],
+            id="allowed",
+        ),
     ],
 )
-async def test_the_question_path_announces_nothing(
+async def test_the_question_path_announces_only_the_object_check(
     machine: ActionProductMachine,
     action: type[BaseAction[Any, Any]],
     caller: Any,
+    expected: list[str],
 ) -> None:
-    """Asking in advance runs no step of the operation, so it has no lifecycle to announce."""
+    """Asking runs no step of the operation, so it has no run lifecycle — but the access
+    checks are not steps of the operation: the object check runs, and announces itself."""
     await machine.check_access_decide(caller(), action, action.Params())
-    assert _SEEN == []
+    assert expected == _SEEN
+
+
+async def test_a_gate_that_cannot_tell_publishes_the_failed_gate(machine: ActionProductMachine) -> None:
+    """A gate that breaks is the one thing about a decision an operator cannot see otherwise."""
+    with pytest.raises(RuntimeError, match="store is down"):
+        await machine.run(_admin(), ObjectCrashAction(), ObjectCrashAction.Params())
+
+    assert "AccessGateFailedEvent" in _SEEN
+    assert _SEEN[0] == "GlobalStartEvent"
+
+
+async def test_asking_in_advance_publishes_no_failed_gate(machine: ActionProductMachine) -> None:
+    """A question is answered, not announced: its failure is the answer's business."""
+    verdict = await machine.check_access_decide(_admin(), ObjectCrashAction, ObjectCrashAction.Params())
+
+    assert isinstance(verdict, Undecided)
+    assert "AccessGateFailedEvent" not in _SEEN
+    assert _SEEN == ["BeforeAccessDecideAspectEvent"]
+
+
+async def test_a_garbled_answer_never_lets_a_call_through(machine: ActionProductMachine) -> None:
+    """A check that answers something else is a developer's mistake, and it is loud."""
+    with pytest.raises(TypeError, match="answered True"):
+        await machine.run(_admin(), ObjectGarbledAction(), ObjectGarbledAction.Params())
+
+    assert "GlobalStartEvent" in _SEEN
+    assert "AfterAccessDecideAspectEvent" not in _SEEN
+
+
+async def test_a_garbled_answer_is_undecided_when_asked_in_advance(machine: ActionProductMachine) -> None:
+    verdict = await machine.check_access_decide(_admin(), ObjectGarbledAction, ObjectGarbledAction.Params())
+
+    assert isinstance(verdict, Undecided)
+    assert "answered True" not in str(verdict.model_dump())

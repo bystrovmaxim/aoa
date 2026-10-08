@@ -115,6 +115,18 @@ Every class, every function and every method carries a docstring that says in on
 
 Known debt: this rule is met for roughly half of the code. Classes 431 of 846 (51 %), methods 410 of 840 (49 %), class and static methods 137 of 157 (87 %), module-level functions 207 of 316 (66 %), properties 62 of 115 (54 %), nested functions 11 of 47 (23 %). The debt is paid as files are touched, unless the maintainer decides to schedule a sweep.
 
+### VI. Documentation and the changelog are written last, and the documentation runs (NON-NEGOTIABLE)
+
+A change is not finished when its behaviour is finished. The last content steps of a change are the changelog entry and the documentation, and they are written once the code is what it will be — not beside it, and not after the work has been reported as done.
+
+1. **Planning reserves exactly two tasks for this, and no other task may absorb them.** `tasks.md` ends with a task for the documentation and a task for the changelog: the documentation task names the cases it has to show and the examples it has to ship, the changelog task names the file it writes into. A plan that does not carry both is incomplete, and `spec.md`, `plan.md` and `tasks.md` are written knowing that these two come last.
+2. **The changelog entry is part of the change, and the agent writes it.** `docs/CHANGELOG.md` gets the entry for what a reader of this project would notice — a new behaviour, a changed contract, a removal — in the form the file already uses. The maintainer reviews it like any other part of the change, and this supersedes every earlier "hands off the changelog" instruction in the repository.
+3. **The documentation shows every case and every scenario the change introduces.** Not one happy path: each answer, each refusal, each failure, each mode, each declaration appears, named as a case, with what it is for and what comes back. A case that is not shown is a case a reader will get wrong.
+4. **Each case appears twice: as a script and as a notebook.** The script under `examples/` is the exact runnable form; the notebook is the same case step by step, so a reader runs it cell by cell and sees the output between the steps.
+5. **The examples run.** Documentation that does not execute is a claim, not documentation: every example is executed with the repository's own environment, and what the reader sees is what it actually printed.
+6. **The documentation is written for a reader who has not seen the change.** Prose around runnable code: what the case is, why the framework answers the way it does, and what changes if the reader chooses differently. `docs/` holds the explanation and the reference; `examples/` holds the code those pages walk through.
+7. **The closing check run follows the documentation**, because examples are code too: `scripts/run_checks_with_log.sh` runs after they are in place, and a broken example is fixed the way a broken test is.
+
 ## Final step: the check run
 
 Work is not finished when the code looks right; it is finished when the repository's own check run says so.
@@ -140,4 +152,4 @@ Work is not finished when the code looks right; it is finished when the reposito
 
 [GOVERNANCE_RULES]
 
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-07
+**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-08

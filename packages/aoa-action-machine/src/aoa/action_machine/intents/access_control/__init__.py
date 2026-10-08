@@ -57,6 +57,14 @@ from __future__ import annotations
 
 from aoa.action_machine.intents.access_control.access_verdict import AccessVerdict
 from aoa.action_machine.intents.access_control.allowed import Allowed
+from aoa.action_machine.intents.access_control.cascade import (
+    GATES,
+    GATES_AT_OBJECT,
+    GATES_BEFORE_RUN,
+    Step,
+    StepAnswer,
+    decide,
+)
 from aoa.action_machine.intents.access_control.gate import Gate
 from aoa.action_machine.intents.access_control.refused import FORBIDDEN_OBJECT, Refused
 from aoa.action_machine.intents.access_control.undecided import Undecided
@@ -64,10 +72,16 @@ from aoa.action_machine.intents.access_control.verdict import Verdict
 
 __all__ = [
     "FORBIDDEN_OBJECT",
+    "GATES",
+    "GATES_AT_OBJECT",
+    "GATES_BEFORE_RUN",
     "AccessVerdict",
     "Allowed",
     "Gate",
     "Refused",
+    "Step",
+    "StepAnswer",
     "Undecided",
     "Verdict",
+    "decide",
 ]

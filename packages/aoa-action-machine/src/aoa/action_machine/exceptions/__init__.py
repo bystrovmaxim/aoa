@@ -20,6 +20,7 @@ from aoa.action_machine.exceptions.connection_validation_error import Connection
 from aoa.action_machine.exceptions.context_access_error import ContextAccessError
 from aoa.action_machine.exceptions.cyclic_dependency_error import CyclicDependencyError
 from aoa.action_machine.exceptions.domain_graph_edge_resolution_error import DomainGraphEdgeResolutionError
+from aoa.action_machine.exceptions.duplicate_access_decide_error import DuplicateAccessDecideError
 from aoa.action_machine.exceptions.graph_edge_resolution_error import GraphEdgeResolutionError
 from aoa.action_machine.exceptions.handle_error import HandleError
 from aoa.action_machine.exceptions.include_contract_violation_error import IncludeContractViolationError
@@ -52,6 +53,7 @@ __all__ = [
     "ContextAccessError",
     "CyclicDependencyError",
     "DomainGraphEdgeResolutionError",
+    "DuplicateAccessDecideError",
     "GraphEdgeResolutionError",
     "HandleError",
     "IncludeContractViolationError",
