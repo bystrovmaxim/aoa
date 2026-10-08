@@ -100,6 +100,18 @@ On each tool call the handler takes the same path as an [HTTP endpoint](step-13-
 4. **Run** — `machine.run(context, action, params, connections)` along the [pipeline](step-11-machine.md).
 5. **Response** — the `Result` is serialized and wrapped in an envelope.
 
+### A refusal leaves as a refusal
+
+Access is decided in the engine, and the transport must not turn that decision into something
+else. A tool call that the engine refuses comes back in the same envelope as every other MCP
+answer — `isError` with `PERMISSION_DENIED` — for `AccessDenied` exactly as for
+`AuthorizationError`, which means the request never had an identity to check. The failure's own
+text never travels here either: the envelope says the call was refused, and the reason a
+developer declared reaches it the same way it reaches any other caller. The adapter adds no
+access logic of its own.
+
+---
+
 ## A response envelope instead of HTTP codes
 
 Here is the main difference from HTTP. MCP has no status codes; the handler **never throws an exception outward**, but always returns a call result with a JSON envelope and an `isError` flag, so that the agent can react to structure rather than parse prose:

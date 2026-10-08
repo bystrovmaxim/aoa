@@ -392,6 +392,70 @@ class AfterSummaryAspectEvent(SummaryAspectEvent):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Access Decide Aspect Events
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class AccessDecideAspectEvent(AspectEvent):
+    """
+    Group class for the operation's declared object check events.
+    """
+
+
+@dataclass(frozen=True)
+class BeforeAccessDecideAspectEvent(AccessDecideAspectEvent):
+    """
+    Fired immediately before the operation's declared object check runs.
+
+    Emitted via ``PluginCoordinator.emit_before_access_decide``. The check decides
+    after the run has been announced and before the aspect pipeline, so this event
+    lands right after ``GlobalStartEvent`` — and no such event is ever fired for an
+    operation that declares no object check.
+    """
+
+
+@dataclass(frozen=True)
+class AfterAccessDecideAspectEvent(AccessDecideAspectEvent):
+    """
+    Fired after the declared object check answered.
+
+    Emitted via ``PluginCoordinator.emit_after_access_decide`` whenever the check
+    **finished** — it answered, whatever the answer was: ``allowed``, a refusal, or an
+    ``undecided`` it decided itself. A check that failed produces no ``after``, so a
+    ``before`` without one is a check that never completed.
+
+    What the check answered is deliberately not carried: a decision is not published
+    (FR-021).
+
+    Attributes:
+        duration_ms: How long the check took, in milliseconds.
+    """
+
+    duration_ms: float
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Access Gate Event
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class AccessGateFailedEvent(BasePluginEvent):
+    """
+    Fired when an access gate cannot complete while a call executes.
+
+    The kind of failure travels; its text never does (FR-013, FR-015). The gate names
+    which step could not tell, so an operator can act without reading a decision about
+    the caller. Asking in advance publishes no such event: a question is answered, not
+    announced.
+    """
+
+    gate: str
+    exception_type: str
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # OnError Aspect Events
 # ─────────────────────────────────────────────────────────────────────────────
 

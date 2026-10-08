@@ -26,14 +26,16 @@ ARCHITECTURE / DATA FLOW
         └── _run_internal(nested_level=0, rollup=False)
                 │
                 ├── action_node = get_action_node_by_id(action_cls)
-                ├── _role_checker.check(context, action_node, params)   # levels 1-2
                 ├── conns = _connection_validator.validate(action, connections, action_node)
                 ├── plugin_ctx = await _plugin_coordinator.create_run_context()
                 ├── log = ScopedLogger(..., domain=action_node.domain.target_node.node_obj)
                 ├── box = ToolsBox(..., factory=DependencyFactory(action_node.resolved_dependency_infos()))
-                ├── _plugin_coordinator.emit_global_start(...)
-                ├── _enforce_access_decide(action, params, context, box, conns)   # level 3, after
-                │       the start event so a level-3 denial is still recorded as an attempt
+                ├── _decide_and_emit(...)          # the cascade decides; the observer publishes
+                │       ├── identity → roles → conditions   (nothing published, no run yet)
+                │       ├── before the object step: emit_global_start, then BeforeAccessDecide
+                │       └── object step: BeforeAccessDecide already published, AfterAccessDecide
+                │               only when it answered allowed
+                ├── _react_to(verdict)             # raise when the call must not proceed
                 ├── optional cache read (``cache_coordinator`` set) or pipeline
                 ├── _execute_pipeline_aspects(...)  # skipped on cache hit
                 │       ├── per regular aspect:
@@ -135,18 +137,20 @@ import time
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, TypeVar, cast, overload
+from typing import Any, TypeVar, cast
 
 from aoa.action_machine.context.context import Context
-from aoa.action_machine.exceptions.authorization_error import AuthorizationError
+from aoa.action_machine.exceptions.access_denied import AccessDenied
+from aoa.action_machine.exceptions.access_undecided import AccessUndecided
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
-from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
-    CheckAccessDecideBatchSizeExceededError,
-)
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.intents.access_control import AccessVerdict
+from aoa.action_machine.intents.access_control import Allowed, Refused
+from aoa.action_machine.intents.access_control.cascade import GATES_AT_OBJECT, GATES_BEFORE_RUN, decide
+from aoa.action_machine.intents.access_control.gate import Gate
+from aoa.action_machine.intents.access_control.undecided import Undecided
+from aoa.action_machine.intents.access_control.verdict import Verdict
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import Channel
@@ -170,7 +174,6 @@ from aoa.action_machine.runtime.connection_validator import ConnectionValidator
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 from aoa.action_machine.runtime.error_handler_executor import ErrorHandlerExecutor
 from aoa.action_machine.runtime.include_contract_checker import IncludeContractChecker
-from aoa.action_machine.runtime.role_checker import RoleChecker
 from aoa.action_machine.runtime.saga_coordinator import SagaCoordinator
 from aoa.action_machine.runtime.saga_frame import SagaFrame
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -268,20 +271,15 @@ class ActionProductMachine(BaseActionMachine):
         plugin_coordinator: PluginCoordinator | None = None,
         log_coordinator: LogCoordinator | None = None,
         graph_coordinator: NodeGraphCoordinator | None = None,
-        role_checker: RoleChecker | None = None,
         connection_validator: ConnectionValidator | None = None,
         aspect_executor: AspectExecutor | None = None,
         error_handler_executor: ErrorHandlerExecutor | None = None,
         saga_coordinator: SagaCoordinator | None = None,
         cache_coordinator: CacheCoordinator | None = _CACHE_COORDINATOR_DEFAULT,  # type: ignore[assignment]
-        max_check_access_decide_batch_size: int = 100,
     ) -> None:
         """Wire injectable components; an in-memory ``CacheCoordinator`` is created by default.
 
-        Pass ``cache_coordinator=None`` to disable caching explicitly. ``max_check_access_decide_batch_size``
-        caps the list form of ``machine.check_access_decide`` — each item triggers a real
-        ``access_decide`` call, so an unbounded list would let one request force an unbounded
-        number of such calls.
+        Pass ``cache_coordinator=None`` to disable caching explicitly.
         """
         self._log_coordinator = log_coordinator or LogCoordinator()
         default_loggers = [] if log_coordinator else [ConsoleLogger()]
@@ -291,7 +289,6 @@ class ActionProductMachine(BaseActionMachine):
         for plugin in plugins or []:
             self._plugin_coordinator.add_plugin(plugin)
         self.graph_coordinator = graph_coordinator or create_node_graph_coordinator()
-        self._role_checker = role_checker or RoleChecker()
         self._connection_validator = connection_validator or ConnectionValidator()
         self._aspect_executor = aspect_executor or AspectExecutor(self._log_coordinator)
         self._error_handler_executor = error_handler_executor or ErrorHandlerExecutor(self._plugin_coordinator)
@@ -303,7 +300,6 @@ class ActionProductMachine(BaseActionMachine):
         self._cache_coordinator: CacheCoordinator | None = (
             CacheCoordinator() if cache_coordinator is _CACHE_COORDINATOR_DEFAULT else cache_coordinator
         )
-        self._max_check_access_decide_batch_size = max_check_access_decide_batch_size
 
     @staticmethod
     def _validate_cache_key(cache_key: str | None, action: BaseAction[Any, Any]) -> None:
@@ -597,7 +593,6 @@ class ActionProductMachine(BaseActionMachine):
     # Public entry: check
     # ─────────────────────────────────────────────────────────────────────
 
-    @overload
     async def check_access_decide(
         self,
         context: Context,
@@ -605,94 +600,54 @@ class ActionProductMachine(BaseActionMachine):
         params: BaseParams | None = None,
         *,
         connections: dict[str, BaseResource] | None = None,
-    ) -> AccessVerdict: ...
+    ) -> Verdict:
+        """Ask whether a call would be allowed — without running any step of the operation.
 
-    @overload
-    async def check_access_decide(
-        self,
-        context: Context,
-        action: list[tuple[type[BaseAction[Any, Any]], BaseParams | None]],
-        *,
-        connections: dict[str, BaseResource] | None = None,
-    ) -> list[AccessVerdict]: ...
+        The answer is one of the three words: ``Allowed``, ``Refused`` naming the gate that
+        refused, or ``Undecided`` naming the step that could not tell. Asking runs the decision
+        and nothing else — the same steps, in the same order, that a run would take, and the
+        object check's own events — never the operation's pipeline, its lifecycle or its cache.
 
-    async def check_access_decide(
-        self,
-        context: Context,
-        action: type[BaseAction[Any, Any]] | list[tuple[type[BaseAction[Any, Any]], BaseParams | None]],
-        params: BaseParams | None = None,
-        *,
-        connections: dict[str, BaseResource] | None = None,
-    ) -> AccessVerdict | list[AccessVerdict]:
-        """Ask whether one action, or each item in a list, would be allowed — without running it.
+        The order matches ``_run_internal``'s own gates: identity and roles first, then the
+        call's connections are validated, then the object step. ``connections`` is keyword-only
+        because it is what the check reads the object from
+        (``connections["orders_db"].get(params.order_id)``); a call that does not run has
+        nothing resolved for it, so the caller supplies them.
 
-        Two shapes under one name, declared as two ``@overload`` signatures for the type
-        checker (a single action → one ``AccessVerdict``; a list of ``(action, params)``
-        pairs → one ``AccessVerdict`` per item, same order as the list). The list shape is
-        the primitive — it contains all the enforcement logic. The single-action shape does
-        not duplicate that logic: it recurses into this same method (``self.check_access_decide``)
-        with a one-item list and unwraps the result. ``connections`` is keyword-only on both
-        shapes: the list shape has no ``params`` slot at all, so a positional 3rd argument
-        would otherwise silently bind to different parameters depending on which overload the
-        caller thinks they're using — keyword-only removes that ambiguity entirely.
-
-        Per list item, in the same order as ``_run_internal``'s own gates (role/guard before
-        connections): build a throwaway ``ToolsBox`` (no cache, no plugin events — never runs
-        the real pipeline), then ``RoleChecker.check(...)``, then ``ConnectionValidator.validate(...)``,
-        then ``_enforce_access_decide(...)`` from ``machine.run()``'s own level-3 gate — all in
-        ``try``/``except``. A caught ``AuthorizationError`` becomes
-        ``AccessVerdict(allowed=False, level=getattr(exc, "level", None), reason=str(exc))``;
-        anything else raised while evaluating that item (a bug in its ``access_decide``, an
-        unreachable connection) becomes ``allowed=False, level=None`` the same way — either
-        way, only that one item is affected, every other item in the list is still evaluated
-        normally. No exception reaches ``_run_internal`` from here the way it does from
-        ``machine.run()``.
-
-        ``connections`` is not in the ADR's original sketch but is required in practice:
-        ``access_decide`` implementations typically need to look up a real object
-        (``connections["orders_db"].get(params.order_id)``, per the ADR's own example) to
-        decide anything meaningful. One shared dict for the whole list, not per item.
-
-        ``len(action) > max_check_access_decide_batch_size`` (set on ``__init__``) raises
-        ``CheckAccessDecideBatchSizeExceededError`` before touching any item — not even the first
-        ``access_decide`` runs. Each item is a real ``access_decide`` call (typically a
-        database lookup); an unbounded list would let one request force an unbounded number
-        of such lookups.
+        Nothing raises from here the way it does from ``machine.run()``: a refusal and a gate
+        that could not tell are both answers, and the word is what tells them apart.
         """
-        if isinstance(action, list):
-            if len(action) > self._max_check_access_decide_batch_size:
-                raise CheckAccessDecideBatchSizeExceededError(
-                    f"machine.check_access_decide() received {len(action)} items, exceeding "
-                    f"max_check_access_decide_batch_size={self._max_check_access_decide_batch_size}.",
-                    item_count=len(action),
-                    max_check_access_decide_batch_size=self._max_check_access_decide_batch_size,
-                )
-            verdicts: list[AccessVerdict] = []
-            for item_action, item_params in action:
-                try:
-                    item_instance = item_action()
-                    action_node = self.get_action_node_by_id(item_action)
-                    self._role_checker.check(context, action_node, item_params)
-                    conns = self._connection_validator.validate(item_instance, connections, action_node)
-                    box = self._build_check_box(context, item_params, action_node)
-                    await self._enforce_access_decide(item_instance, item_params, box, conns, context)
-                except AuthorizationError as exc:
-                    verdicts.append(
-                        AccessVerdict(
-                            allowed=False,
-                            action=item_action,
-                            level=getattr(exc, "level", None),
-                            reason=str(exc),
-                        )
-                    )
-                except Exception as exc:
-                    # This item's own failure must not abort the rest of the list.
-                    verdicts.append(AccessVerdict(allowed=False, action=item_action, level=None, reason=str(exc)))
-                else:
-                    verdicts.append(AccessVerdict(allowed=True, action=item_action, level=None, reason=None))
-            return verdicts
-        verdicts = await self.check_access_decide(context, [(action, params)], connections=connections)
-        return verdicts[0]
+        action_instance = action()
+        action_node = self.get_action_node_by_id(action)
+        box = self._build_check_box(context, params, action_node)
+        plugin_ctx = await self._plugin_coordinator.create_run_context()
+
+        early = await self._decide(context, action_instance, params, box, {}, gates=GATES_BEFORE_RUN)
+        if not isinstance(early, Allowed):
+            return early
+
+        conns = self._connection_validator.validate(action_instance, connections, action_node)
+        check_started_at = time.monotonic()
+        check_name = await self._announce_object_check(
+            plugin_ctx,
+            action=action_instance,
+            action_node=action_node,
+            context=context,
+            params=params,
+            nest_level=0,
+        )
+        answer = await self._decide(context, action_instance, params, box, conns, gates=GATES_AT_OBJECT)
+        await self._announce_object_check_finished(
+            plugin_ctx,
+            action=action_instance,
+            context=context,
+            params=params,
+            nest_level=0,
+            check_name=check_name,
+            verdict=answer,
+            started_at=check_started_at,
+        )
+        return answer
 
     def _build_check_box(
         self,
@@ -723,29 +678,135 @@ class ActionProductMachine(BaseActionMachine):
             factory=DependencyFactory(action_node.resolved_dependency_infos()),
         )
 
-    async def _enforce_access_decide(
+    async def _decide(
         self,
-        action_instance: BaseAction[Any, Any],
+        context: Context,
+        action: BaseAction[Any, Any],
         params: Any,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
-        context: Context,
-    ) -> None:
-        """Level 3 of the access-control cascade: raise ``AuthorizationError(level=3)`` if
-        ``access_decide`` rejects.
+        conns: dict[str, BaseResource],
+        *,
+        gates: tuple[Gate, ...],
+    ) -> Verdict:
+        """Ask the cascade for one phase of the decision: before a run exists, or inside it."""
+        return await decide(context, action, params, box, conns, gates=gates)
 
-        Called from ``_run_internal`` *after* ``emit_global_start`` — deliberately: the
-        action's start is still recorded even when ``access_decide`` ultimately denies it,
-        so a security rejection at level 3 does not vanish from telemetry the way a level
-        1/2 rejection (which fires before any plugin lifecycle call, unchanged from before
-        this method existed) already does. One responsibility — check and raise, not two —
-        so ``check_access_decide`` can reuse it standalone.
+    async def _announce_run(
+        self,
+        plugin_ctx: PluginRunContext,
+        *,
+        action: BaseAction[Any, Any],
+        context: Context,
+        params: Any,
+        nest_level: int,
+    ) -> None:
+        """Announce the run — the machine's own moment, between the two phases of the decision.
+
+        Nothing is announced while the early gates are answering: a refusal there means no run
+        happened. From here on the call is under way, so a refusal at the object step leaves a
+        start without a finish.
         """
-        if not await action_instance.access_decide(params, context, box, connections):
-            raise AuthorizationError(
-                f"Access denied: {type(action_instance).__name__}.access_decide() returned False.",
-                level=3,
-            )
+        await self._plugin_coordinator.emit_global_start(
+            plugin_ctx,
+            action=action,
+            context=context,
+            params=params,
+            nest_level=nest_level,
+        )
+
+    async def _announce_object_check(
+        self,
+        plugin_ctx: PluginRunContext,
+        *,
+        action: BaseAction[Any, Any],
+        action_node: ActionGraphNode[Any],
+        context: Context,
+        params: Any,
+        nest_level: int,
+    ) -> str | None:
+        """Publish that the declared check is starting; ``None`` when the operation declares none."""
+        check_node = action_node.get_access_decide_graph_node()
+        if check_node is None:
+            return None
+        await self._plugin_coordinator.emit_before_access_decide(
+            plugin_ctx,
+            action=action,
+            context=context,
+            params=params,
+            nest_level=nest_level,
+            aspect_name=check_node.label,
+            state_snapshot={},
+        )
+        return check_node.label
+
+    async def _announce_object_check_finished(
+        self,
+        plugin_ctx: PluginRunContext,
+        *,
+        action: BaseAction[Any, Any],
+        context: Context,
+        params: Any,
+        nest_level: int,
+        check_name: str | None,
+        verdict: Verdict,
+        started_at: float,
+    ) -> None:
+        """Publish the check's after event — whenever it finished, whatever it answered.
+
+        A check that failed did not finish: the cascade turns its failure into an
+        ``undecided`` answer carrying the cause, and that answer is the engine's, not the
+        check's. The same holds for a check that reports its own failure that way.
+        """
+        failed = isinstance(verdict, Undecided) and verdict.cause is not None
+        if check_name is None or failed:
+            return
+        await self._plugin_coordinator.emit_after_access_decide(
+            plugin_ctx,
+            action=action,
+            context=context,
+            params=params,
+            nest_level=nest_level,
+            aspect_name=check_name,
+            state_snapshot={},
+            duration_ms=(time.monotonic() - started_at) * 1000,
+        )
+
+    async def _announce_gate_failure(
+        self,
+        plugin_ctx: PluginRunContext,
+        *,
+        action: BaseAction[Any, Any],
+        context: Context,
+        params: Any,
+        nest_level: int,
+        verdict: Verdict,
+        executing: bool,
+    ) -> None:
+        """Publish a gate that could not tell — only while a call executes."""
+        if not executing or not isinstance(verdict, Undecided):
+            return
+        await self._plugin_coordinator.emit_access_gate_failed(
+            plugin_ctx,
+            action=action,
+            context=context,
+            params=params,
+            nest_level=nest_level,
+            gate=verdict.gate.value,
+            exception_type=type(verdict.cause).__name__ if verdict.cause is not None else "Unknown",
+        )
+
+    def _react_to(self, verdict: Verdict) -> None:
+        """Stop the call when the decision says so.
+
+        The two outcomes leave differently: a refusal is ``AccessDenied`` carrying the
+        verdict, and a gate that could not tell is ``AccessUndecided`` carrying its own
+        verdict and raised ``from`` the failure that stopped it, so a traceback keeps what
+        really happened while the answer and the events publish only its kind.
+        """
+        if isinstance(verdict, Refused):
+            raise AccessDenied(verdict)
+        if isinstance(verdict, Undecided):
+            raise AccessUndecided(verdict) from verdict.cause
 
     async def _run_internal(  # pylint: disable=too-many-branches,too-many-statements
         self,
@@ -778,8 +839,6 @@ class ActionProductMachine(BaseActionMachine):
             action_cls = action.__class__
             result_type = ActionSchemaIntentResolver.resolve_result_type(action_cls)
             action_node = self.get_action_node_by_id(action_cls)
-            self._role_checker.check(context, action_node, params)
-            conns = self._connection_validator.validate(action, connections, action_node)
             plugin_ctx = await self._plugin_coordinator.create_run_context()
 
             log = ScopedLogger(
@@ -808,7 +867,24 @@ class ActionProductMachine(BaseActionMachine):
                 factory=DependencyFactory(action_node.resolved_dependency_infos()),
             )
 
-            await self._plugin_coordinator.emit_global_start(
+            # The decision has two phases, and the machine owns the seam between them: the
+            # early gates answer whether a run may start, and only then is one announced —
+            # which is why a refusal there leaves no lifecycle behind while a run stopped at
+            # the object step keeps its start without a finish.
+            early = await self._decide(context, action, params, box, {}, gates=GATES_BEFORE_RUN)
+            await self._announce_gate_failure(
+                plugin_ctx,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=current_nest,
+                verdict=early,
+                executing=True,
+            )
+            self._react_to(early)
+
+            conns = self._connection_validator.validate(action, connections, action_node)
+            await self._announce_run(
                 plugin_ctx,
                 action=action,
                 context=context,
@@ -816,9 +892,36 @@ class ActionProductMachine(BaseActionMachine):
                 nest_level=current_nest,
             )
 
-            # Level 3 (access_decide) runs after emit_global_start on purpose — see
-            # _enforce_access_decide's docstring.
-            await self._enforce_access_decide(action, params, box, conns, context)
+            check_started_at = time.monotonic()
+            check_name = await self._announce_object_check(
+                plugin_ctx,
+                action=action,
+                action_node=action_node,
+                context=context,
+                params=params,
+                nest_level=current_nest,
+            )
+            verdict = await self._decide(context, action, params, box, conns, gates=GATES_AT_OBJECT)
+            await self._announce_object_check_finished(
+                plugin_ctx,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=current_nest,
+                check_name=check_name,
+                verdict=verdict,
+                started_at=check_started_at,
+            )
+            await self._announce_gate_failure(
+                plugin_ctx,
+                action=action,
+                context=context,
+                params=params,
+                nest_level=current_nest,
+                verdict=verdict,
+                executing=True,
+            )
+            self._react_to(verdict)
 
             cache_key_str: str | None = None
             cache_hit = False

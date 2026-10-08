@@ -26,7 +26,7 @@ def test_bare_role_edge_has_no_when() -> None:
 
 
 def test_one_edge_per_grant_carries_its_own_when() -> None:
-    @check_roles(grant(AdminRole), grant(ManagerRole, when=_sales_only))
+    @check_roles(grant(AdminRole), grant(ManagerRole, when=_sales_only, reason="SALES_ONLY"))
     class _Action:
         pass
 
@@ -52,7 +52,7 @@ def test_sentinel_role_still_gets_exactly_one_edge() -> None:
 def test_to_dict_never_exports_when() -> None:
     """``when`` is runtime-only, like ``DependsGraphEdge``'s ``factory`` — never serialized."""
 
-    @check_roles(grant(AdminRole, when=_sales_only))
+    @check_roles(grant(AdminRole, when=_sales_only, reason="SALES_ONLY"))
     class _Action:
         pass
 

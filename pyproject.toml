@@ -350,6 +350,11 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+# ``exceptions/access_denied.py`` and ``access_undecided.py`` — the names are the two
+# answers a caller tells apart, not "errors": catching one rather than the other is how an
+# adapter knows a refusal from a failure to decide, so the verdict's word is the name.
+"packages/aoa-action-machine/src/aoa/action_machine/exceptions/access_denied.py" = ["N818"]
+"packages/aoa-action-machine/src/aoa/action_machine/exceptions/access_undecided.py" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/testing/stubs.py" = ["N802"]
 "packages/aoa-action-machine/src/aoa/action_machine/intents/checkers/__init__.py" = ["RUF022"]
 # ``runtime/__init__.py`` — stdlib import block only; isort order is intentional.

@@ -147,6 +147,13 @@ else
 fi
 echo "" >>"$LOG_FILE"
 
+# Two remarks in this log are known, accepted and not to be acted on — they belong to tools,
+# not to this repository's code:
+#   * the Vite build's "Some chunks are larger than 500 kB" — the viewer's weight is the graph
+#     engine and the Graphviz wasm behind layout, and the advisory is about their size;
+#   * LangGraph's `LangChainPendingDeprecationWarning` while its cache module is imported —
+#     raised inside the library, and this repository never builds that cache.
+# Do not chase either one; the steps below stay green with them in the log.
 run_and_log "(cd packages/aoa-maxitor/client && npm ci && npm run build)" "Maxitor client: npm ci and Vite build"
 
 run_and_log "uv run --extra dev ruff check --fix ." "Ruff auto-fix"

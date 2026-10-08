@@ -1,22 +1,6 @@
-"""
-05_machine_check.py — machine.check_access_decide: "can it run?" without running it
+"""Checking access does not cancel the order."""
 
-A frontend deciding whether to show a "Cancel" button, or grey it out, cannot
-find out by actually trying to cancel the order. machine.check_access_decide
-answers "would this be allowed?" — evaluating the exact same role/guard/
-access_decide cascade as machine.run(), but never running the aspect pipeline:
-a denial here is AccessVerdict(allowed=False, level=...), not an exception.
-
-This example reuses the same access-controlled action as 04_access_decide.py
-(role + access_decide only) — it does not redefine the three levels again, it
-only demonstrates the two shapes of machine.check_access_decide: one action at
-a time, and a list of (action, params) pairs at once.
-
-Tutorial: ../../docs/index_draft.md  ·  topic: Authorization and roles
-
-Run:
-    uv run python examples/step_03_authorization_and_roles/05_machine_check.py
-"""
+from __future__ import annotations
 
 import asyncio
 
@@ -32,64 +16,65 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
+# %% Setup
+
 
 class StoreDomain(BaseDomain):
+    """Group the order operations."""
+
     name = "store"
-    description = "Store domain"
+    description = "Order management"
 
 
-class CustomerRole(ApplicationRole):
-    name = "customer"
-    description = "Regular customer"
+class ManagerRole(ApplicationRole):
+    """Permit order management."""
+
+    name = "manager"
+    description = "Can manage orders"
 
 
 class OrderParams(BaseParams):
+    """Identify the order to cancel."""
+
     order_id: str = Field(description="Order identifier")
-    owner_user_id: str = Field(description="user_id of the order's owner")
 
 
 class OrderResult(BaseResult):
-    order_id: str = Field(description="Order identifier")
-    action: str = Field(description="What was performed")
+    """Report the cancelled order."""
+
+    order_id: str = Field(description="Cancelled order identifier")
+
+
+CANCELLED = []
 
 
 @meta(description="Cancel an order", domain=StoreDomain)
-@check_roles(CustomerRole)
+@check_roles(ManagerRole)
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
-
-    async def access_decide(self, params, context, box, connections) -> bool:
-        return params.owner_user_id == context.user.user_id
+    """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
     async def cancel_summary(self, params, state, box, connections):
-        return OrderResult(order_id=params.order_id, action="cancelled")
+        """Return the cancellation result."""
+        CANCELLED.append(params.order_id)
+        return OrderResult(order_id=params.order_id)
 
 
-# ---------------------------------------------------------------------------
-# Runner — single form, then list form. Neither call executes cancel_summary.
-# ---------------------------------------------------------------------------
+# %% Run
+
 
 async def main() -> None:
-    machine = ActionProductMachine()
-    alice = Context(user=UserInfo(user_id="alice", roles=(CustomerRole,)))
+    """Checking access does not cancel the order."""
+    machine = ActionProductMachine(cache_coordinator=None)
+    caller = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
 
-    print("Single form — should the 'Cancel' button be shown for ord-001?")
-    verdict = await machine.check_access_decide(
-        alice, CancelOrderAction, OrderParams(order_id="ord-001", owner_user_id="alice")
-    )
-    print(f"  allowed={verdict.allowed}  ->  {'show button' if verdict.allowed else 'grey out button'}")
+    answer = await machine.check_access_decide(caller, CancelOrderAction, OrderParams(order_id="ord-001"))
+    print("check:", answer.model_dump(mode="json"))
+    print("cancelled after check:", CANCELLED)
 
-    print("\nList form — checking three orders in Alice's order history at once:")
-    verdicts = await machine.check_access_decide(
-        alice,
-        [
-            (CancelOrderAction, OrderParams(order_id="ord-001", owner_user_id="alice")),
-            (CancelOrderAction, OrderParams(order_id="ord-002", owner_user_id="bob")),
-            (CancelOrderAction, OrderParams(order_id="ord-003", owner_user_id="alice")),
-        ],
-    )
-    for order_id, verdict in zip(("ord-001", "ord-002", "ord-003"), verdicts, strict=True):
-        print(f"  {order_id:<10} allowed={verdict.allowed}  level={verdict.level}")
+    await machine.run(caller, CancelOrderAction(), OrderParams(order_id="ord-001"))
+    print("cancelled after run:", CANCELLED)
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

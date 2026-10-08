@@ -52,7 +52,7 @@ ARCHITECTURE / DATA FLOW
         Interchange ``ActionGraphNode`` + ``RoleGraphEdge`` topology
               │
               ▼
-        :class:`~aoa.action_machine.runtime.role_checker.RoleChecker` at runtime
+        :class:`~aoa.action_machine.intents.access_control.roles.RoleChecker` at runtime
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLES

@@ -1,8 +1,10 @@
-"""ActionProductMachine.check_access_decide() — AccessVerdict(s) without executing the action (step 7).
+"""ActionProductMachine.check_access_decide() — one answer about one call, without running it.
 
-One method, two ``@overload`` shapes: a single action, or a list of ``(action, params)``
-pairs. The list shape is the primitive; the single-action shape recurses into this same
-method with a one-item list and unwraps the result — see the method's own docstring.
+One shape only: a single action with its params, and one verdict back — ``Allowed``,
+``Refused`` naming its gate, or ``Undecided`` naming the step that could not tell. The
+steps run in the order a real call would run them, and nothing of the operation itself
+does: the tests below check the answer, the gate it names, and that the pipeline stays
+untouched.
 """
 
 from __future__ import annotations
@@ -12,8 +14,14 @@ from pydantic import Field
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import CheckAccessDecideBatchSizeExceededError
-from aoa.action_machine.intents.access_control import AccessVerdict
+from aoa.action_machine.intents.access_control import (
+    FORBIDDEN_OBJECT,
+    Allowed,
+    Gate,
+    Refused,
+    Verdict,
+)
+from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -27,7 +35,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ...support.domain_model.domains import SystemDomain
-from ...support.domain_model.roles import AdminRole, ManagerRole
+from ...support.domain_model.roles import AdminRole
 
 _regular_calls = {"n": 0}
 _summary_calls = {"n": 0}
@@ -66,7 +74,7 @@ def _admin_context() -> Context:
 
 
 @meta(description="machine.check_access_decide probe", domain=SystemDomain)
-@check_roles(AdminRole, guard=_guard)
+@check_roles(AdminRole, guard=_guard, guard_reason="CHECK_PROBE_GUARD")
 class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.Result"]):
     class Params(BaseParams):
         key: str = Field(default="")
@@ -74,19 +82,20 @@ class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.R
     class Result(BaseResult):
         ok: bool = Field(default=True)
 
-    async def access_decide(
+    @access_decide("Allow every caller the role requirement admitted")
+    async def check_probe_access_decide(
         self,
         params: CheckProbeAction.Params,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> bool:
+    ) -> Verdict:
+        """Answer from the test's switches: raise, refuse, or the configured answer."""
         _access_decide_calls["n"] += 1
         if params.key in _raise_for_keys:
             raise RuntimeError(f"boom for key={params.key!r}")
         if params.key in _access_decide_deny_keys:
-            return False
-        return _access_decide_result["value"]
+            return FORBIDDEN_OBJECT
+        return Allowed() if _access_decide_result["value"] else FORBIDDEN_OBJECT
 
     @regular_aspect("noop")
     async def probe_regular_aspect(
@@ -111,63 +120,42 @@ class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.R
         return CheckProbeAction.Result(ok=True)
 
 
-@meta(description="machine.check_access_decide probe — a second, distinct action class", domain=SystemDomain)
-@check_roles(ManagerRole)
-class OtherCheckProbeAction(BaseAction["OtherCheckProbeAction.Params", "OtherCheckProbeAction.Result"]):
-    class Params(BaseParams):
-        pass
-
-    class Result(BaseResult):
-        ok: bool = Field(default=True)
-
-    @summary_aspect("S")
-    async def probe_summary(
-        self,
-        params: OtherCheckProbeAction.Params,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-    ) -> OtherCheckProbeAction.Result:
-        return OtherCheckProbeAction.Result(ok=True)
-
-
 # ── Single-action form ──────────────────────────────────────────────────────
 
 
-async def test_allowed_true_when_everything_passes(machine: ActionProductMachine) -> None:
+async def test_allowed_when_everything_passes(machine: ActionProductMachine) -> None:
     _reset()
     verdict = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params())
-    assert verdict == AccessVerdict(allowed=True, action=CheckProbeAction, level=None, reason=None)
+    assert isinstance(verdict, Allowed)
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
 
-async def test_level_1_when_role_does_not_match(machine: ActionProductMachine) -> None:
+async def test_check_roles_when_the_role_does_not_match(machine: ActionProductMachine) -> None:
     _reset()
     verdict = await machine.check_access_decide(Context(), CheckProbeAction, CheckProbeAction.Params())
-    assert verdict.allowed is False
-    assert verdict.level == 1
-    assert verdict.action is CheckProbeAction
+    assert isinstance(verdict, Refused)
+    assert verdict.gate is Gate.CHECK_ROLES
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
 
-async def test_level_2_when_guard_rejects(machine: ActionProductMachine) -> None:
+async def test_guard_when_the_condition_rejects(machine: ActionProductMachine) -> None:
     _reset()
     _guard_result["value"] = False
     verdict = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params())
-    assert verdict.allowed is False
-    assert verdict.level == 2
+    assert isinstance(verdict, Refused)
+    assert verdict.gate is Gate.GUARD
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
 
-async def test_level_3_when_access_decide_rejects(machine: ActionProductMachine) -> None:
+async def test_access_decide_when_the_object_check_rejects(machine: ActionProductMachine) -> None:
     _reset()
     _access_decide_result["value"] = False
     verdict = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params())
-    assert verdict.allowed is False
-    assert verdict.level == 3
+    assert isinstance(verdict, Refused)
+    assert verdict.gate is Gate.ACCESS_DECIDE
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
 
@@ -178,95 +166,3 @@ async def test_check_never_runs_the_pipeline_even_when_allowed(machine: ActionPr
     await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params())
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
-
-
-# ── List form ────────────────────────────────────────────────────────────────
-
-
-async def test_list_form_returns_verdicts_in_input_order(machine: ActionProductMachine) -> None:
-    _reset()
-    verdicts = await machine.check_access_decide(
-        _admin_context(),
-        [
-            (CheckProbeAction, CheckProbeAction.Params(key="A")),
-            (CheckProbeAction, CheckProbeAction.Params(key="B")),
-        ],
-    )
-    assert [v.allowed for v in verdicts] == [True, True]
-    assert _regular_calls["n"] == 0
-    assert _summary_calls["n"] == 0
-
-
-async def test_list_form_handles_two_different_action_classes(machine: ActionProductMachine) -> None:
-    """Each item resolves its own action_node/role graph — admin-only vs manager-only."""
-    _reset()
-    verdicts = await machine.check_access_decide(
-        _admin_context(),
-        [
-            (CheckProbeAction, CheckProbeAction.Params()),
-            (OtherCheckProbeAction, OtherCheckProbeAction.Params()),
-        ],
-    )
-    assert verdicts[0].allowed is True
-    assert verdicts[1].allowed is False
-    assert verdicts[1].level == 1  # admin context does not carry ManagerRole
-
-
-async def test_one_failing_item_does_not_affect_the_others(machine: ActionProductMachine) -> None:
-    _reset()
-    _raise_for_keys.add("B")
-    verdicts = await machine.check_access_decide(
-        _admin_context(),
-        [
-            (CheckProbeAction, CheckProbeAction.Params(key="A")),
-            (CheckProbeAction, CheckProbeAction.Params(key="B")),
-            (CheckProbeAction, CheckProbeAction.Params(key="C")),
-        ],
-    )
-    assert verdicts[0].allowed is True
-    assert verdicts[1].allowed is False
-    assert verdicts[1].level is None
-    assert "boom for key='B'" in (verdicts[1].reason or "")
-    assert verdicts[2].allowed is True
-
-
-async def test_list_form_reports_independent_levels_for_all_three_gates(machine: ActionProductMachine) -> None:
-    """One list call, four items: allowed, level-1, level-2, level-3 — none of them bleed into another."""
-    _reset()
-    _guard_deny_keys.add("guard-denied")
-    _access_decide_deny_keys.add("decide-denied")
-    verdicts = await machine.check_access_decide(
-        _admin_context(),
-        [
-            (CheckProbeAction, CheckProbeAction.Params(key="ok")),
-            (OtherCheckProbeAction, OtherCheckProbeAction.Params()),
-            (CheckProbeAction, CheckProbeAction.Params(key="guard-denied")),
-            (CheckProbeAction, CheckProbeAction.Params(key="decide-denied")),
-        ],
-    )
-    allowed_verdict, level_1_verdict, level_2_verdict, level_3_verdict = verdicts
-    assert allowed_verdict.allowed is True
-    assert level_1_verdict.allowed is False and level_1_verdict.level == 1
-    assert level_2_verdict.allowed is False and level_2_verdict.level == 2
-    assert level_3_verdict.allowed is False and level_3_verdict.level == 3
-
-
-async def test_batch_larger_than_max_check_access_decide_batch_size_is_rejected_up_front() -> None:
-    _reset()
-    small_machine = ActionProductMachine(cache_coordinator=None, max_check_access_decide_batch_size=2)
-    items = [(CheckProbeAction, CheckProbeAction.Params(key=k)) for k in ("A", "B", "C")]
-    with pytest.raises(CheckAccessDecideBatchSizeExceededError) as exc_info:
-        await small_machine.check_access_decide(_admin_context(), items)
-    assert exc_info.value.item_count == 3
-    assert exc_info.value.max_check_access_decide_batch_size == 2
-    assert _access_decide_calls["n"] == 0
-
-
-async def test_single_form_matches_first_item_of_equivalent_list_call(machine: ActionProductMachine) -> None:
-    _reset()
-    single = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params(key="A"))
-    _reset()
-    (from_list,) = await machine.check_access_decide(
-        _admin_context(), [(CheckProbeAction, CheckProbeAction.Params(key="A"))]
-    )
-    assert single == from_list

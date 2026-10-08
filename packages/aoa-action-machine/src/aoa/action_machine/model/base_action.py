@@ -121,6 +121,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.intents.access_decide.access_decide_intent import AccessDecideIntent
 from aoa.action_machine.intents.aspects.aspect_intent import AspectIntent
 from aoa.action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
 from aoa.action_machine.intents.checkers.checker_intent import CheckerIntent
@@ -134,7 +135,6 @@ from aoa.action_machine.intents.on_error.on_error_intent import OnErrorIntent
 from aoa.action_machine.intents.sensitive.sensitive_intent import SensitiveIntent
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
@@ -142,7 +142,6 @@ from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 if TYPE_CHECKING:
     # Deferred: runtime.tools_box imports BaseAction at module level, so a top-level
     # import here would cycle. ToolsBox is only ever used as a type annotation below.
-    from aoa.action_machine.runtime.tools_box import ToolsBox
 
     # Deferred: context.context's own imports don't touch base_action directly, but
     # model/__init__.py eagerly imports base_action — so context.context (imported
@@ -150,7 +149,7 @@ if TYPE_CHECKING:
     # touches `model`) -> context.request_info -> model.base_schema -> triggers
     # model/__init__.py -> base_action -> context.context (still mid-import) is a
     # real transitive cycle. Context is only ever used as a type annotation below.
-    from aoa.action_machine.context.context import Context
+    pass
 
 _REQUIRED_SUFFIX = "Action"
 
@@ -164,6 +163,7 @@ class BaseAction[P: BaseParams, R: BaseResult](
     DependsIntent[DependsEligible],
     CheckerIntent,
     AspectIntent,
+    AccessDecideIntent,
     CompensateIntent,
     ConnectionIntent,
     OnErrorIntent,
@@ -176,7 +176,7 @@ class BaseAction[P: BaseParams, R: BaseResult](
     CONTRACT: Everything external via ``@depends``/``@connection``.
     INVARIANTS: Knows nothing about transport, coordinators, or storage.
     CACHE: Optional ``cache_key`` / ``read_cache`` / ``on_cache_write`` / ``on_cache_invalidate``; defaults disable caching. ``cache_key`` returns ``str | None``; ``on_cache_write`` returns ``list[CacheTag] | None`` (None = skip write); ``on_cache_invalidate`` returns ``list[CacheTag] | None`` and is called after every clean pipeline regardless of ``cache_key``.
-    ACCESS: Optional ``access_decide`` — object-level check run after ``@check_roles``/``guard=`` pass; defaults to ``True`` (no extra restriction beyond roles). ``False`` denies access.
+    ACCESS: Optional object check, declared with ``@access_decide`` on a method whose name carries the ``_access_decide`` suffix — run after ``@check_roles``/``guard=`` pass, at most one per operation and never inherited. An operation that declares none has no object check.
     AI-CORE-END
     """
 
@@ -216,16 +216,6 @@ class BaseAction[P: BaseParams, R: BaseResult](
         entry is never evicted by its own directives. If both hooks return non-None, the sequence
         is: evict matching stale entries → write new entry under the returned tags."""
         return None
-
-    async def access_decide(
-        self,
-        params: P,
-        context: Context,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-    ) -> bool:
-        """``True`` by default — level 3 adds no restriction beyond roles/guard."""
-        return True
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Enforce the ``"Action"`` name suffix for every concrete subclass."""

@@ -1,0 +1,11 @@
+---
+description: The changelog ships with the change; the agent writes the entry as the second-to-last step.
+alwaysApply: true
+---
+
+# Changelog — with the change, not by hand-off
+
+- **Write the entry** in `docs/CHANGELOG.md` for what a reader of this project would notice: a new behaviour, a changed contract, a removal. Follow the form the file already uses.
+- **It is the second-to-last step**, after the code is what it will be and before the documentation, and it is its own task in `tasks.md` (constitution, Principle VI).
+- **Refactors, renames and internal moves** earn a line only when a reader outside would notice them.
+- **The maintainer reviews the entry** like any other part of the change; this replaced the earlier "hands off the changelog" rule, which no longer applies.
