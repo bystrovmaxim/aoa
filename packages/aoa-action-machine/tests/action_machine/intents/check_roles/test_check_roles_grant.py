@@ -19,9 +19,10 @@ def _sales_only(user: object) -> bool:
 
 class TestGrantConstruction:
     def test_grant_stores_role_and_when(self) -> None:
-        g = grant(AdminRole, when=_sales_only)
+        g = grant(AdminRole, when=_sales_only, reason="SALES_ONLY")
         assert g.role is AdminRole
         assert g.when is _sales_only
+        assert g.reason == "SALES_ONLY"
 
     def test_grant_when_defaults_to_none(self) -> None:
         g = grant(AdminRole)
@@ -46,7 +47,7 @@ class TestCheckRolesGrants:
         assert _Action._role_info["guard"] is None
 
     def test_multiple_grants_preserved_in_order(self) -> None:
-        @check_roles(grant(AdminRole), grant(ManagerRole, when=_sales_only))
+        @check_roles(grant(AdminRole), grant(ManagerRole, when=_sales_only, reason="SALES_ONLY"))
         class _Action:
             pass
 
@@ -58,7 +59,7 @@ class TestCheckRolesGrants:
         assert _Action._role_info["spec"] == (AdminRole, ManagerRole)
 
     def test_bare_role_and_grant_mixed(self) -> None:
-        @check_roles(AdminRole, grant(ManagerRole, when=_sales_only))
+        @check_roles(AdminRole, grant(ManagerRole, when=_sales_only, reason="SALES_ONLY"))
         class _Action:
             pass
 
@@ -95,7 +96,7 @@ class TestCheckRolesGuard:
         def guard_fn(user: object, params: object) -> bool:
             return True
 
-        @check_roles(AdminRole, guard=guard_fn)
+        @check_roles(AdminRole, guard=guard_fn, guard_reason="GUARD_FN")
         class _Action:
             pass
 
@@ -116,7 +117,7 @@ class TestAsyncConditionRejected:
 
         with pytest.raises(AccessConditionAsyncError) as excinfo:
 
-            @check_roles(grant(AdminRole, when=when_async))
+            @check_roles(grant(AdminRole, when=when_async, reason="ASYNC_NEVER"))
             class _Action:
                 pass
 
@@ -129,7 +130,7 @@ class TestAsyncConditionRejected:
 
         with pytest.raises(AccessConditionAsyncError) as excinfo:
 
-            @check_roles(AdminRole, guard=guard_async)
+            @check_roles(AdminRole, guard=guard_async, guard_reason="ASYNC_GUARD")
             class _Action:
                 pass
 

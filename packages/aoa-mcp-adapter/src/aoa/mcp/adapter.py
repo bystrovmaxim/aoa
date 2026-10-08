@@ -133,6 +133,7 @@ from pydantic import ValidationError as PydanticValidationError
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
 from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
 from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
+from aoa.action_machine.exceptions.access_denied import AccessDenied
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
@@ -330,7 +331,7 @@ def _make_tool_handler(
                 content=[TextContent(type="text", text=_envelope_ok(payload))],
                 isError=False,
             )
-        except AuthorizationError as exc:
+        except (AccessDenied, AuthorizationError) as exc:
             return CallToolResult(
                 content=[
                     TextContent(

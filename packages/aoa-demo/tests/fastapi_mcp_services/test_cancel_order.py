@@ -7,8 +7,8 @@ import pytest
 
 from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
-from aoa.action_machine.exceptions import AuthorizationError
-from aoa.action_machine.intents.access_control import AccessVerdict
+from aoa.action_machine.exceptions import AccessDenied
+from aoa.action_machine.intents.access_control import Allowed, Gate, Refused
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.demo.fastapi_mcp_services.actions.cancel_order import CancelOrderAction, CustomerRole
 
@@ -31,38 +31,40 @@ async def test_own_order_cancel_succeeds(machine: ActionProductMachine) -> None:
     assert result == CancelOrderAction.Result(order_id="ORD-1", status="cancelled")
 
 
-async def test_foreign_order_raises_authorization_error_level_3(machine: ActionProductMachine) -> None:
-    with pytest.raises(AuthorizationError) as exc_info:
+async def test_a_foreign_order_is_refused_by_the_object_step(machine: ActionProductMachine) -> None:
+    with pytest.raises(AccessDenied) as exc_info:
         await machine.run(_customer_context("bob"), CancelOrderAction(), _own_order_params())
-    assert exc_info.value.level == 3
+    assert exc_info.value.verdict.gate is Gate.ACCESS_DECIDE
 
 
-async def test_locked_order_denied_by_guard_level_2(machine: ActionProductMachine) -> None:
+async def test_a_locked_order_is_refused_by_the_guard(machine: ActionProductMachine) -> None:
     params = CancelOrderAction.Params(order_id="LOCKED-1", owner_user_id="alice")
-    with pytest.raises(AuthorizationError) as exc_info:
+    with pytest.raises(AccessDenied) as exc_info:
         await machine.run(_customer_context("alice"), CancelOrderAction(), params)
-    assert exc_info.value.level == 2
+    assert exc_info.value.verdict.gate is Gate.GUARD
+    assert exc_info.value.verdict.reason == "ORDER_LOCKED"
 
 
-async def test_anonymous_caller_denied_level_1(machine: ActionProductMachine) -> None:
-    with pytest.raises(AuthorizationError) as exc_info:
+async def test_an_anonymous_caller_is_refused_by_the_roles_step(machine: ActionProductMachine) -> None:
+    with pytest.raises(AccessDenied) as exc_info:
         await machine.run(Context(), CancelOrderAction(), _own_order_params())
-    assert exc_info.value.level == 1
+    assert exc_info.value.verdict.gate is Gate.CHECK_ROLES
 
 
 async def test_check_access_decide_matches_run_semantics(machine: ActionProductMachine) -> None:
+    """The advance answer names the same step the executed call would be stopped by."""
     own = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, _own_order_params())
-    assert own == AccessVerdict(allowed=True, action=CancelOrderAction, level=None, reason=None)
+    assert isinstance(own, Allowed)
 
     foreign = await machine.check_access_decide(_customer_context("bob"), CancelOrderAction, _own_order_params())
-    assert foreign.allowed is False
-    assert foreign.level == 3
+    assert isinstance(foreign, Refused)
+    assert foreign.gate is Gate.ACCESS_DECIDE
 
     locked_params = CancelOrderAction.Params(order_id="LOCKED-1", owner_user_id="alice")
     locked = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, locked_params)
-    assert locked.allowed is False
-    assert locked.level == 2
+    assert isinstance(locked, Refused)
+    assert locked.gate is Gate.GUARD  # the shared guard=, not a grant's own condition
 
     anonymous = await machine.check_access_decide(Context(), CancelOrderAction, _own_order_params())
-    assert anonymous.allowed is False
-    assert anonymous.level == 1
+    assert isinstance(anonymous, Refused)
+    assert anonymous.gate is Gate.CHECK_ROLES

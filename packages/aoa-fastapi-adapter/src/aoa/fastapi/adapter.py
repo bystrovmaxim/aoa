@@ -126,6 +126,7 @@ from starlette.responses import Response as StarletteResponse
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
 from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
 from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
+from aoa.action_machine.exceptions.access_denied import AccessDenied
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
@@ -862,9 +863,29 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         """
         Register ActionMachine exception handlers at app level.
 
+            AccessDenied         -> HTTP 403 Forbidden
             AuthorizationError   -> HTTP 403 Forbidden
             ValidationFieldError -> HTTP 422 Unprocessable Entity
+
+        ``AccessDenied`` is the engine's refusal — the verdict travels in it — and
+        ``AuthorizationError`` is this adapter's own answer when a request carries no
+        identity at all. Both are "no", both answer the same way, and the body is the
+        exception's own message so a caller reads the gate the engine named.
+
+        A gate that could **not** complete is deliberately absent here: it is not a
+        refusal, so it must not be answered as one. It reaches the caller as a server
+        error, which is what a broken store is.
         """
+
+        @app.exception_handler(AccessDenied)
+        async def handle_access_denied(
+            request: Request,
+            exc: AccessDenied,
+        ) -> JSONResponse:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": str(exc)},
+            )
 
         @app.exception_handler(AuthorizationError)
         async def handle_authorization_error(

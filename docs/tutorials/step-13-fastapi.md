@@ -121,6 +121,18 @@ The external schema does not always match the operation's contract: a new API ve
 
 So v1 and v2 live side by side, and `GreetAction` does not change — all the difference between versions lies at the adapter boundary, exactly where it belongs. (A mapper and its corresponding `*_model` are set as a pair: a `response_mapper` without a `response_model` will return a result that does not match the response contract.) Returning the result itself by schema is a separate topic of the [next chapters](step-15-schema-results.md).
 
+### A refusal leaves as a refusal
+
+Access is decided in the engine, and the transport must not turn that decision into something
+else. The adapter registers one handler for `AccessDenied` next to the one for
+`AuthorizationError`, and both answer **HTTP 403**: the first carries the engine's refusal, the
+second means the request never had an identity to check. A refusal is not a validation error and
+not a server failure — a client that sees 403 learns that the caller may not do this, and the
+response body says what the engine decided, nothing more. The adapter adds no access logic of
+its own: it maps one exception to one status and stops there.
+
+---
+
 ## Errors
 
 The adapter translates machine errors into HTTP codes:

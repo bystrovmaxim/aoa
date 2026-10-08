@@ -1,4 +1,4 @@
-<!-- translated-from: verification-must-be-independent_draft.md @ 2026-10-08T15:24:09Z (filesystem mtime; draft is gitignored, no git history) · sha256:8b846dbffabe -->
+<!-- translated-from: verification-must-be-independent_draft.md @ 2026-10-08T14:10:48Z (filesystem mtime; draft is gitignored, no git history) · sha256:b30e6a0fbed6 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
@@ -21,7 +21,6 @@
 - [Phase 1 — the model writes code](#phase-1--the-model-writes-code)
 - [Phase 2 — the model writes code from a specification](#phase-2--the-model-writes-code-from-a-specification)
 - [Phase 3 — the model writes code inside an executable grammar](#phase-3--the-model-writes-code-inside-an-executable-grammar)
-  - [What actually separates phase 2 from phase 3](#what-actually-separates-phase-2-from-phase-3)
 - [Phase 4 — the variants, and how to tell a phase from an extension](#phase-4--the-variants-and-how-to-tell-a-phase-from-an-extension)
   - [The criteria a variant must pass](#the-criteria-a-variant-must-pass)
   - [Two axes, not one](#two-axes-not-one)
@@ -38,7 +37,6 @@
   - [Open questions](#open-questions)
 - [The problem nobody automated](#the-problem-nobody-automated)
 - [What "independent verification" means](#what-independent-verification-means)
-  - [Independence is affordable only because it is deterministic](#independence-is-affordable-only-because-it-is-deterministic)
 - [Why the architectural layer is the one that can be verified](#why-the-architectural-layer-is-the-one-that-can-be-verified)
 - [What the gate actually catches](#what-the-gate-actually-catches)
 - [The gap nobody asked about](#the-gap-nobody-asked-about)
@@ -54,7 +52,7 @@
 
 For the whole history of the discipline, writing code was expensive and reading code was cheap. Every practice we inherited is built on that ratio: code review, pull requests, diffs, style guides, "keep functions short", "a change should be readable in one sitting". All of them assume that a competent person can look at what changed and decide whether it is right.
 
-That assumption is now false, and it is worth being exact about why. Reading did not become expensive per line: it works only because code is **structurally coherent**, so a reader almost never reads — the reader extrapolates from a sample. Generation breaks exactly that property. It produces code that is locally correct and globally incoherent, and incoherent code cannot be extrapolated from, however little of it there is. Coherent code a hundred thousand lines long reads more easily than spaghetti ten thousand lines long. The volume multiplies the consequence; the loss of coherence is the cause.
+That assumption is now false. Writing code became cheap. Reading it did not — and the volume that arrives for reading grew by an order of magnitude.
 
 This is not a story about model capability. It is a story about **where the bottleneck moved**. Generation was automated; verification was not. Everything that follows in this document is a consequence of taking that sentence seriously.
 
@@ -108,12 +106,6 @@ The important part is not the decorators. It is that these declarations are **no
 **What it assumes.** That the architectural layer of a system can be stated completely enough to be checked, and that checking it is worth the cost of writing it down.
 
 **Where it breaks.** It requires the grammar to actually cover the system. Everything below is an examination of that requirement, its limits, and its price.
-
-### What actually separates phase 2 from phase 3
-
-Phase 2 has **two participants**: the model that wrote, and the person who is supposed to check. Neither is fit for the job, and it is worth naming why separately. The model cannot check itself — a verifier drawn from the same process as the author shares its blind spots and its failure modes, which is why its "I checked it" is indistinguishable from its own mistake. The person is not careless; the volume is simply not theirs to carry. Verifying intent requires reading, reading does not scale with generation, and so the person cannot be the verifier of what is produced at this rate. Phase 2 is therefore not a weak form of verification — it is **the absence of verification, dressed as a process**: there is a review, but there is no verdict.
-
-Phase 3 adds a **third participant**: one that did not write the code, does not form an opinion, and does not get tired. Two of its properties are the whole point. It is **independent** — drawn from outside the author's process, and therefore capable of the one thing a self-report cannot do: failing loudly. And it is **deterministic** — the verdict is reproducible, the same input giving the same answer without mood, context or fatigue. Determinism is what turns a check into something that can be **disputed**: "run it again" is a meaningful argument, unlike "this looks wrong to me".
 
 ---
 
@@ -302,20 +294,6 @@ The consequences are not hypothetical, and they are not about model quality:
 
 **The obvious shortcut does not work.** "Let the model review the model" fails for a reason that has nothing to do with how clever the model is: a process checking its own output shares the failure modes of the process that produced it. Whatever the generator is blind to, the reviewer is blind to as well. This is the same reason a compiler is not audited by the compiler.
 
-**The decisions are taken again and again.** Not merely "the model invented a helper", but worse: it invented *six* ways to do the same thing in six places, because each time it decided afresh. Locally that is fine; globally it is six truths instead of one. This is the most expensive kind of debt, because the debt is not in the code — it is in the absence of a decision.
-
-**Boundaries erode because nobody feels them.** A boundary is held in place by effort: one check, one reviewer, one linter. Breaking it costs nothing — the shortest path to a working result is what generation takes. So generation tilts the balance toward entropy: it does not violate boundaries on purpose, it simply cannot feel them.
-
-**Locality is lost.** Human code grows around what changes together: to fix one thing you touch one place. Generated code lands wherever the prompt pointed. A month later a single logical change requires edits in ten unrelated modules — and that is not "bad code", it is the absence of any structure from which the location could be predicted.
-
-**The vocabulary drifts.** The model reinvents terminology: `order`, `purchase`, `transaction` — three words for one thing. The reader can no longer trust names, and names are half of what makes reading cheap.
-
-**Intent becomes unverifiable even if everything is read.** This is the limit of "it works, but it is spaghetti": across a large body of locally correct decisions there is **no signal** separating design from accumulation. The diffs show no drift, the tests are green, nothing is broken — and the system is no longer the one that was meant to be built. The classical instruments do not help here: code smells and refactoring catch what is *badly written*, not what is *incoherently assembled*. Generated code reads smoothly line by line, and that is what masks the problem.
-
-Volume is therefore the last of these, not the first. Coherent output still meets the limit of human attention — beyond a threshold nobody accepts the system, however even it is — but that limit has its own answer: what gets accepted is the description, two orders of magnitude smaller than the code.
-
-The sharpest way to see the whole problem is that a person reading code does **two different jobs**: checking **coherence** ("does this fit the way things are done here?") and checking **intent** ("is this what we wanted?"). Volume destroys only the second. Incoherence destroys the first — and with it the second, because there is nothing left to compare against.
-
 ---
 
 ## What "independent verification" means
@@ -326,27 +304,11 @@ Independence is a structural property, not a statement about capability or intel
 2. **It is executed by a different process.** A separate mechanism, run separately, with its own failure modes.
 3. **It can fail loudly and specifically.** The verdict names what was violated, where, and which declaration the violator contradicted.
 
-None of the three conditions mentions intelligence, and that is not an accident: a verifier earns trust structurally, not by being clever. This is why the verifier is a graph rather than a smarter model — and it is also where its boundaries lie.
-
-**A deterministic verifier can compare, not discover.** It finds nothing that is absent from the model. "A step with no postcondition" is computable because the postcondition is a slot in the graph; "a step that does the wrong thing" is not computable at all. Hence the grading used throughout this project — *computable today*, *heuristic*, *needs one more declaration*, *frontier* — where the frontier is precisely what cannot be reduced to a slot.
-
-**It costs a second artifact.** The declarations must now be kept in step with the code. That is cheaper than reading the code, but it is not free, and its characteristic failure is a **formal declaration with nothing behind it**: a checker that is always satisfied, a declared role nobody holds. Closing that hole is what phase 4's variant A is for — a deterministic verifier cannot close it by construction.
-
-**A person does not disappear; a person changes what they read.** The volume stays with the machine, and the person receives a description two orders of magnitude smaller. It follows that **the graph must be readable by a person**, not merely traversable by a machine. A drawing nobody can understand has not solved the problem — it has moved it.
-
 The last condition is what makes verification usable. "This looks wrong" is an opinion. "Step `normalise_aspect` declares postcondition `sku` with `min_length=3`; it returned a value failing that constraint" is a result.
 
 Under these conditions, a model reviewing its own work fails condition 2 no matter how capable it becomes. A human reading the diff fails condition 1 and, increasingly, condition 3. A typed contract checked by a separate engine satisfies all three — and does so without requiring anyone to read the generated code at all.
 
 This is why the phrase "the model will soon be smart enough not to need a grammar" describes the wrong problem. The grammar is not a crutch for a weak model. It is the only available form of independent verification when the volume of generated code exceeds human attention.
-
-### Independence is affordable only because it is deterministic
-
-Every other independent verifier — a person, an auditor, a second model — is either expensive, or non-deterministic, or both. A deterministic verifier is cheap per check and identical every time, which is the only reason independence can be had at the scale of every run rather than at the scale of a sample. There is no other form of cheap independence on offer here.
-
-**And it forces the choice of object.** Independence requires that something *other than the artifact* be checked. But any other description of code is normally either as large as the code itself — and therefore useless — or incomplete, and therefore lying. The one object that is both **independent and small** is the **declared shape**: finite, enumerable, and small enough to be a graph. Phase 3 is therefore not "we verify code better". It is: **we narrowed what is verified down to what can be decided at all, and accepted explicitly that the rest is not.** The body of a step is an opaque node to the graph, and that is a **price paid on purpose** — not a defect.
-
-**The inversion, stated exactly.** Verification used to check *everything*, inexactly and expensively. It now checks *little*, exactly and for free. The architectural work is the choice of what goes into that little.
 
 ---
 

@@ -43,6 +43,14 @@ class CheckRolesIntentResolver:
             raise MissingCheckRolesError(action_cls) from exc
 
     @staticmethod
+    def resolve_guard_reason(action_cls: type[CheckRolesIntent]) -> str | None:
+        """Return `_role_info['guard_reason']`, or ``None`` when the developer declared none."""
+        try:
+            return cast("str | None", action_cls._role_info["guard_reason"])
+        except (AttributeError, KeyError, TypeError):
+            return None
+
+    @staticmethod
     def resolve_guard(action_cls: type[CheckRolesIntent]) -> Callable[..., bool] | None:
         """Return `_role_info['guard']` from ``@check_roles``. Raises ``MissingCheckRolesError`` when absent."""
         try:

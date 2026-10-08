@@ -115,6 +115,23 @@ Every class, every function and every method carries a docstring that says in on
 
 Known debt: this rule is met for roughly half of the code. Classes 431 of 846 (51 %), methods 410 of 840 (49 %), class and static methods 137 of 157 (87 %), module-level functions 207 of 316 (66 %), properties 62 of 115 (54 %), nested functions 11 of 47 (23 %). The debt is paid as files are touched, unless the maintainer decides to schedule a sweep.
 
+### VI. The last three steps are the check run, the documentation and the changelog (NON-NEGOTIABLE)
+
+A change is not finished when its behaviour is finished. Once the code is what it will be, three steps follow, in this order and no other.
+
+1. **The check run, taken to zero.** `bash scripts/run_checks_with_log.sh` is run and **every** remark it reports is fixed — none triaged away, none accepted as known, none left for later. The run is green or the change is not finished.
+2. **The documentation.** Written after the code is settled, never beside it.
+3. **The changelog, written last, as one article.** `docs/CHANGELOG.md` gets a single readable piece about this work: what it created, in plain words, with the nuances a user has to know — and without technical detail. It is not a log of the issue's changes, not a per-file account of what moved, and not a list of commits. A reader who has not followed the work should finish it knowing what they can now do.
+
+Then, inside those steps:
+
+4. **The documentation shows every case and every scenario the change introduces.** Not one happy path: each answer, each refusal, each failure, each mode, each declaration appears, named as a case, with what it is for and what comes back. A case that is not shown is a case a reader will get wrong.
+5. **Each case appears twice: as a script and as a notebook.** The script under `examples/` is the exact runnable form; the notebook is the same case step by step, so a reader runs it cell by cell and sees the output between the steps.
+6. **The examples run.** Documentation that does not execute is a claim, not documentation: every example is executed with the repository's own environment while it is written, and what the reader sees is what it actually printed. The closing check run does not execute them — a broken example is fixed when it is written, the way a broken test is.
+7. **The documentation is written for a reader who has not seen the change.** Prose around runnable code: what the case is, why the framework answers the way it does, and what changes if the reader chooses differently. `docs/` holds the explanation and the reference; `examples/` holds the code those pages walk through.
+8. **Planning reserves exactly three tasks for this tail**, in this order, and no other task may absorb them: the check run, the documentation, the changelog. A plan that does not carry all three is incomplete.
+9. **The agent writes the changelog**, and the maintainer reviews it like any other part of the change; this supersedes every earlier "hands off the changelog" instruction in the repository.
+
 ## Final step: the check run
 
 Work is not finished when the code looks right; it is finished when the repository's own check run says so.
@@ -125,6 +142,8 @@ Work is not finished when the code looks right; it is finished when the reposito
 4. **The run may edit the code, and those edits are part of the change.** The first Python step is `ruff check --fix .`, so the run is not read-only: whatever it fixes is reviewed like any other change and re-committed, and an auto-fix the reviewer does not want is reverted rather than left in place.
 5. **The script itself is part of what is checked.** If it cannot run — a missing tool, a broken path, a command whose configuration no longer exists — that is a defect in the check run and is repaired as part of the change, not bypassed.
 
+
+**Two remarks in the log are known and accepted**, and they are not to be acted on: the Vite build's advisory that some chunks are larger than 500 kB — the viewer's weight is the graph engine and the Graphviz wasm behind layout, not code of ours — and LangGraph's `LangChainPendingDeprecationWarning`, raised inside that library while its cache module is imported, which this repository never builds. They stay in the log, deliberately, and a green run is green with them.
 ## [SECTION_2_NAME]
 <!-- Retained from the toolkit's template: the maintainer writes this. -->
 
@@ -140,4 +159,4 @@ Work is not finished when the code looks right; it is finished when the reposito
 
 [GOVERNANCE_RULES]
 
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-07
+**Version**: 1.2.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-08

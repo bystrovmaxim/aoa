@@ -23,7 +23,6 @@ def _compensator(label: str) -> SimpleNamespace:
 def _machine_with_mocks() -> ActionProductMachine:
     machine = ActionProductMachine(
         graph_coordinator=MagicMock(),
-        role_checker=MagicMock(),
         connection_validator=MagicMock(),
         aspect_executor=MagicMock(),
         error_handler_executor=MagicMock(),

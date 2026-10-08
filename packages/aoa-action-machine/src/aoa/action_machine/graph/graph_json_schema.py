@@ -125,6 +125,9 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
           "$ref": "#/$defs/compensator"
         },
         {
+          "$ref": "#/$defs/access_decide"
+        },
+        {
           "$ref": "#/$defs/error_handler"
         },
         {
@@ -533,6 +536,32 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
         }
       ]
     },
+    "access_decide": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "AccessDecide"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     "error_handler": {
       "allOf": [
         {
@@ -837,6 +866,7 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
                 "@regular_aspect",
                 "@summary_aspect",
                 "@compensate",
+                "@access_decide",
                 "@on_error",
                 "@result_checker",
                 "entity_schema",

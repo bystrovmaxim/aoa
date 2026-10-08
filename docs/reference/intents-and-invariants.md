@@ -144,12 +144,14 @@ class DeleteOrderAction(BaseAction[...]): ...
 class GetOrderStatusAction(BaseAction[...]): ...
 ```
 
-Access is a cascade of three levels, each of which can deny: role (`@check_roles`) → `guard=`/`grant.when=` → `access_decide`. Each level carries its own invariants:
+Access is one cascade, and it is checked in two moments: identity, roles and both conditions **before the run exists**, and the declared object rule **inside the run**, on a real object. Five words are published, and each of them can end a call — `AUTH_COORDINATOR`, `CHECK_ROLES`, `WHEN` (a role matched but its own condition refused), `GUARD` (the shared condition refused) and `ACCESS_DECIDE`. Each step carries its own invariants:
 
-- **`grant.when=`/`guard=` are synchronous functions returning strictly `bool`.** Checked at class definition, not at runtime: an `async def` in either raises `AccessConditionAsyncError` immediately — an un-awaited coroutine is always truthy, and an async condition would silently wave every check through.
-- **`access_decide` defaults to `True`.** The method is declared on `BaseAction`; level 3 restricts nothing until an action explicitly overrides it. Denial at any of the three levels is the same `AuthorizationError`, differing only in `level` (`1` — role, `2` — `guard=`/`grant.when=`, `3` — `access_decide`).
-- **`machine.check_access_decide` is capped by list size.** The list form of `(action, params)` pairs — the `max_check_access_decide_batch_size` constructor parameter (100 by default) on `ActionProductMachine`; a longer list is rejected with `CheckAccessDecideBatchSizeExceededError` before a single item is checked.
-- **Denial at any of the three levels is an `AuthorizationError` that flies past `@on_error`/the saga.** Role, `guard=`, and `access_decide` are checked before `_execute_pipeline_aspects`: no `@regular_aspect`/`@summary_aspect` has run yet, so there's nothing to roll back. `@on_error` is a recovery mechanism for business-logic failures inside the pipeline, not a place for authorization decisions.
+- **A condition declares the reason it refuses with.** `grant(..., when=..., reason=...)` and `@check_roles(guard=..., guard_reason=...)` are declared together: one without the other is refused where it is written. The declared sentence travels into `Refused.reason`, and the framework invents no reason of its own.
+- **`when=`/`guard=` are synchronous functions returning strictly `bool`.** Checked at class definition, not at runtime: an `async def` in either raises `AccessConditionAsyncError` immediately — an un-awaited coroutine is always truthy, and an async condition would silently wave every check through.
+- **There are three answers and only three.** `Allowed`; `Refused`, naming the step that refused and, when the developer declared one, the reason; `Undecided`, naming the step that could not tell — never the failure's text, which stays on the server. A refusal is not a failure and a failure is not a refusal.
+- **The object check is a declaration.** One per operation, never inherited, named `..._access_decide`, with a non-empty description, `async` and a fixed signature (see below). An operation without one has no object-level rule — there is no default that "allows everything" to override.
+- **The question is one call, one answer.** `machine.check_access_decide` asks about a single operation and a single set of parameters and returns one of the three words without running anything; there is no list form and no cap on one.
+- **A refusal flies past `@on_error` and the saga.** The early steps run before `_execute_pipeline_aspects`: no aspect has run yet, so there is nothing to roll back. `@on_error` is a recovery mechanism for business-logic failures inside the pipeline, not a place for authorization decisions.
 
 ---
 
@@ -168,6 +170,29 @@ Every operation has exactly one method marked `@summary_aspect`, and it must ret
 Otherwise the operation has no explicit exit point: the result could be assembled in several places, partially overwritten, or not assembled at all. The machine checks this at startup and raises `MissingSummaryAspectError`.
 
 ---
+
+## The declared access check
+
+`@access_decide` marks the operation's own object-level rule — the one part of a decision that needs the object itself. It is a declaration like `@summary_aspect`, and what the system requires of it is checked the same way: at declaration for the shape, at assembly for the types.
+
+```python
+    @access_decide("Refuse an order that is already locked")
+    async def cancel_order_access_decide(
+        self, params, box, connections,
+    ) -> Verdict:
+        return Allowed() if not params.order_id.startswith("LOCKED-") else FORBIDDEN_OBJECT
+```
+
+- **At most one per operation.** A second one is a `DuplicateAccessDecideError` at assembly: an operation answers about its object once.
+- **A description is required, and it is not empty.** The sentence travels into the assembled graph, where the check is a node of its own with its own name and explanation.
+- **The method is `async`.** The step awaits it; a plain `def` is refused where it is written.
+- **The name ends with `_access_decide`.** Short names are refused the way they are for every declared behaviour.
+- **The signature is fixed.** `(self, params, box, connections)`, plus the trailing `ctx` that `@context_requires` adds — names in that order, every parameter annotated, the annotations resolving to what the step hands over: `params` (`BaseParams` or the operation's own `Params`), `box: ToolsBox`, `connections: dict[str, BaseResource]`, `ctx: ContextView`.
+- **It answers with a verdict.** A return of `Verdict` or one of its three answers; anything else is refused at assembly, and at run time a check that returns something else becomes `Undecided` rather than permission.
+
+**Context is declared, never granted.** As with every declared behaviour, the context reaches the check only through `@context_requires` under the declaration: the trailing `ctx` then exists, it is a `ContextView` limited to the keys that were named, and another key raises `ContextAccessError`. There is no parameter that hands over the whole context.
+
+The refusal rules above are the subject of [`examples/step_03_authorization_and_roles/06_the_declaration.py`](../../examples/step_03_authorization_and_roles/06_the_declaration.py), which runs each of them.
 
 ## A correct compensator
 

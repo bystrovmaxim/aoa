@@ -36,6 +36,7 @@ The guide moves from a practical entry point to the complete project architectur
 - **[AOA as a project skeleton](explanation/aoa-project-skeleton.md)** — AOA's three layers: service boundary, business operations, data and domain model; connection with clean and hexagonal architecture
 - **[The philosophy of AOA](explanation/philosophy.md)** — why the architecture is built exactly this way: the principles underneath
 - **[Comparison with other frameworks](explanation/comparison.md)** — AOA next to FastAPI, Django, Clean/DDD, CQRS, Temporal; when to apply it
+- **[Verification must be independent](explanation/verification-must-be-independent.md)** — why generated code needs a contract the model did not write: the three phases, the bottleneck that moved to verification, ten enforcements reproduced from the shipped environment, acceptance by blueprint in Maxitor, and the full map of phase 4 — six variants, the criterion that separates a phase from an extension, and what would falsify the direction
 - **Performance** *(soon)* — the orchestration layer as a conscious cost: where the overhead lives, what to measure, and when a hot path is not cast as an Action
 
 ---
@@ -46,7 +47,7 @@ The guide moves from a practical entry point to the complete project architectur
 
 - **[Action and the pipeline](tutorials/step-01-action-and-pipeline.md)** — Action, aspects, params, result, box, state, inheritance
 - **[State: the operation's x-ray](tutorials/step-02-state-as-x-ray.md)** — state contracts, checkers, observability through OpenTelemetry
-- **[Authorization and roles](tutorials/step-03-authorization-and-roles.md)** — @check_roles, role classes and inheritance; conditional authorization and GuestRole — planned
+- **[Authorization and roles](tutorials/step-03-authorization-and-roles.md)** — the whole access cascade: `@check_roles` and role classes, conditional authorization, the declared object check (`@access_decide`), the three answers, and the question path
 - **[Saga and compensations](tutorials/step-04-saga-and-compensations.md)** — rolling back steps on failure, distributed transactions without try/finally
 - **[Explicit error handling](tutorials/step-05-error-handling.md)** — @on_error: business logic, rollback, and errors as three independent layers
 - **[Dependencies](tutorials/step-06-dependencies.md)** — @depends and @connection: an explicit contract on everything external, right in the header

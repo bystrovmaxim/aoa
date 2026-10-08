@@ -125,12 +125,16 @@ from __future__ import annotations
 from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.intents.on.on_intent import OnIntent
 from aoa.action_machine.plugin.core.events import (
+    AccessDecideAspectEvent,
+    AccessGateFailedEvent,
+    AfterAccessDecideAspectEvent,
     AfterCompensateAspectEvent,
     AfterOnErrorAspectEvent,
     AfterRegularAspectEvent,
     AfterSummaryAspectEvent,
     AspectEvent,
     BasePluginEvent,
+    BeforeAccessDecideAspectEvent,
     BeforeCompensateAspectEvent,
     BeforeOnErrorAspectEvent,
     BeforeRegularAspectEvent,
@@ -151,6 +155,9 @@ from aoa.action_machine.plugin.core.events import (
 )
 
 __all__ = [
+    "AccessDecideAspectEvent",
+    "AccessGateFailedEvent",
+    "AfterAccessDecideAspectEvent",
     "AfterCompensateAspectEvent",
     "AfterOnErrorAspectEvent",
     "AfterRegularAspectEvent",
@@ -158,6 +165,7 @@ __all__ = [
     "AspectEvent",
     # Event classes - root and grouped
     "BasePluginEvent",
+    "BeforeAccessDecideAspectEvent",
     "BeforeCompensateAspectEvent",
     "BeforeOnErrorAspectEvent",
     "BeforeRegularAspectEvent",
