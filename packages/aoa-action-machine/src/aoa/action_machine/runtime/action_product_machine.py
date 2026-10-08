@@ -137,15 +137,12 @@ import time
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, TypeVar, cast, overload
+from typing import Any, TypeVar, cast
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.access_denied import AccessDenied
 from aoa.action_machine.exceptions.access_undecided import AccessUndecided
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
-from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
-    CheckAccessDecideBatchSizeExceededError,
-)
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
@@ -279,14 +276,10 @@ class ActionProductMachine(BaseActionMachine):
         error_handler_executor: ErrorHandlerExecutor | None = None,
         saga_coordinator: SagaCoordinator | None = None,
         cache_coordinator: CacheCoordinator | None = _CACHE_COORDINATOR_DEFAULT,  # type: ignore[assignment]
-        max_check_access_decide_batch_size: int = 100,
     ) -> None:
         """Wire injectable components; an in-memory ``CacheCoordinator`` is created by default.
 
-        Pass ``cache_coordinator=None`` to disable caching explicitly. ``max_check_access_decide_batch_size``
-        caps the list form of ``machine.check_access_decide`` — each item triggers a real
-        object check call, so an unbounded list would let one request force an unbounded
-        number of such calls.
+        Pass ``cache_coordinator=None`` to disable caching explicitly.
         """
         self._log_coordinator = log_coordinator or LogCoordinator()
         default_loggers = [] if log_coordinator else [ConsoleLogger()]
@@ -307,7 +300,6 @@ class ActionProductMachine(BaseActionMachine):
         self._cache_coordinator: CacheCoordinator | None = (
             CacheCoordinator() if cache_coordinator is _CACHE_COORDINATOR_DEFAULT else cache_coordinator
         )
-        self._max_check_access_decide_batch_size = max_check_access_decide_batch_size
 
     @staticmethod
     def _validate_cache_key(cache_key: str | None, action: BaseAction[Any, Any]) -> None:
@@ -601,7 +593,6 @@ class ActionProductMachine(BaseActionMachine):
     # Public entry: check
     # ─────────────────────────────────────────────────────────────────────
 
-    @overload
     async def check_access_decide(
         self,
         context: Context,
@@ -609,106 +600,54 @@ class ActionProductMachine(BaseActionMachine):
         params: BaseParams | None = None,
         *,
         connections: dict[str, BaseResource] | None = None,
-    ) -> Verdict: ...
+    ) -> Verdict:
+        """Ask whether a call would be allowed — without running any step of the operation.
 
-    @overload
-    async def check_access_decide(
-        self,
-        context: Context,
-        action: list[tuple[type[BaseAction[Any, Any]], BaseParams | None]],
-        *,
-        connections: dict[str, BaseResource] | None = None,
-    ) -> list[Verdict]: ...
+        The answer is one of the three words: ``Allowed``, ``Refused`` naming the gate that
+        refused, or ``Undecided`` naming the step that could not tell. Asking runs the decision
+        and nothing else — the same steps, in the same order, that a run would take, and the
+        object check's own events — never the operation's pipeline, its lifecycle or its cache.
 
-    async def check_access_decide(
-        self,
-        context: Context,
-        action: type[BaseAction[Any, Any]] | list[tuple[type[BaseAction[Any, Any]], BaseParams | None]],
-        params: BaseParams | None = None,
-        *,
-        connections: dict[str, BaseResource] | None = None,
-    ) -> Verdict | list[Verdict]:
-        """Ask whether one action, or each item in a list, would be allowed — without running it.
+        The order matches ``_run_internal``'s own gates: identity and roles first, then the
+        call's connections are validated, then the object step. ``connections`` is keyword-only
+        because it is what the check reads the object from
+        (``connections["orders_db"].get(params.order_id)``); a call that does not run has
+        nothing resolved for it, so the caller supplies them.
 
-        Two shapes under one name, declared as two ``@overload`` signatures for the type
-        checker (a single action → one answer; a list of ``(action, params)`` pairs → one
-        answer per item, same order as the list). The answer is one of the three words —
-        ``Allowed``, ``Refused`` naming its gate, or ``Undecided`` naming the step that
-        could not tell — and the list shape is
-        the primitive — it contains all the enforcement logic. The single-action shape does
-        not duplicate that logic: it recurses into this same method (``self.check_access_decide``)
-        with a one-item list and unwraps the result. ``connections`` is keyword-only on both
-        shapes: the list shape has no ``params`` slot at all, so a positional 3rd argument
-        would otherwise silently bind to different parameters depending on which overload the
-        caller thinks they're using — keyword-only removes that ambiguity entirely.
-
-        Per list item, in the same order as ``_run_internal``'s own gates (identity and roles
-        before connections): build a throwaway ``ToolsBox`` (no cache, no plugin events — it
-        never runs the real pipeline), ask the cascade for the phase that decides whether a run
-        may start, validate that item's connections, then ask the object phase. Nothing raises
-        from here the way it does from ``machine.run()``: every item's answer is a verdict —
-        ``Allowed``, ``Refused(gate=…)`` or ``Undecided(gate=…)`` — and one item's answer never
-        touches another's.
-
-        ``connections`` is not in the ADR's original sketch but is required in practice:
-        ``access_decide`` implementations typically need to look up a real object
-        (``connections["orders_db"].get(params.order_id)``, per the ADR's own example) to
-        decide anything meaningful. One shared dict for the whole list, not per item.
-
-        ``len(action) > max_check_access_decide_batch_size`` (set on ``__init__``) raises
-        ``CheckAccessDecideBatchSizeExceededError`` before touching any item — not even the first
-        ``access_decide`` runs. Each item is a real ``access_decide`` call (typically a
-        database lookup); an unbounded list would let one request force an unbounded number
-        of such lookups.
+        Nothing raises from here the way it does from ``machine.run()``: a refusal and a gate
+        that could not tell are both answers, and the word is what tells them apart.
         """
-        if isinstance(action, list):
-            if len(action) > self._max_check_access_decide_batch_size:
-                raise CheckAccessDecideBatchSizeExceededError(
-                    f"machine.check_access_decide() received {len(action)} items, exceeding "
-                    f"max_check_access_decide_batch_size={self._max_check_access_decide_batch_size}.",
-                    item_count=len(action),
-                    max_check_access_decide_batch_size=self._max_check_access_decide_batch_size,
-                )
-            verdicts: list[Verdict] = []
-            for item_action, item_params in action:
-                item_instance = item_action()
-                action_node = self.get_action_node_by_id(item_action)
-                box = self._build_check_box(context, item_params, action_node)
-                plugin_ctx = await self._plugin_coordinator.create_run_context()
+        action_instance = action()
+        action_node = self.get_action_node_by_id(action)
+        box = self._build_check_box(context, params, action_node)
+        plugin_ctx = await self._plugin_coordinator.create_run_context()
 
-                early = await self._decide(context, item_instance, item_params, box, {}, gates=GATES_BEFORE_RUN)
-                if not isinstance(early, Allowed):
-                    verdicts.append(early)
-                    continue
+        early = await self._decide(context, action_instance, params, box, {}, gates=GATES_BEFORE_RUN)
+        if not isinstance(early, Allowed):
+            return early
 
-                conns = self._connection_validator.validate(item_instance, connections, action_node)
-                check_started_at = time.monotonic()
-                check_name = await self._announce_object_check(
-                    plugin_ctx,
-                    action=item_instance,
-                    action_node=action_node,
-                    context=context,
-                    params=item_params,
-                    nest_level=0,
-                )
-                answer = await self._decide(
-                    context, item_instance, item_params, box, conns, gates=GATES_AT_OBJECT
-                )
-                await self._announce_object_check_finished(
-                    plugin_ctx,
-                    action=item_instance,
-                    context=context,
-                    params=item_params,
-                    nest_level=0,
-                    check_name=check_name,
-                    verdict=answer,
-                    started_at=check_started_at,
-                )
-                verdicts.append(answer)
-            return verdicts
-        items = [(action, params)]
-        one: list[Verdict] = await self.check_access_decide(context, items, connections=connections)
-        return one[0]
+        conns = self._connection_validator.validate(action_instance, connections, action_node)
+        check_started_at = time.monotonic()
+        check_name = await self._announce_object_check(
+            plugin_ctx,
+            action=action_instance,
+            action_node=action_node,
+            context=context,
+            params=params,
+            nest_level=0,
+        )
+        answer = await self._decide(context, action_instance, params, box, conns, gates=GATES_AT_OBJECT)
+        await self._announce_object_check_finished(
+            plugin_ctx,
+            action=action_instance,
+            context=context,
+            params=params,
+            nest_level=0,
+            check_name=check_name,
+            verdict=answer,
+            started_at=check_started_at,
+        )
+        return answer
 
     def _build_check_box(
         self,

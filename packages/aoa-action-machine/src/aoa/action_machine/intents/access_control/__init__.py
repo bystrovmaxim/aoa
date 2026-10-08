@@ -16,7 +16,7 @@ The framework publishes those words and invents no reason text: a ``reason``
 belongs to the developer who declared a condition, and ``FORBIDDEN_OBJECT`` is
 the one shared refusal an object-scoped check returns.
 
-The package still carries ``AccessVerdict``, the answer the question path returns
+The package no longer carries the old batch answer, the answer the question path returns
 while the change is in progress; it is replaced once the machine answers with the
 three answers above.
 
@@ -62,7 +62,6 @@ EXAMPLES
 
 from __future__ import annotations
 
-from aoa.action_machine.intents.access_control.access_verdict import AccessVerdict
 from aoa.action_machine.intents.access_control.allowed import Allowed
 from aoa.action_machine.intents.access_control.cascade import (
     GATES,
@@ -82,7 +81,6 @@ __all__ = [
     "GATES",
     "GATES_AT_OBJECT",
     "GATES_BEFORE_RUN",
-    "AccessVerdict",
     "Allowed",
     "Gate",
     "Refused",
