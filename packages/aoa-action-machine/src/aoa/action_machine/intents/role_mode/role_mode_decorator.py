@@ -53,6 +53,9 @@ from collections.abc import Callable
 from enum import Enum
 from typing import Any, TypeVar, cast
 
+from aoa.action_machine.exceptions.decorator_argument_type_error import DecoratorArgumentTypeError
+from aoa.action_machine.exceptions.decorator_target_error import DecoratorTargetError
+from aoa.action_machine.exceptions.role_mode_declaration_error import RoleModeDeclarationError
 from aoa.action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
 
 _RT = TypeVar("_RT", bound=type)
@@ -76,13 +79,13 @@ class RoleMode(Enum):
                 ``_role_mode_info`` / a valid ``mode`` entry.
         """
         if not issubclass(role, RoleModeIntent):
-            raise TypeError(f"{cls.__name__}.declared_for expects a RoleModeIntent subclass, got {role!r}.")
+            raise DecoratorArgumentTypeError(f"{cls.__name__}.declared_for expects a RoleModeIntent subclass, got {role!r}.")
         info = getattr(role, "_role_mode_info", None)
         if not isinstance(info, dict):
-            raise TypeError(f"Role {role.__qualname__} has no _role_mode_info; apply @role_mode(...).")
+            raise RoleModeDeclarationError(f"Role {role.__qualname__} has no _role_mode_info; apply @role_mode(...).")
         raw = info.get("mode")
         if not isinstance(raw, RoleMode):
-            raise TypeError(f"Role {role.__qualname__} has invalid _role_mode_info['mode']: {raw!r}.")
+            raise RoleModeDeclarationError(f"Role {role.__qualname__} has invalid _role_mode_info['mode']: {raw!r}.")
         return raw
 
 
@@ -94,7 +97,7 @@ def role_mode(mode: RoleMode) -> Callable[[_RT], _RT]:
 
     def decorator(cls: _RT) -> _RT:
         if not isinstance(cls, type):
-            raise TypeError(f"@role_mode applies only to classes, got {type(cls)!r}.")
+            raise DecoratorTargetError(f"@role_mode applies only to classes, got {type(cls)!r}.")
         cast(Any, cls)._role_mode_info = {"mode": mode}
         return cls
 

@@ -63,6 +63,9 @@ import asyncio
 from collections.abc import Callable
 from typing import Any
 
+from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
+from aoa.action_machine.exceptions.description_contract_error import DescriptionContractError
+from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.intents.access_decide.access_decide_signature import (
     validate_annotated,
@@ -87,7 +90,7 @@ _EXPECTED_PARAMS_WITH_CTX = 6
 
 def _method_callable_invariant(func: Any) -> None:
     if not callable(func):
-        raise TypeError(
+        raise DeclarationStructureError(
             f"@access_decide can only be applied to methods. Got object of type {type(func).__name__}: {func!r}."
         )
 
@@ -103,7 +106,7 @@ def _method_suffix_invariant(func: Callable[..., Any]) -> None:
 
 def _method_async_invariant(func: Callable[..., Any]) -> None:
     if not asyncio.iscoroutinefunction(func):
-        raise TypeError(f"@access_decide: method '{func.__name__}' must be async (async def).")
+        raise DeclarationStructureError(f"@access_decide: method '{func.__name__}' must be async (async def).")
 
 
 def access_decide(description: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
@@ -135,11 +138,11 @@ def access_decide(description: str) -> Callable[[Callable[..., Any]], Callable[.
             ...
     """
     if not isinstance(description, str):
-        raise TypeError(
+        raise DescriptionTypeError(
             f"@access_decide expects a string description, got {type(description).__name__}."
         )
     if not description.strip():
-        raise ValueError(
+        raise DescriptionContractError(
             "@access_decide: description cannot be empty or whitespace. "
             "Say what the check decides."
         )

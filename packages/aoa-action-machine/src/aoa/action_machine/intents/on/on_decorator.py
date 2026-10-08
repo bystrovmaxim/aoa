@@ -99,7 +99,12 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from aoa.action_machine.exceptions.async_required_error import AsyncRequiredError
+from aoa.action_machine.exceptions.decorator_argument_type_error import DecoratorArgumentTypeError
+from aoa.action_machine.exceptions.decorator_argument_value_error import DecoratorArgumentValueError
+from aoa.action_machine.exceptions.decorator_target_error import DecoratorTargetError
 from aoa.action_machine.exceptions.naming_prefix_error import NamingPrefixError
+from aoa.action_machine.exceptions.signature_contract_error import SignatureContractError
 from aoa.action_machine.plugin.core.events import BasePluginEvent
 from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 
@@ -121,7 +126,7 @@ _REQUIRED_PREFIX = "on_"
 def _validate_event_class(event_class: Any) -> None:
     """Validate event_class as BasePluginEvent subclass."""
     if not isinstance(event_class, type) or not issubclass(event_class, BasePluginEvent):
-        raise TypeError(
+        raise DecoratorArgumentTypeError(
             f"@on: first argument event_class must be a BasePluginEvent subclass, "
             f"got {event_class!r}. Example: @on(GlobalFinishEvent)"
         )
@@ -140,10 +145,10 @@ def _normalize_action_class(
     if isinstance(action_class, tuple):
         for i, item in enumerate(action_class):
             if not isinstance(item, type):
-                raise TypeError(f"@on: action_class[{i}] must be a type, " f"got {type(item).__name__}: {item!r}.")
+                raise DecoratorArgumentTypeError(f"@on: action_class[{i}] must be a type, " f"got {type(item).__name__}: {item!r}.")
         return action_class
 
-    raise TypeError(
+    raise DecoratorArgumentTypeError(
         f"@on: action_class must be a type, tuple of types, or None, "
         f"got {type(action_class).__name__}: {action_class!r}."
     )
@@ -152,7 +157,7 @@ def _normalize_action_class(
 def _validate_string_or_none(value: Any, param_name: str) -> None:
     """Validate value as string or None."""
     if value is not None and not isinstance(value, str):
-        raise TypeError(f"@on: {param_name} must be a string or None, " f"got {type(value).__name__}: {value!r}.")
+        raise DecoratorArgumentTypeError(f"@on: {param_name} must be a string or None, " f"got {type(value).__name__}: {value!r}.")
 
 
 def _normalize_nest_level(
@@ -164,18 +169,18 @@ def _normalize_nest_level(
 
     if isinstance(nest_level, int):
         if nest_level < 0:
-            raise ValueError(f"@on: nest_level cannot be negative, got {nest_level}.")
+            raise DecoratorArgumentValueError(f"@on: nest_level cannot be negative, got {nest_level}.")
         return (nest_level,)
 
     if isinstance(nest_level, tuple):
         for i, item in enumerate(nest_level):
             if not isinstance(item, int):
-                raise TypeError(f"@on: nest_level[{i}] must be int, " f"got {type(item).__name__}: {item!r}.")
+                raise DecoratorArgumentTypeError(f"@on: nest_level[{i}] must be int, " f"got {type(item).__name__}: {item!r}.")
             if item < 0:
-                raise ValueError(f"@on: nest_level[{i}] cannot be negative, got {item}.")
+                raise DecoratorArgumentValueError(f"@on: nest_level[{i}] cannot be negative, got {item}.")
         return nest_level
 
-    raise TypeError(
+    raise DecoratorArgumentTypeError(
         f"@on: nest_level must be int, tuple[int, ...], or None, " f"got {type(nest_level).__name__}: {nest_level!r}."
     )
 
@@ -183,24 +188,24 @@ def _normalize_nest_level(
 def _validate_domain(domain: Any) -> None:
     """Validate domain as type or None."""
     if domain is not None and not isinstance(domain, type):
-        raise TypeError(f"@on: domain must be a domain type or None, " f"got {type(domain).__name__}: {domain!r}.")
+        raise DecoratorArgumentTypeError(f"@on: domain must be a domain type or None, " f"got {type(domain).__name__}: {domain!r}.")
 
 
 def _validate_predicate(predicate: Any) -> None:
     """Validate predicate as callable or None."""
     if predicate is not None and not callable(predicate):
-        raise TypeError(f"@on: predicate must be callable or None, " f"got {type(predicate).__name__}: {predicate!r}.")
+        raise DecoratorArgumentTypeError(f"@on: predicate must be callable or None, " f"got {type(predicate).__name__}: {predicate!r}.")
 
 
 def _validate_method(func: Any, event_class_name: str) -> None:
     """Validate decorated method contract: callable, async, signature, prefix."""
     if not callable(func):
-        raise TypeError(
+        raise DecoratorTargetError(
             f"@on can only be applied to methods/callables. " f"Got object of type {type(func).__name__}: {func!r}."
         )
 
     if not asyncio.iscoroutinefunction(func):
-        raise TypeError(
+        raise AsyncRequiredError(
             f"@on({event_class_name}): method {func.__name__} "
             f"must be async (async def). Synchronous handlers are not supported."
         )
@@ -208,7 +213,7 @@ def _validate_method(func: Any, event_class_name: str) -> None:
     sig = inspect.signature(func)
     param_count = len(sig.parameters)
     if param_count != _EXPECTED_PARAM_COUNT:
-        raise TypeError(
+        raise SignatureContractError(
             f"@on({event_class_name}): method {func.__name__} "
             f"must accept {_EXPECTED_PARAM_COUNT} parameters "
             f"({_EXPECTED_PARAM_NAMES}), got {param_count}."

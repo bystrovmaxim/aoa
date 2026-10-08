@@ -7,6 +7,7 @@ import sys
 import typing
 from typing import Any, ForwardRef, Literal, get_args, get_origin
 
+from aoa.action_machine.exceptions.action_result_declaration_error import ActionResultDeclarationError
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 
@@ -25,7 +26,7 @@ class ActionSchemaIntentResolver:
         """Resolve the ``BaseAction[P, R]`` params type."""
         params_type = ActionSchemaIntentResolver._resolve_schema_type(action_cls, 0)
         if params_type is None:
-            raise ValueError(
+            raise ActionResultDeclarationError(
                 f"Failed to resolve params type for {action_cls.__name__}. "
                 "Action must be declared as BaseAction[Params, Result]."
             )
@@ -38,13 +39,13 @@ class ActionSchemaIntentResolver:
         """Resolve the ``BaseAction[P, R]`` result type (``BaseResult`` subclass)."""
         result_type = ActionSchemaIntentResolver._resolve_schema_type(action_cls, 1)
         if result_type is None:
-            raise ValueError(
+            raise ActionResultDeclarationError(
                 f"Failed to resolve result type for {action_cls.__name__}. "
                 "Action must be declared as BaseAction[Params, Result].",
             )
         if isinstance(result_type, type) and issubclass(result_type, BaseResult):
             return result_type
-        raise ValueError(
+        raise ActionResultDeclarationError(
             f"Declared result type {getattr(result_type, '__name__', result_type)!r} for "
             f"{action_cls.__name__} must be a subclass of BaseResult.",
         )

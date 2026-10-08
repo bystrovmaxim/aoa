@@ -7,6 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from aoa.action_machine.auth.base_role import BaseRole
+from aoa.action_machine.exceptions.role_spec_type_error import RoleSpecTypeError
 from aoa.action_machine.intents.check_roles.reason_validation import require_reason_alongside
 
 
@@ -30,6 +31,6 @@ def grant(
     this grant alone, so each alternative can explain itself differently.
     """
     if not isinstance(role, type) or not issubclass(role, BaseRole):
-        raise TypeError(f"grant() expected a BaseRole subclass, got {role!r}.")
+        raise RoleSpecTypeError(f"grant() expected a BaseRole subclass, got {role!r}.")
     require_reason_alongside(when, reason, condition_name="when", reason_name="reason")
     return Grant(role=role, when=when, reason=reason)

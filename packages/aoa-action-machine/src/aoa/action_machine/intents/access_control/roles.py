@@ -77,6 +77,7 @@ from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.exceptions.role_spec_type_error import RoleSpecTypeError
 from aoa.action_machine.intents.access_control.gate import Gate
 from aoa.action_machine.intents.access_control.refused import Refused
 from aoa.action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
@@ -120,7 +121,7 @@ class RoleChecker:
             return self._sentinel_answer(context, grants, role_spec)
         if isinstance(role_spec, tuple) or (isinstance(role_spec, type) and issubclass(role_spec, BaseRole)):
             return self._concrete_answer(context, grants, role_spec)
-        raise TypeError(f"Invalid reconstructed @check_roles spec: {role_spec!r} " f"({type(role_spec).__name__}).")
+        raise RoleSpecTypeError(f"Invalid reconstructed @check_roles spec: {role_spec!r} " f"({type(role_spec).__name__}).")
 
     @classmethod
     def _sentinel_answer(
