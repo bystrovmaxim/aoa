@@ -108,7 +108,7 @@ class RoleGatedAction(BaseAction["RoleGatedAction.Params", "RoleGatedAction.Resu
 
 
 @meta(description="lifecycle: the shared condition refused", domain=SystemDomain)
-@check_roles(AdminRole, guard=_guard_never)
+@check_roles(AdminRole, guard=_guard_never, guard_reason="GUARD_NEVER")
 class GuardRefusedAction(BaseAction["GuardRefusedAction.Params", "GuardRefusedAction.Result"]):
     """An operation whose shared condition refuses."""
 

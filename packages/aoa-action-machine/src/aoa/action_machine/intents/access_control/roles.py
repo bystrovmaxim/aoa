@@ -131,7 +131,8 @@ class RoleChecker:
     ) -> Refused | None:
         """``GuestRole``/``AnyRole`` — exactly one grant, no role-matching search needed.
 
-        ``grant(GuestRole, when=...)``/``grant(AnyRole, when=...)`` are valid declarations
+        ``grant(GuestRole, when=..., reason=...)``/``grant(AnyRole, when=..., reason=...)`` are
+        valid declarations
         (both sentinels are ordinary ``BaseRole`` subclasses as far as ``grant()`` is
         concerned) and must not be silently ignored just because the sentinel itself
         bypasses role matching.
@@ -141,7 +142,7 @@ class RoleChecker:
 
         when = grants[0].when
         if when is not None and not when(context.user):
-            return Refused(gate=Gate.WHEN)
+            return Refused(gate=Gate.WHEN, reason=grants[0].reason)
         return None
 
     @classmethod
@@ -155,16 +156,19 @@ class RoleChecker:
         _ = role_spec
         active = _active_user_roles(context.user.roles)
         role_matched = False
+        refused_reason: str | None = None
         for grant in grants:
             if not any(_user_role_grants_requirement(ur, grant.role) for ur in active):
                 continue
             role_matched = True
             when = grant.when
             if when is not None and not when(context.user):
+                if refused_reason is None:
+                    refused_reason = grant.reason
                 continue
             return None
 
-        return _denial_answer(role_matched)
+        return _denial_answer(role_matched, refused_reason)
 
 
 def _active_user_roles(
@@ -185,6 +189,14 @@ def _user_role_grants_requirement(user_role: type[BaseRole], required: type[Base
     return issubclass(user_role, required)
 
 
-def _denial_answer(role_matched: bool) -> Refused:
-    """The word that tells "no listed role held" from "a matching role's condition refused"."""
-    return Refused(gate=Gate.WHEN if role_matched else Gate.CHECK_ROLES)
+def _denial_answer(role_matched: bool, refused_reason: str | None = None) -> Refused:
+    """The word that tells "no listed role held" from "a matching role's condition refused".
+
+    A condition always declares the reason it refuses with, so ``WHEN`` — the word for
+    "a matching role's condition refused" — carries one. ``CHECK_ROLES`` means no listed
+    role was held at all: no condition decided that, so there is nothing to explain and
+    the answer carries the word alone (FR-012).
+    """
+    if role_matched:
+        return Refused(gate=Gate.WHEN, reason=refused_reason)
+    return Refused(gate=Gate.CHECK_ROLES)

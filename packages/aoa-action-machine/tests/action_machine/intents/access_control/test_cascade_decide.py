@@ -195,7 +195,7 @@ class RoleGatedAction(BaseAction["RoleGatedAction.Params", "RoleGatedAction.Resu
 
 
 @meta(description="cascade: a matching role whose condition refuses", domain=SystemDomain)
-@check_roles(grant(ManagerRole, when=_never))
+@check_roles(grant(ManagerRole, when=_never, reason="CONDITION_NEVER"))
 class ConditionRefusingAction(BaseAction["ConditionRefusingAction.Params", "ConditionRefusingAction.Result"]):
     """An operation whose only grant matches the role and then refuses by condition."""
 
@@ -207,7 +207,7 @@ class ConditionRefusingAction(BaseAction["ConditionRefusingAction.Params", "Cond
 
 
 @meta(description="cascade: an operation with a shared condition", domain=SystemDomain)
-@check_roles(AdminRole, guard=_guard_never)
+@check_roles(AdminRole, guard=_guard_never, guard_reason="GUARD_NEVER")
 class GuardedAction(BaseAction["GuardedAction.Params", "GuardedAction.Result"]):
     """An operation whose shared condition refuses everyone."""
 
@@ -477,7 +477,7 @@ class TestTheRealSteps:
 
     async def test_every_probe_passes_when_nothing_refuses(self) -> None:
         @meta(description="cascade: an open operation", domain=SystemDomain)
-        @check_roles(AdminRole, guard=lambda _user, _params: True)
+        @check_roles(AdminRole, guard=lambda _user, _params: True, guard_reason="OPEN")
         class OpenAction(BaseAction["OpenAction.Params", "OpenAction.Result"]):
             """An operation whose condition allows everyone."""
 

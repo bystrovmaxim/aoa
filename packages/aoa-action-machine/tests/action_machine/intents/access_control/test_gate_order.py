@@ -55,7 +55,7 @@ def _guard_records(user: Any, params: Any) -> bool:
 
 
 @meta(description="order: role-gated with a guard and an object step", domain=SystemDomain)
-@check_roles(AdminRole, guard=_guard_records)
+@check_roles(AdminRole, guard=_guard_records, guard_reason="RECORDS_ONLY")
 class GuardedAction(BaseAction["GuardedAction.Params", "GuardedAction.Result"]):
     """An operation whose later steps may read the parameters."""
 

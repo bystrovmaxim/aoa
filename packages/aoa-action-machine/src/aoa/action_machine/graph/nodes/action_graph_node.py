@@ -25,7 +25,7 @@ ARCHITECTURE / DATA FLOW
 
     ActionGraphNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
 
-``properties["guard"]`` holds the ``@check_roles(..., guard=...)`` condition — one
+``properties["guard"]`` holds the ``@check_roles(..., guard=..., guard_reason=...)`` condition — one
 per action, shared by every declared grant. It lives here, on the per-action node,
 rather than on :class:`~aoa.action_machine.graph.edges.role_graph_edge.RoleGraphEdge`
 (which carries each grant's own ``when``), because ``guard`` is the same value for
@@ -109,6 +109,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
                 {
                     "description": MetaIntentResolver.resolve_description(action_cls),
                     "guard": CheckRolesIntentResolver.resolve_guard(action_cls),
+                    "guard_reason": CheckRolesIntentResolver.resolve_guard_reason(action_cls),
                 }
             ),
             node_obj=action_cls,

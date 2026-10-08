@@ -209,8 +209,9 @@ def _order_not_archived(user, params) -> bool:
 @meta(description="grant()/guard= probe for RoleChecker level 2", domain=SystemDomain)
 @check_roles(
     grant(AdminRole),
-    grant(ManagerRole, when=_is_sales_agent),
+    grant(ManagerRole, when=_is_sales_agent, reason="SALES_AGENT_ONLY"),
     guard=_order_not_archived,
+    guard_reason="ORDER_NOT_ARCHIVED",
 )
 class GrantGuardProbeAction(BaseAction["GrantGuardProbeAction.Params", "GrantGuardProbeAction.Result"]):
     class Params(BaseParams):
@@ -282,7 +283,7 @@ def _always_false(user) -> bool:
 
 
 @meta(description="GuestRole grant with its own when= probe", domain=SystemDomain)
-@check_roles(grant(GuestRole, when=_always_false))
+@check_roles(grant(GuestRole, when=_always_false, reason="GUEST_NEVER"))
 class GuestWhenProbeAction(BaseAction["GuestWhenProbeAction.Params", "GuestWhenProbeAction.Result"]):
     class Params(BaseParams):
         pass
@@ -312,7 +313,7 @@ def test_guest_role_grant_when_false_answers_when() -> None:
 
 
 @meta(description="AnyRole grant with its own when= probe", domain=SystemDomain)
-@check_roles(grant(AnyRole, when=_always_false))
+@check_roles(grant(AnyRole, when=_always_false, reason="ANY_NEVER"))
 class AnyWhenProbeAction(BaseAction["AnyWhenProbeAction.Params", "AnyWhenProbeAction.Result"]):
     class Params(BaseParams):
         pass

@@ -19,7 +19,8 @@ ARCHITECTURE / DATA FLOW
 One edge per declared ``grant(...)`` (or bare role, normalized to a grant with
 ``when=None``) — not deduplicated by role, since two grants for the same role
 with different ``when=`` conditions are structurally distinct. Each edge carries
-its grant's ``when`` condition in ``properties["when"]`` (runtime-only, like
+its grant's ``when`` condition in ``properties["when"]`` and the reason that condition
+declares in ``properties["when_reason"]`` (both runtime-only, like
 ``DependsGraphEdge``'s ``factory`` — never exported by :meth:`to_dict`) for
 :class:`~aoa.action_machine.intents.access_control.roles.RoleChecker` to evaluate.
 
@@ -64,13 +65,14 @@ class RoleGraphEdge(AssociationGraphEdge):
         *,
         role_cls: type[BaseRole],
         when: Callable[..., bool] | None = None,
+        reason: str | None = None,
     ) -> None:
         super().__init__(
             edge_name="@check_roles",
             is_dag=False,
             target_node_id=TypeIntrospection.full_qualname(role_cls),
             target_node=None,
-            properties={"when": when},
+            properties={"when": when, "when_reason": reason},
         )
 
     def to_dict(self, *, source_id: str) -> dict[str, Any]:
@@ -89,4 +91,4 @@ class RoleGraphEdge(AssociationGraphEdge):
     ) -> list[RoleGraphEdge]:
         """Return one association stub per declared ``@check_roles`` grant, in declaration order."""
         grants = CheckRolesIntentResolver.resolve_grants(action_cls)
-        return [RoleGraphEdge(role_cls=g.role, when=g.when) for g in grants]
+        return [RoleGraphEdge(role_cls=g.role, when=g.when, reason=g.reason) for g in grants]

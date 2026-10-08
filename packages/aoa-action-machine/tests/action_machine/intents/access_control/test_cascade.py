@@ -132,7 +132,7 @@ class RoleOnlyAction(BaseAction["RoleOnlyAction.Params", "RoleOnlyAction.Result"
 
 
 @meta(description="matrix: a role matched, its condition refused", domain=SystemDomain)
-@check_roles(grant(ManagerRole, when=_when_never))
+@check_roles(grant(ManagerRole, when=_when_never, reason="WHEN_NEVER"))
 class WhenAction(BaseAction["WhenAction.Params", "WhenAction.Result"]):
     """An operation whose grant carries a condition that refuses."""
 
@@ -160,7 +160,7 @@ class WhenAction(BaseAction["WhenAction.Params", "WhenAction.Result"]):
 
 
 @meta(description="matrix: the shared condition refused", domain=SystemDomain)
-@check_roles(AdminRole, guard=_guard_never)
+@check_roles(AdminRole, guard=_guard_never, guard_reason="GUARD_NEVER")
 class GuardAction(BaseAction["GuardAction.Params", "GuardAction.Result"]):
     """An operation whose shared condition refuses."""
 

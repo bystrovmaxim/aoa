@@ -20,8 +20,8 @@ async def cancel_order(self, params: CancelOrderParams) -> OrderResult: ...
              reason="REGION_NOT_SUPPORTED")
 ```
 
-- `reason=` sits beside the condition it explains, and only there: a `reason=` with no `when=` and no `guard=` is a declaration error (FR-010).
-- A condition without a declared reason answers with the gate alone: the framework adds no text of its own (FR-012).
+- `reason=` sits beside the condition it explains, and only there: a `reason=` with no `when=` and no `guard=` is a declaration error, and so is a condition without one — *a caller must not have to guess why the operation refused* (FR-010).
+- Where no condition decided the refusal — the caller held none of the listed roles, or the object answer you wrote carries no reason — the answer carries the gate alone: the framework adds no text of its own (FR-012).
 - A declared reason is any non-empty string, and it reaches the caller unchanged; nothing in the framework restates or renames it.
 
 ## Answering about a particular object

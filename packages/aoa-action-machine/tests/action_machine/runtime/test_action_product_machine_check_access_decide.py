@@ -74,7 +74,7 @@ def _admin_context() -> Context:
 
 
 @meta(description="machine.check_access_decide probe", domain=SystemDomain)
-@check_roles(AdminRole, guard=_guard)
+@check_roles(AdminRole, guard=_guard, guard_reason="CHECK_PROBE_GUARD")
 class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.Result"]):
     class Params(BaseParams):
         key: str = Field(default="")

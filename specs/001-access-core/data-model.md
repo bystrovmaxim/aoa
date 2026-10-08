@@ -12,7 +12,7 @@ The result of a decision. Exactly one of three shapes, never a base instance and
 | **Allowed** | `kind` | `Literal["allowed"]` | The answer that lets the call continue (FR-003) |
 | **Refused** | `kind` | `Literal["refused"]` | — |
 | | `gate` | `Gate` | Always set; names the gate that refused (FR-004). Defaults to `ACCESS_DECIDE`, the one gate a developer writes |
-| | `reason` | `str` | Non-empty, no whitespace-only value (FR-004). Either a fixed code or the developer's declared reason (FR-010, FR-012) |
+| | `reason` | `str` | Non-empty, no whitespace-only value (FR-004). The reason the developer declared beside the condition that refused; absent only where no condition decided it (FR-010, FR-012) |
 | **Undecided** | `kind` | `Literal["undecided"]` | The answer a gate gives when it cannot tell (FR-003, FR-005) |
 | | `gate` | `Gate` | Names the step that could not tell; the answer says where it stopped, not why (FR-005) |
 | | `_cause` | `BaseException \| None` | Private: never in `model_dump()`, never in an event, never in an answer (FR-015, D9) |

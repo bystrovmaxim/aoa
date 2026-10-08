@@ -64,6 +64,7 @@ class CustomerRole(ApplicationRole):
 @check_roles(
     grant(CustomerRole),
     guard=lambda user, params: not params.order_id.startswith("LOCKED-"),
+    guard_reason="ORDER_LOCKED",
 )
 class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderAction.Result"]):
 

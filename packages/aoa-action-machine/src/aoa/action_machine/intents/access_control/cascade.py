@@ -124,11 +124,15 @@ async def roles_gate(
 
 
 def guard_answer(context: Context, action: BaseAction[Any, Any], params: BaseParams | None) -> Refused | None:
-    """Answer for the operation's shared condition — the rule ``guard_gate`` carries."""
+    """Answer for the operation's shared condition — the rule ``guard_gate`` carries.
+
+    The reason is always there: a condition cannot be declared without one (FR-010), so a
+    refusal by this step never leaves the caller guessing.
+    """
     guard = CheckRolesIntentResolver.resolve_guard(type(action))
     if guard is None or guard(context.user, params):
         return None
-    return Refused(gate=Gate.GUARD)
+    return Refused(gate=Gate.GUARD, reason=CheckRolesIntentResolver.resolve_guard_reason(type(action)))
 
 
 async def guard_gate(

@@ -94,9 +94,9 @@ When a gate itself cannot complete — the store is unreachable, the gate raises
 - **FR-007**: The gates MUST run in a fixed, observable order: who is calling, then the roles the caller holds together with the condition each matching grant declares, then the operation's shared condition, then the object the call is about.
 - **FR-008**: The identity and role gates MUST run before the call's parameters are examined, so that a caller whose credentials were rejected receives a refusal and never a parameter error.
 - **FR-009**: Credentials that were presented and rejected MUST produce a refusal even for an operation open to guests.
-- **FR-010**: A declared condition that refuses MUST be reportable with a reason chosen by the developer; when the developer declares none, the answer carries the gate alone, because the framework invents no reason text.
+- **FR-010**: A condition MUST declare the reason it refuses with, and a declared condition without one MUST be refused when the capability is assembled: a caller must never have to guess why the operation refused. The reason is the developer's own text, and the framework invents none (FR-012).
 - **FR-011**: A refusal about a particular object MUST be identical — same word, same gate, same reason — whether the object does not exist or belongs to another caller, and both cases MUST be decided in a single step of the gate.
-- **FR-012**: The framework MUST NOT invent reason text of its own: the published word a caller branches on is the gate, and a reason exists only where a developer declared one.
+- **FR-012**: The framework MUST NOT invent reason text of its own: the published word a caller branches on is the gate, and a reason exists only where a developer declared one. Where no condition decided the refusal — no listed role held, or an object answer the developer chose to keep silent — the answer carries the gate alone.
 - **FR-013**: A gate that cannot complete MUST publish a **new event type** while the call is executing, carrying the gate that could not tell, the kind of failure, and the identity of the request taken from the context when the context carries one — never invented locally — and the decision itself is undecided. Asking in advance publishes nothing of the kind.
 - **FR-014**: The new event type MUST be an addition: no existing event is renamed, removed, or changed in what it carries.
 - **FR-015**: Nothing about the internal cause of a failure may be published: neither the answer nor any published event carries the text of a failure raised inside a gate, and a caller can branch only on the answer word, the name of the refusing gate and the reason.
@@ -120,7 +120,7 @@ When a gate itself cannot complete — the store is unreachable, the gate raises
 ### Measurable Outcomes
 
 - **SC-001**: Across the full decision matrix of three answers × four steps × two paths — with the roles step taken in both of its answers — 100% of decisions are exactly one of the three answers and name their gate whenever they are not allowed, and the question path publishes zero run-lifecycle events.
-- **SC-002**: 100% of refusals carry the gate that refused, and 100% of developer-declared reasons reach the caller unchanged.
+- **SC-002**: 100% of refusals carry the gate that refused, and 100% of the reasons declared beside a condition reach the caller unchanged; a condition declared without a reason is refused when the capability is assembled.
 - **SC-003**: In at least 10 sampled object-scoped refusals, the answer for "object does not exist" and the answer for "object belongs to another caller" are identical in word, gate and reason.
 - **SC-004**: In 100 runs where a gate cannot complete — half raising outright, half returning undecided from inside the gate — every outcome is undecided, zero read as a refusal, and zero are stored or reused as one.
 - **SC-005**: An operation without an access declaration prevents start-up in 100% of attempts, measured at start-up, before any call is handled.
