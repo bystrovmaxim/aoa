@@ -36,6 +36,7 @@ The guide moves from a practical entry point to the complete project architectur
 - **[AOA as a project skeleton](explanation/aoa-project-skeleton.md)** — AOA's three layers: service boundary, business operations, data and domain model; connection with clean and hexagonal architecture
 - **[The philosophy of AOA](explanation/philosophy.md)** — why the architecture is built exactly this way: the principles underneath
 - **[Comparison with other frameworks](explanation/comparison.md)** — AOA next to FastAPI, Django, Clean/DDD, CQRS, Temporal; when to apply it
+- **[Verification must be independent](explanation/verification-must-be-independent.md)** — why generated code needs a contract the model did not write: the three phases, the bottleneck that moved to verification, ten enforcements reproduced from the shipped environment, acceptance by blueprint in Maxitor, and the full map of phase 4 — six variants, the criterion that separates a phase from an extension, and what would falsify the direction
 - **Performance** *(soon)* — the orchestration layer as a conscious cost: where the overhead lives, what to measure, and when a hot path is not cast as an Action
 
 ---
