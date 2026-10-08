@@ -40,7 +40,7 @@ class TestActionGraphNodeGuard:
 
     def test_guard_carried_on_node_properties(self) -> None:
         @meta(description="with guard", domain=TestDomain)
-        @check_roles(AdminRole, guard=_own_order_only)
+        @check_roles(AdminRole, guard=_own_order_only, guard_reason="OWN_ORDER_ONLY")
         class _GuardedAction(BaseAction["_GuardedAction.Params", "_GuardedAction.Result"]):
             class Params(BaseParams):
                 dummy: str = Field(default="x")
@@ -59,7 +59,7 @@ class TestActionGraphNodeGuard:
         """``guard`` is runtime-only, like ``DependsGraphEdge``'s ``factory`` — never serialized."""
 
         @meta(description="with guard", domain=TestDomain)
-        @check_roles(AdminRole, guard=_own_order_only)
+        @check_roles(AdminRole, guard=_own_order_only, guard_reason="OWN_ORDER_ONLY")
         class _GuardedAction(BaseAction["_GuardedAction.Params", "_GuardedAction.Result"]):
             class Params(BaseParams):
                 dummy: str = Field(default="x")

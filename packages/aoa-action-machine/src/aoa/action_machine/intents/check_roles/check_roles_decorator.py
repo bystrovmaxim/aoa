@@ -8,7 +8,7 @@ PURPOSE
 
 Declare which **role types** are required to execute an action. The decorator
 writes a normalized specification to ``cls._role_info["spec"]``, consumed by
-``ActionProductMachine`` / :class:`~aoa.action_machine.runtime.role_checker.RoleChecker`. The
+``ActionProductMachine`` / :class:`~aoa.action_machine.intents.access_control.roles.RoleChecker`. The
 spec must be ``GuestRole``, ``AnyRole``, a ``BaseRole`` subclass, or a
 non-empty list of ``BaseRole`` subclasses (OR semantics). ``Context.user.roles``
 holds the same ``BaseRole`` subclasses assigned to the user.
@@ -24,7 +24,7 @@ per grant, ``when`` in ``edge.properties["when"]``) and
 :class:`~aoa.action_machine.graph.nodes.action_graph_node.ActionGraphNode`
 (``guard`` in ``node.properties["guard"]``) when the interchange graph is built,
 same as every other ``@check_roles`` fact.
-:class:`~aoa.action_machine.runtime.role_checker.RoleChecker` reads the wired
+:class:`~aoa.action_machine.intents.access_control.roles.RoleChecker` reads the wired
 graph, not ``_role_info``, at runtime in a later step — this decorator only
 declares and validates the surface. ``when=``/``guard=`` must be synchronous
 callables: ``async def`` raises
@@ -36,7 +36,8 @@ ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     @check_roles(AdminRole)
-    @check_roles(grant(AdminRole), grant(ManagerRole, when=...), guard=...)
+    @check_roles(grant(AdminRole), grant(ManagerRole, when=..., reason=...),
+                 guard=..., guard_reason=...)
             |
             v
     normalize spec / grants to role-type contract
@@ -82,6 +83,7 @@ from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.exceptions.access_condition_async_error import AccessConditionAsyncError
 from aoa.action_machine.intents.check_roles.grant import Grant
+from aoa.action_machine.intents.check_roles.reason_validation import require_reason_alongside
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode
 
 
@@ -181,17 +183,24 @@ def _target_is_class_invariant(cls: Any) -> None:
         )
 
 
-def check_roles(*specs: Any, guard: Callable[..., bool] | None = None) -> Any:
+def check_roles(
+    *specs: Any,
+    guard: Callable[..., bool] | None = None,
+    guard_reason: str | None = None,
+) -> Any:
     """
     Class-level decorator that declares role requirements for an action.
 
     ``grant(...)`` and ``guard=`` are optional, not a legacy form to migrate away
     from: a bare role (or a list of roles, or ``GuestRole``/``AnyRole``) is plain
     shorthand for "this role, no extra condition" — reach for ``grant(role,
-    when=...)`` only when a role actually needs one. Bare roles and ``grant(...)``
+    when=..., reason=...)`` only when a role actually needs one. A condition and its
+    reason are declared together: one without the other is refused here. Bare roles and ``grant(...)``
     instances may be mixed freely as separate positional arguments. ``guard=`` is
-    one additional condition shared by every grant. See module docstring for
-    details.
+    one additional condition shared by every grant, and ``guard_reason=`` is what the
+    caller is told when that shared condition refuses — it belongs to the operation, not
+    to any one grant, which is why it is declared here rather than inside ``grant(...)``.
+    See module docstring for details.
     """
     if len(specs) == 0:
         raise TypeError("@check_roles requires at least one role or grant(...).")
@@ -209,11 +218,17 @@ def check_roles(*specs: Any, guard: Callable[..., bool] | None = None) -> Any:
             _reject_async_condition("when", g.when)
     if guard is not None:
         _reject_async_condition("guard", guard)
+    require_reason_alongside(guard, guard_reason, condition_name="guard", reason_name="guard_reason")
 
     def decorator(cls: Any) -> Any:
         _target_is_class_invariant(cls)
 
-        cls._role_info = {"spec": normalized_spec, "grants": grants, "guard": guard}
+        cls._role_info = {
+            "spec": normalized_spec,
+            "grants": grants,
+            "guard": guard,
+            "guard_reason": guard_reason,
+        }
         return cls
 
     return decorator

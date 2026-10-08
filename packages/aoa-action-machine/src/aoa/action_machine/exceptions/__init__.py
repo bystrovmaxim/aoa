@@ -6,20 +6,20 @@ Import public types from here, for example ``from aoa.action_machine.exceptions 
 """
 
 from aoa.action_machine.exceptions.access_condition_async_error import AccessConditionAsyncError
+from aoa.action_machine.exceptions.access_denied import AccessDenied
+from aoa.action_machine.exceptions.access_undecided import AccessUndecided
 from aoa.action_machine.exceptions.action_result_declaration_error import ActionResultDeclarationError
 from aoa.action_machine.exceptions.action_result_type_error import ActionResultTypeError
 from aoa.action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
-from aoa.action_machine.exceptions.check_access_decide_batch_size_exceeded_error import (
-    CheckAccessDecideBatchSizeExceededError,
-)
 from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from aoa.action_machine.exceptions.connection_not_open_error import ConnectionNotOpenError
 from aoa.action_machine.exceptions.connection_validation_error import ConnectionValidationError
 from aoa.action_machine.exceptions.context_access_error import ContextAccessError
 from aoa.action_machine.exceptions.cyclic_dependency_error import CyclicDependencyError
 from aoa.action_machine.exceptions.domain_graph_edge_resolution_error import DomainGraphEdgeResolutionError
+from aoa.action_machine.exceptions.duplicate_access_decide_error import DuplicateAccessDecideError
 from aoa.action_machine.exceptions.graph_edge_resolution_error import GraphEdgeResolutionError
 from aoa.action_machine.exceptions.handle_error import HandleError
 from aoa.action_machine.exceptions.include_contract_violation_error import IncludeContractViolationError
@@ -40,18 +40,20 @@ from aoa.action_machine.exceptions.validation_field_error import ValidationField
 
 __all__ = [
     "AccessConditionAsyncError",
+    "AccessDenied",
+    "AccessUndecided",
     "ActionResultDeclarationError",
     "ActionResultTypeError",
     "AspectPipelineError",
     "AuthorizationError",
     "CacheContractError",
-    "CheckAccessDecideBatchSizeExceededError",
     "ConnectionAlreadyOpenError",
     "ConnectionNotOpenError",
     "ConnectionValidationError",
     "ContextAccessError",
     "CyclicDependencyError",
     "DomainGraphEdgeResolutionError",
+    "DuplicateAccessDecideError",
     "GraphEdgeResolutionError",
     "HandleError",
     "IncludeContractViolationError",

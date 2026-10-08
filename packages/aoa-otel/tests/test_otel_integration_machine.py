@@ -26,6 +26,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from opentelemetry._logs import SeverityNumber
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import InMemoryLogRecordExporter, SimpleLogRecordProcessor
 from opentelemetry.sdk.trace import TracerProvider
@@ -35,6 +36,10 @@ from opentelemetry.trace import StatusCode
 from pydantic import Field
 
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.context.request_info import RequestInfo
+from aoa.action_machine.exceptions import AccessDenied, AccessUndecided
+from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Verdict
+from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
@@ -205,6 +210,52 @@ class OtelSagaAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         connections: dict[str, BaseResource],
     ) -> OtelOrderResult:
         return OtelOrderResult(order_id="unreachable")
+
+
+@meta(description="OTel integration failing gate", domain=TestDomain)
+@check_roles(GuestRole)
+class OtelFailingGateAction(BaseAction[OtelOrderParams, OtelOrderResult]):
+    """An object check that cannot complete: the store behind it is down."""
+
+    @access_decide("Fail, as a store that is down fails")
+    async def otel_failing_gate_access_decide(
+        self,
+        params: OtelOrderParams,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> Verdict:
+        raise ConnectionError(_FAILURE_TEXT)
+
+    @summary_aspect("build")
+    async def build_summary(
+        self, params: OtelOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+    ) -> OtelOrderResult:
+        return OtelOrderResult(order_id="unreachable")
+
+
+@meta(description="OTel integration refusing gate", domain=TestDomain)
+@check_roles(GuestRole)
+class OtelRefusingGateAction(BaseAction[OtelOrderParams, OtelOrderResult]):
+    """An object check that refuses: nothing failed, the caller may not touch this object."""
+
+    @access_decide("Refuse the object this caller may not touch")
+    async def otel_refusing_gate_access_decide(
+        self,
+        params: OtelOrderParams,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> Verdict:
+        return FORBIDDEN_OBJECT
+
+    @summary_aspect("build")
+    async def build_summary(
+        self, params: OtelOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+    ) -> OtelOrderResult:
+        return OtelOrderResult(order_id="unreachable")
+
+
+_FAILURE_TEXT = "postgres://primary:5432 refused the connection"
+"""The failure's own text: the kind may travel, this may not."""
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -494,3 +545,110 @@ class TestWatchFiltersEndToEnd:
 
         # GlobalStartEvent was filtered out, so the root span was never created.
         assert span_exporter.get_finished_spans() == ()
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Logs — a gate that could not complete
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def _gate_failure_records(exporter: Any) -> list[Any]:
+    """The log records this run wrote about a gate that could not complete."""
+    return [r for r in exporter.get_finished_logs() if getattr(r.log_record, "body", None) == "aoa.access.gate_failed"]
+
+
+class TestAccessGateFailureRecord:
+    @pytest.mark.asyncio
+    async def test_the_record_names_the_step_and_the_kind_of_failure(self) -> None:
+        lp, logs = _logger_setup()
+        machine = ActionProductMachine(plugins=[OpenTelemetryPlugin(logger_provider=lp)])
+
+        with pytest.raises(AccessUndecided):
+            await machine.run(Context(), OtelFailingGateAction(), OtelOrderParams(order_id="ORD-1"))
+
+        (record,) = _gate_failure_records(logs)
+        attributes = record.log_record.attributes
+        assert str(attributes["aoa.action"]).endswith("OtelFailingGateAction")
+        assert attributes["aoa.gate"] == "ACCESS_DECIDE"
+        assert attributes["aoa.error_type"] == "ConnectionError"
+        assert record.log_record.severity_number == SeverityNumber.ERROR
+
+    @pytest.mark.asyncio
+    async def test_the_failure_text_is_never_written(self) -> None:
+        lp, logs = _logger_setup()
+        machine = ActionProductMachine(plugins=[OpenTelemetryPlugin(logger_provider=lp)])
+
+        with pytest.raises(AccessUndecided):
+            await machine.run(Context(), OtelFailingGateAction(), OtelOrderParams(order_id="ORD-1"))
+
+        for record in logs.get_finished_logs():
+            assert _FAILURE_TEXT not in str(record.log_record.body)
+            assert _FAILURE_TEXT not in str(record.log_record.attributes)
+
+    @pytest.mark.asyncio
+    async def test_it_is_correlated_with_the_run_it_stopped(self) -> None:
+        """Each failing run writes under its own trace, not under nothing.
+
+        The root span of a run stopped at a gate is never closed — there is no
+        ``GlobalFinish`` to close it — so there is no exported span to compare against; what
+        the record carries is that run's trace id all the same, and two runs differ.
+        """
+        tp, _spans = _tracer_setup()
+        lp, logs = _logger_setup()
+        machine = ActionProductMachine(
+            plugins=[OpenTelemetryPlugin(tracer_provider=tp, logger_provider=lp)]
+        )
+
+        for _ in range(2):
+            with pytest.raises(AccessUndecided):
+                await machine.run(Context(), OtelFailingGateAction(), OtelOrderParams(order_id="ORD-1"))
+
+        first, second = _gate_failure_records(logs)
+        assert first.log_record.trace_id != 0
+        assert first.log_record.trace_id != second.log_record.trace_id
+
+    @pytest.mark.asyncio
+    async def test_the_request_identity_travels_when_the_context_has_one(self) -> None:
+        lp, logs = _logger_setup()
+        machine = ActionProductMachine(plugins=[OpenTelemetryPlugin(logger_provider=lp)])
+        caller = Context(request=RequestInfo(trace_id="trace-1"))
+
+        with pytest.raises(AccessUndecided):
+            await machine.run(caller, OtelFailingGateAction(), OtelOrderParams(order_id="ORD-1"))
+
+        (record,) = _gate_failure_records(logs)
+        assert record.log_record.attributes["aoa.trace_id"] == "trace-1"
+
+    @pytest.mark.asyncio
+    async def test_it_is_absent_when_the_context_has_none(self) -> None:
+        lp, logs = _logger_setup()
+        machine = ActionProductMachine(plugins=[OpenTelemetryPlugin(logger_provider=lp)])
+
+        with pytest.raises(AccessUndecided):
+            await machine.run(Context(), OtelFailingGateAction(), OtelOrderParams(order_id="ORD-1"))
+
+        (record,) = _gate_failure_records(logs)
+        assert "aoa.trace_id" not in record.log_record.attributes
+
+    @pytest.mark.asyncio
+    async def test_a_refusal_writes_no_such_record(self) -> None:
+        """A refusal is an answer, not a failure: it is never reported as one."""
+        lp, logs = _logger_setup()
+        machine = ActionProductMachine(plugins=[OpenTelemetryPlugin(logger_provider=lp)])
+
+        with pytest.raises(AccessDenied):
+            await machine.run(Context(), OtelRefusingGateAction(), OtelOrderParams(order_id="ORD-1"))
+
+        assert _gate_failure_records(logs) == []
+
+    @pytest.mark.asyncio
+    async def test_nothing_is_written_without_a_logger_provider(self) -> None:
+        """No logs configured, no logs written — and the call still behaves the same."""
+        tp, _spans = _tracer_setup()
+        plugin = OpenTelemetryPlugin(tracer_provider=tp)
+        machine = ActionProductMachine(plugins=[plugin])
+
+        with pytest.raises(AccessUndecided):
+            await machine.run(Context(), OtelFailingGateAction(), OtelOrderParams(order_id="ORD-1"))
+
+        assert plugin._otel_logger is None

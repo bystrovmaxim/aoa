@@ -6,7 +6,8 @@ from collections.abc import Callable
 
 class AccessConditionAsyncError(TypeError):
     """
-    Raised when a `grant(when=...)` or `guard=` condition is defined as `async def`.
+    Raised when a `grant(when=...)` or `guard=` condition — which always declares its reason
+    (`reason=` / `guard_reason=`) — is defined as `async def`.
 
     An unawaited coroutine object is always truthy, so an async condition would
     silently pass every check instead of being evaluated. Checked at class

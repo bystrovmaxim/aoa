@@ -123,10 +123,12 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.trace import Span, StatusCode, TraceFlags
 
 from aoa.action_machine.intents.on import (
+    AfterAccessDecideAspectEvent,
     AfterCompensateAspectEvent,
     AfterOnErrorAspectEvent,
     AfterRegularAspectEvent,
     AfterSummaryAspectEvent,
+    BeforeAccessDecideAspectEvent,
     BeforeCompensateAspectEvent,
     BeforeOnErrorAspectEvent,
     BeforeRegularAspectEvent,
@@ -140,7 +142,10 @@ from aoa.action_machine.intents.on import (
     on,
 )
 from aoa.action_machine.plugin.core import Plugin
-from aoa.action_machine.plugin.core.events import BasePluginEvent
+from aoa.action_machine.plugin.core.events import (
+    AccessGateFailedEvent,
+    BasePluginEvent,
+)
 
 _SPAN_KEY = "root_span"
 _CTX_KEY = "root_ctx"
@@ -251,6 +256,35 @@ class OpenTelemetryPlugin(Plugin):
         )
         return {**state, _SPAN_KEY: None, _CTX_KEY: None}
 
+    @on(AccessGateFailedEvent, ignore_exceptions=False)
+    async def on_access_gate_failed(
+        self,
+        state: dict[str, Any],
+        event: AccessGateFailedEvent,
+        log: Any,
+    ) -> dict[str, Any]:
+        """Record a gate that could not complete (Logs): which step, and what kind of failure.
+
+        The kind travels and the message does not (FR-013, FR-015), so an operator reads
+        ``aoa.gate`` and ``aoa.error_type`` and nothing else — no host, no query, no text a
+        store chose to include. The record is written where the run is: the failure happens
+        inside it, and the root span is still open, so the log is correlated with the run it
+        stopped. ``aoa.trace_id`` is added by :meth:`_emit_log` from the event's context when
+        the request carries one.
+        """
+        self._emit_log(
+            body="aoa.access.gate_failed",
+            attributes={
+                "aoa.action": event.action_name,
+                "aoa.gate": event.gate,
+                "aoa.error_type": event.exception_type,
+            },
+            severity=SeverityNumber.ERROR,
+            span=state.get(_SPAN_KEY),
+            event=event,
+        )
+        return state
+
     @on(UnhandledErrorEvent, ignore_exceptions=False)
     async def on_unhandled_error(
         self,
@@ -337,6 +371,52 @@ class OpenTelemetryPlugin(Plugin):
     # ─────────────────────────────────────────────────────────────────────────
     # Summary aspect
     # ─────────────────────────────────────────────────────────────────────────
+
+    @on(BeforeAccessDecideAspectEvent, ignore_exceptions=False)
+    async def on_access_decide_start(
+        self,
+        state: dict[str, Any],
+        event: BeforeAccessDecideAspectEvent,
+        log: Any,
+    ) -> dict[str, Any]:
+        """Start child span for the declared object check (Traces) and emit before-log (Logs)."""
+        new_state = state
+        if self._tracer is not None:
+            new_state = _start_aspect_span(state, event.aspect_name, event.action_name, self._tracer)
+
+        self._emit_log(
+            body="aoa.access_decide.before",
+            attributes={
+                "aoa.action": event.action_name,
+                "aoa.aspect": event.aspect_name,
+            },
+            span=state.get(_SPAN_KEY),
+            event=event,
+        )
+        return new_state
+
+    @on(AfterAccessDecideAspectEvent, ignore_exceptions=False)
+    async def on_access_decide_end(
+        self,
+        state: dict[str, Any],
+        event: AfterAccessDecideAspectEvent,
+        log: Any,
+    ) -> dict[str, Any]:
+        """Close the object check's span (Traces) and emit after-log (Logs)."""
+        aspect_span: Span | None = state.get(_ASPECT_SPANS_KEY, {}).get(event.aspect_name) if self._tracer else None
+        new_state = _end_aspect_span(state, event.aspect_name, event.duration_ms) if self._tracer else state
+
+        self._emit_log(
+            body="aoa.access_decide.after",
+            attributes={
+                "aoa.action": event.action_name,
+                "aoa.aspect": event.aspect_name,
+                "aoa.duration_ms": event.duration_ms,
+            },
+            span=aspect_span if aspect_span is not None else state.get(_SPAN_KEY),
+            event=event,
+        )
+        return new_state
 
     @on(BeforeSummaryAspectEvent, ignore_exceptions=False)
     async def on_summary_aspect_start(

@@ -1,5 +1,36 @@
 # Changelog
 
+## [2026-10-08] — Access lives in the declaration
+
+An operation can now state who may call it, which restrictions apply to every call, and what
+must be true of the particular object. A manager can have permission to cancel orders while
+still being limited to their own orders. The checks run in order, and a refusal stops the
+operation before its business steps begin.
+
+There are three distinct outcomes: allowed, refused, and unable to decide. A refusal identifies
+the check that rejected the call and can carry an explanation chosen by the application. If the
+order store is unavailable, the answer is unable to decide: a technical failure is neither a
+permission nor a policy refusal. Details of the failure remain available on the server and are
+not included in the answer sent to the client. A foreign order and a missing order can share the
+same refusal so that the answer does not disclose which orders exist.
+
+Applications can ask about access before offering an operation to a user. This evaluates the
+access rules without performing the operation or using its result cache. It still reads the data
+needed by the checks, and the answer applies to that moment: execution checks access again.
+Authentication happens before these rules, so making an operation public does not override a
+service's requirement for valid credentials.
+
+Object checks are explicit declarations. Each operation owns its check, and a check that needs
+information about the caller declares which fields it reads. Plugins can observe checks starting
+and finishing, and identify a check that failed, without receiving its decision or the failure's
+message. Applications using the previous object-check method or batch access query need to move
+to the new declaration and ask about one call at a time.
+
+The [authorization tutorial](tutorials/step-03-authorization-and-roles.md) now walks through these
+rules with separate, runnable examples. Each shows one capability, its actual result, and why
+that result follows. Scripts and notebooks cover the same scenarios; declaration mistakes are
+kept in a separate section so that a working rule can be learned before its error cases.
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
