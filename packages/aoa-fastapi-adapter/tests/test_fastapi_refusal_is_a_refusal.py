@@ -72,11 +72,10 @@ class RefusingAction(BaseAction["RefusingAction.Params", "RefusingAction.Result"
 
         message: str = ""
 
-    @access_decide
+    @access_decide("Refuse the object this caller may not touch")
     async def refusing_access_decide(
         self,
         params: RefusingAction.Params,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> Verdict:
@@ -108,11 +107,10 @@ class FailingGateAction(BaseAction["FailingGateAction.Params", "FailingGateActio
 
         message: str = ""
 
-    @access_decide
+    @access_decide("Fail, as a store that is down fails")
     async def failing_access_decide(
         self,
         params: FailingGateAction.Params,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> Verdict:

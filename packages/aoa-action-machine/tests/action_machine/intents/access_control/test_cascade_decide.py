@@ -55,11 +55,10 @@ class RefusingObjectAction(BaseAction["RefusingObjectAction.Params", "RefusingOb
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Refuse the object this caller may not touch")
     async def refusing_object_access_decide(
         self,
         params: RefusingObjectAction.Params,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> Refused:
@@ -78,11 +77,10 @@ class ExplodingObjectAction(BaseAction["ExplodingObjectAction.Params", "Explodin
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Fail, as a store that is down fails")
     async def exploding_object_access_decide(
         self,
         params: ExplodingObjectAction.Params,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> Verdict:
@@ -101,14 +99,13 @@ class MuteCheckAction(BaseAction["MuteCheckAction.Params", "MuteCheckAction.Resu
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Answer nothing at all — the mistake this probe measures")
     async def mute_access_decide(
         self,
         params: MuteCheckAction.Params,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> Any:
+    ) -> Verdict:
         """Answer with nothing."""
         return None
 
@@ -124,14 +121,13 @@ class GarbledCheckAction(BaseAction["GarbledCheckAction.Params", "GarbledCheckAc
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Answer a word that is not an answer — the mistake this probe measures")
     async def garbled_access_decide(
         self,
         params: GarbledCheckAction.Params,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> Any:
+    ) -> Verdict:
         """Answer with a word the vocabulary does not know."""
         return True
 
@@ -147,11 +143,10 @@ class HesitantCheckAction(BaseAction["HesitantCheckAction.Params", "HesitantChec
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Say that nobody can tell")
     async def hesitant_access_decide(
         self,
         params: HesitantCheckAction.Params,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> Undecided:

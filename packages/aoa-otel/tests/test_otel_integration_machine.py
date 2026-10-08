@@ -217,11 +217,10 @@ class OtelSagaAction(BaseAction[OtelOrderParams, OtelOrderResult]):
 class OtelFailingGateAction(BaseAction[OtelOrderParams, OtelOrderResult]):
     """An object check that cannot complete: the store behind it is down."""
 
-    @access_decide
+    @access_decide("Fail, as a store that is down fails")
     async def otel_failing_gate_access_decide(
         self,
         params: OtelOrderParams,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> Verdict:
@@ -239,11 +238,10 @@ class OtelFailingGateAction(BaseAction[OtelOrderParams, OtelOrderResult]):
 class OtelRefusingGateAction(BaseAction[OtelOrderParams, OtelOrderResult]):
     """An object check that refuses: nothing failed, the caller may not touch this object."""
 
-    @access_decide
+    @access_decide("Refuse the object this caller may not touch")
     async def otel_refusing_gate_access_decide(
         self,
         params: OtelOrderParams,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> Verdict:

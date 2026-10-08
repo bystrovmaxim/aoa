@@ -52,6 +52,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core import events as events_module
 from aoa.action_machine.plugin.core.events import BasePluginEvent, GlobalFinishEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -160,13 +161,12 @@ class CheckedSummaryAction(BaseAction["CheckedSummaryAction.Params", "CheckedSum
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Allow every caller the role requirement admitted")
     async def checked_access_decide(
         self,
         params: CheckedSummaryAction.Params,
-        context: Context,
         box: ToolsBox,
-        connections: dict[str, Any],
+        connections: dict[str, BaseResource],
     ) -> Verdict:
         """Allow every caller the role requirement admitted."""
         return Allowed()

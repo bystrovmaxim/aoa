@@ -42,9 +42,16 @@ ARCHITECTURE / DATA FLOW
 EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
+    from aoa.action_machine.intents.access_decide import access_decide
     from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Refused
 
-    async def access_decide(self, params, context, box, connections):
+    @access_decide("Refuse an order that is not the caller's")
+    async def cancel_order_access_decide(
+        self,
+        params: CancelOrderAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> Verdict:
         order = await connections["db"].get(params.order_id)
         if order is None or order.owner_id != context.user.user_id:
             return FORBIDDEN_OBJECT                    # one branch, one answer

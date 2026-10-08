@@ -45,6 +45,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -74,13 +75,12 @@ class UnstableGateAction(BaseAction["UnstableGateAction.Params", "UnstableGateAc
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Fail until the test lets it answer")
     async def unstable_access_decide(
         self,
         params: UnstableGateAction.Params,
-        context: Context,
         box: ToolsBox,
-        connections: dict[str, Any],
+        connections: dict[str, BaseResource],
     ) -> Verdict:
         """Fail the way the test asks, until it asks for an answer instead."""
         global _CHECK_CALLS

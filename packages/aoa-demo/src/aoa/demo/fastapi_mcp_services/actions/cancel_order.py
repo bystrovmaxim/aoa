@@ -40,11 +40,12 @@ ARCHITECTURE / DATA FLOW
 from pydantic import Field
 
 from aoa.action_machine.auth import ApplicationRole
-from aoa.action_machine.context import Context
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Verdict
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles, grant
+from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources import BaseResource
@@ -88,16 +89,17 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
         order_id: str = Field(description="Order identifier", examples=["ORD-user_123-001"])
         status: str = Field(description="Order status after cancellation", examples=["cancelled"])
 
-    @access_decide
+    @access_decide("Refuse an order that is not the caller's, or one that is locked")
+    @context_requires("user.user_id")
     async def cancel_order_access_decide(
         self,
         params: "CancelOrderAction.Params",
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
+        ctx: ContextView,
     ) -> Verdict:
         """The order must belong to the caller; anyone else is refused, with no reason."""
-        if params.owner_user_id == context.user.user_id:
+        if params.owner_user_id == ctx.get("user.user_id"):
             return Allowed()
         return FORBIDDEN_OBJECT
 

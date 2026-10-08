@@ -27,6 +27,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -86,9 +87,12 @@ class PlainAction(BaseAction["PlainAction.Params", "PlainAction.Result"]):
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Allow every caller the role requirement admitted")
     async def plain_access_decide(
-        self, params: PlainAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+        self,
+        params: PlainAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Allow the object, recording that the step was reached."""
         _CALLS["access_decide"] += 1
@@ -114,9 +118,12 @@ class RoleOnlyAction(BaseAction["RoleOnlyAction.Params", "RoleOnlyAction.Result"
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Allow every caller the role requirement admitted")
     async def role_only_access_decide(
-        self, params: RoleOnlyAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+        self,
+        params: RoleOnlyAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Allow the object if this step is ever reached."""
         _CALLS["access_decide"] += 1
@@ -142,9 +149,12 @@ class WhenAction(BaseAction["WhenAction.Params", "WhenAction.Result"]):
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Allow every caller the role requirement admitted")
     async def when_access_decide(
-        self, params: WhenAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+        self,
+        params: WhenAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Allow the object if this step is ever reached."""
         _CALLS["access_decide"] += 1
@@ -170,9 +180,12 @@ class GuardAction(BaseAction["GuardAction.Params", "GuardAction.Result"]):
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Allow every caller the role requirement admitted")
     async def guard_access_decide(
-        self, params: GuardAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+        self,
+        params: GuardAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Allow the object if this step is ever reached."""
         _CALLS["access_decide"] += 1
@@ -198,9 +211,12 @@ class ObjectDeniedAction(BaseAction["ObjectDeniedAction.Params", "ObjectDeniedAc
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Refuse the object this caller may not touch")
     async def object_denied_access_decide(
-        self, params: ObjectDeniedAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+        self,
+        params: ObjectDeniedAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Refuse the object, recording that the step was reached."""
         _CALLS["access_decide"] += 1
@@ -226,9 +242,12 @@ class ObjectCrashAction(BaseAction["ObjectCrashAction.Params", "ObjectCrashActio
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Fail, as a store that is down fails")
     async def object_crash_access_decide(
-        self, params: ObjectCrashAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+        self,
+        params: ObjectCrashAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Fail the way a store fails."""
         _CALLS["access_decide"] += 1

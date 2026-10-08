@@ -45,11 +45,10 @@ class DenyAllAccessDecideAction(BaseAction["DenyAllAccessDecideAction.Params", "
     class Result(BaseResult):
         ok: bool = Field(default=True)
 
-    @access_decide
+    @access_decide("Refuse every caller")
     async def deny_all_access_decide(
         self,
         params: DenyAllAccessDecideAction.Params,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> Refused:
@@ -95,11 +94,10 @@ class AllowAccessDecideAction(BaseAction["AllowAccessDecideAction.Params", "Allo
     class Result(BaseResult):
         ok: bool = Field(default=True)
 
-    @access_decide
+    @access_decide("Allow every caller")
     async def allow_everything_access_decide(
         self,
         params: AllowAccessDecideAction.Params,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> Allowed:

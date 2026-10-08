@@ -549,7 +549,14 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
             "properties": {
               "type": "object",
               "additionalProperties": false,
-              "properties": {}
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                }
+              }
             }
           }
         }

@@ -26,6 +26,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -67,9 +68,12 @@ class GuardedAction(BaseAction["GuardedAction.Params", "GuardedAction.Result"]):
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Allow every caller the role requirement admitted")
     async def guarded_access_decide(
-        self, params: GuardedAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+        self,
+        params: GuardedAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Record the parameters the object step was handed, and allow."""
         _SEEN["object"].append(params)

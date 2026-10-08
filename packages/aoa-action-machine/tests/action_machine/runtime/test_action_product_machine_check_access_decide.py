@@ -82,11 +82,10 @@ class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.R
     class Result(BaseResult):
         ok: bool = Field(default=True)
 
-    @access_decide
+    @access_decide("Allow every caller the role requirement admitted")
     async def check_probe_access_decide(
         self,
         params: CheckProbeAction.Params,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> Verdict:

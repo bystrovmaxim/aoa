@@ -35,7 +35,7 @@ OUT: calling the check and judging its answer — the object step does that.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from aoa.action_machine.exceptions.duplicate_access_decide_error import DuplicateAccessDecideError
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
@@ -47,7 +47,7 @@ class AccessDecideIntentResolver:
     """
     AI-CORE-BEGIN
         ROLE: Surface the object check an operation declares in its own namespace.
-        CONTRACT: :meth:`resolve_check` returns the marked callable, or ``None`` when the operation declares none; more than one raises :exc:`~aoa.action_machine.exceptions.DuplicateAccessDecideError`. :meth:`is_declared` answers the same question without raising.
+        CONTRACT: :meth:`resolve_check` returns the marked callable, or ``None`` when the operation declares none; more than one raises :exc:`~aoa.action_machine.exceptions.DuplicateAccessDecideError`. :meth:`resolve_description` returns what that check says it decides. :meth:`is_declared` answers the same question without raising.
         INVARIANTS: Reads ``vars(action_cls)`` only, so a declaration is never inherited.
     AI-CORE-END
     """
@@ -70,6 +70,20 @@ class AccessDecideIntentResolver:
                 "an operation answers about its object once."
             )
         return declared[0]
+
+    @staticmethod
+    def resolve_description(action_cls: type[Any]) -> str | None:
+        """
+        Return what the declared check says it decides, or ``None`` when nothing is declared.
+
+        The description is required by ``@access_decide``, so a declaration always has one;
+        ``None`` here means the operation declares no check at all.
+        """
+        declared = AccessDecideIntentResolver._own_declarations(action_cls)
+        if not declared:
+            return None
+        meta = getattr(declared[0], _ACCESS_DECIDE_META_ATTR, None) or {}
+        return cast("str | None", meta.get("description"))
 
     @staticmethod
     def is_declared(action_cls: type[Any]) -> bool:

@@ -28,20 +28,30 @@ ARCHITECTURE / DATA FLOW
     @meta(...)                        ─┐
     @check_roles(...)                  │ declarations of the operation
     class CancelOrderAction(BaseAction[…]):
-        @access_decide                ─┘  ◀── this module marks the method
-        async def cancel_order_access_decide(self, params, context, box, connections) -> Verdict:
+        @access_decide("Check the order belongs to the caller")
+        @context_requires("user.user_id")                         ─┘  ◀── this module marks it
+        async def cancel_order_access_decide(
+            self,
+            params: CancelOrderAction.Params,
+            box: ToolsBox,
+            connections: dict[str, BaseResource],
+            ctx: ContextView,
+        ) -> Verdict:
             …
 
-    decoration ──▶ suffix + async + arity checked here, ``_access_decide_meta`` written on the method
-    assembly   ──▶ AccessDecideIntentResolver finds the marked method in the class's own namespace
+    decoration ──▶ description + suffix + async + names in order + annotations checked here,
+                   ``_access_decide_meta`` written on the method
+    assembly   ──▶ AccessDecideIntentResolver finds the marked method in the class's own namespace,
+                   and the annotations are resolved and checked against the contract types
     runtime    ──▶ the object step calls it and turns its answer into a decision
 
 ═══════════════════════════════════════════════════════════════════════════════
 SCOPE (IN / OUT)
 ═══════════════════════════════════════════════════════════════════════════════
 
-IN: the method's name, its being ``async``, its arity, and the mark that says
-"this method is the operation's object check".
+IN: the description, the method's name, its being ``async``, the names and order of its
+parameters, its annotations, and the mark that says "this method is the operation's object
+check". The types those annotations name are checked at assembly, where they resolve.
 
 OUT: what the check answers (the answer vocabulary), when it is called (the
 cascade's order), and how a transport presents the result.
@@ -50,11 +60,14 @@ cascade's order), and how a transport presents the result.
 from __future__ import annotations
 
 import asyncio
-import inspect
 from collections.abc import Callable
 from typing import Any
 
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
+from aoa.action_machine.intents.access_decide.access_decide_signature import (
+    validate_annotated,
+    validate_names,
+)
 
 _ACCESS_DECIDE_SUFFIX = "_access_decide"
 """Required suffix for the declared object check's method name."""
@@ -72,6 +85,13 @@ _EXPECTED_PARAMS_WITH_CTX = 6
 """The same, plus the trailing ``ctx`` that ``@context_requires`` adds."""
 
 
+def _method_callable_invariant(func: Any) -> None:
+    if not callable(func):
+        raise TypeError(
+            f"@access_decide can only be applied to methods. Got object of type {type(func).__name__}: {func!r}."
+        )
+
+
 def _method_suffix_invariant(func: Callable[..., Any]) -> None:
     if not func.__name__.endswith(_ACCESS_DECIDE_SUFFIX):
         raise NamingSuffixError(
@@ -86,42 +106,53 @@ def _method_async_invariant(func: Callable[..., Any]) -> None:
         raise TypeError(f"@access_decide: method '{func.__name__}' must be async (async def).")
 
 
-def _method_params_count_invariant(func: Callable[..., Any]) -> None:
-    has_context = hasattr(func, _CONTEXT_REQUIRES_ATTR)
-    expected = _EXPECTED_PARAMS_WITH_CTX if has_context else _EXPECTED_PARAMS_WITHOUT_CTX
-    actual = len(inspect.signature(func).parameters)
-    if actual != expected:
-        described = "self, params, context, box, connections" + (", ctx" if has_context else "")
-        raise TypeError(
-            f"@access_decide: method '{func.__name__}' must accept {expected} parameters "
-            f"({described}), got {actual}."
-            + (" Detected @context_requires, so the trailing ctx parameter is required." if has_context else "")
-        )
-
-
-def access_decide(func: Callable[..., Any]) -> Callable[..., Any]:
+def access_decide(description: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
-    Mark a method as the operation's object check.
+    Mark a method as the operation's object check, and say what it checks.
 
     Args:
-        func: the method to declare, named with the ``_access_decide`` suffix.
+        description: What the check decides, in the developer's words.
 
     Returns:
-        The same method, marked with ``_access_decide_meta``.
+        A decorator that marks the method with ``_access_decide_meta`` — its description
+        included — and returns it unchanged.
 
     Raises:
+        TypeError: the description is not a string, the decorator is applied to something
+            that is not a method, the method is not ``async``, or its signature does not
+            follow the contract.
+        ValueError: the description is empty or whitespace.
         NamingSuffixError: the method name does not carry the required suffix.
-        TypeError: the method is not ``async``, or its arity is wrong.
 
     Example:
-        @access_decide
-        async def cancel_order_access_decide(self, params, context, box, connections):
+        @access_decide("Check the order belongs to the caller")
+        async def cancel_order_access_decide(
+            self,
+            params: CancelOrderAction.Params,
+            box: ToolsBox,
+            connections: dict[str, BaseResource],
+        ) -> Verdict:
             ...
     """
-    _method_suffix_invariant(func)
-    _method_async_invariant(func)
-    _method_params_count_invariant(func)
+    if not isinstance(description, str):
+        raise TypeError(
+            f"@access_decide expects a string description, got {type(description).__name__}."
+        )
+    if not description.strip():
+        raise ValueError(
+            "@access_decide: description cannot be empty or whitespace. "
+            "Say what the check decides."
+        )
 
-    setattr(func, _ACCESS_DECIDE_META_ATTR, {"declared": True})
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        _method_callable_invariant(func)
+        _method_suffix_invariant(func)
+        _method_async_invariant(func)
+        validate_names(func)
+        validate_annotated(func)
 
-    return func
+        setattr(func, _ACCESS_DECIDE_META_ATTR, {"declared": True, "description": description})
+
+        return func
+
+    return decorator

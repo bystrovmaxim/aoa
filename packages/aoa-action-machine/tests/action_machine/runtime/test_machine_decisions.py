@@ -14,7 +14,7 @@ import pytest
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AccessDenied, AccessUndecided
-from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Undecided
+from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Undecided, Verdict
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -26,6 +26,7 @@ from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core.events import BasePluginEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -92,9 +93,12 @@ class RoleGatedAction(BaseAction["RoleGatedAction.Params", "RoleGatedAction.Resu
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Allow every caller the role requirement admitted")
     async def role_gated_access_decide(
-        self, params: RoleGatedAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+        self,
+        params: RoleGatedAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Allow the object if this step is ever reached."""
         return Allowed()
@@ -118,9 +122,12 @@ class GuardRefusedAction(BaseAction["GuardRefusedAction.Params", "GuardRefusedAc
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Allow every caller the role requirement admitted")
     async def guard_refused_access_decide(
-        self, params: GuardRefusedAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+        self,
+        params: GuardRefusedAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Allow the object if this step is ever reached."""
         return Allowed()
@@ -144,10 +151,13 @@ class ObjectGarbledAction(BaseAction["ObjectGarbledAction.Params", "ObjectGarble
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Answer a word that is not an answer — the mistake this probe measures")
     async def object_garbled_access_decide(
-        self, params: ObjectGarbledAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
-    ) -> Any:
+        self,
+        params: ObjectGarbledAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+    ) -> Verdict:
         """Answer with a ``bool``."""
         return True
 
@@ -170,9 +180,12 @@ class ObjectCrashAction(BaseAction["ObjectCrashAction.Params", "ObjectCrashActio
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Fail, as a store that is down fails")
     async def object_crash_access_decide(
-        self, params: ObjectCrashAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+        self,
+        params: ObjectCrashAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Fail to tell anything about the object."""
         raise RuntimeError("store is down")
@@ -196,9 +209,12 @@ class ObjectDeniedAction(BaseAction["ObjectDeniedAction.Params", "ObjectDeniedAc
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Refuse the object this caller may not touch")
     async def object_denied_access_decide(
-        self, params: ObjectDeniedAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+        self,
+        params: ObjectDeniedAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Refuse the object."""
         return FORBIDDEN_OBJECT
@@ -222,9 +238,12 @@ class AllowedAction(BaseAction["AllowedAction.Params", "AllowedAction.Result"]):
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Allow every caller the role requirement admitted")
     async def allowed_access_decide(
-        self, params: AllowedAction.Params, context: Context, box: ToolsBox, connections: dict[str, Any]
+        self,
+        params: AllowedAction.Params,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Allow the object."""
         return Allowed()

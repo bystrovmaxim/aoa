@@ -20,6 +20,8 @@ _REPO_ROOT = Path(__file__).resolve().parents[6]
 
 _SCRIPT = textwrap.dedent(
     '''
+    from __future__ import annotations
+
     import asyncio
     import sys
 
@@ -27,7 +29,7 @@ _SCRIPT = textwrap.dedent(
 
     from aoa.action_machine.context.context import Context
     from aoa.action_machine.context.user_info import UserInfo
-    from aoa.action_machine.intents.access_control import Allowed
+    from aoa.action_machine.intents.access_control import Allowed, Verdict
     from aoa.action_machine.intents.access_decide import access_decide
     from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
     from aoa.action_machine.intents.check_roles import check_roles
@@ -35,6 +37,8 @@ _SCRIPT = textwrap.dedent(
     from aoa.action_machine.model.base_action import BaseAction
     from aoa.action_machine.model.base_params import BaseParams
     from aoa.action_machine.model.base_result import BaseResult
+    from aoa.action_machine.resources.base_resource import BaseResource
+    from aoa.action_machine.runtime.tools_box import ToolsBox
     from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
     from tests.support.domain_model.domains import SystemDomain
     from tests.support.domain_model.roles import AdminRole
@@ -56,13 +60,23 @@ _SCRIPT = textwrap.dedent(
             print("RAN")
             return ProbeAction.Result()
 
-        @access_decide
-        async def first_access_decide(self, params, context, box, connections):
+        @access_decide("Allow every caller (the first of two declarations this probe measures)")
+        async def first_access_decide(
+            self,
+            params: ProbeAction.Params,
+            box: ToolsBox,
+            connections: dict[str, BaseResource],
+        ) -> Verdict:
             return Allowed()
 
         if TWO:
-            @access_decide
-            async def second_access_decide(self, params, context, box, connections):
+            @access_decide("Allow every caller (the second of two declarations this probe measures)")
+            async def second_access_decide(
+                self,
+                params: ProbeAction.Params,
+                box: ToolsBox,
+                connections: dict[str, BaseResource],
+            ) -> Verdict:
                 return Allowed()
 
 

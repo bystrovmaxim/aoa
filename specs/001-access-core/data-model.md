@@ -55,11 +55,13 @@ The framework publishes the gate words and invents no reason text of its own (FR
 
 ## Object check (declared)
 
-The operation's own answer about the object it is called on. Declared, never inherited, at most one; an operation that declares none has no object check (FR-018).
+The operation's own answer about the object it is called on. Declared, never inherited, at most one; an operation that declares none has no object check (FR-018). The declaration carries a required description, is `async`, is named with the `_access_decide` suffix, and fixes its signature — names, order, annotations and the types they resolve to — which the engine refuses to accept otherwise; the description travels into the assembled graph as the node's own property.
 
 | Field | Rules |
 | --- | --- |
 | the declared callable | Reachable from the assembled capability as a node of its own, joined to the operation by a composition edge, the way the other declared behaviours are (FR-018) |
+| its declaration | A required `description`, `async`, the `_access_decide` suffix, and a fixed signature — names in order, every parameter and the return annotated, the annotations resolving to the contract types (FR-018) |
+| its context | Only what it declared with `@context_requires`: the check has no `context` parameter at all — the trailing `ctx` appears with the declaration, is a `ContextView` limited to those keys, and each key is a `RequiredContext` node joined to the declaration |
 | its answer | One of the three answers; anything else, and any failure, becomes `Undecided` naming `ACCESS_DECIDE` (FR-005, FR-011) |
 | its events | A before event whenever it starts and an after event whenever it finishes, whatever it answered — executing and asking in advance alike; a check that fails publishes no after event (FR-019) |
 

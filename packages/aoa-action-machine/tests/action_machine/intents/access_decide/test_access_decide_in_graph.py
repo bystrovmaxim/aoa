@@ -12,7 +12,6 @@ from typing import Any, cast
 
 import pytest
 
-from aoa.action_machine.context.context import Context
 from aoa.action_machine.graph.edges.access_decide_graph_edge import AccessDecideGraphEdge
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.access_decide_graph_node import AccessDecideGraphNode
@@ -24,6 +23,7 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -42,13 +42,12 @@ class VisibleCheckAction(BaseAction["VisibleCheckAction.Params", "VisibleCheckAc
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Allow every caller the role requirement admitted")
     async def visible_access_decide(
         self,
         params: VisibleCheckAction.Params,
-        context: Context,
         box: ToolsBox,
-        connections: dict[str, Any],
+        connections: dict[str, BaseResource],
     ) -> Allowed:
         """Answer that the object may be touched."""
         return Allowed()

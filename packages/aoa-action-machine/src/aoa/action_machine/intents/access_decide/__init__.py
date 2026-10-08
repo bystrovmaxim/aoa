@@ -40,8 +40,8 @@ EXAMPLES
     @meta(description="Cancel an order", domain=ShopDomain)
     @check_roles(ManagerRole)
     class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderAction.Result"]):
-        @access_decide
-        async def cancel_order_access_decide(self, params, context, box, connections):
+        @access_decide("Refuse an order that is not the caller's, or one that is locked")
+    async def cancel_order_access_decide(self, params, context, box, connections):
             return Allowed()
 """
 

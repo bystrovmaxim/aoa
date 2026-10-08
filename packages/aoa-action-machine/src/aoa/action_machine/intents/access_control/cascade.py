@@ -59,6 +59,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.intents.access_control.allowed import Allowed
 from aoa.action_machine.intents.access_control.gate import Gate
 from aoa.action_machine.intents.access_control.refused import Refused
@@ -147,6 +148,28 @@ async def guard_gate(
     return guard_answer(context, action, params)
 
 
+async def _call_declared(
+    declared: Callable[..., Any],
+    action: BaseAction[Any, Any],
+    params: BaseParams | None,
+    context: Context,
+    box: ToolsBox,
+    connections: dict[str, BaseResource],
+) -> Any:
+    """Call the declared check the way it was declared.
+
+    A check that asked for context with ``@context_requires`` — the same decorator, and the
+    same ``ctx`` view, the aspects use — receives a :class:`ContextView` restricted to the keys
+    it named, as its last argument. One that asked for nothing receives ``params``, ``box`` and
+    ``connections`` and no view at all: the context is not reachable unless it was declared,
+    which is why it is not a parameter here either.
+    """
+    keys = getattr(declared, "_required_context_keys", None)
+    if keys:
+        return await declared(action, params, box, connections, ContextView(context, frozenset(keys)))
+    return await declared(action, params, box, connections)
+
+
 async def object_gate(
     context: Context,
     action: BaseAction[Any, Any],
@@ -166,7 +189,7 @@ async def object_gate(
     if declared is None:
         return None
 
-    answer = await declared(action, params, context, box, connections)
+    answer = await _call_declared(declared, action, params, context, box, connections)
     if not isinstance(answer, Allowed | Refused | Undecided):
         raise TypeError(
             f"{type(action).__name__}.{declared.__name__} answered {answer!r} "

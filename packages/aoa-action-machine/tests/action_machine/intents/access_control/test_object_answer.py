@@ -34,11 +34,13 @@ import pytest
 from pydantic import Field
 
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AccessDenied
 from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Gate, Refused, Verdict
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
@@ -70,17 +72,18 @@ class ObjectScopedAction(BaseAction["ObjectScopedAction.Params", "ObjectScopedAc
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Refuse an object the caller does not own")
+    @context_requires("user.user_id")
     async def object_scoped_access_decide(
         self,
         params: ObjectScopedAction.Params,
-        context: Context,
         box: ToolsBox,
         connections: dict[str, BaseResource],
+        ctx: ContextView,
     ) -> Verdict:
         """One branch for both situations: no such object, and somebody else's object."""
         owner = _OBJECTS.get(params.object_id)
-        if owner is None or owner != context.user.user_id:
+        if owner is None or owner != ctx.get("user.user_id"):
             return FORBIDDEN_OBJECT
         return Allowed()
 

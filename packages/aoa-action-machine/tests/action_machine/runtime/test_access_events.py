@@ -63,6 +63,7 @@ from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core.events import BasePluginEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -209,13 +210,12 @@ class ObjectCheckedAction(BaseAction["ObjectCheckedAction.Params", "ObjectChecke
     class Result(BaseResult):
         """No outputs."""
 
-    @access_decide
+    @access_decide("Answer the way the test set up")
     async def object_checked_access_decide(
         self,
         params: ObjectCheckedAction.Params,
-        context: Context,
         box: ToolsBox,
-        connections: dict[str, Any],
+        connections: dict[str, BaseResource],
     ) -> Verdict:
         """Answer the way the test set up, failing with a text nobody may see."""
         if _OBJECT_BEHAVIOUR == "failed":
