@@ -146,7 +146,7 @@ def _inverse_field_name(metadata: tuple[Any, ...]) -> str:
     return ""
 
 
-def _is_specialization_field(annotation: Any) -> bool:
+def is_specialization_field(annotation: Any) -> bool:
     """
     True when the field's type is a subscripted ``Specialization`` container.
 
@@ -154,6 +154,11 @@ def _is_specialization_field(annotation: Any) -> bool:
     reverse field, where it names that class's own code, so the marker cannot be the
     test — and a field that carries the marker without the container is simply the
     other side of an axis.
+
+    Public because the graph's scalar-field path asks the same question. A
+    specialization field stays a column **and** becomes a relation, and both answers
+    must come from one place instead of two that can drift. The question is about the
+    annotation alone, so nothing is read and nothing can raise.
     """
     return _container_arguments(annotation) is not None
 
