@@ -106,6 +106,8 @@ from aoa.action_machine.domain.exceptions import (
     LifecycleGraphError,
     LifecycleValidationError,
     RelationNotLoadedError,
+    SpecializationDeclarationError,
+    UndeclaredSpecializationVariantError,
 )
 from aoa.action_machine.domain.hydration import build
 from aoa.action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
@@ -163,8 +165,10 @@ __all__ = [
     "RelationNotLoadedError",
     "RelationType",
     "Specialization",
+    "SpecializationDeclarationError",
     "StateInfo",
     "StateType",
+    "UndeclaredSpecializationVariantError",
     # Utilities
     "build",
     "entity_schema_marker_from_annotated",
