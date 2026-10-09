@@ -120,7 +120,15 @@ from aoa.action_machine.domain.relation_containers import (
     CompositeOne,
     RelationType,
 )
-from aoa.action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
+from aoa.action_machine.domain.relation_markers import (
+    By,
+    Generalization,
+    Inverse,
+    NoGraphEdge,
+    NoInverse,
+    Rel,
+    Specialization,
+)
 from aoa.action_machine.domain.testing import make
 from aoa.action_machine.intents.entity.entity_intent import EntityIntent
 
@@ -136,6 +144,7 @@ __all__ = [
     "BaseRelationMany",
     # Relation containers
     "BaseRelationOne",
+    "By",
     "CompositeMany",
     "CompositeOne",
     # Exceptions
@@ -144,6 +153,7 @@ __all__ = [
     "EntitySchemaMarker",
     "FieldNotLoadedError",
     # Relation markers
+    "Generalization",
     "Inverse",
     # State machines
     "Lifecycle",
@@ -154,6 +164,7 @@ __all__ = [
     "Rel",
     "RelationNotLoadedError",
     "RelationType",
+    "Specialization",
     "StateInfo",
     "StateType",
     # Utilities

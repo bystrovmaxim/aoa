@@ -54,7 +54,6 @@ from aoa.action_machine.domain import (
     Specialization,
     SpecializationDeclarationError,
     SpecializationOne,
-    UndeclaredSpecializationVariantError,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
@@ -299,7 +298,7 @@ def main() -> None:
     #    the value is built — never "no relation", which would hide a data defect.
     try:
         SpecializationOne(id="evt-2", variant="archived_event", axis=axis)
-    except Exception as exc:  # noqa: BLE001 — the reader is meant to see whatever the framework raises
+    except Exception as exc:
         print(f"\n4) A code nobody declared -> {type(exc).__name__}: {exc}")
 
     # 5) Hydrated with the wrong table is caught just as early: the class must be
@@ -311,7 +310,7 @@ def main() -> None:
             axis=axis,
             entity=DeletedEventEntity(id="evt-3", reason="oops", soft=True),
         )
-    except Exception as exc:  # noqa: BLE001 — the reader is meant to see whatever the framework raises
+    except Exception as exc:
         print(f"\n5) The wrong table hydrated -> {type(exc).__name__}: {exc}")
 
     # 6) A declaration that disagrees with itself fails at build, naming both
@@ -328,7 +327,7 @@ def main() -> None:
     try:
         _ = BrokenContainerHeadEntity.model_rebuild()
         ActionProductMachine()
-    except Exception as exc:  # noqa: BLE001 — the reader is meant to see whatever the framework raises
+    except Exception as exc:
         print(f"\n7) Markers beside an ownership container -> {type(exc).__name__}: {exc}")
 
     print(
