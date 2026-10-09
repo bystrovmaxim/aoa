@@ -134,23 +134,23 @@ class Classifier:
     """
     AI-CORE-BEGIN
         ROLE: Marks a specialization field on the head: which field chooses, and which codes exist.
-        CONTRACT: ``field`` names the classifier field on the same entity; ``variants`` is a
+        CONTRACT: ``field`` names the classifier field on the same entity; ``codes`` is a
             ``Literal`` of the declared codes, in the order the alternatives are written.
-        INVARIANTS: ``field`` is a non-empty string; ``variants`` is a ``Literal`` with at least
+        INVARIANTS: ``field`` is a non-empty string; ``codes`` is a ``Literal`` with at least
             one member; every member is a non-empty string; frozen.
         AI-CORE-END
     """
 
-    __slots__ = ("_field", "_variants")
+    __slots__ = ("_codes", "_field")
 
-    def __init__(self, field: str, variants: Any) -> None:
+    def __init__(self, field: str, codes: Any) -> None:
         """
         Args:
             field: Name of the classifier field whose value selects the alternative.
-            variants: A ``Literal`` of the declared codes, in declaration order.
+            codes: A ``Literal`` of the declared codes, in declaration order.
 
         Raises:
-            TypeError: ``field`` is not a ``str``, or ``variants`` is not a ``Literal``.
+            TypeError: ``field`` is not a ``str``, or ``codes`` is not a ``Literal``.
             ValueError: ``field`` is empty or whitespace-only, the ``Literal`` has no members,
                 or a member is empty or not a string.
         """
@@ -160,24 +160,24 @@ class Classifier:
         if not field.strip():
             raise ValueError("Classifier: field cannot be empty or whitespace-only.")
 
-        if get_origin(variants) is not Literal:
+        if get_origin(codes) is not Literal:
             raise TypeError(
-                f"Classifier: variants must be a Literal of codes, "
-                f"got {type(variants).__name__}: {variants!r}."
+                f"Classifier: codes must be a Literal of codes, "
+                f"got {type(codes).__name__}: {codes!r}."
             )
 
-        codes = get_args(variants)
-        if not codes:
-            raise ValueError("Classifier: variants must declare at least one code.")
+        members = get_args(codes)
+        if not members:
+            raise ValueError("Classifier: codes must declare at least one code.")
 
-        for code in codes:
+        for code in members:
             if not isinstance(code, str):
-                raise TypeError(f"Classifier: variants codes must be str, got {type(code).__name__}: {code!r}.")
+                raise TypeError(f"Classifier: codes must be str, got {type(code).__name__}: {code!r}.")
             if not code.strip():
-                raise ValueError("Classifier: variants cannot contain an empty or whitespace-only code.")
+                raise ValueError("Classifier: codes cannot contain an empty or whitespace-only code.")
 
         object.__setattr__(self, "_field", field)
-        object.__setattr__(self, "_variants", variants)
+        object.__setattr__(self, "_codes", codes)
 
     @property
     def field(self) -> str:
@@ -185,14 +185,14 @@ class Classifier:
         return cast(str, object.__getattribute__(self, "_field"))
 
     @property
-    def variants(self) -> Any:
+    def codes(self) -> Any:
         """The ``Literal`` of declared codes, in declaration order."""
-        return object.__getattribute__(self, "_variants")
+        return object.__getattribute__(self, "_codes")
 
     @property
-    def codes(self) -> tuple[str, ...]:
-        """The declared codes, in declaration order."""
-        return cast(tuple[str, ...], get_args(object.__getattribute__(self, "_variants")))
+    def code_values(self) -> tuple[str, ...]:
+        """The declared codes as plain strings, in declaration order."""
+        return cast(tuple[str, ...], get_args(object.__getattribute__(self, "_codes")))
 
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError("Classifier is frozen; assigning to attributes is not allowed.")
@@ -202,13 +202,13 @@ class Classifier:
 
     def __repr__(self) -> str:
         field = cast(str, object.__getattribute__(self, "_field"))
-        variants = object.__getattribute__(self, "_variants")
-        return f"Classifier(field={field!r}, variants={variants!r})"
+        codes = object.__getattribute__(self, "_codes")
+        return f"Classifier(field={field!r}, codes={codes!r})"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Classifier):
             return NotImplemented
-        return self.field == other.field and self.variants == other.variants
+        return self.field == other.field and self.codes == other.codes
 
     def __hash__(self) -> int:
-        return hash((self.field, str(self.variants)))
+        return hash((self.field, str(self.codes)))

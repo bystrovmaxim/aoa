@@ -11,7 +11,7 @@ alternatives, and a marker names the field that chooses among them:
 
     pressed: Annotated[
         Specialization[FirstPressEntity | RepressEntity | TestPressEntity],
-        Classifier(field="media", variants=Literal["first", "repress", "test"]),
+        Classifier(field="media", codes=Literal["first", "repress", "test"]),
         Inverse(FirstPressEntity, "record"),
     ] = Rel(description="How this record was pressed")
 
@@ -116,7 +116,7 @@ class VinylRecordEntity(BaseEntity):
 
     pressing: Annotated[
         Specialization[FirstPressEntity | RepressEntity | TestPressEntity],
-        Classifier(field="media", variants=Literal["first", "repress", "test"]),
+        Classifier(field="media", codes=Literal["first", "repress", "test"]),
         Inverse(FirstPressEntity, "record"),
     ] = Rel(description="How this record was pressed")
 
@@ -145,7 +145,7 @@ def main() -> None:
     print("1) The declaration:")
     print("   alternatives:", [c.__name__ for c in declared_alternatives()])
     print("   chosen by   :", marker.field if marker else "?")
-    print("   codes       :", list(marker.codes) if marker else [])
+    print("   codes       :", list(marker.code_values) if marker else [])
 
     # 2) Writing a link, reading it back. The value carries the id, the variant
     #    and — when the row was loaded — the row itself.
