@@ -7,7 +7,8 @@ build-backend = "hatchling.build"
 name = "aoa-langgraph"
 version = "1.0.0"
 description = "LangGraph controller and actions for AOA."
-license = { text = "MIT" }
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.12"
 authors = [{ name = "@Bystrov.Maxim" }]
 dependencies = [

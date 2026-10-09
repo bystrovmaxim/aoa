@@ -6,7 +6,8 @@ build-backend = "hatchling.build"
 name = "aoa-otel"
 version = "1.0.0"
 description = "OpenTelemetry plugin for AOA — traces and state x-ray for action runs."
-license = { text = "MIT" }
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.12"
 authors = [{ name = "@Bystrov.Maxim" }]
 dependencies = [
