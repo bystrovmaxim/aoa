@@ -121,14 +121,12 @@ from aoa.action_machine.domain.relation_containers import (
     RelationType,
 )
 from aoa.action_machine.domain.relation_markers import (
-    By,
-    Generalization,
     Inverse,
     NoGraphEdge,
     NoInverse,
     Rel,
-    Specialization,
 )
+from aoa.action_machine.domain.specialization_containers import Classifier, Generalization, Specialization
 from aoa.action_machine.domain.testing import make
 from aoa.action_machine.intents.entity.entity_intent import EntityIntent
 
@@ -144,7 +142,7 @@ __all__ = [
     "BaseRelationMany",
     # Relation containers
     "BaseRelationOne",
-    "By",
+    "Classifier",
     "CompositeMany",
     "CompositeOne",
     # Exceptions

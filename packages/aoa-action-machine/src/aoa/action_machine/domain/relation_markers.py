@@ -1,20 +1,19 @@
 # packages/aoa-action-machine/src/aoa/action_machine/domain/relation_markers.py
 """
-**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, ``NoGraphEdge``, ``Rel``,
-``Specialization``, ``Generalization``, and ``By``.
+**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, ``NoGraphEdge``, and ``Rel``.
 
 These types sit beside relation **container** types (``AssociationOne``, …) in
 ``typing.Annotated`` and in field defaults. They tell the gate **coordinator**
 how edges connect, whether a back-reference exists, and supply human-readable
 **scratch** for diagrams and generated docs.
 
-``Specialization``, ``Generalization`` and ``By`` declare a **specialization**:
-one head field that points at one of N extension entities, chosen by the value of
-a classifier field. A container cannot express it — a container argument holds one
-target type — so the alternatives live in these markers and the type position
-carries the value type alone. Two forms of ``Inverse`` serve the pair: the head
-names only its partner field, because the entities are already in the markers;
-the extension names both.
+A **specialization** — one head field pointing at one of N extension entities,
+chosen by the value of a classifier field — is declared with the containers in
+``specialization_containers.py``: ``Specialization[...]`` on the head,
+``Generalization[...]`` on the extension, and the ``Classifier`` marker naming the
+choosing field and the codes. Two forms of ``Inverse`` serve the pair: the head
+names only its partner field, because the entities are already in the type; the
+extension names both.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -284,204 +283,3 @@ class Rel:
     def __hash__(self) -> int:
         description = cast(str, object.__getattribute__(self, "_description"))
         return hash(description)
-
-
-class Specialization:
-    """
-    AI-CORE-BEGIN
-        ROLE: One alternative target of a specialization field, with the code that selects it.
-        CONTRACT: Declare ``target_entity`` and the ``classifier`` code that chooses it; read on the
-            head, paired with a ``Generalization`` on the alternative itself.
-        INVARIANTS: target entity must be a type; classifier must be a non-empty string.
-        AI-CORE-END
-    """
-
-    __slots__ = ("_classifier", "_target_entity")
-
-    def __init__(self, target_entity: type, classifier: str) -> None:
-        """
-        Args:
-            target_entity: The extension entity class this alternative denotes.
-            classifier: The variant code whose value selects this alternative.
-
-        Raises:
-            TypeError: ``target_entity`` is not a type, or ``classifier`` is not a ``str``.
-            ValueError: ``classifier`` is empty or whitespace-only.
-        """
-        if not isinstance(target_entity, type):
-            raise TypeError(
-                f"Specialization: target_entity must be a type, "
-                f"got {type(target_entity).__name__}: {target_entity!r}."
-            )
-
-        if not isinstance(classifier, str):
-            raise TypeError(
-                f"Specialization: classifier must be str, " f"got {type(classifier).__name__}: {classifier!r}."
-            )
-
-        if not classifier.strip():
-            raise ValueError("Specialization: classifier cannot be empty or whitespace-only.")
-
-        object.__setattr__(self, "_target_entity", target_entity)
-        object.__setattr__(self, "_classifier", classifier)
-
-    @property
-    def target_entity(self) -> type:
-        """The extension entity class this alternative denotes."""
-        return cast(type, object.__getattribute__(self, "_target_entity"))
-
-    @property
-    def classifier(self) -> str:
-        """The variant code whose value selects this alternative."""
-        return cast(str, object.__getattribute__(self, "_classifier"))
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError("Specialization is frozen; assigning to attributes is not allowed.")
-
-    def __delattr__(self, name: str) -> None:
-        raise AttributeError("Specialization is frozen; deleting attributes is not allowed.")
-
-    def __repr__(self) -> str:
-        target_entity = cast(type, object.__getattribute__(self, "_target_entity"))
-        classifier = cast(str, object.__getattribute__(self, "_classifier"))
-        return f"Specialization({target_entity.__name__}, classifier='{classifier}')"
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Specialization):
-            return NotImplemented
-        target_entity = cast(type, object.__getattribute__(self, "_target_entity"))
-        classifier = cast(str, object.__getattribute__(self, "_classifier"))
-        return target_entity is other.target_entity and classifier == other.classifier
-
-    def __hash__(self) -> int:
-        target_entity = cast(type, object.__getattribute__(self, "_target_entity"))
-        classifier = cast(str, object.__getattribute__(self, "_classifier"))
-        return hash((id(target_entity), classifier))
-
-
-class Generalization:
-    """
-    AI-CORE-BEGIN
-        ROLE: The reverse declaration on an extension: the head it belongs to, with its own code.
-        CONTRACT: Declare ``head_entity`` and the same ``classifier`` code the head declares beside
-            this class; the build compares the two.
-        INVARIANTS: head entity must be a type; classifier must be a non-empty string.
-        AI-CORE-END
-    """
-
-    __slots__ = ("_classifier", "_head_entity")
-
-    def __init__(self, head_entity: type, classifier: str) -> None:
-        """
-        Args:
-            head_entity: The head entity class this extension belongs to.
-            classifier: The variant code, declared independently and compared with the head's.
-
-        Raises:
-            TypeError: ``head_entity`` is not a type, or ``classifier`` is not a ``str``.
-            ValueError: ``classifier`` is empty or whitespace-only.
-        """
-        if not isinstance(head_entity, type):
-            raise TypeError(
-                f"Generalization: head_entity must be a type, " f"got {type(head_entity).__name__}: {head_entity!r}."
-            )
-
-        if not isinstance(classifier, str):
-            raise TypeError(
-                f"Generalization: classifier must be str, " f"got {type(classifier).__name__}: {classifier!r}."
-            )
-
-        if not classifier.strip():
-            raise ValueError("Generalization: classifier cannot be empty or whitespace-only.")
-
-        object.__setattr__(self, "_head_entity", head_entity)
-        object.__setattr__(self, "_classifier", classifier)
-
-    @property
-    def head_entity(self) -> type:
-        """The head entity class this extension belongs to."""
-        return cast(type, object.__getattribute__(self, "_head_entity"))
-
-    @property
-    def classifier(self) -> str:
-        """The variant code, compared with the one the head declares."""
-        return cast(str, object.__getattribute__(self, "_classifier"))
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError("Generalization is frozen; assigning to attributes is not allowed.")
-
-    def __delattr__(self, name: str) -> None:
-        raise AttributeError("Generalization is frozen; deleting attributes is not allowed.")
-
-    def __repr__(self) -> str:
-        head_entity = cast(type, object.__getattribute__(self, "_head_entity"))
-        classifier = cast(str, object.__getattribute__(self, "_classifier"))
-        return f"Generalization({head_entity.__name__}, classifier='{classifier}')"
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Generalization):
-            return NotImplemented
-        head_entity = cast(type, object.__getattribute__(self, "_head_entity"))
-        classifier = cast(str, object.__getattribute__(self, "_classifier"))
-        return head_entity is other.head_entity and classifier == other.classifier
-
-    def __hash__(self) -> int:
-        head_entity = cast(type, object.__getattribute__(self, "_head_entity"))
-        classifier = cast(str, object.__getattribute__(self, "_classifier"))
-        return hash((id(head_entity), classifier))
-
-
-class By:
-    """
-    AI-CORE-BEGIN
-        ROLE: Names the classifier field whose value selects a specialization alternative.
-        CONTRACT: Sit in the head field's ``Annotated`` metadata beside the ``Specialization``
-            markers; the field it names must be a scalar field of the same entity.
-        INVARIANTS: field name must be a non-empty string; the marker is an object, not a keyword,
-            because a bare keyword does not parse inside ``Annotated``.
-        AI-CORE-END
-    """
-
-    __slots__ = ("_field_name",)
-
-    def __init__(self, field_name: str) -> None:
-        """
-        Args:
-            field_name: Name of the classifier field on the same entity.
-
-        Raises:
-            TypeError: ``field_name`` is not a ``str``.
-            ValueError: ``field_name`` is empty or whitespace-only.
-        """
-        if not isinstance(field_name, str):
-            raise TypeError(f"By: field_name must be str, " f"got {type(field_name).__name__}: {field_name!r}.")
-
-        if not field_name.strip():
-            raise ValueError("By: field_name cannot be empty or whitespace-only.")
-
-        object.__setattr__(self, "_field_name", field_name)
-
-    @property
-    def field_name(self) -> str:
-        """Name of the classifier field on the same entity."""
-        return cast(str, object.__getattribute__(self, "_field_name"))
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError("By is frozen; assigning to attributes is not allowed.")
-
-    def __delattr__(self, name: str) -> None:
-        raise AttributeError("By is frozen; deleting attributes is not allowed.")
-
-    def __repr__(self) -> str:
-        field_name = cast(str, object.__getattribute__(self, "_field_name"))
-        return f"By('{field_name}')"
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, By):
-            return NotImplemented
-        field_name = cast(str, object.__getattribute__(self, "_field_name"))
-        return field_name == other.field_name
-
-    def __hash__(self) -> int:
-        field_name = cast(str, object.__getattribute__(self, "_field_name"))
-        return hash(field_name)
