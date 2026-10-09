@@ -124,28 +124,28 @@ Consequences, all deliberate:
 
 ## 4. Wire model
 
-### Vertex: `entity_specialization_field`
+### The field stays one column
 
-| Property | Type | Meaning |
-| --- | --- | --- |
-| `label` | `str` | the head's field name |
-| `properties.description` | `str` | the declared relation description |
-| `properties.classifier` | `str` | the classifier field name |
-| `properties.alternatives` | `list[str]` | `["<code> -> <entity qualname>", …]`, declaration order |
-| `properties.optional` | `bool` | always `true` today; present so the optionality is stated rather than implied |
+A specialization adds **no vertex**. The head's field keeps the `EntityField` row every
+other field has, and that row is the single field entry the diagram shows. Two reasons,
+both measured while building it: a vertex of its own would duplicate what the edges
+already carry (the alternatives, their codes, the classifier), and its natural key —
+``<head qualname>:<field name>`` — is exactly the column row's id, so the two could not
+have coexisted anyway.
 
 ### Edge: `entity_specialization` (head → each alternative)
 
 | Property | Type | Meaning |
 | --- | --- | --- |
-| `field_name` | `str` | the head's field |
-| `classifier` | `str` | the classifier field name |
-| `classifier_value` | `str` | the code that selects this alternative |
+| `field_name` | `str` | the head's field — the cluster key a consumer groups by |
+| `classifier_field` | `str` | the classifier field name |
+| `classifier_value` | `str` | the code that selects **this** alternative |
+| `alternative_index` | `int` | the position of this alternative in the declared order |
 | `alternatives` | `list[str]` | the whole ordered list, repeated on every edge so a consumer reading one row has the set |
 | `relation_type` | `str` | `"specialization"` — a value beside `composition` / `aggregation` / `association`, never mixed with them |
-| `cardinality` | `str` | `"one"` |
+| `cardinality` | `str` | `"one"` — exactly one of the cluster applies to a row |
 | `description` | `str` | the declared description |
-| `has_inverse` | `bool` | always `true`; the one-way form does not exist (FR-013) |
+| `has_inverse` | `bool` | `true` whenever the axis names a partner field; the one-way form does not exist (FR-013) |
 | `deprecated` | `bool` | as declared |
 
 ### Edge: generalization (extension → head)
@@ -159,10 +159,10 @@ The head's `fields` list gains exactly one row where the extension set used to p
 | Field | Value |
 | --- | --- |
 | `name` | `<field> \| <code1> \| <code2> … (by <classifier>)` |
-| `type` | the union of the alternatives' labels, `" \| "`-joined |
+| `type` | the alternatives' labels, `" \| "`-joined |
 | `primary_key` | `false` |
 | `foreign_key` | `true` |
-| `field_id` | the `entity_specialization_field` vertex id |
+| `field_id` | the head field's own column row id, `<head qualname>:<field name>` |
 
 The `relations` list gains one entry per alternative: `source` = head, `target` = the alternative's entity, `label` = the code, `relationship_kind` = `"specialization"`.
 

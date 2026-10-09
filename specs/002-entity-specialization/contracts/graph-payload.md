@@ -2,26 +2,39 @@
 
 What the interchange carries for a specialization, and what the diagram makes of it. The schema in `packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.py` is checked in and enforced by tests, so every shape below has a `$defs` entry and a `link.oneOf` branch.
 
-## Vertex: `entity_specialization_field`
+## The field stays one column
 
-One per axis. It is what the ERD renders as a single field row; it is not a scalar `EntityField` and not an `Entity` row. `alternatives` is the mapping the storage consumer needs: which declared code selects which extension class, gathered from each extension's own reverse declaration, because that is the only place the mapping is written.
+A specialization adds **no vertex**. The head's field keeps the `EntityField` row every
+other field has, and that row is the single field entry the diagram shows:
 
 ```json
 {
-  "id": "events.model.EventEntity.details",
-  "type": "entity_specialization_field",
+  "id": "events.model.EventEntity:details",
+  "type": "EntityField",
   "label": "details",
   "properties": {
-    "description": "Event details: one of the declared extensions",
-    "classifier_field": "event_type",
-    "alternatives": [
-      "created_event -> events.model.CreatedEventEntity",
-      "updated_event -> events.model.UpdatedEventEntity"
-    ],
-    "optional": true
+    "field_type": "Specialization[CreatedEventEntity | UpdatedEventEntity]",
+    "primary_key_hint": false
   }
 }
 ```
+
+Three reasons it is this row and no other:
+
+- **A reader has to see the field.** A head whose continuation lives in another table
+  must show the field it continues through; N edges without the column would hide it.
+- **A second vertex would duplicate the edges.** The alternatives, their codes and the
+  classifier already travel on every edge, and a vertex carrying them again would be a
+  second copy of one fact — the thing this design keeps removing.
+- **A vertex of its own would collide.** Its natural key is
+  ``<head qualname>:<field name>``, which is exactly the column row's id, and the
+  coordinator keys nodes by id alone.
+
+**What is not yet right here**: `field_type` currently carries the Python name of the
+container — ``Specialization[Union[CreatedEventEntity, UpdatedEventEntity]]`` — which is
+neither a data type nor readable in a diagram. The ERD work in this phase turns it into
+the readable list of alternatives, and that is where the row's `name` and `type` are
+decided.
 
 ## Edge: `entity_specialization` (head → each alternative)
 
@@ -55,6 +68,8 @@ One edge per alternative, so a consumer that walks edges reaches every target a 
 - `cardinality` is `"one"`: a head row points at exactly one alternative.
 - Two names, kept apart: `classifier_field` is the field of the head whose value chooses, and `classifier_value` is the code this one alternative is chosen by. The vertex carries the field name only, because one axis has one classifier field; the edge carries the field name **and** the code, because an edge denotes exactly one alternative.
 - `alternatives` is the declaration order, and a consumer must not sort it: the ERD row's order is the developer's order.
+- **The edges of one axis are a cluster, and that is what makes them alternatives rather than N independent links.** The key is `field_name` — the same property the ownership relations already carry their field name in — and `relation_type` says what kind of cluster it is. So a consumer groups by `field_name` and reads the rule: **exactly one of these edges applies to a row**, and `classifier_field` names the value that decides which. The set is closed: the build refuses a class that points at the axis without being named in it, so every edge carrying the same `field_name` belongs to the whole declaration.
+- The closedness is a guarantee of the build, not a property written on the edge. A consumer that knows `relation_type` knows the grouping rule; one that does not sees edges that are shaped exactly like ordinary relations, which is deliberate — there is no second shape to learn.
 - The edge is `is_dag = false`, like the other entity relations, because an entity graph may contain cycles.
 
 ## Edge: generalization (extension → head)
