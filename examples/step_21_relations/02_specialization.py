@@ -29,6 +29,42 @@ The value carries the identifier, which variant it is, and the hydrated row when
 was loaded — so an id-only link is expressible, and reading a link tells you which
 table to go to.
 
+What it prints, run from the repository root:
+
+    1) The axis the framework parsed:
+       field        : pressing
+       chosen by    : media
+       alternatives : ['FirstPressEntity', 'RepressEntity', 'TestPressEntity']
+       codes        : ['first', 'repress', 'test']
+       code -> class: {'first': 'FirstPressEntity', 'repress': 'RepressEntity', 'test': 'TestPressEntity'}
+       paired field : record
+
+    2) A hydrated link:
+       pressing         = id='rec-1' variant='first'
+       .variant         = first
+       .entity          = FirstPressEntity
+       .entity.stamper  = 1A
+
+    3) Another alternative in the same field:
+       .variant = repress | .entity = RepressEntity
+
+    4) What each row holds:
+       rec-1: first press, stamper 1A
+       rec-2: repress from 1997, remastered=True
+
+    5) A link without a loaded row:
+       built: id='rec-3' variant='test' | .entity: None
+
+    6) What the model refuses:
+       a string instead of a row    -> refused
+       a class outside the union    -> refused
+
+    7) What the built graph carries for the head:
+       entity_specialization   first    -> FirstPressEntity
+       entity_specialization   repress  -> RepressEntity
+       entity_specialization   test     -> TestPressEntity
+       entity_field columns   : ['id', 'title', 'media', 'pressing']
+
 Tutorial: ../../docs/tutorials/step-21-relations.md  ·  topic: Entity specialization
 
 Run:
@@ -37,7 +73,7 @@ Run:
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, get_args
+from typing import Annotated, Literal
 
 from pydantic import Field, ValidationError
 
@@ -51,6 +87,8 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
 class MusicDomain(BaseDomain):
@@ -125,27 +163,24 @@ for _cls in (FirstPressEntity, RepressEntity, TestPressEntity, VinylRecordEntity
     _cls.model_rebuild()
 
 
-def declared_alternatives() -> tuple[type[BaseEntity], ...]:
-    """Return the classes the head's field was parameterised by."""
-    annotation = VinylRecordEntity.model_fields["pressing"].annotation
-    return tuple(get_args(annotation.__pydantic_generic_metadata__["args"][0]))
-
-
-def declared_classifier() -> Classifier | None:
-    """Return the classifier marker of the head's field, if it declares one."""
-    for item in VinylRecordEntity.model_fields["pressing"].metadata:
-        if isinstance(item, Classifier):
-            return item
-    return None
+def _axis():
+    """Return the axis the framework parsed off the head — not a hand-read annotation."""
+    axes = EntityIntentResolver.resolve_entity_specializations(VinylRecordEntity)
+    assert len(axes) == 1
+    return axes[0]
 
 
 def main() -> None:
-    # 1) What the head declares: the alternatives and the codes they answer to.
-    marker = declared_classifier()
-    print("1) The declaration:")
-    print("   alternatives:", [c.__name__ for c in declared_alternatives()])
-    print("   chosen by   :", marker.field if marker else "?")
-    print("   codes       :", list(marker.code_values) if marker else [])
+    # 1) What the framework reads off the head. This is the parser, not the example:
+    #    the graph and the build rules consume exactly these rows.
+    axis = _axis()
+    print("1) The axis the framework parsed:")
+    print("   field        :", axis.field_name)
+    print("   chosen by    :", axis.classifier_field)
+    print("   alternatives :", [cls.__name__ for cls in axis.alternatives])
+    print("   codes        :", list(axis.codes))
+    print("   code -> class:", {code: cls.__name__ for code, cls in axis.code_to_target.items()})
+    print("   paired field :", axis.inverse_field)
 
     # 2) Writing a link, reading it back. The value carries the id, the variant
     #    and — when the row was loaded — the row itself.
@@ -213,6 +248,19 @@ def main() -> None:
             print(f"   {label:28} -> accepted")
         except ValidationError:
             print(f"   {label:28} -> refused")
+
+    # 7) What the graph makes of it: one column for the field, one edge per
+    #    alternative. Both are needed — the column says the row has a continuation,
+    #    the edges say where that continuation can live.
+    machine = ActionProductMachine()
+    head_node = next(node for node in machine.graph_coordinator.get_all_nodes() if node.label == "VinylRecordEntity")
+    print()
+    print("7) What the built graph carries for the head:")
+    for edge in head_node.get_all_edges():
+        if edge.edge_name == "entity_specialization":
+            print(f"   entity_specialization   {edge.properties['classifier_value']:8} -> {edge.target_node_id}")
+    columns = [e.target_node.label for e in head_node.get_all_edges() if e.edge_name == "entity_field"]
+    print("   entity_field columns   :", [name for name in columns if name is not None])
 
 
 if __name__ == "__main__":
