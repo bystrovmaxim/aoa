@@ -110,3 +110,48 @@ def test_us1_access_decide_shape() -> None:
         if source_id == action_id
     ]
     assert len(access_edges) == 1
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# US2 — roles draw their own structure: levels and hierarchy
+# ═════════════════════════════════════════════════════════════════════════════
+
+_APP_CHAIN = [
+    ("CascadeOfficerRole", "CascadeStaffRole"),
+    ("CascadeLineLeadRole", "CascadeOfficerRole"),
+    ("CascadeTraineeRole", "CascadeLineLeadRole"),
+]
+_DOMAIN_CHAIN = [("CascadeDomainSpecialistRole", "CascadeDomainRole")]
+
+
+def _role_node_ids(coordinator: object) -> list[str]:
+    return [node.node_id for node in coordinator.get_all_nodes() if getattr(node, "node_type", None) == "Role"]
+
+
+def _parent_role_links(coordinator: object) -> set[tuple[str, str]]:
+    return {
+        (source_id.rsplit(".", 1)[-1], target_id.rsplit(".", 1)[-1])
+        for source_id, target_id, _edge in coordinator.get_edges_by_type("parent_role")
+    }
+
+
+def test_us2_role_branches_exist() -> None:
+    """The three branches — system, application, domain — each carry a role node."""
+    suffixes = {node_id.rsplit(".", 1)[-1] for node_id in _role_node_ids(_coordinator())}
+    assert "CascadeSystemGateRole" in suffixes
+    assert "CascadeStaffRole" in suffixes
+    assert "CascadeDomainRole" in suffixes
+
+
+def test_us2_application_chain_is_drawn() -> None:
+    """The application chain connects its four levels, child to parent."""
+    links = _parent_role_links(_coordinator())
+    for child, parent in _APP_CHAIN:
+        assert (child, parent) in links
+
+
+def test_us2_domain_chain_is_drawn() -> None:
+    """The domain branch connects its two levels, child to parent."""
+    links = _parent_role_links(_coordinator())
+    for child, parent in _DOMAIN_CHAIN:
+        assert (child, parent) in links

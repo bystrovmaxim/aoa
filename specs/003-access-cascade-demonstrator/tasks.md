@@ -71,7 +71,7 @@ description: "Task list for the access cascade demonstrator"
 
 ### Tests for User Story 2
 
-- [ ] T014 [US2] Add the US2 test group to `packages/aoa-demo/tests/model/test_access_cascade_shapes.py`: assert the three branches exist among role nodes (a `SystemRole` branch, an `ApplicationRole` branch, a `BaseRole` domain branch) and that `parent_role` edges connect `CascadeStaffRole → CascadeOfficerRole → CascadeLineLeadRole → CascadeTraineeRole` and `CascadeDomainRole → CascadeDomainSpecialistRole` as chains, not isolated nodes (FR-001, FR-002). Verify adversarially.
+- [x] T014 [US2] Add the US2 test group to `packages/aoa-demo/tests/model/test_access_cascade_shapes.py`: assert the three branches exist among role nodes (a `SystemRole` branch, an `ApplicationRole` branch, a `BaseRole` domain branch) and that `parent_role` edges connect `CascadeStaffRole → CascadeOfficerRole → CascadeLineLeadRole → CascadeTraineeRole` and `CascadeDomainRole → CascadeDomainSpecialistRole` as chains, not isolated nodes (FR-001, FR-002). Verify adversarially.
 
 **Checkpoint**: role structure proven in the graph; US1 and US2 both work
 
