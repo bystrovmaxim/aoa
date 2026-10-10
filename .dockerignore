@@ -4,6 +4,16 @@ __pycache__
 .git
 .gitignore
 venv
+.venv
 .pytest_cache
+.mypy_cache
 .dockerignore
 README.md
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/node_modules
+**/dist
+**/*.egg-info
+archive
+.DS_Store

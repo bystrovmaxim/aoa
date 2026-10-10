@@ -1,0 +1,14 @@
+# deploy/stand/docker-compose.local.yml — local laptop wiring for the demonstrator stand.
+#
+# Locally the Maxitor container reaches the demo through a network alias on the
+# shared compose network — the user enters ``http://demo:8100`` as the service,
+# and the Maxitor backend resolves it inside the container. The demo keeps its
+# base loopback publishing (127.0.0.1:8100) for the browser. The host never
+# loads this override — the deploy script appends docker-compose.host.yml only.
+
+services:
+  demo:
+    networks:
+      default:
+        aliases:
+          - demo

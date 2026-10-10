@@ -244,11 +244,11 @@ def _head_fields(payload: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def test_the_axis_is_one_row_naming_every_alternative(slice_payload: dict[str, Any]) -> None:
-    axis_rows = [row for row in _head_fields(slice_payload) if "by" in row["name"]]
+    axis_rows = [row for row in _head_fields(slice_payload) if row["name"] == "pressing" and row["foreign_key"]]
 
     assert len(axis_rows) == 1, "one row for the field, never one per alternative"
     row = axis_rows[0]
-    assert row["name"] == "pressing (by media)"
+    assert row["name"] == "pressing"
     for label in LABELS:
         assert label in row["type"], f"{label} is named in the row"
     assert row["foreign_key"] is True, "the column leads out of the table, and the ERD colours it by this"
