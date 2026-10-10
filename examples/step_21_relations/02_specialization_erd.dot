@@ -1,0 +1,28 @@
+digraph ERD {
+  graph [rankdir=LR fontname="Helvetica" bgcolor=transparent pad="0.5" nodesep="0.8" ranksep="1.2"]
+  node  [shape=none fontname="Helvetica" fontsize=11 margin="0"]
+  edge  [fontname="Helvetica" fontsize=9 color="#94a3b8" arrowsize=0.7]
+
+  subgraph "cluster_VinylRecordEntity:pressing" {
+    label="pressing (by media)";
+    style="rounded,dashed";
+    color="#94a3b8";
+    fontsize=10;
+    margin=12;
+  "FirstPressEntity" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="#3b82f6"><TR><TD COLSPAN="3" BGCOLOR="#3b82f6" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="12"><B>FirstPressEntity</B></FONT></TD></TR><TR><TD BGCOLOR="#fef9c3" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>PK</B></FONT></TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT">id</TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">stamper</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">record</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>Generalization[VinylRecordEntity]</I></FONT></TD></TR></TABLE>>]
+  "RepressEntity" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="#3b82f6"><TR><TD COLSPAN="3" BGCOLOR="#3b82f6" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="12"><B>RepressEntity</B></FONT></TD></TR><TR><TD BGCOLOR="#fef9c3" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>PK</B></FONT></TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT">id</TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">year</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>int</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">record</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>Generalization[VinylRecordEntity]</I></FONT></TD></TR></TABLE>>]
+  "TestPressEntity" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="#3b82f6"><TR><TD COLSPAN="3" BGCOLOR="#3b82f6" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="12"><B>TestPressEntity</B></FONT></TD></TR><TR><TD BGCOLOR="#fef9c3" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>PK</B></FONT></TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT">id</TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">approved_by</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">record</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>Generalization[VinylRecordEntity]</I></FONT></TD></TR></TABLE>>]
+  }
+  "VinylRecordEntity" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="#3b82f6"><TR><TD COLSPAN="3" BGCOLOR="#3b82f6" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="12"><B>VinylRecordEntity</B></FONT></TD></TR><TR><TD BGCOLOR="#fef9c3" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>PK</B></FONT></TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT">id</TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#dbeafe" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>FK</B></FONT></TD><TD BGCOLOR="#dbeafe" ALIGN="LEFT">pressing (by media)</TD><TD BGCOLOR="#dbeafe" ALIGN="LEFT"><FONT COLOR="#64748b"><I>FirstPress (first) | Repress (repress) | TestPress (test)</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">title</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">media</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR></TABLE>>]
+
+  "VinylRecordEntity" -> "VinylRecordEntity:pressing" [label="by media" fontsize=9 arrowhead=vee]
+}

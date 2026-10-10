@@ -7,6 +7,14 @@ These types sit beside relation **container** types (``AssociationOne``, …) in
 how edges connect, whether a back-reference exists, and supply human-readable
 **scratch** for diagrams and generated docs.
 
+A **specialization** — one head field pointing at one of N extension entities,
+chosen by the value of a classifier field — is declared with the containers in
+``specialization_containers.py``: ``Specialization[...]`` on the head,
+``Generalization[...]`` on the extension, and the ``Classifier`` marker naming the
+choosing field and the codes. Two forms of ``Inverse`` serve the pair: the head
+names only its partner field, because the entities are already in the type; the
+extension names both.
+
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
@@ -82,28 +90,41 @@ class Inverse:
     """
     AI-CORE-BEGIN
         ROLE: Explicit inverse relation pointer.
-        CONTRACT: Bind current relation field to a concrete target entity field.
-        INVARIANTS: target entity must be a type; field name must be non-empty string.
+        CONTRACT: Bind current relation field to a concrete target entity field; on a
+            specialization head the target entity is omitted, because the alternatives
+            already name the entities.
+        INVARIANTS: At least one of target entity and field name must be given; field
+            name must be a non-empty string; target entity, when given, must be a type.
         AI-CORE-END
     """
 
     __slots__ = ("_field_name", "_target_entity")
 
-    def __init__(self, target_entity: type, field_name: str) -> None:
+    def __init__(self, target_entity: type | None = None, field_name: str | None = None) -> None:
         """
         Args:
-            target_entity: Related entity class.
+            target_entity: Related entity class, or ``None`` on a specialization head.
             field_name: Name of the paired field on ``target_entity``.
 
         Raises:
-            TypeError: ``target_entity`` is not a type, or ``field_name`` is not
-                a ``str``.
-            ValueError: ``field_name`` is empty or whitespace-only.
+            TypeError: ``target_entity`` is not a type, or ``field_name`` is not a ``str``.
+            ValueError: Both arguments are absent, or ``field_name`` is empty or
+                whitespace-only.
         """
-        if not isinstance(target_entity, type):
+        if target_entity is None and field_name is None:
+            raise ValueError(
+                "Inverse: at least one of target_entity and field_name must be given. "
+                "Pass Inverse(TargetEntity, 'field') for a pair, or Inverse(field_name='field') "
+                "on a specialization head, where the entities are already declared."
+            )
+
+        if target_entity is not None and not isinstance(target_entity, type):
             raise TypeError(
                 f"Inverse: target_entity must be a type, " f"got {type(target_entity).__name__}: {target_entity!r}."
             )
+
+        if field_name is None:
+            raise TypeError("Inverse: field_name must be str, got NoneType: None.")
 
         if not isinstance(field_name, str):
             raise TypeError(f"Inverse: field_name must be str, " f"got {type(field_name).__name__}: {field_name!r}.")
@@ -115,9 +136,9 @@ class Inverse:
         object.__setattr__(self, "_field_name", field_name)
 
     @property
-    def target_entity(self) -> type:
-        """Related entity class."""
-        return cast(type, object.__getattribute__(self, "_target_entity"))
+    def target_entity(self) -> type | None:
+        """Related entity class, or ``None`` on a specialization head."""
+        return cast(type | None, object.__getattribute__(self, "_target_entity"))
 
     @property
     def field_name(self) -> str:
@@ -131,19 +152,21 @@ class Inverse:
         raise AttributeError("Inverse is frozen; deleting attributes is not allowed.")
 
     def __repr__(self) -> str:
-        target_entity = cast(type, object.__getattribute__(self, "_target_entity"))
+        target_entity = cast(type | None, object.__getattribute__(self, "_target_entity"))
         field_name = cast(str, object.__getattribute__(self, "_field_name"))
+        if target_entity is None:
+            return f"Inverse(field_name='{field_name}')"
         return f"Inverse({target_entity.__name__}, '{field_name}')"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Inverse):
             return NotImplemented
-        target_entity = cast(type, object.__getattribute__(self, "_target_entity"))
+        target_entity = cast(type | None, object.__getattribute__(self, "_target_entity"))
         field_name = cast(str, object.__getattribute__(self, "_field_name"))
         return target_entity is other.target_entity and field_name == other.field_name
 
     def __hash__(self) -> int:
-        target_entity = cast(type, object.__getattribute__(self, "_target_entity"))
+        target_entity = cast(type | None, object.__getattribute__(self, "_target_entity"))
         field_name = cast(str, object.__getattribute__(self, "_field_name"))
         return hash((id(target_entity), field_name))
 

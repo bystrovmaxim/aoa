@@ -11,6 +11,14 @@ Sourced from ``archive/plan/CURRENT.md`` (appendix) with alignment fixes
 Generalization (UML inheritance) edges ``parent_action``, ``parent_role``, and ``parent_domain`` use
 ``relationship: \"Generalization\"`` and empty ``properties``; each wire ``type`` is its own ``oneOf`` branch
 (see plan ``generalization_graph_nodes.md`` §PR‑4 / §I.3).
+
+``parent_entity`` is the same relationship **with properties**, and it cannot reuse those three: their
+``properties`` block allows ``maxProperties: 0``, while an entity generalization has to name the field it
+came through, the head's field it answers to, the code it declares, and the head itself.
+
+``entity_specialization`` is the association edge from a head to one of its alternatives. One edge per
+alternative; ``alternatives`` repeats the whole ordered declaration on every edge of the cluster, so a
+consumer holding one row has the set without a second lookup and without re-sorting what was written.
 """
 
 from __future__ import annotations
@@ -830,6 +838,12 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
           "$ref": "#/$defs/entity_relation"
         },
         {
+          "$ref": "#/$defs/entity_specialization"
+        },
+        {
+          "$ref": "#/$defs/parent_entity"
+        },
+        {
           "$ref": "#/$defs/entity_view"
         },
         {
@@ -1079,6 +1093,143 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
                 },
                 "inverse_field": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "entity_specialization": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "entity_specialization"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field_name",
+                "classifier_field",
+                "classifier_value",
+                "alternative_index",
+                "alternatives",
+                "labels",
+                "relation_type",
+                "cardinality",
+                "description",
+                "has_inverse",
+                "deprecated"
+              ],
+              "properties": {
+                "field_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The head's field; the key a consumer groups the cluster by."
+                },
+                "classifier_field": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The field whose value selects among the alternatives."
+                },
+                "classifier_value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The code that selects this edge's own target."
+                },
+                "alternative_index": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Position of this alternative in the declared order."
+                },
+                "alternatives": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "\"<code> -> <entity qualname>\" for every alternative, in declaration order, repeated on each edge so one row carries the whole declaration."
+                },
+                "labels": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Display name per alternative, same order as `alternatives`: \"Class (code)\", the shared `Entity` suffix dropped. Display only — nothing resolves a class from it."
+                },
+                "relation_type": {
+                  "const": "specialization"
+                },
+                "cardinality": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "\"one\": exactly one of the cluster applies to a row."
+                },
+                "description": {
+                  "type": "string"
+                },
+                "has_inverse": {
+                  "type": "boolean"
+                },
+                "deprecated": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "parent_entity": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "parent_entity"
+            },
+            "relationship": {
+              "const": "Generalization"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field_name",
+                "inverse_field",
+                "classifier_value",
+                "head_entity_id"
+              ],
+              "properties": {
+                "field_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The extension's own field that points at its head."
+                },
+                "inverse_field": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The head's field this extension is an alternative of."
+                },
+                "classifier_value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The code this extension declares for the axis."
+                },
+                "head_entity_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Interchange id of the head entity this extension continues."
                 }
               }
             }

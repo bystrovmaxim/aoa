@@ -178,6 +178,31 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           JOIN selected_entity tgt ON tgt.id = er.target_id
           JOIN entity target ON target.id = er.target_id
           WHERE er.field_name <> ''
+        ), specialization_edge_rows AS (
+          SELECT
+            ese.source_id AS entity_id,
+            ese.source_id || ':' || ese.field_name AS field_node_id,
+            ese.field_name || ' (by ' || ese.classifier_field || ')' AS name,
+            ese.labels AS labels,
+            ese.alternative_index AS ordinal,
+            COUNT(DISTINCT ese.target_id) OVER (PARTITION BY ese.source_id, ese.field_name) AS alternatives
+          FROM entity_specialization_edges ese
+        ), specialization_rows AS (
+          SELECT
+            entity_id,
+            field_node_id,
+            name,
+            array_to_string(MIN(labels), ' | ') AS type,
+            MIN(ordinal) AS ordinal,
+            MAX(alternatives) AS alternatives
+          FROM specialization_edge_rows
+          GROUP BY entity_id, field_node_id, name
+        ), rendered_rows AS (
+          SELECT entity_id, field_node_id, name, type, ordinal
+          FROM specialization_rows
+          WHERE alternatives > 1
+        ), excluded_field_nodes AS (
+          SELECT field_node_id FROM rendered_rows
         ), field_rows AS (
           SELECT
             efe.source_id AS entity_id,
@@ -189,6 +214,17 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             efe.ordinal AS ordinal
           FROM entity_field_edges efe
           INNER JOIN entity_field vf ON vf.id = efe.target_id
+          WHERE efe.target_id NOT IN (SELECT field_node_id FROM excluded_field_nodes WHERE field_node_id IS NOT NULL)
+          UNION ALL
+          SELECT
+            rr.entity_id,
+            rr.field_node_id,
+            rr.name,
+            rr.type,
+            FALSE AS primary_key,
+            TRUE AS foreign_key,
+            rr.ordinal
+          FROM rendered_rows rr
           UNION ALL
           SELECT entity_id, CAST(NULL AS VARCHAR) AS field_node_id, name, type, FALSE AS primary_key, foreign_key, 2147483647 AS ordinal FROM fk
         ), ordered_field_rows AS (
@@ -226,6 +262,23 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         GROUP BY e.id, e.label
         ORDER BY e.id
     """
+        group_sql = f"""
+        WITH domain_entity AS (
+          SELECT source_id AS id FROM domain_edges WHERE target_id = ?
+        ), selected_entity AS (
+          SELECT id FROM domain_entity
+          {neighbor_clause}
+        )
+        SELECT ese.source_id || ':' || ese.field_name AS group_id,
+               ese.field_name || ' (by ' || ese.classifier_field || ')' AS label,
+               ese.classifier_field AS classifier_field,
+               list(DISTINCT ese.target_id ORDER BY ese.target_id) AS members
+        FROM entity_specialization_edges ese
+        WHERE ese.source_id IN (SELECT id FROM selected_entity)
+        GROUP BY ese.source_id, ese.field_name, ese.classifier_field
+        HAVING COUNT(DISTINCT ese.target_id) > 1
+        ORDER BY ese.source_id, ese.field_name
+        """
         relation_sql = f"""
         WITH domain_entity AS (
           SELECT source_id AS id FROM domain_edges WHERE target_id = ?
@@ -245,9 +298,23 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
            OR er.target_id IN (SELECT id FROM domain_entity)
         ORDER BY er.source_id, er.target_id, er.field_name
     """
+        relations = duck.execute_fetch_dicts(relation_sql, [qual])
+        groups = duck.execute_fetch_dicts(group_sql, [qual])
+        relations.extend(
+            {
+                "source": group["group_id"].rsplit(":", 1)[0],
+                "target": group["group_id"],
+                "label": "by " + str(group["classifier_field"]),
+                "relationship_kind": "specialization",
+                "source_cardinality": "zero_many",
+                "target_cardinality": "one",
+            }
+            for group in groups
+        )
         return {
             "entities": duck.execute_fetch_dicts(entity_sql, [qual]),
-            "relations": duck.execute_fetch_dicts(relation_sql, [qual]),
+            "relations": relations,
+            "groups": groups,
         }
 
     @summary_aspect("Serialize ERD slices for requested domains (DuckDB)")

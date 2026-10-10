@@ -24,11 +24,28 @@ export type ErdRelation = {
   source: string;
   target: string;
   label?: string;
+  /** `specialization` marks the one line into an axis container; anything else is an ordinary link. */
+  relationship_kind?: string;
+};
+
+/**
+ * One specialization axis, drawn as a Graphviz cluster around its alternatives.
+ *
+ * A group is a **drawing, not a table** — its members keep their own nodes, columns and outside
+ * relations — and it belongs to the ERD only. No other diagram reads this field, and the full
+ * graph has no notion of one.
+ */
+export type ErdGroup = {
+  group_id: string;
+  label: string;
+  classifier_field?: string;
+  members: string[];
 };
 
 export type ErdGraphPayload = {
   entities: ErdEntity[];
   relations: ErdRelation[];
+  groups?: ErdGroup[];
 };
 
 /** Layout presets matching the old ``activeLayout`` Graphviz branch. */
@@ -52,6 +69,7 @@ export function erdGraphvizEngine(layout: ErdGraphvizLayout): string {
 
 export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout): string {
   const { entities, relations } = data;
+  const groups = data.groups ?? [];
   const isLR = layout === "gv-dot-lr";
   const lines: string[] = ["digraph ERD {"];
 
@@ -70,7 +88,15 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
     "",
   );
 
-  for (const nd of entities ?? []) {
+  // A member is declared inside its cluster and nowhere else: Graphviz gives a node to the first
+  // subgraph that declares it, so declaring it twice would silently drop it out of the container.
+  const grouped = new Set<string>();
+  for (const group of groups) {
+    for (const member of group.members) grouped.add(member);
+  }
+  const entityById = new Map((entities ?? []).map((e) => [e.id, e]));
+
+  const nodeSource = (nd: ErdEntity): string => {
     const color = nd.color || "#3b82f6";
     const rows = (nd.fields || [])
       .map((f) => {
@@ -89,18 +115,42 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
       })
       .join("\n      ");
 
-    lines.push(
+    return (
       `  "${nd.id}" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="${color}">` +
-        `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="CENTER">` +
-        `<FONT COLOR="white" POINT-SIZE="12"><B>${escHtml(nd.label || nd.id)}</B></FONT>` +
-        `</TD></TR>${rows}</TABLE>>]`,
+      `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="CENTER">` +
+      `<FONT COLOR="white" POINT-SIZE="12"><B>${escHtml(nd.label || nd.id)}</B></FONT>` +
+      `</TD></TR>${rows}</TABLE>>]`
     );
+  };
+
+  for (const group of groups) {
+    const members = group.members
+      .map((id) => entityById.get(id))
+      .filter((nd): nd is ErdEntity => nd !== undefined);
+    if (members.length < 2) continue;
+    lines.push(
+      `  subgraph "cluster_${group.group_id}" {`,
+      `    label="${escHtml(group.label)}";`,
+      '    style="rounded,dashed";',
+      '    color="#94a3b8";',
+      '    fontsize=10;',
+      '    margin=12;',
+      ...members.map((nd) => nodeSource(nd)),
+      "  }",
+    );
+  }
+
+  for (const nd of entities ?? []) {
+    if (grouped.has(nd.id)) continue;
+    lines.push(nodeSource(nd));
   }
 
   lines.push("");
   for (const ed of relations ?? []) {
-    const lbl = ed.label ? ` [label="${escHtml(ed.label)}" fontsize=9]` : "";
-    lines.push(`  "${ed.source}" -> "${ed.target}"${lbl}`);
+    const label = ed.label ? `label="${escHtml(ed.label)}" fontsize=9 ` : "";
+    const arrow = ed.relationship_kind === "specialization" ? "arrowhead=vee " : "";
+    const attrs = `${label}${arrow}`.trim();
+    lines.push(`  "${ed.source}" -> "${ed.target}"${attrs ? ` [${attrs}]` : ""}`);
   }
   lines.push("}");
   return lines.join("\n");

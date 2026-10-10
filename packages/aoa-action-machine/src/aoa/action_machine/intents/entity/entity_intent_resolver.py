@@ -11,6 +11,10 @@ from aoa.action_machine.intents.entity.entity_relation_intent_resolver import (
     EntityRelationIntentResolver,
     gather_entity_relation_intent_resolvers,
 )
+from aoa.action_machine.intents.entity.entity_specialization_intent_resolver import (
+    EntitySpecializationIntentResolver,
+    gather_entity_specialization_intent_resolvers,
+)
 
 
 class EntityIntentResolver:
@@ -18,7 +22,7 @@ class EntityIntentResolver:
     AI-CORE-BEGIN
     ROLE: Resolve class-level ``@entity`` declarations for graph model builders (parallel to ``MetaIntentResolver``).
     CONTRACT: Reads ``_entity_info`` scratch; :meth:`resolve_description` requires a usable description; ``domain`` may be omitted (see :meth:`resolve_domain_optional` vs :meth:`resolve_domain_type`). Entity→entity refs use :mod:`aoa.action_machine.intents.entity.entity_relation_intent_resolver` (:class:`~aoa.action_machine.intents.entity.entity_relation_intent_resolver.EntityRelationIntentResolver` rows).
-    INVARIANTS: Does not validate decorator grammar at decorator time — only interchange resolution semantics.
+    INVARIANTS: Does not validate decorator grammar at decorator time — only interchange resolution semantics. Declared rules of a specialization are **read** here, never checked: the build validator owns that.
     FAILURES: :exc:`~aoa.action_machine.exceptions.MissingEntityInfoError` when a required resolved value is missing or invalid for the chosen API.
     AI-CORE-END
     """
@@ -73,3 +77,15 @@ class EntityIntentResolver:
         Uses :func:`~aoa.action_machine.intents.entity.entity_relation_intent_resolver.gather_entity_relation_intent_resolvers`.
         """
         return gather_entity_relation_intent_resolvers(host_cls)
+
+    @staticmethod
+    def resolve_entity_specializations(host_cls: type) -> list[EntitySpecializationIntentResolver]:
+        """
+        Fields on ``host_cls`` that point at one of N extension entities.
+
+        Uses :func:`~aoa.action_machine.intents.entity.entity_specialization_intent_resolver.gather_entity_specialization_intent_resolvers`.
+        Returns an empty list when the class declares no such field, and raises
+        :exc:`~aoa.action_machine.domain.exceptions.SpecializationDeclarationError`
+        when a declared one cannot be read.
+        """
+        return gather_entity_specialization_intent_resolvers(host_cls)
