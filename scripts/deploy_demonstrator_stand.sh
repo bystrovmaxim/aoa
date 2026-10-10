@@ -250,8 +250,10 @@ main() {
         curl -fsS "http://127.0.0.1:${MAXITOR_PORT}/api/health" >/dev/null || rollback "local verification failed for Maxitor"
     else
         install_vhosts "$terminator" || rollback "virtual-host installation failed"
-        curl -fsS "https://${DEMO_DOMAIN}/health" >/dev/null || rollback "https verification failed for ${DEMO_DOMAIN}"
-        curl -fsS "https://${MAXITOR_DOMAIN}/api/health" >/dev/null || rollback "https verification failed for ${MAXITOR_DOMAIN}"
+        curl -fsS --retry 3 --retry-delay 2 --retry-all-errors "https://${DEMO_DOMAIN}/health" >/dev/null \
+            || rollback "https verification failed for ${DEMO_DOMAIN}"
+        curl -fsS --retry 3 --retry-delay 2 --retry-all-errors "https://${MAXITOR_DOMAIN}/api/health" >/dev/null \
+            || rollback "https verification failed for ${MAXITOR_DOMAIN}"
     fi
 
     say "stand verified: ${DEMO_DOMAIN} + ${MAXITOR_DOMAIN}"
