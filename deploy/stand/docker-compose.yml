@@ -12,6 +12,12 @@ services:
       dockerfile: packages/aoa-demo/Dockerfile
     ports:
       - "127.0.0.1:${DEMO_PORT:-8100}:8100"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:8100/health', timeout=3) and sys.exit(0) or sys.exit(1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: unless-stopped
     stop_grace_period: 30s
 
@@ -21,5 +27,11 @@ services:
       dockerfile: packages/aoa-maxitor/Dockerfile
     ports:
       - "127.0.0.1:${MAXITOR_PORT:-8101}:8101"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:8101/api/health', timeout=3) and sys.exit(0) or sys.exit(1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: unless-stopped
     stop_grace_period: 30s

@@ -96,9 +96,9 @@ description: "Task list for the demonstrator stand"
 
 ### Implementation for User Story 4
 
-- [ ] T013 [US4] In `scripts/deploy_demonstrator_stand.sh`, implement the two gates first: both `dev.demo.aoa.run` and `dev.maxitor.aoa.run` must resolve, and the host's existing TLS terminator must be detectable (look for the known config layouts — nginx/caddy/traefik — and refuse with a message naming the missing prerequisite otherwise). Gates exit non-zero before any build or deploy step (FR-005, FR-006).
-- [ ] T014 [US4] Implement the virtual-host and certificate step in `scripts/deploy_demonstrator_stand.sh`: add two virtual hosts to the detected terminator proxying to `127.0.0.1:8100` and `127.0.0.1:8101`, and request the certificates through the terminator's own renew mechanism — never hand-made (FR-005, FR-006).
-- [ ] T015 [US4] Verify the health endpoints (demo `GET /ping`; Maxitor's health route) and finalize the healthcheck blocks in `deploy/stand/docker-compose.yml`; stop one container and confirm `docker compose ps` reports it unhealthy and the probe fails fast rather than hanging (FR-007).
+- [x] T013 [US4] In `scripts/deploy_demonstrator_stand.sh`, implement the two gates first: both `dev.demo.aoa.run` and `dev.maxitor.aoa.run` must resolve, and the host's existing TLS terminator must be detectable (look for the known config layouts — nginx/caddy/traefik — and refuse with a message naming the missing prerequisite otherwise). Gates exit non-zero before any build or deploy step (FR-005, FR-006).
+- [x] T014 [US4] Implement the virtual-host and certificate step in `scripts/deploy_demonstrator_stand.sh`: add two virtual hosts to the detected terminator proxying to `127.0.0.1:8100` and `127.0.0.1:8101`, and request the certificates through the terminator's own renew mechanism — never hand-made (FR-005, FR-006).
+- [x] T015 [US4] Verify the health endpoints (demo `GET /health`; Maxitor's `GET /api/health`) and finalize the healthcheck blocks in `deploy/stand/docker-compose.yml`; stop one container and confirm `docker compose ps` reports it unhealthy and the probe fails fast rather than hanging (FR-007).
 
 **Checkpoint**: TLS and health are wired through the existing front end, with gates that refuse instead of guessing
 
@@ -112,8 +112,8 @@ description: "Task list for the demonstrator stand"
 
 ### Implementation for User Story 5
 
-- [ ] T016 [US5] Complete `scripts/deploy_demonstrator_stand.sh` as the single command, in order: gates (T013) → `docker compose -f deploy/stand/docker-compose.yml build` → `up -d` → healthcheck polling for both containers → `curl -fsS` both `https://` domains → on any failure, roll back to the previously running images/containers and report. Read configuration and secrets from `/etc/aoa-stand.env` (FR-012, FR-013).
-- [ ] T017 [US5] Validate the rollback branch adversarially in the local stand: break one step (e.g., a wrong healthcheck path), run the script, confirm it restores the previous containers and reports the failure; restore and confirm a clean run goes green end to end (FR-012).
+- [x] T016 [US5] Complete `scripts/deploy_demonstrator_stand.sh` as the single command, in order: gates (T013) → `docker compose -f deploy/stand/docker-compose.yml build` → `up -d` → healthcheck polling for both containers → `curl -fsS` both `https://` domains → on any failure, roll back to the previously running images/containers and report. Read configuration and secrets from `/etc/aoa-stand.env` (FR-012, FR-013).
+- [x] T017 [US5] Validate the rollback branch adversarially in the local stand: break one step (e.g., a wrong healthcheck path), run the script, confirm it restores the previous containers and reports the failure; restore and confirm a clean run goes green end to end (FR-012).
 
 **Checkpoint**: the stand deploys with one command and provably rolls back
 
