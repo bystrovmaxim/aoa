@@ -70,6 +70,16 @@ detect_terminator() {
     return 1
 }
 
+reload_nginx() {
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx nginx-proxy; then
+        docker exec nginx-proxy nginx -t || fail "vhost step: nginx -t rejected the new virtual hosts."
+        docker exec nginx-proxy nginx -s reload || fail "vhost step: nginx reload failed."
+    else
+        nginx -t || fail "vhost step: nginx -t rejected the new virtual hosts."
+        systemctl reload nginx || fail "vhost step: nginx reload failed."
+    fi
+}
+
 install_vhosts() {
     local terminator="$1"
     case "$terminator" in
@@ -82,16 +92,22 @@ install_vhosts() {
             local webroot="${STAND_WEBROOT:-/root/up2u_front/dist}"
             local cert_name="$DEMO_DOMAIN"
             [[ -f "$front_conf" ]] || fail "vhost step: the front-end config ${front_conf} was not found."
-            for entry in "$DEMO_DOMAIN:$DEMO_PORT:dev_aoa_demo" "$MAXITOR_DOMAIN:$MAXITOR_PORT:dev_aoa_maxitor"; do
-                local domain="${entry%%:*}"
-                local rest="${entry#*:}"
-                local port="${rest%%:*}"
-                local upstream="${rest##*:}"
-                if grep -q "server_name ${domain};" "$front_conf"; then
-                    say "vhost step: ${domain} already present in ${front_conf}"
+
+            # Phase A — the certificate-free :80 blocks with the acme-challenge location.
+            local entry domain upstream internal_port
+            local need_reload=0
+            for entry in "$DEMO_DOMAIN:dev_aoa_demo:8100" "$MAXITOR_DOMAIN:dev_aoa_maxitor:8101"; do
+                domain="${entry%%:*}"
+                upstream="$(printf '%s' "$entry" | cut -d: -f2)"
+                internal_port="${entry##*:}"
+                if grep -q "proxy_pass http://${upstream}:${internal_port};" "$front_conf"; then
+                    say "vhost step: ${domain} fully configured"
                     continue
                 fi
-                cat >> "$front_conf" <<EOF
+                if grep -q "server_name ${domain};" "$front_conf"; then
+                    say "vhost step: ${domain} already has its :80 block"
+                else
+                    cat >> "$front_conf" <<EOF
 
 # ── ${domain} — demonstrator stand (issue #202) ───────────────────────────
 server {
@@ -100,40 +116,21 @@ server {
     location /.well-known/acme-challenge/ { root /usr/share/nginx/html; }
     location / { return 301 https://${domain}\$request_uri; }
 }
-server {
-    listen 443 ssl;
-    server_name ${domain};
-    ssl_certificate     /etc/nginx/ssl/${cert_name}.fullchain.pem;
-    ssl_certificate_key /etc/nginx/ssl/${cert_name}.privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-
-    location / {
-        proxy_pass http://${upstream}:${port};
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
 EOF
+                fi
+                need_reload=1
             done
-            if docker ps --format '{{.Names}}' | grep -qx nginx-proxy; then
-                docker exec nginx-proxy nginx -t || fail "vhost step: nginx -t rejected the new virtual hosts."
-                docker exec nginx-proxy nginx -s reload || fail "vhost step: nginx reload failed."
-            else
-                nginx -t || fail "vhost step: nginx -t rejected the new virtual hosts."
-                systemctl reload nginx || fail "vhost step: nginx reload failed."
-            fi
+            [[ $need_reload -eq 1 ]] && reload_nginx
+
+            # Phase B — the certificates (the :80 blocks must be live for the webroot challenge).
             if certbot certificates 2>/dev/null | grep -q "$cert_name"; then
                 say "certificate step: ${cert_name} already issued — renewed by the host's certbot timer."
-                if [[ ! -f "${ssl_dir}/${cert_name}.fullchain.pem" ]]; then
-                    cp "/etc/letsencrypt/live/${cert_name}/fullchain.pem" "${ssl_dir}/${cert_name}.fullchain.pem"
-                    cp "/etc/letsencrypt/live/${cert_name}/privkey.pem" "${ssl_dir}/${cert_name}.privkey.pem"
-                fi
             else
                 certbot certonly --webroot -w "$webroot" -d "$DEMO_DOMAIN" -d "$MAXITOR_DOMAIN" \
                     --non-interactive --agree-tos --register-unsafely-without-email \
                     || fail "certificate step: certbot could not issue the certificates."
+            fi
+            if [[ ! -f "${ssl_dir}/${cert_name}.fullchain.pem" ]]; then
                 cp "/etc/letsencrypt/live/${cert_name}/fullchain.pem" "${ssl_dir}/${cert_name}.fullchain.pem"
                 cp "/etc/letsencrypt/live/${cert_name}/privkey.pem" "${ssl_dir}/${cert_name}.privkey.pem"
                 mkdir -p /etc/letsencrypt/renewal-hooks/deploy
@@ -148,8 +145,38 @@ if [ "$RENEWED_LINEAGE" = "/etc/letsencrypt/live/dev.demo.aoa.run" ]; then
 fi
 HOOK
                 chmod +x /etc/letsencrypt/renewal-hooks/deploy/aoa-dev-stand.sh
-                docker exec nginx-proxy nginx -s reload || true
             fi
+
+            # Phase C — the :443 blocks, now that the certificate files exist.
+            need_reload=0
+            for entry in "$DEMO_DOMAIN:dev_aoa_demo:8100" "$MAXITOR_DOMAIN:dev_aoa_maxitor:8101"; do
+                domain="${entry%%:*}"
+                upstream="$(printf '%s' "$entry" | cut -d: -f2)"
+                internal_port="${entry##*:}"
+                if grep -q "proxy_pass http://${upstream}:${internal_port};" "$front_conf"; then
+                    continue
+                fi
+                cat >> "$front_conf" <<EOF
+
+server {
+    listen 443 ssl;
+    server_name ${domain};
+    ssl_certificate     /etc/nginx/ssl/${cert_name}.fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/${cert_name}.privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    location / {
+        proxy_pass http://${upstream}:${internal_port};
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
+                need_reload=1
+            done
+            [[ $need_reload -eq 1 ]] && reload_nginx
             ;;
         caddy)
             [[ $EUID -eq 0 ]] || fail "vhost step: run as root to add caddy virtual hosts."
