@@ -123,10 +123,10 @@ description: "Task list for the demonstrator stand"
 
 **Purpose**: The recorded picture, then the constitutional tail — in this order: evidence, check run, documentation, changelog (constitution VI)
 
-- [ ] T018 Record the picture: generate the DOT and WASM-rendered SVG for the use-case diagram and the ERD slice with the client's own builders (the same procedure as issue #201), save them under `specs/004-demonstrator-stand/contracts/`, verify by eye against `contracts/stand.md` that generalization edges are visible and every label names its shape; capture the browser PNGs from the live stand when it is up (FR-011, SC-003).
-- [ ] T019 Run `bash scripts/run_checks_with_log.sh` from the repository root and fix every remark it reports, to zero (constitution VI, first tail step).
-- [ ] T020 Write the documentation — every case and every scenario of this change, each shown twice: a runnable script under `examples/` and a notebook of the same case; every example executed with the repository's own environment; publish the English page and its Russian `<page>.ru_draft.md` beside it (constitution VI, second tail step).
-- [ ] T021 Write the changelog as one article in `docs/CHANGELOG.md` — what this work created, in plain words, with the nuances a user needs and without technical detail (constitution VI, third tail step).
+- [x] T018 Record the picture: generate the DOT and WASM-rendered SVG for the use-case diagram and the ERD slice with the client's own builders (the same procedure as issue #201), save them under `specs/004-demonstrator-stand/contracts/`, verify by eye against `contracts/stand.md` that generalization edges are visible and every label names its shape; capture the browser PNGs from the live stand when it is up (FR-011, SC-003).
+- [x] T019 Run `bash scripts/run_checks_with_log.sh` from the repository root and fix every remark it reports, to zero (constitution VI, first tail step).
+- [ ] T020 Write the documentation (skipped by the maintainer's decision — remains open) — every case and every scenario of this change, each shown twice: a runnable script under `examples/` and a notebook of the same case; every example executed with the repository's own environment; publish the English page and its Russian `<page>.ru_draft.md` beside it (constitution VI, second tail step).
+- [ ] T021 Write the changelog (skipped by the maintainer's decision — remains open) as one article in `docs/CHANGELOG.md` — what this work created, in plain words, with the nuances a user needs and without technical detail (constitution VI, third tail step).
 
 ---
 

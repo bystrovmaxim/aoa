@@ -3,12 +3,12 @@
 
 from aoa.demo.model.generalization_shapes.actions.generalization_actions import (
     GeneralizationFirstChildAction,
-    GeneralizationSecondChildAction,
     GeneralizationParentAction,
+    GeneralizationSecondChildAction,
 )
 
 __all__ = [
     "GeneralizationFirstChildAction",
-    "GeneralizationSecondChildAction",
     "GeneralizationParentAction",
+    "GeneralizationSecondChildAction",
 ]

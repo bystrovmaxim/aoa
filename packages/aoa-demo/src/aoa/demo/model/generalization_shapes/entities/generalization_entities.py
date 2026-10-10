@@ -39,7 +39,6 @@ from aoa.action_machine.domain import (
     Specialization,
 )
 from aoa.action_machine.intents.entity import entity
-
 from aoa.demo.model.generalization_shapes.generalization_shapes_domain import GeneralizationShapesDomain
 
 

@@ -30,7 +30,6 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-
 from aoa.demo.model.generalization_shapes.generalization_shapes_domain import GeneralizationShapesDomain
 
 
