@@ -47,8 +47,8 @@ description: "Task list for the demonstrator stand"
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Rewrite `packages/aoa-maxitor/Dockerfile` as a multi-stage build: stage 1 — a Node image runs `cd packages/aoa-maxitor/client && npm ci && npm run build`; stage 2 — a Python 3.12 image installs the uv workspace from the repository root (no `aoa-*` package from PyPI), copies the built client from stage 1, and serves the Maxitor API. Remove the `pip install aoa-maxitor==1.1.6` line entirely (FR-001).
-- [ ] T004 [US1] Verify locally: `docker compose -f deploy/stand/docker-compose.yml build maxitor` succeeds from a clean checkout; confirm the built client is inside the image (e.g., the client `dist/` exists in the expected path) and that the running container answers its API port.
+- [x] T003 [US1] Rewrite `packages/aoa-maxitor/Dockerfile` as a multi-stage build: stage 1 — a Node image runs `cd packages/aoa-maxitor/client && npm ci && npm run build`; stage 2 — a Python 3.12 image installs the uv workspace from the repository root (no `aoa-*` package from PyPI), copies the built client from stage 1, and serves the Maxitor API. Remove the `pip install aoa-maxitor==1.1.6` line entirely (FR-001).
+- [x] T004 [US1] Verify locally: `docker compose -f deploy/stand/docker-compose.yml build maxitor` succeeds from a clean checkout; confirm the built client is inside the image (e.g., the client `dist/` exists in the expected path) and that the running container answers its API port.
 
 **Checkpoint**: the Maxitor image is this repository's build — the stale-release trap is gone
 
