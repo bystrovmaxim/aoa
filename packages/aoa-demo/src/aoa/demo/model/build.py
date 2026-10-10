@@ -74,4 +74,9 @@ _MODULES: Final[tuple[str, ...]] = (
     "aoa.demo.model.logistics_mesh.logistics_mesh_domain",
     "aoa.demo.model.logistics_mesh.entities",
     "aoa.demo.model.logistics_mesh.actions",
+    # access cascade: drawing fixtures for the five access steps (issue #201)
+    "aoa.demo.model.access_cascade.access_cascade_domain",
+    "aoa.demo.model.access_cascade.roles",
+    "aoa.demo.model.access_cascade.actions",
+    "aoa.demo.model.access_cascade.entities",
 )
