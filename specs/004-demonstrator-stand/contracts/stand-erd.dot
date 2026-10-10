@@ -18,7 +18,6 @@ digraph ERD {
       <TR><TD BGCOLOR="#fef9c3" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>PK</B></FONT></TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT">id</TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
       <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">variant_code</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR></TABLE>>]
 
-  "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationHeadEntity" -> "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationHeadEntity:details" [label="by variant_code" fontsize=9 arrowhead=vee]
   "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationVariantAEntity" -> "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationHeadEntity" [label="variant_a" fontsize=9 arrowhead=empty]
   "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationVariantBEntity" -> "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationHeadEntity" [label="variant_b" fontsize=9 arrowhead=empty]
 }

@@ -188,13 +188,11 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
 
   lines.push("");
   for (const ed of relations ?? []) {
+    // The axis relation is already carried by the head's field row ("details (by variant_code)")
+    // and by the container that holds the alternatives — no edge is drawn for it.
+    if (ed.relationship_kind === "specialization") continue;
     const label = ed.label ? `label="${escHtml(ed.label)}" fontsize=9 ` : "";
-    const arrow =
-      ed.relationship_kind === "specialization"
-        ? "arrowhead=vee "
-        : ed.relationship_kind === "generalization"
-          ? "arrowhead=empty "
-          : "";
+    const arrow = ed.relationship_kind === "generalization" ? "arrowhead=empty " : "";
     const attrs = `${label}${arrow}`.trim();
     lines.push(`  "${ed.source}" -> "${ed.target}"${attrs ? ` [${attrs}]` : ""}`);
   }
