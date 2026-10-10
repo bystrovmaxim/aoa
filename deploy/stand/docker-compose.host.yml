@@ -1,0 +1,24 @@
+# deploy/stand/docker-compose.host.yml — host-only wiring for the demonstrator stand.
+#
+# On the host the stand joins the front end's docker network (up2y-net) under
+# its aliases, so the nginx-proxy container can proxy by name. Locally this
+# network does not exist, which is why it lives in this override: the deploy
+# script appends this file on the host, and local runs use the base compose alone.
+
+services:
+  demo:
+    networks:
+      frontend:
+        aliases:
+          - dev_aoa_demo
+
+  maxitor:
+    networks:
+      frontend:
+        aliases:
+          - dev_aoa_maxitor
+
+networks:
+  frontend:
+    name: up2y-net
+    external: true

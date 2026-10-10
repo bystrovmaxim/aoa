@@ -24,7 +24,7 @@ export type ErdRelation = {
   source: string;
   target: string;
   label?: string;
-  /** `specialization` marks the one line into an axis container; anything else is an ordinary link. */
+  /** `specialization` marks the line into an axis container; `generalization` marks an extension's inheritance line into its head; anything else is an ordinary link. */
   relationship_kind?: string;
 };
 
@@ -57,6 +57,36 @@ function escHtml(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/**
+ * Parse the axis row's type cell — ``"A (code_a) | B (code_b)"`` — into its
+ * alternatives (code + short name each). Returns ``null`` for rows that are
+ * not a specialization axis.
+ */
+function parseSpecializationType(type: string): { alternatives: Array<{ code: string; name: string }> } | null {
+  const parts = type.split(" | ");
+  if (parts.length < 2) return null;
+  const alternatives: Array<{ code: string; name: string }> = [];
+  for (const part of parts) {
+    const open = part.lastIndexOf(" (");
+    const close = part.lastIndexOf(")");
+    if (open < 0 || close < open) return null;
+    alternatives.push({ name: part.slice(0, open).trim(), code: part.slice(open + 2, close).trim() });
+  }
+  return { alternatives };
+}
+
+/**
+ * Resolve a wire short label to the full table label of the entity it names.
+ */
+function resolveTableLabel(name: string, entities: ErdEntity[]): string {
+  for (const e of entities) {
+    if (e.label === name) return e.label;
+    if (e.label?.replace(/Entity$/, "") === name) return e.label;
+    if (e.id.endsWith(`.${name}`)) return e.label || name;
+  }
+  return name;
 }
 
 /** Map UI layout preset to the Graphviz layout engine name passed to ``layout()`` */
@@ -105,11 +135,22 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
         const iconTd = icon
           ? `<TD BGCOLOR="${bg}" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>${icon}</B></FONT></TD>`
           : `<TD BGCOLOR="${bg}" WIDTH="28"></TD>`;
+        // A specialization axis row collapses its alternatives into "Specialization N+"
+        // and carries the full list as the cell's hover tooltip.
+        const specialization = parseSpecializationType(f.type || "");
+        const typeText = specialization !== null ? `Specialization ${specialization.alternatives.length}+` : f.type || "";
+        const tooltipAttr =
+          specialization !== null
+            ? ` TOOLTIP="${specialization.alternatives
+                .map((alt) => `${alt.code} → ${resolveTableLabel(alt.name, entities ?? [])}`)
+                .map(escHtml)
+                .join("&#10;")}"`
+            : "";
         return (
           "<TR>" +
           iconTd +
           `<TD BGCOLOR="${bg}" ALIGN="LEFT">${escHtml(f.name)}</TD>` +
-          `<TD BGCOLOR="${bg}" ALIGN="LEFT"><FONT COLOR="#64748b"><I>${escHtml(f.type || "")}</I></FONT></TD>` +
+          `<TD BGCOLOR="${bg}" ALIGN="LEFT"${tooltipAttr}><FONT COLOR="#64748b"><I>${escHtml(typeText)}</I></FONT></TD>` +
           "</TR>"
         );
       })
@@ -148,7 +189,12 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
   lines.push("");
   for (const ed of relations ?? []) {
     const label = ed.label ? `label="${escHtml(ed.label)}" fontsize=9 ` : "";
-    const arrow = ed.relationship_kind === "specialization" ? "arrowhead=vee " : "";
+    const arrow =
+      ed.relationship_kind === "specialization"
+        ? "arrowhead=vee "
+        : ed.relationship_kind === "generalization"
+          ? "arrowhead=empty "
+          : "";
     const attrs = `${label}${arrow}`.trim();
     lines.push(`  "${ed.source}" -> "${ed.target}"${attrs ? ` [${attrs}]` : ""}`);
   }

@@ -18,6 +18,12 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$REPO_ROOT/deploy/stand/docker-compose.yml"
+# The host wiring (front-end network + aliases) lives in the override and is
+# appended only when present — local runs use the base compose alone.
+COMPOSE_ARGS=(-f "$COMPOSE_FILE")
+if [[ -f "$COMPOSE_FILE.host" ]]; then
+    COMPOSE_ARGS+=(-f "$COMPOSE_FILE.host")
+fi
 
 # Configuration and secrets live on the host, outside the repository.
 if [[ -f /etc/aoa-stand.env ]]; then
@@ -47,7 +53,7 @@ rollback() {
             docker image tag "stand-${service}:backup" "stand-${service}:latest"
         fi
     done
-    docker compose -f "$COMPOSE_FILE" up -d >/dev/null 2>&1 || true
+    docker compose "${COMPOSE_ARGS[@]}" up -d >/dev/null 2>&1 || true
     exit 1
 }
 
@@ -232,13 +238,13 @@ main() {
     say "terminator: ${terminator}"
 
     say "=== build ==="
-    docker compose -f "$COMPOSE_FILE" build
+    docker compose "${COMPOSE_ARGS[@]}" build
 
     say "=== snapshot for rollback ==="
     backup_images
 
     say "=== up ==="
-    docker compose -f "$COMPOSE_FILE" up -d
+    docker compose "${COMPOSE_ARGS[@]}" up -d
 
     say "=== health ==="
     wait_healthy demo || rollback "the demo container did not become healthy"

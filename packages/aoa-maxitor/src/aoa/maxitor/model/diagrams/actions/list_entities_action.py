@@ -311,6 +311,22 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             }
             for group in groups
         )
+        # The generalization half of the axis: each extension points at its head.
+        parent_entity_sql = """
+        WITH domain_entity AS (
+          SELECT source_id AS id FROM domain_edges WHERE target_id = ?
+        )
+        SELECT pe.source_id AS source, pe.target_id AS target,
+               CASE WHEN COALESCE(pe.classifier_value, '') = '' THEN pe.field_name ELSE pe.classifier_value END AS label,
+               'generalization' AS relationship_kind,
+               'zero_many' AS source_cardinality,
+               'one' AS target_cardinality
+        FROM parent_entity_edges pe
+        WHERE pe.source_id IN (SELECT id FROM domain_entity)
+          AND pe.target_id IN (SELECT id FROM domain_entity)
+        ORDER BY pe.source_id, pe.target_id
+        """
+        relations.extend(duck.execute_fetch_dicts(parent_entity_sql, [qual]))
         return {
             "entities": duck.execute_fetch_dicts(entity_sql, [qual]),
             "relations": relations,

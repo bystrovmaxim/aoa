@@ -63,12 +63,13 @@ def test_params_accepts_full_endpoint_url() -> None:
 # ─── validate_url_aspect ─────────────────────────────────────────────────────
 
 
-async def test_validate_url_rejects_plain_text() -> None:
+async def test_validate_url_accepts_bare_host_text() -> None:
+    """A bare host without a scheme is accepted and defaults to https."""
     params = LoadAOAServiceParams(service_url="http://placeholder")
     # Override after construction to bypass Pydantic min_length
     object.__setattr__(params, "service_url", "not-a-url")
-    with pytest.raises(ValueError, match="HTTP or HTTPS"):
-        await _ACTION.validate_url_aspect(params, _state(), None, {})  # type: ignore[arg-type]
+    result = await _ACTION.validate_url_aspect(params, _state(), None, {})  # type: ignore[arg-type]
+    assert result["service_graph_json_url"] == "https://not-a-url"
 
 
 async def test_validate_url_rejects_ftp_scheme() -> None:
