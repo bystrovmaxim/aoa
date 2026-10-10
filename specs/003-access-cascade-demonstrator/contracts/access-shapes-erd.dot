@@ -1,0 +1,10 @@
+digraph ERD {
+  graph [rankdir=LR fontname="Helvetica" bgcolor=transparent pad="0.5" nodesep="0.8" ranksep="1.2"]
+  node  [shape=none fontname="Helvetica" fontsize=11 margin="0"]
+  edge  [fontname="Helvetica" fontsize=9 color="#94a3b8" arrowsize=0.7]
+
+  "aoa.demo.model.access_cascade.entities.cascade_boundary_entity.CascadeBoundaryEntity" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="#3b82f6"><TR><TD COLSPAN="3" BGCOLOR="#3b82f6" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="12"><B>CascadeBoundaryEntity</B></FONT></TD></TR><TR><TD BGCOLOR="#fef9c3" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>PK</B></FONT></TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT">id</TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#dbeafe" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>FK</B></FONT></TD><TD BGCOLOR="#dbeafe" ALIGN="LEFT">peer_boundary</TD><TD BGCOLOR="#dbeafe" ALIGN="LEFT"><FONT COLOR="#64748b"><I>FK -&gt; CascadeBoundaryEntity</I></FONT></TD></TR></TABLE>>]
+
+  "aoa.demo.model.access_cascade.entities.cascade_boundary_entity.CascadeBoundaryEntity" -> "aoa.demo.model.access_cascade.entities.cascade_boundary_entity.CascadeBoundaryEntity" [label="peer_boundary (one)" fontsize=9]
+}

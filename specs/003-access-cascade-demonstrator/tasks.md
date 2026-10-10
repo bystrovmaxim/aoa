@@ -131,7 +131,7 @@ description: "Task list for the access cascade demonstrator"
 **Purpose**: The recorded drawing, then the constitutional tail — in this order: evidence, check run, documentation, changelog (constitution VI)
 
 - [ ] T025 Record the drawing evidence per `specs/003-access-cascade-demonstrator/quickstart.md` steps 3–4: build the Maxitor client and the demo, open the use-case diagram for the `access_cascade` domain, verify all ten shapes against `specs/003-access-cascade-demonstrator/contracts/access-shapes.md`, and commit-ready the generated DOT to `specs/003-access-cascade-demonstrator/contracts/access-shapes.dot` and the rendered picture to `specs/003-access-cascade-demonstrator/contracts/access-shapes.png` (FR-013, SC-001, SC-003, SC-004).
-- [ ] T026 Run `bash scripts/run_checks_with_log.sh` from the repository root and fix every remark it reports, to zero (constitution VI, first tail step).
+- [x] T026 Run `bash scripts/run_checks_with_log.sh` from the repository root and fix every remark it reports, to zero (constitution VI, first tail step).
 - [ ] T027 Write the documentation — every case and every scenario of this change, each shown twice: a runnable script under `examples/` and a notebook of the same case; every example executed with the repository's own environment; publish the English page and its Russian `<page>.ru_draft.md` beside it (constitution VI, second tail step).
 - [ ] T028 Write the changelog as one article in `docs/CHANGELOG.md` — what this work created, in plain words, with the nuances a user needs and without technical detail (constitution VI, third tail step).
 

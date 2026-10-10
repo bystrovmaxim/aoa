@@ -28,7 +28,6 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-
 from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDomain
 from aoa.demo.model.access_cascade.roles import CascadeOfficerRole
 
@@ -58,11 +57,11 @@ class RoleCheckAloneShapeAction(
     @summary_aspect("Return the empty result")
     async def role_check_summary(
         self,
-        params: "RoleCheckAloneShapeAction.Params",
+        params: RoleCheckAloneShapeAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> "RoleCheckAloneShapeAction.Result":
+    ) -> RoleCheckAloneShapeAction.Result:
         """Build the empty fixture result."""
         _ = (params, state, box, connections)
         return RoleCheckAloneShapeAction.Result()

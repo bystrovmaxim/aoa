@@ -1,14 +1,15 @@
-# packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/two_path_match_shape_action.py
+# packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/system_role_edge_shape_action.py
 """
-TwoPathMatchShapeAction — the operation two roles match through different paths.
+SystemRoleEdgeShapeAction — the operation that draws the system-level role branch.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-A drawing fixture (FR-007): the diagram must show one operation reached by
-two roles through different branches — one match through the application
-chain, one through the domain branch. The class carries no business meaning.
+A drawing fixture (FR-001): the use-case diagram pulls roles into its closure
+only through ``@check_roles`` edges, so the system-level branch needs an
+operation that names it. This fixture provides exactly that edge; it carries
+no business meaning.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -16,9 +17,8 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    @check_roles(CascadeTraineeRole, CascadeDomainSpecialistRole)
-        →  two RoleGraphEdges into one action node
-    summary aspect  →  empty Result
+    @check_roles(CascadeSystemGateRole)  →  one RoleGraphEdge into the system branch
+    summary aspect                       →  empty Result
 """
 
 from __future__ import annotations
@@ -30,39 +30,39 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDomain
-from aoa.demo.model.access_cascade.roles import CascadeDomainSpecialistRole, CascadeTraineeRole
+from aoa.demo.model.access_cascade.roles import CascadeSystemGateRole
 
 
 @meta(
-    description="Shape: two roles match one operation through different paths",
+    description="Shape: the system-level role branch, drawn through this role edge",
     domain=AccessCascadeDomain,
 )
-@check_roles(CascadeTraineeRole, CascadeDomainSpecialistRole)
-class TwoPathMatchShapeAction(
-    BaseAction["TwoPathMatchShapeAction.Params", "TwoPathMatchShapeAction.Result"],
+@check_roles(CascadeSystemGateRole)
+class SystemRoleEdgeShapeAction(
+    BaseAction["SystemRoleEdgeShapeAction.Params", "SystemRoleEdgeShapeAction.Result"],
 ):
     """
     AI-CORE-BEGIN
-    ROLE: Drawing fixture matched by two roles from different branches.
-    CONTRACT: Two grants, one from the application chain and one from the domain branch.
-    INVARIANTS: No business meaning; the two matching paths are the shape being drawn.
+    ROLE: Drawing fixture whose single role edge makes the system branch visible.
+    CONTRACT: One grant naming ``CascadeSystemGateRole``.
+    INVARIANTS: No business meaning; the system-branch edge is the shape being drawn.
     AI-CORE-END
     """
 
     class Params(BaseParams):
-        """Empty input for the two-path-match drawing fixture."""
+        """Empty input for the system-role-edge drawing fixture."""
 
     class Result(BaseResult):
-        """Empty result for the two-path-match drawing fixture."""
+        """Empty result for the system-role-edge drawing fixture."""
 
     @summary_aspect("Return the empty result")
-    async def two_path_summary(
+    async def system_role_edge_summary(
         self,
-        params: TwoPathMatchShapeAction.Params,
+        params: SystemRoleEdgeShapeAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> TwoPathMatchShapeAction.Result:
+    ) -> SystemRoleEdgeShapeAction.Result:
         """Build the empty fixture result."""
         _ = (params, state, box, connections)
-        return TwoPathMatchShapeAction.Result()
+        return SystemRoleEdgeShapeAction.Result()

@@ -30,7 +30,6 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-
 from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDomain
 
 

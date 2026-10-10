@@ -33,11 +33,10 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-
 from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDomain
 from aoa.demo.model.access_cascade.roles import CascadeOfficerRole
 
-_PROBE_CALLS = 0
+_PROBE_CALLS: dict[str, int] = {"count": 0}
 """Probe counter: how many times the declared object rule ran (reset by the tests)."""
 
 
@@ -66,24 +65,23 @@ class EarlyStopShapeAction(
     @access_decide("Count the probe and allow — the early stop is proven by the tests")
     async def probe_then_allow_access_decide(
         self,
-        params: "EarlyStopShapeAction.Params",
+        params: EarlyStopShapeAction.Params,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> Verdict:
         """Increment the probe counter, then allow."""
-        global _PROBE_CALLS
         _ = (params, box, connections)
-        _PROBE_CALLS += 1
+        _PROBE_CALLS["count"] += 1
         return Allowed()
 
     @summary_aspect("Return the empty result")
     async def early_stop_summary(
         self,
-        params: "EarlyStopShapeAction.Params",
+        params: EarlyStopShapeAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> "EarlyStopShapeAction.Result":
+    ) -> EarlyStopShapeAction.Result:
         """Build the empty fixture result."""
         _ = (params, state, box, connections)
         return EarlyStopShapeAction.Result()

@@ -33,11 +33,10 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
-
 from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDomain
 from aoa.demo.model.access_cascade.roles import CascadeOfficerRole
 
-_PIPELINE_RUNS = 0
+_PIPELINE_RUNS: dict[str, int] = {"count": 0}
 """Pipeline probe: how many times the summary aspect ran (reset by the tests)."""
 
 _QUESTION_LABEL = "Shape: the asked-about operation — the refusal returns as an answer, never an exception"
@@ -68,7 +67,7 @@ class QuestionPathShapeAction(
     @access_decide("Answer the declared object rule for the asked-about fixture")
     async def answer_for_question_access_decide(
         self,
-        params: "QuestionPathShapeAction.Params",
+        params: QuestionPathShapeAction.Params,
         box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> Verdict:
@@ -79,13 +78,12 @@ class QuestionPathShapeAction(
     @summary_aspect("Return the empty result")
     async def question_path_summary(
         self,
-        params: "QuestionPathShapeAction.Params",
+        params: QuestionPathShapeAction.Params,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-    ) -> "QuestionPathShapeAction.Result":
+    ) -> QuestionPathShapeAction.Result:
         """Count the pipeline probe and build the empty fixture result."""
-        global _PIPELINE_RUNS
         _ = (params, state, box, connections)
-        _PIPELINE_RUNS += 1
+        _PIPELINE_RUNS["count"] += 1
         return QuestionPathShapeAction.Result()

@@ -150,6 +150,15 @@ def test_us2_role_branches_exist() -> None:
     assert "CascadeDomainRole" in suffixes
 
 
+def test_us2_system_role_edge_shape() -> None:
+    """The system branch is reachable through a role edge, so the drawing can show it."""
+    coordinator = _coordinator()
+    action_id = _action_node_id(coordinator, "SystemRoleEdgeShapeAction")
+    edges = _check_roles_edges(coordinator, action_id)
+    assert len(edges) == 1
+    assert edges[0][1].endswith("CascadeSystemGateRole")
+
+
 def test_us2_application_chain_is_drawn() -> None:
     """The application chain connects its four levels, child to parent."""
     links = _parent_role_links(_coordinator())
@@ -184,14 +193,14 @@ async def test_us3_early_stop_probe_untouched() -> None:
     """A caller refused at CHECK_ROLES never reaches the declared object rule."""
     import aoa.demo.model.access_cascade.actions.early_stop_shape_action as early_stop_module
 
-    early_stop_module._PROBE_CALLS = 0
+    early_stop_module._PROBE_CALLS["count"] = 0
     import_sample_registration_modules()
     machine = ActionProductMachine(graph_coordinator=build_registered_interchange_coordinator())
     context = Context(user=UserInfo(user_id="early-stop-caller", roles=()))
     with pytest.raises(AccessDenied) as exc_info:
         await machine.run(context, EarlyStopShapeAction(), EarlyStopShapeAction.Params())
     assert exc_info.value.verdict.gate.value == "CHECK_ROLES"
-    assert early_stop_module._PROBE_CALLS == 0
+    assert early_stop_module._PROBE_CALLS["count"] == 0
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -214,7 +223,7 @@ async def test_us4_question_path_refusal_is_an_answer() -> None:
     """Asking in advance returns a refusal answer — never an exception — and runs no aspect."""
     import aoa.demo.model.access_cascade.actions.question_path_shape_action as question_module
 
-    question_module._PIPELINE_RUNS = 0
+    question_module._PIPELINE_RUNS["count"] = 0
     import_sample_registration_modules()
     machine = ActionProductMachine(graph_coordinator=build_registered_interchange_coordinator())
     context = Context(user=UserInfo(user_id="asking-caller", roles=()))
@@ -225,7 +234,7 @@ async def test_us4_question_path_refusal_is_an_answer() -> None:
     )
     assert isinstance(verdict, Refused)
     assert verdict.gate.value == "CHECK_ROLES"
-    assert question_module._PIPELINE_RUNS == 0
+    assert question_module._PIPELINE_RUNS["count"] == 0
 
 
 # ═════════════════════════════════════════════════════════════════════════════

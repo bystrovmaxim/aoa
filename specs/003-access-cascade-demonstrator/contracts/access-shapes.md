@@ -17,12 +17,18 @@ The demonstrator is judged by looking (FR-013, SC-001). This file is the contrac
 
 ## Artifact manifest
 
-During implementation, the recorded evidence lands in this directory:
+Recorded evidence in this directory:
 
-- `access-shapes.dot` — the generated Graphviz source of the use-case diagram for `AccessCascadeDomain`.
-- `access-shapes.png` — the rendered picture of the same diagram.
+- `access-shapes.dot` — the generated Graphviz source of the use-case diagram for `AccessCascadeDomain` (shapes 1–9), built by the Maxitor client's own `buildDomainUseCaseDotBundle` from the payload of `GetDomainUseCaseDiagramAction`.
+- `access-shapes.svg` — the same diagram rendered by the same Graphviz WASM engine the client uses, with the role actor asset.
+- `access-shapes-erd.dot` — the generated Graphviz source of the ERD slice for the domain (shape 10), built by the client's own `buildDotSource` from the payload of `ListEntitiesAction`.
+- `access-shapes-erd.svg` — the same ERD slice rendered by the WASM engine.
+- `access-shapes.png` / `access-shapes-erd.png` — browser captures of the two diagrams from the built Maxitor client (the client package has no test runner; the PNG is the look-at evidence, the same way `specs/002-entity-specialization` records its picture).
 
-Both are committed with the change (FR-013, SC-004). The picture is checked by eye against this table — the client package has no test runner to assert rendering, the same way `specs/002-entity-specialization` records its picture.
+## Known gaps found while recording
+
+- **The system branch needs an edge to draw.** The use-case closure pulls roles only through `@check_roles` edges, so an unconnected role is invisible. The `SystemRoleEdgeShapeAction` fixture (added during the recording of this contract) names `CascadeSystemGateRole` so the system level appears in the diagram.
+- **The ERD payload does not carry `has_inverse`.** `ListEntitiesAction` selects no inverse marker, so a `NoInverse` boundary renders like an ordinary one-way relation row (the visible boundary here is the self-loop with its cardinalities, not a distinct style). Marking one-sided boundaries in the ERD is a Maxitor follow-up, out of scope for this feature's fixtures (per the spec's assumption).
 
 ## Honesty rule
 

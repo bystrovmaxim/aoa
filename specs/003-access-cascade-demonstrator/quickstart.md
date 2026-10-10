@@ -48,8 +48,8 @@ uv run --extra dev pytest packages/aoa-demo/tests/model/test_access_cascade_shap
 
 ## 4. Record the evidence
 
-1. Capture the generated DOT source of that diagram to `specs/003-access-cascade-demonstrator/contracts/access-shapes.dot`.
-2. Render the picture and save it to `specs/003-access-cascade-demonstrator/contracts/access-shapes.png`.
-3. Verify the picture against the table in `contracts/access-shapes.md` — every shape on the list must be identifiable by sight (SC-001), and every label must name its shape, never a business claim (FR-011, SC-003).
+1. The generated DOT sources are already produced by the Maxitor client's own builders and recorded as `specs/003-access-cascade-demonstrator/contracts/access-shapes.dot` (use-case diagram) and `access-shapes-erd.dot` (ERD slice), with the WASM-rendered `access-shapes.svg` / `access-shapes-erd.svg` beside them.
+2. Capture the two diagrams from the built Maxitor client as `access-shapes.png` and `access-shapes-erd.png` in the same directory.
+3. Verify against the table in `contracts/access-shapes.md` — every shape on the list must be identifiable by sight (SC-001), and every label must name its shape, never a business claim (FR-011, SC-003).
 
-Both files are committed with the change (FR-013, SC-004).
+The artifacts are committed with the change (FR-013, SC-004).

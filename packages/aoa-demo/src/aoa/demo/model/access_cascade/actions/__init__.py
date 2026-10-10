@@ -6,6 +6,7 @@ from aoa.demo.model.access_cascade.actions.early_stop_shape_action import EarlyS
 from aoa.demo.model.access_cascade.actions.guard_refusal_shape_action import GuardRefusalShapeAction
 from aoa.demo.model.access_cascade.actions.question_path_shape_action import QuestionPathShapeAction
 from aoa.demo.model.access_cascade.actions.role_check_alone_shape_action import RoleCheckAloneShapeAction
+from aoa.demo.model.access_cascade.actions.system_role_edge_shape_action import SystemRoleEdgeShapeAction
 from aoa.demo.model.access_cascade.actions.two_path_match_shape_action import TwoPathMatchShapeAction
 from aoa.demo.model.access_cascade.actions.when_refusal_shape_action import WhenRefusalShapeAction
 
@@ -15,6 +16,7 @@ __all__ = [
     "GuardRefusalShapeAction",
     "QuestionPathShapeAction",
     "RoleCheckAloneShapeAction",
+    "SystemRoleEdgeShapeAction",
     "TwoPathMatchShapeAction",
     "WhenRefusalShapeAction",
 ]
