@@ -85,10 +85,10 @@ description: "Task list for the access cascade demonstrator"
 
 ### Implementation for User Story 3
 
-- [ ] T015 [P] [US3] Create `TwoPathMatchShapeAction` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/two_path_match_shape_action.py` — `@check_roles(CascadeTraineeRole, CascadeDomainSpecialistRole)` (one path through the hierarchy, one through the domain branch); description names the shape; export from `actions/__init__.py`.
-- [ ] T016 [P] [US3] Create `EarlyStopShapeAction` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/early_stop_shape_action.py` — `@check_roles(CascadeOfficerRole)` plus `@access_decide` whose body increments a module-level probe counter before answering; description names the shape; export from `actions/__init__.py`.
-- [ ] T017 [US3] Register the two US3 action modules in the `_MODULES` tuple of `packages/aoa-demo/src/aoa/demo/model/build.py` (depends on T015–T016).
-- [ ] T018 [US3] Add the US3 test group to `packages/aoa-demo/tests/model/test_access_cascade_shapes.py`: two `check_roles` edges into `TwoPathMatchShapeAction` from different branches (FR-007); run `EarlyStopShapeAction` as a caller who fails `CHECK_ROLES` → the refusal names `CHECK_ROLES` and the probe counter is zero, proving the declared object rule was not reached (FR-008). Verify adversarially.
+- [x] T015 [P] [US3] Create `TwoPathMatchShapeAction` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/two_path_match_shape_action.py` — `@check_roles(CascadeTraineeRole, CascadeDomainSpecialistRole)` (one path through the hierarchy, one through the domain branch); description names the shape; export from `actions/__init__.py`.
+- [x] T016 [P] [US3] Create `EarlyStopShapeAction` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/early_stop_shape_action.py` — `@check_roles(CascadeOfficerRole)` plus `@access_decide` whose body increments a module-level probe counter before answering; description names the shape; export from `actions/__init__.py`.
+- [x] T017 [US3] Make the two US3 actions reachable at registration: export them from `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/__init__.py` (depends on T015–T016).
+- [x] T018 [US3] Add the US3 test group to `packages/aoa-demo/tests/model/test_access_cascade_shapes.py`: two `check_roles` edges into `TwoPathMatchShapeAction` from different branches (FR-007); run `EarlyStopShapeAction` as a caller who fails `CHECK_ROLES` → the refusal names `CHECK_ROLES` and the probe counter is zero, proving the declared object rule was not reached (FR-008). Verify adversarially.
 
 **Checkpoint**: matching and early stop proven; US1–US3 work
 

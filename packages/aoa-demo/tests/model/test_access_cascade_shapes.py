@@ -30,6 +30,12 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+import pytest
+
+from aoa.action_machine.context import Context, UserInfo
+from aoa.action_machine.exceptions import AccessDenied
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.demo.model.access_cascade.actions import EarlyStopShapeAction
 from aoa.demo.model.interchange_demo_coordinator import (
     build_registered_interchange_coordinator,
     import_sample_registration_modules,
@@ -155,3 +161,33 @@ def test_us2_domain_chain_is_drawn() -> None:
     links = _parent_role_links(_coordinator())
     for child, parent in _DOMAIN_CHAIN:
         assert (child, parent) in links
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# US3 — matching and stopping are visible and provable
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def test_us3_two_path_match_shape() -> None:
+    """The two-path operation carries two role edges from different branches."""
+    coordinator = _coordinator()
+    action_id = _action_node_id(coordinator, "TwoPathMatchShapeAction")
+    edges = _check_roles_edges(coordinator, action_id)
+    assert len(edges) == 2
+    targets = {target_id.rsplit(".", 1)[-1] for _, target_id, _edge in edges}
+    assert targets == {"CascadeTraineeRole", "CascadeDomainSpecialistRole"}
+
+
+@pytest.mark.asyncio
+async def test_us3_early_stop_probe_untouched() -> None:
+    """A caller refused at CHECK_ROLES never reaches the declared object rule."""
+    import aoa.demo.model.access_cascade.actions.early_stop_shape_action as early_stop_module
+
+    early_stop_module._PROBE_CALLS = 0
+    import_sample_registration_modules()
+    machine = ActionProductMachine(graph_coordinator=build_registered_interchange_coordinator())
+    context = Context(user=UserInfo(user_id="early-stop-caller", roles=()))
+    with pytest.raises(AccessDenied) as exc_info:
+        await machine.run(context, EarlyStopShapeAction(), EarlyStopShapeAction.Params())
+    assert exc_info.value.verdict.gate.value == "CHECK_ROLES"
+    assert early_stop_module._PROBE_CALLS == 0
