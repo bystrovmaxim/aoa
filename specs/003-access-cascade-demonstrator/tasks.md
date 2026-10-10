@@ -118,9 +118,9 @@ description: "Task list for the access cascade demonstrator"
 
 ### Implementation for User Story 5
 
-- [ ] T022 [US5] Create `CascadeBoundaryEntity` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/entities/cascade_boundary_entity.py` — `BaseEntity` subclass with exactly one relation field declared `NoInverse()` and `= Rel(description=...)` naming the one-sided boundary shape; no other relations, no lifecycle; export from `entities/__init__.py`.
-- [ ] T023 [US5] Ensure the `entities` module is present in the `_MODULES` tuple of `packages/aoa-demo/src/aoa/demo/model/build.py` (it was added in T003; verify the entity is reachable through the package import).
-- [ ] T024 [US5] Add the US5 test group to `packages/aoa-demo/tests/model/test_access_cascade_shapes.py`: the entity exists in the graph JSON and its relation field carries the `NoInverse` marker (FR-010). Verify adversarially.
+- [x] T022 [US5] Create `CascadeBoundaryEntity` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/entities/cascade_boundary_entity.py` — `BaseEntity` subclass with exactly one relation field declared `NoInverse()` and `= Rel(description=...)` naming the one-sided boundary shape; no other relations, no lifecycle; export from `entities/__init__.py`.
+- [x] T023 [US5] Ensure the `entities` module is present in the `_MODULES` tuple of `packages/aoa-demo/src/aoa/demo/model/build.py` (it was added in T003; verify the entity is reachable through the package import).
+- [x] T024 [US5] Add the US5 test group to `packages/aoa-demo/tests/model/test_access_cascade_shapes.py`: the entity exists in the graph JSON and its relation field carries the `NoInverse` marker (FR-010). Verify adversarially.
 
 **Checkpoint**: all five stories implemented; the model builds and the suite is green
 

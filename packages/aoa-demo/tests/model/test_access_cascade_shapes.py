@@ -226,3 +226,28 @@ async def test_us4_question_path_refusal_is_an_answer() -> None:
     assert isinstance(verdict, Refused)
     assert verdict.gate.value == "CHECK_ROLES"
     assert question_module._PIPELINE_RUNS == 0
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# US5 — boundary extremes
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def test_us5_no_inverse_boundary() -> None:
+    """The boundary entity carries its one relation with no reverse side."""
+    coordinator = _coordinator()
+    entity_ids = [
+        node.node_id
+        for node in coordinator.get_all_nodes()
+        if getattr(node, "node_type", None) == "Entity" and node.node_id.endswith(".CascadeBoundaryEntity")
+    ]
+    assert len(entity_ids) == 1
+    entity_id = entity_ids[0]
+    relations = [
+        (source_id, target_id, edge)
+        for source_id, target_id, edge in coordinator.get_edges_by_type("entity_relation")
+        if source_id == entity_id
+    ]
+    assert len(relations) == 1
+    assert relations[0][2].properties["field_name"] == "peer_boundary"
+    assert relations[0][2].properties["has_inverse"] is False
