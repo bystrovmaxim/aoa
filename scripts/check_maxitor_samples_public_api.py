@@ -43,6 +43,8 @@ ALLOWED_ACTION_MACHINE_MODULES: frozenset[str] = frozenset(
         f"{_AM}.runtime.tools_box",
         f"{_AM}.testing",
         f"{_AM}.intents.aspects",
+        f"{_AM}.intents.access_control",  # access-cascade demonstrator fixtures (issue #201)
+        f"{_AM}.intents.access_decide",  # access-cascade demonstrator fixtures (issue #201)
         f"{_AM}.intents.check_roles",
         f"{_AM}.intents.checkers",
         f"{_AM}.intents.compensate",
