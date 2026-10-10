@@ -36,6 +36,14 @@ maxitor-api = "aoa.maxitor.api.main:run"
 packages = ["src/aoa"]
 artifacts = ["src/aoa/maxitor/static/**/*"]
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "client/node_modules",
+  "client/node_modules/**",
+  "client/.vite",
+  "client/.vite/**",
+]
+
 [dependency-groups]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
 
