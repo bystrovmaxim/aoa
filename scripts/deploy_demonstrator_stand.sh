@@ -63,6 +63,7 @@ gate_dns() {
 
 detect_terminator() {
     [[ $LOCAL_MODE -eq 1 ]] && { echo "local"; return 0; }
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx nginx-proxy; then echo "nginx"; return 0; fi
     if command -v nginx >/dev/null 2>&1; then echo "nginx"; return 0; fi
     if command -v caddy >/dev/null 2>&1; then echo "caddy"; return 0; fi
     if docker ps --format '{{.Names}}' 2>/dev/null | grep -qi traefik; then echo "traefik"; return 0; fi
@@ -74,34 +75,47 @@ install_vhosts() {
     case "$terminator" in
         nginx)
             [[ $EUID -eq 0 ]] || fail "vhost step: run as root to add nginx virtual hosts."
-            local cert_dir="${STAND_CERT_DIR:-/etc/nginx/ssl/aoa.run}"
-            for entry in "$DEMO_DOMAIN:$DEMO_PORT" "$MAXITOR_DOMAIN:$MAXITOR_PORT"; do
+            # The host's front end is the nginx-proxy container reading one config file;
+            # its ssl dir is mounted from STAND_SSL_DIR and the webroot from STAND_WEBROOT.
+            local front_conf="${STAND_FRONT_CONF:-/root/nginx/default.conf}"
+            local ssl_dir="${STAND_SSL_DIR:-/root/up2u_back/ssl}"
+            local webroot="${STAND_WEBROOT:-/root/up2u_front/dist}"
+            local cert_name="$DEMO_DOMAIN"
+            [[ -f "$front_conf" ]] || fail "vhost step: the front-end config ${front_conf} was not found."
+            for entry in "$DEMO_DOMAIN:$DEMO_PORT:dev_aoa_demo" "$MAXITOR_DOMAIN:$MAXITOR_PORT:dev_aoa_maxitor"; do
                 local domain="${entry%%:*}"
-                local port="${entry##*:}"
-                cat > "/etc/nginx/sites-available/${domain}" <<EOF
+                local rest="${entry#*:}"
+                local port="${rest%%:*}"
+                local upstream="${rest##*:}"
+                if grep -q "server_name ${domain};" "$front_conf"; then
+                    say "vhost step: ${domain} already present in ${front_conf}"
+                    continue
+                fi
+                cat >> "$front_conf" <<EOF
+
+# ── ${domain} — demonstrator stand (issue #202) ───────────────────────────
 server {
     listen 80;
     server_name ${domain};
-    return 301 https://\$host\$request_uri;
+    location /.well-known/acme-challenge/ { root /usr/share/nginx/html; }
+    location / { return 301 https://${domain}\$request_uri; }
 }
-
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
     server_name ${domain};
-
-    ssl_certificate     ${cert_dir}/fullchain.pem;
-    ssl_certificate_key ${cert_dir}/privkey.pem;
+    ssl_certificate     /etc/nginx/ssl/${cert_name}.fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/${cert_name}.privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
 
     location / {
-        proxy_pass http://127.0.0.1:${port}/;
+        proxy_pass http://${upstream}:${port};
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout 60s;
     }
 }
 EOF
-                ln -sf "/etc/nginx/sites-available/${domain}" "/etc/nginx/sites-enabled/${domain}"
             done
             if docker ps --format '{{.Names}}' | grep -qx nginx-proxy; then
                 docker exec nginx-proxy nginx -t || fail "vhost step: nginx -t rejected the new virtual hosts."
@@ -110,13 +124,31 @@ EOF
                 nginx -t || fail "vhost step: nginx -t rejected the new virtual hosts."
                 systemctl reload nginx || fail "vhost step: nginx reload failed."
             fi
-            if openssl x509 -in "${cert_dir}/fullchain.pem" -noout -text 2>/dev/null | grep -q "DNS:\\*\\.aoa.run"; then
-                say "certificate step: the shared wildcard already covers both names — reused and renewed by the host's own mechanism."
-            elif command -v certbot >/dev/null 2>&1; then
-                certbot --nginx -d "$DEMO_DOMAIN" -d "$MAXITOR_DOMAIN" --non-interactive --agree-tos --register-unsafely-without-email --redirect \
-                    || fail "certificate step: certbot could not issue the certificates."
+            if certbot certificates 2>/dev/null | grep -q "$cert_name"; then
+                say "certificate step: ${cert_name} already issued — renewed by the host's certbot timer."
+                if [[ ! -f "${ssl_dir}/${cert_name}.fullchain.pem" ]]; then
+                    cp "/etc/letsencrypt/live/${cert_name}/fullchain.pem" "${ssl_dir}/${cert_name}.fullchain.pem"
+                    cp "/etc/letsencrypt/live/${cert_name}/privkey.pem" "${ssl_dir}/${cert_name}.privkey.pem"
+                fi
             else
-                fail "certificate step: no shared wildcard and no certbot — certificates cannot be issued here."
+                certbot certonly --webroot -w "$webroot" -d "$DEMO_DOMAIN" -d "$MAXITOR_DOMAIN" \
+                    --non-interactive --agree-tos --register-unsafely-without-email \
+                    || fail "certificate step: certbot could not issue the certificates."
+                cp "/etc/letsencrypt/live/${cert_name}/fullchain.pem" "${ssl_dir}/${cert_name}.fullchain.pem"
+                cp "/etc/letsencrypt/live/${cert_name}/privkey.pem" "${ssl_dir}/${cert_name}.privkey.pem"
+                mkdir -p /etc/letsencrypt/renewal-hooks/deploy
+                cat > /etc/letsencrypt/renewal-hooks/deploy/aoa-dev-stand.sh <<'HOOK'
+#!/bin/sh
+# Copy the renewed dev-stand certificate into the front end's ssl mount and reload nginx-proxy.
+set -e
+if [ "$RENEWED_LINEAGE" = "/etc/letsencrypt/live/dev.demo.aoa.run" ]; then
+    cp "/etc/letsencrypt/live/dev.demo.aoa.run/fullchain.pem" "/root/up2u_back/ssl/dev.demo.aoa.run.fullchain.pem"
+    cp "/etc/letsencrypt/live/dev.demo.aoa.run/privkey.pem" "/root/up2u_back/ssl/dev.demo.aoa.run.privkey.pem"
+    docker exec nginx-proxy nginx -s reload
+fi
+HOOK
+                chmod +x /etc/letsencrypt/renewal-hooks/deploy/aoa-dev-stand.sh
+                docker exec nginx-proxy nginx -s reload || true
             fi
             ;;
         caddy)
