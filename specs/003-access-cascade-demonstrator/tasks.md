@@ -23,8 +23,8 @@ description: "Task list for the access cascade demonstrator"
 
 **Purpose**: The dedicated `access_cascade` domain group skeleton
 
-- [ ] T001 Create the module-group skeleton with empty public packages: `packages/aoa-demo/src/aoa/demo/model/access_cascade/__init__.py`, `access_cascade/roles/__init__.py`, `access_cascade/actions/__init__.py`, `access_cascade/entities/__init__.py` — each a package `__init__` with no exports yet (constitution III header on each).
-- [ ] T002 Create `AccessCascadeDomain` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/access_cascade_domain.py` — `BaseDomain` subclass, `name = "access_cascade"`, `description` stating the domain exists to demonstrate access-cascade shapes; standard module header, AI-CORE block (ROLE/CONTRACT), one-line docstrings.
+- [x] T001 Create the module-group skeleton with empty public packages: `packages/aoa-demo/src/aoa/demo/model/access_cascade/__init__.py`, `access_cascade/roles/__init__.py`, `access_cascade/actions/__init__.py`, `access_cascade/entities/__init__.py` — each a package `__init__` with no exports yet (constitution III header on each).
+- [x] T002 Create `AccessCascadeDomain` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/access_cascade_domain.py` — `BaseDomain` subclass, `name = "access_cascade"`, `description` stating the domain exists to demonstrate access-cascade shapes; standard module header, AI-CORE block (ROLE/CONTRACT), one-line docstrings.
 
 ---
 
