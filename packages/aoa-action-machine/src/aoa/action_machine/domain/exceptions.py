@@ -17,15 +17,14 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    partial entity      relation container      @entity         lifecycle        specialization      data with an
-      access                 access           declaration       validation       declaration        unknown code
-        │                      │                   │                │                 │                  │
-        ▼                      ▼                   ▼                ▼                 ▼                  ▼
+    partial entity      relation container      @entity         lifecycle        specialization
+      access                 access           declaration       validation       declaration
+        │                      │                   │                │                 │
+        ▼                      ▼                   ▼                ▼                 ▼
   FieldNotLoadedError  RelationNotLoadedError  EntityDecoratorError  LifecycleValidationError  SpecializationDeclarationError
-                                                                      LifecycleGraphError                      │
-        │                      │                   │                │                 │                       │
-        └──────────────── domain-layer fail-fast semantics (no hidden lazy I/O) ──────┴───────────────────────┘
-                                                                                     UndeclaredSpecializationVariantError
+                                                                      LifecycleGraphError
+        │                      │                   │                │                 │
+        └──────────────── domain-layer fail-fast semantics (no hidden lazy I/O) ──────┘
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXCEPTION TYPES
@@ -59,10 +58,11 @@ SpecializationDeclarationError
     code no class declares, a repeated code, a class under two heads, a cycle.
     Raised while the graph is assembled, naming the class, the field and the rule.
 
-UndeclaredSpecializationVariantError
-    A classifier code arrived from data that no declared alternative answers to.
-    Raised where a row is read, because it is a fact about the data and not about
-    the declaration. Subclasses `ValueError`.
+A code arriving from data that no alternative declares is **not** an exception of this layer and has
+none: whether a classifier's set of codes is closed is a property of the field's own type, and the
+framework does not yet have a notion of a closed value set. That is a feature of its own, tracked
+apart from specialization, and until it exists the framework reads a value it does not recognise as
+"no continuation" rather than reporting it.
 """
 
 from __future__ import annotations
@@ -237,38 +237,3 @@ class SpecializationDeclarationError(Exception):
         self.details: str = details
 
         super().__init__(f"Specialization '{field_name}' on entity '{entity_name}' is invalid: {details}")
-
-
-class UndeclaredSpecializationVariantError(ValueError):
-    """
-    A classifier code arrived from data that no declared alternative answers to.
-
-    Raised where a row is read, not where the model is built: the model cannot stop a
-    table from holding a value nobody declared, and the caller resolves a code against
-    the declared mapping. A missing continuation and an undeclared one are different
-    facts about the data, so this is reported rather than read as "no relation".
-
-    Attributes:
-        code:
-            The value that arrived.
-        field_name:
-            Classifier field it arrived in.
-        declared:
-            The codes the model does declare, in declaration order.
-    """
-
-    def __init__(
-        self,
-        code: str,
-        field_name: str,
-        declared: tuple[str, ...] = (),
-    ) -> None:
-        self.code: str = code
-        self.field_name: str = field_name
-        self.declared: tuple[str, ...] = tuple(declared)
-
-        known = ", ".join(self.declared) if self.declared else "(none declared)"
-        super().__init__(
-            f"Classifier '{field_name}' received the code {code!r}, which no declared alternative answers to. "
-            f"Declared codes: {known}."
-        )

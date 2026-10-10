@@ -49,7 +49,10 @@ Data completeness, data disjointness and whether the codes present in the data m
 declared ones are **not** model invariants: a table can hold a value nobody declared, and
 the model cannot promise otherwise. A code that arrives from data and answers to no
 alternative is reported where the row is read, as
-:exc:`~aoa.action_machine.domain.exceptions.UndeclaredSpecializationVariantError`.
+:exc:`~aoa.action_machine.domain.exceptions.SpecializationDeclarationError` — but a code arriving
+from **data** that no alternative declares has no exception here and is not checked: whether a
+classifier's set of codes is closed is a property of the field's own type, and the framework has no
+notion of a closed value set yet. That is a feature of its own, tracked apart from specialization.
 
 ═══════════════════════════════════════════════════════════════════════════════
 LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
