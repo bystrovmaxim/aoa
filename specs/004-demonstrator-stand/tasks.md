@@ -33,7 +33,7 @@ description: "Task list for the demonstrator stand"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Create `deploy/stand/docker-compose.yml` — two services, `demo` (internal port 8100, published on `127.0.0.1:8100` only) and `maxitor` (internal port 8101, published on `127.0.0.1:8101` only); build context is the repository root; each service with `restart: unless-stopped` and a `stop_grace_period`; healthcheck blocks added in T015 once the endpoints are verified (FR-004, FR-005, FR-014).
+- [x] T002 Create `deploy/stand/docker-compose.yml` — two services, `demo` (internal port 8100, published on `127.0.0.1:8100` only) and `maxitor` (internal port 8101, published on `127.0.0.1:8101` only); build context is the repository root; each service with `restart: unless-stopped` and a `stop_grace_period`; healthcheck blocks added in T015 once the endpoints are verified (FR-004, FR-005, FR-014).
 
 **Checkpoint**: the stand's compose skeleton is in place; both stories can build their images into it
 

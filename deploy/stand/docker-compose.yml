@@ -1,0 +1,25 @@
+# deploy/stand/docker-compose.yml — the demonstrator stand, two containers on one host.
+#
+# Both services build from the repository root (uv workspace) and publish their
+# ports on the host's loopback only — the stand is reachable from outside
+# exclusively through the host's existing TLS front end. Health checks land
+# once their endpoints are verified (issue #202, task T015).
+
+services:
+  demo:
+    build:
+      context: ../..
+      dockerfile: packages/aoa-demo/Dockerfile
+    ports:
+      - "127.0.0.1:${DEMO_PORT:-8100}:8100"
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+  maxitor:
+    build:
+      context: ../..
+      dockerfile: packages/aoa-maxitor/Dockerfile
+    ports:
+      - "127.0.0.1:${MAXITOR_PORT:-8101}:8101"
+    restart: unless-stopped
+    stop_grace_period: 30s
