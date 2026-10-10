@@ -85,8 +85,9 @@ install_vhosts() {
     case "$terminator" in
         nginx)
             [[ $EUID -eq 0 ]] || fail "vhost step: run as root to add nginx virtual hosts."
-            # The host's front end is the nginx-proxy container reading one config file;
-            # its ssl dir is mounted from STAND_SSL_DIR and the webroot from STAND_WEBROOT.
+            # The host's front end is the nginx-proxy container reading the host file
+            # /root/nginx/default.conf through a read-only bind mount — edits happen on
+            # the host file, and the container reloads through docker exec.
             local front_conf="${STAND_FRONT_CONF:-/root/nginx/default.conf}"
             local ssl_dir="${STAND_SSL_DIR:-/root/up2u_back/ssl}"
             local webroot="${STAND_WEBROOT:-/root/up2u_front/dist}"
