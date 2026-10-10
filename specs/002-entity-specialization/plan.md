@@ -26,7 +26,7 @@ A new relation **axis** beside ownership: one entity field names N alternative t
 
 **Constraints**: the field's type position carries the **union of the alternatives**, and the **container alone decides that the field is an axis** — a `Classifier` marker beside it is mandatory and its absence is an error, but a marker without the container is simply the other side of an axis, which is why the marker cannot be the test (measured in T004). Every place that today decides "is this a relation container" needs an explicit branch or the field is silently dropped, which is the failure mode the feature exists to remove; the graph schema is a hand-maintained JSON document whose `link.oneOf` list, `$defs` and `relationship` enum are checked in tests; the Maxitor store aborts the whole load on an unregistered node or edge type (`_assert_no_unknown_graph_types`) and needs five registration sites per new type, since its `nodes`/`edges` views are unions that each gain a branch; the ERD field-row contract is `additionalProperties: false` and enforced at runtime, so a new key on the row is a schema change and not a detail; the Maxitor client has no test runner at all, so the rendering is proved by the generated DOT and the rendered diagram recorded in the documentation rather than by a new client test; the full-graph payload excludes edges by the single predicate `relationship <> 'Generalization'`, which the new generalization edges reuse deliberately; one existing marker gains a second form on the head (`Inverse` naming the partner field alone, without the target type) and its `target_entity` becomes optional, which is an addition to a public declaration and not a new marker; the classifier is a marker **object**, because a bare keyword cannot stand inside `Annotated`; the field parameterises a container with the union of the alternatives, the codes are a `Literal` on both sides, and the build compares the two sets in both directions, so neither copy of the mapping is the authority; two documented relation rules (the ownership matrix, the mandatory inverse) are **not** implemented today, so the new checks are the first relation checks in code and must not silently claim to enforce them; one pre-existing defect measured on the way — `entity_relation_intent_resolver` loses every relation when `get_type_hints` cannot resolve an annotation — is recorded in [research.md](./research.md) and deliberately left to an issue of its own, because fixing it would widen this capability into a module and a test set it does not otherwise touch; `bash scripts/run_checks_with_log.sh` green at the end
 
-**Scale/Scope**: 2 new container types, 1 new marker type, 1 new intent resolver row type, 1 new graph edge kind, 2 exceptions, 1 global build pass, 1 schema branch, 5 store registration sites × 2 new types in Maxitor, 3 backend ERD changes plus 1 client rendering change, 1 pinned process-mining boundary, 39 tasks
+**Scale/Scope**: 2 new container types, 1 new marker type, 1 new intent resolver row type, 2 new graph edge kinds, 1 exception, 1 global build pass, 2 new schema branches, 5 store registration sites for 2 edge kinds in Maxitor, 3 backend ERD changes plus 2 client changes (the container and the notation), 36 tasks — of which 31 are delivered, 5 are cancelled and moved to issue #203 (User Story 4), and 3 are the closing steps
 
 ## Constitution Check
 
@@ -89,16 +89,15 @@ packages/aoa-action-machine/
 │   │   │   └── (the generalization branch of the schema, `$defs` near line 886)
 │   │   ├── nodes/
 │   │   ├── core/node_graph_coordinator.py          # build(): run the specialization pass
-│   │   └── graph_json_schema.py                    # 3 new $defs + 2 link.oneOf branches
+│   │   └── graph_json_schema.py                    # 2 new $defs + 2 link.oneOf branches
 │   └── ...
 └── tests/action_machine/
-    ├── domain/                                     # markers, the value type, the exception
+    ├── domain/                                     # markers and the containers
     ├── intents/entity/                             # the axis parser and its refusals
-    ├── graph/                                      # the the build rules, the schema, the payload
-    └── runtime/                                    # hydration, mismatch, undeclared code
+    └── graph/                                      # the build rules, the schema, the payload, the runtime facts
 
 packages/aoa-maxitor/
-├── src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py  # 5 registration sites × 2 new types
+├── src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py  # 5 registration sites for 2 new edge kinds
 ├── src/aoa/maxitor/model/diagrams/actions/list_entities_action.py     # the ERD payload SQL (row, relation, neighbor clause)
 ├── src/aoa/maxitor/model/diagrams/actions/list_entities_action_schema.py  # the widened field-row contract
 ├── src/aoa/maxitor/model/diagrams/actions/list_node_types_action.py   # the new vertex type in both registries

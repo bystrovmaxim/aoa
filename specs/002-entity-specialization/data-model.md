@@ -187,6 +187,9 @@ class definition  annotations and Rel(...) constructed; a bad marker argument fa
 graph build       parse each axis → run the build rules → wire edges and vertices
                   (NodeGraphCoordinator.build: after _single_pass_validate_and_wire,
                    before _validate_dag_acyclicity)
-runtime           a resource reads a row, resolves its code against the declared mapping, and
-                  assigns the extension object it built; a class outside the union is refused
+runtime           a resource reads a row and assigns the extension object it built; a class
+                  outside the union is refused. Resolving a code against the declared mapping is
+                  **not** done by the framework: the mapping is readable (`code_to_target`), and a
+                  code that no alternative declares is read as no continuation rather than reported,
+                  because a closed value set is not a notion the framework has (issue #203)
 ```
