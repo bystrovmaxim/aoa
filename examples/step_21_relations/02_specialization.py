@@ -65,6 +65,45 @@ What it prints, run from the repository root:
        entity_specialization   test     -> TestPressEntity
        entity_field columns   : ['id', 'title', 'media', 'pressing']
 
+The rendered ERD is `02_specialization_erd.svg`, and its Graphviz source is
+`02_specialization_erd.dot` — both beside this file. In the picture the three pressings sit inside
+a dashed container labelled `pressing (by media)`, the head is outside it, and one line with a
+`vee` arrowhead leads from the head into the container. That container is the part no test can
+check, because the client has no test runner, so the picture is the evidence.
+
+The graph the diagram is built from, in DOT — Graphviz source of the ERD above:
+
+    digraph ERD {
+      graph [rankdir=LR fontname="Helvetica" bgcolor=transparent pad="0.5" nodesep="0.8" ranksep="1.2"]
+      node  [shape=none fontname="Helvetica" fontsize=11 margin="0"]
+      edge  [fontname="Helvetica" fontsize=9 color="#94a3b8" arrowsize=0.7]
+
+      subgraph "cluster_ex.VinylRecordEntity:pressing" {
+        label="pressing (by media)";
+        style="rounded,dashed";
+        color="#94a3b8";
+        fontsize=10;
+        margin=12;
+      "ex.FirstPressEntity" [label=…>>]
+          <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">stamper</TD><TD BGCOLOR="#ffffff" A…>>]
+          <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">year</TD><TD BGCOLOR="#ffffff" ALIG…>>]
+          <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">record</TD><TD BGCOLOR="#ffffff" AL…>>]
+      "ex.RepressEntity" [label=…>>]
+          <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">year</TD><TD BGCOLOR="#ffffff" ALIG…>>]
+          <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">remastered</TD><TD BGCOLOR="#ffffff…>>]
+          <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">record</TD><TD BGCOLOR="#ffffff" AL…>>]
+      "ex.TestPressEntity" [label=…>>]
+          <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">approved_by</TD><TD BGCOLOR="#fffff…>>]
+          <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">record</TD><TD BGCOLOR="#ffffff" AL…>>]
+      }
+      "ex.VinylRecordEntity" [label=…>>]
+          <TR><TD BGCOLOR="#dbeafe" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>FK</B></FONT></TD><TD BGCOLOR="#dbea…>>]
+          <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">title</TD><TD BGCOLOR="#ffffff" ALI…>>]
+          <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">media</TD><TD BGCOLOR="#ffffff" ALI…>>]
+
+      "ex.VinylRecordEntity" -> "ex.VinylRecordEntity:pressing" [label="by media" fontsize=9 arrowhead=vee]
+    }
+
 Tutorial: ../../docs/tutorials/step-21-relations.md  ·  topic: Entity specialization
 
 Run:
