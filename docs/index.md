@@ -79,7 +79,7 @@ The guide moves from a practical entry point to the complete project architectur
 
 - **[Resource](tutorials/step-19-resource.md)** — the boundary with the external world: PostgreSQL, APIs, queues, test fixtures; pure transport separated from logic
 - **[Entity](tutorials/step-20-entity.md)** — a domain object without ties to storage: one class, any data source
-- **[Relations](tutorials/step-21-relations.md)** — Association, Aggregation, Composition with consistency checked at startup
+- **[Relations](tutorials/step-21-relations.md)** — ownership, explicit reverse links, partial loading, and a step-by-step introduction to common record information with variant-specific details
 - **[Lifecycle](tutorials/step-22-lifecycle.md)** — a state graph with transition validation: an inconsistent graph does not let the system start
 
 ---
@@ -112,6 +112,7 @@ The materials below are not a continuation of the linear I–VII route. They are
 
 - **[Action, aspect, or resource — what to choose](how-to/choosing-action-aspect-resource.md)** — an algorithm for choosing the abstraction, with examples
 - **[Migrating legacy to AOA](how-to/migrating-legacy.md)** — the strangler pattern: monster → port → adapter → aspects, step by step
+- **[Diagnosing a specialization declaration](how-to/specialization-declaration-fails.md)** — one mistake per experiment, its actual error, and a verified repair
 
 ### Reference materials
 

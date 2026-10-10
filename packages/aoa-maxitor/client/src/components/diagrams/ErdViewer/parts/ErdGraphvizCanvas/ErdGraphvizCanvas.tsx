@@ -16,6 +16,7 @@ import {
   erdGraphvizEngine,
   type ErdEntity,
   type ErdGraphPayload,
+  type ErdGroup,
   type ErdGraphvizLayout,
   type ErdRelation,
 } from "@/lib/buildDotSource";
@@ -36,6 +37,8 @@ function mergeDomainPayloads(parts: ErdGraphPayload[]): ErdGraphPayload {
   const seenRelations = new Set<string>();
   const relationsOut: ErdRelation[] = [];
   const edgeSig = (e: ErdRelation) => `${e.source}\u001f${e.target}\u001f${e.label ?? ""}`;
+  const groupsOut: ErdGroup[] = [];
+  const seenGroups = new Set<string>();
   for (const part of parts) {
     for (const n of part.entities ?? []) nodeById.set(n.id, n);
     for (const e of part.relations ?? []) {
@@ -44,8 +47,13 @@ function mergeDomainPayloads(parts: ErdGraphPayload[]): ErdGraphPayload {
       seenRelations.add(sig);
       relationsOut.push(e);
     }
+    for (const g of part.groups ?? []) {
+      if (seenGroups.has(g.group_id)) continue;
+      seenGroups.add(g.group_id);
+      groupsOut.push(g);
+    }
   }
-  return { entities: [...nodeById.values()], relations: relationsOut };
+  return { entities: [...nodeById.values()], relations: relationsOut, groups: groupsOut };
 }
 
 function getMergedFromDomains(enriched: Record<string, unknown>, enabled: Set<string>): ErdGraphPayload {
@@ -53,19 +61,23 @@ function getMergedFromDomains(enriched: Record<string, unknown>, enabled: Set<st
   if (!domainsRaw || typeof domainsRaw !== "object") {
     return { entities: [], relations: [] };
   }
-  const domains = domainsRaw as Record<string, { entities?: ErdEntity[]; relations?: ErdRelation[] }>;
+  const domains = domainsRaw as Record<
+    string,
+    { entities?: ErdEntity[]; relations?: ErdRelation[]; groups?: ErdGroup[] }
+  >;
   const keys = Object.keys(domains);
   if (!keys.length) return { entities: [], relations: [] };
   const on = keys.filter((k) => enabled.has(k));
   if (!on.length) return { entities: [], relations: [] };
   if (on.length === 1) {
     const slice = domains[on[0]!]!;
-    return { entities: slice.entities ?? [], relations: slice.relations ?? [] };
+    return { entities: slice.entities ?? [], relations: slice.relations ?? [], groups: slice.groups ?? [] };
   }
   return mergeDomainPayloads(
     on.map((k) => ({
       entities: domains[k]!.entities ?? [],
       relations: domains[k]!.relations ?? [],
+      groups: domains[k]!.groups ?? [],
     })),
   );
 }
@@ -96,8 +108,18 @@ function filterGraphByEntityQuals(
     return q != null && q !== "" && enabled.has(q);
   });
   const ids = new Set(entities.map((e) => e.id));
-  const relations = (data.relations ?? []).filter((r) => ids.has(r.source) && ids.has(r.target));
-  return { entities, relations };
+  // A group survives only with the members that survived, and a container around one remaining
+  // table would claim a choice that is not on screen.
+  const groups = (data.groups ?? [])
+    .map((g) => ({ ...g, members: g.members.filter((m) => ids.has(m)) }))
+    .filter((g) => g.members.length > 1);
+  const keptGroups = new Set(groups.map((g) => g.group_id));
+  const relations = (data.relations ?? []).filter((r) => {
+    // A line into a container is kept while the container is, and points at no entity of its own.
+    if (r.relationship_kind === "specialization") return keptGroups.has(r.target) && ids.has(r.source);
+    return ids.has(r.source) && ids.has(r.target);
+  });
+  return { entities, relations, groups };
 }
 
 export type ErdGraphvizCanvasProps = {

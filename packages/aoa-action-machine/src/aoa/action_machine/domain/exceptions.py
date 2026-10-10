@@ -17,13 +17,14 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    partial entity access      relation container access      @entity declaration      lifecycle validation
-            │                           │                             │                          │
-            ▼                           ▼                             ▼                          ▼
-    FieldNotLoadedError         RelationNotLoadedError        EntityDecoratorError      LifecycleValidationError
-                                                                                       LifecycleGraphError
-            │                           │                             │                          │
-            └────────────── domain-layer fail-fast semantics (no hidden lazy I/O) ─────────────┘
+    partial entity      relation container      @entity         lifecycle        specialization
+      access                 access           declaration       validation       declaration
+        │                      │                   │                │                 │
+        ▼                      ▼                   ▼                ▼                 ▼
+  FieldNotLoadedError  RelationNotLoadedError  EntityDecoratorError  LifecycleValidationError  SpecializationDeclarationError
+                                                                      LifecycleGraphError
+        │                      │                   │                │                 │
+        └──────────────── domain-layer fail-fast semantics (no hidden lazy I/O) ──────┘
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXCEPTION TYPES
@@ -50,6 +51,18 @@ LifecycleValidationError
 LifecycleGraphError
     Lifecycle graph-node construction cannot classify a state from template
     metadata. Subclasses `ValueError`.
+
+SpecializationDeclarationError
+    A field that points at one of N extension entities is declared in a way the
+    framework cannot honour — a class outside the union, a class with no code, a
+    code no class declares, a repeated code, a class under two heads, a cycle.
+    Raised while the graph is assembled, naming the class, the field and the rule.
+
+A code arriving from data that no alternative declares is **not** an exception of this layer and has
+none: whether a classifier's set of codes is closed is a property of the field's own type, and the
+framework does not yet have a notion of a closed value set. That is a feature of its own, tracked
+apart from specialization, and until it exists the framework reads a value it does not recognise as
+"no continuation" rather than reporting it.
 """
 
 from __future__ import annotations
@@ -189,3 +202,38 @@ class LifecycleGraphError(ValueError):
     """
 
     pass
+
+
+class SpecializationDeclarationError(Exception):
+    """
+    A specialization declaration broke one of its build rules.
+
+    Raised while the graph is assembled, when a head field that points at one of N
+    extension entities is declared in a way the framework cannot honour: a class in
+    the union that is not a declared entity, an alternative with no code of its own,
+    a code the head does not name, a code declared twice, a code the classifier
+    field's type cannot hold, a class claimed by two heads, a cycle.
+
+    The point of the error is that the alternative is a named failure at build time
+    instead of a relation that quietly disappears from the graph.
+
+    Attributes:
+        entity_name:
+            Entity class the offending declaration sits on.
+        field_name:
+            Field the violation was found on.
+        details:
+            What rule was broken, naming the classes and codes involved.
+    """
+
+    def __init__(
+        self,
+        entity_name: str,
+        field_name: str,
+        details: str,
+    ) -> None:
+        self.entity_name: str = entity_name
+        self.field_name: str = field_name
+        self.details: str = details
+
+        super().__init__(f"Specialization '{field_name}' on entity '{entity_name}' is invalid: {details}")

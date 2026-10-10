@@ -9,6 +9,9 @@ from aoa.action_machine.intents.entity.entity_decorator import entity, entity_in
 from aoa.action_machine.intents.entity.entity_intent import EntityIntent, entity_info_is_set
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from aoa.action_machine.intents.entity.entity_relation_intent_resolver import EntityRelationIntentResolver
+from aoa.action_machine.intents.entity.entity_specialization_intent_resolver import (
+    EntitySpecializationIntentResolver,
+)
 from aoa.action_machine.intents.entity.lifecycle_intent_resolver import (
     LifeCycleFieldResolution,
     LifeCycleFiniteAutomaton,
@@ -19,6 +22,7 @@ __all__ = [
     "EntityIntent",
     "EntityIntentResolver",
     "EntityRelationIntentResolver",
+    "EntitySpecializationIntentResolver",
     "LifeCycleFieldResolution",
     "LifeCycleFiniteAutomaton",
     "LifeCycleIntentResolver",

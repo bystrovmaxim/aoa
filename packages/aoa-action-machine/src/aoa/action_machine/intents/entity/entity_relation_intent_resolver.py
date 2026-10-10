@@ -38,10 +38,10 @@ class EntityRelationIntentResolver:
 
 
 def _union_contains_relation_container(annotation: Any) -> bool:
-    return any(arg is not types.NoneType and _is_relation_container(arg) for arg in get_args(annotation))
+    return any(arg is not types.NoneType and is_relation_container(arg) for arg in get_args(annotation))
 
 
-def _origin_is_relation_container(origin: Any) -> bool:
+def _originis_relation_container(origin: Any) -> bool:
     return (
         origin is not None
         and inspect.isclass(origin)
@@ -52,19 +52,23 @@ def _origin_is_relation_container(origin: Any) -> bool:
     )
 
 
-def _is_relation_container(annotation: Any) -> bool:
+def is_relation_container(annotation: Any) -> bool:
     """
     True if ``annotation`` denotes ``BaseRelationOne`` / ``BaseRelationMany``
     (including inside ``Optional`` / ``Annotated``).
+
+    Public because the specialization validator asks the same question: a classifier
+    field may not be a relation, and one answer serves both callers instead of two that
+    can drift.
     """
     if get_origin(annotation) is Annotated:
-        return _is_relation_container(get_args(annotation)[0])
+        return is_relation_container(get_args(annotation)[0])
 
     origin_bt = get_origin(annotation)
     if origin_bt is types.UnionType or origin_bt is typing.Union:
         return _union_contains_relation_container(annotation)
 
-    if _origin_is_relation_container(origin_bt):
+    if _originis_relation_container(origin_bt):
         return True
 
     return isinstance(annotation, type) and issubclass(annotation, (BaseRelationOne, BaseRelationMany))
@@ -193,7 +197,7 @@ def gather_entity_relation_intent_resolvers(host_cls: type) -> list[EntityRelati
     out: list[EntityRelationIntentResolver] = []
     for field_name, field_info in model_fields.items():
         annotation = hints.get(field_name, field_info.annotation)
-        if not _is_relation_container(annotation):
+        if not is_relation_container(annotation):
             continue
         resolved = _relation_from_field(field_name, annotation, field_info)
         if resolved is not None:
