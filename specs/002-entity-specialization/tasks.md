@@ -34,7 +34,7 @@ Repository root is the working directory. Engine paths are `packages/aoa-action-
 **⚠️ CRITICAL**: no user story work can begin until this phase is complete.
 
 - [x] T002 Create `packages/aoa-action-machine/src/aoa/action_machine/domain/specialization_containers.py` holding `Specialization[T]` and `Generalization[T]` — frozen pydantic models, `Generic` in the house style (`class Specialization[T](BaseModel)`), each with `id`, an optional `entity` excluded from `repr` (a head and its extension reference each other, and printing one would print the other forever), and `variant` on the head side — plus the `Classifier` marker: frozen, `__slots__`, `__eq__` / `__hash__` / `__repr__`, constructing as `Classifier("media", "first", "repress")` — the choosing field first, then the codes in declaration order — refusing a wrong or empty argument (`TypeError` / `ValueError`), with an `AI-CORE` block on all three. **In the same task**, make `Inverse.target_entity` optional (`None` by default) so the head-side form `Inverse(field_name="event")` stops raising `TypeError`, and refuse an `Inverse` that names neither a target nor a field. Export all three from `domain/__init__.py`. The earlier `By` and `Generalization(...)` marker classes are removed: the containers carry the alternatives and the code
-- [x] T003 [P] Add `SpecializationDeclarationError` (build-time declaration violations, per [research.md](./research.md) D5) and `UndeclaredSpecializationVariantError` (a code arriving from data that no alternative declares, FR-027) to `packages/aoa-action-machine/src/aoa/action_machine/domain/exceptions.py`, with the module's exception-map docstring updated and both names re-exported from `packages/aoa-action-machine/src/aoa/action_machine/domain/__init__.py`
+- [x] T003 [P] **Delivered, then narrowed:** added `SpecializationDeclarationError` (build-time declaration violations, per [research.md](./research.md) D5) and `UndeclaredSpecializationVariantError` (a code arriving from data that no alternative declares, FR-027) to `packages/aoa-action-machine/src/aoa/action_machine/domain/exceptions.py`, with the module's exception-map docstring updated and both names re-exported from `packages/aoa-action-machine/src/aoa/action_machine/domain/__init__.py`
 ---
 
 ## Phase 3: User Story 1 — one head field that points at one of N extension tables (Priority: P1) 🎯 MVP
@@ -98,22 +98,27 @@ Repository root is the working directory. Engine paths are `packages/aoa-action-
 
 ---
 
-## Phase 6: User Story 4 — a code that no extension declares (Priority: P4)
+## Phase 6: *(cancelled)* User Story 4 — a code that no extension declares
 
-**Goal**: the declared mapping is available to the code that reads a row, so that a code nobody declared fails loudly instead of reading as "no continuation".
+**Cancelled, and the reasoning is in the specification rather than here.** The story asked the framework to tell
+apart a code that no alternative declares from a row that simply has no continuation. Doing that needs the
+framework to know a code belongs to a **closed set**, and it has no such notion: it would have been invented for
+this one axis, while lifecycle states, role modes and edge relationships all carry closed sets with the same gap.
 
-**Independent Test**: ask the axis for the class a declared code denotes and get it; ask for a code nobody declared and get a named failure (quickstart Scenario 4, SC-008).
+The notion is now a feature of its own — **[issue #203](https://github.com/bystrovmaxim/aoa/issues/203)** — which
+introduces it once and applies it everywhere, and it is deliberately not solved here as a specialization-shaped
+fragment. `UndeclaredSpecializationVariantError` was **deleted** from the framework rather than left declared and
+never raised; FR-032, SC-008 and SC-009 are withdrawn in [spec.md](./spec.md), and User Story 4 is marked
+withdrawn there with the reasoning kept.
 
-- [ ] T032 [US4] Add code resolution to `packages/aoa-action-machine/src/aoa/action_machine/intents/entity/entity_specialization_intent_resolver.py`: given an axis and a code, return the extension class the mapping declares for it, or raise `UndeclaredSpecializationVariantError` naming the code and the field (FR-027). This is what a resource calls after reading a row, so that the "which table does this row continue in" decision is written once in the framework and invoked explicitly by the developer — no resolution happens behind the developer's back, and nothing is inferred from a class name
-- [ ] T033 [US4] Cover the resolution in `packages/aoa-action-machine/tests/action_machine/runtime/test_specialization_resolution.py`: a declared code resolves to its own class for every member of an axis; an undeclared code fails naming the value and the field; a code from another axis does not resolve; and the mapping is the one each extension declares, so removing a `Generalization` marker from one extension removes exactly that code
-- [ ] T034 [US4] Cover the assignment contract in `packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_assignment.py` on a real headline model: the object built for a resolved code goes into the field and reads back as the same object; an object of a class the union does not list is refused with `ValidationError`; a bare identifier is refused too, because pydantic tries to build one of the alternatives; and a field left empty reads as nothing rather than as a substituted type (FR-026, FR-028, FR-029)
-- [ ] T035 [P] [US4] Pin the introspection and process-mining boundary in `packages/aoa-ocel/tests/test_ocel_specialization_boundary.py`, and make it discriminate: the extension object carried in the field is **not** reported as a foreign key by `BaseEntity.get_foreign_keys()` (the field holds an entity, not a relation container), while `_materialize_frame` on a frame whose root carries it returns exactly one object. Assert both halves — with only the second, the test passes whether or not anything reports it, which pins nothing
-- [ ] T036 [US4] Run the checkpoint: `uv run --extra dev pytest packages/aoa-action-machine/tests/ packages/aoa-ocel/tests/ -v -k specialization`
-**Checkpoint taken**: 32 tests named `specialization` in the Maxitor tree, the whole maxitor suite at 109, the action-machine suite at 2476, `ruff` clean, `npx tsc --noEmit` clean and the client built. The diagram was **rendered and read back**, because the container is the part no test can check: `examples/step_21_relations/02_specialization_erd.svg` and its `.dot` sit beside the worked example, and the DOT shows the three alternatives declared **inside** `subgraph "cluster_ex.VinylRecordEntity:pressing"` and nowhere else, the head outside it, and exactly one relation line with `arrowhead=vee` leading into the container. Seven properties of that picture are asserted by a script in this checkpoint: the cluster, the dashed frame, its label, one line, its arrowhead, the axis row, and the alternatives named in that row's type.
+The five tasks are kept below as the plan of what that feature will cover, so the design work is not thrown away
+and nobody re-derives it.
 
-**Checkpoint**: all four stories are in. The failure modes the feature exists to remove are gone: no silent wrong table, no silent missing edge, no silently substituted type.
-
----
+- [~] T032 [US4] Add code resolution to `packages/aoa-action-machine/src/aoa/action_machine/intents/entity/entity_specialization_intent_resolver.py`: given an axis and a code, return the extension class the mapping declares for it, or raise `UndeclaredSpecializationVariantError` naming the code and the field (FR-027). This is what a resource calls after reading a row, so that the "which table does this row continue in" decision is written once in the framework and invoked explicitly by the developer — no resolution happens behind the developer's back, and nothing is inferred from a class name
+- [~] T033 [US4] Cover the resolution in `packages/aoa-action-machine/tests/action_machine/runtime/test_specialization_resolution.py`: a declared code resolves to its own class for every member of an axis; an undeclared code fails naming the value and the field; a code from another axis does not resolve; and the mapping is the one each extension declares, so removing a `Generalization` marker from one extension removes exactly that code
+- [~] T034 [US4] Cover the assignment contract in `packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_assignment.py` on a real headline model: the object built for a resolved code goes into the field and reads back as the same object; an object of a class the union does not list is refused with `ValidationError`; a bare identifier is refused too, because pydantic tries to build one of the alternatives; and a field left empty reads as nothing rather than as a substituted type (FR-026, FR-028, FR-029)
+- [~] T035 [P] [US4] Pin the introspection and process-mining boundary in `packages/aoa-ocel/tests/test_ocel_specialization_boundary.py`, and make it discriminate: the extension object carried in the field is **not** reported as a foreign key by `BaseEntity.get_foreign_keys()` (the field holds an entity, not a relation container), while `_materialize_frame` on a frame whose root carries it returns exactly one object. Assert both halves — with only the second, the test passes whether or not anything reports it, which pins nothing
+- [~] T036 [US4] Run the checkpoint: `uv run --extra dev pytest packages/aoa-action-machine/tests/ packages/aoa-ocel/tests/ -v -k specialization`
 
 ## Phase 7: The closing three steps (constitution, Principle VI)
 
@@ -141,16 +146,16 @@ Order agreed: this feature closes first, because a stand raised earlier would sh
 ### Phase dependencies
 
 - **Phase 1 (Setup)** → the shared model; T012, T013 and T031 read it, so it is cheapest to write once, early
-- **Phase 2 (Foundational)** → blocks every story; T002 is the containers, the marker and the second form of `Inverse`, and T003 the two errors
+- **Phase 2 (Foundational)** → blocks every story; T002 is the containers, the marker and the second form of `Inverse`, and T003 the declaration error (the second exception it added was deleted later — see T003 and Phase 6)
 - **US1 (Phase 3)** → needs Phase 2 only; it is the MVP
 - **US2 (Phase 4)** → needs US1's parser (T004); its rules are about declarations the parser produces
 - **US3 (Phase 5)** → needs US1's graph node and edge (T006, T007, wired in T009); **does not need US2** and can run in parallel with it
-- **US4 (Phase 6)** → needs US1's parsed axis (T004); does not need US2 or US3
+- **US4 (Phase 6)** → **cancelled**, moved to [issue #203](https://github.com/bystrovmaxim/aoa/issues/203); see the phase note above
 - **Phase 7** → needs every story; T039 is last of all
 
 ### Within a story
 
-- Implementation before its tests: T004→T011/T012, T014→T016/T017/T018, T023→T028/T029/T030, T032→T033
+- Implementation before its tests: T004→T011/T012, T014→T016/T017/T018, T023→T028/T029/T030
 - **A cycle between two distinct classes cannot form, and three guards stand in front of the cycle rule.** Measured while writing T017: A names B and B names A, but the parser reads a class's code from the field pointing at **its own** head, so neither code is found and the two-sided comparison refuses the pair first. The cycle rule's reachable case is self-reference — a head naming itself — and that is what its test builds. The test for the mutual pair names the guard that actually fires instead of pretending the cycle rule caught it
 - **The closure rule walked its own list.** It discovered the loaded entities by itself while every other rule used the set the pass had built, so a class a caller asked to be judged got every rule applied to it except this one. One pass, one list, and it is passed down
 - **Mutuality has no check of its own, and that is a finding.** The rule says every alternative must be reachable from its head through a reverse field. Measured while writing T016: an alternative with no reverse field at all leaves the two-sided comparison naming an orphaned code, and so does an alternative whose reverse field does not point at this head — the parser cannot see it, so the head's code has no owner. A separate reachability rule never fired in any broken model, and it was removed rather than kept as a message nobody reads. Two further rules were found to overlap the same way ("declares no reverse field" and "declares no code"), and the reports are now one per cause instead of two per symptom
@@ -221,7 +226,7 @@ Task: "Emit notation in client/src/lib/buildDotSource.ts"
 
 - Phase 4 (US2) — the rule sweep, which is what makes the declaration safe to write
 - Phase 5 (US3) — the ERD and the store, which is what makes it reviewable by people who do not read the code
-- Phase 6 (US4) — the runtime, which is what makes a data mistake visible
+- ~~Phase 6 (US4) — the runtime~~ — cancelled and moved to [issue #203](https://github.com/bystrovmaxim/aoa/issues/203), because telling an undeclared code from a missing continuation needs a notion of a closed value set that the framework does not have
 
 Each of the three is independently testable and independently demonstrable; US3 does not wait for US2.
 

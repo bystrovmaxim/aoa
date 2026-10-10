@@ -109,11 +109,16 @@ Whoever reads the ERD sees one row for the head's field, labelled with the class
 
 ---
 
-### User Story 4 - A row whose code is not declared is an explicit failure (Priority: P4)
+### User Story 4 - *(withdrawn)* A row whose code is not declared is an explicit failure
 
 Data arrives whose classifier value is not one of the declared codes. Nothing in the model can prevent that, but the framework must not answer "no relation" for it: the answer is an explicit failure naming the undeclared value.
 
-**Why this priority**: a missing continuation and an undeclared one are different facts about the data. Collapsing them into an absent relation hides a data defect that an operator needs to see.
+**Why this was withdrawn, and where it went**: the story is right about the problem and wrong about the
+place to solve it. Telling apart a missing continuation from an undeclared one requires knowing that a
+code belongs to a **closed set**, and the framework has no such notion — it would have been invented here,
+for this one axis, while lifecycle states, role modes and edge relationships all carry closed sets of
+their own with the same gap. It is now [issue #203](https://github.com/bystrovmaxim/aoa/issues/203), which
+introduces the notion once and applies it everywhere. The story is kept here so the reasoning is not lost.
 
 **Independent Test**: load a head row whose classifier value matches no declared code and confirm the failure names the value; load a row whose value is declared and confirm the variant is the declared one.
 
@@ -213,14 +218,20 @@ Two consequences for this feature:
 
 **Runtime behaviour**
 
-- **FR-026**: The value of a specialization field MUST carry the identifier of the related row, **which variant** it is, and the hydrated row when one was loaded. The variant MUST be stored rather than derived: with an un-hydrated row the identifier says which row but not which of the N tables holds its continuation. The field therefore has three states — a loaded row, a link whose row is not loaded, and nothing — and reading it MUST return exactly what was assigned, with no conversion and no substituted type.
-- **FR-027**: A classifier code arriving from data MUST be declared for its axis; an undeclared code MUST produce an explicit failure naming the value, and MUST NOT be reported as an absent relation. Resolving a code to the class it selects MUST be the caller's own explicit step, against the declared mapping — the framework MUST NOT resolve, guess or coerce a variant on the developer's behalf.
-- **FR-028**: A row placed in the container MUST be of a class the type argument lists; any other class MUST be refused when the value is assigned, and MUST NOT be carried forward. The container MUST be immutable after construction.
-- **FR-029**: The framework MUST NOT substitute a type for a value it was not given: a field left empty stays empty, a link whose row was not loaded keeps its identifier and variant readable and reports the row as absent rather than inventing one, and an object of another class is refused rather than coerced into one of the alternatives.
+- **FR-031**: The value of a specialization field MUST carry the identifier of the related row, **which variant** it is, and the hydrated row when one was loaded. The variant MUST be stored rather than derived: with an un-hydrated row the identifier says which row but not which of the N tables holds its continuation. The field therefore has three states — a loaded row, a link whose row is not loaded, and nothing — and reading it MUST return exactly what was assigned, with no conversion and no substituted type.
+- **FR-032** *(withdrawn)*: an earlier version of this specification required a code arriving from data
+  that no alternative declares to fail explicitly. **That requirement is withdrawn**, and with it the
+  exception that was to carry it: whether a classifier's set of codes is **closed** is a property of the
+  field's own type, and the framework has no notion of a closed value set yet. Specialization would have
+  been the first place to invent one, for its own case only. The notion belongs to a feature of its own —
+  [issue #203](https://github.com/bystrovmaxim/aoa/issues/203) — which will cover every closed vocabulary
+  in the framework rather than this one axis. Until it exists the framework reads a value it does not
+  recognise as "no continuation", and that is stated rather than promised otherwise.
+- **FR-034**: The framework MUST NOT substitute a type for a value it was not given: a field left empty stays empty, a link whose row was not loaded keeps its identifier and variant readable and reports the row as absent rather than inventing one, and an object of another class is refused rather than coerced into one of the alternatives.
 
 **Diagnostics**
 
-- **FR-030**: Every declaration rule above MUST be checked when the model is built, and a violation MUST be reported as a named error identifying the class, the field and the rule; no violation MAY result in a silently dropped or silently redirected relation.
+- **FR-035**: Every declaration rule above MUST be checked when the model is built, and a violation MUST be reported as a named error identifying the class, the field and the rule; no violation MAY result in a silently dropped or silently redirected relation.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -255,8 +266,8 @@ Two consequences for this feature:
 - **SC-005**: A model that declares no specialization produces a graph identical to the one the same model produces today, and a model that declares one exercises zero changed behaviour in the existing relation kinds.
 - **SC-006**: For a system with one head and five extensions, the diagram shows exactly one field entry for the head and draws the five alternatives inside one container labelled with the axis's field — naming five alternatives and the classifier — and exactly five generalization relations, one per extension, with zero per-alternative foreign-key entries.
 - **SC-007**: For 100% of alternatives, the variant code and the extension class it selects are recoverable from what the model publishes; measured on a model whose class names bear no resemblance to their codes.
-- **SC-008**: In 100 runs where a data value falls outside the declared codes, every outcome is an explicit failure naming the value, and zero are reported as an absent relation.
-- **SC-009**: In 100% of cases where a hydrated entity does not match the variant declared for its code, the failure is raised at the point of hydration rather than carried forward.
+- **SC-008** *(withdrawn with FR-032)*: a data value outside the declared codes is read as **no continuation** and is not reported. Nothing in the framework distinguishes it from a row that simply has no continuation, and this specification no longer claims otherwise. The distinction belongs to [issue #203](https://github.com/bystrovmaxim/aoa/issues/203), where a closed value set becomes a notion of the framework rather than a habit of one axis.
+- **SC-009** *(withdrawn with FR-032)*: a hydrated entity that does not match the code it travels with is **not** detected. The container's type argument refuses a class outside the union, and nothing compares the code with the row. The same issue owns this: it is a statement about a value belonging to a declared set, and it cannot be made before the set itself is a notion the framework has.
 
 ## Assumptions
 

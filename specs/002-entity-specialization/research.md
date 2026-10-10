@@ -67,7 +67,12 @@ Every decision below is either forced by the specification, settled with the mai
   one: the wrapper value type `SpecializationOne`, and a bare union in the type position, which could not represent a link whose
   row was not loaded.
 - **Superseded by the union design (kept for the reasoning it records)**: pydantic now refuses a class the union does not list, so no framework check is needed at that point. *Original decision*: a `SpecializationOne` constructed with an `entity` whose class is not the class declared for its `variant` raises `SpecializationDeclarationError` at that moment. A branch that does not recognise the code raises `UndeclaredSpecializationVariantError` at the point of hydration.
-- **Rationale**: FR-027 and FR-028. Neither case can be a build failure — one is a row that arrives, the other is an adapter that hydrated the wrong table — and both must be loud rather than answering "no relation". Naming the two failures separately keeps the operator's question ("is the data undeclared, or is the loader wrong?") answerable from the error alone.
+- **Withdrawn in part**: the `UndeclaredSpecializationVariantError` half of this decision is withdrawn, and the
+  exception was deleted from the framework rather than left declared-but-never-raised. The reasoning above is
+  kept because it is still right about the problem; what changed is the conclusion that specialization is where
+  to solve it. A code belonging to a closed set is a notion the framework does not have, and it is wanted for
+  lifecycle states, role modes and edge relationships too, so it is one feature of its own — issue #203 — rather
+  than a private mechanism of this axis. `SpecializationDeclarationError` is unaffected: every build rule stays.
 - **Alternatives considered**: one error type for both (the two facts need different fixes); returning `None` for an undeclared code (the collapsing the specification forbids); validating in the container constructor against the head class (the container does not know its head).
 
 ## D8. Maxitor needs five registration sites per type, and one type is not enough

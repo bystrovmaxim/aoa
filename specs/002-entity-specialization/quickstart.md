@@ -54,15 +54,15 @@ cd packages/aoa-maxitor/client && npm ci && npm run build
 
 **The falsifying run**: drop `entity_specialization` from the store's `known_edges` and reload — the whole load must abort with `Unknown edge graph type(s)`, which is the behaviour that makes a missing registration impossible to miss.
 
-## Scenario 4 — a row whose code is not declared (P4, SC-008, SC-009)
+## Scenario 4 — a row whose code is not declared (withdrawn, see issue #203)
 
 ```bash
 uv run --extra dev pytest packages/aoa-action-machine/tests/action_machine/runtime/ -v -k specialization
 ```
 
-**Expected**: constructing a value with a code no alternative declares raises `UndeclaredSpecializationVariantError` naming the value and the field; constructing a value whose hydrated entity is not the class declared for its code raises `SpecializationDeclarationError`; neither produces an empty relation, and neither survives to a later read.
+**Expected**: nothing. This scenario was written to check that a code arriving from data which no alternative declares fails loudly instead of reading as "no continuation", and the requirement behind it is **withdrawn** — see FR-032 and SC-008 in [spec.md](./spec.md). Telling the two apart needs the framework to know a code belongs to a **closed set**, and it has no such notion; inventing one here would have covered this axis only, while lifecycle states, role modes and edge relationships carry closed sets of their own. [Issue #203](https://github.com/bystrovmaxim/aoa/issues/203) introduces it once.
 
-**The falsifying run**: swap the codes of two alternatives in the declaration only (leaving the extensions untouched) and rebuild — the build must fail on the code mismatch, because the head's code and the extension's code are compared rather than one being believed.
+Until then the honest statement is the one in the spec: a value the framework does not recognise is read as no continuation, and the framework does not claim to distinguish that from a row that simply has none.
 
 ## Scenario 5 — nothing else moved (SC-005)
 
