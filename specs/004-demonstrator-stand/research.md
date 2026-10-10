@@ -45,10 +45,11 @@ Findings from the repository, with decisions. Host-side unknowns that only the d
 - **Rationale**: the use-case diagram already renders `parent_action` (its Maxitor test draws exactly that edge), and the ERD renders `parent_entity`; what is missing is fixtures in the demo model, not drawing capability. A dedicated domain keeps the drawing diff clean, as in issue #201.
 - **Alternatives considered**: extending the `access_cascade` domain (wrong story — generalization is its own shape); touching existing demo domains (violates the untouched-content pattern).
 
-## Decision 8: The specialization axis is a named gap until #199 lands
+## Decision 8: The specialization axis is carried, not a gap
 
-- **Decision**: the stand shows the entity-specialization axis once #199 is merged; until then `contracts/shape-coverage.md` records it as a named gap (FR-009, FR-010's "name the gap" branch).
-- **Rationale**: the spec assumes #199 lands first; the audit must not silently pretend the axis exists.
+- **Decision**: issue #199 has already landed in main, so the generalization entity fixtures declare the specialization directly — a head with its axis and two extensions. The stand therefore shows both the `entity_specialization` axis and the `parent_entity` inheritance edges (FR-009 satisfied, not deferred).
+- **Rationale**: `ParentEntityGraphEdge` is emitted only for specialization extensions (an extension → its head), never for plain `BaseEntity` subclassing — the fixture must use the specialization declaration to produce the shape.
+- **Alternatives considered**: plain entity inheritance (produces no edge at all — verified against the built graph); waiting for #199 (unnecessary — it is in main).
 
 ## Decision 9: "All shapes" is an audit artifact
 

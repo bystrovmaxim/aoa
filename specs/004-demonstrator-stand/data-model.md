@@ -20,22 +20,22 @@ A dedicated `generalization_shapes` domain; every element's description names th
 | Fixture | Shape produced |
 |---------|----------------|
 | `GeneralizationParentAction` | the parent end of a `parent_action` generalization edge |
-| `GeneralizationChildActionA` / `GeneralizationChildActionB` | two children — the diagram draws two inheritance arrows into one parent |
-| `GeneralizationParentEntity` | the parent end of a `parent_entity` generalization edge |
-| `GeneralizationChildEntity` | the child — the ERD draws the inheritance edge |
+| `GeneralizationFirstChildAction` / `GeneralizationSecondChildAction` | two children — the diagram draws two inheritance arrows into one parent |
+| `GeneralizationHeadEntity` | the specialization head — its declared axis is one generalization shape |
+| `GeneralizationVariantAEntity` / `GeneralizationVariantBEntity` | two extensions — each produces a `parent_entity` inheritance edge into the head, and together the `entity_specialization` axis |
 
 Validation rules (enforced by the framework):
 
 - `Action` / `Entity` / `Domain` suffixes; `@meta` / `@entity` descriptions name the shape, never a business meaning.
-- Child actions subclass the parent action (`parent_action` edges); the child entity subclasses the parent entity (`parent_entity` edges).
-- No other relations, no lifecycle, no dependencies — the fixtures exist for the edges alone.
+- Child actions subclass the parent action (`parent_action` edges).
+- The head declares `Specialization[A | B]` with its `Classifier` and `Inverse`; each extension declares `Generalization[Head]` with its own code — the framework's two-sided code comparison refuses a mismatch at build time (proven adversarially).
 
 ## Shape audit (Part 1)
 
 `contracts/shape-coverage.md` is the audit table: every node and edge kind published by the interchange graph (from `NodeGraphCoordinator.get_available_types()`), each marked one of:
 
 - **carried & drawn** — the demo model has an element of this kind and the diagram renders it;
-- **named gap** — the kind is not carried or not drawn, and the contract says so (the specialization axis stays here until #199 lands).
+- **named gap** — the kind is not carried or not drawn, and the contract says so (the recorded picture upgrades these rows).
 
 ## Deployment-time gates (not modeled, asserted)
 

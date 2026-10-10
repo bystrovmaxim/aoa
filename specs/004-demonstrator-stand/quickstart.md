@@ -14,7 +14,7 @@ Runnable validation for the feature, in two stages: everything that can be prove
 uv run --extra dev pytest packages/aoa-demo/tests/ -q
 ```
 
-**Expected**: zero failures. The `generalization_shapes` fixtures exist in the graph — asserted by `packages/aoa-demo/tests/model/test_generalization_shapes.py` (parent action with two children via `parent_action` edges; parent entity with a child via `parent_entity`).
+**Expected**: zero failures. The `generalization_shapes` fixtures exist in the graph — asserted by `packages/aoa-demo/tests/model/test_generalization_shapes.py` (parent action with two children via `parent_action` edges; a specialization head with two extensions via `parent_entity` edges and the `entity_specialization` axis).
 
 ## 2. Both images build from the repository
 
@@ -41,7 +41,7 @@ curl -fsS http://127.0.0.1:8101/api/health
 uv run --extra dev python scripts/stand_shape_audit.py
 ```
 
-**Expected**: the script prints and writes `specs/004-demonstrator-stand/contracts/shape-coverage.md` — every published node/edge kind marked `carried & drawn` or `named gap`, with the specialization axis named until #199 lands.
+**Expected**: the script prints and writes `specs/004-demonstrator-stand/contracts/shape-coverage.md` — every node/edge kind marked `carried & drawn` or `named gap`; the specialization axis is carried by the generalization fixtures.
 
 ## 5. The picture is recorded
 
