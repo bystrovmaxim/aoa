@@ -1,8 +1,8 @@
-"""A record with first-pressing details.
+"""Rejecting an unrelated object.
 
-How do common record information and variant-specific information fit together?
+Does the container accept a record where pressing details are required?
 Run from the repository root:
-    uv run python examples/step_21_relations/02_specialization.py
+    uv run python examples/step_21_relations/06_specialization_wrong_type.py
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseEntity, Classifier, Generalization, Inverse, Rel, Specialization
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
-from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
 class MusicDomain(BaseDomain):
@@ -83,12 +82,8 @@ for model in (VinylRecordEntity, FirstPressEntity, RepressEntity, TestPressEntit
 
 def main() -> None:
     """Run this one learning experiment."""
-    ActionProductMachine(loggers=[])
-    first = FirstPressEntity(
-        id="press-1",
-        stamper="1A",
-        record=Generalization[VinylRecordEntity](id="rec-1"),
-    )
+    from pydantic import ValidationError
+
     record = VinylRecordEntity(
         id="rec-1",
         title="Kind of Blue",
@@ -96,14 +91,19 @@ def main() -> None:
         pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
             id="press-1",
             variant="first",
-            entity=first,
         ),
     )
-    print("Model built")
-    print(record.title)
-    print(record.pressing.variant)
-    print(record.pressing.entity.stamper)
-    print(first.record.id)
+    try:
+        Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
+            id="press-1",
+            variant="first",
+            entity=record,
+        )
+    except ValidationError as error:
+        print(type(error).__name__)
+        print(sorted({item["type"] for item in error.errors()}))
+    else:
+        raise AssertionError("An unrelated entity was accepted")
 
 
 if __name__ == "__main__":

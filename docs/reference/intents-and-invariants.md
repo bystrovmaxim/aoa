@@ -285,7 +285,7 @@ Relations between entities are declared with fields of a container type and mark
 
 ### The ownership compatibility matrix
 
-Every relation has an ownership type: **Composition** (strong), **Aggregation** (weak), **Association** (none). The reverse side must conform to the matrix:
+Every ownership relation has an ownership type: **Composition** (strong), **Aggregation** (weak), **Association** (none). The reverse side must conform to the matrix:
 
 | Side A | Allowed reverse side |
 |--------|----------------------|
@@ -297,7 +297,7 @@ Composite↔Composite, Aggregate↔Aggregate, Composite↔Aggregate are forbidde
 
 ### Mandatory Inverse or NoInverse
 
-Every relation field must have either `Inverse(TargetEntity, "field_name")` or `NoInverse()` in `Annotated`. The absence of both is an error at build. `NoInverse` explicitly states that the reverse side is intentionally absent — this is not the same as "forgot to specify".
+Every ownership-relation field must have either `Inverse(TargetEntity, "field_name")` or `NoInverse()` in `Annotated`. The absence of both is an error at build. `NoInverse` explicitly states that the reverse side is intentionally absent — this is not the same as "forgot to specify".
 
 ```python
 # ✓ explicit reverse side
@@ -313,11 +313,11 @@ audit_log: Annotated[
 ] = Rel(description="Audit log")
 ```
 
-`Inverse.field_name` cannot be an empty string (`ValueError`) or a non-string (`TypeError`); `target_entity` must be a type.
+`Inverse.field_name` cannot be an empty string (`ValueError`) or a non-string (`TypeError`); `target_entity` must be a type for an ownership relation. On a specialization head, `Inverse(field_name="record")` omits the target class because the alternatives already specify it.
 
 ### Mandatory Rel description
 
-Every relation field must have `= Rel(description="...")` as its default value. An empty or whitespace-only description is a `ValueError` at class definition. The description is mandatory on both sides: the forward relation and the reverse one.
+Every ownership-relation field must have `= Rel(description="...")` as its default value. An empty or whitespace-only description is a `ValueError` at class definition. The description is mandatory on both sides: the forward relation and the reverse one.
 
 ### The hydration invariant (fail-fast)
 
@@ -336,6 +336,68 @@ For Many containers: `entities_loaded=False` with a non-empty `entities` tuple i
 `BaseRelationOne(id=None)` is a `ValueError`. A container must always know the identifier of the related entity, even if the object itself is not hydrated.
 
 ---
+
+### Entity specialization: the build rules
+
+A specialization declaration describes common information and the kinds of additional information that may accompany it. The common entity is the **head**; the detail classes are its **alternatives**. One head field, its code field, and its alternatives form an **axis**. The [relations tutorial](../tutorials/step-21-relations.md#generalization-and-specialization) introduces these terms and gives complete runnable declarations. This section specifies what the current implementation checks.
+
+#### Declaration surface and checking time
+
+On the head, write `Specialization` parameterized by the alternative class or union of classes, a `Classifier` naming the code field and the declared codes, and `Inverse(field_name="record")` naming their reverse field. On each alternative, write `Generalization[Head]`, a `Classifier` with that alternative's single code, and an `Inverse` identifying the head's specialization field. Supply relationship descriptions with `Rel`. These declarations describe domain objects; they do not specify a storage layout or establish Python inheritance between the head and alternatives.
+
+There are three distinct checking moments:
+
+| Moment | Checks relevant to specialization |
+|---|---|
+| Constructing a marker in an annotation | `Classifier.field` is a nonblank string; `codes` is a nonempty `Literal` of nonblank strings. Invalid arguments raise `TypeError` or `ValueError`. |
+| Reading declarations and building the model graph | The resolver and declaration validator check the rules below. Machine creation includes graph construction and this validation, but graph construction can fail first. |
+| Constructing a relation value | Pydantic checks the supplied object against the container's type argument. The containers are frozen after construction. This is separate from the declaration checks. |
+
+`model_rebuild()` resolves Pydantic's forward type references. It does not replace AOA's declaration validation. The validator normally examines the currently loaded classes registered with `@entity`, excluding classes marked out of the graph model. Importing a model is therefore relevant; an unimported class is not available for this check.
+
+#### Rules within an axis
+
+| Declaration requirement | What is checked |
+|---|---|
+| The head field identifies a specialization | The resolver recognizes a parameterized `Specialization` container and requires a `Classifier` marker. A marker on an unrelated field is not sufficient to create an axis. |
+| Alternatives are declared entities | Each listed class must carry entity declaration metadata. |
+| The classifier names a usable data field | The name must occur in the head's Pydantic fields. The specialization field itself, another recognized specialization field, and an ownership relation cannot serve as the classifier. Properties and `ClassVar` attributes are not Pydantic fields. |
+| Each alternative provides a reverse declaration | Its `Generalization` points to this head. Missing or wrongly targeted reverse declarations leave a head code without an owner. |
+| An alternative supplies one code | There must be exactly one reverse field to that head and exactly one code on it. When the head names an inverse field, that name must match the reverse field. |
+| Codes agree in both directions | Every head code must occur on an alternative, every alternative code must occur on the head, and the counts must agree. Two alternatives cannot own the same code in an accepted declaration. |
+| Declared codes fit the classifier annotation | Each code is passed to a Pydantic `TypeAdapter` for that annotation. This uses normal Pydantic validation, including permitted coercions, rather than a strict string-type equality check. |
+
+The code-to-class mapping comes from the alternatives' reverse declarations. It is not formed by zipping the head's code list with its union. The head code order supplies the order used for emitted forward edges and their `alternative_index`; it does not redefine which class owns a code. See the [reordered-code experiment](../../examples/step_21_relations/05_specialization_mapping.py).
+
+Use the declared paired-marker form even though the current specialization validator does not enforce all the same mirroring rules as ownership relations. In particular, it does not require the head's `Inverse` marker or verify every reverse `Inverse` target/field. A bare `Generalization` on a class whose target declares no specialization axis does not, by itself, create a paired specialization. Do not treat successful construction of such declarations as proof of complete inverse validation.
+
+#### Rules across axes
+
+An alternative class may be claimed by only one head class. A head may have multiple specialization fields, but each must name a different classifier field. A chain of head-to-alternative relationships must not return to a class already in that chain: self-reference and longer cycles are invalid.
+
+The current closure check has a stronger consequence than simply requiring matching inverse names. For **each** axis it rejects any other declared class that has a `Generalization` to that head but is absent from that axis's alternatives. It compares the head class, not the reverse field's `Inverse` name. Consequently, separate classifier fields do not make disjoint alternative sets on one head valid. The [two-axis example](../../examples/step_21_relations/11_specialization_two_axes.py) uses the same alternatives; the [different-set example](../../examples/step_21_relations/38_error_axis_subset.py) demonstrates the refusal.
+
+#### Diagnostics and their limits
+
+The dedicated validator raises `SpecializationDeclarationError` with the head class, specialization field, and explanation. The [diagnostic guide](../how-to/specialization-declaration-fails.md) gives independent broken declarations and repairs. An extra code on an alternative and a cycle between two distinct classes are both reachable errors; the guide includes actual examples of each.
+
+Do not depend on a universal first-error order for arbitrary broken models. Declaration parsing, graph expansion, graph wiring, and the specialization validation pass occur at different points. For example, a head with a nonexistent code can cause `KeyError` while graph labels are assembled, before the dedicated validator can report the declaration error. The [machine-build experiment](../../examples/step_21_relations/39_error_machine_build.py) demonstrates this current limitation; the direct-validator experiment gives the more useful diagnostic.
+
+#### Relation values and application responsibilities
+
+`Specialization[T]` requires an `id` argument and a `variant` argument; `entity` defaults to `None`. `Generalization[T]` requires `id` and has the same optional `entity`. They are Pydantic models with frozen fields. A supplied entity is checked against `T` during normal construction. The type argument can be narrowed to one alternative. Reading `.entity` returns the supplied object or `None`; these containers do not proxy its attributes or perform loading.
+
+The current field types are deliberately broader than the domain declaration: `id` is `Any` and `variant` is `str | None`. Requiring those arguments does not imply a non-null identifier or code. There is no built-in check that the head's classifier value, the link's `variant`, the object's class, its identifier, and its reverse link agree. There is also no automatic rejection of a string merely because it is absent from the declared code list. Use appropriate value annotations and explicit loading/application checks for those requirements.
+
+The model build does not inspect stored data. It establishes neither completeness (every head object has corresponding details) nor data disjointness (only the appropriate kind of details exists for each object). It does not create database constraints or determine how many tables exist.
+
+#### Graph and Maxitor
+
+For a visible axis, the model graph contains one `entity_specialization` association edge per alternative, while the head field also remains an `EntityField` column. Forward-edge properties carry the field name, classifier field, this edge's code, its code-list index, and the complete code-to-class identifiers and display labels. The reverse declaration produces `parent_entity` generalization edges carrying the reverse field, head field, code, and head identifier. Neither direction is derived from Python subclassing.
+
+`NoGraphEdge` on the head field suppresses the forward edges, not the field column or the reverse edges. The Maxitor store retains both edge families. Its full-graph view excludes the `Generalization` relationship, so reverse edges are absent there. The ERD builds a display group for multiple alternatives and one combined field row; those display groups are not extra entities in the model graph.
+
+A single-alternative axis is accepted by the model. The current ERD emits no alternatives group and no replacement ordinary relation line for it. For the actual rendering, including the current arrow endpoint limitation, see [Step 26](../tutorials/step-26-maxitor.md#specialization-the-variants-in-one-frame).
 
 ## Lifecycle FSM
 

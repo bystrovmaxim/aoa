@@ -1,8 +1,8 @@
-"""A record with first-pressing details.
+"""A declaration does not validate a data code.
 
-How do common record information and variant-specific information fit together?
+Does a successfully built model reject an unknown code in a link?
 Run from the repository root:
-    uv run python examples/step_21_relations/02_specialization.py
+    uv run python examples/step_21_relations/07_specialization_data_codes.py
 """
 
 from __future__ import annotations
@@ -84,26 +84,14 @@ for model in (VinylRecordEntity, FirstPressEntity, RepressEntity, TestPressEntit
 def main() -> None:
     """Run this one learning experiment."""
     ActionProductMachine(loggers=[])
-    first = FirstPressEntity(
+    link = Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
         id="press-1",
-        stamper="1A",
-        record=Generalization[VinylRecordEntity](id="rec-1"),
+        variant="unknown",
     )
-    record = VinylRecordEntity(
-        id="rec-1",
-        title="Kind of Blue",
-        media="first",
-        pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-            id="press-1",
-            variant="first",
-            entity=first,
-        ),
-    )
+    record = VinylRecordEntity(id="rec-1", title="Kind of Blue", media="unknown", pressing=link)
     print("Model built")
-    print(record.title)
+    print(record.media)
     print(record.pressing.variant)
-    print(record.pressing.entity.stamper)
-    print(first.record.id)
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
-"""A record with first-pressing details.
+"""Two classifications on the same record.
 
-How do common record information and variant-specific information fit together?
+Can a record carry the catalogue classification and a separately reported classification?
 Run from the repository root:
-    uv run python examples/step_21_relations/02_specialization.py
+    uv run python examples/step_21_relations/11_specialization_two_axes.py
 """
 
 from __future__ import annotations
@@ -31,6 +31,12 @@ class VinylRecordEntity(BaseEntity):
     id: str = Field(description="Record identifier")
     title: str = Field(description="Album title")
     media: str = Field(description="Pressing code")
+    reported_media: str = Field(description="Pressing code reported by another catalogue")
+    reported_pressing: Annotated[
+        Specialization[FirstPressEntity | RepressEntity | TestPressEntity],
+        Classifier(field="reported_media", codes=Literal["first", "repress", "test"]),
+        Inverse(field_name="record"),
+    ] = Rel(description="Pressing reported by another catalogue")
     pressing: Annotated[
         Specialization[FirstPressEntity | RepressEntity | TestPressEntity],
         Classifier(field="media", codes=Literal["first", "repress", "test"]),
@@ -83,27 +89,11 @@ for model in (VinylRecordEntity, FirstPressEntity, RepressEntity, TestPressEntit
 
 def main() -> None:
     """Run this one learning experiment."""
+    from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
+
     ActionProductMachine(loggers=[])
-    first = FirstPressEntity(
-        id="press-1",
-        stamper="1A",
-        record=Generalization[VinylRecordEntity](id="rec-1"),
-    )
-    record = VinylRecordEntity(
-        id="rec-1",
-        title="Kind of Blue",
-        media="first",
-        pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-            id="press-1",
-            variant="first",
-            entity=first,
-        ),
-    )
-    print("Model built")
-    print(record.title)
-    print(record.pressing.variant)
-    print(record.pressing.entity.stamper)
-    print(first.record.id)
+    for axis in EntityIntentResolver.resolve_entity_specializations(VinylRecordEntity):
+        print(axis.field_name, "by", axis.classifier_field)
 
 
 if __name__ == "__main__":

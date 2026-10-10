@@ -1,8 +1,8 @@
-"""A record with first-pressing details.
+"""The two directions in the model graph.
 
-How do common record information and variant-specific information fit together?
+What does the built graph say about the declared alternatives?
 Run from the repository root:
-    uv run python examples/step_21_relations/02_specialization.py
+    uv run python examples/step_21_relations/10_specialization_graph.py
 """
 
 from __future__ import annotations
@@ -83,27 +83,17 @@ for model in (VinylRecordEntity, FirstPressEntity, RepressEntity, TestPressEntit
 
 def main() -> None:
     """Run this one learning experiment."""
-    ActionProductMachine(loggers=[])
-    first = FirstPressEntity(
-        id="press-1",
-        stamper="1A",
-        record=Generalization[VinylRecordEntity](id="rec-1"),
-    )
-    record = VinylRecordEntity(
-        id="rec-1",
-        title="Kind of Blue",
-        media="first",
-        pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-            id="press-1",
-            variant="first",
-            entity=first,
-        ),
-    )
-    print("Model built")
-    print(record.title)
-    print(record.pressing.variant)
-    print(record.pressing.entity.stamper)
-    print(first.record.id)
+    machine = ActionProductMachine(loggers=[])
+    nodes = machine.graph_coordinator.get_all_nodes()
+    head = next(node for node in nodes if node.label == "VinylRecordEntity")
+    for edge in head.get_all_edges():
+        if edge.edge_name == "entity_specialization":
+            print(edge.edge_name, edge.properties["classifier_value"], "->", edge.target_node.label)
+    first_node = next(node for node in nodes if node.label == "FirstPressEntity")
+    for edge in first_node.get_all_edges():
+        if edge.edge_name == "parent_entity":
+            print(edge.edge_name, edge.properties["classifier_value"], "->", edge.target_node.label)
+    print("Columns:", [edge.target_node.label for edge in head.get_all_edges() if edge.edge_name == "entity_field"])
 
 
 if __name__ == "__main__":

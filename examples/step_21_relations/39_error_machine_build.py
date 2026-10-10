@@ -1,8 +1,7 @@
-"""A record with first-pressing details.
+"""A graph build can fail before the declaration validator.
 
-How do common record information and variant-specific information fit together?
-Run from the repository root:
-    uv run python examples/step_21_relations/02_specialization.py
+Does a missing code always produce the same diagnostic during machine creation?
+Run: uv run python examples/step_21_relations/39_error_machine_build.py
 """
 
 from __future__ import annotations
@@ -14,7 +13,6 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseEntity, Classifier, Generalization, Inverse, Rel, Specialization
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
-from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
 class MusicDomain(BaseDomain):
@@ -33,7 +31,7 @@ class VinylRecordEntity(BaseEntity):
     media: str = Field(description="Pressing code")
     pressing: Annotated[
         Specialization[FirstPressEntity | RepressEntity | TestPressEntity],
-        Classifier(field="media", codes=Literal["first", "repress", "test"]),
+        Classifier(field="media", codes=Literal["early", "repress", "test"]),
         Inverse(field_name="record"),
     ] = Rel(description="Details of this pressing")
 
@@ -83,27 +81,14 @@ for model in (VinylRecordEntity, FirstPressEntity, RepressEntity, TestPressEntit
 
 def main() -> None:
     """Run this one learning experiment."""
-    ActionProductMachine(loggers=[])
-    first = FirstPressEntity(
-        id="press-1",
-        stamper="1A",
-        record=Generalization[VinylRecordEntity](id="rec-1"),
-    )
-    record = VinylRecordEntity(
-        id="rec-1",
-        title="Kind of Blue",
-        media="first",
-        pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-            id="press-1",
-            variant="first",
-            entity=first,
-        ),
-    )
-    print("Model built")
-    print(record.title)
-    print(record.pressing.variant)
-    print(record.pressing.entity.stamper)
-    print(first.record.id)
+    from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+
+    try:
+        ActionProductMachine(loggers=[])
+    except KeyError as error:
+        print(type(error).__name__ + ": " + str(error))
+    else:
+        raise AssertionError("The broken model built")
 
 
 if __name__ == "__main__":

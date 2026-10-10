@@ -91,6 +91,52 @@ Separate DTOs diverge quickly: the order list returns one shape, the card anothe
 
 A reviewer sees not only the Python body but the change in intent: roles, dependencies, context, the pipeline, compensators, error handlers, the cache policy. The question shifts from "does the code look fine" to "is the operation's contract declared correctly". An agent gets the system's vocabulary — the Action catalog, descriptions, Pydantic schemas, MCP tools, the dependency graph, the pipeline, and documentation from the code — and does not have to guess from random functions what can be called and with which parameters.
 
+## Relations: specialization
+
+### When do I need specialization rather than another association?
+
+Use it when common information is accompanied by one of several kinds of details. In the record example, a title belongs to every record, but a stamper code belongs to a first pressing and an approval name belongs to a test pressing. The model declares both the possible detail classes and the codes that identify them. An ordinary association describes a reference; writing a union inside it does not add this classifier mapping and its specialization checks. Start with the [complete tutorial](../tutorials/step-21-relations.md#generalization-and-specialization).
+
+### Why not use an enumeration on an ordinary field?
+
+An enumeration or `Literal` is sufficient when only the value differs. Specialization becomes useful when different values correspond to different structures of additional information. It does not require a particular database layout: separate entity classes do not automatically become separate tables.
+
+### Does Generalization mean Python inheritance?
+
+Here it is the reverse link from variant-specific details to their common entity. `FirstPressEntity` and `VinylRecordEntity` both inherit from `BaseEntity`; the former does not inherit the latter's fields. To read the title through a loaded reverse link, use `first.record.entity.title`.
+
+### Why are codes declared on both sides?
+
+The head states the codes it permits, while each alternative states the code it represents. The build compares them, so a forgotten alternative or a code changed on only one side can be detected. The code-to-class mapping is read from the alternatives, not inferred from class names or paired by union position. Reordering the head's codes changes presentation order, not the owner of a code.
+
+### Will media="first" load FirstPressEntity automatically?
+
+No. The declaration makes the correspondence available, but the application or resource must use it to choose what to read and construct. Passing `entity=first` to a container supplies an object already available in memory. Neither the marker nor the container fetches data.
+
+### What does entity=None mean?
+
+The container has no loaded object. Its identifier and, on a specialization link, its variant can still be available. This does not prove that the corresponding record is missing from storage. `Specialization` and `Generalization` expose `.entity` directly, unlike ownership containers that proxy attributes and raise `RelationNotLoadedError` for unloaded access. The [unloaded-link experiment](../../examples/step_21_relations/03_specialization_unloaded.py) prints the actual `None`.
+
+### Does a successful build guarantee that codes in my data are correct?
+
+No. The build checks class declarations. The current specialization container accepts unknown string codes and does not compare its code with the supplied object's class. A `RepressEntity` supplied with `variant="first"` passes the union type check. Your loading or application layer must check those agreements. A suitable `Literal` annotation can restrict the head's classifier field during normal value construction, but it does not establish the other agreements or validate existing database data.
+
+### Can two choices on the same entity use different alternatives?
+
+The current validator does not generally support that arrangement. Multiple axes need separate classifier fields, and the closure check requires each axis to include the classes that point back to that head. The [working two-axis example](../../examples/step_21_relations/11_specialization_two_axes.py) therefore shares the alternatives; the [different-set example](../../examples/step_21_relations/38_error_axis_subset.py) shows the refusal. Separate classifiers alone are not enough.
+
+### Can I omit the reverse declaration?
+
+An alternative needs a reverse `Generalization` with its own code for the head's declared mapping to be valid. Use the paired `Inverse` declarations and descriptions shown in the tutorial. The current validator does not enforce every aspect of inverse-marker mirroring, so an accepted incomplete marker declaration is not evidence that the intended pairing was fully checked. `NoInverse` on an ownership relation is a different feature.
+
+### Why does an invalid model sometimes raise KeyError?
+
+Graph-edge construction can read the code mapping before the specialization validator runs. A missing code can therefore fail there first. For a targeted diagnosis, the [error guide](../how-to/specialization-declaration-fails.md) shows how to call the declaration validator directly and compare its answer with machine creation. The implementation does not guarantee that every invalid specialization surfaces as `SpecializationDeclarationError` from the machine constructor.
+
+### Does the frame in Maxitor represent another entity?
+
+No. It groups the possible detail classes in the entity–relationship diagram. The entities inside keep their own fields. The frame is a display object and says nothing about a physical table or stored row. The [Maxitor chapter](../tutorials/step-26-maxitor.md#specialization-the-variants-in-one-frame) includes the actual rendered image and explains the current arrow endpoint limitation.
+
 ---
 
 <table width="100%"><tr>

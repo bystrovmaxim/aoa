@@ -1,8 +1,8 @@
-"""A record with first-pressing details.
+"""A reference without the object.
 
-How do common record information and variant-specific information fit together?
+What can we read before pressing details have been loaded?
 Run from the repository root:
-    uv run python examples/step_21_relations/02_specialization.py
+    uv run python examples/step_21_relations/03_specialization_unloaded.py
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseEntity, Classifier, Generalization, Inverse, Rel, Specialization
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
-from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
 class MusicDomain(BaseDomain):
@@ -83,27 +82,13 @@ for model in (VinylRecordEntity, FirstPressEntity, RepressEntity, TestPressEntit
 
 def main() -> None:
     """Run this one learning experiment."""
-    ActionProductMachine(loggers=[])
-    first = FirstPressEntity(
+    link = Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
         id="press-1",
-        stamper="1A",
-        record=Generalization[VinylRecordEntity](id="rec-1"),
+        variant="first",
     )
-    record = VinylRecordEntity(
-        id="rec-1",
-        title="Kind of Blue",
-        media="first",
-        pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-            id="press-1",
-            variant="first",
-            entity=first,
-        ),
-    )
-    print("Model built")
-    print(record.title)
-    print(record.pressing.variant)
-    print(record.pressing.entity.stamper)
-    print(first.record.id)
+    print(link.id)
+    print(link.variant)
+    print(link.entity)
 
 
 if __name__ == "__main__":

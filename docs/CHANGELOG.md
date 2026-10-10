@@ -1,5 +1,31 @@
 # Changelog
 
+## [2026-10-10] — Common information with different kinds of details
+
+An entity can describe common information together with the different kinds of details that may
+accompany it. A record catalogue, for example, can keep an album title on the record while giving
+first pressings, re-pressings and test pressings their own detail classes. The model names the
+possible alternatives and the codes that identify them, and checks that those declarations agree.
+Applications can carry a reference before its details are loaded, or supply the loaded object
+explicitly when it is available.
+
+These declarations describe the model rather than manage stored data. Loading remains the
+application's responsibility, as does checking that a supplied code, object and reverse reference
+agree. Multiple choices on one entity currently require the same alternatives, even when they
+use separate classifier fields. Some invalid declarations can fail during graph construction
+before the more specific declaration diagnostic is reached.
+
+Maxitor shows the alternatives together in the entity diagram and lists them in one field row.
+The group is a visual aid, not another entity or database table. The current renderer still ends
+the group's incoming arrow at a separate label, and a single-alternative declaration has no
+replacement relation line. The documentation shows the actual output and explains these limits.
+
+The [relations tutorial](tutorials/step-21-relations.md#generalization-and-specialization) introduces
+each concept through the catalogue example. Separate scripts and notebooks demonstrate one
+behaviour at a time, with the actual output and its explanation. The
+[diagnostic guide](how-to/specialization-declaration-fails.md) starts from a working model, changes
+one condition, and shows both the resulting error and a verified repair.
+
 ## [2026-10-08] — Access lives in the declaration
 
 An operation can now state who may call it, which restrictions apply to every call, and what

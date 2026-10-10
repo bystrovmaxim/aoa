@@ -1,8 +1,8 @@
-"""A record with first-pressing details.
+"""A link does not choose its object.
 
-How do common record information and variant-specific information fit together?
+Does variant="first" require the supplied object to be a FirstPressEntity?
 Run from the repository root:
-    uv run python examples/step_21_relations/02_specialization.py
+    uv run python examples/step_21_relations/08_specialization_mismatched_data.py
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseEntity, Classifier, Generalization, Inverse, Rel, Specialization
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
-from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
 class MusicDomain(BaseDomain):
@@ -83,27 +82,18 @@ for model in (VinylRecordEntity, FirstPressEntity, RepressEntity, TestPressEntit
 
 def main() -> None:
     """Run this one learning experiment."""
-    ActionProductMachine(loggers=[])
-    first = FirstPressEntity(
-        id="press-1",
-        stamper="1A",
+    repress = RepressEntity(
+        id="press-2",
+        year=1997,
         record=Generalization[VinylRecordEntity](id="rec-1"),
     )
-    record = VinylRecordEntity(
-        id="rec-1",
-        title="Kind of Blue",
-        media="first",
-        pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-            id="press-1",
-            variant="first",
-            entity=first,
-        ),
+    link = Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
+        id="press-2",
+        variant="first",
+        entity=repress,
     )
-    print("Model built")
-    print(record.title)
-    print(record.pressing.variant)
-    print(record.pressing.entity.stamper)
-    print(first.record.id)
+    print(link.variant)
+    print(type(link.entity).__name__)
 
 
 if __name__ == "__main__":

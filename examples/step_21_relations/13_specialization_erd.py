@@ -1,8 +1,8 @@
-"""A record with first-pressing details.
+"""Producing the Maxitor diagram data.
 
-How do common record information and variant-specific information fit together?
+How are three alternative edges represented in the ERD data?
 Run from the repository root:
-    uv run python examples/step_21_relations/02_specialization.py
+    uv run python examples/step_21_relations/13_specialization_erd.py
 """
 
 from __future__ import annotations
@@ -83,27 +83,27 @@ for model in (VinylRecordEntity, FirstPressEntity, RepressEntity, TestPressEntit
 
 def main() -> None:
     """Run this one learning experiment."""
-    ActionProductMachine(loggers=[])
-    first = FirstPressEntity(
-        id="press-1",
-        stamper="1A",
-        record=Generalization[VinylRecordEntity](id="rec-1"),
-    )
-    record = VinylRecordEntity(
-        id="rec-1",
-        title="Kind of Blue",
-        media="first",
-        pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-            id="press-1",
-            variant="first",
-            entity=first,
-        ),
-    )
-    print("Model built")
-    print(record.title)
-    print(record.pressing.variant)
-    print(record.pressing.entity.stamper)
-    print(first.record.id)
+    import json
+    from pathlib import Path
+
+    from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
+    from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
+
+    machine = ActionProductMachine(loggers=[])
+    graph = json.loads(machine.graph_coordinator.to_json())
+    store = DuckDBGraphResource.build_from_json(graph)
+    domain_id = next(node.node_id for node in machine.graph_coordinator.get_all_nodes() if node.label == "MusicDomain")
+    diagram = ListEntitiesAction._slice_payload(store, domain_id, include_neighbors=False)
+    head = next(item for item in diagram["entities"] if item["label"] == "VinylRecordEntity")
+    field = next(item for item in head["fields"] if item["name"] == "pressing (by media)")
+    print(field["name"])
+    print(field["type"])
+    print("Groups:", len(diagram["groups"]))
+    print("Alternatives:", len(diagram["groups"][0]["members"]))
+    print("Group links:", sum(item.get("relationship_kind") == "specialization" for item in diagram["relations"]))
+    output = Path("examples/step_21_relations/02_specialization_erd.json")
+    output.write_text(json.dumps(diagram, indent=2) + "\n")
+    print("Saved:", output.as_posix())
 
 
 if __name__ == "__main__":

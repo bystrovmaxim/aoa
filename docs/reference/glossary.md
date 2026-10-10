@@ -116,6 +116,32 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **Relations** — `Association` (equal), `Aggregation` (weak ownership), `Composition` (strong ownership); cardinality is set by the `One`/`Many` suffix. The reverse side is declared via `Inverse(...)` or explicitly absent via `NoInverse()`.
 
+**Relation container** — an object holding a reference to another entity separately from that entity's loaded data. Ownership containers use `One` or `Many`; specialization uses `Specialization[T]` and its reverse `Generalization[T]`. Their loading interfaces differ, so consult the particular container's contract.
+
+**Specialization** — a declared relationship between common information and the different kinds of details that may accompany it. For example, common record information may have first-pressing, re-pressing, or test-pressing details. The common class declares a `Specialization` field listing these alternatives. It describes possible types, not an automatic loading operation.
+
+**Head** — the class holding the common information and declaring a specialization field. `VinylRecordEntity` is the head in the tutorial: it holds the title and the link to pressing details.
+
+**Alternative / variant / extension** — one of the detail classes listed by a specialization field. `FirstPressEntity` is an alternative because it holds information specific to a first pressing. It declares its own code and a reverse link to the head; it need not be a Python subclass of that head.
+
+**Classifier field** — the head's ordinary data field whose value identifies the kind of details, such as `media="first"`. On the head, `Classifier(field="media", codes=Literal["first", "repress", "test"])` names this field and declares the codes. On an alternative's reverse link, a `Classifier` marker declares that alternative's single code.
+
+**Variant code** — an application-chosen string such as `first` that identifies an alternative in the declaration. It is not the class name. The head lists the codes and each alternative declares its own; the build compares those declarations. That comparison does not validate every code supplied in instance data.
+
+**Specialization axis** — one specialization field together with its classifier and alternatives. The name distinguishes multiple choices on one head, such as `pressing` and `reported_pressing`. The current validator restricts which multiple-axis arrangements are accepted.
+
+**Generalization** — for entity specialization, the reverse direction from specific details to the common entity. `Generalization[VinylRecordEntity]` holds a reference back to the record. The associated graph edge uses the `Generalization` relationship; this does not make the two Python classes inherit from one another.
+
+**Inverse relation** — the other declared direction of a relationship. `Inverse(Target, "field")` names the paired field. A specialization head can use `Inverse(field_name="record")`, since its possible target classes are already listed in the type argument.
+
+**Hydration** — supplying an entity's actual data in memory after identifying it. For a specialization link, passing an object as `entity=...` makes that object available through `.entity`; omitting it leaves `.entity` as `None`. The container itself performs no loading.
+
+**Model build** — assembling and checking AOA's graph of the loaded declarations, normally during machine creation. It checks the model, not stored application data. Pydantic's `model_rebuild()` instead resolves model types, including forward references; the similarly named operations have different purposes.
+
+**ERD** — entity–relationship diagram: a view showing entity classes, their fields, and relationships. In Maxitor it is generated from the declared model, not obtained by inspecting database tables. A frame around specialization alternatives is a visual grouping, not an additional entity.
+
+See [Relations between entities](../tutorials/step-21-relations.md#generalization-and-specialization) for the complete example and [the reference](intents-and-invariants.md#entity-specialization-the-build-rules) for current restrictions.
+
 **Lifecycle** — a finite-state machine of an entity's states with correctness checked at build; a transition returns a new instance (the entity is immutable).
 
 **Partial loading** — one domain type with different load levels. Touching an unloaded field is a `FieldNotLoadedError` / `RelationNotLoadedError`, not a silent `None`.

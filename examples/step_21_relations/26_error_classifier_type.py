@@ -1,8 +1,8 @@
-"""A record with first-pressing details.
+"""A code does not fit the field type.
 
-How do common record information and variant-specific information fit together?
+Which declaration is wrong, and how do we repair it?
 Run from the repository root:
-    uv run python examples/step_21_relations/02_specialization.py
+    uv run python examples/step_21_relations/26_error_classifier_type.py
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseEntity, Classifier, Generalization, Inverse, Rel, Specialization
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
-from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
 class MusicDomain(BaseDomain):
@@ -30,7 +29,7 @@ class VinylRecordEntity(BaseEntity):
 
     id: str = Field(description="Record identifier")
     title: str = Field(description="Album title")
-    media: str = Field(description="Pressing code")
+    media: int = Field(description="Pressing code")
     pressing: Annotated[
         Specialization[FirstPressEntity | RepressEntity | TestPressEntity],
         Classifier(field="media", codes=Literal["first", "repress", "test"]),
@@ -83,27 +82,15 @@ for model in (VinylRecordEntity, FirstPressEntity, RepressEntity, TestPressEntit
 
 def main() -> None:
     """Run this one learning experiment."""
-    ActionProductMachine(loggers=[])
-    first = FirstPressEntity(
-        id="press-1",
-        stamper="1A",
-        record=Generalization[VinylRecordEntity](id="rec-1"),
-    )
-    record = VinylRecordEntity(
-        id="rec-1",
-        title="Kind of Blue",
-        media="first",
-        pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-            id="press-1",
-            variant="first",
-            entity=first,
-        ),
-    )
-    print("Model built")
-    print(record.title)
-    print(record.pressing.variant)
-    print(record.pressing.entity.stamper)
-    print(first.record.id)
+    from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
+    from aoa.action_machine.graph.validators.entity_specialization_validator import validate_entity_specializations
+
+    try:
+        validate_entity_specializations()
+    except SpecializationDeclarationError as error:
+        print(type(error).__name__ + ": " + str(error))
+    else:
+        raise AssertionError("The broken declaration was accepted")
 
 
 if __name__ == "__main__":

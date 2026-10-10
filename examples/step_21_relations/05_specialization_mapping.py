@@ -1,8 +1,8 @@
-"""A record with first-pressing details.
+"""Reading the declared code-to-class mapping.
 
-How do common record information and variant-specific information fit together?
+Does a code identify a class by its position in the union?
 Run from the repository root:
-    uv run python examples/step_21_relations/02_specialization.py
+    uv run python examples/step_21_relations/05_specialization_mapping.py
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ class VinylRecordEntity(BaseEntity):
     media: str = Field(description="Pressing code")
     pressing: Annotated[
         Specialization[FirstPressEntity | RepressEntity | TestPressEntity],
-        Classifier(field="media", codes=Literal["first", "repress", "test"]),
+        Classifier(field="media", codes=Literal["test", "first", "repress"]),
         Inverse(field_name="record"),
     ] = Rel(description="Details of this pressing")
 
@@ -83,27 +83,14 @@ for model in (VinylRecordEntity, FirstPressEntity, RepressEntity, TestPressEntit
 
 def main() -> None:
     """Run this one learning experiment."""
+    from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
+
     ActionProductMachine(loggers=[])
-    first = FirstPressEntity(
-        id="press-1",
-        stamper="1A",
-        record=Generalization[VinylRecordEntity](id="rec-1"),
-    )
-    record = VinylRecordEntity(
-        id="rec-1",
-        title="Kind of Blue",
-        media="first",
-        pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-            id="press-1",
-            variant="first",
-            entity=first,
-        ),
-    )
-    print("Model built")
-    print(record.title)
-    print(record.pressing.variant)
-    print(record.pressing.entity.stamper)
-    print(first.record.id)
+    axis = EntityIntentResolver.resolve_entity_specializations(VinylRecordEntity)[0]
+    print("Field:", axis.field_name)
+    print("Classifier:", axis.classifier_field)
+    for code in axis.codes:
+        print(code, "->", axis.code_to_target[code].__name__)
 
 
 if __name__ == "__main__":
