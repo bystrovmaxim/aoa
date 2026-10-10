@@ -62,8 +62,8 @@ description: "Task list for the demonstrator stand"
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] Create `packages/aoa-demo/Dockerfile` — Python 3.12 image installing the uv workspace from the repository root with the `[fastapi]` and `[mcp]` extras, `CMD ["uvicorn", "aoa.demo.fastapi_mcp_services.app_fastapi_service:app", "--host", "0.0.0.0", "--port", "8100"]` (FR-002, FR-003).
-- [ ] T006 [US2] Verify locally: `docker compose -f deploy/stand/docker-compose.yml build demo` succeeds; running the container answers `GET /ping` on 127.0.0.1:8100; note the verified health endpoint path for T015.
+- [x] T005 [US2] Create `packages/aoa-demo/Dockerfile` — Python 3.12 image installing the uv workspace from the repository root with the `[fastapi]` and `[mcp]` extras, `CMD ["uvicorn", "aoa.demo.fastapi_mcp_services.app_fastapi_service:app", "--host", "0.0.0.0", "--port", "8100"]` (FR-002, FR-003).
+- [x] T006 [US2] Verify locally: `docker compose -f deploy/stand/docker-compose.yml build demo` succeeds; running the container answers `GET /ping` on 127.0.0.1:8100; note the verified health endpoint path for T015.
 
 **Checkpoint**: both images build from the repository; the stand has both halves locally
 

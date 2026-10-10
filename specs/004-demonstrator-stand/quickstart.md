@@ -28,11 +28,12 @@ docker compose -f deploy/stand/docker-compose.yml build
 
 ```bash
 docker compose -f deploy/stand/docker-compose.yml up -d
-curl -fsS http://127.0.0.1:8100/ping
-curl -fsS http://127.0.0.1:8101/
+curl -fsS http://127.0.0.1:8100/health
+curl -fsS http://127.0.0.1:8100/api/v1/ping
+curl -fsS http://127.0.0.1:8101/api/health
 ```
 
-**Expected**: the demo answers on 8100, Maxitor on 8101; `docker compose ps` shows both healthy.
+**Expected**: the demo answers on 8100 (`/health` → `{"status":"ok"}`, `/api/v1/ping` → `{"message":"pong"}`), Maxitor answers on 8101 (`/api/health` → `{"status":"ok"}`); `docker compose ps` shows both healthy.
 
 ## 4. The shape audit is filled
 
