@@ -19,6 +19,14 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$REPO_ROOT/deploy/stand/docker-compose.yml"
 
+# Configuration and secrets live on the host, outside the repository.
+if [[ -f /etc/aoa-stand.env ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    . /etc/aoa-stand.env
+    set +a
+fi
+
 DEMO_DOMAIN="${DEMO_DOMAIN:-dev.demo.aoa.run}"
 MAXITOR_DOMAIN="${MAXITOR_DOMAIN:-dev.maxitor.aoa.run}"
 DEMO_PORT="${DEMO_PORT:-8100}"
