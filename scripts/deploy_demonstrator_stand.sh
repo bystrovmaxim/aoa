@@ -66,6 +66,7 @@ install_vhosts() {
     case "$terminator" in
         nginx)
             [[ $EUID -eq 0 ]] || fail "vhost step: run as root to add nginx virtual hosts."
+            local cert_dir="${STAND_CERT_DIR:-/etc/nginx/ssl/aoa.run}"
             for entry in "$DEMO_DOMAIN:$DEMO_PORT" "$MAXITOR_DOMAIN:$MAXITOR_PORT"; do
                 local domain="${entry%%:*}"
                 local port="${entry##*:}"
@@ -73,10 +74,22 @@ install_vhosts() {
 server {
     listen 80;
     server_name ${domain};
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name ${domain};
+
+    ssl_certificate     ${cert_dir}/fullchain.pem;
+    ssl_certificate_key ${cert_dir}/privkey.pem;
+
     location / {
-        proxy_pass http://127.0.0.1:${port};
+        proxy_pass http://127.0.0.1:${port}/;
         proxy_set_header Host \$host;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 60s;
     }
 }
 EOF
@@ -84,11 +97,13 @@ EOF
             done
             nginx -t || fail "vhost step: nginx -t rejected the new virtual hosts."
             systemctl reload nginx || fail "vhost step: nginx reload failed."
-            if command -v certbot >/dev/null 2>&1; then
-                certbot --nginx -d "$DEMO_DOMAIN" -d "$MAXITOR_DOMAIN" --non-interactive --agree-tos --redirect \
+            if openssl x509 -in "${cert_dir}/fullchain.pem" -noout -text 2>/dev/null | grep -q "DNS:\\*\\.aoa.run"; then
+                say "certificate step: the shared wildcard already covers both names — reused and renewed by the host's own mechanism."
+            elif command -v certbot >/dev/null 2>&1; then
+                certbot --nginx -d "$DEMO_DOMAIN" -d "$MAXITOR_DOMAIN" --non-interactive --agree-tos --register-unsafely-without-email --redirect \
                     || fail "certificate step: certbot could not issue the certificates."
             else
-                say "certificate step: certbot not found — certificates must be issued by the host's own mechanism."
+                fail "certificate step: no shared wildcard and no certbot — certificates cannot be issued here."
             fi
             ;;
         caddy)
