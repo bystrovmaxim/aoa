@@ -34,11 +34,11 @@ description: "Task list for the access cascade demonstrator"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Register the new domain group: add the four `aoa.demo.model.access_cascade...` modules to `packages/aoa-demo/src/aoa/demo/model/build.py` and to its mirror list in `packages/aoa-demo/src/aoa/demo/model/interchange_demo_coordinator.py` — keep both lists in sync (plan.md structure decision).
-- [ ] T004 [P] Create `CascadeSystemGateRole` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/roles/cascade_system_role.py` — `SystemRole` subclass (system level), `name`/`description` naming the level, not a business duty; export from `roles/__init__.py`.
-- [ ] T005 [P] Create the application-level chain in `packages/aoa-demo/src/aoa/demo/model/access_cascade/roles/cascade_application_roles.py` — `CascadeStaffRole(ApplicationRole)` → `CascadeOfficerRole(CascadeStaffRole)` → `CascadeLineLeadRole(CascadeOfficerRole)` → `CascadeTraineeRole(CascadeLineLeadRole)`; each description names its chain position; export all from `roles/__init__.py`.
-- [ ] T006 [P] Create the domain-level branch in `packages/aoa-demo/src/aoa/demo/model/access_cascade/roles/cascade_domain_roles.py` — `CascadeDomainRole(BaseRole)` → `CascadeDomainSpecialistRole(CascadeDomainRole)`; descriptions name the branch; export both from `roles/__init__.py`.
-- [ ] T007 Run `uv run --extra dev pytest packages/aoa-demo/tests/ -q` — the skeleton with the registered domain must build and the whole demo suite must stay green (FR-012).
+- [x] T003 Register the new domain group: add the four `aoa.demo.model.access_cascade...` modules to the `_MODULES` tuple in `packages/aoa-demo/src/aoa/demo/model/build.py` — the only registration list (it is imported by the demo coordinator; there is no mirror to edit).
+- [x] T004 [P] Create `CascadeSystemGateRole` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/roles/cascade_system_role.py` — `SystemRole` subclass (system level), `name`/`description` naming the level, not a business duty; export from `roles/__init__.py`.
+- [x] T005 [P] Create the application-level chain in `packages/aoa-demo/src/aoa/demo/model/access_cascade/roles/cascade_application_roles.py` — `CascadeStaffRole(ApplicationRole)` → `CascadeOfficerRole(CascadeStaffRole)` → `CascadeLineLeadRole(CascadeOfficerRole)` → `CascadeTraineeRole(CascadeLineLeadRole)`; each description names its chain position; export all from `roles/__init__.py`.
+- [x] T006 [P] Create the domain-level branch in `packages/aoa-demo/src/aoa/demo/model/access_cascade/roles/cascade_domain_roles.py` — `CascadeDomainRole(BaseRole)` → `CascadeDomainSpecialistRole(CascadeDomainRole)`; descriptions name the branch; export both from `roles/__init__.py`.
+- [x] T007 Run `uv run --extra dev pytest packages/aoa-demo/tests/ -q` — the skeleton with the registered domain must build and the whole demo suite must stay green (FR-012).
 
 **Checkpoint**: Foundation ready — role branches and the registered domain build; story implementation can begin
 
@@ -56,7 +56,7 @@ description: "Task list for the access cascade demonstrator"
 - [ ] T009 [P] [US1] Create `WhenRefusalShapeAction` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/when_refusal_shape_action.py` — `@check_roles(grant(CascadeOfficerRole, when=<sync function returning False>, reason="shape: WHEN refuses although the role matched"))`; description names the shape; export from `actions/__init__.py`.
 - [ ] T010 [P] [US1] Create `GuardRefusalShapeAction` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/guard_refusal_shape_action.py` — `@check_roles(CascadeOfficerRole, guard=<sync function returning False>, guard_reason="shape: GUARD refuses every caller alike")`; description names the shape; export from `actions/__init__.py`.
 - [ ] T011 [P] [US1] Create `AccessDecideShapeAction` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/access_decide_shape_action.py` — a declared object rule via `@access_decide` (method named `..._access_decide`, answers on a real object); description names the shape; export from `actions/__init__.py`.
-- [ ] T012 [US1] Register the four US1 action modules in `packages/aoa-demo/src/aoa/demo/model/build.py` and the mirror list in `packages/aoa-demo/src/aoa/demo/model/interchange_demo_coordinator.py` (depends on T008–T011).
+- [ ] T012 [US1] Register the four US1 action modules in the `_MODULES` tuple of `packages/aoa-demo/src/aoa/demo/model/build.py` (depends on T008–T011).
 - [ ] T013 [US1] Add the US1 test group to `packages/aoa-demo/tests/model/test_access_cascade_shapes.py` (reuse the coordinator fixture pattern of `packages/aoa-demo/tests/model/test_sample_graph_json_fields.py`): each of the four operations exists in the graph JSON; the role-check operation carries one `check_roles` edge and no `when`/`guard`; the `when` operation carries the reason; the `guard` operation carries `guard_reason`; the object-rule operation carries its `access_decide` node. Verify adversarially before finishing.
 
 **Checkpoint**: User Story 1 fully functional — the four cascade shapes exist in the model
@@ -87,7 +87,7 @@ description: "Task list for the access cascade demonstrator"
 
 - [ ] T015 [P] [US3] Create `TwoPathMatchShapeAction` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/two_path_match_shape_action.py` — `@check_roles(CascadeTraineeRole, CascadeDomainSpecialistRole)` (one path through the hierarchy, one through the domain branch); description names the shape; export from `actions/__init__.py`.
 - [ ] T016 [P] [US3] Create `EarlyStopShapeAction` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/early_stop_shape_action.py` — `@check_roles(CascadeOfficerRole)` plus `@access_decide` whose body increments a module-level probe counter before answering; description names the shape; export from `actions/__init__.py`.
-- [ ] T017 [US3] Register the two US3 action modules in `packages/aoa-demo/src/aoa/demo/model/build.py` and the mirror list in `packages/aoa-demo/src/aoa/demo/model/interchange_demo_coordinator.py` (depends on T015–T016).
+- [ ] T017 [US3] Register the two US3 action modules in the `_MODULES` tuple of `packages/aoa-demo/src/aoa/demo/model/build.py` (depends on T015–T016).
 - [ ] T018 [US3] Add the US3 test group to `packages/aoa-demo/tests/model/test_access_cascade_shapes.py`: two `check_roles` edges into `TwoPathMatchShapeAction` from different branches (FR-007); run `EarlyStopShapeAction` as a caller who fails `CHECK_ROLES` → the refusal names `CHECK_ROLES` and the probe counter is zero, proving the declared object rule was not reached (FR-008). Verify adversarially.
 
 **Checkpoint**: matching and early stop proven; US1–US3 work
@@ -103,7 +103,7 @@ description: "Task list for the access cascade demonstrator"
 ### Implementation for User Story 4
 
 - [ ] T019 [US4] Create `QuestionPathShapeAction` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/question_path_shape_action.py` — same declared shape as the other cascade operations (`@check_roles` + `@access_decide`), with the `@meta` description saying it is the asked-about operation (the label the drawing carries); its summary aspect flips a module-level probe so a run is observable; export from `actions/__init__.py`.
-- [ ] T020 [US4] Register the module in `packages/aoa-demo/src/aoa/demo/model/build.py` and the mirror list in `packages/aoa-demo/src/aoa/demo/model/interchange_demo_coordinator.py`.
+- [ ] T020 [US4] Register the module in the `_MODULES` tuple of `packages/aoa-demo/src/aoa/demo/model/build.py`.
 - [ ] T021 [US4] Add the US4 test group to `packages/aoa-demo/tests/model/test_access_cascade_shapes.py`: the operation exists in the graph JSON with its question-path label; `machine.check_access_decide` for a refusing caller returns a refusal answer — no exception — and the pipeline probe proves no aspect ran, no cache, no events (FR-009). Verify adversarially.
 
 **Checkpoint**: the question path is both drawn and proven; US1–US4 work
@@ -119,7 +119,7 @@ description: "Task list for the access cascade demonstrator"
 ### Implementation for User Story 5
 
 - [ ] T022 [US5] Create `CascadeBoundaryEntity` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/entities/cascade_boundary_entity.py` — `BaseEntity` subclass with exactly one relation field declared `NoInverse()` and `= Rel(description=...)` naming the one-sided boundary shape; no other relations, no lifecycle; export from `entities/__init__.py`.
-- [ ] T023 [US5] Ensure the `entities` module is present in `packages/aoa-demo/src/aoa/demo/model/build.py` and the mirror list in `packages/aoa-demo/src/aoa/demo/model/interchange_demo_coordinator.py` (it was added in T003; verify the entity is reachable through the package import).
+- [ ] T023 [US5] Ensure the `entities` module is present in the `_MODULES` tuple of `packages/aoa-demo/src/aoa/demo/model/build.py` (it was added in T003; verify the entity is reachable through the package import).
 - [ ] T024 [US5] Add the US5 test group to `packages/aoa-demo/tests/model/test_access_cascade_shapes.py`: the entity exists in the graph JSON and its relation field carries the `NoInverse` marker (FR-010). Verify adversarially.
 
 **Checkpoint**: all five stories implemented; the model builds and the suite is green

@@ -4,8 +4,8 @@ All NEEDS CLARIFICATION items from the Technical Context were resolved against t
 
 ## Decision 1: The fixtures live in a dedicated `access_cascade` domain group
 
-- **Decision**: new module group `packages/aoa-demo/src/aoa/demo/model/access_cascade/` with `access_cascade_domain.py`, `roles/`, `actions/`, `entities/`, registered by editing the two existing module lists (`model/build.py` and its mirror `interchange_demo_coordinator.py`).
-- **Rationale**: FR-014 (dedicated domain, existing content untouched). Sibling domains already follow this layout; the two registration lists are the only entry points that must change.
+- **Decision**: new module group `packages/aoa-demo/src/aoa/demo/model/access_cascade/` with `access_cascade_domain.py`, `roles/`, `actions/`, `entities/`, registered by editing the single module list — `_MODULES` in `model/build.py` (the demo coordinator imports that list; there is no mirror file).
+- **Rationale**: FR-014 (dedicated domain, existing content untouched). Sibling domains already follow this layout; `_MODULES` is the only registration point.
 - **Alternatives considered**: spreading fixtures across existing domains (violates FR-014, muddies the drawing diff); a new package (unnecessary — the demo model already groups domains under one package).
 
 ## Decision 2: Role levels and hierarchy come from the existing role branches

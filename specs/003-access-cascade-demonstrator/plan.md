@@ -94,7 +94,7 @@ packages/aoa-demo/tests/model/
 └── test_access_cascade_shapes.py             # NEW: runnable proofs (early stop, question path)
 ```
 
-**Structure Decision**: a dedicated `access_cascade` domain group under the existing demo model, mirroring the layout of sibling domains (one domain module, roles and actions in submodules, an entities package). Registration goes through the two existing module lists — `model/build.py` and its mirror — nothing else in the demo package is touched.
+**Structure Decision**: a dedicated `access_cascade` domain group under the existing demo model, mirroring the layout of sibling domains (one domain module, roles and actions in submodules, an entities package). Registration goes through the single module list — `_MODULES` in `model/build.py`, which the demo coordinator imports — nothing else in the demo package is touched.
 
 ## Complexity Tracking
 
