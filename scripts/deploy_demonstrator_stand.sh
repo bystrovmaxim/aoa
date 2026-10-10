@@ -243,6 +243,11 @@ main() {
     say "=== health ==="
     wait_healthy demo || rollback "the demo container did not become healthy"
     wait_healthy maxitor || rollback "the Maxitor container did not become healthy"
+    # The containers may have been recreated with new network addresses; nginx
+    # resolves upstream names once per reload, so re-resolve them now.
+    if [[ $LOCAL_MODE -eq 0 ]]; then
+        reload_nginx
+    fi
 
     say "=== verify ==="
     if [[ $LOCAL_MODE -eq 1 ]]; then
