@@ -23,7 +23,7 @@ description: "Task list for the demonstrator stand"
 
 **Purpose**: The stand's configuration surface
 
-- [ ] T001 Create `deploy/stand/.env.example` with the named configuration placeholders only — `DEMO_PORT`, `MAXITOR_PORT`, `DEMO_DOMAIN`, `MAXITOR_DOMAIN`, `HOST`, `SSH_ALIAS` — each with a comment saying what it is and that real values live in `/etc/aoa-stand.env` on the host, never in the repository (FR-013).
+- [x] T001 Create `deploy/stand/.env.example` with the named configuration placeholders only — `DEMO_PORT`, `MAXITOR_PORT`, `DEMO_DOMAIN`, `MAXITOR_DOMAIN`, `HOST`, `SSH_ALIAS` — each with a comment saying what it is and that real values live in `/etc/aoa-stand.env` on the host, never in the repository (FR-013).
 
 ---
 
