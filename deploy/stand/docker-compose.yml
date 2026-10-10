@@ -1,0 +1,38 @@
+# deploy/stand/docker-compose.yml — the demonstrator stand, two containers on one host.
+#
+# Both services build from the repository root (uv workspace) and publish their
+# ports on the host's loopback only — the stand is reachable from outside
+# exclusively through the host's existing TLS front end. The front-end network
+# wiring lives in docker-compose.host.yml (the deploy script appends it on the
+# host); local runs use this base file alone.
+
+services:
+  demo:
+    build:
+      context: ../..
+      dockerfile: packages/aoa-demo/Dockerfile
+    ports:
+      - "127.0.0.1:${DEMO_PORT:-8100}:8100"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:8100/health', timeout=3) and sys.exit(0) or sys.exit(1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+  maxitor:
+    build:
+      context: ../..
+      dockerfile: packages/aoa-maxitor/Dockerfile
+    ports:
+      - "127.0.0.1:${MAXITOR_PORT:-8101}:8101"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:8101/api/health', timeout=3) and sys.exit(0) or sys.exit(1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    stop_grace_period: 30s

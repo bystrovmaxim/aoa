@@ -20,6 +20,7 @@ Aspect sequence:
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, cast
 from urllib.parse import urlparse
 
@@ -38,6 +39,16 @@ from aoa.maxitor.model.core.core_domain import CoreDomain
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
 _DEFAULT_GRAPH_JSON_PATH = "/examples/model/graph-json"
+_PORT_SUFFIX = re.compile(r":\d{1,5}$")
+
+
+def _with_default_scheme(raw: str) -> str:
+    """Give a bare authority a scheme: ``http`` when a port is present, ``https`` otherwise."""
+    if "://" in raw:
+        return raw
+    authority = raw.split("/", 1)[0]
+    scheme = "http" if _PORT_SUFFIX.search(authority) else "https"
+    return f"{scheme}://{raw}"
 
 
 class LoadAOAServiceParams(BaseParams):
@@ -46,10 +57,10 @@ class LoadAOAServiceParams(BaseParams):
     service_url: str = Field(
         min_length=1,
         description=(
-            "AOA service URL — bare base URL (http://host:8001) or any full endpoint "
-            "(http://host:8001/examples/model/graph-json, http://host/api/model/graph, …). "
-            "When a bare host is supplied (no path), the default AOA path is appended automatically. "
-            "Any URL with an explicit path is used as-is."
+            "AOA service URL — with or without a scheme and with or without a port: "
+            "``http://host:8001``, ``https://host``, ``host:8001`` (defaults to http) or "
+            "``host`` (defaults to https). When a bare base URL is supplied (no path), the "
+            "default AOA path is appended automatically; a URL with an explicit path is used as-is."
         ),
     )
 
@@ -89,18 +100,19 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         _ = (state, box, connections)
-        parsed = urlparse(params.service_url)
+        url = _with_default_scheme(params.service_url)
+        parsed = urlparse(url)
         if parsed.scheme not in ("http", "https"):
             raise ValueError(
                 f"service_url must be an HTTP or HTTPS URL, got: {params.service_url!r}. "
-                "Example: http://127.0.0.1:8001"
+                "Examples: http://127.0.0.1:8001, demo:8100, dev.demo.aoa.run"
             )
         if not parsed.netloc:
             raise ValueError(
                 f"service_url has no host: {params.service_url!r}. "
-                "Example: http://127.0.0.1:8001"
+                "Examples: http://127.0.0.1:8001, demo:8100, dev.demo.aoa.run"
             )
-        return {"service_graph_json_url": params.service_url}
+        return {"service_graph_json_url": url}
 
     # ─── Aspect 2 ────────────────────────────────────────────────────────────
 

@@ -112,7 +112,7 @@ def test_the_row_and_the_group_carry_what_the_contract_promises(slice_row: dict[
     """The keys under test are the ones the action emits, so a rename fails here rather than in a diagram."""
     entities = slice_row["list_entities"]["entities"]
     head = next(entity for entity in entities if entity["label"] == "VinylRecordEntity")
-    axis_row = next(field for field in head["fields"] if "by" in field["name"])
+    axis_row = next(field for field in head["fields"] if field["name"] == "pressing" and field["foreign_key"])
 
     assert set(axis_row) == {"field_id", "name", "type", "primary_key", "foreign_key"}
     assert axis_row["foreign_key"] is True, "the ERD colours a leading-out column by this flag"

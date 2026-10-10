@@ -79,4 +79,8 @@ _MODULES: Final[tuple[str, ...]] = (
     "aoa.demo.model.access_cascade.roles",
     "aoa.demo.model.access_cascade.actions",
     "aoa.demo.model.access_cascade.entities",
+    # generalization shapes: inheritance-edge fixtures for the diagram (issue #202)
+    "aoa.demo.model.generalization_shapes.generalization_shapes_domain",
+    "aoa.demo.model.generalization_shapes.actions",
+    "aoa.demo.model.generalization_shapes.entities",
 )
