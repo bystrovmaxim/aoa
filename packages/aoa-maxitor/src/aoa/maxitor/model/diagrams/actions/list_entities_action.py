@@ -182,7 +182,7 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           SELECT
             ese.source_id AS entity_id,
             ese.source_id || ':' || ese.field_name AS field_node_id,
-            ese.field_name || ' (by ' || ese.classifier_field || ')' AS name,
+            ese.field_name AS name,
             ese.labels AS labels,
             ese.alternative_index AS ordinal,
             COUNT(DISTINCT ese.target_id) OVER (PARTITION BY ese.source_id, ese.field_name) AS alternatives
