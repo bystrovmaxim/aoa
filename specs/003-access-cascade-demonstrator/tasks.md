@@ -102,9 +102,9 @@ description: "Task list for the access cascade demonstrator"
 
 ### Implementation for User Story 4
 
-- [ ] T019 [US4] Create `QuestionPathShapeAction` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/question_path_shape_action.py` — same declared shape as the other cascade operations (`@check_roles` + `@access_decide`), with the `@meta` description saying it is the asked-about operation (the label the drawing carries); its summary aspect flips a module-level probe so a run is observable; export from `actions/__init__.py`.
-- [ ] T020 [US4] Register the module in the `_MODULES` tuple of `packages/aoa-demo/src/aoa/demo/model/build.py`.
-- [ ] T021 [US4] Add the US4 test group to `packages/aoa-demo/tests/model/test_access_cascade_shapes.py`: the operation exists in the graph JSON with its question-path label; `machine.check_access_decide` for a refusing caller returns a refusal answer — no exception — and the pipeline probe proves no aspect ran, no cache, no events (FR-009). Verify adversarially.
+- [x] T019 [US4] Create `QuestionPathShapeAction` in `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/question_path_shape_action.py` — same declared shape as the other cascade operations (`@check_roles` + `@access_decide`), with the `@meta` description saying it is the asked-about operation (the label the drawing carries); its summary aspect flips a module-level probe so a run is observable; export from `actions/__init__.py`.
+- [x] T020 [US4] Make the US4 action reachable at registration: export it from `packages/aoa-demo/src/aoa/demo/model/access_cascade/actions/__init__.py`.
+- [x] T021 [US4] Add the US4 test group to `packages/aoa-demo/tests/model/test_access_cascade_shapes.py`: the operation exists in the graph JSON with its question-path label; `machine.check_access_decide` for a refusing caller returns a refusal answer — no exception — and the pipeline probe proves no aspect ran, no cache, no events (FR-009). Verify adversarially.
 
 **Checkpoint**: the question path is both drawn and proven; US1–US4 work
 

@@ -34,8 +34,9 @@ import pytest
 
 from aoa.action_machine.context import Context, UserInfo
 from aoa.action_machine.exceptions import AccessDenied
+from aoa.action_machine.intents.access_control import Refused
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.demo.model.access_cascade.actions import EarlyStopShapeAction
+from aoa.demo.model.access_cascade.actions import EarlyStopShapeAction, QuestionPathShapeAction
 from aoa.demo.model.interchange_demo_coordinator import (
     build_registered_interchange_coordinator,
     import_sample_registration_modules,
@@ -191,3 +192,37 @@ async def test_us3_early_stop_probe_untouched() -> None:
         await machine.run(context, EarlyStopShapeAction(), EarlyStopShapeAction.Params())
     assert exc_info.value.verdict.gate.value == "CHECK_ROLES"
     assert early_stop_module._PROBE_CALLS == 0
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# US4 — a refusal can be an answer
+# ═════════════════════════════════════════════════════════════════════════════
+
+_QUESTION_LABEL = "Shape: the asked-about operation — the refusal returns as an answer, never an exception"
+
+
+def test_us4_question_path_label() -> None:
+    """The asked-about operation carries its question-path label in the graph."""
+    coordinator = _coordinator()
+    action_id = _action_node_id(coordinator, "QuestionPathShapeAction")
+    node = coordinator.get_node_by_id(action_id)
+    assert node.properties["description"] == _QUESTION_LABEL
+
+
+@pytest.mark.asyncio
+async def test_us4_question_path_refusal_is_an_answer() -> None:
+    """Asking in advance returns a refusal answer — never an exception — and runs no aspect."""
+    import aoa.demo.model.access_cascade.actions.question_path_shape_action as question_module
+
+    question_module._PIPELINE_RUNS = 0
+    import_sample_registration_modules()
+    machine = ActionProductMachine(graph_coordinator=build_registered_interchange_coordinator())
+    context = Context(user=UserInfo(user_id="asking-caller", roles=()))
+    verdict = await machine.check_access_decide(
+        context,
+        QuestionPathShapeAction,
+        QuestionPathShapeAction.Params(),
+    )
+    assert isinstance(verdict, Refused)
+    assert verdict.gate.value == "CHECK_ROLES"
+    assert question_module._PIPELINE_RUNS == 0
