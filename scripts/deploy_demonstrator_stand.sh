@@ -103,8 +103,13 @@ server {
 EOF
                 ln -sf "/etc/nginx/sites-available/${domain}" "/etc/nginx/sites-enabled/${domain}"
             done
-            nginx -t || fail "vhost step: nginx -t rejected the new virtual hosts."
-            systemctl reload nginx || fail "vhost step: nginx reload failed."
+            if docker ps --format '{{.Names}}' | grep -qx nginx-proxy; then
+                docker exec nginx-proxy nginx -t || fail "vhost step: nginx -t rejected the new virtual hosts."
+                docker exec nginx-proxy nginx -s reload || fail "vhost step: nginx reload failed."
+            else
+                nginx -t || fail "vhost step: nginx -t rejected the new virtual hosts."
+                systemctl reload nginx || fail "vhost step: nginx reload failed."
+            fi
             if openssl x509 -in "${cert_dir}/fullchain.pem" -noout -text 2>/dev/null | grep -q "DNS:\\*\\.aoa.run"; then
                 say "certificate step: the shared wildcard already covers both names — reused and renewed by the host's own mechanism."
             elif command -v certbot >/dev/null 2>&1; then
