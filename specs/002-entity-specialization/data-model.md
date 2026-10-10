@@ -158,13 +158,24 @@ The head's `fields` list gains exactly one row where the extension set used to p
 
 | Field | Value |
 | --- | --- |
-| `name` | `<field> \| <code1> \| <code2> … (by <classifier>)` |
-| `type` | the alternatives' labels, `" \| "`-joined |
+| `name` | `<field> (by <classifier>)` |
+| `type` | `Class (code)` per alternative, `" \| "`-joined, `Entity` suffix dropped for display |
 | `primary_key` | `false` |
 | `foreign_key` | `true` |
 | `field_id` | the head field's own column row id, `<head qualname>:<field name>` |
 
-The `relations` list gains one entry per alternative: `source` = head, `target` = the alternative's entity, `label` = the code, `relationship_kind` = `"specialization"`.
+The `relations` list gains **one entry per axis**, not per alternative: `source` = head, `target` = the axis container, `label` = `by <classifier>`, `relationship_kind` = `"specialization"`. One line into the container, because N lines would say N links in a different shape (FR-029).
+
+The payload also gains one **group** per axis, which the client draws as a container around the alternatives:
+
+| Field | Value |
+| --- | --- |
+| `group_id` | the axis's own identifier, `<head qualname>:<field name>` |
+| `label` | `<field> (by <classifier>)` |
+| `members` | the alternative entities, in declaration order |
+| `classifier_field` | the field that decides the variant |
+
+A group is a **drawing, not a table**: its members keep their own nodes, columns and outside relations, and a consumer that ignores groups sees today's diagram. It is emitted only when the axis has more than one alternative (FR-028).
 
 ## 5. State
 

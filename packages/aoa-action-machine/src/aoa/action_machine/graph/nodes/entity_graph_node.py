@@ -40,6 +40,7 @@ from aoa.action_machine.graph.edges.entity_specialization_graph_edge import (
     EntitySpecializationGraphEdge,
 )
 from aoa.action_machine.graph.edges.lifecycle_graph_edge import LifeCycleGraphEdge
+from aoa.action_machine.graph.edges.parent_entity_graph_edge import ParentEntityGraphEdge
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -59,6 +60,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     domain: DomainGraphEdge = field(init=False, repr=False, compare=False)
     relations: list[EntityGraphEdge] = field(init=False)
     specializations: list[EntitySpecializationGraphEdge] = field(init=False)
+    generalizations: list[ParentEntityGraphEdge] = field(init=False)
     lifecycles: list[LifeCycleGraphEdge] = field(init=False)
     entity_field_edges: list[EntityFieldGraphEdge] = field(init=False)
 
@@ -78,6 +80,11 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             self,
             "specializations",
             EntitySpecializationGraphEdge.get_entity_specialization_edges(entity_cls),
+        )
+        object.__setattr__(
+            self,
+            "generalizations",
+            ParentEntityGraphEdge.get_entity_generalization_edges(entity_cls),
         )
         object.__setattr__(self, "lifecycles", LifeCycleGraphEdge.get_lifecycle_edges(entity_cls))
         object.__setattr__(self, "entity_field_edges", field_edges)
@@ -99,11 +106,12 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         return [*lifecycle_targets, *field_targets]
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return ``domain``, entity relations, specialization alternatives, lifecycles and fields."""
+        """Return ``domain``, relations, specialization alternatives, generalizations, lifecycles and fields."""
         return [
             self.domain,
             *self.relations,
             *self.specializations,
+            *self.generalizations,
             *self.lifecycles,
             *self.entity_field_edges,
         ]

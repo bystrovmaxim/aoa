@@ -100,29 +100,64 @@ The head's `fields` list gains exactly **one** row:
 
 ```json
 {
-  "field_id": "events.model.EventEntity.details",
-  "name": "details | created_event | updated_event | deleted_event (by event_type)",
-  "type": "CreatedEvent | UpdatedEvent | DeletedEvent",
+  "field_id": "events.model.EventEntity:details",
+  "name": "details (by event_type)",
+  "type": "CreatedEvent (created_event) | UpdatedEvent (updated_event) | DeletedEvent (deleted_event)",
   "primary_key": false,
   "foreign_key": true
 }
 ```
 
-and the `relations` list gains **one entry per alternative**:
+**Why the pair and not one of the two.** The code is what the column **holds** — it is the value in the row — and the class is what that value **becomes** when the row is loaded. A reader of the diagram is usually asking one of two questions, "what can be in this column" and "where does each value live", and showing only the codes answers the first while leaving the second to be guessed, while showing only the classes answers the second and hides the actual data. Both, code in brackets after the class, is the only form that answers either question without a lookup.
+
+**Why the `Entity` suffix is dropped.** Every entity in the diagram carries it, so it distinguishes nothing and costs width in the narrowest part of the table. The suffix is removed for display only: the payload's identifiers stay qualified names, and nothing that resolves a class reads this string.
+
+An edge carries `labels` beside `alternatives`: the same list, same order, spelled for a reader — `<Class> (<code>)` with the shared `Entity` suffix dropped — while `alternatives` keeps the qualified name that resolves a class. The ERD reads `labels` instead of parsing `alternatives`, so the display form is decided in one place, where the class is in hand, rather than by a string operation in SQL.
+
+**What is still not in this row, and why.** The classifier appears in `name` and not in `type`, because it is not a type — it is the field that picks among them. `foreign_key` stays `true`: the column does point outside the table, and the ERD's own colouring keys off that flag, so a specialization field that set it to `false` would be drawn as an ordinary scalar and the axis would disappear from the picture entirely.
+
+There are **no** per-alternative `FK -> X` field rows: the union row is the whole point, because N foreign-key rows say N independent links where the model says one link to one of N tables (FR-024).
+
+The payload gains a **group** per axis, and the client draws the alternatives inside it:
+
+```json
+{
+  "group_id": "events.model.EventEntity:details",
+  "label": "details (by event_type)",
+  "members": ["events.model.CreatedEventEntity", "events.model.UpdatedEventEntity", "events.model.DeletedEventEntity"],
+  "classifier_field": "event_type"
+}
+```
+
+A group is **a drawing, not a table**. Its members keep their own nodes, columns and relations to the outside world (FR-027), so a consumer that ignores groups sees exactly the diagram it sees today.
+
+**A group is ERD-only, and this payload is the only place it exists** (FR-030). The full-graph payload has no notion of one — checked, not assumed: the word does not occur in `full_graph_action.py` at all — and neither do the use-case and lifecycle builders, which read their own vertex kinds. So the grouping cannot leak into another drawing by construction, and no other drawing needs a flag to switch it off. The `entity_specialization` **edges** do reach the full graph, as ordinary associations, and that is intended: the system view shows that a link exists, while the ERD shows how a reader should compare the tables it leads to. The group is emitted only when the axis has more than one alternative: a single alternative is a plain relation, and a box around one table would claim a choice that does not exist (FR-028).
+
+The `relations` list gains **one entry per axis**, not per alternative — one line into the container, labelled with the classifier (FR-029):
 
 ```json
 {
   "source": "events.model.EventEntity",
-  "target": "events.model.CreatedEventEntity",
-  "label": "created_event",
+  "target": "events.model.EventEntity:details",
+  "label": "by event_type",
   "relationship_kind": "specialization",
   "source_cardinality": "zero_many",
   "target_cardinality": "one"
 }
 ```
 
-There are **no** per-alternative `FK -> X` field rows: the union row is the whole point, because N foreign-key rows say N independent links where the model says one link to one of N tables (FR-024).
+The generalization relations — extension to head, one per alternative — stay a **model** fact and are carried by the graph edges, not by this payload: the diagram draws the axis, and the graph knows every direction.
 
 ## Rendering
 
-The Graphviz builder emits an explicit arrowhead for these relations (`arrowhead=onormal`, the hollow triangle at the head end), because the notation has to say "is a variant of" and the default filled arrow says the opposite. Today the ERD draws no relation notation at all, so this is the first — the use-case diagram is the precedent, not the ERD.
+
+The Graphviz builder draws relation lines with no arrowhead attribute today, which means Graphviz's default filled arrow for every relation alike. Two notations are needed now, and both are taken from the use-case builder in the same client rather than invented:
+
+  - the axis line, head to container, uses `arrowhead=vee` — the association style that builder already uses for a plain link;
+  - the generalization line, extension to head, uses `arrowhead=empty style=solid penwidth=1` — the hollow triangle that builder already uses for an inheritance link.
+
+The hollow triangle points at the **head**: the notation reads "this table is a variant of that one", and drawing it the other way would say the head inherits from each variant.
+
+The group becomes a Graphviz **cluster** — `subgraph cluster_<id>` — with the label on the boundary, which is the mechanism the use-case builder in the same client already uses for its system boundary. A cluster in Graphviz is a drawing instruction: the nodes inside it are declared inside the `subgraph` and referenced by the same ids from outside, so the edges are unaffected and a member table can be pointed at from anywhere.
+
+A member table is **declared inside the cluster and nowhere else**. Graphviz gives a node to the first subgraph that declares it, so declaring a member both inside and outside would silently drop it from the container — and the diagram would show the grouping for some members only.

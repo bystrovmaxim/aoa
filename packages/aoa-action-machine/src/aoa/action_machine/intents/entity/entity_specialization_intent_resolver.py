@@ -163,7 +163,7 @@ def is_specialization_field(annotation: Any) -> bool:
     return _container_arguments(annotation) is not None
 
 
-def _reverse_head(target: type[Any], field_info: FieldInfo) -> type[Any] | None:
+def reverse_head(target: type[Any], field_info: FieldInfo) -> type[Any] | None:
     """
     Return the head a reverse field points at, or ``None`` when it points at none.
 
@@ -175,6 +175,42 @@ def _reverse_head(target: type[Any], field_info: FieldInfo) -> type[Any] | None:
         return None
     members = _union_members(arguments[0])
     return members[0] if members else None
+
+
+def read_reverse_declarations(target: type[Any], head_entity: type[Any]) -> list[tuple[str, FieldInfo]]:
+    """
+    Return ``(field_name, field_info)`` for every field of ``target`` that points at ``head_entity``.
+
+    These are the fields a ``Generalization`` container lives on, and they are how every consumer
+    finds an extension's own side of an axis: the code it declares, the field name the head's
+    ``Inverse`` names, and the fact that the class is reachable from its head at all. Public
+    because three places read it — the parser, the build validator and the graph edge — and three
+    readings of one declaration is how a model starts contradicting its own documentation.
+    """
+    model_fields = getattr(target, "model_fields", None)
+    if not model_fields:
+        return []
+    return [
+        (name, info) for name, info in model_fields.items() if reverse_head(target, info) is head_entity
+    ]
+
+
+def read_declared_code(target: type[Any], head_entity: type[Any], *, field_name: str = "") -> str:
+    """
+    Return the single code ``target`` declares for the axis whose head is ``head_entity``.
+
+    Returns an empty string when the class declares no reverse field for this head, or a reverse
+    field with no code on it. Both are states the build refuses, so a caller that has run the
+    validator never sees them; a caller that has not gets an empty answer rather than an exception,
+    because "which code is declared" is a question and not a check.
+    """
+    for name, info in read_reverse_declarations(target, head_entity):
+        if field_name and name != field_name:
+            continue
+        marker = _classifier_marker(tuple(info.metadata))
+        if marker is not None and len(marker.code_values) == 1:
+            return marker.code_values[0]
+    return ""
 
 
 def _reverse_code(target: type[Any], head_entity: type[Any], field_name: str, host_name: str) -> str:
@@ -199,7 +235,7 @@ def _reverse_code(target: type[Any], head_entity: type[Any], field_name: str, ho
         return ""
 
     for candidate in model_fields.values():
-        if _reverse_head(target, candidate) is not head_entity:
+        if reverse_head(target, candidate) is not head_entity:
             continue
         marker = _classifier_marker(tuple(candidate.metadata))
         if marker is None:

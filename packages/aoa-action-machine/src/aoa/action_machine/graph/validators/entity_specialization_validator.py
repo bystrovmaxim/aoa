@@ -71,7 +71,6 @@ from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
 from aoa.action_machine.domain.specialization_containers import (
     Classifier,
-    Generalization,
     Specialization,
 )
 from aoa.action_machine.graph.core.exclude_graph_model import excluded_from_graph_model
@@ -80,6 +79,7 @@ from aoa.action_machine.intents.entity.entity_relation_intent_resolver import is
 from aoa.action_machine.intents.entity.entity_specialization_intent_resolver import (
     EntitySpecializationIntentResolver,
     gather_entity_specialization_intent_resolvers,
+    read_reverse_declarations,
 )
 
 __all__ = ["declared_entity_classes", "validate_entity_specializations"]
@@ -129,15 +129,6 @@ def _is_specialization_container(annotation: Any) -> bool:
     return getattr(annotation, "__pydantic_generic_metadata__", {}).get("origin") is Specialization
 
 
-def _generalization_head(annotation: Any) -> type[Any] | None:
-    """Return the head a ``Generalization`` container points at, or ``None``."""
-    metadata = getattr(annotation, "__pydantic_generic_metadata__", {})
-    if metadata.get("origin") is not Generalization:
-        return None
-    args = metadata.get("args") or ()
-    return args[0] if args else None
-
-
 def _inverse_field_name(field_info: Any) -> str:
     """Return the field name an ``Inverse`` marker names, or an empty string."""
     for item in field_info.metadata:
@@ -146,18 +137,6 @@ def _inverse_field_name(field_info: Any) -> str:
             if isinstance(name, str) and name:
                 return name
     return ""
-
-
-def _reverse_declarations(target: type[Any], head: type[Any]) -> list[tuple[str, Any]]:
-    """Return ``(field_name, field_info)`` for every field of ``target`` pointing at ``head``."""
-    model_fields = getattr(target, "model_fields", None)
-    if not model_fields:
-        return []
-    return [
-        (name, info)
-        for name, info in model_fields.items()
-        if _generalization_head(info.annotation) is head
-    ]
 
 
 def _gather_axes(entities: list[type[BaseEntity]]) -> list[EntitySpecializationIntentResolver]:
@@ -238,7 +217,7 @@ def _validate_alternatives_are_entities(axis: EntitySpecializationIntentResolver
 
 def _declared_code(axis: EntitySpecializationIntentResolver, alternative: type[Any]) -> str | None:
     """Return the code ``alternative`` declares for this axis, or ``None``."""
-    declarations = _reverse_declarations(alternative, axis.head_entity)
+    declarations = read_reverse_declarations(alternative, axis.head_entity)
     if not declarations:
         return None
     codes: list[str] = []
@@ -251,7 +230,7 @@ def _declared_code(axis: EntitySpecializationIntentResolver, alternative: type[A
 def _validate_declared_codes(axis: EntitySpecializationIntentResolver) -> None:
     """Every alternative must declare exactly one code on the field pointing back."""
     for alternative in axis.alternatives:
-        declarations = _reverse_declarations(alternative, axis.head_entity)
+        declarations = read_reverse_declarations(alternative, axis.head_entity)
         if not declarations:
             # The reachability rule owns this case and says it better; skip this alternative and
             # keep checking the rest — one broken alternative must not stop the others from
@@ -404,7 +383,7 @@ def _validate_no_outside_class_points_at_an_axis(
         for candidate in judged:
             if candidate is axis.head_entity or candidate in alternatives:
                 continue
-            if _reverse_declarations(candidate, axis.head_entity):
+            if read_reverse_declarations(candidate, axis.head_entity):
                 _fail(
                     axis,
                     f"class '{candidate.__name__}' points at '{axis.field_name}' without being named "

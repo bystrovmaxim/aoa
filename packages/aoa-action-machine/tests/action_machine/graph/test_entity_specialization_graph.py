@@ -218,6 +218,7 @@ def test_an_edge_serializes_with_its_own_properties_only() -> None:
         "classifier_value",
         "alternative_index",
         "alternatives",
+        "labels",
         "relation_type",
         "cardinality",
         "description",

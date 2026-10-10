@@ -38,7 +38,7 @@ uv run --extra dev pytest packages/aoa-action-machine/tests/action_machine/graph
 uv run --extra dev pytest packages/aoa-maxitor/tests/ -v -k "specialization or erd"
 ```
 
-**Expected**: the head's `fields` list holds **one** entry whose name carries all five codes and the classifier and whose type is the union of the alternatives; the `relations` list holds exactly five entries, one per extension, each labelled with its code; zero `FK -> ` rows for that field.
+**Expected**: the head's `fields` list holds **one** entry named `<field> (by <classifier>)` whose type lists every alternative as `Class (code)`; the `relations` list holds **one** entry per axis, pointing at the axis container and labelled with the classifier, with the five alternatives inside that container; zero `FK -> ` rows for that field.
 
 The rendering is checked from the built client and the opened diagram, not by a test — the client package has no test runner to run one in:
 
@@ -50,7 +50,7 @@ cd packages/aoa-maxitor/client && npm ci && npm run build
 #    from the browser console: the ERD canvas receives it from buildDotSource()
 ```
 
-**Expected**: the five relation lines carry `arrowhead=empty style=solid penwidth=1` and the head's field row reads `details | created_event | … (by event_type)`; in the browser the five arrows end in a hollow triangle at the head's table, not in a filled head. Both the generated DOT and the rendered picture go into the documentation, which is what makes the rendering checkable without a runner.
+**Expected**: the axis line carries `arrowhead=vee` and the five generalization lines carry `arrowhead=empty style=solid penwidth=1`; the head's field row reads `details (by event_type)`; in the browser the alternatives sit inside one container labelled with the axis, and the five generalization arrows end in a hollow triangle at the head's table, not in a filled head. Both the generated DOT and the rendered picture go into the documentation, which is what makes the rendering checkable without a runner.
 
 **The falsifying run**: drop `entity_specialization` from the store's `known_edges` and reload — the whole load must abort with `Unknown edge graph type(s)`, which is the behaviour that makes a missing registration impossible to miss.
 

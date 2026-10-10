@@ -103,7 +103,7 @@ Whoever reads the ERD sees one row for the head's field, labelled with the class
 
 **Acceptance Scenarios**:
 
-1. **Given** a built system with a head and N extensions, **When** the ERD is produced, **Then** the head's field appears as one row naming all N alternatives and the classifier, with no per-alternative duplicated row.
+1. **Given** a built system with a head and N extensions, **When** the ERD is produced, **Then** the head's field appears as one row naming all N alternatives and the classifier, with no per-alternative duplicated row, and the N extensions are drawn inside a single container labelled with the axis and the classifier.
 2. **Given** the same system, **When** the graph is read, **Then** each of the N extensions carries a generalization relation to the head, and every declared code is recoverable together with the extension class it selects.
 3. **Given** an alternative whose class carries no graph node, **When** the model is built, **Then** the build fails instead of dropping the relation silently.
 
@@ -153,6 +153,15 @@ Data arrives whose classifier value is not one of the declared codes. Nothing in
 - A link whose row was not loaded: the identifier and the variant stay readable, and the row reads as absent rather than as an invented one.
 - A head row whose classifier field is empty or absent: nothing selects a variant, and the framework must not invent one.
 
+## Where this is looked at
+
+The feature is accepted by looking at a rendered diagram, and the diagram is served on a stand rather than run on a laptop. That stand is **a separate feature** — [issue #202](https://github.com/bystrovmaxim/aoa/issues/202) — and it has its own rule, taken from the maintainer: **development and acceptance happen on the `dev.*` names, and the released pair `demo.aoa.run` / `maxitor.aoa.run` is production and is not touched, restarted or redirected by this work.**
+
+Two consequences for this feature:
+
+- the proof that an axis reaches the picture **stays here**, in the checkpoint that records the generated DOT and the rendered image; the stand proves every shape at once, this spec proves the shape it added;
+- nothing in this spec depends on the stand being ready, so the feature can be finished and reviewed before it exists.
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -196,6 +205,11 @@ Data arrives whose classifier value is not one of the declared codes. Nothing in
 - **FR-023**: The relation from an extension to its head MUST reach the graph as a generalization relation, directed from the extension to the head, for every declared alternative.
 - **FR-024**: The head's specialization field MUST appear in the diagram as one field entry naming all alternatives and the classifier, never as one foreign-key entry per alternative.
 - **FR-025**: A model that declares no specialization MUST produce exactly the graph it produces today: this feature adds a relation axis and changes no existing declaration.
+- **FR-026**: The ERD MUST draw the alternatives of one axis inside one **container** whose label names the axis and the classifier, so a reader sees at a glance that these tables are variants along one axis rather than unrelated tables.
+- **FR-027**: A table inside a container MUST behave as an ordinary table everywhere else: it keeps its own node, its own columns, and its own relations to entities outside the axis. The container groups the drawing and adds no constraint to the model.
+- **FR-028**: The container MUST be drawn only when the axis has more than one alternative; a single alternative is a plain relation and a box around one table would claim a choice that does not exist.
+- **FR-029**: The head MUST reach the axis through **one** relation line rather than one line per alternative, and that line's label MUST name the classifier, so N lines do not reappear as N links in a different shape.
+- **FR-030**: The container belongs to the **ERD and to no other drawing**. Maxitor draws several diagrams from the same graph — the ERD, the full graph, the domain use-case diagram, the lifecycle automaton — and only the ERD groups alternatives. In every other drawing an extension is an ordinary node with ordinary links: grouping is a statement about how a reader compares tables in a schema view, and it would be a false statement in a view that exists to show the whole system at once.
 
 **Runtime behaviour**
 
@@ -239,7 +253,7 @@ Data arrives whose classifier value is not one of the declared codes. Nothing in
 - **SC-003**: In 100% of built models, the set of classes reaching a head through a partner field equals the set of classes the head's axes declare — measured in both directions, so neither an unlisted class nor a missing alternative passes.
 - **SC-004**: In 100% of cases where a class joined two heads, where one axis of a head listed a different set of classes than another axis, or where a cycle exists, the build fails naming the classes involved.
 - **SC-005**: A model that declares no specialization produces a graph identical to the one the same model produces today, and a model that declares one exercises zero changed behaviour in the existing relation kinds.
-- **SC-006**: For a system with one head and five extensions, the diagram shows exactly one field entry for the head's field — naming five alternatives and the classifier — and exactly five generalization relations, one per extension, with zero per-alternative foreign-key entries.
+- **SC-006**: For a system with one head and five extensions, the diagram shows exactly one field entry for the head and draws the five alternatives inside one container labelled with the axis's field — naming five alternatives and the classifier — and exactly five generalization relations, one per extension, with zero per-alternative foreign-key entries.
 - **SC-007**: For 100% of alternatives, the variant code and the extension class it selects are recoverable from what the model publishes; measured on a model whose class names bear no resemblance to their codes.
 - **SC-008**: In 100 runs where a data value falls outside the declared codes, every outcome is an explicit failure naming the value, and zero are reported as an absent relation.
 - **SC-009**: In 100% of cases where a hydrated entity does not match the variant declared for its code, the failure is raised at the point of hydration rather than carried forward.

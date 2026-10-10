@@ -67,6 +67,22 @@ def _alternative_identifiers(axis: EntitySpecializationIntentResolver) -> list[s
     return [f"{code} -> {TypeIntrospection.full_qualname(axis.code_to_target[code])}" for code in axis.codes]
 
 
+def _alternative_labels(axis: EntitySpecializationIntentResolver) -> list[str]:
+    """
+    Return the display name of every alternative, in the same order as ``alternatives``.
+
+    A class name in a diagram is read, not resolved, so the shared ``Entity`` suffix is dropped:
+    every table in the picture carries it, it distinguishes nothing, and it costs width in the
+    narrowest column of the table. This is a display string and nothing parses it back — the
+    qualified name stays in ``alternatives`` for anything that has to resolve a class.
+    """
+    labels: list[str] = []
+    for code in axis.codes:
+        name = axis.code_to_target[code].__name__
+        labels.append(f"{name[: -len('Entity')]} ({code})" if name.endswith("Entity") else f"{name} ({code})")
+    return labels
+
+
 def _specialization_properties(
     axis: EntitySpecializationIntentResolver,
     *,
@@ -80,6 +96,7 @@ def _specialization_properties(
         "classifier_value": code,
         "alternative_index": index,
         "alternatives": _alternative_identifiers(axis),
+        "labels": _alternative_labels(axis),
         "relation_type": "specialization",
         "cardinality": "one",
         "description": axis.description,
@@ -137,6 +154,7 @@ class EntitySpecializationGraphEdge(AssociationGraphEdge):
                 "classifier_value": str(self.properties["classifier_value"]),
                 "alternative_index": int(self.properties["alternative_index"]),
                 "alternatives": [str(item) for item in self.properties["alternatives"]],
+                "labels": [str(item) for item in self.properties["labels"]],
                 "relation_type": str(self.properties["relation_type"]),
                 "cardinality": str(self.properties["cardinality"]),
                 "description": str(self.properties["description"]),
