@@ -122,6 +122,7 @@ from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 from starlette.responses import Response as StarletteResponse
+from starlette.types import Lifespan
 
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
 from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
@@ -799,25 +800,35 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     # FastAPI application build
     # ─────────────────────────────────────────────────────────────────────
 
-    def build(self) -> FastAPI:
+    def build(self, *, lifespan: Lifespan[FastAPI] | None = None) -> FastAPI:
         """
         Create FastAPI application from registered routes.
 
         Initialization order:
-        1. Create FastAPI app with OpenAPI metadata.
+        1. Create FastAPI app with OpenAPI metadata and, when given, the lifespan.
         2. Add middleware for uncaught exception handling.
         3. Register exception handlers.
         4. Register health check endpoint ``GET /health``.
         5. Generate/register endpoint for each route.
 
+        Args:
+            lifespan: the application's own startup/shutdown context manager — where a
+                pool or a client is created and closed. It is handed to the framework
+                untouched: how long its closing may take, and where it sits relative to
+                the server's own shutdown, are the framework's to define, not this
+                adapter's. The adapter adds no option beyond this one.
+
         Returns:
             Ready-to-run FastAPI application.
         """
-        app = FastAPI(
-            title=self._title,
-            version=self._version,
-            description=self._description,
-        )
+        app_kwargs: dict[str, Any] = {
+            "title": self._title,
+            "version": self._version,
+            "description": self._description,
+        }
+        if lifespan is not None:
+            app_kwargs["lifespan"] = lifespan
+        app = FastAPI(**app_kwargs)
 
         app.add_middleware(_CatchAllErrorsMiddleware)
         self._register_exception_handlers(app)

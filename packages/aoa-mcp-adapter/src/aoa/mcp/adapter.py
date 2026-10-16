@@ -125,6 +125,7 @@ import logging
 import re
 import uuid
 from collections.abc import Callable, Mapping
+from contextlib import AbstractAsyncContextManager
 from typing import Any, Self
 
 from pydantic import BaseModel
@@ -552,10 +553,22 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
     # MCP server build
     # ─────────────────────────────────────────────────────────────────────
 
-    def build(self) -> FastMCP:
-        """Create ``FastMCP`` with registered tools."""
+    def build(
+        self,
+        *,
+        lifespan: Callable[[FastMCP[Any]], AbstractAsyncContextManager[Any]] | None = None,
+    ) -> FastMCP:
+        """
+        Create ``FastMCP`` with registered tools and, when given, the lifespan.
+
+        Args:
+            lifespan: the service's own startup/shutdown context manager — where a
+                process-wide pool or client is created and closed, since an MCP service
+                has no request-scoped startup hook. It is handed to ``FastMCP`` untouched:
+                the adapter adds no option beyond this one and names no database.
+        """
         tools = [self._make_mcp_tool(record) for record in self._routes]
-        return FastMCP(self._server_name, tools=tools)
+        return FastMCP(self._server_name, tools=tools, lifespan=lifespan)
 
     # ─────────────────────────────────────────────────────────────────────
     # MCP tool build (inputSchema + arg validation)
