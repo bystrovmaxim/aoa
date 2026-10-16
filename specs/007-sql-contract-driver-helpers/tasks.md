@@ -33,7 +33,7 @@ Repository root is `packages/` + `docs/` + `examples/` + `tests/`. Python packag
 
 **Purpose**: the evidence every later phase is measured against, taken before anything moves.
 
-- [ ] T001 Record the branch base `1e4c6b02` and run the four baseline searches from [quickstart.md](./quickstart.md) §1, §7 into the pull-request notes, with their counts: a public `execute` on a SQL shape; a call of it under `packages/*/src`; a page presenting it as the SQL query surface; a store deciding from statement text. The baseline is what makes "0 afterwards" a difference rather than a claim (SC-001, SC-010, SC-013, SC-017)
+- [x] T001 Record the branch base `1e4c6b02` and run the four baseline searches from [quickstart.md](./quickstart.md) §1, §7 into the pull-request notes, with their counts: a public `execute` on a SQL shape; a call of it under `packages/*/src`; a page presenting it as the SQL query surface; a store deciding from statement text. The baseline is what makes "0 afterwards" a difference rather than a claim (SC-001, SC-010, SC-013, SC-017) — **done**, recorded with the commands and the counts in [baseline.md](./baseline.md), which becomes the "before" column of the pull request
 
 ---
 
