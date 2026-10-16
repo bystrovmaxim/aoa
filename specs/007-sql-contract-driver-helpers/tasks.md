@@ -43,7 +43,7 @@ Repository root is `packages/` + `docs/` + `examples/` + `tests/`. Python packag
 
 **⚠️ CRITICAL**: US2's helper tests and US4's demo tests cannot be written without it
 
-- [ ] T002 Extend `FakeConnection` in `packages/aoa-action-machine/tests/support/fake_pool.py`: both `execute` and the new `fetchrow` record the statement **and** the positional parameters they were called with (today only the statement is kept), `fetchrow` returns the row it holds or `None`, and the one-operation-at-a-time guard `execute` already enforces stays on both — a second concurrent operation must still raise the interface error (FR-027, quickstart §2)
+- [x] T002 Extend `FakeConnection` in `packages/aoa-action-machine/tests/support/fake_pool.py`: both `execute` and the new `fetchrow` record the statement **and** the positional parameters they were called with (today only the statement is kept), `fetchrow` returns the row it holds or `None`, and the one-operation-at-a-time guard `execute` already enforces stays on both — a second concurrent operation must still raise the interface error (FR-027, quickstart §2) — **done**: the two entry points share one `_operate` guard, `operations` keeps its string-only list and `calls` adds `(statement, parameters)`, and the machine's 2514 tests plus the demo's 60 pass
 
 **Checkpoint**: the fake can make a helper test fail if the helper skips the connection, drops the parameters or loses the check.
 
