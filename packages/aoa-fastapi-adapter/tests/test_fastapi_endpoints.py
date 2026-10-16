@@ -197,7 +197,7 @@ class TestPerRouteConnections:
             return res
 
         adapter, machine = _make_app()
-        adapter.post("/ping", PingAction, connections={"db": PerCallConnection(factory)})
+        adapter.post("/ping", PingAction, connections={"db": PerCallConnection(factory, finalize=lambda res: None)})
         app = adapter.build()
         client = TestClient(app)
 
@@ -209,6 +209,39 @@ class TestPerRouteConnections:
         _args2, _ = machine.run.call_args_list[1]
         assert _args1[3]["db"] is res
         assert _args2[3]["db"] is res
+
+    def test_per_call_resource_is_opened_and_finalized_once(self) -> None:
+        """The boundary opens what it created, hands it to the run, and finalizes it once."""
+        log: list[str] = []
+
+        class LifecycleResource(DummyResourceManager):
+            """A per-call resource that records its own lifecycle."""
+
+            async def open(self) -> None:
+                log.append("open")
+
+            async def close(self) -> None:
+                log.append("close")
+
+        resource = LifecycleResource()
+        adapter, machine = _make_app()
+        adapter.post(
+            "/ping",
+            PingAction,
+            connections={
+                "db": PerCallConnection(
+                    factory=lambda: resource,
+                    finalize=lambda res: res.close(),
+                )
+            },
+        )
+        client = TestClient(adapter.build())
+
+        client.post("/ping", json={})
+
+        assert log == ["open", "close"]
+        _args, _ = machine.run.call_args
+        assert _args[3] == {"db": resource}
 
     def test_two_routes_get_distinct_connections(self) -> None:
         res_a = DummyResourceManager()

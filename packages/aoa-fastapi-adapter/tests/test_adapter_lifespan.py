@@ -81,9 +81,8 @@ def test_a_startup_failure_reaches_the_caller_and_still_closes() -> None:
 
     app = _make_adapter().build(lifespan=lifespan)
 
-    with pytest.raises(RuntimeError, match="startup failed"):
-        with TestClient(app):
-            pass
+    with pytest.raises(RuntimeError, match="startup failed"), TestClient(app):
+        pass
 
     assert events == ["started", "closed"]
 

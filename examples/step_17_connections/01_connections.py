@@ -91,9 +91,12 @@ def build_app():
         FastApiAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), title="Ledger API")
         # Mode 1: one ready resource, reused on every request to this route
         .post("/record/shared", RecordAction, connections={"ledger": shared_ledger})
-        # Mode 2: a factory that runs per request -> a fresh resource each call
+        # Mode 2: a factory that runs per request, plus the finalizer that closes what it made
         .post("/record/percall", RecordAction,
-              connections={"ledger": PerCallConnection(factory=lambda: LedgerResource())})
+              connections={"ledger": PerCallConnection(
+                  factory=lambda: LedgerResource(),
+                  finalize=lambda ledger: None,  # an in-memory stand-in holds nothing to release
+              )})
         .build()
     )
 

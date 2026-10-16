@@ -49,7 +49,7 @@ For each registered ``McpRouteRecord``, the adapter builds an async handler that
    ``details["errors"]``.
 3. Applies ``params_mapper`` when configured.
 4. Builds ``Context`` via ``auth_coordinator``.
-5. Resolves connections via ``resolve_connections(record.connections)``.
+5. Applies the per-call lifecycle via ``connection_scope(record.connections)``.
 6. Creates action instance and calls ``machine.run()``.
 7. Applies ``response_mapper`` when configured.
 8. Builds success ``data`` via ``_serialize_result`` (``model_dump(mode="json")`` for
@@ -141,7 +141,8 @@ from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordi
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
 from aoa.action_machine.model.base_action import BaseAction
-from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
+from aoa.action_machine.resources.connection_scope import connection_scope
+from aoa.action_machine.resources.per_call_connection import ConnectionValue
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.mcp.route_record import McpRouteRecord
@@ -405,10 +406,9 @@ async def _execute_tool_call(
     if context is None:
         raise AuthorizationError("Authentication required")
 
-    connections = resolve_connections(record.connections)
-
     action = record.action_class()
-    result = await machine.run(context, action, params, connections)
+    async with connection_scope(record.connections) as connections:
+        result = await machine.run(context, action, params, connections)
 
     return _serialize_result(result, record, has_response_mapper)
 

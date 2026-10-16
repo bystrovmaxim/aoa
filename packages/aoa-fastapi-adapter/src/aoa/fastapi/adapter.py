@@ -133,7 +133,8 @@ from aoa.action_machine.exceptions.validation_field_error import ValidationField
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.model.base_action import BaseAction
-from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
+from aoa.action_machine.resources.connection_scope import connection_scope
+from aoa.action_machine.resources.per_call_connection import ConnectionValue
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.fastapi.route_record import FastApiRouteRecord
@@ -297,10 +298,9 @@ def _make_endpoint_with_body(
         if context is None:
             raise AuthorizationError("Authentication required")
 
-        connections = resolve_connections(record.connections)
-
         action = record.action_class()
-        result = await machine.run(context, action, params, connections)
+        async with connection_scope(record.connections) as connections:
+            result = await machine.run(context, action, params, connections)
 
         if has_response_mapper:
             mapped = record.response_mapper(result)  # type: ignore[misc]
@@ -367,10 +367,9 @@ def _make_endpoint_with_query(
         if context is None:
             raise AuthorizationError("Authentication required")
 
-        connections = resolve_connections(record.connections)
-
         action = record.action_class()
-        result = await machine.run(context, action, params, connections)
+        async with connection_scope(record.connections) as connections:
+            result = await machine.run(context, action, params, connections)
 
         if has_response_mapper:
             mapped = record.response_mapper(result)  # type: ignore[misc]
@@ -466,10 +465,9 @@ def _make_endpoint_no_params(
         if context is None:
             raise AuthorizationError("Authentication required")
 
-        connections = resolve_connections(record.connections)
-
         action = record.action_class()
-        result = await machine.run(context, action, params, connections)
+        async with connection_scope(record.connections) as connections:
+            result = await machine.run(context, action, params, connections)
 
         if has_response_mapper:
             mapped = record.response_mapper(result)  # type: ignore[misc]
