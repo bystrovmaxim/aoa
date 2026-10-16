@@ -140,13 +140,16 @@ packages/aoa-action-machine/
 
 packages/aoa-demo/
 ├── src/aoa/demo/model/identity/
-│   ├── resources/identity_store_base.py  # EDIT: the read primitive answers one row; a write primitive
-│   │                                     #       joins it; `record_login` calls the primitive
-│   ├── resources/identity_store_stub.py  # EDIT: drop `execute`; implement both primitives in memory
-│   ├── resources/identity_store.py       # EDIT: implement both primitives through `_fetchrow`/`_execute`
-│   ├── actions/identity_lookup.py        # EDIT: one row instead of a list; `found` from `is None`
-│   └── README.md                         # EDIT: the shape of the read and the helpers it uses
-├── tests/test_identity_postgres.py       # EDIT: the read assertions and the close-path call site
+│   ├── resources/identity_store_base.py  # EDIT [US1/US4]: the write primitive lands in US1 with the
+│   │                                     #       removal; the read primitive answers one row in US4
+│   ├── resources/identity_store_stub.py  # EDIT [US1/US4]: loses `execute` and its statement-text test
+│   │                                     #       in US1; answers one row in US4
+│   ├── resources/identity_store.py       # EDIT [US1/US4]: the write primitive through `_execute` in US1;
+│   │                                     #       the read through `_fetchrow` in US4
+│   ├── actions/identity_lookup.py        # EDIT [US4]: one row instead of a list; `found` from `is None`
+│   └── README.md                         # EDIT [US4]: the shape of the read and the helpers it uses
+├── tests/test_identity_postgres.py       # EDIT [US1/US4]: the write call site and the parameters the
+│                                         #       interleaving test needs in US1; the read assertions in US4
 ├── tests/test_sql_resource_stubs.py      # EDIT: the eight stubs are asserted without the removed member
 ├── README.md                             # EDIT: the two operations and the driver-free mode
 └── CHANGELOG.md                          # EDIT: its own breaking-change entries (closing task)
@@ -191,7 +194,8 @@ The tests are split by subject: the helpers in a new module beside the driver's 
 closed-resource and chained-failure cases read as one subject; the contract and the proxy in the two modules that
 already own them; the demo's own domain in the demo's own suite.
 
-**Six points the design phase settled, because the plan cannot leave them open**:
+**Seven points the design phase settled, because the plan cannot leave them open** (the seventh was found while
+implementing Phase 3 and corrects a phase boundary, not the design):
 
 1. **One check, one message per failure.** `_require_connection()` returns the held connection or raises
    `HandleError("Connection is not open")`; `begin`, `commit`, `rollback`, `_execute` and `_fetchrow` all call it.
@@ -231,6 +235,16 @@ already own them; the demo's own domain in the demo's own suite.
    code), the exact names of any test module this plan does not name, whether the maintainer wants a
    `docs/CHANGELOG.md` article for a change of this size (the answer recorded above is no), and the question of a
    Russian draft for the root `README.md`.
+7. **The demo's write path lands with the removal, and its read reshape with the helpers.** Found while implementing
+   Phase 3: the removal does not only change the contract — the demo's own `IdentityStoreBase.record_login` calls the
+   removed member, so no phase that removes it can end with the demo's suite green, and a phase is a commit. The
+   write half (`_write_login` declared by the driver-free base, implemented by the PostgreSQL store through
+   `_execute` and in memory by the stub, which loses `execute` and its statement-text test there) therefore belongs
+   to US1, and the demo's own test double records the parameters of a statement so the interleaving test can still
+   tell its two units apart. US4 keeps the read half, which needs `_fetchrow` from US2. The same discovery corrected
+   a count: the machine's tests call the removed member at six sites, not five — `test_pool_bounds.py:45` was missed
+   by the issue's and the first tasks' sweep. Both corrections are recorded in `tasks.md` (T013, T011) rather than
+   folded in silently.
 
 ## Test design
 
@@ -241,7 +255,7 @@ already own them; the demo's own domain in the demo's own suite.
 | `test_sql_resource.py` | EDIT | A subclass implementing only `open`/`begin`/`rollback` instantiates and `commit` comes from the base; the incomplete-subclass cases still refuse; the contract exposes no query member; the lifecycle cases run without a statement |
 | `test_wrapper_sql_resource.py` | EDIT | The proxy has no `execute`, no `_execute` and no `_fetchrow`; it still refuses the lifecycle and context-manager use; `isinstance` holds; two and three wraps behave as one; a domain wrapper delegates its own semantic method and still refuses the lifecycle; an error from a delegated method arrives as the domain's own error |
 | `test_resource_unit_of_work.py` | EDIT | The five calls the previous feature wrote now drive the helper, and the unit-of-work behaviour it asserts is unchanged |
-| `packages/aoa-demo/tests/test_identity_postgres.py` | EDIT | The domain's read answers one person or nothing through the driver's helper; a closed resource yields the framework's named failure rather than the base's own error |
+| `packages/aoa-demo/tests/test_identity_postgres.py` | EDIT | The domain's read answers one person or nothing through the driver's helper, and a closed resource yields the framework's named failure rather than the base's own error; its write call site and the parameters the interleaving test needs move with US1, which is the phase that breaks them |
 | `packages/aoa-demo/tests/test_sql_resource_stubs.py` | EDIT | The eight stubs still satisfy the contract and still close harmlessly, now without the removed member |
 
 Two checks cannot be tests and are carried by the closing task instead, as the specification's own success criteria

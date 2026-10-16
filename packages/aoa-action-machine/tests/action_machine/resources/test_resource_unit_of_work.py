@@ -77,7 +77,7 @@ async def _unit_of_work(
         if gate is not None:
             await gate.wait()  # only the cancellation test uses this, and it cancels the task
         for statement in statements:
-            await resource.execute(statement)
+            await resource._execute(statement)
     finally:
         await resource.close()
 
@@ -168,8 +168,8 @@ async def test_two_concurrent_transactions_do_not_interleave() -> None:
             await resource.begin()
             # Bounded for the same reason: two units must meet here, and a red run must fail fast.
             await asyncio.wait_for(barrier.wait(), timeout=2.0)
-            await resource.execute(f"{tag}:insert")
-            await resource.execute(f"{tag}:update")
+            await resource._execute(f"{tag}:insert")
+            await resource._execute(f"{tag}:update")
             await resource.commit()
         finally:
             await resource.close()
@@ -200,7 +200,7 @@ async def test_a_unit_of_work_that_raises_still_returns_its_connection() -> None
         resource = PostgresResource(pool=pool)
         await resource.open()
         try:
-            await resource.execute("SELECT 1")
+            await resource._execute("SELECT 1")
             raise UnitOfWorkError
         finally:
             await resource.close()
@@ -249,7 +249,7 @@ async def test_close_with_a_transaction_open_returns_the_connection_then_raises(
     resource = PostgresResource(pool=pool)
     await resource.open()
     await resource.begin()
-    await resource.execute("INSERT")
+    await resource._execute("INSERT")
 
     with pytest.raises(TransactionLeftOpenError):
         await resource.close()

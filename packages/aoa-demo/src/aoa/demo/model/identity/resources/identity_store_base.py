@@ -60,6 +60,10 @@ class IdentityStoreBase(SqlResource):
     async def _fetch_rows(self, query: str, params: tuple[Any, ...]) -> list[dict[str, Any]]:
         """Read rows for a query; the implementation decides how it reads them."""
 
+    @abstractmethod
+    async def _write_login(self, person_id: str, at: str) -> None:
+        """Record one login; the implementation decides how it writes it."""
+
     async def read_person(self, person_id: str) -> list[dict[str, Any]]:
         """Return the person's row, or an empty list when nobody matches."""
         return await self._fetch_rows(
@@ -71,10 +75,7 @@ class IdentityStoreBase(SqlResource):
         """Record one login inside a transaction this method opens and ends."""
         await self.begin()
         try:
-            await self.execute(
-                "INSERT INTO identity_login_event (person_id, at) VALUES ($1, $2)",
-                (person_id, at),
-            )
+            await self._write_login(person_id, at)
         except BaseException:  # a failed or cancelled unit of work still ends its transaction
             await self.rollback()
             raise

@@ -29,7 +29,7 @@ ARCHITECTURE / DATA FLOW
     PostgresResource
       | open()    -> pool.acquire(timeout=acquire_timeout) | asyncpg.connect(...)
       | begin()   -> "BEGIN"      (opens the transaction flag)
-      | execute() -> SQL statement
+      | _execute() -> a statement, for a subclass
       | commit()  -> "COMMIT" or rollback when rollup=True (closes the flag)
       | rollback()-> "ROLLBACK"   (closes the flag)
       | close()   -> pool.release(conn) | conn.close()
@@ -220,16 +220,17 @@ class PostgresResource(SqlResource):
                 "opened the transaction owns ending it."
             )
 
-    async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
+    async def _execute(self, query: str, params: tuple[Any, ...] | None = None) -> str:
         """
-        Execute SQL query via asyncpg.
+        Run a statement for a subclass and return its status.
 
         Args:
             query: SQL statement string.
             params: optional positional query params.
 
         Returns:
-            Raw asyncpg execution result.
+            The driver's command status, such as ``"INSERT 0 1"``. Rows are discarded;
+            a subclass that reads rows uses ``_fetchrow``.
 
         Raises:
             HandleError: if connection is closed or SQL execution fails.
@@ -237,6 +238,8 @@ class PostgresResource(SqlResource):
         if self._conn is None:
             raise HandleError("Connection is not open")
         try:
-            return await self._conn.execute(query, *params if params else ())
+            # The driver's stubs are absent, so its return is ``Any``; ``execute`` answers a status string.
+            status: str = await self._conn.execute(query, *params if params else ())
+            return status
         except Exception as e:
             raise HandleError(f"SQL execution failed: {e}") from e

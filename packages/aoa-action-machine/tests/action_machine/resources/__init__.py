@@ -16,7 +16,7 @@ COMPONENTS
 
 SqlResource
     Base class for SQL connection managers with transactions.
-    Contract: open(), begin(), commit(), rollback(), execute().
+    Contract: open(), begin(), commit(), rollback(), close().
 
 PostgresResource
     SqlResource implementation for PostgreSQL using asyncpg.
@@ -24,7 +24,8 @@ PostgresResource
     for safe testing against production-like databases.
 
 WrapperSqlResource
-    Proxy that forbids transaction control at nested levels but allows queries.
+    Proxy that forbids transaction control at nested levels and offers nothing to
+    run a statement with.
     Created automatically when connections are passed to child actions via ToolsBox.run().
     Concrete modules: ``aoa.action_machine.resources.sql``.
 
@@ -35,7 +36,7 @@ TEST LAYOUT
     tests/resources/
     ├── __init__.py                             — this file
     ├── test_sql_resource.py          — SqlResource, rollup, abstract API
-    ├── test_wrapper_sql_resource.py  — transaction prohibition, execute delegation
+    ├── test_wrapper_sql_resource.py  — transaction prohibition, no query member
     ├── test_external_service_resource.py        — ExternalServiceResource, rollup flag
     ├── test_wrapper_external_service_resource.py — nested proxy for external clients
     └── test_connections_dict.py                — connections dict typing

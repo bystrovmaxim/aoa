@@ -62,23 +62,25 @@ class _FakeConnection:
     def __init__(self) -> None:
         self._busy = False
         self.operations: list[str] = []
+        self.calls: list[tuple[str, tuple[Any, ...]]] = []
 
     async def execute(self, query: str, *args: Any) -> str:
         """Run a statement, refusing a second operation while one is in flight."""
-        return await self._operation(query)
+        return await self._operation(query, args)
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         """Answer the person lookup with the seeded row."""
-        await self._operation(query)
+        await self._operation(query, args)
         return [dict(PERSON)]
 
-    async def _operation(self, query: str) -> str:
+    async def _operation(self, query: str, args: tuple[Any, ...]) -> str:
         if self._busy:
             raise RuntimeError("another operation is in progress")
         self._busy = True
         try:
             await asyncio.sleep(0)  # a real statement awaits; a concurrent caller must collide
             self.operations.append(query)
+            self.calls.append((query, args))
             return "OK"
         finally:
             self._busy = False
@@ -237,15 +239,25 @@ async def test_two_transactions_do_not_interleave() -> None:
         try:
             await store.begin()
             await asyncio.wait_for(barrier.wait(), timeout=WAIT)
-            await store.execute(f"INSERT {tag}")
+            await store._write_login(tag, AT)
             await store.commit()
         finally:
             await store.close()
 
     await asyncio.gather(login("a"), login("b"))
 
-    per_connection = [conn.operations for conn in pool.connections]
-    assert sorted(per_connection) == [["BEGIN", "INSERT a", "COMMIT"], ["BEGIN", "INSERT b", "COMMIT"]]
+    per_connection = sorted(conn.operations for conn in pool.connections)
+    assert len(per_connection) == 2
+    for recorded in per_connection:
+        assert recorded[0] == "BEGIN"
+        assert recorded[-1] == "COMMIT"
+        assert len(recorded) == 3, recorded
+        assert recorded[1].startswith("INSERT INTO identity_login_event"), recorded[1]
+    # Each unit wrote its own tag: the parameters of every statement are recorded too.
+    written = sorted(
+        call[1][0] for conn in pool.connections for call in conn.calls if call[0].startswith("INSERT")
+    )
+    assert written == ["a", "b"]
     assert pool.held == 0
 
 

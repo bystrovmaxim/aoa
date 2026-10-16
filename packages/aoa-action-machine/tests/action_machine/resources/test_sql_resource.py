@@ -2,10 +2,14 @@
 """
 Tests for SqlResource — abstract base for transactional SQL connections.
 
-SqlResource extends BaseResource with transaction lifecycle:
-open(), begin(), commit(), rollback(), execute(). It supports rollup mode where commit()
+SqlResource extends BaseResource with the transaction lifecycle:
+open(), begin(), commit(), rollback(), close(). It supports rollup mode where commit()
 calls rollback() instead of real commit. The rollup property uses getattr
 with a False fallback for resilience against subclasses that skip super().__init__().
+
+There is no query member in this contract: a subclass implements open(), begin()
+and rollback() and nothing else, and the driver keeps its own protected helpers
+for the statements its domain methods run.
 
 Scenarios covered:
     - Constructor sets _rollup attribute.
@@ -15,7 +19,9 @@ Scenarios covered:
     - check_rollup_support() always returns True.
     - commit() calls rollback() when rollup=True.
     - commit() does NOT call rollback() when rollup=False.
-    - Abstract methods (open, begin, rollback, execute) must be implemented.
+    - Abstract methods (open, begin, rollback) must be implemented.
+    - No query member on the contract, the base or the proxy.
+    - A subclass implementing the three abstract methods is concrete.
     - Subclass with rollup=True — commit delegates to rollback.
 """
 
@@ -23,7 +29,7 @@ Scenarios covered:
 import pytest
 
 from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.resources.sql import SqlResource
+from aoa.action_machine.resources.sql import ProtocolSqlResource, SqlResource, WrapperSqlResource
 
 
 class _SqlResourceTestDomain(BaseDomain):
@@ -56,7 +62,6 @@ class _TestConnectionManager(SqlResource):
         self.begun = False
         self.rolled_back = False
         self.committed = False
-        self.executed_queries: list[str] = []
 
     def get_wrapper_class(self):
         return None
@@ -69,10 +74,6 @@ class _TestConnectionManager(SqlResource):
 
     async def rollback(self) -> None:
         self.rolled_back = True
-
-    async def execute(self, query: str, params=None):
-        self.executed_queries.append(query)
-        return None
 
     async def commit(self) -> None:
         """Commit that respects rollup via super().commit()."""
@@ -101,9 +102,6 @@ class _NoSuperInitManager(SqlResource):
 
     async def rollback(self) -> None:
         pass
-
-    async def execute(self, query: str, params=None):
-        return None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -223,9 +221,6 @@ class TestAbstractMethods:
             async def rollback(self):
                 pass
 
-            async def execute(self, query, params=None):
-                pass
-
         with pytest.raises(TypeError):
             _Incomplete()
 
@@ -241,9 +236,6 @@ class TestAbstractMethods:
                 pass
 
             async def rollback(self):
-                pass
-
-            async def execute(self, query, params=None):
                 pass
 
         with pytest.raises(TypeError):
@@ -263,17 +255,14 @@ class TestAbstractMethods:
             async def begin(self):
                 pass
 
-            async def execute(self, query, params=None):
-                pass
-
         with pytest.raises(TypeError):
             _Incomplete()
 
-    def test_cannot_instantiate_without_execute(self) -> None:
-        """Subclass missing execute() cannot be instantiated."""
+    def test_a_subclass_with_the_three_abstract_members_is_concrete(self) -> None:
+        """open, begin and rollback are the whole obligation; commit comes from the base (FR-004)."""
 
-        @meta(description="Incomplete SQL resource missing execute", domain=_SqlResourceTestDomain)
-        class _Incomplete(SqlResource):
+        @meta(description="SQL resource with the three abstract members", domain=_SqlResourceTestDomain)
+        class _Complete(SqlResource):
             def get_wrapper_class(self):
                 return None
 
@@ -286,8 +275,26 @@ class TestAbstractMethods:
             async def rollback(self):
                 pass
 
-        with pytest.raises(TypeError):
-            _Incomplete()
+        assert _Complete.__abstractmethods__ == frozenset()
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# No query member anywhere in the contract (FR-001 … FR-004)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestNoQueryMember:
+    """The query surface left the contract: what remains is the lifecycle and rollup."""
+
+    def test_no_shape_exposes_a_query_member(self) -> None:
+        """The contract, the base and the proxy expose no passthrough at all."""
+        for shape in (ProtocolSqlResource, SqlResource, WrapperSqlResource):
+            assert not hasattr(shape, "execute"), shape
+
+    def test_the_proxy_exposes_no_protected_helper_either(self) -> None:
+        """The driver's helpers are the driver's; a nested action cannot reach them through the proxy."""
+        for protected in ("_execute", "_fetchrow", "_require_connection"):
+            assert not hasattr(WrapperSqlResource, protected), protected
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -296,37 +303,33 @@ class TestAbstractMethods:
 
 
 class TestFullLifecycle:
-    """Verify open → execute → commit/rollback lifecycle."""
+    """Verify the open → begin → commit/rollback lifecycle."""
 
     @pytest.mark.asyncio
     async def test_normal_lifecycle(self) -> None:
-        """open → begin → execute → commit works in non-rollup mode."""
+        """open → begin → commit works in non-rollup mode."""
         mgr = _TestConnectionManager(rollup=False)
 
         await mgr.open()
         await mgr.begin()
-        await mgr.execute("INSERT INTO t VALUES (1)")
         await mgr.commit()
 
         assert mgr.opened is True
         assert mgr.begun is True
-        assert mgr.executed_queries == ["INSERT INTO t VALUES (1)"]
         assert mgr.committed is True
         assert mgr.rolled_back is False
 
     @pytest.mark.asyncio
     async def test_rollup_lifecycle(self) -> None:
-        """open → begin → execute → commit (rollup=True) rolls back instead."""
+        """open → begin → commit (rollup=True) rolls back instead."""
         mgr = _TestConnectionManager(rollup=True)
 
         await mgr.open()
         await mgr.begin()
-        await mgr.execute("INSERT INTO t VALUES (1)")
         await mgr.commit()
 
         assert mgr.opened is True
         assert mgr.begun is True
-        assert mgr.executed_queries == ["INSERT INTO t VALUES (1)"]
         assert mgr.committed is False
         assert mgr.rolled_back is True
 
@@ -337,7 +340,6 @@ class TestFullLifecycle:
 
         await mgr.open()
         await mgr.begin()
-        await mgr.execute("INSERT INTO t VALUES (1)")
         await mgr.rollback()
 
         assert mgr.rolled_back is True

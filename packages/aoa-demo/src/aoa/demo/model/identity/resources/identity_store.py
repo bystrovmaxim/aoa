@@ -50,6 +50,13 @@ class IdentityStore(IdentityStoreBase, PostgresResource):
     acquire_timeout: float | None = 30.0
     """How long this resource waits for a free connection before it fails, stated here for the reader."""
 
+    async def _write_login(self, person_id: str, at: str) -> None:
+        """Write one login row through the driver's statement helper."""
+        await self._execute(
+            "INSERT INTO identity_login_event (person_id, at) VALUES ($1, $2)",
+            (person_id, at),
+        )
+
     async def _fetch_rows(self, query: str, params: tuple[Any, ...]) -> list[dict[str, Any]]:
         """Read rows from this call's own connection."""
         if self._conn is None:
