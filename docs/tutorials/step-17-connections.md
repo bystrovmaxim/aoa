@@ -1,122 +1,358 @@
-<!-- translated-from: step-17-connections_draft.md @ 2026-06-17T17:53:37Z · sha256:20f70f1418b1 -->
-<p align="center">
-  <img src="../assets/aoa-logo.png" alt="AOA" width="200">
-</p>
+# Step 17 — Who opens a resource, and who closes it?
 
-# Step 17 — Connections at the request boundary
+[← Complex input](step-16-complex-input.md) · [Contents](../index.md) · [Schema converters →](step-18-converters.md)
 
-<table width="100%"><tr>
-  <td align="left"><a href="step-16-complex-input.md">← Step 16 — Complex input</a></td>
-  <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-18-converters.md">Step 18 — Schema converters →</a></td>
-</tr></table>
+An action can declare that it needs a resource with `@connection(..., key="db")`.
+Inside the action, `connections["db"]` is the supplied resource. The declaration
+states a dependency; it does not open a database connection. Someone outside the
+action must supply the object and decide how long it remains usable.
 
-- [Two modes](#two-modes)
-- [What to choose](#what-to-choose)
-- [Connections live next to the route](#connections-live-next-to-the-route)
-- [The same in MCP](#the-same-in-mcp)
-- [Invariants](#invariants)
-- [Review questions](#review-questions)
+This chapter follows that responsibility from a single HTTP request to a running
+service. Start with the two counter examples. Then read about startup and pools.
+The error cases have their own [guide](../how-to/connection-lifecycle-failures.md),
+so the first working example does not have to explain every failure at once.
 
----
+## Four terms before the first example
 
-In the chapter on [dependencies](step-06-dependencies.md) an operation declared an open resource with `@connection`, and an aspect read it from `connections["key"]`. There the connection was supplied by hand to `machine.run(..., connections={"ledger": ledger})`. Now the service-layer question: at the transport boundary, **who** supplies that connection, and **when**, on each incoming request?
+A **resource** is a Python object through which an action accesses storage or another
+external system. It may hold a database connection, but those two objects are not
+the same thing. A resource may live for one call or be shared, depending on what it owns.
 
-The answer is the adapter, through the keyword-only `connections=` argument right at the registration of a route ([FastAPI](step-13-fastapi.md)) or a tool ([MCP](step-14-mcp.md)). And it can be done in **two modes**. The operation does not change: the adapter calls `resolve_connections(...)` before `machine.run`, and the aspect still simply reads `connections["ledger"]`, not knowing how the resource was supplied.
+A **connection** is an open session with a database. Statements sent through one
+connection use that session, including its current transaction. Sharing one open
+connection between overlapping requests can therefore mix their work.
 
-[▶ Try in Colab](https://drive.google.com/file/d/12lQFM0LMAejLSmEUKss8I6tmbpCsyUkr/view?usp=drive_link) · [Open in project](../../examples/step_17_connections/01_connections.py)
+A **pool** keeps reusable connections and lends an available one to a caller.
+Several calls can share the pool while holding different connections. Returning a
+connection makes it available for reuse; it does not destroy the pool or erase the data.
 
----
+A **unit of work** here is the interval during which one call owns its resource:
+acquire it, do the work, release it. A **transaction** is a database operation begun
+with `begin()` and ended with `commit()` or `rollback()`. These intervals are related,
+but opening a resource does not automatically start a transaction.
 
-## Two modes
+## The two declarations
 
-A value in the `connections` dictionary comes in exactly two kinds:
+The `connections=` argument belongs to an individual HTTP route or MCP tool. Each
+value is either an existing `BaseResource` or `PerCallConnection(factory, finalize)`.
+The action receives the resulting resource, never the declaration object.
+
+With an existing resource, the adapter passes the exact object through. It neither
+opens nor closes it. With a per-call declaration, the adapter calls the synchronous
+factory, awaits the resource's `open()` if present, runs the action, and then calls
+`finalize(resource)`. If the finalizer returns an awaitable, the adapter awaits it.
+Both functions are required. Only resources created through this declaration are
+managed by this scope.
+
+The first example is complete below. Its resource records lifecycle calls but does
+not acquire anything external; this lets us observe the boundary before introducing
+a database. `CountAction` increments the supplied counter and returns its value.
+
+## A ready resource is shared
+
+Start with two HTTP calls to one route. The resource is constructed before the route is registered.
+
+[Python](../../examples/step_17_connections/01_connections.py) · [Notebook](../../examples/step_17_connections/01_connections.ipynb)
 
 ```python
-# Mode 1 — a ready BaseResource: the same instance on every request
-.post("/record", RecordAction, connections={"ledger": shared_ledger})
+import asyncio
+from fastapi.testclient import TestClient
+from pydantic import Field
+from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
+from aoa.action_machine.context import Context
+from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.connection import connection
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.per_call_connection import PerCallConnection
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.fastapi import FastApiAdapter
 
-# Mode 2 — PerCallConnection: factory() runs on every request -> a fresh instance
-.post("/record", RecordAction,
-      connections={"ledger": PerCallConnection(factory=lambda: LedgerResource())})
+class CounterDomain(BaseDomain):
+    """Group this example's resource and action."""
+    name = "counter"
+    description = "Counter example"
+
+class EmptyParams(BaseParams):
+    """No input fields are needed for this case."""
+
+@meta(description="Count calls in memory", domain=CounterDomain)
+class CounterResource(BaseResource):
+    """Keep a count and record lifecycle events."""
+    def __init__(self, events):
+        """Start with an empty count."""
+        self.count = 0
+        self.events = events
+    def get_wrapper_class(self):
+        """Allow direct use of this in-memory counter."""
+        return None
+    async def open(self):
+        """Record opening without resetting the count."""
+        self.events.append("open")
+    async def close(self):
+        """Record cleanup without acquiring external handles."""
+        self.events.append("close")
+
+class CountResult(BaseResult):
+    """Expose the count reached by one call."""
+    count: int = Field(description="Number of calls seen by this resource")
+
+@meta(description="Increment the supplied counter", domain=CounterDomain)
+@check_roles(GuestRole)
+@connection(CounterResource, key="counter")
+class CountAction(BaseAction[EmptyParams, CountResult]):
+    """Increment the supplied resource once."""
+    @summary_aspect("Count one call")
+    async def count_summary(self, params, state, box, connections):
+        """Return the updated count."""
+        counter = connections["counter"]
+        counter.count += 1
+        return CountResult(count=counter.count)
+
+
+async def main():
+    """Run this case and verify its observable result."""
+    events = []
+    declaration = CounterResource(events)
+    app = (FastApiAdapter(machine=ActionProductMachine(loggers=[]),
+             auth_coordinator=NoAuthCoordinator(context=Context()))
+           .post("/count", CountAction, connections={"counter": declaration})
+           .build())
+    with TestClient(app) as client:
+        responses = [client.post("/count", json={}) for _ in range(2)]
+    assert [r.status_code for r in responses] == [200, 200]
+    assert [r.json()["count"] for r in responses] == [1, 2]
+    for response in responses:
+        print(response.json())
+    assert events == []
+    print("lifecycle:", events)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-- **A ready `BaseResource`** — you pass an already-built instance. `resolve_connections` returns it as is, so **all requests share one object** (and the state accumulated in it).
-- **`PerCallConnection(factory=...)`** — you pass a factory. It is called on **every** connection resolution, that is, a **fresh** resource is born per request.
-
-In the example `LedgerResource` remembers its instance number, and the difference is visible at once:
-
-**Run:**
-
-```bash
-uv run python examples/step_17_connections/01_connections.py
-```
-
-**Output:**
+Observed output:
 
 ```text
-Mode 1 — ready BaseResource (shared, one instance):
-  POST /record/shared  call 1 -> {'ledger_id': 1, 'entries': 1}
-  POST /record/shared  call 2 -> {'ledger_id': 1, 'entries': 2}
-
-Mode 2 — PerCallConnection (factory per request):
-  POST /record/percall call 1 -> {'ledger_id': 2, 'entries': 1}
-  POST /record/percall call 2 -> {'ledger_id': 3, 'entries': 1}
+{'count': 1}
+{'count': 2}
+lifecycle: []
 ```
 
-Mode 1: both requests hit the same instance `#1`, and entries accumulate in it (1 → 2). Mode 2: each request got a new instance (`#2`, then `#3`) — no state is shared.
+Both calls received the same counter. The empty lifecycle log proves that the adapter neither opened nor closed the ready resource; its supplier owns its lifetime.
+
+## One resource for each HTTP call
+
+Keep the action unchanged. Replace the ready resource with a factory and a finalizer.
+
+[Python](../../examples/step_17_connections/02_per_call.py) · [Notebook](../../examples/step_17_connections/02_per_call.ipynb)
+
+The following is the body of `main()` from the standalone example; the linked files include every definition and import.
+
+```python
+events = []
+declaration = PerCallConnection(lambda: CounterResource(events), lambda resource: resource.close())
+app = (FastApiAdapter(machine=ActionProductMachine(loggers=[]),
+         auth_coordinator=NoAuthCoordinator(context=Context()))
+       .post("/count", CountAction, connections={"counter": declaration})
+       .build())
+with TestClient(app) as client:
+    responses = [client.post("/count", json={}) for _ in range(2)]
+assert [r.status_code for r in responses] == [200, 200]
+assert [r.json()["count"] for r in responses] == [1, 1]
+for response in responses:
+    print(response.json())
+assert events == ['open', 'close', 'open', 'close']
+print("lifecycle:", events)
+```
+
+Observed output:
+
+```text
+{'count': 1}
+{'count': 1}
+lifecycle: ['open', 'close', 'open', 'close']
+```
+
+Each factory call constructed a new counter. The scope opened it before the action and awaited cleanup before returning the response. Newness comes from CounterResource(events), not from the PerCallConnection name.
 
 ## What to choose
 
-- **A ready resource** — for the expensive and reusable: a connection pool, an HTTP client, an in-memory store. It is built once (usually in the app's `lifespan`) and supplied to all requests. If such a resource becomes available only after the app starts, it is kept in an external holder object and read from it inside `PerCallConnection.factory`.
-- **`PerCallConnection`** — when the resource should have a **per-request lifetime**: its own connection or unit of work per call, with no shared state between requests. The factory is called synchronously on each resolution.
+Use a ready resource when its implementation is designed for shared use and its
+owner already manages its lifetime. An in-memory store or a concurrency-safe client
+may fit. A raw driver pool is not a `BaseResource`, so it cannot simply be placed
+in `connections=`. A resource can instead hold a reference to that pool.
 
-## Connections live next to the route
+Use a per-call declaration when the resource owns a connection for one caller.
+Put the constructor inside `factory`; returning a pre-existing connection-owning
+object would apply several callers' lifecycles to the same object. A [separate
+counterexample](../../examples/step_17_connections/11_shared_factory.ipynb) demonstrates
+that the framework does not detect this mistake.
 
-`connections=` is declared **on each route/tool**, not on the adapter as a whole. This is deliberate: an operation's dependencies are visible where it is published, and route A does not get route B's connections by mistake.
+## A long-lived pool behind a per-call resource
 
-Checks are placed at two boundaries:
+There are two nested lifetimes. The application creates the pool at startup and
+closes it at shutdown. During that interval, each call creates a resource, borrows
+one connection, uses it, and returns it. The action does not close the pool.
 
-- **At registration.** A key is a non-empty string, no duplicates; a value is a `BaseResource` or a `PerCallConnection`, otherwise `TypeError` immediately.
-- **Before the operation runs.** The machine checks the declared `@connection` keys against the supplied ones (the same check as with a manual `machine.run` from the [dependencies](step-06-dependencies.md) chapter): an extra key, a missing key, or a value that is not a `BaseResource` is an error before the first aspect. `PerCallConnection.factory` must return a `BaseResource`.
+```text
+application starts: create pool
+    call A: create resource A → borrow connection 1 → work → return connection 1
+    call B: create resource B → borrow connection 2 → work → return connection 2
+application stops: close pool
+```
+
+The calls may overlap. The pool controls how many connections can be borrowed at
+once; a caller beyond that limit waits for a free one. A wait timeout controls how
+long it may wait. Neither setting replaces the need for a separate resource per call.
+
+A lifespan is an asynchronous context manager. Its code before `yield` performs
+startup; execution stays suspended at `yield` while the service runs; the `finally`
+block performs shutdown. First observe that lifetime on its own:
+
+## Startup and shutdown belong to the application
+
+The lifespan context manager surrounds the whole running service. Here a log makes its order visible without adding a pool yet.
+
+[Python](../../examples/step_17_connections/14_fastapi_lifespan.py) · [Notebook](../../examples/step_17_connections/14_fastapi_lifespan.ipynb)
+
+Observed output:
+
+```text
+['startup']
+['startup', 'shutdown']
+```
+
+FastApiAdapter passes lifespan to FastAPI. TestClient starts and stops it only when used as a context manager. This is where an application-owned pool belongs.
+
+The pool example uses a **holder**: an ordinary object whose `pool` field is filled
+at startup. Its `require()` method returns the pool or raises an explicit error.
+The route is registered before startup, but its factory calls `require()` later,
+when a request arrives. This timing is why the pool lookup belongs inside the lambda.
+The complete example includes the holder, a recording pool, the resource and an action.
+
+## A service pool with a resource for each call
+
+Combine the two lifetimes after learning them separately. The holder makes a pool created at startup available to factories called later.
+
+[Python](../../examples/step_17_connections/16_pool_lifespan.py) · [Notebook](../../examples/step_17_connections/16_pool_lifespan.ipynb)
+
+The following is the body of `main()` from the standalone example; the linked files include every definition and import.
+
+```python
+holder = PoolHolder()
+created = []
+@asynccontextmanager
+async def lifespan(app):
+    """Own the pool for the whole service lifetime."""
+    pool = RecordingPool(size=2)
+    holder.pool = pool
+    created.append(pool)
+    try:
+        yield
+    finally:
+        await pool.close()
+        holder.pool = None
+app = (FastApiAdapter(machine=ActionProductMachine(loggers=[]), auth_coordinator=NoAuthCoordinator(context=Context()))
+    .post("/query", QueryAction, connections={"db": PerCallConnection(
+        factory=lambda: NotesResource(pool=holder.require()),
+        finalize=lambda resource: resource.close(),
+    )}).build(lifespan=lifespan))
+with TestClient(app) as client:
+    response = client.post("/query", json={})
+    assert response.status_code == 200 and response.json() == {"status": "OK"}
+    assert not holder.require().held and not holder.require().closed
+    print(response.json())
+    print("returned after request:", len(holder.require().held) == 0)
+assert created[0].closed and holder.pool is None
+print("pool closed after shutdown:", created[0].closed)
+```
+
+Observed output:
+
+```text
+{'status': 'OK'}
+returned after request: True
+pool closed after shutdown: True
+```
+
+The factory calls holder.require at request time, after startup. It creates a new NotesResource, while all calls use the same pool. The finalizer returns this call’s connection; lifespan closes the pool after the service stops. Replace RecordingPool with asyncpg.create_pool for a real database.
+
+## A pool holder reports missing startup
+
+The holder must give a useful error if a factory reaches it before application startup.
+
+[Python](../../examples/step_17_connections/17_holder_before_startup.py) · [Notebook](../../examples/step_17_connections/17_holder_before_startup.ipynb)
+
+Observed output:
+
+```text
+Pool is not started
+```
+
+A holder is an application object with a checked accessor. The factory reads it after startup; an early read produces an explicit error instead of an accidental attribute error.
 
 ## The same in MCP
 
-The `connections=` argument is identical on `FastApiAdapter` and on `McpAdapter.tool(...)` — both use one `resolve_connections`. So both modes work for an AI agent exactly as for HTTP: the connection is supplied on each tool call, and the operation stays transport-independent.
+`McpAdapter.tool(..., connections=...)` uses the same declarations and the same
+`connection_scope`. `build(lifespan=...)` passes the server-level lifecycle to
+FastMCP. The server framework runs that lifecycle when the server starts and stops;
+the adapter does not invent a separate shutdown policy or timeout.
 
-## Invariants
+## The same per-call lifecycle for an MCP tool
 
-- **Two modes, and only two.** A `connections` value is a ready `BaseResource` (a shared instance) or `PerCallConnection(factory)` (fresh per request).
-- **The operation does not know how it was supplied.** The adapter calls `resolve_connections` before `machine.run`; the aspect reads `connections["key"]`.
-- **Per-route, not per-adapter.** Connections are declared on each route/tool; there is no adapter-global factory.
-- **A double check.** The shape of the values — at registration; the correspondence with the declared `@connection` keys — before the operation runs.
-- **One mechanism for FastAPI and MCP.** The same `connections=` and the same `resolve_connections`.
+Call the server in process. The counter action and per-call declaration are the same as for HTTP.
 
-The full list is in [Intents and invariants](../reference/intents-and-invariants.md); the terms are in the [Glossary](../reference/glossary.md).
+[Python](../../examples/step_17_connections/15_mcp_call.py) · [Notebook](../../examples/step_17_connections/15_mcp_call.ipynb)
 
-## Summary
+Observed output:
 
-At the transport boundary an operation's open resources are supplied by the adapter — through `connections=` next to the route or tool, in one of two modes: a ready `BaseResource` lives for the whole app and is shared across requests, while `PerCallConnection(factory)` gives birth to a fresh resource per request. The operation does not distinguish this: it only reads `connections["key"]`, while the machine checks the supplied against the declared `@connection` before the first aspect. So the dependency contract begun in the dependencies chapter is closed at the service layer — explicitly and verifiably.
+```text
+{'ok': True, 'code': 'OK', 'data': {'count': 1}}
+['startup', 'open', 'close', 'shutdown']
+```
 
-Next — **[Schema converters](step-18-converters.md)**: how to reconcile an external request/response schema with the operation's contract when a new API version ships.
+The server lifetime surrounds the call lifetime. MCP serializes the result in its own envelope; it does not change which resource is created, opened or finalized.
 
----
+## What happens around a call
 
-## Review questions
+Input parsing and authentication happen before the adapters enter the resource scope.
+A request rejected there creates no per-call resource. Once the scope is entered,
+it creates and opens resources before `machine.run`, then finalizes them when the
+run exits. Response mapping happens after that scope, so mappers must not rely on
+an open per-call resource.
 
-1. Which two modes does a `connections` value have, and how do they differ in the resource's lifetime?
-2. Why does the operation not notice which mode the connection was supplied in? What does the adapter do for that?
-3. When is a shared ready resource appropriate, and when is a `PerCallConnection`?
-4. Why is `connections=` declared on the route rather than on the adapter as a whole?
-5. At which two boundaries are connections checked, and what exactly is checked at each?
-6. How does the behavior of `connections=` differ between FastAPI and MCP?
+A finalizer is called once for each resource the factory actually returned, including
+when opening or execution fails. An ordinary exception or task cancellation does
+not skip cleanup. This is an attempted cleanup guarantee: a failing finalizer does
+not prove that the external connection was returned. Process termination is outside
+this mechanism. See [failure cases](../how-to/connection-lifecycle-failures.md).
 
-> **Exercise.** In [01_connections.py](../../examples/step_17_connections/01_connections.py) make `note` in `RecordParams` a required condition and call the `shared` route three times — watch `entries` grow in one instance. Then on the `percall` route replace the factory with `lambda: shared_ledger` (a ready instance inside `PerCallConnection`) and explain why the instance number stopped changing, although the mode is formally "per-call".
+For a manual call or a custom adapter, use the scope explicitly:
 
----
+```python
+async with connection_scope(declarations) as connections:
+    result = await machine.run(context, action, params, connections)
+```
 
-<table width="100%"><tr>
-  <td align="left"><a href="step-16-complex-input.md">← Step 16 — Complex input</a></td>
-  <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-18-converters.md">Step 18 — Schema converters →</a></td>
-</tr></table>
+Here `declarations` contains ready resources or per-call pairs. The yielded mapping
+contains the resources themselves. `machine.run` does not interpret
+`PerCallConnection`, and `resolve_connections` only resolves a mapping: it neither
+opens nor finalizes it.
+
+## Review your understanding
+
+1. Why can two callers share a pool but not one open PostgreSQL resource?
+2. Which function is responsible for returning the connection? Which closes the pool?
+3. What changes if the factory returns an existing object?
+4. Why does cleanup still need to work when open raises?
+
+Try replacing the per-call counter's factory with one that returns the shared
+counter. Predict both responses and the lifecycle log, then run the
+[counterexample](../../examples/step_17_connections/11_shared_factory.py).
+For actual PostgreSQL construction and transactions, continue with the
+[PostgreSQL extension](../extensions/postgresql.md).

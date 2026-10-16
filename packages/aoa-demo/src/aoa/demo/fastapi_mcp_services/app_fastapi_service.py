@@ -74,8 +74,9 @@ _ensure_examples_package_src_on_path()
 
 # pylint: disable=wrong-import-position
 from aoa.demo.fastapi_mcp_services.actions import CreateOrderAction, GetOrderAction, PingAction
-from aoa.demo.fastapi_mcp_services.infrastructure import auth, machine
+from aoa.demo.fastapi_mcp_services.infrastructure import auth, identity_connection, machine, pool_lifespan
 from aoa.demo.model.actions import GetExampleModelGraphJsonAction
+from aoa.demo.model.identity.actions import IdentityLookupAction
 from aoa.fastapi import FastApiAdapter
 
 # pylint: enable=wrong-import-position
@@ -97,7 +98,9 @@ app = (
     .get("/examples/model/graph-json", GetExampleModelGraphJsonAction, tags=["examples"])
     .post("/api/v1/orders", CreateOrderAction, tags=["orders"])
     .get("/api/v1/orders/{order_id}", GetOrderAction, tags=["orders"])
-    .build()
+    # One connection per call: over the application's pool when a DSN was given, in memory otherwise.
+    .post("/api/v1/identity/lookup", IdentityLookupAction, tags=["identity"], connections={"identity": identity_connection()})
+    .build(lifespan=pool_lifespan)
 )
 
 

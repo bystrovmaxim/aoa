@@ -53,9 +53,23 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **`@connection`** — the declaration of an already-open resource (a connection, pool, client) the operation expects to receive. The machine checks the declared and supplied connections before the aspects launch.
 
-**connections** — the dictionary of resources passed into a nested operation. On passing, the resource is wrapped in a proxy that forbids `commit`/`rollback`: a child operation does not control someone else's transaction.
+**connections** — the dictionary of resources supplied to an operation. When explicitly passed to a child through `box.run`, resources with a wrapper class are wrapped; SQL wrappers refuse transaction control and closing. Resources returning no wrapper pass through directly.
 
-**Resource** (`BaseResource`) — an adapter of the external world with long-lived state: a DB, an API, a queue, a payment gateway, a fixture. It contains transport, not business rules.
+**Resource** (`BaseResource`) — access to storage or another external system, separated from business decisions. It may live for one call or wrap a shared client; its owner decides when it is opened and released.
+
+**Database connection** — an open database session. Statements on it share session state and the current transaction. One open connection must not be shared by concurrent calls that need independent work.
+
+**Connection pool** — an application-owned collection of reusable connections. Calls borrow separate connections and return them when finished; the application closes the pool at shutdown.
+
+**Unit of work** — here, the interval during which one call owns and uses its resource, from acquisition to release. It does not automatically start a database transaction.
+
+**Transaction** — a sequence of database work begun with `begin()` and ended explicitly with `commit()` or `rollback()`. Its owner must end it before releasing the connection.
+
+**`PerCallConnection(factory, finalize)`** — the route or tool declaration for a resource managed around one call. The synchronous factory returns the resource; finalize receives it on exit and may be synchronous or asynchronous. Calling a factory does not prove it returned a new object.
+
+**`connection_scope`** — the asynchronous context manager that resolves declarations, opens created resources when they have open, and attempts every registered finalizer on exit. Ready resources pass through untouched. See [Step 17](../tutorials/step-17-connections.md).
+
+**Lifespan** — the application or server startup/shutdown context. It owns shared infrastructure, such as a pool; each request's resource scope lives inside that longer interval.
 
 **Port and adapter** — an operation depends on an interface (a port), not on a concrete implementation (an adapter). A resource's implementation can be swapped without touching the logic.
 

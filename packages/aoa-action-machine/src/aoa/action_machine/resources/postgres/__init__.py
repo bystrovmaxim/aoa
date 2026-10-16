@@ -14,14 +14,12 @@ lifecycle management used by ActionMachine runtime components.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    App bootstrap
-         |
+    App bootstrap (lifespan)
+         |  creates one pool for the process, from the same connection parameters
          v
-    PostgresResource
-         |
-         v
-    asyncpg pool / connections
-         |
+    PostgresResource(pool=...)        or        PostgresResource({"dsn": ...})
+         |  open(): one connection borrowed          open(): its own connection
+         |  close(): returned, pool stays open       close(): the connection closed
          v
     ActionMachine resources used by actions
 
@@ -35,7 +33,7 @@ INSTALLATION
 COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``PostgresResource``: resource manager for PostgreSQL connections.
+- ``PostgresResource``: resource manager for PostgreSQL connections. It holds at most one connection, only for its own unit of work: taken in ``open()`` from a pool or from the driver, given back in ``close()``.
 """
 try:
     import asyncpg  # noqa: F401

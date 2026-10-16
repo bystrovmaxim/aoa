@@ -46,7 +46,7 @@ from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, ParamsStub
 from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.resources.per_call_connection import resolve_connections
+from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
 
@@ -176,8 +176,8 @@ def build_app():
     @fastapi_app.post("/auth/login", tags=["auth"])
     async def login(params: LoginParams, response: Response) -> dict[str, str]:
         context = await NoAuthCoordinator(context=Context()).process(None)
-        connections = resolve_connections(login_connections)
-        result = await machine.run(context, LoginAction(), params, connections)
+        async with connection_scope(login_connections) as connections:
+            result = await machine.run(context, LoginAction(), params, connections)
         response.set_cookie(
             key=_COOKIE_NAME,
             value=result.access_token,

@@ -9,11 +9,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+A PostgreSQL resource is now a connection for one unit of work rather than a connection for the
+life of a process. It takes a connection when it opens and gives it back when it closes, so two
+calls that arrive together no longer share a session: previously one caller's `COMMIT` could
+commit another caller's rows, and a slow statement could hold up an unrelated request. A resource
+is built either from its own connection parameters or from a pool the application created at
+startup — `PostgresResource({"dsn": ...})` or `PostgresResource(pool=pool)`. Giving both, or
+neither, fails in the constructor instead of at the first query. The pool owns its size and the
+resource owns how long it waits for a free connection, because waiting without an end is the
+driver's default.
+
+Closing is part of the contract now. `close()` gives the connection back to the pool, or closes it
+when the resource owns it, and a resource still in a transaction does not pass silently: it ends
+the transaction itself, returns the connection, and then raises `TransactionLeftOpenError` — a
+contract violation, so a caller that closed a connection mid-transaction learns about it instead
+of forgetting it. A nested operation receives a proxy that runs statements but refuses to commit,
+roll back or close what it does not own.
+
+One limit this work cannot lift is recorded separately: an adapter turns every uncaught error
+into one generic answer and logs nothing, so a fail-fast message is visible wherever the
+resource or the scope is driven directly, and not through the transport. That is
+[#218](https://github.com/bystrovmaxim/aoa/issues/218).
+
+### Breaking changes
+
+- **A per-call connection declaration now needs both halves: `PerCallConnection(factory, finalize)`.** The finalizer is required, so a resource created for one call cannot be declared without saying how it is closed; a declaration that omits it fails at registration. The boundary opens a created resource before the run and calls the finalizer after it — on success, on failure and on cancellation alike.
+- **`PostgresResource` can be closed, and the SQL contract gained `close()`.** The method has a harmless default body, so a resource that holds no connection of its own — a stub, a test double — needs no change; a resource that really holds one gives it back. The nested-operation proxy refuses `close()` and context-manager use along with the transaction commands it already refused.
+- **The constructor now takes one of two sources, and `rollup` is keyword-only.** `PostgresResource(connection_params)` opens its own connection; `PostgresResource(pool=pool)` borrows one per unit of work. Both at once, or neither, raises `ConnectionValidationError` in the constructor.
+- **Closing with a transaction still open is now reported.** The connection used to be returned with the transaction left to the driver's own reset, and nothing was said. Now the transaction is ended, the connection returned, and `TransactionLeftOpenError` raised.
+
 ### Added
 
+- **`PoolProtocol` — the shape of a pool the resources rely on.** Acquire with an optional wait, release, close — satisfied by the driver's own pool as it is. A resource is annotated with this protocol rather than with a driver class, so the pool can be substituted and a demo or a test runs without the driver installed.
+- **`connection_scope(connections)` — the lifecycle at the boundary.** It opens what a route created for this call, yields the mapping the machine expects, and finalizes exactly once on every path out of the run. A closing failure is reported rather than swallowed, and a cancellation stays a cancellation.
+- **`build(lifespan=...)` on both adapters.** `FastApiAdapter` and `McpAdapter` now accept the application's startup and shutdown hook and hand it to their framework untouched, so a service can create its pool at startup and close it at shutdown. An MCP service has no request-scoped startup hook, but its server has one.
+- **`aoa-demo[postgres]`, and an identity domain that shows the pattern end to end.** The demo's identity store reads a person and records a login inside its own transaction. With no database description it falls back to an in-memory store, so the demo still installs, imports and answers without the driver. ([#215](https://github.com/bystrovmaxim/aoa/issues/215) · [aoa-demo CHANGELOG](../aoa-demo/CHANGELOG.md))
 - **Entity specialization.** An entity can now link to one of several kinds of details: for example, an event can contain move details or assignment details. The model declares a code for each alternative and its link back to the common entity; building checks these declarations. Details can remain unloaded. Loading them and checking that their contents match the selected code remain the application’s responsibility. ([#199](https://github.com/bystrovmaxim/aoa/issues/199))
 
 - **Access-control cascade: `grant`/`guard=` on `@check_roles`, `access_decide`, and `machine.check_access_decide`.** Authorization now has three levels, each able to deny before the next runs. Level 1 (role) gains `grant(role, when=...)` — a role paired with its own optional condition on the caller, tried in declaration order with `any()` semantics; a bare role stays the permanent shorthand for "no condition", freely mixable with `grant(...)` instances. Level 2 is a new `guard=` keyword on `@check_roles` — one condition shared by every grant, evaluated after a grant wins, seeing both the caller and the call's params (`guard(user, params)`), unlike `grant.when=(user)`. Level 3 is `BaseAction.access_decide(self, params, context, box, connections) -> bool` — an object-level fact check (e.g. "is this the caller's own order"), defaulting to `True`; it runs on every `machine.run()` call, after the same role/guard gate. `grant.when=`/`guard=` must be synchronous and return `bool`; an `async def` raises `AccessConditionAsyncError` at class definition, not at runtime. Denial at any of the three levels is `AuthorizationError` with a `level` attribute (`1`/`2`/`3`) identifying which gate rejected the call; like existing role denials, it flies past `@on_error`/the saga untouched, since all three gates run before the aspect pipeline starts. Finally, `machine.check_access_decide(context, action, params=None, *, connections=None) -> AccessVerdict` (and its list-of-`(action, params)` overload, returning `list[AccessVerdict]`) asks "would this be allowed?" without running the operation — no pipeline, cache, or plugin events; a denial becomes `AccessVerdict(allowed=False, level=..., reason=...)` instead of an exception. The list form is the primitive (one throwaway `ToolsBox` per item, one item's failure never affecting the others); the single-action form recurses into it. The list form is capped by the new `max_check_access_decide_batch_size` constructor parameter on `ActionProductMachine` (default 100), rejecting an oversized list with `CheckAccessDecideBatchSizeExceededError` before touching a single item. ([#65](https://github.com/bystrovmaxim/aoa/issues/65))
+
+### Changed
+
+- **The examples and notebooks show both halves of the pair, and a pool.** `step_17_connections` and `step_19_resource` end with a resource created per call over a pool that lives for the process, printing the pool's state before the call, after it, and after shutdown. The custom-adapter and cookie-auth examples apply the lifecycle through `connection_scope` instead of the flat resolution step, which no longer opens or closes anything.
+
+### Documentation
+
+- **The connections chapter shows the whole pattern.** [Step 17](../../docs/tutorials/step-17-connections.md) states the pair, retires the claim that a per-call declaration guarantees a fresh instance — the factory may return a shared object, and what the pair guarantees is closing — and adds a section on a long-lived pool behind a per-call resource: the startup hook, the holder, the three cases of who opens and who closes, and the exercises.
+- **The PostgreSQL page covers the pool.** [PostgreSQL](../../docs/extensions/postgresql.md) now describes both ways to build a resource, who opens and closes it, the transaction on the held connection, the driver's real pool API, and where each bound is stated.
 
 ## [1.0.1a2] – 2026-07-11
 

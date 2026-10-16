@@ -1,32 +1,13 @@
-"""
-01_connections.py — Supply a @connection at the adapter boundary (two modes)
+"""A ready resource is shared.
 
-An operation declares the open resources it needs with @connection; the adapter
-supplies them per request through the keyword-only `connections=` argument on a
-route (FastAPI) or tool (MCP). There are exactly two modes for a connection value:
+Start with two HTTP calls to one route. The resource is constructed before the route is registered.
 
-  1. a ready BaseResource     -> the SAME instance is reused on every request
-                                 (app-scoped: pool, client, in-memory store)
-  2. PerCallConnection(factory)-> factory() runs on EVERY request -> a FRESH
-                                 instance per request (per-request lifetime)
-
-The adapter calls resolve_connections(...) before machine.run, so the operation
-just reads connections["ledger"] — it never sees how the resource was supplied.
-
-This example uses FastAPI's in-process TestClient; the same `connections=`
-argument exists on McpAdapter.tool(...).
-
-Tutorial: ../../docs/tutorials/step-17-connections_draft.md  ·  topic: connections at the boundary
-
-Run:
-    uv run python examples/step_17_connections/01_connections.py
+Run: uv run python examples/step_17_connections/01_connections.py
 """
 
-import itertools
-
+import asyncio
 from fastapi.testclient import TestClient
 from pydantic import Field
-
 from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -40,80 +21,65 @@ from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
 
+class CounterDomain(BaseDomain):
+    """Group this example's resource and action."""
+    name = "counter"
+    description = "Counter example"
 
-class LedgerDomain(BaseDomain):
-    name = "ledger"
-    description = "Ledger domain"
+class EmptyParams(BaseParams):
+    """No input fields are needed for this case."""
 
-
-@meta(description="In-memory ledger resource", domain=LedgerDomain)
-class LedgerResource(BaseResource):
-    """A stand-in open resource that remembers which instance handled the call."""
-
-    _counter = itertools.count(1)
-
-    def __init__(self) -> None:
-        self.instance_id = next(LedgerResource._counter)
-        self.entries: list[str] = []
-
-    def get_wrapper_class(self):  # None -> direct pass-through into nested actions
+@meta(description="Count calls in memory", domain=CounterDomain)
+class CounterResource(BaseResource):
+    """Keep a count and record lifecycle events."""
+    def __init__(self, events):
+        """Start with an empty count."""
+        self.count = 0
+        self.events = events
+    def get_wrapper_class(self):
+        """Allow direct use of this in-memory counter."""
         return None
+    async def open(self):
+        """Record opening without resetting the count."""
+        self.events.append("open")
+    async def close(self):
+        """Record cleanup without acquiring external handles."""
+        self.events.append("close")
 
-    def record(self, note: str) -> None:
-        self.entries.append(note)
+class CountResult(BaseResult):
+    """Expose the count reached by one call."""
+    count: int = Field(description="Number of calls seen by this resource")
 
-
-class RecordParams(BaseParams):
-    note: str = Field(description="Entry to append")
-
-
-class RecordResult(BaseResult):
-    ledger_id: int = Field(description="Which LedgerResource instance handled the request")
-    entries: int = Field(description="How many entries that instance now holds")
-
-
-@meta(description="Append an entry to the ledger", domain=LedgerDomain)
+@meta(description="Increment the supplied counter", domain=CounterDomain)
 @check_roles(GuestRole)
-@connection(LedgerResource, key="ledger")
-class RecordAction(BaseAction[RecordParams, RecordResult]):
-
-    @summary_aspect("Record entry")
-    async def record_summary(self, params, state, box, connections):
-        ledger = connections["ledger"]            # read the supplied resource by key
-        ledger.record(params.note)
-        return RecordResult(ledger_id=ledger.instance_id, entries=len(ledger.entries))
-
-
-def build_app():
-    machine = ActionProductMachine()
-    shared_ledger = LedgerResource()              # built ONCE, at app-build time (instance #1)
-    return (
-        FastApiAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), title="Ledger API")
-        # Mode 1: one ready resource, reused on every request to this route
-        .post("/record/shared", RecordAction, connections={"ledger": shared_ledger})
-        # Mode 2: a factory that runs per request, plus the finalizer that closes what it made
-        .post("/record/percall", RecordAction,
-              connections={"ledger": PerCallConnection(
-                  factory=lambda: LedgerResource(),
-                  finalize=lambda ledger: None,  # an in-memory stand-in holds nothing to release
-              )})
-        .build()
-    )
+@connection(CounterResource, key="counter")
+class CountAction(BaseAction[EmptyParams, CountResult]):
+    """Increment the supplied resource once."""
+    @summary_aspect("Count one call")
+    async def count_summary(self, params, state, box, connections):
+        """Return the updated count."""
+        counter = connections["counter"]
+        counter.count += 1
+        return CountResult(count=counter.count)
 
 
-def main() -> None:
-    client = TestClient(build_app())
-
-    print("Mode 1 — ready BaseResource (shared, one instance):")
-    for i in (1, 2):
-        r = client.post("/record/shared", json={"note": f"call-{i}"})
-        print(f"  POST /record/shared  call {i} -> {r.json()}")
-
-    print("\nMode 2 — PerCallConnection (factory per request):")
-    for i in (1, 2):
-        r = client.post("/record/percall", json={"note": f"call-{i}"})
-        print(f"  POST /record/percall call {i} -> {r.json()}")
+async def main():
+    """Run this case and verify its observable result."""
+    events = []
+    declaration = CounterResource(events)
+    app = (FastApiAdapter(machine=ActionProductMachine(loggers=[]),
+             auth_coordinator=NoAuthCoordinator(context=Context()))
+           .post("/count", CountAction, connections={"counter": declaration})
+           .build())
+    with TestClient(app) as client:
+        responses = [client.post("/count", json={}) for _ in range(2)]
+    assert [r.status_code for r in responses] == [200, 200]
+    assert [r.json()["count"] for r in responses] == [1, 2]
+    for response in responses:
+        print(response.json())
+    assert events == []
+    print("lifecycle:", events)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

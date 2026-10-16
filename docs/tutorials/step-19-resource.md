@@ -1,151 +1,361 @@
-<!-- translated-from: step-19-resource_draft.md @ 2026-06-17T17:53:37Z · sha256:2aed491d0e4e -->
-<p align="center">
-  <img src="../assets/aoa-logo.png" alt="AOA" width="200">
-</p>
+# Step 19 — Resource: access to the outside world
 
-# Step 19 — Resource: pure transport
+[← Schema converters](step-18-converters.md) · [Contents](../index.md) · [Entity →](step-20-entity.md)
 
-<table width="100%"><tr>
-  <td align="left"><a href="step-18-converters.md">← Step 18 — Schema converters</a></td>
-  <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-20-entity.md">Step 20 — Entity →</a></td>
-</tr></table>
+An action describes what the application is trying to do. A resource supplies the
+means to read or change an external system: a database, an API, a queue or a file.
+For example, reserving stock involves both a decision and data access. The action
+decides whether the requested quantity may be reserved. The resource reads the
+current quantity and performs the storage operation.
 
-- [Two different beings](#two-different-beings)
-- [A Resource is transport only](#a-resource-is-transport-only)
-- [The BaseResource contract](#the-baseresource-contract)
-- [A wrapper for nested operations](#a-wrapper-for-nested-operations)
-- [How an operation gets a resource](#how-an-operation-gets-a-resource)
-- [Rollup: checking against production data](#rollup-checking-against-production-data)
-- [Invariants](#invariants)
-- [Review questions](#review-questions)
-
----
-
-The **Service** part taught how to publish an operation outward. The **Data model** part answers a different question: how to describe the domain — its boundary with the external world, entities, relations, lifecycle — without tying yourself to tables and an ORM. It all starts at the boundary, and the first hero here is the `Resource`.
-
-In an ordinary project data access lives in services and repositories. Over time business logic seeps in: first a small check, then a calculation, then a conditional rollback — and the line between "fetch data" and "make a decision" blurs. AOA breaks this cycle firmly: the system has **two different beings**, and mixing them is not allowed.
-
-[▶ Try in Colab](https://drive.google.com/file/d/1sV6LHId4MRH7I3Pg_-XwD3nf1uD5XCmZ/view?usp=drive_link) · [Open in project](../../examples/step_19_resource/01_resource.py)
-
-The full domain picture (entities, relations, lifecycle, and resource together): [▶ Try in Colab](https://drive.google.com/file/d/10H7oiSPR7d9rtJask9ccCzqDKSa4H9wQ/view?usp=drive_link) · [Open in project](../../examples/domain_model/01_domain_model.py)
-
----
-
-## Two different beings
-
-- **`Action`** — an operation **without memory**. Every call starts from a clean slate; everything needed arrives through [`Params`](step-01-action-and-pipeline.md), `state`, and dependencies. Nothing is kept between calls. `Action` holds the **decisions**.
-- **`Resource`** — an adapter with **long-lived state**. A database connection cannot be recreated on every request; a pool of HTTP clients lives as long as the application does. This state exists between calls — so it cannot be part of an `Action`. `Resource` holds the **transport**.
-
-**The golden rule:** state lives longer than one call — it is a `Resource`; state lives only inside a call — it is an `Action`.
-
-## A Resource is transport only
-
-A `Resource` contains exactly one thing: transport. Open a connection, run a query, return the result. No business rules. If an `if` based on a business condition appears inside a resource — that `if` is out of place; its place is in the operation.
-
-In the example this is literal: `InventoryResource` can only `get_stock` and `take` — read and deduct. The **decision** "is there enough stock, reserve or refuse" is made by the operation:
-
-```python
-@summary_aspect("Reserve if enough stock")
-async def reserve_summary(self, params, state, box, connections):
-    inventory = connections["inventory"]            # transport
-    available = await inventory.get_stock(params.sku)
-    if available < params.qty:                       # the decision — in the operation
-        return ReserveResult(reserved=False, remaining=available)
-    await inventory.take(params.sku, params.qty)
-    return ReserveResult(reserved=True, remaining=available - params.qty)
-```
-
-The resource answers the question "**how** to fetch", the operation — "**what** to do with it". This is exactly the clean port of hexagonal architecture: it knows the language of the external world but speaks to the operation in the language of the domain.
+This distinction is about responsibility, not duration. A resource may exist for
+one request and own one connection. A different resource may wrap a shared client
+for the life of the service. Calling every resource “long-lived” would hide the
+per-call ownership introduced in [Step 17](step-17-connections.md).
 
 ## The BaseResource contract
 
-A resource subclasses `BaseResource` and must declare two things:
+A concrete resource participating in the model supplies metadata with
+`@meta(description=..., domain=...)` and implements `get_wrapper_class()`.
+The metadata places it in the domain graph. The wrapper method says what a nested
+action receives: `None` means the object may pass through directly; a class means
+the runtime constructs that restricted view around the resource.
 
-- **`@meta(description=, domain=)`** — like an operation, a description and a domain (needed by the system graph; without them the graph build fails);
-- **`get_wrapper_class()`** — an abstract method: returns a wrapper class for passing into nested operations, or `None` when direct pass-through is safe.
+`BaseResource` itself does not require open or close. Add them when your
+implementation has something to acquire and release. The SQL family defines both;
+a SQL resource that owns a real connection must implement meaningful cleanup.
+
+## The resource stores; the action decides
+
+The following complete example is deliberately sequential and in memory. It
+teaches the division of responsibilities, not a production stock-reservation
+algorithm. Concurrent reservations require an atomic database update or appropriate
+locking; separate connections alone do not prevent overselling.
+
+## The action decides; the resource stores
+
+Use an in-memory store so the only topic is the division between storage and the business decision.
+
+[Python](../../examples/step_19_resource/01_resource.py) · [Notebook](../../examples/step_19_resource/01_resource.ipynb)
 
 ```python
+import asyncio
+from fastapi.testclient import TestClient
+from pydantic import Field
+from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
+from aoa.action_machine.context import Context
+from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.connection import connection
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.per_call_connection import PerCallConnection
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.fastapi import FastApiAdapter
+
+class WarehouseDomain(BaseDomain):
+    """Group the inventory example."""
+    name = "warehouse"
+    description = "Warehouse domain"
+
+
+# ── Resource: transport only — read and write stock, no decisions ────────────
 @meta(description="In-memory inventory store (transport only)", domain=WarehouseDomain)
 class InventoryResource(BaseResource):
-    def __init__(self, stock=None):
-        self._stock = dict(stock or {})
+
+    """Read and update the supplied inventory."""
+    def __init__(self, stock: dict[str, int] | None = None) -> None:
+        """Initialize this example object."""
+        self._stock: dict[str, int] = dict(stock or {})
 
     def get_wrapper_class(self) -> type[BaseResource] | None:
-        return None          # in-memory: direct pass-through
+        """Choose the view supplied to child actions."""
+        return None  # in-memory: direct pass-through; a SQL resource would return a wrapper
+
+    async def get_stock(self, sku: str) -> int:
+        """Read the available quantity."""
+        return self._stock.get(sku, 0)
+
+    async def take(self, sku: str, qty: int) -> None:
+        """Subtract the supplied quantity."""
+        self._stock[sku] = self._stock.get(sku, 0) - qty
+
+
+class ReserveParams(BaseParams):
+    """Describe the requested reservation."""
+    sku: str = Field(description="Product code")
+    qty: int = Field(gt=0, description="Quantity to reserve")
+
+
+class ReserveResult(BaseResult):
+    """Report the reservation decision."""
+    reserved: bool = Field(description="Whether the reservation succeeded")
+    remaining: int = Field(description="Stock left for this SKU")
+
+
+@meta(description="Reserve stock for a SKU", domain=WarehouseDomain)
+@check_roles(GuestRole)
+@connection(InventoryResource, key="inventory")
+class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
+
+    """Decide whether the requested stock is available."""
+
+    @summary_aspect("Reserve if enough stock")
+    async def reserve_summary(self, params, state, box, connections):
+        """Reserve only when enough stock is available."""
+        inventory = connections["inventory"]          # transport, supplied per request
+        available = await inventory.get_stock(params.sku)
+        # The DECISION lives here, in the Action — not in the Resource.
+        if available < params.qty:
+            return ReserveResult(reserved=False, remaining=available)
+        await inventory.take(params.sku, params.qty)
+        return ReserveResult(reserved=True, remaining=available - params.qty)
+
+
+async def main():
+    """Run this case and verify its observable result."""
+    inventory = InventoryResource(stock={"sku-1": 10})
+    result = await ActionProductMachine(loggers=[]).run(
+        Context(), ReserveStockAction(), ReserveParams(sku="sku-1", qty=3),
+        connections={"inventory": inventory},
+    )
+    assert result.model_dump() == {'reserved': True, 'remaining': 7}
+    print(result.model_dump())
+    assert await inventory.get_stock("sku-1") == 7
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-## A wrapper for nested operations
+Observed output:
 
-Why a wrapper at all? When an operation calls a nested one through `box.run`, the resource is passed along. But the nested operation **must not** control someone else's transaction — otherwise it could commit or roll back data it does not own. We already saw this boundary in the chapters on [dependencies](step-06-dependencies.md) and [connections](step-17-connections.md); here is its source.
+```text
+{'reserved': True, 'remaining': 7}
+```
 
-A transactional resource is shaped as a trio **Protocol → manager → wrapper**: the wrapper implements the same protocol, delegates `execute`, but raises `TransactionProhibitedError` on `open/begin/commit/rollback`. The root operation owns the transaction; nested ones only run statements. `get_wrapper_class()` returns this wrapper class (and the wrapper returns it again — for deeper nesting). For an in-memory or stateless resource there is no transaction, so `None` — direct pass-through. The full template is in the [«Custom resource»](../index.md#how-to-write-your-own-extension) extension point.
+The resource reads and updates stock; ReserveStockAction decides whether the requested quantity is available. This sequential in-memory lesson does not implement concurrent stock reservation; real storage needs an atomic update or suitable locking.
+
+## Insufficient stock is a business refusal
+
+Use an in-memory store so the only topic is the division between storage and the business decision.
+
+[Python](../../examples/step_19_resource/02_refusal.py) · [Notebook](../../examples/step_19_resource/02_refusal.ipynb)
+
+The following is the body of `main()` from the standalone example; the linked files include every definition and import.
+
+```python
+inventory = InventoryResource(stock={"sku-1": 10})
+result = await ActionProductMachine(loggers=[]).run(
+    Context(), ReserveStockAction(), ReserveParams(sku="sku-1", qty=11),
+    connections={"inventory": inventory},
+)
+assert result.model_dump() == {'reserved': False, 'remaining': 10}
+print(result.model_dump())
+assert await inventory.get_stock("sku-1") == 10
+```
+
+Observed output:
+
+```text
+{'reserved': False, 'remaining': 10}
+```
+
+The resource reads and updates stock; ReserveStockAction decides whether the requested quantity is available. This sequential in-memory lesson does not implement concurrent stock reservation; real storage needs an atomic update or suitable locking.
+
+## The same action can use an empty store
+
+Use an in-memory store so the only topic is the division between storage and the business decision.
+
+[Python](../../examples/step_19_resource/03_substitution.py) · [Notebook](../../examples/step_19_resource/03_substitution.ipynb)
+
+The following is the body of `main()` from the standalone example; the linked files include every definition and import.
+
+```python
+inventory = InventoryResource(stock={"sku-1": 0})
+result = await ActionProductMachine(loggers=[]).run(
+    Context(), ReserveStockAction(), ReserveParams(sku="sku-1", qty=1),
+    connections={"inventory": inventory},
+)
+assert result.model_dump() == {'reserved': False, 'remaining': 0}
+print(result.model_dump())
+assert await inventory.get_stock("sku-1") == 0
+```
+
+Observed output:
+
+```text
+{'reserved': False, 'remaining': 0}
+```
+
+The resource reads and updates stock; ReserveStockAction decides whether the requested quantity is available. This sequential in-memory lesson does not implement concurrent stock reservation; real storage needs an atomic update or suitable locking.
 
 ## How an operation gets a resource
 
-A resource reaches an operation by two paths, both familiar from the [dependencies](step-06-dependencies.md) chapter:
+With `@connection(ResourceClass, key="inventory")`, the action declares an object
+that the caller supplies. An aspect reads it from `connections["inventory"]`.
+For a service, the route or tool declares how that object is obtained and finalized.
+For a manual `machine.run`, the caller must supply a usable object and manage its
+lifetime, optionally through `connection_scope`.
 
-- **`@connection`** — an already-open resource the operations are **handed** (a connection, pool, shared store). The aspect reads it from `connections["key"]`, and the adapter supplies it at the boundary ([in two modes](step-17-connections.md)).
-- **`@depends`** — a resource the machine **creates** with a factory on demand; the aspect takes it via `await box.resolve(...)`.
+A resource can also be declared with `@depends` and obtained through
+`await box.resolve(...)`. That is dependency construction, a separate mechanism
+from a route's `PerCallConnection`. Do not assume that choosing a dependency factory
+also applies the route's finalizer; choose an explicit owner for external handles.
+See [dependencies](step-06-dependencies.md) for that mechanism.
 
-In both cases the operation stays clean and **testable**: to test it, you swap the resource — give the same operation a different store. The example shows exactly this: one `ReserveStockAction`, different resources.
+## A wrapper for nested operations
 
-**Run:**
+A **nested operation** is an action invoked by another action through `box.run`.
+The parent may pass its open resources to the child. The runtime asks each resource
+for its wrapper class before passing it on. This allows the child to execute work
+without gaining the right to end the parent's transaction or return its connection.
 
-```bash
-uv run python examples/step_19_resource/01_resource.py
+The SQL wrapper supports execute, but refuses open, begin, commit, rollback and
+close with `TransactionProhibitedError`; entering or exiting it as an asynchronous
+context manager is also refused. It does not expose acquire. These restrictions
+apply to the wrapper, not to the resource owner.
+
+The next three examples construct the wrapper directly to isolate each rule.
+They use the recording connection from the PostgreSQL examples, not a live database.
+The last example calls `box.run` and verifies that the runtime supplies the wrapper.
+
+## A wrapper can execute a statement
+
+Construct the same SQL wrapper the runtime supplies to a nested action. The parent still owns the underlying connection.
+
+[Python](../../examples/step_19_resource/04_wrapper_execute.py) · [Notebook](../../examples/step_19_resource/04_wrapper_execute.ipynb)
+
+The following is the body of `main()` from the standalone example; the linked files include every definition and import.
+
+```python
+pool = RecordingPool()
+owner = PostgresResource(pool=pool)
+await owner.open()
+child_view = WrapperSqlResource(owner)
+assert isinstance(child_view, ProtocolSqlResource)
+result = await child_view.execute("SELECT 1")
+assert result == "OK"
+print(result)
+assert len(pool.held) == 1
+await owner.close()
+await pool.close()
 ```
 
-**Output:**
+Observed output:
 
 ```text
-Real inventory (sku-1: 10 in stock):
-  reserve 3   -> reserved=True, remaining=7
-  reserve 99  -> reserved=False, remaining=7
-
-Swapped resource (empty store, same Action):
-  reserve 1   -> reserved=False, remaining=0
+OK
 ```
 
-The "reserve or refuse" decision is the same — only the store behind the resource changes. Changing storage (in-memory → PostgreSQL) means rewriting only the resource; the operation logic is untouched, and `Entity` stays a stable contract between layers.
+The wrapper forwards execute to the owner. This demonstrates the wrapper contract directly; the nested-action example below demonstrates automatic wrapping through box.run.
 
-## Rollup: checking against production data
+## A child cannot close its parent’s connection
 
-A resource can declare that it supports **rollup** — a mode where writes run in a transaction, but at the commit stage a rollback is performed instead of persisting. This lets you run a scenario against the production schema while saving nothing. By default `check_rollup_support()` raises `RollupNotSupportedError`; resources that can do it (SQL ones, for example) override the method and return `True`. In detail — in the [Testing](../index.md#vi-testing) part *(soon)*.
+A wrapper grants permission to use a connection, not to manage its lifetime.
 
-## Invariants
+[Python](../../examples/step_19_resource/05_wrapper_close.py) · [Notebook](../../examples/step_19_resource/05_wrapper_close.ipynb)
 
-- **Two beings.** A memoryless `Action` holds decisions; a `Resource` with long-lived state holds transport. State outliving the call → `Resource`.
-- **Transport only.** No business rules in a resource; the decision is in the operation.
-- **The contract.** `BaseResource` requires `@meta` and `get_wrapper_class()` (`None` — direct pass-through).
-- **The wrapper protects the transaction.** Nested operations run statements but do not control someone else's transaction (`TransactionProhibitedError`).
-- **Swap to test.** An operation gets a resource via `@connection`/`@depends` and is tested by swapping the resource, without touching the logic.
+The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
-The full list is in [Intents and invariants](../reference/intents-and-invariants.md); the terms are in the [Glossary](../reference/glossary.md).
+```python
+pool = RecordingPool()
+owner = PostgresResource(pool=pool)
+await owner.open()
+child_view = WrapperSqlResource(owner)
+try:
+    await child_view.close()
+except TransactionProhibitedError as error:
+    print(type(error).__name__)
+else:
+    raise AssertionError("The wrapper allowed lifecycle control")
+assert len(pool.held) == 1
+print("owner still holds connection:", len(pool.held) == 1)
+await owner.close()
+await pool.close()
+```
 
-## Summary
+Observed output:
 
-A `Resource` is pure transport with long-lived state, strictly separated from the `Action`: the latter holds decisions, the resource holds access to the external world. It subclasses `BaseResource`, declares `@meta` and `get_wrapper_class()`, and in nested calls is wrapped so it cannot control someone else's transaction. An operation gets a resource via `@connection` or `@depends` and stays testable by swapping the resource. This separation is what makes the rest possible: storage changes without touching the logic, and `Entity` serves as the contract between layers.
+```text
+TransactionProhibitedError
+owner still holds connection: True
+```
 
-Next — **[Entity](step-20-entity.md)**: a domain object independent of storage, which the resource hydrates and the operation reads.
+The refusal happens before the owner is touched. The parent can continue using the connection and remains responsible for ending its transaction. The outer scope later releases the resource.
 
----
+## A child cannot enter the owner’s lifecycle
 
-## Review questions
+A wrapper grants permission to use a connection, not to manage its lifetime.
 
-1. State the golden rule for choosing between `Action` and `Resource`. Why can a database connection not be part of an `Action`?
-2. What does a `Resource` contain, and what should not be in it? Where would a business `if` be "out of place"?
-3. Which two things must a `BaseResource` subclass declare?
-4. Why is a resource wrapper needed, and what does it forbid nested operations? What does `get_wrapper_class()` do?
-5. By which two ways does an operation get a resource, and how do they differ?
-6. How does the `Action`/`Resource` separation make an operation testable without a real database?
+[Python](../../examples/step_19_resource/06_wrapper_context.py) · [Notebook](../../examples/step_19_resource/06_wrapper_context.ipynb)
 
-> **Exercise.** In [01_resource.py](../../examples/step_19_resource/01_resource.py) add a `restock(sku, qty)` method to `InventoryResource` and a `RestockAction` that calls it — confirm the resource still has no business `if`. Then move the check "you can't reserve more than the stock" inside the resource and explain why this breaks the separation and what it threatens a year from now.
+The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
----
+```python
+pool = RecordingPool()
+owner = PostgresResource(pool=pool)
+await owner.open()
+child_view = WrapperSqlResource(owner)
+try:
+    async with child_view:
+       raise AssertionError("The context must not open")
+except TransactionProhibitedError as error:
+    print(type(error).__name__)
+else:
+    raise AssertionError("The wrapper allowed lifecycle control")
+assert len(pool.held) == 1
+print("owner still holds connection:", len(pool.held) == 1)
+await owner.close()
+await pool.close()
+```
 
-<table width="100%"><tr>
-  <td align="left"><a href="step-18-converters.md">← Step 18 — Schema converters</a></td>
-  <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-20-entity.md">Step 20 — Entity →</a></td>
-</tr></table>
+Observed output:
+
+```text
+TransactionProhibitedError
+owner still holds connection: True
+```
+
+The refusal happens before the owner is touched. The parent can continue using the connection and remains responsible for ending its transaction. The outer scope later releases the resource.
+
+## A real nested action receives a restricted view
+
+Let the machine create the wrapper through box.run. The child asks to close the resource and catches the explicit refusal.
+
+[Python](../../examples/step_19_resource/07_nested_action.py) · [Notebook](../../examples/step_19_resource/07_nested_action.ipynb)
+
+The following is the body of `main()` from the standalone example; the linked files include every definition and import.
+
+```python
+pool = RecordingPool()
+async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
+    result = await ActionProductMachine(loggers=[]).run(Context(), ParentAction(), EmptyParams(), connections)
+    assert result.status == "TransactionProhibitedError"
+    assert len(pool.held) == 1
+    print(result.model_dump())
+assert not pool.held
+await pool.close()
+```
+
+Observed output:
+
+```text
+{'status': 'TransactionProhibitedError'}
+```
+
+The child received a wrapper automatically; the outer call still owned the connection after the child finished. Closing it is the finalizer’s job, after the parent run leaves the scope.
+
+## Rollup and ownership
+
+Rollup means that an explicit SQL transaction executes its work but rolls back at
+commit. `PostgresResource(…, rollup=True)` implements that behavior; a generic
+BaseResource does not promise it. It is useful for exercising transactional SQL,
+but it does not undo external side effects. See the [isolated rollup example](../../examples/extensions/postgresql/07_rollup.ipynb).
+
+When writing a resource, answer three questions: what access does it provide, who
+owns its lifetime, and what may a child do through its wrapper? The answers need
+not change the business action. The [authoring guide](../how-to/authoring-resource.md)
+turns those decisions into an implementation.
