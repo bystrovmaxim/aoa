@@ -81,7 +81,7 @@ ARCHITECTURE / DATA FLOW
                 └── WrapperSqlResource (proxy)
                         __init__(connection_manager)
                         rollup read from inner (delegation)
-                        begin/open/commit/rollback prohibited
+                        begin/open/commit/rollback/close prohibited
 
 """
 

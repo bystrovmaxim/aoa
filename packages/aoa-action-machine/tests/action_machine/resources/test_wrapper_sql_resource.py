@@ -176,6 +176,10 @@ class TestConstructor:
         assert isinstance(wrapper, ProtocolSqlResource)
         assert not isinstance(wrapper, SqlResource)
 
+    def test_acquire_is_not_exposed(self, wrapper: WrapperSqlResource) -> None:
+        """A nested action has no way to take a connection of its own from the proxy."""
+        assert not hasattr(wrapper, "acquire")
+
 
 # ======================================================================
 # TESTS: Transaction prohibition
@@ -196,6 +200,19 @@ class TestTransactionProhibited:
         """commit() raises TransactionProhibitedError."""
         with pytest.raises(TransactionProhibitedError, match="commit is unavailable"):
             await wrapper.commit()
+
+    @pytest.mark.anyio
+    async def test_close_raises_prohibited(self, wrapper: WrapperSqlResource) -> None:
+        """close() raises TransactionProhibitedError: a nested action does not close what it does not own."""
+        with pytest.raises(TransactionProhibitedError, match="close is unavailable"):
+            await wrapper.close()
+
+    @pytest.mark.anyio
+    async def test_context_manager_is_refused(self, wrapper: WrapperSqlResource) -> None:
+        """Entering the proxy as a context manager is refused, on both sides."""
+        with pytest.raises(TransactionProhibitedError, match="context manager is unavailable"):
+            async with wrapper:
+                pass
 
     @pytest.mark.anyio
     async def test_rollback_raises_prohibited(self, wrapper: WrapperSqlResource) -> None:

@@ -9,8 +9,13 @@ PURPOSE
 ``WrapperSqlResource`` wraps a manager that implements ``ProtocolSqlResource``.
 It is created when connections are propagated to child actions via
 ``ToolsBox.run()``. The wrapper forbids lifecycle operations
-(``open``, ``begin``, ``commit``, ``rollback``) for nested actions, but allows
-query execution via ``execute``.
+(``open``, ``begin``, ``commit``, ``rollback``, ``close``) and context-manager
+use for nested actions, but allows query execution via ``execute``.
+
+``close`` is on that list for the same reason as ``begin``: the connection
+belongs to the action that created the resource, and a nested action that closed
+it would take the owner's connection out from under it. No ``acquire`` is
+exposed either — a nested action has no way to take a connection of its own.
 
 ``rollup`` is not stored on the wrapper: reads delegate to the wrapped manager.
 
@@ -28,12 +33,14 @@ ARCHITECTURE / DATA FLOW
     ProtocolSqlResource (real manager, e.g. Postgres)
         │
         └── WrapperSqlResource (BaseResource + Protocol)
-                open/begin/commit/rollback -> TransactionProhibitedError
+                open/begin/commit/rollback/close -> TransactionProhibitedError
+                async with                          -> TransactionProhibitedError
                 execute() -> delegates to inner
                 rollup -> delegates to inner
 
 """
 
+from types import TracebackType
 from typing import Any
 
 from aoa.action_machine.exceptions.handle_error import HandleError
@@ -92,6 +99,35 @@ class WrapperSqlResource(BaseStorage, ProtocolSqlResource):
         raise TransactionProhibitedError(
             "Transaction rollback is allowed only in the action that created the resource. "
             "Current action received a proxy connection, so rollback is unavailable."
+        )
+
+    async def close(self) -> None:
+        """Forbid closing the connection from nested action scope."""
+        raise TransactionProhibitedError(
+            "Closing the connection is allowed only in the action that created the resource. "
+            "Current action received a proxy connection, so close is unavailable."
+        )
+
+    async def __aenter__(self) -> "WrapperSqlResource":
+        """Forbid entering the connection as a context manager from nested action scope."""
+        raise TransactionProhibitedError(self._context_manager_refusal())
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,  # noqa: V107 - the protocol's parameter; a refusal never reads it
+    ) -> None:
+        """Forbid leaving the connection as a context manager from nested action scope."""
+        raise TransactionProhibitedError(self._context_manager_refusal())
+
+    @staticmethod
+    def _context_manager_refusal() -> str:
+        """The one sentence both context-manager refusals carry."""
+        return (
+            "Entering the connection as a context manager is allowed only in the action that "
+            "created the resource. Current action received a proxy connection, so the context "
+            "manager is unavailable."
         )
 
     async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:

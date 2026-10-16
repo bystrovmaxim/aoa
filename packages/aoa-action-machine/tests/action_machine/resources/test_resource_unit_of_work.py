@@ -48,7 +48,7 @@ import inspect
 
 import pytest
 
-from aoa.action_machine.exceptions import ConnectionValidationError
+from aoa.action_machine.exceptions import ConnectionValidationError, TransactionLeftOpenError
 from aoa.action_machine.resources.postgres.postgres_resource import PostgresResource
 
 from ...support.fake_pool import FakePool, InterfaceError
@@ -236,3 +236,62 @@ async def test_a_cancelled_unit_of_work_still_returns_its_connection() -> None:
     assert pool.held == 0
     assert pool.free == 1
     assert all(not conn.busy for conn in pool.connections)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# FR-044 / SC-023 — closing with a transaction still open fails fast, after cleanup
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+async def test_close_with_a_transaction_open_returns_the_connection_then_raises() -> None:
+    """Rollback, return, and only then the violation — fail-fast never costs a connection."""
+    pool = FakePool(min_size=0, max_size=1, timeout=1.0)
+    resource = PostgresResource(pool=pool)
+    await resource.open()
+    await resource.begin()
+    await resource.execute("INSERT")
+
+    with pytest.raises(TransactionLeftOpenError):
+        await resource.close()
+
+    assert pool.held == 0
+    assert pool.free == 1
+    assert pool.connections[0].operations == ["BEGIN", "INSERT", "ROLLBACK"]
+
+
+async def test_a_second_close_is_silent_and_returns_nothing_twice() -> None:
+    """The resource is empty after the first close, so the second one has nothing to say."""
+    pool = FakePool(min_size=0, max_size=1, timeout=1.0)
+    resource = PostgresResource(pool=pool)
+    await resource.open()
+    await resource.begin()
+
+    with pytest.raises(TransactionLeftOpenError):
+        await resource.close()
+
+    assert await resource.close() is None
+    assert pool.held == 0
+
+
+async def test_a_committed_transaction_leaves_nothing_to_report() -> None:
+    """Committing closes the transaction flag, so closing afterwards is silent."""
+    pool = FakePool(min_size=0, max_size=1, timeout=1.0)
+    resource = PostgresResource(pool=pool)
+    await resource.open()
+    await resource.begin()
+    await resource.commit()
+
+    assert await resource.close() is None
+    assert pool.connections[0].operations == ["BEGIN", "COMMIT"]
+
+
+async def test_a_rollup_commit_closes_the_flag_through_rollback() -> None:
+    """With rollup the commit is a rollback, and it ends the transaction just the same."""
+    pool = FakePool(min_size=0, max_size=1, timeout=1.0)
+    resource = PostgresResource(pool=pool, rollup=True)
+    await resource.open()
+    await resource.begin()
+    await resource.commit()
+
+    assert await resource.close() is None
+    assert pool.connections[0].operations == ["BEGIN", "ROLLBACK"]
