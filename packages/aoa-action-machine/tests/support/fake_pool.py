@@ -154,9 +154,11 @@ class FakePool:
         self.closed = False
         self._free: list[FakeConnection] = []
         self._held: set[FakeConnection] = set()
+        self._all: list[FakeConnection] = []
         self._cond = asyncio.Condition()
         for _ in range(min_size):
             self._free.append(FakeConnection())
+            self._all.append(self._free[-1])
             self.created += 1
 
     @property
@@ -168,6 +170,16 @@ class FakePool:
     def free(self) -> int:
         """How many connections are currently idle in the pool."""
         return len(self._free)
+
+    @property
+    def borrowed(self) -> frozenset[FakeConnection]:
+        """The connections currently borrowed, for assertions about who holds what."""
+        return frozenset(self._held)
+
+    @property
+    def connections(self) -> tuple[FakeConnection, ...]:
+        """Every connection this pool has created, for assertions about what ran where."""
+        return tuple(self._all)
 
     def acquire(self, *, timeout: float | None = None) -> Any:
         """Return an awaitable proxy that yields a connection, waiting up to ``timeout``."""
@@ -184,6 +196,7 @@ class FakePool:
                     conn = self._free.pop()
                 elif self.created < self.max_size:
                     conn = FakeConnection()
+                    self._all.append(conn)
                     self.created += 1
                 else:
                     conn = None
