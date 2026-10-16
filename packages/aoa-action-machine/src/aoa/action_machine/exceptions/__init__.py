@@ -46,12 +46,14 @@ from aoa.action_machine.exceptions.naming_prefix_error import NamingPrefixError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.exceptions.on_error_handler_error import OnErrorHandlerError
 from aoa.action_machine.exceptions.params_graph_edge_resolution_error import ParamsGraphEdgeResolutionError
+from aoa.action_machine.exceptions.resource_contract_violation_error import ResourceContractViolationError
 from aoa.action_machine.exceptions.result_graph_edge_resolution_error import ResultGraphEdgeResolutionError
 from aoa.action_machine.exceptions.role_mode_declaration_error import RoleModeDeclarationError
 from aoa.action_machine.exceptions.role_spec_type_error import RoleSpecTypeError
 from aoa.action_machine.exceptions.rollup_not_supported_error import RollupNotSupportedError
 from aoa.action_machine.exceptions.signature_contract_error import SignatureContractError
 from aoa.action_machine.exceptions.transaction_error import TransactionError
+from aoa.action_machine.exceptions.transaction_left_open_error import TransactionLeftOpenError
 from aoa.action_machine.exceptions.transaction_prohibited_error import TransactionProhibitedError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.exceptions.verdict_contract_error import VerdictContractError
@@ -123,6 +125,7 @@ __all__ = [
     "OnErrorHandlerError",
     "ParamsGraphEdgeResolutionError",
     "ParamsGraphEdgeResolutionError",
+    "ResourceContractViolationError",
     "ResultGraphEdgeResolutionError",
     "ResultGraphEdgeResolutionError",
     "RoleModeDeclarationError",
@@ -132,6 +135,7 @@ __all__ = [
     "SignatureContractError",
     "TransactionError",
     "TransactionError",
+    "TransactionLeftOpenError",
     "TransactionProhibitedError",
     "TransactionProhibitedError",
     "ValidationFieldError",
