@@ -8,7 +8,11 @@ PURPOSE
 
 ``SqlResource`` is an abstract base class for transactional SQL connection
 managers. It defines the contract:
-``open()``, ``begin()``, ``commit()``, ``rollback()``, ``execute()``.
+``open()``, ``begin()``, ``commit()``, ``rollback()``, ``close()``, ``execute()``.
+
+``close()`` is the one lifecycle member with a concrete harmless body: a manager
+that holds no connection of its own — the demo stubs, the test doubles — answers
+it without an edit, and only a driver that really holds one overrides it.
 
 By inheriting ``BaseResource`` it keeps metadata/wrapper contracts and
 rollup capability checks aligned with the resource subsystem.
@@ -136,6 +140,9 @@ class SqlResource(BaseStorage, ProtocolSqlResource, ABC):
     async def rollback(self) -> None:
         """Rollback active transaction."""
         pass
+
+    async def close(self) -> None:
+        """Release the connection this manager holds; harmless when it holds none."""
 
     @abstractmethod
     async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
