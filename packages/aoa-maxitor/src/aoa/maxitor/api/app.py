@@ -33,9 +33,9 @@ from fastapi.staticfiles import StaticFiles
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
+from aoa.maxitor.api.duckdb_graph_holder import DuckDBGraphHolder
 from aoa.maxitor.api.routes.load import router as load_router
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
@@ -70,7 +70,7 @@ def create_app() -> FastAPI:
 
     fastapi_app = FastAPI(title="Maxitor API", lifespan=lifespan)
 
-    duckdb_per_request = PerCallConnection(factory=lambda: fastapi_app.state.duckdb_graph)
+    duckdb_graph = DuckDBGraphHolder(fastapi_app)
 
     fastapi_app.add_middleware(
         CORSMiddleware,
@@ -95,32 +95,32 @@ def create_app() -> FastAPI:
         .get(
             "/list-domains",
             ListDomainsAction,
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .get(
             "/list-entities",
             ListEntitiesAction,
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .get(
             "/list-node-types",
             ListNodeTypesAction,
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .get(
             "/full-graph",
             FullGraphAction,
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .get(
             "/lifecycle-finite-automaton",
             GetLifecycleFiniteAutomatonAction,
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .get(
             "/domain-use-case-diagram",
             GetDomainUseCaseDiagramAction,
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_per_request},
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .build()
     )

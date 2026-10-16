@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Entity specialization in diagrams.** The entity diagram now shows which kinds of details an entity can have: for example, move details or assignment details for an event. Alternatives appear together in a frame, while the field lists their codes and the field that distinguishes them. The frame groups alternatives visually; it does not represent another entity. ([#199](https://github.com/bystrovmaxim/aoa/issues/199))
 
+### Changed
+
+- **The six diagram endpoints declare the one graph they share.** Maxitor keeps one coordinator graph per process — the one `POST /api/load` builds from a service URL — and every diagram endpoint reads it: the domain list, the entity list, the node types, the full graph, the lifecycle automaton and the use-case diagram. That graph is now handed to them as a single shared resource, declared once, instead of as a resource recreated for every request. The declaration and the behaviour finally agree, and a second load still replaces the graph for everyone at once. Once a graph is loaded the endpoints answer exactly what they answered before. Before one is loaded the answers are also unchanged, with a single exception worth knowing: an endpoint that never reads the graph no longer fails merely because nothing is loaded — the entity list asked without a domain filter answers an empty result rather than an error. ([#213](https://github.com/bystrovmaxim/aoa/issues/213))
+
 ## [1.1.6] – 2026-07-11
 
 ### Added
