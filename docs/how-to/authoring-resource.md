@@ -1,142 +1,140 @@
-<!-- translated-from: authoring-resource_draft.md @ 2026-06-20T20:51:23Z (filesystem mtime; draft is gitignored, no git history) · sha256:3700e5e625ef -->
-<p align="center">
-  <img src="../assets/aoa-logo.png" alt="AOA" width="200">
-</p>
+# Write a resource with a clear owner
 
-# Your own resource
+[Contents](../index.md) · [Resource concepts](../tutorials/step-19-resource.md)
 
-<table width="100%"><tr>
-  <td align="left"></td>
-  <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"></td>
-</tr></table>
+Write a resource when an action needs access to a database, an API, a file or another
+external system. Put the business decision in the action and the access mechanism
+in the resource. Its lifetime is a separate choice: a shared client and a per-call
+database session can both be resources.
 
-- [When this is needed](#when-this-is-needed)
-- [The contract: @meta + get_wrapper_class](#the-contract-meta--get_wrapper_class)
-- [Step 1. The manager — pure transport](#step-1-the-manager--pure-transport)
-- [Step 2. A wrapper for nested operations](#step-2-a-wrapper-for-nested-operations)
-- [Step 3. Wiring to an operation](#step-3-wiring-to-an-operation)
-- [Rollup: a run without writing](#rollup-a-run-without-writing)
-- [What is important to know](#what-is-important-to-know)
-- [Verification](#verification)
+## Start with the public contract
 
----
+Subclass `BaseResource`, supply `@meta(description=..., domain=...)`, and implement
+`get_wrapper_class()`. Choose the operations your action needs, such as append or
+read_stock. BaseResource does not prescribe their names and does not require a
+connection lifecycle for a resource that has nothing to acquire.
 
-## When this is needed
+If the resource does acquire a handle, separate construction from acquisition.
+The constructor stores configuration; an asynchronous open acquires the handle;
+close releases it. In a per-call declaration, cleanup may run after open fails,
+so it must tolerate an absent or partially acquired handle. Closing the resource
+must not close a shared application pool or erase the data behind the connection.
 
-A resource is a long-lived **transport** to the external world (a DB, a queue, an API client, a store): open, execute, return. No business rules — decisions live in the operation, the resource answers only "how to fetch". To add a new data source behind the same contract, subclass `BaseResource`. The whole concept — [Step 19 — Resource](../tutorials/step-19-resource.md); here is how to write your own.
+The following complete example gives those responsibilities observable behavior.
+The list stands in for external storage; no database or transaction is simulated.
 
-The full example: [06_custom_resource.py](../../examples/how_to/06_custom_resource.py).
+## A custom resource releases its handle, not its data
 
-## The contract: @meta + get_wrapper_class
+The external storage is represented by a list supplied by the caller. The resource controls access to it for one call.
 
-`BaseResource` (`from aoa.action_machine.resources.base_resource import BaseResource`) requires two things:
-
-- **`@meta(description=, domain=)`** — mandatory (via `MetaIntent`); without it the graph build fails;
-- **`get_wrapper_class() -> type[BaseResource] | None`** — the single abstract method (see [Step 2](#step-2-a-wrapper-for-nested-operations)).
-
-Plus, optionally, `async check_rollup_support() -> bool` (raises `RollupNotSupportedError` by default; see [Rollup](#rollup-a-run-without-writing)). The transport methods themselves (`execute`, `fetch`, `send`, anything) are yours: aspects call them via `connections["key"]`.
-
-## Step 1. The manager — pure transport
-
-The manager owns the connection and the operations over it. Here is an in-memory "ledger" with a transaction:
+[Python](../../examples/how_to/06_custom_resource.py) · [Notebook](../../examples/how_to/06_custom_resource.ipynb)
 
 ```python
-from aoa.action_machine.resources.base_resource import BaseResource
+import asyncio
+from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.connection_scope import connection_scope
+from aoa.action_machine.resources.per_call_connection import PerCallConnection
 
-@meta(description="In-memory ledger (transport only)", domain=LedgerDomain)
-class LedgerResource(BaseResource):
-    def __init__(self) -> None:
-        self._entries: list[str] = []
+class NotesDomain(BaseDomain):
+    """Group the custom resource example."""
+    name = "notes"
+    description = "Notes transport"
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
-        return LedgerWrapper                 # nested operations get the blocking proxy
+@meta(description="Append notes to a supplied store", domain=NotesDomain)
+class NotesResource(BaseResource):
+    """Expose storage access with an explicit usable interval."""
+    def __init__(self, storage, events):
+        """Remember the external storage and lifecycle log."""
+        self.storage = storage
+        self.events = events
+        self.opened = False
+    def get_wrapper_class(self):
+        """Allow direct use of this non-transactional teaching store."""
+        return None
+    async def open(self):
+        """Make the handle usable."""
+        self.opened = True
+        self.events.append("open")
+    async def append(self, note):
+        """Write through the open handle."""
+        if not self.opened:
+            raise RuntimeError("Resource is not open")
+        self.storage.append(note)
+        return len(self.storage)
+    async def close(self):
+        """Release this handle without deleting stored data."""
+        self.opened = False
+        self.events.append("close")
 
-    async def open(self) -> None:    self._entries = []
-    async def execute(self, entry: str) -> int:
-        self._entries.append(entry); return len(self._entries)
-    async def commit(self) -> None:  ...     # commit
-    async def rollback(self) -> None: self._entries = []
+
+async def main():
+    """Run this case and verify its observable result."""
+    storage = []
+    events = []
+    async with connection_scope({"notes": PerCallConnection(
+        lambda: NotesResource(storage, events), lambda resource: resource.close(),
+    )}) as connections:
+        count = await connections["notes"].append("hello")
+        print("written:", count)
+    assert storage == ["hello"]
+    assert events == ["open", "close"]
+    print("stored after close:", storage)
+    print(events)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-## Step 2. A wrapper for nested operations
-
-This is what distinguishes an AOA resource from "a class with methods". When a resource is propagated into a **nested** operation (through `box.run`), the machine substitutes it with `get_wrapper_class()(...)` — so the child code can **use** the resource but not **control** its transaction (the transaction belongs to the root operation). Three forms:
-
-| `get_wrapper_class()` | When | Wrapper behavior |
-|---|---|---|
-| `None` | a simple non-transactional resource | direct pass-through (as in [Step 19](../tutorials/step-19-resource.md)) |
-| a **delegating** wrapper | holds a client/handle (API, SDK) | passes the same `service` deeper, no lifecycle |
-| a **blocking** wrapper | a transactional resource | delegates `execute`, but `open/begin/commit/rollback` → `TransactionProhibitedError` |
-
-A blocking wrapper is also a `BaseResource` with `@meta`; its `get_wrapper_class()` returns itself (the guarantee holds at any depth):
-
-```python
-from aoa.action_machine.exceptions import TransactionProhibitedError
-
-@meta(description="Ledger handle for nested actions", domain=LedgerDomain)
-class LedgerWrapper(BaseResource):
-    def __init__(self, inner): self._inner = inner
-    def get_wrapper_class(self): return LedgerWrapper
-    async def execute(self, entry): return await self._inner.execute(entry)   # executing — allowed
-    async def commit(self):  raise TransactionProhibitedError("nested cannot commit")
-    async def rollback(self): raise TransactionProhibitedError("nested cannot rollback")
-    # open / begin — likewise
-```
-
-The canonical SQL stack (Protocol → manager → wrapper) and its delegating variant are covered in the [PostgreSQL extension](../extensions/postgresql.md).
-
-## Step 3. Wiring to an operation
-
-A resource is declared on an operation via [`@connection`](../tutorials/step-17-connections.md) and supplied in `connections`; the aspect reads it by key:
-
-```python
-from aoa.action_machine.intents.connection import connection
-
-@meta(description="Post a ledger entry", domain=LedgerDomain)
-@check_roles(GuestRole)
-@connection(LedgerResource, key="ledger")
-class PostEntryAction(BaseAction[PostParams, PostResult]):
-    @summary_aspect("Post entry")
-    async def post_summary(self, params, state, box, connections):
-        count = await connections["ledger"].execute(params.entry)
-        return PostResult(count=count)
-
-# machine.run(ctx, PostEntryAction(), params, {"ledger": LedgerResource()})
-```
-
-An alternative — `@depends` + `await box.resolve(LedgerResource)`, when the resource is built by the dependency factory ([Step 6 — Dependencies](../tutorials/step-06-dependencies.md)).
-
-## Rollup: a run without writing
-
-If a resource is transactional, it can be made fit for a run against the production schema without saving: override `check_rollup_support()` → `True`, and in `commit()`, when `rollup=True`, perform a **rollback instead of writing**. Then the operation can be [tested](../tutorials/step-24-substitution.md) against the real DB constraints while saving nothing. With `rollup=True` the dependency factory itself calls `check_rollup_support()` and fails on resources without support.
-
-## What is important to know
-
-- **Transport, not decisions.** There must be no business `if` in a resource — only "how to fetch". The decision of what to do with the data is in the operation; that is why an operation is tested by **swapping the resource**.
-- **`@meta` is mandatory**, the name is up to you (the `Resource` suffix is a convention, not a runtime requirement; unlike `Action`/`Entity`).
-- **The runtime substitutes the wrapper**, not you: in `tools_box` on `box.run`, `get_wrapper_class()` is taken. You only decide what guarantee it gives (None / delegation / blocking).
-- **`check_rollup_support()` raises by default** with `RollupNotSupportedError` — a deliberate fail-fast: a resource that cannot roll back must not silently "support" rollup.
-
-## Verification
-
-```bash
-uv run python examples/how_to/06_custom_resource.py
-```
+Observed output:
 
 ```text
-root: posted entry, count=1, committed=['debit 100']
-nested: execute -> 2
-nested: commit refused -> TransactionProhibitedError
+written: 1
+stored after close: ['hello']
+['open', 'close']
 ```
 
-The root operation executed and committed an entry; the wrapper (what a nested operation would receive) allowed `execute` but refused `commit`. The whole resource concept, with review questions — [Step 19 — Resource](../tutorials/step-19-resource.md).
+The resource is closed but the data remains in the supplied store. In a real implementation, close releases a connection or file handle; it does not erase the external data. A transactional resource should return a wrapper that also prevents child actions from closing its owner.
 
----
+## Supply it to an action
 
-<table width="100%"><tr>
-  <td align="left"></td>
-  <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"></td>
-</tr></table>
+An action declares `@connection(NotesResource, key="notes")` and reads
+`connections["notes"]`. On a service route, supply the same declaration used in the
+example: a factory that constructs NotesResource and a finalizer that calls close.
+FastAPI and MCP apply the scope around machine.run. A manual caller must apply it
+explicitly, as the example does. [Step 17](../tutorials/step-17-connections.md) shows
+both the action and route together.
+
+## Decide what child actions may do
+
+Returning `None` from get_wrapper_class passes the same object to child actions.
+This is acceptable only when that access is intended. If the resource owns a
+transaction or another handle that children must not close, return a wrapper class
+that exposes permitted operations and refuses ownership operations.
+
+For SQL, use the existing `SqlResource` and `WrapperSqlResource` contract instead
+of reproducing part of it. The wrapper delegates execute but blocks open, begin,
+commit, rollback, close and context-manager use. It does not automatically forward
+arbitrary domain-specific methods; a custom interface needs its own compatible
+wrapper if those methods must be available to child actions. The
+[wrapper cases](../tutorials/step-19-resource.md#a-wrapper-for-nested-operations)
+show both direct calls and automatic wrapping by box.run.
+
+## If the implementation uses PostgreSQL
+
+Choose `PostgresResource(connection_params, *, rollup=False)` for an owned connection
+or `PostgresResource(pool=pool, rollup=False)` for a borrowed one. Never give both
+sources or neither. Set acquire_timeout on the concrete resource if the default
+30-second borrowing wait is inappropriate. The pool's capacity belongs to its
+creation at service startup; the per-call resource never closes it.
+
+The SQL base class has a harmless default close for implementations that hold no
+connection. A real connection-owning implementation must override it. For
+PostgresResource that implementation already exists, including detection of an
+unfinished transaction at close.
+
+Rollup support is also a real obligation. Generic BaseResource refuses it by default.
+A SQL implementation must ensure that rollup=True makes commit roll back its explicit
+transaction. This is not an all-purpose undo mechanism for external systems.

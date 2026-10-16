@@ -122,6 +122,7 @@ from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 from starlette.responses import Response as StarletteResponse
+from starlette.types import Lifespan
 
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
 from aoa.action_machine.adapters.base_route_record import ensure_machine_params, ensure_protocol_response
@@ -132,7 +133,8 @@ from aoa.action_machine.exceptions.validation_field_error import ValidationField
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.model.base_action import BaseAction
-from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
+from aoa.action_machine.resources.connection_scope import connection_scope
+from aoa.action_machine.resources.per_call_connection import ConnectionValue
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.fastapi.route_record import FastApiRouteRecord
@@ -296,10 +298,9 @@ def _make_endpoint_with_body(
         if context is None:
             raise AuthorizationError("Authentication required")
 
-        connections = resolve_connections(record.connections)
-
         action = record.action_class()
-        result = await machine.run(context, action, params, connections)
+        async with connection_scope(record.connections) as connections:
+            result = await machine.run(context, action, params, connections)
 
         if has_response_mapper:
             mapped = record.response_mapper(result)  # type: ignore[misc]
@@ -366,10 +367,9 @@ def _make_endpoint_with_query(
         if context is None:
             raise AuthorizationError("Authentication required")
 
-        connections = resolve_connections(record.connections)
-
         action = record.action_class()
-        result = await machine.run(context, action, params, connections)
+        async with connection_scope(record.connections) as connections:
+            result = await machine.run(context, action, params, connections)
 
         if has_response_mapper:
             mapped = record.response_mapper(result)  # type: ignore[misc]
@@ -465,10 +465,9 @@ def _make_endpoint_no_params(
         if context is None:
             raise AuthorizationError("Authentication required")
 
-        connections = resolve_connections(record.connections)
-
         action = record.action_class()
-        result = await machine.run(context, action, params, connections)
+        async with connection_scope(record.connections) as connections:
+            result = await machine.run(context, action, params, connections)
 
         if has_response_mapper:
             mapped = record.response_mapper(result)  # type: ignore[misc]
@@ -799,25 +798,35 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     # FastAPI application build
     # ─────────────────────────────────────────────────────────────────────
 
-    def build(self) -> FastAPI:
+    def build(self, *, lifespan: Lifespan[FastAPI] | None = None) -> FastAPI:
         """
         Create FastAPI application from registered routes.
 
         Initialization order:
-        1. Create FastAPI app with OpenAPI metadata.
+        1. Create FastAPI app with OpenAPI metadata and, when given, the lifespan.
         2. Add middleware for uncaught exception handling.
         3. Register exception handlers.
         4. Register health check endpoint ``GET /health``.
         5. Generate/register endpoint for each route.
 
+        Args:
+            lifespan: the application's own startup/shutdown context manager — where a
+                pool or a client is created and closed. It is handed to the framework
+                untouched: how long its closing may take, and where it sits relative to
+                the server's own shutdown, are the framework's to define, not this
+                adapter's. The adapter adds no option beyond this one.
+
         Returns:
             Ready-to-run FastAPI application.
         """
-        app = FastAPI(
-            title=self._title,
-            version=self._version,
-            description=self._description,
-        )
+        app_kwargs: dict[str, Any] = {
+            "title": self._title,
+            "version": self._version,
+            "description": self._description,
+        }
+        if lifespan is not None:
+            app_kwargs["lifespan"] = lifespan
+        app = FastAPI(**app_kwargs)
 
         app.add_middleware(_CatchAllErrorsMiddleware)
         self._register_exception_handlers(app)

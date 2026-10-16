@@ -113,6 +113,9 @@ fastapi = [
 mcp = [
     { name = "aoa-mcp-adapter" },
 ]
+postgres = [
+    { name = "asyncpg" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -126,9 +129,10 @@ requires-dist = [
     { name = "aoa-fastapi-adapter", marker = "extra == 'fastapi'", editable = "packages/aoa-fastapi-adapter" },
     { name = "aoa-mcp-adapter", marker = "extra == 'mcp'", editable = "packages/aoa-mcp-adapter" },
     { name = "aoa-ocel", editable = "packages/aoa-ocel" },
+    { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29,<1.0" },
     { name = "pydantic", specifier = ">=2.0,<3.0" },
 ]
-provides-extras = ["fastapi", "mcp"]
+provides-extras = ["fastapi", "mcp", "postgres"]
 
 [package.metadata.requires-dev]
 dev = [

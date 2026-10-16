@@ -3,13 +3,21 @@
 Per-route / per-tool connection declarations and resolution.
 
 ``connections`` is a mapping from connection key (string, matches ``@connection``)
-to either a ready ``BaseResource`` or a ``PerCallConnection`` wrapper whose
-factory is invoked on each resolve (FastAPI request or MCP tool call).
+to either a ready ``BaseResource`` or a ``PerCallConnection`` — a **pair**: the
+``factory`` that creates the resource for one call, and the ``finalize`` that
+closes it and gives back whatever it borrowed.
+
+The pair is mandatory as a pair. A resource created per call cannot be declared
+without saying how it is closed, which is the whole reason ``finalize`` has no
+default. ``resolve_connections`` builds the flat mapping a run receives;
+:func:`~aoa.action_machine.resources.connection_scope.connection_scope` is what
+applies the lifecycle around that run — opening before it and finalizing after
+it, on every path.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 
 from aoa.action_machine.resources.base_resource import BaseResource
@@ -17,9 +25,10 @@ from aoa.action_machine.resources.base_resource import BaseResource
 
 @dataclass(frozen=True)
 class PerCallConnection:
-    """Lazy connection: ``factory`` runs on every ``resolve_connections`` call."""
+    """The pair for one call: ``factory`` runs on every resolve, ``finalize`` closes what it made."""
 
     factory: Callable[[], BaseResource]
+    finalize: Callable[[BaseResource], Awaitable[None] | None]
 
 
 type ConnectionValue = BaseResource | PerCallConnection
@@ -31,8 +40,8 @@ def validate_connection_entries(
     """
     Validate keys and value shapes at record construction time.
 
-    Does not call ``PerCallConnection.factory()``; return type is checked in
-    :func:`resolve_connections` when the adapter runs the route/tool.
+    Does not call ``PerCallConnection.factory()`` or its ``finalize``; return type
+    is checked in :func:`resolve_connections` when the adapter runs the route/tool.
     """
     if connections is None:
         return
@@ -50,6 +59,8 @@ def validate_connection_entries(
         if isinstance(value, PerCallConnection):
             if not callable(value.factory):
                 raise TypeError("PerCallConnection.factory must be callable.")
+            if not callable(value.finalize):
+                raise TypeError("PerCallConnection.finalize must be callable.")
             continue
 
         raise TypeError(
@@ -64,7 +75,9 @@ def resolve_connections(
     """
     Build the ``dict[str, BaseResource]`` passed to ``machine.run``.
 
-    ``PerCallConnection`` entries call ``factory()`` on every invocation.
+    ``PerCallConnection`` entries call ``factory()`` on every invocation. The
+    lifecycle — opening what was created and finalizing it — belongs to
+    ``connection_scope``, which walks the declaration itself.
     """
     if not connections:
         return None

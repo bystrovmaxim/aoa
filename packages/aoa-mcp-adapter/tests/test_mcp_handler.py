@@ -753,7 +753,7 @@ class TestHandlerWithConnections:
             return resource
 
         record = _make_record(
-            connections={"db": PerCallConnection(factory=factory)},
+            connections={"db": PerCallConnection(factory=factory, finalize=lambda res: None)},
         )
         handler = _make_tool_handler(
             record,
