@@ -79,7 +79,8 @@ _ensure_examples_package_src_on_path()
 
 # pylint: disable=wrong-import-position
 from aoa.demo.fastapi_mcp_services.actions import CreateOrderAction, GetOrderAction, PingAction
-from aoa.demo.fastapi_mcp_services.infrastructure import auth, machine
+from aoa.demo.fastapi_mcp_services.infrastructure import auth, identity_connection, machine, pool_lifespan
+from aoa.demo.model.identity.actions import IdentityLookupAction
 from aoa.mcp import McpAdapter
 
 # pylint: enable=wrong-import-position
@@ -94,7 +95,10 @@ server = (
     .tool("system.ping", PingAction)
     .tool("orders.create", CreateOrderAction)
     .tool("orders.get", GetOrderAction)
-    .build()
+    # The same per-call declaration as the HTTP route: the service has no ASGI hook, but the
+    # MCP server has one, and this is where its pool is created and closed.
+    .tool("identity.lookup", IdentityLookupAction, connections={"identity": identity_connection()})
+    .build(lifespan=pool_lifespan)
 )
 
 

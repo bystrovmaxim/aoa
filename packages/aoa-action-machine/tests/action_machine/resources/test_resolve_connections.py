@@ -34,7 +34,7 @@ def test_resolve_connections_per_call_invokes_factory_each_time() -> None:
         calls.append(1)
         return res
 
-    spec = {"svc": PerCallConnection(factory)}
+    spec = {"svc": PerCallConnection(factory, finalize=lambda res: None)}
     resolve_connections(spec)
     resolve_connections(spec)
     assert calls == [1, 1]
@@ -53,7 +53,7 @@ def test_validate_connection_entries_rejects_bad_value() -> None:
 
 def test_resolve_connections_factory_must_return_base_resource() -> None:
     with pytest.raises(TypeError, match="must return BaseResource"):
-        resolve_connections({"svc": PerCallConnection(lambda: "bad")})  # type: ignore[arg-type,return-value]
+        resolve_connections({"svc": PerCallConnection(lambda: "bad", finalize=lambda res: None)})  # type: ignore[arg-type,return-value]
 
 
 def test_mcp_route_record_accepts_connections_field() -> None:
@@ -85,6 +85,31 @@ def test_fastapi_route_record_accepts_connections_field() -> None:
 
 
 def test_validate_connection_entries_rejects_non_callable_factory() -> None:
-    bad = PerCallConnection(factory=123)  # type: ignore[arg-type]
+    bad = PerCallConnection(factory=123, finalize=lambda res: None)  # type: ignore[arg-type]
     with pytest.raises(TypeError, match="callable"):
         validate_connection_entries({"svc": bad})
+
+
+def test_per_call_connection_requires_a_finalizer() -> None:
+    """A resource created per call cannot be declared without saying how it is closed."""
+    factory = lambda: DummyResourceManager()  # noqa: E731 - the declaration is the point
+
+    with pytest.raises(TypeError):
+        PerCallConnection(factory)  # type: ignore[call-arg]
+
+
+def test_validate_connection_entries_rejects_non_callable_finalize() -> None:
+    """The finalizer is checked like the factory: callable, without being called."""
+    bad = PerCallConnection(factory=lambda: DummyResourceManager(), finalize=123)  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match="finalize"):
+        validate_connection_entries({"svc": bad})
+
+
+def test_a_factory_returning_a_shared_resource_is_not_rejected() -> None:
+    """The framework neither forbids nor detects a factory that hands back one object."""
+    res = DummyResourceManager()
+    spec = {"svc": PerCallConnection(lambda: res, finalize=lambda resource: None)}
+
+    assert resolve_connections(spec) == {"svc": res}
+    assert resolve_connections(spec) == {"svc": res}

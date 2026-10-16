@@ -1,0 +1,83 @@
+"""A wrapper can execute a statement.
+
+Construct the same SQL wrapper the runtime supplies to a nested action. The parent still owns the underlying connection.
+
+Run: uv run python examples/step_19_resource/04_wrapper_execute.py
+"""
+
+import asyncio
+from aoa.action_machine.resources.postgres import PostgresResource
+from aoa.action_machine.resources.connection_scope import connection_scope
+from aoa.action_machine.resources.per_call_connection import PerCallConnection
+from aoa.action_machine.exceptions import HandleError, TransactionLeftOpenError
+
+class RecordingConnection:
+    """Record commands; do not parse SQL or simulate database storage."""
+    def __init__(self, number):
+        """Give this connection a visible identity."""
+        self.number = number
+        self.commands = []
+        self.busy = False
+        self.closed = False
+    async def execute(self, query, *params):
+        """Reject concurrent use and record one command."""
+        if self.busy or self.closed:
+            raise RuntimeError("connection is busy or closed")
+        self.busy = True
+        try:
+            await asyncio.sleep(0)
+            self.commands.append(query)
+            return "OK"
+        finally:
+            self.busy = False
+    async def close(self):
+        """Mark the physical connection closed."""
+        self.closed = True
+
+class RecordingPool:
+    """Offer a fixed number of observable connections without a server."""
+    def __init__(self, size=1):
+        """Create the fixed capacity used by this example."""
+        self.connections = [RecordingConnection(i + 1) for i in range(size)]
+        self.free = asyncio.Queue()
+        for connection in self.connections:
+            self.free.put_nowait(connection)
+        self.held = set()
+        self.closed = False
+    async def acquire(self, *, timeout=None):
+        """Wait for an available connection with the supplied bound."""
+        connection = await asyncio.wait_for(self.free.get(), timeout)
+        self.held.add(connection)
+        return connection
+    async def release(self, connection):
+        """Return a borrowed connection exactly once."""
+        self.held.remove(connection)
+        self.free.put_nowait(connection)
+    async def close(self):
+        """Close the pool only after all borrowers have returned."""
+        assert not self.held
+        for connection in self.connections:
+            await connection.close()
+        self.closed = True
+
+from aoa.action_machine.resources.sql import WrapperSqlResource, ProtocolSqlResource
+from aoa.action_machine.exceptions import TransactionProhibitedError
+
+
+async def main():
+    """Run this case and verify its observable result."""
+    pool = RecordingPool()
+    owner = PostgresResource(pool=pool)
+    await owner.open()
+    child_view = WrapperSqlResource(owner)
+    assert isinstance(child_view, ProtocolSqlResource)
+    result = await child_view.execute("SELECT 1")
+    assert result == "OK"
+    print(result)
+    assert len(pool.held) == 1
+    await owner.close()
+    await pool.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

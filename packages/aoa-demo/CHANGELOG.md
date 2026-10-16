@@ -7,8 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+The demo gained a database-backed domain, and it still runs without a database. `POST
+/api/v1/identity/lookup` and the MCP tool `identity.lookup` read a person and record a login
+inside one transaction, each call taking its own connection from a pool the service creates at
+startup. Two calls that arrive together therefore never meet on one session, and each one's
+transaction belongs to it alone.
+
+Nothing about the service changes when there is no database to talk to: with no connection
+description the same route answers from an in-memory store, so the demo installs, imports and
+runs without the driver. The database driver is an extra, and it is imported only when a
+connection description is given. ([#215](https://github.com/bystrovmaxim/aoa/issues/215))
+
 ### Added
 
+- **An identity domain in `aoa.demo.model.identity` — the reference for a resource created per call.** `IdentityStore` mixes the domain's two operations with the PostgreSQL resource, `IdentityStoreStub` keeps the same two in memory, and `IdentityLookupAction` declares the connection and never learns which of them it received. ([#215](https://github.com/bystrovmaxim/aoa/issues/215))
+- **A pool at startup and the per-call route that uses it.** `AOA_DEMO_POSTGRES_DSN` names the database; when it is set the services create one pool in their lifespan and the route declares a resource per call over it. When it is not set, the route declares the in-memory store. Both services publish the same action over their own transport. ([#215](https://github.com/bystrovmaxim/aoa/issues/215))
 - **`CancelOrderAction` in `fastapi_mcp_services.orders_domain` — the full access-control cascade in one action.** Demonstrates `grant(CustomerRole)` (role), `guard=` (a `"LOCKED-"`-prefixed order can't be cancelled by anyone), and `access_decide` (a customer may only cancel their own order) together, exercised via both `machine.run` and `machine.check_access_decide`. ([#65](https://github.com/bystrovmaxim/aoa/issues/65))
 
 ## [1.0.0] – 2026-06-27

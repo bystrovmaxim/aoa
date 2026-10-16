@@ -68,7 +68,7 @@ The guide moves from a practical entry point to the complete project architectur
 - **[MCP](tutorials/step-14-mcp.md)** — the same Action as a tool for an AI agent without duplicating logic
 - **[Result by JSON schema](tutorials/step-15-schema-results.md)** — `JsonSchemaValue` and entity projections: complex objects and partial slices with schema validation
 - **[Accepting complex data from a request](tutorials/step-16-complex-input.md)** — collections, nested objects, and JSON by schema in the input `Params`
-- **[Connections at the request boundary](tutorials/step-17-connections.md)** — two modes of supplying `@connection` by the adapter: a shared resource or a fresh one per request
+- **[Connections at the request boundary](tutorials/step-17-connections.md)** — ready resources and per-call factory/finalizer pairs; application pools, acquisition and release
 - **[Schema converters](tutorials/step-18-converters.md)** — `params_mapper`/`response_mapper` and API versions: the external schema changes, the `Action` stays one
 
 ---
@@ -143,6 +143,7 @@ The framework's extension points. The principle everywhere is the same: you impl
 - **[Your own logger](how-to/authoring-logger.md)** — delivery of `box` business events to Kafka, Slack, PagerDuty
 - **[Your own cache adapter](how-to/authoring-cache-adapter.md)** — Redis and other stores behind `cache_key` / `on_cache_write`
 - **[Your own resource](how-to/authoring-resource.md)** — a new data source behind the `BaseResource` interface
+- **[Connection lifecycle failures](how-to/connection-lifecycle-failures.md)** — separate runnable cases for failed construction, opening, execution, cancellation and cleanup
 - **[Extending Context](how-to/authoring-context-extension.md)** — your own call-environment fields and access to them through `@context_requires`
 - **[Your own intent](how-to/authoring-intent.md)** — your own rule as a graph node: decorator → node → inspector → registration
 

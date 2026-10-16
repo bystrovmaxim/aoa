@@ -342,3 +342,29 @@ class TestFullLifecycle:
 
         assert mgr.rolled_back is True
         assert mgr.committed is False
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Closing: a concrete harmless default (FR-006, FR-023)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+class TestCloseDefault:
+    """``close()`` is part of the contract with a body, so no subclass is obliged to write one."""
+
+    @pytest.mark.anyio
+    async def test_a_manager_holding_nothing_closes_harmlessly(self) -> None:
+        """The subclass below never mentions close, and that is enough."""
+        manager = _TestConnectionManager()
+
+        assert await manager.close() is None
+        assert await manager.close() is None  # a second close is just as harmless
+
+    @pytest.mark.anyio
+    async def test_the_double_that_skips_super_init_also_closes(self) -> None:
+        """The default does not depend on ``_rollup`` or on ``super().__init__()``."""
+        assert await _NoSuperInitManager().close() is None
+
+    def test_close_is_not_abstract(self) -> None:
+        """A subclass that omits it stays concrete — that is what keeps the stubs unedited."""
+        assert _TestConnectionManager.__abstractmethods__ == frozenset()

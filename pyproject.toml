@@ -349,6 +349,10 @@ ignore = [
     "SIM108",  # if/else → ternary (less readable with type:ignore comments)
     "SIM110",  # for loop → any() (less readable for some patterns)
 ]
+# Cross-tool `# noqa` codes: ``V107`` is vulture's "unused variable". A protocol stub keeps
+# the driver's own parameter names without using them, and the annotation on that line says
+# so; ruff must accept the code rather than report it as invalid (RUF102).
+external = ["V107"]
 
 [tool.ruff.lint.per-file-ignores]
 # ``exceptions/access_denied.py`` and ``access_undecided.py`` — the names are the two

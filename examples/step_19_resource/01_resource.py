@@ -1,33 +1,14 @@
-"""
-01_resource.py — Resource as pure transport, separate from the Action
+"""The action decides; the resource stores.
 
-AOA splits two beings that ordinary services blur together:
+Use an in-memory store so the only topic is the division between storage and the business decision.
 
-  - Action   — no memory: each call starts clean, everything arrives via Params,
-               state, dependencies. It holds the *decisions*.
-  - Resource — long-lived state: a connection, a pool, a client, a store that
-               must live across calls. It holds the *transport* only — open,
-               execute, return. No business rules.
-
-Golden rule: state outlives one call -> Resource; state lives only inside the
-call -> Action. A Resource subclasses BaseResource, declares @meta, and
-implements get_wrapper_class() (None = direct pass-through; a transactional
-resource returns a wrapper that blocks commit/rollback in nested actions).
-
-Because the decision lives in the Action and the transport in the Resource, the
-Action is tested by swapping the Resource — same operation, different store.
-
-Tutorial: ../../docs/tutorials/step-19-resource_draft.md  ·  topic: Resource
-
-Run:
-    uv run python examples/step_19_resource/01_resource.py
+Run: uv run python examples/step_19_resource/01_resource.py
 """
 
 import asyncio
-
+from fastapi.testclient import TestClient
 from pydantic import Field
-
-from aoa.action_machine.auth import GuestRole
+from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -36,10 +17,12 @@ from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-
+from aoa.fastapi import FastApiAdapter
 
 class WarehouseDomain(BaseDomain):
+    """Group the inventory example."""
     name = "warehouse"
     description = "Warehouse domain"
 
@@ -48,25 +31,32 @@ class WarehouseDomain(BaseDomain):
 @meta(description="In-memory inventory store (transport only)", domain=WarehouseDomain)
 class InventoryResource(BaseResource):
 
+    """Read and update the supplied inventory."""
     def __init__(self, stock: dict[str, int] | None = None) -> None:
+        """Initialize this example object."""
         self._stock: dict[str, int] = dict(stock or {})
 
     def get_wrapper_class(self) -> type[BaseResource] | None:
+        """Choose the view supplied to child actions."""
         return None  # in-memory: direct pass-through; a SQL resource would return a wrapper
 
     async def get_stock(self, sku: str) -> int:
+        """Read the available quantity."""
         return self._stock.get(sku, 0)
 
     async def take(self, sku: str, qty: int) -> None:
+        """Subtract the supplied quantity."""
         self._stock[sku] = self._stock.get(sku, 0) - qty
 
 
 class ReserveParams(BaseParams):
+    """Describe the requested reservation."""
     sku: str = Field(description="Product code")
     qty: int = Field(gt=0, description="Quantity to reserve")
 
 
 class ReserveResult(BaseResult):
+    """Report the reservation decision."""
     reserved: bool = Field(description="Whether the reservation succeeded")
     remaining: int = Field(description="Stock left for this SKU")
 
@@ -76,8 +66,11 @@ class ReserveResult(BaseResult):
 @connection(InventoryResource, key="inventory")
 class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
 
+    """Decide whether the requested stock is available."""
+
     @summary_aspect("Reserve if enough stock")
     async def reserve_summary(self, params, state, box, connections):
+        """Reserve only when enough stock is available."""
         inventory = connections["inventory"]          # transport, supplied per request
         available = await inventory.get_stock(params.sku)
         # The DECISION lives here, in the Action — not in the Resource.
@@ -87,21 +80,17 @@ class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
         return ReserveResult(reserved=True, remaining=available - params.qty)
 
 
-async def main() -> None:
-    machine = ActionProductMachine()
-
-    print("Real inventory (sku-1: 10 in stock):")
-    real = InventoryResource(stock={"sku-1": 10})
-    for qty in (3, 99):
-        r = await machine.run(Context(), ReserveStockAction(), ReserveParams(sku="sku-1", qty=qty),
-                              connections={"inventory": real})
-        print(f"  reserve {qty:<3} -> reserved={r.reserved}, remaining={r.remaining}")
-
-    print("\nSwapped resource (empty store, same Action):")
-    empty = InventoryResource(stock={})
-    r = await machine.run(Context(), ReserveStockAction(), ReserveParams(sku="sku-1", qty=1),
-                          connections={"inventory": empty})
-    print(f"  reserve 1   -> reserved={r.reserved}, remaining={r.remaining}")
+async def main():
+    """Run this case and verify its observable result."""
+    inventory = InventoryResource(stock={"sku-1": 10})
+    result = await ActionProductMachine(loggers=[]).run(
+        Context(), ReserveStockAction(), ReserveParams(sku="sku-1", qty=3),
+        connections={"inventory": inventory},
+    )
+    assert result.model_dump() == {'reserved': True, 'remaining': 7}
+    print(result.model_dump())
+    assert await inventory.get_stock("sku-1") == 7
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

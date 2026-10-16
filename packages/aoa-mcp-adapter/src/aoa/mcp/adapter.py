@@ -49,7 +49,7 @@ For each registered ``McpRouteRecord``, the adapter builds an async handler that
    ``details["errors"]``.
 3. Applies ``params_mapper`` when configured.
 4. Builds ``Context`` via ``auth_coordinator``.
-5. Resolves connections via ``resolve_connections(record.connections)``.
+5. Applies the per-call lifecycle via ``connection_scope(record.connections)``.
 6. Creates action instance and calls ``machine.run()``.
 7. Applies ``response_mapper`` when configured.
 8. Builds success ``data`` via ``_serialize_result`` (``model_dump(mode="json")`` for
@@ -125,6 +125,7 @@ import logging
 import re
 import uuid
 from collections.abc import Callable, Mapping
+from contextlib import AbstractAsyncContextManager
 from typing import Any, Self
 
 from pydantic import BaseModel
@@ -140,7 +141,8 @@ from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordi
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
 from aoa.action_machine.model.base_action import BaseAction
-from aoa.action_machine.resources.per_call_connection import ConnectionValue, resolve_connections
+from aoa.action_machine.resources.connection_scope import connection_scope
+from aoa.action_machine.resources.per_call_connection import ConnectionValue
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.mcp.route_record import McpRouteRecord
@@ -404,10 +406,9 @@ async def _execute_tool_call(
     if context is None:
         raise AuthorizationError("Authentication required")
 
-    connections = resolve_connections(record.connections)
-
     action = record.action_class()
-    result = await machine.run(context, action, params, connections)
+    async with connection_scope(record.connections) as connections:
+        result = await machine.run(context, action, params, connections)
 
     return _serialize_result(result, record, has_response_mapper)
 
@@ -552,10 +553,22 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
     # MCP server build
     # ─────────────────────────────────────────────────────────────────────
 
-    def build(self) -> FastMCP:
-        """Create ``FastMCP`` with registered tools."""
+    def build(
+        self,
+        *,
+        lifespan: Callable[[FastMCP[Any]], AbstractAsyncContextManager[Any]] | None = None,
+    ) -> FastMCP:
+        """
+        Create ``FastMCP`` with registered tools and, when given, the lifespan.
+
+        Args:
+            lifespan: the service's own startup/shutdown context manager — where a
+                process-wide pool or client is created and closed, since an MCP service
+                has no request-scoped startup hook. It is handed to ``FastMCP`` untouched:
+                the adapter adds no option beyond this one and names no database.
+        """
         tools = [self._make_mcp_tool(record) for record in self._routes]
-        return FastMCP(self._server_name, tools=tools)
+        return FastMCP(self._server_name, tools=tools, lifespan=lifespan)
 
     # ─────────────────────────────────────────────────────────────────────
     # MCP tool build (inputSchema + arg validation)

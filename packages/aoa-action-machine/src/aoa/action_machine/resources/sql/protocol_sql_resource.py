@@ -8,9 +8,15 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Defines the surface required for lifecycle + execution against a SQL-backed
-resource: ``rollup`` visibility, ``open`` / transaction boundaries, and
-``execute``. Implementations may be concrete drivers (for example Postgres) or
-thin proxies; static checking uses this protocol without importing those types.
+resource: ``rollup`` visibility, ``open`` / transaction boundaries, ``close``,
+and ``execute``. Implementations may be concrete drivers (for example Postgres)
+or thin proxies; static checking uses this protocol without importing those
+types.
+
+``close`` carries a concrete harmless body, so that a manager which holds no
+connection of its own — the eight demo stubs, the test doubles — needs no edit
+to satisfy the contract; only a manager that really holds a connection
+overrides it.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -34,8 +40,8 @@ class ProtocolSqlResource(Protocol):
     """
     AI-CORE-BEGIN
         ROLE: Typed contract for async SQL connection lifecycle and execution.
-        CONTRACT: Implementations expose rollup, open/begin/commit/rollback, execute.
-        INVARIANTS: Structural subtyping only; no runtime enforcement beyond isinstance.
+        CONTRACT: Implementations expose rollup, open/begin/commit/rollback/close, execute.
+        INVARIANTS: Structural subtyping only; no runtime enforcement beyond isinstance. ``close`` has a harmless default, so a manager holding no connection still satisfies the contract.
     AI-CORE-END
     """
 
@@ -63,6 +69,9 @@ class ProtocolSqlResource(Protocol):
     async def rollback(self) -> None:
         """Roll back the active transaction."""
         ...
+
+    async def close(self) -> None:
+        """Release the connection this manager holds; harmless when it holds none."""
 
     async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
         """Run a SQL statement with optional positional parameters."""
