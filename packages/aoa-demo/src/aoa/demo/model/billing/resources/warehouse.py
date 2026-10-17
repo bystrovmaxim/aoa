@@ -1,6 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/billing/resources/warehouse.py
-from typing import Any
-
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlResource
 from aoa.demo.model.billing.domain import BillingDomain
@@ -21,7 +19,4 @@ class BillingWarehouse(SqlResource):
         return None
 
     async def rollback(self) -> None:
-        return None
-
-    async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
         return None

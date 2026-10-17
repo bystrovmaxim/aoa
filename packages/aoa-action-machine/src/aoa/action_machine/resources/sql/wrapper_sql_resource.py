@@ -10,7 +10,13 @@ PURPOSE
 It is created when connections are propagated to child actions via
 ``ToolsBox.run()``. The wrapper forbids lifecycle operations
 (``open``, ``begin``, ``commit``, ``rollback``, ``close``) and context-manager
-use for nested actions, but allows query execution via ``execute``.
+use for nested actions, and it offers them **nothing to run a statement with**:
+the query surface left the contract, so there is no member to delegate. A nested
+action cannot reach the connection at all — by construction, not by a rule.
+
+A domain that does want to hand a nested action something overrides
+``get_wrapper_class()`` with its own wrapper that delegates its own semantic
+methods; ``OcelStoreWrapper`` in ``aoa-ocel`` is the pattern.
 
 ``close`` is on that list for the same reason as ``begin``: the connection
 belongs to the action that created the resource, and a nested action that closed
@@ -35,15 +41,13 @@ ARCHITECTURE / DATA FLOW
         └── WrapperSqlResource (BaseResource + Protocol)
                 open/begin/commit/rollback/close -> TransactionProhibitedError
                 async with                          -> TransactionProhibitedError
-                execute() -> delegates to inner
+                no query member                     -> nothing to delegate
                 rollup -> delegates to inner
 
 """
 
 from types import TracebackType
-from typing import Any
 
-from aoa.action_machine.exceptions.handle_error import HandleError
 from aoa.action_machine.exceptions.transaction_prohibited_error import TransactionProhibitedError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
@@ -129,13 +133,6 @@ class WrapperSqlResource(BaseStorage, ProtocolSqlResource):
             "created the resource. Current action received a proxy connection, so the context "
             "manager is unavailable."
         )
-
-    async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
-        """Execute query by delegating to underlying manager."""
-        try:
-            return await self._connection_manager.execute(query, params)
-        except Exception as e:
-            raise HandleError(f"SQL execution error: {e}") from e
 
     def get_wrapper_class(self) -> type[BaseResource] | None:
         """Return wrapper class for further nesting levels."""

@@ -25,7 +25,7 @@ ARCHITECTURE / DATA FLOW
     @connection(IdentityStoreBase, key="identity")
               |
               v
-    connections["identity"].read_person(person_id)      -> rows, or none
+    connections["identity"].read_person(person_id)      -> the person, or nothing
     connections["identity"].record_login(person_id, at) -> BEGIN / INSERT / COMMIT
               |
               v
@@ -91,13 +91,12 @@ class IdentityLookupAction(BaseAction["IdentityLookupAction.Params", "IdentityLo
         """Read through the declared connection, and write inside the transaction it owns."""
         store = cast(IdentityStoreBase, connections["identity"])
 
-        rows = await store.read_person(params.person_id)
-        if not rows:
+        person = await store.read_person(params.person_id)
+        if person is None:
             return IdentityLookupAction.Result(person_id=params.person_id, found=False)
 
         await store.record_login(params.person_id, params.at)
 
-        person = rows[0]
         return IdentityLookupAction.Result(
             person_id=params.person_id,
             found=True,

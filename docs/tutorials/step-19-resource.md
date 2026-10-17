@@ -213,48 +213,25 @@ The parent may pass its open resources to the child. The runtime asks each resou
 for its wrapper class before passing it on. This allows the child to execute work
 without gaining the right to end the parent's transaction or return its connection.
 
-The SQL wrapper supports execute, but refuses open, begin, commit, rollback and
-close with `TransactionProhibitedError`; entering or exiting it as an asynchronous
-context manager is also refused. It does not expose acquire. These restrictions
-apply to the wrapper, not to the resource owner.
+The standard SQL wrapper has no `execute()` or other query method. It still
+provides rollup inspection and refuses open, begin, commit, rollback and close
+with `TransactionProhibitedError`;
+entering or exiting it as an asynchronous context manager is also refused, and it
+does not expose acquire. These restrictions apply to the wrapper, not to the resource
+owner.
 
-The next three examples construct the wrapper directly to isolate each rule.
+A resource that *does* want a child to run one of its own methods returns its own
+wrapper class from `get_wrapper_class()`. That wrapper delegates the domain's methods
+and retains the lifecycle restrictions. Returning `None` instead would pass the
+resource itself to the child, without those restrictions.
+
+The next two examples construct the wrapper directly to isolate each rule.
 They use the recording connection from the PostgreSQL examples, not a live database.
 The last example calls `box.run` and verifies that the runtime supplies the wrapper.
 
-## A wrapper can execute a statement
-
-Construct the same SQL wrapper the runtime supplies to a nested action. The parent still owns the underlying connection.
-
-[Python](../../examples/step_19_resource/04_wrapper_execute.py) · [Notebook](../../examples/step_19_resource/04_wrapper_execute.ipynb)
-
-The following is the body of `main()` from the standalone example; the linked files include every definition and import.
-
-```python
-pool = RecordingPool()
-owner = PostgresResource(pool=pool)
-await owner.open()
-child_view = WrapperSqlResource(owner)
-assert isinstance(child_view, ProtocolSqlResource)
-result = await child_view.execute("SELECT 1")
-assert result == "OK"
-print(result)
-assert len(pool.held) == 1
-await owner.close()
-await pool.close()
-```
-
-Observed output:
-
-```text
-OK
-```
-
-The wrapper forwards execute to the owner. This demonstrates the wrapper contract directly; the nested-action example below demonstrates automatic wrapping through box.run.
-
 ## A child cannot close its parent’s connection
 
-A wrapper grants permission to use a connection, not to manage its lifetime.
+The standard wrapper must leave the owner’s connection open.
 
 [Python](../../examples/step_19_resource/05_wrapper_close.py) · [Notebook](../../examples/step_19_resource/05_wrapper_close.ipynb)
 
@@ -323,9 +300,32 @@ The refusal happens before the owner is touched. The parent can continue using t
 
 ## A real nested action receives a restricted view
 
-Let the machine create the wrapper through box.run. The child asks to close the resource and catches the explicit refusal.
+Let the machine create the wrapper through `box.run`. The resource provides a wrapper with an `add_note` method. The child writes a note through it, then tries to close the resource and catches `TransactionProhibitedError`.
 
 [Python](../../examples/step_19_resource/07_nested_action.py) · [Notebook](../../examples/step_19_resource/07_nested_action.ipynb)
+
+The resource and its proxy are what this case adds. The resource runs its statement through the driver's helper, and the proxy — the class `get_wrapper_class()` returns — delegates that one method and inherits every refusal:
+
+```python
+class NotesResource(PostgresResource):
+    """The domain's resource: its own method, and the proxy it hands a child."""
+    async def add_note(self, text: str) -> str:
+        """Write one note through the driver's statement helper."""
+        return await self._execute("INSERT INTO notes(text) VALUES ($1)", (text,))
+    def get_wrapper_class(self):
+        """A child receives the domain's own proxy, not the default one."""
+        return NotesWrapper
+
+@exclude_graph_model
+class NotesWrapper(WrapperSqlResource):
+    """The domain's proxy: it delegates its own method and keeps every refusal."""
+    def get_wrapper_class(self):
+        """Keep handing the domain's proxy to a deeper nested action."""
+        return NotesWrapper
+    async def add_note(self, text: str) -> str:
+        """Write a note on the connection its owner holds."""
+        return await self._connection_manager.add_note(text)
+```
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -333,7 +333,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 pool = RecordingPool()
 async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
     result = await ActionProductMachine(loggers=[]).run(Context(), ParentAction(), EmptyParams(), connections)
-    assert result.status == "TransactionProhibitedError"
+    assert result.status == "OK; close refused"
     assert len(pool.held) == 1
     print(result.model_dump())
 assert not pool.held
@@ -343,10 +343,10 @@ await pool.close()
 Observed output:
 
 ```text
-{'status': 'TransactionProhibitedError'}
+{'status': 'OK; close refused'}
 ```
 
-The child received a wrapper automatically; the outer call still owned the connection after the child finished. Closing it is the finalizer’s job, after the parent run leaves the scope.
+The child received a wrapper automatically, and that wrapper is the domain's own: it delegated `add_note`, so the note was written on the connection its parent still holds — and the close that followed was refused. The outer call owned the connection throughout; closing it is the finalizer’s job, after the parent run leaves the scope.
 
 ## Rollup and ownership
 

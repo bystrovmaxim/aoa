@@ -10,7 +10,10 @@ No test in this feature may need a database, and the defect under test appears
 only under concurrency. This module supplies both halves of that instrument:
 
 * ``FakeConnection`` — one connection that performs **one operation at a time**,
-  the rule the real driver enforces with ``InterfaceError``;
+  the rule the real driver enforces with ``InterfaceError``. It answers both a
+  statement (``execute``) and a row read (``fetchrow``), and it records the
+  statement **and the positional parameters** of every call, so a test of a
+  driver helper can assert that parameters were forwarded rather than dropped;
 * ``FakePool`` — a pool with stated bounds that records its high-water mark, so
   a test can assert that the ceiling was never exceeded and that no borrowed
   connection was left behind.
@@ -69,10 +72,12 @@ class PoolAcquireTimeoutError(TimeoutError):
 class FakeConnection:
     """A connection that performs one operation at a time, like the driver's own."""
 
-    def __init__(self) -> None:
+    def __init__(self, row: Any = None) -> None:
         self._busy = False
         self.closed = False
         self.operations: list[str] = []
+        self.calls: list[tuple[str, tuple[Any, ...]]] = []
+        self.row: Any = row
 
     @property
     def busy(self) -> bool:
@@ -81,6 +86,20 @@ class FakeConnection:
 
     async def execute(self, query: str, *args: Any) -> str:
         """Run one statement, refusing a second operation while one is in flight."""
+        await self._operate(query, args)
+        return "OK"
+
+    async def fetchrow(self, query: str, *args: Any) -> Any:
+        """Answer with the row this connection holds, recording what it was asked for."""
+        await self._operate(query, args)
+        return self.row
+
+    async def close(self) -> None:
+        """Mark this connection closed."""
+        self.closed = True
+
+    async def _operate(self, query: str, args: tuple[Any, ...]) -> None:
+        """Hold the connection for one operation, refusing a second one at the same time."""
         if self.closed:
             raise InterfaceError("connection is closed")
         if self._busy:
@@ -91,13 +110,9 @@ class FakeConnection:
             # reaches the guard above rather than queueing silently.
             await asyncio.sleep(0)
             self.operations.append(query)
-            return "OK"
+            self.calls.append((query, args))
         finally:
             self._busy = False
-
-    async def close(self) -> None:
-        """Mark this connection closed."""
-        self.closed = True
 
 
 class _Acquire:

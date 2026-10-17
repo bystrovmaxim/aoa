@@ -8,14 +8,21 @@ whether or not a database is running.
 
 | Piece | What it is |
 | --- | --- |
-| `resources/identity_store_base.py` | What the domain asks of storage — `read_person`, `record_login` — in terms of the SQL contract, with no driver imported |
+| `resources/identity_store_base.py` | What the domain asks of storage — `read_person`, `record_login` — stated once over two primitives it declares itself (`_read_person`, `_write_login`), with no driver imported |
 | `resources/identity_store.py` | The PostgreSQL store: `IdentityStoreBase` mixed with `PostgresResource`, built from a pool, one connection per call |
 | `resources/identity_store_stub.py` | The same two operations in memory, so the demo runs with no database and no driver |
 | `actions/identity_lookup.py` | `IdentityLookupAction` — declares `@connection(IdentityStoreBase, key="identity")` and never learns how the store was supplied |
 
-`record_login` owns its transaction: `BEGIN`, the insert, `COMMIT` — and a
-`ROLLBACK` on any failure, including cancellation. `read_person` reads through the
-connection this call holds, so two concurrent lookups never meet on one session.
+`record_login` owns its transaction: `BEGIN`, the write primitive, `COMMIT` — and a
+`ROLLBACK` on any failure, including cancellation. `read_person` answers **one person
+or nothing**, and in the PostgreSQL store it reads through the driver's protected row
+helper (`_fetchrow`), converting the driver's record into a plain mapping at that
+boundary; the in-memory store answers from its dictionaries. Two concurrent lookups
+never meet on one session.
+
+A statement is run only through the driver's protected helpers, by a method that
+belongs to the resource: the SQL contract carries no public query member, and a
+generic passthrough is the resource's own business if it wants one ([#216](https://github.com/bystrovmaxim/aoa/issues/216)).
 
 ## The two modes
 
@@ -65,7 +72,8 @@ uv run python packages/aoa-demo/src/aoa/demo/fastapi_mcp_services/app_mcp_servic
 ## Tests
 
 `packages/aoa-demo/tests/test_identity_postgres.py` covers both modes: the holder's
-named failure, the in-memory route, twenty concurrent calls, two transactions that do
-not interleave, the finalizer running once per call, and the pool being created once
-with its stated bounds and closed at shutdown. Nothing there needs a server; the
+named failure, the in-memory route, the read answering one person or nothing, a read
+on a closed store naming the failure rather than an attribute error, twenty concurrent
+calls, two transactions that do not interleave, the finalizer running once per call,
+and the pool being created once with its stated bounds and closed at shutdown. Nothing there needs a server; the
 driver-dependent tests skip when the extra is absent.

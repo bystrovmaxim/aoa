@@ -11,8 +11,9 @@ WrapperSqlResource is a proxy around a ``ProtocolSqlResource``
 implementation (typically ``SqlResource``). It is created when
 connections are passed to child actions via ToolsBox.run(). The wrapper forbids
 the child action from managing the resource lifecycle (open, begin, commit,
-rollback) but allows executing queries (execute). ``rollup`` is delegated to the
-wrapped manager.
+rollback, close) and offers it **nothing** to run a statement with: the query
+surface left the contract, and the proxy has no member of its own to delegate.
+``rollup`` is delegated to the wrapped manager.
 
 ═══════════════════════════════════════════════════════════════════════════════
 SCENARIOS COVERED
@@ -28,10 +29,15 @@ Transaction prohibition:
     - commit() → TransactionProhibitedError.
     - rollback() → TransactionProhibitedError.
 
-Execute delegation:
-    - execute() delegates to the original manager.
-    - execute() with parameters — parameters are forwarded.
-    - execute() on original error — wraps in HandleError.
+No query member:
+    - the proxy exposes no ``execute``, ``_execute`` or ``_fetchrow``.
+    - the owner's own members are not auto-delegated.
+
+A domain wrapper:
+    - a resource that wants nested access hands out its own proxy.
+    - that proxy delegates the domain's own method and keeps every refusal.
+    - a failure of the owner's method arrives as the domain's own error, cause chained.
+    - the domain's proxy keeps delegating when it is wrapped again.
 
 get_wrapper_class:
     - Returns WrapperSqlResource (for re-wrapping).
@@ -40,22 +46,23 @@ get_wrapper_class:
 Double wrapping (nesting):
     - WrapperSqlResource is wrapped again via get_wrapper_class.
     - Double wrap forbids transactions.
-    - Double wrap delegates execute to the original.
+    - Double wrap exposes no query member either.
 
 Integration with ToolsBox._wrap_connections:
     - _wrap_connections wraps the manager correctly.
     - Repeated _wrap_connections on an already wrapped manager works.
+    - What the framework hands a child action is the same absence.
 """
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions import HandleError, TransactionProhibitedError
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.sql import ProtocolSqlResource, SqlResource, WrapperSqlResource
 
@@ -92,7 +99,6 @@ class MockConnectionManager(SqlResource):
         self.begin = AsyncMock()
         self.commit = AsyncMock()
         self.rollback = AsyncMock()
-        self.execute = AsyncMock(return_value="query_result")
 
     async def open(self) -> None:
         pass  # overridden by AsyncMock in __init__
@@ -106,11 +112,46 @@ class MockConnectionManager(SqlResource):
     async def rollback(self) -> None:
         pass
 
-    async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
-        pass
-
     def get_wrapper_class(self) -> type[BaseResource] | None:
         return WrapperSqlResource
+
+
+# ======================================================================
+# A domain resource that hands a nested action something of its own
+# ======================================================================
+
+
+@exclude_graph_model
+class NotesWrapper(WrapperSqlResource):
+    """The notes domain's proxy: one delegated method, every refusal kept (NA-3.1, NA-3.2)."""
+
+    def get_wrapper_class(self) -> type[BaseResource] | None:
+        """Keep handing the domain's own proxy to a deeper nested action (NA-3.3)."""
+        return NotesWrapper
+
+    async def load_total(self) -> str:
+        """Ask the owner's own method, and name a failure as the domain's (NA-3.4)."""
+        try:
+            return await self._connection_manager.load_total()
+        except Exception as error:
+            raise HandleError(f"Notes total failed: {error}") from error
+
+
+@meta(description="Notes domain resource with a proxy of its own", domain=_WrapperSqlResourceTestDomain)
+class NotesResource(MockConnectionManager):
+    """A domain resource: one semantic method, and the proxy it wants nested actions to receive."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.load_total = AsyncMock(return_value="total: 3")
+
+    async def load_total(self) -> str:
+        """Answer the domain's one question."""
+        return "total: 3"  # overridden by AsyncMock in __init__
+
+    def get_wrapper_class(self) -> type[BaseResource] | None:
+        """Hand a nested action the domain's own proxy rather than the default one (NA-1.2)."""
+        return NotesWrapper
 
 
 # ======================================================================
@@ -122,6 +163,18 @@ class MockConnectionManager(SqlResource):
 def mock_manager() -> MockConnectionManager:
     """Mock connection manager."""
     return MockConnectionManager()
+
+
+@pytest.fixture
+def notes_manager() -> NotesResource:
+    """A domain resource that declares a proxy of its own."""
+    return NotesResource()
+
+
+@pytest.fixture
+def notes_proxy(notes_manager: NotesResource) -> NotesWrapper:
+    """The proxy the framework would hand a nested action for that resource."""
+    return NotesWrapper(notes_manager)
 
 
 @pytest.fixture
@@ -264,60 +317,109 @@ class TestTransactionProhibited:
 
 
 # ======================================================================
-# TESTS: Execute delegation
+# TESTS: No query member on the proxy
 # ======================================================================
 
 
-class TestExecuteDelegation:
-    """execute() delegates to the original manager."""
+class TestNoQueryMember:
+    """The proxy offers nothing to run a statement with — absence, not a refusal (FR-011, FR-012)."""
 
-    @pytest.mark.anyio
-    async def test_execute_delegates_to_original(
+    def test_the_proxy_exposes_no_query_member(self, wrapper: WrapperSqlResource) -> None:
+        """Neither the removed public member nor a protected helper is reachable on the proxy."""
+        for member in ("execute", "_execute", "_fetchrow", "_require_connection"):
+            assert not hasattr(wrapper, member), member
+
+    def test_the_proxy_still_satisfies_the_contract(self, wrapper: WrapperSqlResource) -> None:
+        """The absence does not cost the contract: what remains is what it answers."""
+        assert isinstance(wrapper, ProtocolSqlResource)
+
+    def test_the_owner_is_not_reached_for_a_statement(
         self,
         wrapper: WrapperSqlResource,
         mock_manager: MockConnectionManager,
     ) -> None:
-        """execute() calls the original manager's execute."""
-        result = await wrapper.execute("SELECT 1")
-        mock_manager.execute.assert_called_once_with("SELECT 1", None)
-        assert result == "query_result"
+        """The proxy holds the owner, and still delegates no statement to it."""
+        assert wrapper._connection_manager is mock_manager
+        assert not hasattr(wrapper, "execute")
+
+
+# ======================================================================
+# TESTS: the domain's own wrapper (FR-013)
+# ======================================================================
+
+
+class TestDomainWrapper:
+    """A resource that wants nested access declares its own proxy, and it delegates only what it chooses."""
 
     @pytest.mark.anyio
-    async def test_execute_passes_params(
+    async def test_it_delegates_the_domains_own_method(
         self,
-        wrapper: WrapperSqlResource,
-        mock_manager: MockConnectionManager,
+        notes_proxy: NotesWrapper,
+        notes_manager: NotesResource,
     ) -> None:
-        """execute() forwards parameters."""
-        await wrapper.execute("SELECT * FROM users WHERE id = $1", (42,))
-        mock_manager.execute.assert_called_once_with("SELECT * FROM users WHERE id = $1", (42,))
+        """The nested action gets the answer of the owner's semantic method."""
+        assert await notes_proxy.load_total() == "total: 3"
+        notes_manager.load_total.assert_called_once_with()
 
     @pytest.mark.anyio
-    async def test_execute_wraps_error_in_handle_error(
-        self,
-        wrapper: WrapperSqlResource,
-        mock_manager: MockConnectionManager,
-    ) -> None:
-        """execute() wraps the original error in HandleError."""
-        mock_manager.execute.side_effect = RuntimeError("connection lost")
-
-        with pytest.raises(HandleError, match="SQL execution error"):
-            await wrapper.execute("SELECT 1")
+    async def test_it_still_refuses_the_whole_lifecycle(self, notes_proxy: NotesWrapper) -> None:
+        """Delegating one method does not open the door to the lifecycle, or to a context manager."""
+        for call in (
+            notes_proxy.open(),
+            notes_proxy.begin(),
+            notes_proxy.commit(),
+            notes_proxy.rollback(),
+            notes_proxy.close(),
+        ):
+            with pytest.raises(TransactionProhibitedError):
+                await call
+        with pytest.raises(TransactionProhibitedError):
+            async with notes_proxy:
+                pass
 
     @pytest.mark.anyio
-    async def test_execute_preserves_original_error_as_cause(
+    async def test_it_exposes_no_query_member_either(self, notes_proxy: NotesWrapper) -> None:
+        """A domain proxy delegates its own methods and nothing else."""
+        for member in ("execute", "_execute", "_fetchrow"):
+            assert not hasattr(notes_proxy, member), member
+
+    @pytest.mark.anyio
+    async def test_a_delegated_failure_arrives_as_the_domains_own_error(
         self,
-        wrapper: WrapperSqlResource,
-        mock_manager: MockConnectionManager,
+        notes_proxy: NotesWrapper,
+        notes_manager: NotesResource,
     ) -> None:
-        """HandleError keeps the original error in __cause__."""
-        original_error = RuntimeError("timeout")
-        mock_manager.execute.side_effect = original_error
+        """The domain composes the message, and the owner's error is its cause."""
+        original = RuntimeError("the ledger is locked")
+        notes_manager.load_total.side_effect = original
 
-        with pytest.raises(HandleError) as exc_info:
-            await wrapper.execute("SELECT 1")
+        with pytest.raises(HandleError, match="Notes total failed") as exc_info:
+            await notes_proxy.load_total()
 
-        assert exc_info.value.__cause__ is original_error
+        assert exc_info.value.__cause__ is original
+
+    @pytest.mark.anyio
+    async def test_it_keeps_delegating_when_it_is_wrapped_again(
+        self,
+        notes_proxy: NotesWrapper,
+    ) -> None:
+        """Two and three levels of the domain's own proxy still answer, and still refuse."""
+        second = notes_proxy.get_wrapper_class()(notes_proxy)
+        third = second.get_wrapper_class()(second)
+
+        assert await second.load_total() == "total: 3"
+        assert await third.load_total() == "total: 3"
+        with pytest.raises(TransactionProhibitedError):
+            await third.close()
+
+    def test_the_default_resource_still_hands_out_the_default_proxy(
+        self,
+        mock_manager: MockConnectionManager,
+        notes_manager: NotesResource,
+    ) -> None:
+        """The override is what changes the answer: nothing else in the framework moved (NA-1.2)."""
+        assert mock_manager.get_wrapper_class() is WrapperSqlResource
+        assert notes_manager.get_wrapper_class() is NotesWrapper
 
 
 # ======================================================================
@@ -394,28 +496,26 @@ class TestDoubleWrapping:
         with pytest.raises(TransactionProhibitedError):
             await double_wrapper.begin()
 
-    @pytest.mark.anyio
-    async def test_double_wrapper_delegates_execute_to_original(
+    def test_double_wrapper_exposes_no_query_member(
         self,
         double_wrapper: WrapperSqlResource,
-        mock_manager: MockConnectionManager,
     ) -> None:
-        """execute() through double wrap reaches the original manager."""
-        result = await double_wrapper.execute("SELECT 1")
-        mock_manager.execute.assert_called_once_with("SELECT 1", None)
-        assert result == "query_result"
+        """A second wrap brings no query member back."""
+        for member in ("execute", "_execute", "_fetchrow"):
+            assert not hasattr(double_wrapper, member), member
 
     @pytest.mark.anyio
-    async def test_triple_wrapper_works(
+    async def test_triple_wrapper_refuses_the_lifecycle_and_exposes_no_query_member(
         self,
         double_wrapper: WrapperSqlResource,
-        mock_manager: MockConnectionManager,
     ) -> None:
-        """Triple wrap also works — execute reaches the original."""
+        """A third wrap behaves as the first: the lifecycle refused, no statement reachable (NA-2.1)."""
         triple = WrapperSqlResource(double_wrapper)
-        result = await triple.execute("SELECT 42")
-        mock_manager.execute.assert_called_once_with("SELECT 42", None)
-        assert result == "query_result"
+
+        for member in ("execute", "_execute", "_fetchrow"):
+            assert not hasattr(triple, member), member
+        with pytest.raises(TransactionProhibitedError):
+            await triple.begin()
 
 
 # ======================================================================
@@ -460,15 +560,12 @@ class TestWrapConnectionsIntegration:
         assert isinstance(wrapped["db"], WrapperSqlResource)
         assert wrapped["db"]._connection_manager is wrapper
 
-    @pytest.mark.anyio
-    async def test_wrapped_execute_works(self, mock_manager: MockConnectionManager) -> None:
-        """execute() through the wrapped manager works."""
+    def test_the_wrapped_proxy_exposes_no_query_member(self, mock_manager: MockConnectionManager) -> None:
+        """What _wrap_connections hands a child action has nothing to run a statement with."""
         connections = {"db": mock_manager}
         wrapped = self._wrap_connections(connections)
 
-        result = await wrapped["db"].execute("INSERT INTO orders VALUES ($1)", (1,))
-        mock_manager.execute.assert_called_once_with("INSERT INTO orders VALUES ($1)", (1,))
-        assert result == "query_result"
+        assert not hasattr(wrapped["db"], "execute")
 
     @pytest.mark.anyio
     async def test_wrapped_prohibits_transactions(self, mock_manager: MockConnectionManager) -> None:
@@ -488,17 +585,14 @@ class TestWrapConnectionsIntegration:
         with pytest.raises(TransactionProhibitedError):
             await wrapped["db"].begin()
 
-    @pytest.mark.anyio
-    async def test_double_wrap_execute_reaches_original(self, mock_manager: MockConnectionManager) -> None:
-        """Double wrap via _wrap_connections — execute reaches the original."""
+    def test_double_wrap_exposes_no_query_member(self, mock_manager: MockConnectionManager) -> None:
+        """Twice through _wrap_connections, the proxy a grandchild receives is the same absence."""
         # First wrap (parent → child)
         wrapped_1 = self._wrap_connections({"db": mock_manager})
         # Second wrap (child → grandchild)
         wrapped_2 = self._wrap_connections({"db": wrapped_1["db"]})
 
-        result = await wrapped_2["db"].execute("SELECT 1")
-        mock_manager.execute.assert_called_once_with("SELECT 1", None)
-        assert result == "query_result"
+        assert not hasattr(wrapped_2["db"], "execute")
 
     def test_none_connections_returns_none(self) -> None:
         """None connections → None."""

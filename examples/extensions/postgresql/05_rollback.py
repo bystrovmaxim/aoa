@@ -61,22 +61,30 @@ class RecordingPool:
         self.closed = True
 
 
+class NotesResource(PostgresResource):
+    """The notes domain's resource: its own method runs the statement."""
+
+    async def add_note(self, text: str) -> str:
+        """Write one note through the driver's statement helper."""
+        return await self._execute("INSERT INTO notes(text) VALUES ($1)", (text,))
+
+
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
     try:
-        async with connection_scope({"db": PerCallConnection(lambda: PostgresResource(pool=pool), lambda resource: resource.close())}) as connections:
+        async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
             db = connections["db"]
             await db.begin()
             try:
-                await db.execute("work")
+                await db.add_note("work")
                 raise ValueError("cannot finish")
             except BaseException:
                 await db.rollback()
                 raise
     except ValueError as error:
         print(str(error))
-    assert pool.connections[0].commands == ["BEGIN", "work", "ROLLBACK"]
+    assert pool.connections[0].commands == ["BEGIN", "INSERT INTO notes(text) VALUES ($1)", "ROLLBACK"]
     assert not pool.held
     print(pool.connections[0].commands)
     await pool.close()

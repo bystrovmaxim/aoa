@@ -29,7 +29,8 @@ ARCHITECTURE / DATA FLOW
     PostgresResource
       | open()    -> pool.acquire(timeout=acquire_timeout) | asyncpg.connect(...)
       | begin()   -> "BEGIN"      (opens the transaction flag)
-      | execute() -> SQL statement
+      | _execute() -> a statement, for a subclass
+      | _fetchrow()-> the first row, for a subclass
       | commit()  -> "COMMIT" or rollback when rollup=True (closes the flag)
       | rollback()-> "ROLLBACK"   (closes the flag)
       | close()   -> pool.release(conn) | conn.close()
@@ -62,6 +63,8 @@ alike, with the run's own error chained as its cause. Returning the connection
 
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 import asyncpg
@@ -79,7 +82,7 @@ class PostgresResource(SqlResource):
     """
     AI-CORE-BEGIN
         ROLE: Concrete SQL manager for Postgres runtime operations.
-        CONTRACT: Built from connection parameters or from a pool — exactly one; open/begin/execute/commit/rollback/close over asyncpg.
+        CONTRACT: Built from connection parameters or from a pool — exactly one; open/begin/commit/rollback/close over asyncpg, and its subclasses run statements through the protected ``_execute`` and ``_fetchrow``.
         INVARIANTS: Holds at most one connection, only for its own unit of work; never closes the pool; commit uses rollback when rollup=True; closing with a transaction open rolls it back, returns the connection, then raises ``TransactionLeftOpenError``.
         AI-CORE-END
     """
@@ -142,10 +145,9 @@ class PostgresResource(SqlResource):
         Raises:
             HandleError: if connection is closed or BEGIN fails.
         """
-        if self._conn is None:
-            raise HandleError("Connection is not open")
+        conn = self._require_connection()
         try:
-            await self._conn.execute("BEGIN")
+            await conn.execute("BEGIN")
         except Exception as e:
             raise HandleError(f"BEGIN failed: {e}") from e
         self._in_transaction = True
@@ -163,10 +165,9 @@ class PostgresResource(SqlResource):
             return
 
         # rollup=False -> execute real COMMIT
-        if self._conn is None:
-            raise HandleError("Connection is not open")
+        conn = self._require_connection()
         try:
-            await self._conn.execute("COMMIT")
+            await conn.execute("COMMIT")
         except Exception as e:
             raise HandleError(f"COMMIT failed: {e}") from e
         self._in_transaction = False
@@ -178,10 +179,9 @@ class PostgresResource(SqlResource):
         Raises:
             HandleError: if connection is closed or ROLLBACK fails.
         """
-        if self._conn is None:
-            raise HandleError("Connection is not open")
+        conn = self._require_connection()
         try:
-            await self._conn.execute("ROLLBACK")
+            await conn.execute("ROLLBACK")
         except Exception as e:
             raise HandleError(f"ROLLBACK failed: {e}") from e
         self._in_transaction = False
@@ -220,23 +220,55 @@ class PostgresResource(SqlResource):
                 "opened the transaction owns ending it."
             )
 
-    async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
+    def _require_connection(self) -> asyncpg.Connection[asyncpg.Record]:
+        """Return the connection this unit of work holds, or refuse with a clear error."""
+        if self._conn is None:
+            raise HandleError("Connection is not open")
+        return self._conn
+
+    async def _execute(self, query: str, params: tuple[Any, ...] | None = None) -> str:
         """
-        Execute SQL query via asyncpg.
+        Run a statement for a subclass and return its status.
 
         Args:
             query: SQL statement string.
             params: optional positional query params.
 
         Returns:
-            Raw asyncpg execution result.
+            The driver's command status, such as ``"INSERT 0 1"``. Rows are discarded;
+            a subclass that reads rows uses ``_fetchrow``.
 
         Raises:
             HandleError: if connection is closed or SQL execution fails.
         """
-        if self._conn is None:
-            raise HandleError("Connection is not open")
+        conn = self._require_connection()
         try:
-            return await self._conn.execute(query, *params if params else ())
+            # The driver's stubs are absent, so its return is ``Any``; ``execute`` answers a status string.
+            status: str = await conn.execute(query, *params if params else ())
+            return status
+        except Exception as e:
+            raise HandleError(f"SQL execution failed: {e}") from e
+
+    async def _fetchrow(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
+        """
+        Run a query for a subclass and return its first row.
+
+        Answers the **first** row, not the only one: a statement that can match
+        several rows without an ordering yields an arbitrary one, silently.
+
+        Args:
+            query: SQL query string.
+            params: optional positional query params.
+
+        Returns:
+            The first row, or ``None`` when the query matched nothing.
+
+        Raises:
+            HandleError: if the connection is not open or the query fails.
+        """
+        conn = self._require_connection()
+        try:
+            row: Any = await conn.fetchrow(query, *params if params else ())
+            return row
         except Exception as e:
             raise HandleError(f"SQL execution failed: {e}") from e

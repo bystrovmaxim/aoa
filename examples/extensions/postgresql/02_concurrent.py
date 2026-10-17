@@ -17,6 +17,7 @@ class RecordingConnection:
         """Give this connection a visible identity."""
         self.number = number
         self.commands = []
+        self.calls = []
         self.busy = False
         self.closed = False
     async def execute(self, query, *params):
@@ -27,6 +28,7 @@ class RecordingConnection:
         try:
             await asyncio.sleep(0)
             self.commands.append(query)
+            self.calls.append((query, params))
             return "OK"
         finally:
             self.busy = False
@@ -61,6 +63,14 @@ class RecordingPool:
         self.closed = True
 
 
+class NotesResource(PostgresResource):
+    """The notes domain's resource: its own method runs the statement."""
+
+    async def add_note(self, text: str) -> str:
+        """Write one note through the driver's statement helper."""
+        return await self._execute("INSERT INTO notes(text) VALUES ($1)", (text,))
+
+
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool(size=2)
@@ -69,7 +79,7 @@ async def main():
     async def work(label):
         """Hold one resource until the other call has also opened."""
         async with connection_scope({"db": PerCallConnection(
-            lambda: PostgresResource(pool=pool), lambda resource: resource.close(),
+            lambda: NotesResource(pool=pool), lambda resource: resource.close(),
         )}) as connections:
             arrivals.append(label)
             if len(arrivals) == 2:
@@ -77,12 +87,13 @@ async def main():
             await ready.wait()
             db = connections["db"]
             await db.begin()
-            await db.execute(label)
+            await db.add_note(label)
             await db.commit()
     await asyncio.wait_for(asyncio.gather(work("work A"), work("work B")), 2)
     for connection in pool.connections:
-        assert connection.commands in (["BEGIN", "work A", "COMMIT"], ["BEGIN", "work B", "COMMIT"])
-        print(connection.number, connection.commands)
+        assert connection.commands == ["BEGIN", "INSERT INTO notes(text) VALUES ($1)", "COMMIT"]
+        print(connection.number, connection.calls)
+    assert {connection.calls[1][1] for connection in pool.connections} == {("work A",), ("work B",)}
     assert not pool.held
     print("borrowed after calls:", len(pool.held))
     await pool.close()

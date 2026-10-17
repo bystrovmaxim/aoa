@@ -22,9 +22,9 @@ ARCHITECTURE / DATA FLOW
 
     IdentityStoreStub(IdentityStoreBase)
         │  open()/close()  -> nothing to acquire, nothing to release
-        │  execute(query)  -> ignored; the two dicts below are the storage
+        │  _read_person/_write_login -> the two dicts below are the storage
         ├── people:  id -> {"id", "email", "display_name"}
-        └── logins:  the base class's BEGIN / INSERT / COMMIT writes here
+        └── logins:  the base class's transaction writes here
 
 """
 
@@ -40,7 +40,7 @@ class IdentityStoreStub(IdentityStoreBase):
     AI-CORE-BEGIN
         ROLE: Database-free stand-in for the identity store.
         CONTRACT: Same two operations as the real store; rows come from an in-memory table seeded on first use.
-        INVARIANTS: No driver, no connection; ``execute`` accepts statements and ignores them.
+        INVARIANTS: No driver, no connection; the write primitive appends to a list in memory.
     AI-CORE-END
     """
 
@@ -64,13 +64,11 @@ class IdentityStoreStub(IdentityStoreBase):
     async def rollback(self) -> None:
         """No transaction to roll back in memory."""
 
-    async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
-        """Accept a statement; an insert into the login table lands in the list below."""
-        if params and query.lstrip().upper().startswith("INSERT"):
-            self.logins.append({"person_id": str(params[0]), "at": str(params[1])})
-        return "OK"
+    async def _write_login(self, person_id: str, at: str) -> None:
+        """Append one login to the in-memory list."""
+        self.logins.append({"person_id": str(person_id), "at": str(at)})
 
-    async def _fetch_rows(self, query: str, params: tuple[Any, ...]) -> list[dict[str, Any]]:
+    async def _read_person(self, person_id: str) -> dict[str, Any] | None:
         """Answer the person lookup from memory."""
-        person = self.people.get(str(params[0]))
-        return [] if person is None else [dict(person)]
+        person = self.people.get(str(person_id))
+        return None if person is None else dict(person)

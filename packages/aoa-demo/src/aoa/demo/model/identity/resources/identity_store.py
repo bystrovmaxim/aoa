@@ -24,7 +24,7 @@ ARCHITECTURE / DATA FLOW
 
     IdentityStore(IdentityStoreBase, PostgresResource)
         │  open()/close()      -> pool.acquire / pool.release   (once per call)
-        │  read_person(id)     -> self._conn.fetch(…)
+        │  read_person(id)     -> self._fetchrow(…)
         └── record_login(…)    -> BEGIN / INSERT / COMMIT       (own transaction)
 
 """
@@ -33,7 +33,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from aoa.action_machine.resources.postgres.postgres_resource import PostgresResource
+from aoa.action_machine.resources.postgres import PostgresResource
 
 from .identity_store_base import IdentityStoreBase
 
@@ -50,9 +50,17 @@ class IdentityStore(IdentityStoreBase, PostgresResource):
     acquire_timeout: float | None = 30.0
     """How long this resource waits for a free connection before it fails, stated here for the reader."""
 
-    async def _fetch_rows(self, query: str, params: tuple[Any, ...]) -> list[dict[str, Any]]:
-        """Read rows from this call's own connection."""
-        if self._conn is None:
-            raise RuntimeError("IdentityStore is not open: call open() first.")
-        rows = await self._conn.fetch(query, *params)
-        return [dict(row) for row in rows]
+    async def _write_login(self, person_id: str, at: str) -> None:
+        """Write one login row through the driver's statement helper."""
+        await self._execute(
+            "INSERT INTO identity_login_event (person_id, at) VALUES ($1, $2)",
+            (person_id, at),
+        )
+
+    async def _read_person(self, person_id: str) -> dict[str, Any] | None:
+        """Read one person through the driver's row helper, as a plain mapping."""
+        row = await self._fetchrow(
+            "SELECT id, email, display_name FROM identity_person_hub WHERE id = $1",
+            (person_id,),
+        )
+        return None if row is None else dict(row)
