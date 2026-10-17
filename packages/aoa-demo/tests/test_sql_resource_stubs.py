@@ -4,8 +4,10 @@ The eight demo stubs satisfy the SQL contract without an edit.
 
 The SQL contract gained ``close()`` with a concrete harmless body, and the point
 of that body is exactly this file: every ``SqlResource`` subclass in the demo —
-four domains, eight classes — keeps working untouched. None of them is
-PostgreSQL, and none of this needs a database.
+four domains, eight classes — keeps working untouched. The generic query member
+then left the contract, and nothing here had to change for that either: a stub
+that holds no connection has no statement to run. None of them is PostgreSQL, and
+none of this needs a database.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -13,7 +15,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    SqlResource (contract: open/begin/commit/rollback/close/execute)
+    SqlResource (contract: open/begin/commit/rollback/close)
         │  close() has a concrete harmless body
         ├── catalog:   CatalogSearchSidecar, CatalogObjectStore
         ├── messaging: MessagingDeadLetterStore, OutboxPrimaryDatabase
@@ -50,8 +52,17 @@ STUBS: list[type] = [
 
 @pytest.mark.parametrize("stub_class", STUBS, ids=lambda cls: cls.__name__)
 def test_a_demo_stub_still_satisfies_the_contract(stub_class: type) -> None:
-    """Instantiation and the structural contract are unchanged by the new member."""
+    """Instantiation and the structural contract are unchanged by closing and by the removal."""
     assert isinstance(stub_class(), ProtocolSqlResource)
+
+
+@pytest.mark.parametrize("stub_class", STUBS, ids=lambda cls: cls.__name__)
+def test_a_demo_stub_carries_no_query_member(stub_class: type) -> None:
+    """A stub holds no connection, so it has no statement to run and no passthrough to publish."""
+    stub = stub_class()
+
+    for member in ("execute", "_execute", "_fetchrow"):
+        assert not hasattr(stub, member), member
 
 
 @pytest.mark.parametrize("stub_class", STUBS, ids=lambda cls: cls.__name__)

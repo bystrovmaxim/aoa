@@ -7,11 +7,15 @@ ProtocolSqlResource — structural contract for transactional SQL access.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Defines the surface required for lifecycle + execution against a SQL-backed
-resource: ``rollup`` visibility, ``open`` / transaction boundaries, ``close``,
-and ``execute``. Implementations may be concrete drivers (for example Postgres)
-or thin proxies; static checking uses this protocol without importing those
-types.
+Defines the surface required for the lifecycle of a SQL-backed resource:
+``rollup`` visibility, ``open`` / transaction boundaries and ``close``.
+Implementations may be concrete drivers (for example Postgres) or thin proxies;
+static checking uses this protocol without importing those types.
+
+The contract carries **no query member**. A statement is run by a domain method
+through the protected helpers of the driver it holds, and the proxy a nested
+action receives has nothing of its own to delegate — a nested action cannot reach
+the connection at all, by construction rather than by a rule.
 
 ``close`` carries a concrete harmless body, so that a manager which holds no
 connection of its own — the eight demo stubs, the test doubles — needs no edit
@@ -32,15 +36,15 @@ ARCHITECTURE / DATA FLOW
 
 """
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 
 @runtime_checkable
 class ProtocolSqlResource(Protocol):
     """
     AI-CORE-BEGIN
-        ROLE: Typed contract for async SQL connection lifecycle and execution.
-        CONTRACT: Implementations expose rollup, open/begin/commit/rollback/close, execute.
+        ROLE: Typed contract for async SQL connection lifecycle and transaction boundaries.
+        CONTRACT: Implementations expose rollup, open/begin/commit/rollback/close; no query member is part of the contract.
         INVARIANTS: Structural subtyping only; no runtime enforcement beyond isinstance. ``close`` has a harmless default, so a manager holding no connection still satisfies the contract.
     AI-CORE-END
     """
@@ -72,7 +76,3 @@ class ProtocolSqlResource(Protocol):
 
     async def close(self) -> None:
         """Release the connection this manager holds; harmless when it holds none."""
-
-    async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
-        """Run a SQL statement with optional positional parameters."""
-        ...

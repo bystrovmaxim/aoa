@@ -37,6 +37,7 @@ resource or the scope is driven directly, and not through the transport. That is
 - **`PostgresResource` can be closed, and the SQL contract gained `close()`.** The method has a harmless default body, so a resource that holds no connection of its own — a stub, a test double — needs no change; a resource that really holds one gives it back. The nested-operation proxy refuses `close()` and context-manager use along with the transaction commands it already refused.
 - **The constructor now takes one of two sources, and `rollup` is keyword-only.** `PostgresResource(connection_params)` opens its own connection; `PostgresResource(pool=pool)` borrows one per unit of work. Both at once, or neither, raises `ConnectionValidationError` in the constructor.
 - **Closing with a transaction still open is now reported.** The connection used to be returned with the transaction left to the driver's own reset, and nothing was said. Now the transaction is ended, the connection returned, and `TransactionLeftOpenError` raised.
+- **SQL resources no longer expose a shared `execute()` method.** Actions call methods defined by their resource. PostgreSQL resource implementations use `_execute()` for command status and `_fetchrow()` for the first row or `None`. To make a resource method available to nested actions, provide a wrapper that delegates it; connection and transaction ownership remain unchanged. ([#216](https://github.com/bystrovmaxim/aoa/issues/216))
 
 ### Added
 

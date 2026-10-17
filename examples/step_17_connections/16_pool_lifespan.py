@@ -84,6 +84,10 @@ class NotesResource(PostgresResource):
     """Use the standard PostgreSQL lifecycle."""
     acquire_timeout = 1.0
 
+    async def add_note(self, text: str) -> str:
+        """Write one note through the driver's statement helper."""
+        return await self._execute("INSERT INTO notes(text) VALUES ($1)", (text,))
+
 class StatusResult(BaseResult):
     """Expose the command status."""
     status: str = Field(description="Driver command status")
@@ -96,7 +100,7 @@ class QueryAction(BaseAction[EmptyParams, StatusResult]):
     @summary_aspect("Execute a statement")
     async def query_summary(self, params, state, box, connections):
         """Return the driver's command status."""
-        return StatusResult(status=await connections["db"].execute("SELECT 1"))
+        return StatusResult(status=await connections["db"].add_note("one note"))
 
 from contextlib import asynccontextmanager
 from fastapi.testclient import TestClient

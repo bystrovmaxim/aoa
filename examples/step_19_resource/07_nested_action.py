@@ -1,12 +1,16 @@
 """A real nested action receives a restricted view.
 
-Let the machine create the wrapper through box.run. The child asks to close the resource and catches the explicit refusal.
+Let the machine create the wrapper through box.run. The resource hands the child its own proxy, which delegates
+one semantic method and nothing else: the child writes a note through it, then asks to close the resource and
+catches the explicit refusal.
 
 Run: uv run python examples/step_19_resource/07_nested_action.py
 """
 
 import asyncio
 from aoa.action_machine.resources.postgres import PostgresResource
+from aoa.action_machine.resources.sql import WrapperSqlResource
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.exceptions import HandleError, TransactionLeftOpenError
@@ -84,6 +88,23 @@ class NotesResource(PostgresResource):
     """Use the standard PostgreSQL lifecycle."""
     acquire_timeout = 1.0
 
+    async def add_note(self, text: str) -> str:
+        """Write one note through the driver's statement helper."""
+        return await self._execute("INSERT INTO notes(text) VALUES ($1)", (text,))
+    def get_wrapper_class(self):
+        """Give a nested action the domain's own proxy rather than the default one."""
+        return NotesWrapper
+
+@exclude_graph_model
+class NotesWrapper(WrapperSqlResource):
+    """The domain's proxy: it delegates its own method and keeps every refusal."""
+    def get_wrapper_class(self):
+        """Keep handing the domain's proxy to a deeper nested action."""
+        return NotesWrapper
+    async def add_note(self, text: str) -> str:
+        """Write a note on the connection its owner holds."""
+        return await self._connection_manager.add_note(text)
+
 class StatusResult(BaseResult):
     """Expose the command status."""
     status: str = Field(description="Driver command status")
@@ -96,7 +117,7 @@ class QueryAction(BaseAction[EmptyParams, StatusResult]):
     @summary_aspect("Execute a statement")
     async def query_summary(self, params, state, box, connections):
         """Return the driver's command status."""
-        return StatusResult(status=await connections["db"].execute("SELECT 1"))
+        return StatusResult(status=await connections["db"].add_note("one note"))
 
 from aoa.action_machine.intents.depends import depends, UseCase
 from aoa.action_machine.exceptions import TransactionProhibitedError
@@ -106,13 +127,14 @@ from aoa.action_machine.exceptions import TransactionProhibitedError
 @connection(NotesResource, key="db")
 class ChildAction(BaseAction[EmptyParams, StatusResult]):
     """Observe the wrapper supplied by the runtime."""
-    @summary_aspect("Attempt closing")
+    @summary_aspect("Write through the proxy, then attempt closing")
     async def close_summary(self, params, state, box, connections):
-        """Report the nested closing refusal."""
+        """Use what the domain delegates, and report that closing is still refused."""
+        status = await connections["db"].add_note("from the child")
         try:
             await connections["db"].close()
         except TransactionProhibitedError:
-            return StatusResult(status="TransactionProhibitedError")
+            return StatusResult(status=f"{status}; close refused")
         raise AssertionError("Child closed its parent's connection")
 
 @meta(description="Call the child with the parent's connection", domain=NotesDomain)
@@ -132,7 +154,7 @@ async def main():
     pool = RecordingPool()
     async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
         result = await ActionProductMachine(loggers=[]).run(Context(), ParentAction(), EmptyParams(), connections)
-        assert result.status == "TransactionProhibitedError"
+        assert result.status == "OK; close refused"
         assert len(pool.held) == 1
         print(result.model_dump())
     assert not pool.held

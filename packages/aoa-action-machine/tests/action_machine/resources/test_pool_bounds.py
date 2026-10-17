@@ -42,7 +42,7 @@ async def _one_unit(pool: FakePool) -> None:
     resource = PostgresResource(pool=pool)
     await resource.open()
     try:
-        await resource.execute("SELECT 1")
+        await resource._execute("SELECT 1")
     finally:
         await resource.close()
 

@@ -38,6 +38,7 @@ ALLOWED_ACTION_MACHINE_MODULES: frozenset[str] = frozenset(
         f"{_AM}.plugin.ocel.dto",
         f"{_AM}.resources",
         f"{_AM}.resources.external_service",
+        f"{_AM}.resources.postgres",  # the PostgreSQL facade the demo's identity store imports (issue #216)
         f"{_AM}.resources.sql",
         f"{_AM}.runtime.action_product_machine",
         f"{_AM}.runtime.tools_box",

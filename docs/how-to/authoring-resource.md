@@ -115,10 +115,11 @@ transaction or another handle that children must not close, return a wrapper cla
 that exposes permitted operations and refuses ownership operations.
 
 For SQL, use the existing `SqlResource` and `WrapperSqlResource` contract instead
-of reproducing part of it. The wrapper delegates execute but blocks open, begin,
-commit, rollback, close and context-manager use. It does not automatically forward
-arbitrary domain-specific methods; a custom interface needs its own compatible
-wrapper if those methods must be available to child actions. The
+of reproducing part of it. The wrapper blocks open, begin, commit, rollback, close
+and context-manager use. It still delegates rollup inspection, but has no
+`execute()` or other query method. A custom interface needs its own
+wrapper, returned from `get_wrapper_class()`, which delegates the domain's own
+methods and keeps every refusal. The
 [wrapper cases](../tutorials/step-19-resource.md#a-wrapper-for-nested-operations)
 show both direct calls and automatic wrapping by box.run.
 
@@ -138,3 +139,12 @@ unfinished transaction at close.
 Rollup support is also a real obligation. Generic BaseResource refuses it by default.
 A SQL implementation must ensure that rollup=True makes commit roll back its explicit
 transaction. This is not an all-purpose undo mechanism for external systems.
+
+A subclass of `PostgresResource` can implement its methods using two protected helpers.
+`await self._execute(query, params)` runs a statement and answers the driver's command
+status; `await self._fetchrow(query, params)` answers the query's first row, or `None`.
+Both check that the connection is open and turn a failure of the driver into
+`HandleError` with the driver's error chained, so the method carries its business
+meaning and no transport mechanics. A method that wants its own message catches that
+error and raises its own with the cause attached. `SqlResource` does not require an
+`execute()` method; the resource defines the public methods its callers need.

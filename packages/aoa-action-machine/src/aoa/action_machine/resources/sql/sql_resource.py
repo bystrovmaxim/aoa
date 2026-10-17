@@ -8,7 +8,13 @@ PURPOSE
 
 ``SqlResource`` is an abstract base class for transactional SQL connection
 managers. It defines the contract:
-``open()``, ``begin()``, ``commit()``, ``rollback()``, ``close()``, ``execute()``.
+``open()``, ``begin()``, ``commit()``, ``rollback()``, ``close()``.
+
+There is **no query member** in that contract. A subclass implements the three
+abstract lifecycle members and nothing else; a statement is run by a domain
+method — the resource's own semantic method — through the protected helpers of
+the driver it holds, and a resource that wants a public passthrough publishes one
+of its own rather than inheriting an obligation.
 
 ``close()`` is the one lifecycle member with a concrete harmless body: a manager
 that holds no connection of its own — the demo stubs, the test doubles — answers
@@ -46,11 +52,11 @@ ROLLUP LIFECYCLE
     # Caller creates manager with rollup=True:
     db = PostgresResource(params, rollup=True)
 
-    # Aspect code runs as usual:
+    # The domain's own method runs its statements through the driver's helpers:
     await db.open()
-    await db.begin()                   # -> one transaction for all execute calls
-    await db.execute("INSERT ...")
-    await db.execute("UPDATE ...")
+    await db.begin()                   # -> one transaction for the unit of work
+    await db._execute("INSERT ...")    # protected: a subclass calls it, nobody else
+    await db._execute("UPDATE ...")
     await db.commit()                  # -> ROLLBACK (instead of COMMIT)
 
     # All changes are rolled back, production data is untouched.
@@ -86,7 +92,6 @@ ARCHITECTURE / DATA FLOW
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
@@ -143,10 +148,3 @@ class SqlResource(BaseStorage, ProtocolSqlResource, ABC):
 
     async def close(self) -> None:
         """Release the connection this manager holds; harmless when it holds none."""
-
-    @abstractmethod
-    async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
-        """
-        Execute query against underlying resource.
-        """
-        pass

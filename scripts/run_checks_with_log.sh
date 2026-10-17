@@ -156,7 +156,13 @@ echo "" >>"$LOG_FILE"
 # Do not chase either one; the steps below stay green with them in the log.
 run_and_log "(cd packages/aoa-maxitor/client && npm ci && npm run build)" "Maxitor client: npm ci and Vite build"
 
-run_and_log "uv run --extra dev ruff check --fix ." "Ruff auto-fix"
+# The auto-fix step takes the same scope as the lint target below (`task lint`), so that the two
+# agree on what this repository lints. `examples/` and its notebooks are tutorial material and sit
+# outside that scope; while the step scanned everything (`.`) it reported 207 findings inside
+# `examples/` — 162 fixable (import order, unused imports) and 45 `module-import-not-at-top` — none
+# of them introduced by the change that found this and all of them predating it. Widening the scope
+# back to `.` is one line, and it re-opens that debt deliberately.
+run_and_log "uv run --extra dev ruff check --fix packages/ tests/ scripts/ aoa_run/" "Ruff auto-fix"
 run_and_log "uv run --extra dev task lint" "Ruff lint"
 run_and_log "uv run --extra dev task typecheck" "Mypy typecheck"
 run_and_log "uv run --extra dev task pylint" "Pylint"

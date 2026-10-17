@@ -62,23 +62,27 @@ class _FakeConnection:
     def __init__(self) -> None:
         self._busy = False
         self.operations: list[str] = []
+        self.calls: list[tuple[str, tuple[Any, ...]]] = []
 
     async def execute(self, query: str, *args: Any) -> str:
         """Run a statement, refusing a second operation while one is in flight."""
-        return await self._operation(query)
+        return await self._operation(query, args)
 
-    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
-        """Answer the person lookup with the seeded row."""
-        await self._operation(query)
-        return [dict(PERSON)]
+    async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
+        """Answer the person lookup with the seeded row, or nothing for another person."""
+        await self._operation(query, args)
+        if not args or args[0] != PERSON["id"]:
+            return None
+        return dict(PERSON)
 
-    async def _operation(self, query: str) -> str:
+    async def _operation(self, query: str, args: tuple[Any, ...]) -> str:
         if self._busy:
             raise RuntimeError("another operation is in progress")
         self._busy = True
         try:
             await asyncio.sleep(0)  # a real statement awaits; a concurrent caller must collide
             self.operations.append(query)
+            self.calls.append((query, args))
             return "OK"
         finally:
             self._busy = False
@@ -201,16 +205,28 @@ async def test_without_a_dsn_the_route_declares_the_in_memory_store(monkeypatch:
     async with connection_scope({"identity": identity_connection()}) as connections:
         store = connections["identity"]
         assert isinstance(store, IdentityStoreStub)
-        rows = await store.read_person("person-1")
+        person = await store.read_person("person-1")
         await store.record_login("person-1", AT)
 
-    assert rows == [PERSON]
+    assert person == PERSON
     assert store.logins == [{"person_id": "person-1", "at": AT}]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
 # The PostgreSQL mode — the driver is imported only by the tests that need it
 # ═════════════════════════════════════════════════════════════════════════════
+
+
+async def test_a_read_on_a_closed_store_names_the_failure() -> None:
+    """The store's own check is gone: a closed resource answers with the framework's named error."""
+    pytest.importorskip("asyncpg")
+    pool = _FakePool()
+    store = _postgres_store(pool)
+    await store.open()
+    await store.close()
+
+    with pytest.raises(HandleError, match="Connection is not open"):
+        await store.read_person("person-1")
 
 
 async def test_concurrent_calls_do_not_fail() -> None:
@@ -237,15 +253,25 @@ async def test_two_transactions_do_not_interleave() -> None:
         try:
             await store.begin()
             await asyncio.wait_for(barrier.wait(), timeout=WAIT)
-            await store.execute(f"INSERT {tag}")
+            await store._write_login(tag, AT)
             await store.commit()
         finally:
             await store.close()
 
     await asyncio.gather(login("a"), login("b"))
 
-    per_connection = [conn.operations for conn in pool.connections]
-    assert sorted(per_connection) == [["BEGIN", "INSERT a", "COMMIT"], ["BEGIN", "INSERT b", "COMMIT"]]
+    per_connection = sorted(conn.operations for conn in pool.connections)
+    assert len(per_connection) == 2
+    for recorded in per_connection:
+        assert recorded[0] == "BEGIN"
+        assert recorded[-1] == "COMMIT"
+        assert len(recorded) == 3, recorded
+        assert recorded[1].startswith("INSERT INTO identity_login_event"), recorded[1]
+    # Each unit wrote its own tag: the parameters of every statement are recorded too.
+    written = sorted(
+        call[1][0] for conn in pool.connections for call in conn.calls if call[0].startswith("INSERT")
+    )
+    assert written == ["a", "b"]
     assert pool.held == 0
 
 
