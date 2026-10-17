@@ -47,8 +47,10 @@ through box.run and declare that dependency. Do not extract every small calculat
 into an action merely because it can be named.
 
 If a child receives a parent's transactional resource, it receives a restricted
-wrapper. It may execute permitted commands but cannot commit, roll back or close the
-parent's connection. This is ownership, not a different kind of business logic.
+wrapper: it may call only what the resource's own wrapper delegates, and it cannot
+commit, roll back or close the parent's connection. The standard SQL wrapper has no
+`execute()` method; the resource's own wrapper exposes the methods a child needs. This is ownership,
+not a different kind of business logic.
 See [the actual nested-call example](../../examples/step_19_resource/07_nested_action.ipynb).
 
 Before adding a class, state its job in a sentence. “Read from the database” points

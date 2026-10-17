@@ -27,8 +27,8 @@ ARCHITECTURE / DATA FLOW
 ::
 
     IdentityStoreBase (SqlResource)
-        │  read_person(id)      -> _fetch_rows(SELECT …)
-        │  record_login(id, at) -> begin / execute / commit, rollback on failure
+        │  read_person(id)      -> _read_person(id)
+        │  record_login(id, at) -> begin / _write_login / commit, rollback on failure
         │
         ├── IdentityStore      (+ PostgresResource)  pool-backed, real driver
         └── IdentityStoreStub  (in-memory)           database-free mode
@@ -51,25 +51,22 @@ class IdentityStoreBase(SqlResource):
     """
     AI-CORE-BEGIN
         ROLE: The identity domain's storage semantics, independent of any driver.
-        CONTRACT: ``read_person`` returns rows through ``_fetch_rows``; ``record_login`` owns one transaction and rolls it back on any failure.
+        CONTRACT: ``read_person`` answers one person or nothing through ``_read_person``; ``record_login`` owns one transaction and rolls it back on any failure.
         INVARIANTS: No driver is imported here; an implementation supplies the storage primitive and the lifecycle.
     AI-CORE-END
     """
 
     @abstractmethod
-    async def _fetch_rows(self, query: str, params: tuple[Any, ...]) -> list[dict[str, Any]]:
-        """Read rows for a query; the implementation decides how it reads them."""
+    async def _read_person(self, person_id: str) -> dict[str, Any] | None:
+        """Read one person; the implementation decides how it reads them."""
 
     @abstractmethod
     async def _write_login(self, person_id: str, at: str) -> None:
         """Record one login; the implementation decides how it writes it."""
 
-    async def read_person(self, person_id: str) -> list[dict[str, Any]]:
-        """Return the person's row, or an empty list when nobody matches."""
-        return await self._fetch_rows(
-            "SELECT id, email, display_name FROM identity_person_hub WHERE id = $1",
-            (person_id,),
-        )
+    async def read_person(self, person_id: str) -> dict[str, Any] | None:
+        """Return the person, or nothing when nobody matches."""
+        return await self._read_person(person_id)
 
     async def record_login(self, person_id: str, at: str) -> None:
         """Record one login inside a transaction this method opens and ends."""

@@ -33,6 +33,12 @@ No query member:
     - the proxy exposes no ``execute``, ``_execute`` or ``_fetchrow``.
     - the owner's own members are not auto-delegated.
 
+A domain wrapper:
+    - a resource that wants nested access hands out its own proxy.
+    - that proxy delegates the domain's own method and keeps every refusal.
+    - a failure of the owner's method arrives as the domain's own error, cause chained.
+    - the domain's proxy keeps delegating when it is wrapped again.
+
 get_wrapper_class:
     - Returns WrapperSqlResource (for re-wrapping).
     - Synchronous method.
@@ -55,7 +61,8 @@ from unittest.mock import AsyncMock
 import pytest
 
 from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.exceptions import TransactionProhibitedError
+from aoa.action_machine.exceptions import HandleError, TransactionProhibitedError
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.sql import ProtocolSqlResource, SqlResource, WrapperSqlResource
 
@@ -110,6 +117,44 @@ class MockConnectionManager(SqlResource):
 
 
 # ======================================================================
+# A domain resource that hands a nested action something of its own
+# ======================================================================
+
+
+@exclude_graph_model
+class NotesWrapper(WrapperSqlResource):
+    """The notes domain's proxy: one delegated method, every refusal kept (NA-3.1, NA-3.2)."""
+
+    def get_wrapper_class(self) -> type[BaseResource] | None:
+        """Keep handing the domain's own proxy to a deeper nested action (NA-3.3)."""
+        return NotesWrapper
+
+    async def load_total(self) -> str:
+        """Ask the owner's own method, and name a failure as the domain's (NA-3.4)."""
+        try:
+            return await self._connection_manager.load_total()
+        except Exception as error:
+            raise HandleError(f"Notes total failed: {error}") from error
+
+
+@meta(description="Notes domain resource with a proxy of its own", domain=_WrapperSqlResourceTestDomain)
+class NotesResource(MockConnectionManager):
+    """A domain resource: one semantic method, and the proxy it wants nested actions to receive."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.load_total = AsyncMock(return_value="total: 3")
+
+    async def load_total(self) -> str:
+        """Answer the domain's one question."""
+        return "total: 3"  # overridden by AsyncMock in __init__
+
+    def get_wrapper_class(self) -> type[BaseResource] | None:
+        """Hand a nested action the domain's own proxy rather than the default one (NA-1.2)."""
+        return NotesWrapper
+
+
+# ======================================================================
 # Fixtures
 # ======================================================================
 
@@ -118,6 +163,18 @@ class MockConnectionManager(SqlResource):
 def mock_manager() -> MockConnectionManager:
     """Mock connection manager."""
     return MockConnectionManager()
+
+
+@pytest.fixture
+def notes_manager() -> NotesResource:
+    """A domain resource that declares a proxy of its own."""
+    return NotesResource()
+
+
+@pytest.fixture
+def notes_proxy(notes_manager: NotesResource) -> NotesWrapper:
+    """The proxy the framework would hand a nested action for that resource."""
+    return NotesWrapper(notes_manager)
 
 
 @pytest.fixture
@@ -284,6 +341,85 @@ class TestNoQueryMember:
         """The proxy holds the owner, and still delegates no statement to it."""
         assert wrapper._connection_manager is mock_manager
         assert not hasattr(wrapper, "execute")
+
+
+# ======================================================================
+# TESTS: the domain's own wrapper (FR-013)
+# ======================================================================
+
+
+class TestDomainWrapper:
+    """A resource that wants nested access declares its own proxy, and it delegates only what it chooses."""
+
+    @pytest.mark.anyio
+    async def test_it_delegates_the_domains_own_method(
+        self,
+        notes_proxy: NotesWrapper,
+        notes_manager: NotesResource,
+    ) -> None:
+        """The nested action gets the answer of the owner's semantic method."""
+        assert await notes_proxy.load_total() == "total: 3"
+        notes_manager.load_total.assert_called_once_with()
+
+    @pytest.mark.anyio
+    async def test_it_still_refuses_the_whole_lifecycle(self, notes_proxy: NotesWrapper) -> None:
+        """Delegating one method does not open the door to the lifecycle, or to a context manager."""
+        for call in (
+            notes_proxy.open(),
+            notes_proxy.begin(),
+            notes_proxy.commit(),
+            notes_proxy.rollback(),
+            notes_proxy.close(),
+        ):
+            with pytest.raises(TransactionProhibitedError):
+                await call
+        with pytest.raises(TransactionProhibitedError):
+            async with notes_proxy:
+                pass
+
+    @pytest.mark.anyio
+    async def test_it_exposes_no_query_member_either(self, notes_proxy: NotesWrapper) -> None:
+        """A domain proxy delegates its own methods and nothing else."""
+        for member in ("execute", "_execute", "_fetchrow"):
+            assert not hasattr(notes_proxy, member), member
+
+    @pytest.mark.anyio
+    async def test_a_delegated_failure_arrives_as_the_domains_own_error(
+        self,
+        notes_proxy: NotesWrapper,
+        notes_manager: NotesResource,
+    ) -> None:
+        """The domain composes the message, and the owner's error is its cause."""
+        original = RuntimeError("the ledger is locked")
+        notes_manager.load_total.side_effect = original
+
+        with pytest.raises(HandleError, match="Notes total failed") as exc_info:
+            await notes_proxy.load_total()
+
+        assert exc_info.value.__cause__ is original
+
+    @pytest.mark.anyio
+    async def test_it_keeps_delegating_when_it_is_wrapped_again(
+        self,
+        notes_proxy: NotesWrapper,
+    ) -> None:
+        """Two and three levels of the domain's own proxy still answer, and still refuse."""
+        second = notes_proxy.get_wrapper_class()(notes_proxy)
+        third = second.get_wrapper_class()(second)
+
+        assert await second.load_total() == "total: 3"
+        assert await third.load_total() == "total: 3"
+        with pytest.raises(TransactionProhibitedError):
+            await third.close()
+
+    def test_the_default_resource_still_hands_out_the_default_proxy(
+        self,
+        mock_manager: MockConnectionManager,
+        notes_manager: NotesResource,
+    ) -> None:
+        """The override is what changes the answer: nothing else in the framework moved (NA-1.2)."""
+        assert mock_manager.get_wrapper_class() is WrapperSqlResource
+        assert notes_manager.get_wrapper_class() is NotesWrapper
 
 
 # ======================================================================

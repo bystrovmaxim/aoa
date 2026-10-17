@@ -57,6 +57,12 @@ happens to have.
 **NA-3.4** An error raised by a delegated method MUST reach the nested action as the domain's own error, with the
 underlying error chained, rather than as a raw driver error.
 
+**NA-3.5** A domain wrapper MUST be excluded from the graph model (`@exclude_graph_model`), exactly as
+`WrapperSqlResource` and `OcelStoreWrapper` are. It is a proxy rather than a resource the graph describes, and the
+metadata resolver refuses a class it can see without a `@meta` description — which means an undeclared proxy breaks
+every machine build, not only the nested call. The example case is what established this: the first run of the
+enriched nested-action case failed at `ActionProductMachine()` construction, before any nested call.
+
 ## 4. What the example cases show afterwards
 
 | Case | Before | After |

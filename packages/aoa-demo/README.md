@@ -16,7 +16,11 @@
 for a database-backed resource. The action declares `IdentityStoreBase` under the
 connection key `identity`; the route supplies a value per call — created for the call
 and closed after it — so concurrent calls never share a connection and each
-transaction belongs to one caller.
+transaction belongs to one caller. The domain asks storage for two things — a person,
+and a login recorded inside a transaction — and each store supplies them its own way:
+over PostgreSQL the domain runs its statements through the driver's protected helpers
+(`_execute`, `_fetchrow`) from methods of its own, and in memory it answers from
+dictionaries.
 
 It runs in two modes, and only the supplied value differs:
 

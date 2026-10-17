@@ -66,11 +66,15 @@ grep -rn "execute(query\|delegates execute\|super().execute\|wrapper can execute
 ## S4 — a store that decides what to do from statement text
 
 ```bash
-grep -rn "startswith(\"INSERT\")" packages --include=*.py
+grep -rn "startswith(\"INSERT\")" packages/*/src --include=*.py
 ```
 
 **Before: 1** — `packages/aoa-demo/src/aoa/demo/model/identity/resources/identity_store_stub.py:69`, a store with
 no database parsing SQL to find out what it was asked to do. **After: 0** (SC-017).
+
+The scope is `packages/*/src`, and that is deliberate: the rule is about a *store* deciding from statement text, and
+a test may legitimately filter the calls it recorded by their statement — which is what the demo's interleaving test
+does to tell its two units apart. Counting the tests would make the criterion say something it does not mean.
 
 ## S5 — examples that call the member
 

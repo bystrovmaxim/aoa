@@ -68,10 +68,12 @@ class _FakeConnection:
         """Run a statement, refusing a second operation while one is in flight."""
         return await self._operation(query, args)
 
-    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
-        """Answer the person lookup with the seeded row."""
+    async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
+        """Answer the person lookup with the seeded row, or nothing for another person."""
         await self._operation(query, args)
-        return [dict(PERSON)]
+        if not args or args[0] != PERSON["id"]:
+            return None
+        return dict(PERSON)
 
     async def _operation(self, query: str, args: tuple[Any, ...]) -> str:
         if self._busy:
@@ -203,16 +205,28 @@ async def test_without_a_dsn_the_route_declares_the_in_memory_store(monkeypatch:
     async with connection_scope({"identity": identity_connection()}) as connections:
         store = connections["identity"]
         assert isinstance(store, IdentityStoreStub)
-        rows = await store.read_person("person-1")
+        person = await store.read_person("person-1")
         await store.record_login("person-1", AT)
 
-    assert rows == [PERSON]
+    assert person == PERSON
     assert store.logins == [{"person_id": "person-1", "at": AT}]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
 # The PostgreSQL mode — the driver is imported only by the tests that need it
 # ═════════════════════════════════════════════════════════════════════════════
+
+
+async def test_a_read_on_a_closed_store_names_the_failure() -> None:
+    """The store's own check is gone: a closed resource answers with the framework's named error."""
+    pytest.importorskip("asyncpg")
+    pool = _FakePool()
+    store = _postgres_store(pool)
+    await store.open()
+    await store.close()
+
+    with pytest.raises(HandleError, match="Connection is not open"):
+        await store.read_person("person-1")
 
 
 async def test_concurrent_calls_do_not_fail() -> None:

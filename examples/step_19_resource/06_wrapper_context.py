@@ -1,6 +1,6 @@
 """A child cannot enter the owner’s lifecycle.
 
-A wrapper grants permission to use a connection, not to manage its lifetime.
+The standard wrapper does not let a child manage its owner’s connection.
 
 Run: uv run python examples/step_19_resource/06_wrapper_context.py
 """

@@ -32,10 +32,25 @@ These are alternative construction forms. Supply exactly one source. `pool` and
 `rollup` are keyword-only arguments. Construction is synchronous and does not
 connect; `await db.open()` takes the connection. `await db.close()` releases it.
 
-`execute(query, params=None)` calls the driver's `execute` and returns its command
-status, such as `"INSERT 0 1"`. It is not a row-fetching method: adding `RETURNING`
-to SQL does not turn this API into a returned row or identifier. A domain-specific
-resource supplies any row-reading methods it needs.
+The SQL resource contract provides `open`, `begin`, `commit`, `rollback` and
+`close`, but no public `execute()` method. An action calls a method of its resource,
+such as `add_note(text)`. A subclass of `PostgresResource` implements that method
+using the protected helpers below. The leading underscore marks methods intended
+for resource implementations, rather than direct calls from actions:
+
+- `self._execute(query, params=None)` runs a statement and answers the driver's command
+  status, such as `"INSERT 0 1"`. Rows are discarded: adding `RETURNING` to SQL does not
+  turn this into a returned row or identifier.
+- `self._fetchrow(query, params=None)` runs a query and answers its **first** row, or
+  `None`. First, not only: a statement that can match several rows without an ordering
+  yields an arbitrary one.
+
+Both check that the connection is open — a resource that never opened, or one already
+closed, refuses with `HandleError("Connection is not open")` — and both turn a failure
+of the driver into `HandleError("SQL execution failed: …")` with the driver's error
+chained as its cause. A method that wants its own message catches that error and raises
+its own with the cause attached. A resource that wants a public query surface publishes
+one of its own; the framework neither provides nor forbids it.
 
 ## How to run these examples
 
@@ -181,9 +196,22 @@ timeout passed to `create_pool` is not this borrowing timeout. The pool interfac
 expected by AOA is `PoolProtocol`: acquire an awaitable connection, release it,
 and close the pool. The application remains the pool's owner.
 
+The statement examples use this small subclass. `add_note` is the method
+called by application code; only its implementation calls `_execute`.
+
+```python
+class NotesResource(PostgresResource):
+    """The notes domain's resource: its own method runs the statement."""
+    async def add_note(self, text: str) -> str:
+        """Write one note through the driver's statement helper."""
+        return await self._execute("INSERT INTO notes(text) VALUES ($1)", (text,))
+```
+
 ## Concurrent calls hold different connections
 
 Two calls must overlap to demonstrate isolation. An event holds each call open until both have borrowed.
+In this example, `RecordingConnection.calls` records each command together with its
+parameters, so the output also shows which note belongs to each connection.
 
 [Python](../../examples/extensions/postgresql/02_concurrent.py) · [Notebook](../../examples/extensions/postgresql/02_concurrent.ipynb)
 
@@ -196,7 +224,7 @@ arrivals = []
 async def work(label):
     """Hold one resource until the other call has also opened."""
     async with connection_scope({"db": PerCallConnection(
-        lambda: PostgresResource(pool=pool), lambda resource: resource.close(),
+        lambda: NotesResource(pool=pool), lambda resource: resource.close(),
     )}) as connections:
         arrivals.append(label)
         if len(arrivals) == 2:
@@ -204,12 +232,13 @@ async def work(label):
         await ready.wait()
         db = connections["db"]
         await db.begin()
-        await db.execute(label)
+        await db.add_note(label)
         await db.commit()
 await asyncio.wait_for(asyncio.gather(work("work A"), work("work B")), 2)
 for connection in pool.connections:
-    assert connection.commands in (["BEGIN", "work A", "COMMIT"], ["BEGIN", "work B", "COMMIT"])
-    print(connection.number, connection.commands)
+    assert connection.commands == ["BEGIN", "INSERT INTO notes(text) VALUES ($1)", "COMMIT"]
+    print(connection.number, connection.calls)
+assert {connection.calls[1][1] for connection in pool.connections} == {("work A",), ("work B",)}
 assert not pool.held
 print("borrowed after calls:", len(pool.held))
 await pool.close()
@@ -218,8 +247,8 @@ await pool.close()
 Observed output:
 
 ```text
-1 ['BEGIN', 'work A', 'COMMIT']
-2 ['BEGIN', 'work B', 'COMMIT']
+1 [('BEGIN', ()), ('INSERT INTO notes(text) VALUES ($1)', ('work A',)), ('COMMIT', ())]
+2 [('BEGIN', ()), ('INSERT INTO notes(text) VALUES ($1)', ('work B',)), ('COMMIT', ())]
 borrowed after calls: 0
 ```
 
@@ -394,10 +423,10 @@ The following is the body of `main()` from the standalone example; the linked fi
 
 ```python
 pool = RecordingPool()
-async with connection_scope({"db": PerCallConnection(lambda: PostgresResource(pool=pool), lambda resource: resource.close())}) as connections:
+async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
     db = connections["db"]
     await db.begin()
-    await db.execute("INSERT INTO notes(text) VALUES ($1)", ("hello",))
+    await db.add_note("hello")
     await db.commit()
 assert pool.connections[0].commands == ["BEGIN", "INSERT INTO notes(text) VALUES ($1)", "COMMIT"]
 print(pool.connections[0].commands)
@@ -412,7 +441,7 @@ Observed output:
 borrowed: 0
 ```
 
-The scope handles acquisition and release. The transaction owner handles BEGIN and COMMIT. execute returns the driver’s command status; the recording connection returns OK, not database rows.
+The scope handles acquisition and release. The transaction owner handles BEGIN and COMMIT. The domain method answers with the driver’s command status, which the recording connection returns as OK; rows are not involved.
 
 ## A work failure ends its transaction explicitly
 
@@ -425,18 +454,18 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 pool = RecordingPool()
 try:
-    async with connection_scope({"db": PerCallConnection(lambda: PostgresResource(pool=pool), lambda resource: resource.close())}) as connections:
+    async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
         db = connections["db"]
         await db.begin()
         try:
-            await db.execute("work")
+            await db.add_note("work")
             raise ValueError("cannot finish")
         except BaseException:
             await db.rollback()
             raise
 except ValueError as error:
     print(str(error))
-assert pool.connections[0].commands == ["BEGIN", "work", "ROLLBACK"]
+assert pool.connections[0].commands == ["BEGIN", "INSERT INTO notes(text) VALUES ($1)", "ROLLBACK"]
 assert not pool.held
 print(pool.connections[0].commands)
 await pool.close()
@@ -446,7 +475,7 @@ Observed output:
 
 ```text
 cannot finish
-['BEGIN', 'work', 'ROLLBACK']
+['BEGIN', 'INSERT INTO notes(text) VALUES ($1)', 'ROLLBACK']
 ```
 
 BaseException also covers cancellation. Here rollback succeeds, so the original work error is preserved and close has no unfinished transaction to report.
@@ -461,12 +490,12 @@ The following is the body of `main()` from the standalone example; the linked fi
 
 ```python
 pool = RecordingPool()
-async with connection_scope({"db": PerCallConnection(lambda: PostgresResource(pool=pool, rollup=True), lambda resource: resource.close())}) as connections:
+async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool, rollup=True), lambda resource: resource.close())}) as connections:
     db = connections["db"]
     await db.begin()
-    await db.execute("work")
+    await db.add_note("work")
     await db.commit()
-assert pool.connections[0].commands == ["BEGIN", "work", "ROLLBACK"]
+assert pool.connections[0].commands == ["BEGIN", "INSERT INTO notes(text) VALUES ($1)", "ROLLBACK"]
 print(pool.connections[0].commands)
 await pool.close()
 ```
@@ -474,7 +503,7 @@ await pool.close()
 Observed output:
 
 ```text
-['BEGIN', 'work', 'ROLLBACK']
+['BEGIN', 'INSERT INTO notes(text) VALUES ($1)', 'ROLLBACK']
 ```
 
 The transaction ended through rollback, so cleanup does not report it as unfinished. This affects the explicit SQL transaction; it does not undo HTTP calls, messages, sequence increments or writes outside that transaction.
@@ -647,10 +676,14 @@ which is appropriate only for a subclass that owns no external handle.
 `PostgresResource` supplies the actual connection lifetime. `WrapperSqlResource`
 gives nested actions a restricted view of that owner.
 
-The wrapper delegates execute and rollup inspection, but rejects open, begin,
+The wrapper delegates rollup inspection and nothing else, and rejects open, begin,
 commit, rollback, close and asynchronous context-manager use with
-`TransactionProhibitedError`. It exposes no acquire method. These are ownership
-restrictions: a child must not return a connection while its parent still needs it.
+`TransactionProhibitedError`. It exposes no acquire method and no query member: the
+query surface left the contract, so there is nothing for a child to run a statement
+with. These are ownership restrictions: a child must not return a connection while its
+parent still needs it. A resource that *does* want a child to run one of its own
+methods returns its own wrapper class from `get_wrapper_class()`; that wrapper
+delegates those methods and keeps every refusal.
 See the [separate wrapper examples](../tutorials/step-19-resource.md#a-wrapper-for-nested-operations).
 
 ## Migrating an existing declaration

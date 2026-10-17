@@ -18,6 +18,15 @@ description the same route answers from an in-memory store, so the demo installs
 runs without the driver. The database driver is an extra, and it is imported only when a
 connection description is given. ([#215](https://github.com/bystrovmaxim/aoa/issues/215))
 
+The identity domain now reaches its storage through the two primitives it declares itself, so its
+read answers one person or nothing rather than a list of rows, and the in-memory store no longer works
+out what to do by reading the statement it was handed. The PostgreSQL store runs its read and its write
+through the resource's protected helpers. ([#216](https://github.com/bystrovmaxim/aoa/issues/216))
+
+### Breaking changes
+
+- **`IdentityStoreStub.execute` is gone, and `read_person` answers one person.** The SQL contract no longer carries a query member, so the in-memory store implements the domain's read and write primitives instead of accepting statements. A caller that read `read_person(...)` as a list of rows now receives a single person or `None`.
+
 ### Added
 
 - **An identity domain in `aoa.demo.model.identity` — the reference for a resource created per call.** `IdentityStore` mixes the domain's two operations with the PostgreSQL resource, `IdentityStoreStub` keeps the same two in memory, and `IdentityLookupAction` declares the connection and never learns which of them it received. ([#215](https://github.com/bystrovmaxim/aoa/issues/215))

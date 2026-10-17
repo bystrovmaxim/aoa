@@ -601,23 +601,20 @@ A resource is any object with long-lived state or an external connection: Postgr
 
 Business rules live in `Action`. Transport lives in `Resource`.
 
-A resource can be a thin adapter over a standard protocol. The `PostgresResource` ships in the box — it manages the connection and transaction, and `Action` writes SQL directly through `execute()`. The second approach is a domain-oriented resource that hides transport behind project-level methods:
+A resource can be a thin adapter over a standard protocol, or a domain-oriented resource that hides transport behind project-level methods. `PostgresResource` ships in the box and manages the connection and the transaction; a domain resource subclasses it and runs its statements through the driver's protected helpers:
 
 ```python
-class OrderResource(BaseResource):
-    def __init__(self, postgres: PostgresResource) -> None:
-        self._postgres = postgres
-
+class OrderResource(PostgresResource):
     async def load_customer(self, customer_id: str) -> CustomerEntity:
-        row = await self._postgres.execute(
-            "SELECT * FROM customers WHERE id = $1", params=(customer_id,)
+        row = await self._fetchrow(
+            "SELECT * FROM customers WHERE id = $1", (customer_id,)
         )
         return build(row, CustomerEntity)
 
     async def save_order(self, order_id: str, customer_id: str, total: float) -> None:
-        await self._postgres.execute(
+        await self._execute(
             "INSERT INTO orders (id, customer_id, total) VALUES ($1, $2, $3)",
-            params=(order_id, customer_id, total),
+            (order_id, customer_id, total),
         )
 ```
 

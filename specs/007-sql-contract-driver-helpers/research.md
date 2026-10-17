@@ -199,7 +199,7 @@ issue's line numbers are not used.
 | `docs/tutorials/step-19-resource.md` | `:225` is the section to delete; `:209` and `:324` are the neighbouring sections that absorb the claim and the domain wrapper |
 | `docs/tutorials/step-19-resource.ru_draft.md` | `:225` and the surrounding sections in Russian |
 | Root `README.md` | `:604-618` teaches a resource calling the member on the driver |
-| `examples/extensions/postgresql/*` | `02_concurrent.py:80`, `04_commit.py:70`, `05_rollback.py:72`, `07_rollup.py:70`, `14_failed_commit.py:73` (the last overriding the member) |
+| `examples/extensions/postgresql/*` | `02_concurrent.py:80`, `04_commit.py:70`, `05_rollback.py:72`, `07_rollup.py:70`, `14_failed_commit.py:73` (which overrides the recording connection's method, not the contract's member) |
 | `examples/step_17_connections/16_pool_lifespan.py:99` | calls the member on the declared connection |
 | `examples/step_19_resource/04_wrapper_execute.py` + `.ipynb` | the case to delete, with `docs/tutorials/step-19-resource.md`'s link to it |
 | `examples/step_19_resource/07_nested_action.py:99` | the nested case calls the member; it is also where the domain wrapper is demonstrated afterwards |
