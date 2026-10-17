@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1a4] – 2026-10-17
+
 A PostgreSQL resource is now a connection for one unit of work rather than a connection for the
 life of a process. It takes a connection when it opens and gives it back when it closes, so two
 calls that arrive together no longer share a session: previously one caller's `COMMIT` could
