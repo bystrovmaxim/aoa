@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] – 2026-10-17
+
 The demo gained a database-backed domain, and it still runs without a database. `POST
 /api/v1/identity/lookup` and the MCP tool `identity.lookup` read a person and record a login
 inside one transaction, each call taking its own connection from a pool the service creates at
