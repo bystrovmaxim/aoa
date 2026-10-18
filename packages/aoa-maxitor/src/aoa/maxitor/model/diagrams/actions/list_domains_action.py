@@ -154,7 +154,7 @@ class ListDomainsAction(BaseAction[ParamsStub, "ListDomainsAction.Result"]):
     @summary_aspect("Resolve domain qualifier list from DuckDB graph")
     async def build_list_domains_summary(
         self,
-        _params: ParamsStub,
+        params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],

@@ -580,7 +580,7 @@ class _WrongParamsAction(BaseAction["_WrongParamsAction.Params", "_WrongParamsAc
         resolved: bool = PydanticField(description="flag")
 
     @summary_aspect("Run stub")
-    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _WrongParamsAction.Result:
+    async def _run_summary(self, params: Any, state: Any, box: Any, connections: Any) -> _WrongParamsAction.Result:
         return self.Result(resolved=True)
 
 
@@ -592,7 +592,7 @@ class _MatchParamsAction(BaseAction["_MatchParamsAction.Params", "_MatchParamsAc
         resolved: bool = PydanticField(description="flag")
 
     @summary_aspect("Run stub")
-    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _MatchParamsAction.Result:
+    async def _run_summary(self, params: Any, state: Any, box: Any, connections: Any) -> _MatchParamsAction.Result:
         return self.Result(resolved=True)
 
 
@@ -604,7 +604,7 @@ class _OptParamsAction(BaseAction["_OptParamsAction.Params", "_OptParamsAction.R
         resolved: bool = PydanticField(description="flag")
 
     @summary_aspect("Run stub")
-    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _OptParamsAction.Result:
+    async def _run_summary(self, params: Any, state: Any, box: Any, connections: Any) -> _OptParamsAction.Result:
         return self.Result(resolved=True)
 
 
@@ -616,7 +616,7 @@ class _IntParamsAction(BaseAction["_IntParamsAction.Params", "_IntParamsAction.R
         resolved: bool = PydanticField(description="flag")
 
     @summary_aspect("Run stub")
-    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _IntParamsAction.Result:
+    async def _run_summary(self, params: Any, state: Any, box: Any, connections: Any) -> _IntParamsAction.Result:
         return self.Result(resolved=True)
 
 
@@ -628,7 +628,7 @@ class _WrongResultAction(BaseAction["_WrongResultAction.Params", "_WrongResultAc
         resolved: int = PydanticField(description="int, but state has bool")
 
     @summary_aspect("Run stub")
-    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _WrongResultAction.Result:
+    async def _run_summary(self, params: Any, state: Any, box: Any, connections: Any) -> _WrongResultAction.Result:
         return self.Result(resolved=1)
 
 
@@ -640,7 +640,7 @@ class _OptResultAction(BaseAction["_OptResultAction.Params", "_OptResultAction.R
         message: str | None = PydanticField(default=None, description="optional msg")
 
     @summary_aspect("Run stub")
-    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _OptResultAction.Result:
+    async def _run_summary(self, params: Any, state: Any, box: Any, connections: Any) -> _OptResultAction.Result:
         return self.Result(message="hi")
 
 
@@ -652,7 +652,7 @@ class _IntResultAction(BaseAction["_IntResultAction.Params", "_IntResultAction.R
         score: int = PydanticField(description="int score")
 
     @summary_aspect("Run stub")
-    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _IntResultAction.Result:
+    async def _run_summary(self, params: Any, state: Any, box: Any, connections: Any) -> _IntResultAction.Result:
         return self.Result(score=5)
 
 
@@ -664,7 +664,7 @@ class _SilentWrongAction(BaseAction["_SilentWrongAction.Params", "_SilentWrongAc
         resolved: int = PydanticField(description="int, but state has bool")
 
     @summary_aspect("Run stub")
-    async def _run_summary(self, p: Any, s: Any, b: Any, c: Any) -> _SilentWrongAction.Result:
+    async def _run_summary(self, params: Any, state: Any, box: Any, connections: Any) -> _SilentWrongAction.Result:
         return self.Result(resolved=0)
 
 

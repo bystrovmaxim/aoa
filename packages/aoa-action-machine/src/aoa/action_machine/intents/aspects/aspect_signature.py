@@ -56,33 +56,19 @@ USAGE
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import inspect
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Literal
 
-from aoa.action_machine.context.context_view import ContextView
-from aoa.action_machine.model.base_params import BaseParams
-from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.exceptions.aspect_signature_error import AspectSignatureError
 
 ReturnRule = Literal["operation_result", "state_fragment", "none"]
 """What a declaration's return must be: the operation's ``Result``, a state fragment, or nothing."""
 
 _BASE_PARAMETERS: tuple[str, ...] = ("self", "params", "state", "box", "connections")
 """The parameters the pipeline hands to every aspect, in the order it hands them over."""
-
-_BASE_TYPES: Mapping[str, Any] = MappingProxyType(
-    {
-        "params": BaseParams,
-        "state": BaseState,
-        "box": ToolsBox,
-        "connections": dict[str, BaseResource],
-        "ctx": ContextView,
-    },
-)
-"""The type each base parameter must resolve to; ``ctx`` is present only when context was asked for."""
 
 _COMPENSATE_PARAMETERS: tuple[str, ...] = (
     "self",
@@ -95,8 +81,62 @@ _COMPENSATE_PARAMETERS: tuple[str, ...] = (
 )
 """The compensator's parameters: two states, because it is called after one was replaced."""
 
-_COMPENSATE_TYPES: Mapping[str, Any] = MappingProxyType(
-    {
+class _LazyTypes(Mapping[str, Any]):
+    """
+    A read-only type map that resolves its values the first time it is read.
+
+    The contract types live in modules that import the aspect package — ``ToolsBox`` imports
+    ``BaseAction``, which imports ``AspectIntent`` — so importing them here would close a cycle
+    at module load. The table is only read when a declaration is checked, which is after every
+    module has loaded, so the types are built then and cached.
+    """
+
+    def __init__(self, builder: Callable[[], dict[str, Any]]) -> None:
+        self._builder = builder
+        self._resolved: dict[str, Any] | None = None
+
+    def _types(self) -> dict[str, Any]:
+        """Return the resolved map, building it on first use."""
+        if self._resolved is None:
+            self._resolved = self._builder()
+        return self._resolved
+
+    def __getitem__(self, key: str) -> Any:
+        return self._types()[key]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._types())
+
+    def __len__(self) -> int:
+        return len(self._types())
+
+
+def _base_types() -> dict[str, Any]:
+    """The types every aspect receives; imported here, not at module load (see ``_LazyTypes``)."""
+    from aoa.action_machine.context.context_view import ContextView  # pylint: disable=import-outside-toplevel
+    from aoa.action_machine.model.base_params import BaseParams  # pylint: disable=import-outside-toplevel
+    from aoa.action_machine.model.base_state import BaseState  # pylint: disable=import-outside-toplevel
+    from aoa.action_machine.resources.base_resource import BaseResource  # pylint: disable=import-outside-toplevel
+    from aoa.action_machine.runtime.tools_box import ToolsBox  # pylint: disable=import-outside-toplevel
+
+    return {
+        "params": BaseParams,
+        "state": BaseState,
+        "box": ToolsBox,
+        "connections": dict[str, BaseResource],
+        "ctx": ContextView,
+    }
+
+
+def _compensate_types() -> dict[str, Any]:
+    """The compensator's types: two states, because it is called after one was replaced."""
+    from aoa.action_machine.context.context_view import ContextView  # pylint: disable=import-outside-toplevel
+    from aoa.action_machine.model.base_params import BaseParams  # pylint: disable=import-outside-toplevel
+    from aoa.action_machine.model.base_state import BaseState  # pylint: disable=import-outside-toplevel
+    from aoa.action_machine.resources.base_resource import BaseResource  # pylint: disable=import-outside-toplevel
+    from aoa.action_machine.runtime.tools_box import ToolsBox  # pylint: disable=import-outside-toplevel
+
+    return {
         "params": BaseParams,
         "state_before": BaseState,
         "state_after": BaseState | None,
@@ -104,9 +144,12 @@ _COMPENSATE_TYPES: Mapping[str, Any] = MappingProxyType(
         "connections": dict[str, BaseResource],
         "error": Exception,
         "ctx": ContextView,
-    },
-)
-"""The compensator's types: ``state_after`` is ``None`` when the compensated aspect did not finish."""
+    }
+
+
+def _on_error_types() -> dict[str, Any]:
+    """The handler's types: everything an aspect receives, plus the error that arrived."""
+    return {**_base_types(), "error": Exception}
 
 
 @dataclass(frozen=True)
@@ -132,32 +175,104 @@ ASPECT_CONTRACTS: Mapping[str, AspectContract] = MappingProxyType(
             kind="summary_aspect",
             parameters=_BASE_PARAMETERS,
             parameters_with_ctx=(*_BASE_PARAMETERS, "ctx"),
-            expected_types=_BASE_TYPES,
+            expected_types=_LazyTypes(_base_types),
             return_rule="operation_result",
         ),
         "regular_aspect": AspectContract(
             kind="regular_aspect",
             parameters=_BASE_PARAMETERS,
             parameters_with_ctx=(*_BASE_PARAMETERS, "ctx"),
-            expected_types=_BASE_TYPES,
+            expected_types=_LazyTypes(_base_types),
             return_rule="state_fragment",
         ),
         "on_error": AspectContract(
             kind="on_error",
             parameters=(*_BASE_PARAMETERS, "error"),
             parameters_with_ctx=(*_BASE_PARAMETERS, "error", "ctx"),
-            expected_types=MappingProxyType({**_BASE_TYPES, "error": Exception}),
+            expected_types=_LazyTypes(_on_error_types),
             return_rule="operation_result",
         ),
         "compensate": AspectContract(
             kind="compensate",
             parameters=_COMPENSATE_PARAMETERS,
             parameters_with_ctx=(*_COMPENSATE_PARAMETERS, "ctx"),
-            expected_types=_COMPENSATE_TYPES,
+            expected_types=_LazyTypes(_compensate_types),
             return_rule="none",
         ),
     },
 )
 """The four declaration contracts, keyed by the decorator's name without the ``@``."""
+
+
+def _expected_parameters(contract: AspectContract, func: Callable[..., Any]) -> tuple[str, ...]:
+    """The names the declaration must use: the ``ctx`` variant only when it can see ``@context_requires``."""
+    return contract.parameters_with_ctx if hasattr(func, "_required_context_keys") else contract.parameters
+
+
+def _context_hint(contract: AspectContract, func: Callable[..., Any], actual: tuple[str, ...]) -> str:
+    """Explain the mistake this signature makes most often: where ``@context_requires`` goes.
+
+    The trailing ``ctx`` and the declaration that asks for it are two halves of one thing, and
+    the decorator order decides which half the other one sees: ``@context_requires`` must sit
+    *under* the declaration, so that the attribute exists by the time this check runs.
+    """
+    declares_context = hasattr(func, "_required_context_keys")
+    takes_ctx = actual[-1] == "ctx" if actual else False
+    if takes_ctx and not declares_context:
+        return (
+            f" This declaration takes ctx but asks for no context: put @context_requires(...) "
+            f"under the @{contract.kind} decorator, not above it."
+        )
+    if declares_context and not takes_ctx:
+        return " This declaration asked for context, so it must take the trailing ctx parameter."
+    return ""
+
+
+def validate_positional(contract: AspectContract, func: Callable[..., Any]) -> None:
+    """
+    Refuse a signature the pipeline cannot call by position, or that hides a value behind a default.
+
+    Raises:
+        AspectSignatureError: the signature takes keyword-only parameters, ``*args`` or
+            ``**kwargs``, or gives a default to a value the pipeline always supplies.
+    """
+    passed = ", ".join(contract.parameters)
+    signature = inspect.signature(func)
+    if func.__code__.co_kwonlyargcount or func.__code__.co_flags & inspect.CO_VARARGS or func.__code__.co_flags & inspect.CO_VARKEYWORDS:
+        raise AspectSignatureError(
+            f"@{contract.kind}: method '{func.__name__}' must be callable with positional arguments; "
+            f"the pipeline passes ({passed}) by position, so keyword-only parameters, *args and "
+            f"**kwargs are refused."
+        )
+    defaulted = [
+        name for name, parameter in signature.parameters.items() if parameter.default is not inspect.Parameter.empty
+    ]
+    if defaulted:
+        raise AspectSignatureError(
+            f"@{contract.kind}: method '{func.__name__}' must declare every parameter without a default; "
+            f"the pipeline always supplies ({passed}), so ({', '.join(defaulted)}) would never use its "
+            f"default and the signature would say something the call does not do."
+        )
+
+
+def validate_names(contract: AspectContract, func: Callable[..., Any]) -> None:
+    """
+    Refuse a signature whose parameters are renamed, reordered, or disagree with ``@context_requires``.
+
+    Raises:
+        AspectSignatureError: the names, their order or the trailing ``ctx`` differ from the contract.
+    """
+    expected = _expected_parameters(contract, func)
+    actual = tuple(inspect.signature(func).parameters)
+    if actual == expected:
+        return
+    raise AspectSignatureError(
+        f"@{contract.kind}: method '{func.__name__}' must declare its parameters as "
+        f"({', '.join(expected)}), got ({', '.join(actual)}). The pipeline hands them over in "
+        f"that order and Python binds by position, so a renamed or reordered parameter receives "
+        f"something other than it says." + _context_hint(contract, func, actual)
+    )
+
+
 
 __all__ = ["ASPECT_CONTRACTS", "AspectContract", "ReturnRule"]

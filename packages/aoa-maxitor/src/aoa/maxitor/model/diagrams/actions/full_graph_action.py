@@ -264,7 +264,7 @@ class FullGraphAction(BaseAction[ParamsStub, "FullGraphAction.Result"]):
     @summary_aspect("Build full graph JSON from DuckDB (single unified SQL query)")
     async def build_full_graph_summary(
         self,
-        _params: ParamsStub,
+        params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],

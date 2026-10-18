@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.context.ctx_constants import Ctx
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import OnErrorHandlerError
@@ -75,15 +76,7 @@ class _CtxOnErrorProbeAction(BaseAction[ErrorTestParams, ErrorTestResult]):
 
     @on_error(RuntimeError, description="handler with ContextView")
     @context_requires(Ctx.User.user_id)
-    async def runtime_probe_on_error(
-        self,
-        params: ErrorTestParams,
-        state: BaseState,
-        box: ToolsBox,
-        connections: dict[str, BaseResource],
-        error: Exception,
-        ctx,
-    ) -> ErrorTestResult:
+    async def runtime_probe_on_error(self, params: ErrorTestParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception, ctx: ContextView) -> ErrorTestResult:
         return ErrorTestResult(status="handled", detail=str(ctx.get(Ctx.User.user_id)))
 
 

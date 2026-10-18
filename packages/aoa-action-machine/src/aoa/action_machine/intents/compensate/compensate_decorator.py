@@ -90,7 +90,6 @@ EXAMPLE
 from __future__ import annotations
 
 import asyncio
-import inspect
 from collections.abc import Callable
 from typing import Any
 
@@ -100,7 +99,7 @@ from aoa.action_machine.exceptions.decorator_argument_value_error import Decorat
 from aoa.action_machine.exceptions.description_contract_error import DescriptionContractError
 from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
-from aoa.action_machine.exceptions.signature_contract_error import SignatureContractError
+from aoa.action_machine.intents.aspects.aspect_signature import ASPECT_CONTRACTS, validate_names, validate_positional
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants
@@ -109,16 +108,6 @@ from aoa.action_machine.exceptions.signature_contract_error import SignatureCont
 _COMPENSATE_SUFFIX = "_compensate"
 """
 Required suffix for compensator method names.
-"""
-
-_EXPECTED_PARAMS_WITHOUT_CTX = 7
-"""
-Expected compensator parameter count without @context_requires.
-"""
-
-_EXPECTED_PARAMS_WITH_CTX = 8
-"""
-Expected compensator parameter count with @context_requires.
 """
 
 _COMPENSATE_META_ATTR = "_compensate_meta"
@@ -168,28 +157,11 @@ def _method_async_invariant(func: Callable[..., Any], method_name: str) -> None:
         raise AsyncRequiredError(f"@compensate: method '{method_name}' must be async (async def).")
 
 
-def _method_params_count_invariant(func: Callable[..., Any], method_name: str) -> None:
-    has_context = hasattr(func, _CONTEXT_REQUIRES_ATTR)
-    expected_params = _EXPECTED_PARAMS_WITH_CTX if has_context else _EXPECTED_PARAMS_WITHOUT_CTX
-    sig = inspect.signature(func)
-    actual_params = len(sig.parameters)
-    if actual_params != expected_params:
-        if has_context:
-            params_desc = "self, params, state_before, state_after, " "box, connections, error, ctx"
-        else:
-            params_desc = "self, params, state_before, state_after, " "box, connections, error"
-
-        raise SignatureContractError(
-            f"@compensate: method '{method_name}' must accept "
-            f"{expected_params} parameters ({params_desc}), "
-            f"got {actual_params}. "
-            f"{'Detected @context_requires, so ctx parameter is required.' if has_context else ''}"
-        )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Decorator @compensate
-# ─────────────────────────────────────────────────────────────────────────────
+def _signature_invariant(func: Callable[..., Any]) -> None:
+    """Refuse a signature the pipeline cannot call: position first, then the names, then ``ctx``."""
+    contract = ASPECT_CONTRACTS["compensate"]
+    validate_positional(contract, func)
+    validate_names(contract, func)
 
 
 def compensate(
@@ -256,7 +228,7 @@ def compensate(
 
         # ── Parameter arity validation ─────────────────────────────────────
 
-        _method_params_count_invariant(func, method_name)
+        _signature_invariant(func)
 
         # ── Write method metadata ──────────────────────────────────────────
 
