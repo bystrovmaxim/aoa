@@ -6,10 +6,13 @@ Run: uv run python examples/step_17_connections/16_pool_lifespan.py
 """
 
 import asyncio
-from aoa.action_machine.resources.postgres import PostgresResource
-from aoa.action_machine.resources.connection_scope import connection_scope
+
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.exceptions import HandleError, TransactionLeftOpenError
+from aoa.action_machine.resources.postgres import PostgresResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
+
 
 class RecordingConnection:
     """Record commands; do not parse SQL or simulate database storage."""
@@ -61,6 +64,7 @@ class RecordingPool:
         self.closed = True
 
 from pydantic import Field
+
 from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -70,6 +74,7 @@ from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+
 
 class NotesDomain(BaseDomain):
     """Group the connection lesson."""
@@ -98,13 +103,16 @@ class StatusResult(BaseResult):
 class QueryAction(BaseAction[EmptyParams, StatusResult]):
     """Use the supplied resource without managing its lifetime."""
     @summary_aspect("Execute a statement")
-    async def query_summary(self, params, state, box, connections):
+    async def query_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> StatusResult:
         """Return the driver's command status."""
         return StatusResult(status=await connections["db"].add_note("one note"))
 
 from contextlib import asynccontextmanager
+
 from fastapi.testclient import TestClient
+
 from aoa.fastapi import FastApiAdapter
+
 
 class PoolHolder:
     """Expose the service pool only after startup."""

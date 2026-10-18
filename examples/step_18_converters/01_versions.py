@@ -35,7 +35,10 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.fastapi import FastApiAdapter
 
 
@@ -60,7 +63,7 @@ class CreateOrderResult(BaseResult):
 class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
 
     @summary_aspect("Create order")
-    async def create_summary(self, params, state, box, connections):
+    async def create_summary(self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CreateOrderResult:
         return CreateOrderResult(order_id="ord-1", total=params.amount)
 
 

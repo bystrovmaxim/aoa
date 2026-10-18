@@ -27,6 +27,9 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.langgraph.controller import LangGraphController
 from aoa.langgraph.exceptions import FieldTypeMismatchError
 
@@ -45,7 +48,7 @@ class ClassifyAction(BaseAction["ClassifyAction.Params", "ClassifyAction.Result"
         category: str = Field(description="Detected category")
 
     @summary_aspect("Classify ticket")
-    async def _classify_summary(self, p: Params, s, b, c) -> "ClassifyAction.Result":
+    async def _classify_summary(self, params: "ClassifyAction.Params", state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> "ClassifyAction.Result":
         return self.Result(category="billing")
 
 
@@ -81,7 +84,7 @@ class PriorityAction(BaseAction["PriorityAction.Params", "PriorityAction.Result"
         priority: str = Field(description="Resolved priority")
 
     @summary_aspect("Resolve priority")
-    async def _resolve_summary(self, p: Params, s, b, c) -> "PriorityAction.Result":
+    async def _resolve_summary(self, params: "PriorityAction.Params", state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> "PriorityAction.Result":
         return self.Result(priority="high")
 
 
@@ -125,7 +128,7 @@ class ResolveAction(BaseAction["ResolveAction.Params", "ResolveAction.Result"]):
         resolved: bool = Field(description="True when ticket is closed")
 
     @summary_aspect("Resolve ticket")
-    async def _resolve_summary(self, p: Params, s, b, c) -> "ResolveAction.Result":
+    async def _resolve_summary(self, params: "ResolveAction.Params", state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> "ResolveAction.Result":
         return self.Result(resolved=True)
 
 

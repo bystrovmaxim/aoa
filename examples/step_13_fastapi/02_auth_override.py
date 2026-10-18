@@ -20,7 +20,10 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, ParamsStub
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.fastapi import FastApiAdapter
 
 
@@ -38,7 +41,7 @@ class PingResult(BaseResult):
 class PingAction(BaseAction[ParamsStub, PingResult]):
 
     @summary_aspect("Return a fixed pong message.")
-    async def build_summary(self, params, state, box, connections) -> PingResult:
+    async def build_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> PingResult:
         _ = (params, state, box, connections)
         return PingResult(message="pong")
 

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import Field
 
@@ -42,8 +42,10 @@ from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 # ---------------------------------------------------------------------------
 # Domain
@@ -210,7 +212,7 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
 
     @regular_aspect("Load and validate customer")
     @result_string("customer_name", required=True)
-    async def load_customer_aspect(self, params, state, box, connections):
+    async def load_customer_aspect(self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         repo = connections["orders"]
         customer = await repo.load_customer(params.customer_id)
         return {"customer_name": customer.name}
@@ -218,7 +220,7 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
     @regular_aspect("Calculate order total")
     @result_string("customer_name", required=True)
     @result_float("total", required=True, min_value=0)
-    async def calculate_total_aspect(self, params, state, box, connections):
+    async def calculate_total_aspect(self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         return {
             "customer_name": state["customer_name"],
             "total": sum(item["qty"] * item["price"] for item in params.lines),
@@ -228,7 +230,7 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
     @result_string("customer_name", required=True)
     @result_float("total", required=True, min_value=0)
     @result_string("order_id", required=True)
-    async def persist_order_aspect(self, params, state, box, connections):
+    async def persist_order_aspect(self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         repo = connections["orders"]
         order_id = f"ord-{uuid.uuid4().hex[:8]}"
         await repo.save_order(
@@ -244,7 +246,7 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
         }
 
     @summary_aspect("Build result")
-    async def final_summary(self, params, state, box, connections):
+    async def final_summary(self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CreateOrderResult:
         return CreateOrderResult(
             order_id=state["order_id"],
             total=state["total"],

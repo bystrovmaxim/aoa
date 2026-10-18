@@ -9,6 +9,7 @@ Run:
 """
 
 import asyncio
+from typing import Any
 
 from pydantic import Field
 
@@ -20,7 +21,10 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_int, result_string
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 class ShopDomain(BaseDomain):
@@ -45,20 +49,20 @@ class ProcessItemAction(BaseAction[ItemParams, ItemResult]):
 
     @regular_aspect("Step 1: Normalise SKU")
     @result_string("sku", required=True, min_length=3)
-    async def normalise_aspect(self, params, state, box, connections):
+    async def normalise_aspect(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         return {"sku": params.raw_sku.strip().upper()}
 
     @regular_aspect("Step 2: Validate quantity and forward SKU")
     @result_string("sku", required=True)
     @result_int("quantity", required=True, min_value=1, max_value=100)
-    async def validate_quantity_aspect(self, params, state, box, connections):
+    async def validate_quantity_aspect(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         return {
             "sku": state["sku"],
             "quantity": params.quantity,
         }
 
     @summary_aspect("Assemble line item")
-    async def assemble_summary(self, params, state, box, connections):
+    async def assemble_summary(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ItemResult:
         return ItemResult(
             sku=state["sku"],
             quantity=state["quantity"],

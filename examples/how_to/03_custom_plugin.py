@@ -38,8 +38,11 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on import AspectEvent, GlobalFinishEvent, on
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core import Plugin
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 # ── The plugin: count aspect events per run, record each finish to a sink ────
@@ -81,7 +84,7 @@ class GreetResult(BaseResult):
 @check_roles(GuestRole)
 class GreetAction(BaseAction[GreetParams, GreetResult]):
     @summary_aspect("Build greeting")
-    async def greet_summary(self, params, state, box, connections):
+    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> GreetResult:
         return GreetResult(message=f"Hello, {params.name}!")
 
 

@@ -33,7 +33,10 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.langgraph import AgentState, LangGraphAdapter
 
 # ─── State ────────────────────────────────────────────────────────────────────
@@ -90,7 +93,7 @@ class ConfirmResult(BaseResult):
 @check_roles(GuestRole)
 class ValidateOrderAction(BaseAction[ValidateParams, ValidateResult]):
     @summary_aspect("Check order_id format")
-    async def validate_summary(self, params, state, box, connections):
+    async def validate_summary(self, params: ValidateParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ValidateResult:
         return ValidateResult(valid=params.order_id.startswith("ORD-"))
 
 
@@ -98,7 +101,7 @@ class ValidateOrderAction(BaseAction[ValidateParams, ValidateResult]):
 @check_roles(GuestRole)
 class ConfirmOrderAction(BaseAction[ConfirmParams, ConfirmResult]):
     @summary_aspect("Issue confirmation token")
-    async def confirm_summary(self, params, state, box, connections):
+    async def confirm_summary(self, params: ConfirmParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ConfirmResult:
         return ConfirmResult(status=f"confirmed:{params.order_id}")
 
 
