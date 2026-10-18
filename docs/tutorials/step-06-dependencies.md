@@ -48,9 +48,14 @@ class ChargeAction(BaseAction[ChargeParams, ChargeResult]):
 A dependency declared through `@depends` is obtained by the aspect with a call to `await box.resolve(...)`:
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Compute total via the pricing service")
 @result_float("total", required=True, min_value=0)
-async def price_aspect(self, params, state, box, connections):
+async def price_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     pricing = await box.resolve(PricingService)      # declared in @depends
     return {"total": pricing.price(params.sku) * params.qty}
 ```
@@ -80,8 +85,13 @@ The aspect reads the resource by key: `connections["ledger"]`. The machine check
 Operations call one another through `await box.run(ChildAction, params)` — this is [composition](step-01-action-and-pipeline.md), not inheritance. When a parent passes its connection to a child operation, the machine **wraps it in a proxy**: the child operation can run statements but cannot control the transaction. The transaction belongs to whoever opened it; otherwise a nested call could commit or roll back data it does not own.
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Record to ledger and call nested action")
-async def record_aspect(self, params, state, box, connections):
+async def record_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     ledger = connections["ledger"]
     await ledger.execute(f"charge {params.sku} = {state['total']}")   # the owner writes
     await box.run(                                                     # ledger is proxied

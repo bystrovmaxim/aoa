@@ -39,14 +39,19 @@ When error handling lives right inside an aspect, it drags everything along: the
 `@on_error(exception_type, description=...)` declares a handler method for a particular error type. The machine catches exceptions thrown by regular aspects **and** the summary, finds the first matching handler by `isinstance(error, type)`, and calls it. The method name ends with `_on_error`, the method is async; the signature is like an aspect's, plus the error itself:
 
 ```python
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseResult
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @summary_aspect("Validate credentials")
-async def login_summary(self, params, state, box, connections):
+async def login_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
     if params.username == "bad":
         raise ValueError("invalid credentials")
     return LoginResult(username=params.username, status="ok")
 
 @on_error(ValueError, description="Invalid credentials")
-async def validation_error_on_error(self, params, state, box, connections, error):
+async def validation_error_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> BaseResult:
     await box.info(Channel.business, "on_error: {%var.msg}", msg=str(error))
     return LoginResult(username=params.username, status="login_failed")
 ```
@@ -78,12 +83,17 @@ The aspect failed with `ValueError`, the handler intercepted it, recorded the ev
 There can be several handlers, and they are checked **top to bottom in declaration order** in the class; the first one whose type matches `isinstance` fires. Hence the rule: **specific first, then general**.
 
 ```python
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseResult
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @on_error(PaymentDeclinedError, description="Payment declined — a clear status for the client")
-async def declined_on_error(self, params, state, box, connections, error):
+async def declined_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> BaseResult:
     return CreateOrderResult(status="payment_declined")
 
 @on_error(Exception, description="Everything else")
-async def fallback_on_error(self, params, state, box, connections, error):
+async def fallback_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> BaseResult:
     return CreateOrderResult(status="error")
 ```
 

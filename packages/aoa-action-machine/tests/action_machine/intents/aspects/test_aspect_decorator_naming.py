@@ -6,9 +6,16 @@ Method names must end with ``_aspect`` / ``_summary`` (or ``summary`` for summar
 Empty descriptions are rejected.
 """
 
+from typing import Any
+
 import pytest
 
 from aoa.action_machine.exceptions import NamingSuffixError
+from aoa.action_machine.model.base_params import BaseParams
+from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 class TestRegularAspectSuffix:
@@ -19,7 +26,7 @@ class TestRegularAspectSuffix:
         from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 
         @regular_aspect("Data validation")
-        async def validate_data_aspect(self, params, state, box, connections):
+        async def validate_data_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
             return {}
 
         assert hasattr(validate_data_aspect, "_new_aspect_meta")
@@ -31,7 +38,9 @@ class TestRegularAspectSuffix:
         with pytest.raises(NamingSuffixError, match="_aspect"):
 
             @regular_aspect("Data validation")
-            async def validate_data(self, params, state, box, connections):
+            async def validate_data(
+                self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+            ) -> dict[str, Any]:
                 return {}
 
     def test_wrong_suffix_raises(self) -> None:
@@ -41,7 +50,9 @@ class TestRegularAspectSuffix:
         with pytest.raises(NamingSuffixError, match="_aspect"):
 
             @regular_aspect("Data validation")
-            async def validate_data_step(self, params, state, box, connections):
+            async def validate_data_step(
+                self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+            ) -> dict[str, Any]:
                 return {}
 
 
@@ -53,7 +64,7 @@ class TestSummaryAspectSuffix:
         from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 
         @summary_aspect("Building result")
-        async def build_result_summary(self, params, state, box, connections):
+        async def build_result_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
             pass
 
         assert hasattr(build_result_summary, "_new_aspect_meta")
@@ -65,7 +76,9 @@ class TestSummaryAspectSuffix:
         with pytest.raises(NamingSuffixError, match="_summary"):
 
             @summary_aspect("Building result")
-            async def build_result(self, params, state, box, connections):
+            async def build_result(
+                self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+            ) -> BaseResult:
                 pass
 
 

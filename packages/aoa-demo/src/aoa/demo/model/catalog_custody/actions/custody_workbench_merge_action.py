@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.catalog_custody.actions.ledger_posting_pulse_action import LedgerPostingPulseAction
 from aoa.demo.model.catalog_custody.actions.lineage_inspect_action import LineageInspectAction
 from aoa.demo.model.catalog_custody.actions.register_snapshot_peek_action import RegisterSnapshotPeekAction
@@ -36,9 +37,9 @@ class CustodyWorkbenchMergeAction(RegisterSnapshotPeekAction):
     async def reconciliation_merge_summary(
         self,
         params: RegisterSnapshotPeekAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> RegisterSnapshotPeekAction.Result:
         _ = (params, state, box, connections)
         await box.run(LineageInspectAction, LineageInspectAction.Params())

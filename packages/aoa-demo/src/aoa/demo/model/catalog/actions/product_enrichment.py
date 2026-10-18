@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.context import Ctx
+from aoa.action_machine.context import ContextView, Ctx
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_float, result_string
@@ -18,7 +18,9 @@ from aoa.action_machine.intents.depends import depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.logging import sensitive
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.resources import CatalogObjectStore, CatalogSearchSidecar
 from aoa.demo.model.catalog.resources.index_sync import IndexSyncClient, IndexSyncClientResource
@@ -63,10 +65,10 @@ class ProductEnrichmentAction(
     async def validate_sku_aspect(
         self,
         params: ProductEnrichmentAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
-        ctx: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+        ctx: ContextView,
     ) -> dict[str, Any]:
         return {"normalized_sku": params.sku.strip().upper()}
 
@@ -76,16 +78,16 @@ class ProductEnrichmentAction(
     async def enrich_aspect(
         self,
         params: ProductEnrichmentAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         pricing = await box.resolve(PricingFeedClientResource)
-        price = await pricing.service.list_price(state.normalized_sku)
+        price = await pricing.service.list_price(state.normalized_sku)  # type: ignore[attr-defined]
         indexer = await box.resolve(IndexSyncClientResource)
         doc_id = await indexer.service.upsert_document(
-            state.normalized_sku,
-            {"sku": state.normalized_sku, "locale": params.locale},
+            state.normalized_sku,  # type: ignore[attr-defined]
+            {"sku": state.normalized_sku, "locale": params.locale},  # type: ignore[attr-defined]
         )
         return {"list_price": price, "doc_id": doc_id}
 
@@ -93,26 +95,26 @@ class ProductEnrichmentAction(
     async def enrich_compensate(
         self,
         params: ProductEnrichmentAction.Params,
-        state_before: Any,
-        state_after: Any,
-        box: Any,
-        connections: Any,
+        state_before: BaseState,
+        state_after: BaseState | None,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> None:
         if state_after is not None:
             indexer = await box.resolve(IndexSyncClientResource)
-            await indexer.service.upsert_document(state_after.doc_id, {"tombstone": "1"})
+            await indexer.service.upsert_document(state_after.doc_id, {"tombstone": "1"})  # type: ignore[attr-defined]
 
     @on_error(ValueError, description="SKU validation failed")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
     async def validation_error_on_error(
         self,
         params: ProductEnrichmentAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
         error: ValueError,
-        ctx: Any,
+        ctx: ContextView,
     ) -> ProductEnrichmentAction.Result:
         return ProductEnrichmentAction.Result(doc_id="ERR", list_price=0.0, status="validation_failed")
 
@@ -120,9 +122,9 @@ class ProductEnrichmentAction(
     async def unexpected_error_on_error(
         self,
         params: ProductEnrichmentAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> ProductEnrichmentAction.Result:
         return ProductEnrichmentAction.Result(doc_id="ERR", list_price=0.0, status="internal_error")
@@ -131,12 +133,12 @@ class ProductEnrichmentAction(
     async def build_result_summary(
         self,
         params: ProductEnrichmentAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> ProductEnrichmentAction.Result:
         return ProductEnrichmentAction.Result(
-            doc_id=state.doc_id,
-            list_price=state.list_price,
+            doc_id=state.doc_id,  # type: ignore[attr-defined]
+            list_price=state.list_price,  # type: ignore[attr-defined]
             status="enriched",
         )

@@ -6,10 +6,9 @@ Run: uv run python examples/step_19_resource/06_wrapper_context.py
 """
 
 import asyncio
+
 from aoa.action_machine.resources.postgres import PostgresResource
-from aoa.action_machine.resources.connection_scope import connection_scope
-from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.exceptions import HandleError, TransactionLeftOpenError
+
 
 class RecordingConnection:
     """Record commands; do not parse SQL or simulate database storage."""
@@ -60,8 +59,8 @@ class RecordingPool:
             await connection.close()
         self.closed = True
 
-from aoa.action_machine.resources.sql import WrapperSqlResource, ProtocolSqlResource
 from aoa.action_machine.exceptions import TransactionProhibitedError
+from aoa.action_machine.resources.sql import WrapperSqlResource
 
 
 async def main():

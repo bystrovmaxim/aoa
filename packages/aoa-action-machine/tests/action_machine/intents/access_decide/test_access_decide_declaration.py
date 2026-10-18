@@ -29,6 +29,7 @@ from typing import Any
 import pytest
 
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.exceptions import DuplicateAccessDecideError, NamingSuffixError
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.intents.access_control import Allowed
@@ -205,7 +206,7 @@ class TestWhatADeclarationMustLookLike:
     async def test_the_arity_context_requires_produces_is_accepted(self) -> None:
         @context_requires("user.user_id")
         async def with_ctx(
-            self: Any, params: Any, box: Any, connections: Any, ctx: Any
+            self: Any, params: Any, box: Any, connections: Any, ctx: ContextView
         ) -> Allowed:
             return Allowed()
 

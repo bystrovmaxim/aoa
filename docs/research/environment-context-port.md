@@ -34,8 +34,13 @@ But one channel is often left in the dark: the execution environment.
 Feature flags, environment variables, runtime settings, tenant config, A/B parameters, and operational limits are usually read directly:
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Select flow")
-async def select_flow_aspect(self, params, state, box, connections):
+async def select_flow_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     if os.getenv("ENABLE_NEW_FLOW") == "true":
         ...
 ```
@@ -96,6 +101,8 @@ Used inside an Action:
 ```python
 @regular_aspect("Select order flow")
 @context_requires(AppContext.Env.enable_new_flow)
+# design sketch: the port this page argues for is not the API, so this signature is not
+# meant to compile against the current one
 async def select_flow_aspect(self, params, state, box, connections, context):
     if context.env.enable_new_flow:
         return {"flow": "new"}
@@ -139,6 +146,8 @@ This must be checked by the machine.
 Not allowed:
 
 ```python
+# design sketch: the port this page argues for is not the API, so this signature is not
+# meant to compile against the current one
 async def select_flow_aspect(self, params, state, box, connections, context):
     # No @context_requires(AppContext.Env.enable_new_flow)
     if context.env.enable_new_flow:
@@ -149,6 +158,8 @@ Allowed:
 
 ```python
 @context_requires(AppContext.Env.enable_new_flow)
+# design sketch: the port this page argues for is not the API, so this signature is not
+# meant to compile against the current one
 async def select_flow_aspect(self, params, state, box, connections, context):
     if context.env.enable_new_flow:
         ...

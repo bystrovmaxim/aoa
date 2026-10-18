@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import warnings
-from typing import Any
 
 from pydantic import Field
 
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.roles import DeprecatedRole, EditorRole
 from aoa.demo.model.store.store_domain import StoreDomain
 
@@ -29,8 +30,8 @@ with warnings.catch_warnings():
         async def migrate_summary(
             self,
             params: RoleMigrationAction.Params,
-            state: Any,
-            box: Any,
-            connections: Any,
+            state: BaseState,
+            box: ToolsBox,
+            connections: dict[str, BaseResource],
         ) -> RoleMigrationAction.Result:
             return RoleMigrationAction.Result(migrated=True)

@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.logistics_mesh.actions.facility_corridor_relay_second_leg_action import (
     FacilityCorridorRelaySecondLegAction,
 )
@@ -28,9 +29,9 @@ class FacilityCorridorRelayThirdLegAction(FacilityCorridorRelaySecondLegAction):
     async def relay_third_summary(
         self,
         params: FacilityCorridorRelaySecondLegAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> FacilityCorridorRelaySecondLegAction.Result:
         _ = (params, state, box, connections)
         return self.Result()

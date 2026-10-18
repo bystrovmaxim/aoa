@@ -29,6 +29,7 @@ from typing import Any
 
 from pydantic import Field
 
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
@@ -406,7 +407,7 @@ class CompensateWithContextAction(
         box: ToolsBox,
         connections: dict[str, BaseResource],
         error: Exception,
-        ctx: Any,
+        ctx: ContextView,
     ) -> None:
         """
         Compensator with context access.

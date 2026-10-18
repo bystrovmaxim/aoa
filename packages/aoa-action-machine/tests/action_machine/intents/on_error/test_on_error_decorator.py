@@ -17,6 +17,11 @@ import pytest
 
 from aoa.action_machine.exceptions import NamingSuffixError
 from aoa.action_machine.intents.on_error import on_error
+from aoa.action_machine.model.base_params import BaseParams
+from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Successful decoration
@@ -31,7 +36,7 @@ class TestOnErrorDecoratorSuccess:
 
         # Arrange — define an async method with correct signature and suffix
         @on_error(ValueError, description="Handling ValueError")
-        async def handle_value_on_error(self, params, state, box, connections, error):
+        async def handle_value_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> BaseResult:
             pass
 
         # Assert — metadata is recorded correctly
@@ -45,7 +50,7 @@ class TestOnErrorDecoratorSuccess:
 
         # Arrange — tuple of two types
         @on_error((ValueError, TypeError), description="Handling multiple types")
-        async def handle_multi_on_error(self, params, state, box, connections, error):
+        async def handle_multi_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> BaseResult:
             pass
 
         # Assert — both types in the tuple
@@ -61,7 +66,7 @@ class TestOnErrorDecoratorSuccess:
             pass
 
         @on_error(MyCustomError, description="Custom error")
-        async def handle_custom_on_error(self, params, state, box, connections, error):
+        async def handle_custom_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> BaseResult:
             pass
 
         # Assert — metadata should contain exactly the custom type
@@ -72,7 +77,9 @@ class TestOnErrorDecoratorSuccess:
         """Decorator returns the same function object without wrapping."""
 
         # Arrange — define the original async function
-        async def original_on_error(self, params, state, box, connections, error):
+        async def original_on_error(
+            self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception
+        ) -> BaseResult:
             pass
 
         # Act — apply the decorator to the function
@@ -199,7 +206,7 @@ class TestOnErrorMethodErrors:
             pass
 
         # Act & Assert
-        with pytest.raises(TypeError, match="must accept 6 parameters"):
+        with pytest.raises(TypeError, match=r"must declare its parameters as \(self, params, state, box, connections, error\)"):
             on_error(ValueError, description="Test")(short_on_error)
 
     def test_wrong_param_count_too_many(self) -> None:
@@ -210,7 +217,7 @@ class TestOnErrorMethodErrors:
             pass
 
         # Act & Assert
-        with pytest.raises(TypeError, match="must accept 6 parameters"):
+        with pytest.raises(TypeError, match=r"must declare its parameters as \(self, params, state, box, connections, error\)"):
             on_error(ValueError, description="Test")(long_on_error)
 
 
@@ -226,7 +233,9 @@ class TestOnErrorNamingSuffix:
         """Name without '_on_error' suffix → NamingSuffixError."""
 
         # Arrange — method with correct signature but without suffix
-        async def handle_validation(self, params, state, box, connections, error):
+        async def handle_validation(
+            self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception
+        ) -> BaseResult:
             pass
 
         # Act & Assert
@@ -237,7 +246,9 @@ class TestOnErrorNamingSuffix:
         """Name with wrong suffix → NamingSuffixError."""
 
         # Arrange — suffix "_handler" instead of "_on_error"
-        async def handle_validation_handler(self, params, state, box, connections, error):
+        async def handle_validation_handler(
+            self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception
+        ) -> BaseResult:
             pass
 
         # Act & Assert
@@ -249,7 +260,7 @@ class TestOnErrorNamingSuffix:
 
         # Arrange & Act — suffix "_on_error" is correct
         @on_error(ValueError, description="Suffix test")
-        async def handle_validation_on_error(self, params, state, box, connections, error):
+        async def handle_validation_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> BaseResult:
             pass
 
         # Assert — metadata is recorded

@@ -3,14 +3,14 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.catalog_custody.catalog_custody_domain import CatalogCustodyDomain
 from aoa.demo.model.catalog_custody.catalog_officer_role import CatalogOfficerRole
 
@@ -33,9 +33,9 @@ class RegisterSnapshotPeekAction(
     async def register_peek_summary(
         self,
         params: Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> Result:
         _ = (params, state, box, connections)
         return self.Result()

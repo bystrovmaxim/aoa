@@ -18,6 +18,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on import on
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core.events import AccessGateFailedEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import BaseResource
@@ -69,7 +70,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         raise RuntimeError("order store unavailable")
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 

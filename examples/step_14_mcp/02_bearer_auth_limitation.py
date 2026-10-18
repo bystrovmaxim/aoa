@@ -32,6 +32,7 @@ Requires:
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import jwt
 from pydantic import Field
@@ -47,8 +48,10 @@ from aoa.action_machine.intents.checkers import result_instance, result_string
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.mcp import McpAdapter
 
 _SECRET_KEY = "demo-only-secret-do-not-use-in-production"
@@ -100,7 +103,7 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
     @result_string("user_id", required=True, not_empty=True)  # type: ignore[untyped-decorator]
     @result_instance("role_names", list, required=True)  # type: ignore[untyped-decorator]
     @regular_aspect("Verify username/password against the user store; resolve role names.")
-    async def authenticate_user_aspect(self, params: LoginParams, state, box, connections) -> dict:
+    async def authenticate_user_aspect(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         _ = (state, box)
         store: UserStoreResource = connections["user_store"]
         record = await store.find(params.username)
@@ -110,7 +113,7 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         return {"user_id": params.username, "role_names": role_names}
 
     @summary_aspect("Sign a JWT carrying sub (user_id) and roles; return it as a bearer token.")
-    async def issue_token_summary(self, params: LoginParams, state, box, connections) -> LoginResult:
+    async def issue_token_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> LoginResult:
         _ = (params, box, connections)
         now = datetime.now(UTC)
         payload = {

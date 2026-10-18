@@ -9,6 +9,7 @@ Run:
 """
 
 import asyncio
+from typing import Any
 
 from pydantic import Field
 
@@ -21,7 +22,10 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_int, result_string
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 class ShopDomain(BaseDomain):
@@ -47,11 +51,11 @@ class BrokenItemAction(BaseAction[ItemParams, ItemResult]):
     @regular_aspect("Intentionally broken step")
     @result_string("sku", required=True)
     @result_int("quantity", required=True, min_value=1)
-    async def broken_aspect(self, params, state, box, connections):
+    async def broken_aspect(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         return {"quantity": params.quantity}
 
     @summary_aspect("Never reached")
-    async def never_summary(self, params, state, box, connections):
+    async def never_summary(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ItemResult:
         return ItemResult(sku="?", quantity=0, line_total=0)
 
 

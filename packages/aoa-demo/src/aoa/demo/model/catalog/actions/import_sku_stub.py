@@ -1,15 +1,15 @@
 # packages/aoa-demo/src/aoa/demo/model/catalog/actions/import_sku_stub.py
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.catalog.domain import CatalogDomain
 
 
@@ -26,8 +26,8 @@ class ImportSkuStubAction(BaseAction["ImportSkuStubAction.Params", "ImportSkuStu
     async def import_summary(
         self,
         params: ImportSkuStubAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> ImportSkuStubAction.Result:
         return ImportSkuStubAction.Result(accepted=len(params.batch_label))

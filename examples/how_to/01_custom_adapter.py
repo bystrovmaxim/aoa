@@ -13,20 +13,26 @@ from typing import Any
 from pydantic import Field
 
 from aoa.action_machine.adapters.base_adapter import BaseAdapter
-from aoa.action_machine.adapters.base_route_record import BaseRouteRecord, ensure_machine_params, ensure_protocol_response
+from aoa.action_machine.adapters.base_route_record import (
+    BaseRouteRecord,
+    ensure_machine_params,
+    ensure_protocol_response,
+)
 from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
 from aoa.action_machine.context import Context
-from aoa.action_machine.exceptions import AuthorizationError
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.exceptions import AuthorizationError
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, PerCallConnection
-from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 # ── 1. The route record: one route's contract (frozen, extends BaseRouteRecord) ──
@@ -141,7 +147,7 @@ class GreetAction(BaseAction[GreetParams, GreetResult]):
     """Build a greeting using the supplied resource."""
 
     @summary_aspect("Build greeting")
-    async def greet_summary(self, params, state, box, connections):
+    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> GreetResult:
         """Combine the prefix and requested name."""
         prefix = connections["greeting"].prefix()
         return GreetResult(message=f"{prefix}, {params.name}!")

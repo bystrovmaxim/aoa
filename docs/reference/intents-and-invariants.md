@@ -167,7 +167,33 @@ An operation without a domain is a "lost" component: it will not be in the syste
 
 Every operation has exactly one method marked `@summary_aspect`, and it must return a typed `Result`.
 
-Otherwise the operation has no explicit exit point: the result could be assembled in several places, partially overwritten, or not assembled at all. The machine checks this at startup and raises `MissingSummaryAspectError`.
+Otherwise the operation has no explicit exit point: the result could be assembled in several places, partially overwritten, or not assembled at all. An operation with none raises `MissingSummaryAspectError` at startup; an operation with **two** raises `DuplicateSummaryAspectError`, which names both methods — before this rule, a second summary surfaced as a graph error about a missing node, a message about a node the developer never wrote.
+
+The answer is checked against the operation's `Result` twice, and the two checks catch different mistakes. At assembly, a summary annotated with anything else — `Any`, another operation's result — is refused with `AspectSignatureError`, because the annotation is a promise the machine can read before serving a call. At run time, a method that contradicts its own annotation — an annotated `ResultStub` that returns a `dict` — is refused with `ActionResultTypeError`, naming the operation, the declared `Result` and what actually came back. A `Result` **supertype** is accepted (`-> BaseResult`), because it promises nothing false.
+
+---
+
+## What an aspect declaration must be
+
+The four methods the machine calls itself — `@summary_aspect`, `@regular_aspect`, `@on_error`, `@compensate` — are declarations, and their signature is part of the contract rather than the author's private business. The rules are the object check's rules (`@access_decide`, below), applied to all four:
+
+| Decorator | Parameters, in this order |
+| --- | --- |
+| `@summary_aspect` | `self, params, state, box, connections` |
+| `@regular_aspect` | the same |
+| `@on_error` | the same, then `error` |
+| `@compensate` | `self, params, state_before, state_after, box, connections, error` |
+
+`ctx` is appended last when, and only when, `@context_requires(...)` sits under the declaration and can be seen by it.
+
+- **The names are the engine's names, in the engine's order.** They are not a style preference: the pipeline passes these values by position, so `self, p, state, box, connections` runs and `p` receives the parameters object. Renaming or reordering is refused where the method is declared, with `AspectSignatureError` naming both orders.
+- **Every parameter but `self` carries an annotation, and so does the return.** A bare one is refused at declaration.
+- **The annotations resolve to what the pipeline hands over**, checked when the capability is assembled, because `params` is annotated with the operation's own `Params` — a name that does not exist while the class body runs. `params`: `BaseParams` or the operation's `Params`; `state`: `BaseState`; `box`: `ToolsBox`; `connections`: `dict[str, BaseResource]`; `ctx`: `ContextView`; `error`: `Exception` or the class the handler was declared for; a compensator's `state_after`: `BaseState | None`, because the aspect it compensates may not have finished.
+- **The signature must be callable by position.** Keyword-only parameters, `*args`, `**kwargs` and defaults on values the pipeline always supplies are refused.
+- **The return is the one the pipeline reads**: a summary and an on-error handler answer with the operation's `Result`, a regular aspect returns a state fragment `dict[str, Any]`, a compensator returns nothing.
+- **The moment is in the message.** A refusal made while the class body executes says so; one made while the capability is assembled says the class body had already run, so a reader is not sent back to code that is already correct.
+
+The rules are the subject of [`examples/step_01_Action_and_pipeline/05_aspect_declarations.py`](../../examples/step_01_Action_and_pipeline/05_aspect_declarations.py), which runs each refusal and prints what comes back.
 
 ---
 
@@ -198,7 +224,7 @@ The refusal rules above are the subject of [`examples/step_03_authorization_and_
 
 `@compensate(target, description)` must reference an existing `@regular_aspect` of the same class. A compensator without a corresponding aspect is not allowed — it is a "dead rollback" that will never fire.
 
-Checked at startup. The compensator method name ends with `_compensate`.
+Checked at startup. The compensator method name ends with `_compensate`, and its signature is the contract above: the two states it is given differ, `state_before` is always a state while `state_after` is `None` when the compensated aspect did not finish, and its return is ignored — so `-> None` is what it declares.
 
 ```python
 # ✓ charge_aspect exists — charge_compensate is valid
@@ -230,13 +256,19 @@ The decorators `@result_string`, `@result_instance`, `@result_bool`, and their k
 This eliminates an entire class of defects of the form "the next step broke because the previous one did not put the data in state". Instead of hope — a guarantee of presence and type.
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseResult
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Validation")
 @result_string("validated_id", required=True)
-async def validate_aspect(self, params, state, box, connections):
+async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     return {"validated_id": params.order_id}
 
 @summary_aspect("Creation")
-async def create_summary(self, params, state, box, connections):
+async def create_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
     state.validated_id  # guaranteed to be there — usable without a check
 ```
 

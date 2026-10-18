@@ -144,7 +144,7 @@ class PlainSummaryAction(BaseAction["PlainSummaryAction.Params", "PlainSummaryAc
 
     @summary_aspect("S")
     async def plain_summary(
-        self, params: PlainSummaryAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: PlainSummaryAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> PlainSummaryAction.Result:
         """Produce the operation's result."""
         return PlainSummaryAction.Result()
@@ -173,7 +173,7 @@ class CheckedSummaryAction(BaseAction["CheckedSummaryAction.Params", "CheckedSum
 
     @summary_aspect("S")
     async def checked_summary(
-        self, params: CheckedSummaryAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: CheckedSummaryAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> CheckedSummaryAction.Result:
         """Produce the operation's result."""
         return CheckedSummaryAction.Result()

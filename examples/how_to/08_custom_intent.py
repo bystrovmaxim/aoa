@@ -41,7 +41,10 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 _CRITICALITY_ATTR = "_criticality_level"
@@ -105,7 +108,7 @@ class ChargeResult(BaseResult):
 @check_roles(GuestRole)
 class ChargeCardAction(BaseAction[ChargeParams, ChargeResult]):
     @summary_aspect("Charge")
-    async def charge_summary(self, params, state, box, connections):
+    async def charge_summary(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ChargeResult:
         return ChargeResult(ok=True)
 
 
@@ -113,7 +116,7 @@ class ChargeCardAction(BaseAction[ChargeParams, ChargeResult]):
 @check_roles(GuestRole)
 class PingAction(BaseAction[ChargeParams, ChargeResult]):
     @summary_aspect("Ping")
-    async def ping_summary(self, params, state, box, connections):
+    async def ping_summary(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ChargeResult:
         return ChargeResult(ok=True)
 
 

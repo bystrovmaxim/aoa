@@ -34,6 +34,7 @@ _SCRIPT = textwrap.dedent(
     from aoa.action_machine.model.base_params import BaseParams
     from aoa.action_machine.model.base_result import BaseResult
     from aoa.action_machine.model.base_state import BaseState
+    from aoa.action_machine.resources.base_resource import BaseResource
     from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
     from aoa.action_machine.runtime.tools_box import ToolsBox
     from tests.support.domain_model.domains import SystemDomain
@@ -51,7 +52,13 @@ _SCRIPT = textwrap.dedent(
             ok: bool = True
 
         @summary_aspect("S")
-        async def run_it_summary(self, params, state, box, connections):
+        async def run_it_summary(
+            self,
+            params: BaseParams,
+            state: BaseState,
+            box: ToolsBox,
+            connections: dict[str, BaseResource],
+        ) -> BaseResult:
             print("RAN")
             return ProbeAction.Result()
 

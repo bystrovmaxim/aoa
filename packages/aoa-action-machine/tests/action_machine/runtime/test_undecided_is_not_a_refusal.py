@@ -93,7 +93,7 @@ class UnstableGateAction(BaseAction["UnstableGateAction.Params", "UnstableGateAc
 
     @summary_aspect("S")
     async def unstable_summary(
-        self, params: UnstableGateAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: UnstableGateAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> UnstableGateAction.Result:
         """Produce the operation's result, counting how often the pipeline really ran."""
         global _SUMMARY_CALLS

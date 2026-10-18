@@ -38,9 +38,10 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 import time
-from typing import Any, cast
+from typing import Any
 
 from aoa.action_machine.context.context_view import ContextView
+from aoa.action_machine.exceptions.action_result_type_error import ActionResultTypeError
 from aoa.action_machine.exceptions.missing_summary_aspect_error import MissingSummaryAspectError
 from aoa.action_machine.exceptions.validation_field_error import ValidationFieldError
 from aoa.action_machine.graph.nodes.checker_graph_node import CheckerGraphNode
@@ -212,6 +213,12 @@ class AspectExecutor:
             connections=connections,
             context=context,
         )
-        ActionSchemaIntentResolver.resolve_result_type(action_cls)
-        result = cast(BaseResult, raw)
-        return result, (time.time() - summary_start)
+        result_type = ActionSchemaIntentResolver.resolve_result_type(action_cls)
+        if not isinstance(raw, result_type):
+            raise ActionResultTypeError(
+                f"{action_cls.__name__}.{summary_node.label} returned {type(raw).__name__}, "
+                f"but the operation declares Result {result_type.__name__}.",
+                expected_type=result_type,
+                actual_type=type(raw),
+            )
+        return raw, (time.time() - summary_start)

@@ -14,7 +14,10 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 # %% Setup
 
@@ -54,7 +57,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         CANCELLED.append(params.order_id)
         return OrderResult(order_id=params.order_id)

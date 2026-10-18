@@ -1,15 +1,15 @@
 # packages/aoa-demo/src/aoa/demo/model/billing/actions/refund_quote.py
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, JsonSchemaValue
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState, JsonSchemaValue
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.billing.domain import BillingDomain
 
 _SAMPLE_AUDIT_SCHEMA: dict[str, object] = {
@@ -46,9 +46,9 @@ class RefundQuoteAction(BaseAction["RefundQuoteAction.Params", "RefundQuoteActio
     async def quote_summary(
         self,
         params: RefundQuoteAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> RefundQuoteAction.Result:
         return RefundQuoteAction.Result(
             quote_cents=len(params.capture_txn) * 10,

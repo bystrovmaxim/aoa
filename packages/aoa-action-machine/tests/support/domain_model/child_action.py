@@ -39,6 +39,7 @@ USAGE IN TESTS
 
 from pydantic import Field
 
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.context.ctx_constants import Ctx
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
@@ -106,12 +107,12 @@ class ChildAction(BaseAction["ChildAction.Params", "ChildAction.Result"]):
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-        _ctx: object,
+        ctx: ContextView,
     ) -> "ChildAction.Result":
         """
         Build Result from processed_value in state.
 
-        ``_ctx`` is unused here; declared so ``@summary_aspect`` matches ``@context_requires`` arity.
+        ``ctx`` is unused here; declared so ``@summary_aspect`` matches ``@context_requires`` arity.
 
         Returns:
             ChildAction.Result with field processed.

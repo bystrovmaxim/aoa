@@ -6,11 +6,13 @@ Run: uv run python examples/how_to/06_custom_resource.py
 """
 
 import asyncio
+
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
+
 
 class NotesDomain(BaseDomain):
     """Group the custom resource example."""

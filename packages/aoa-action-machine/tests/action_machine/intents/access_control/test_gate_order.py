@@ -81,7 +81,7 @@ class GuardedAction(BaseAction["GuardedAction.Params", "GuardedAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: GuardedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: GuardedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> GuardedAction.Result:
         """Produce the operation's result."""
         return GuardedAction.Result()
@@ -100,7 +100,7 @@ class GuestAction(BaseAction["GuestAction.Params", "GuestAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: GuestAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: GuestAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> GuestAction.Result:
         """Produce the operation's result."""
         return GuestAction.Result()
@@ -119,7 +119,7 @@ class AnyRoleAction(BaseAction["AnyRoleAction.Params", "AnyRoleAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: AnyRoleAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: AnyRoleAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> AnyRoleAction.Result:
         """Produce the operation's result."""
         return AnyRoleAction.Result()

@@ -3,15 +3,15 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.roles import ViewerRole
 from aoa.demo.model.store.actions.order_lookup import OrderLookupAction
 from aoa.demo.model.store.actions.store_read import StoreReadAction
@@ -44,9 +44,9 @@ class StoreReadUseCaseDemoAction(BaseAction["StoreReadUseCaseDemoAction.Params",
     async def demo_summary(
         self,
         params: StoreReadUseCaseDemoAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> StoreReadUseCaseDemoAction.Result:
         _ = (params, state, connections)
         await box.run(StoreReadAction, StoreReadAction.Params())

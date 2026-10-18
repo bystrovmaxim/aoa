@@ -20,6 +20,7 @@ Run:
 """
 
 import asyncio
+from typing import Any
 
 from pydantic import Field
 
@@ -37,8 +38,10 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 class BillingDomain(BaseDomain):
@@ -127,7 +130,7 @@ class EntryResult(BaseResult):
 class AppendEntryAction(BaseAction[EntryParams, EntryResult]):
 
     @summary_aspect("Append audit entry")
-    async def append_summary(self, params, state, box, connections):
+    async def append_summary(self, params: EntryParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> EntryResult:
         ledger = connections["ledger"]
         await ledger.execute(params.entry)          # statements: allowed
         try:
@@ -160,7 +163,7 @@ class ChargeAction(BaseAction[ChargeParams, ChargeResult]):
 
     @regular_aspect("Compute total via the pricing service")
     @result_float("total", required=True, min_value=0)
-    async def price_aspect(self, params, state, box, connections):
+    async def price_aspect(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         pricing = await box.resolve(PricingService)       # declared dependency
         total = pricing.price(params.sku) * params.qty
         await box.info(Channel.business, "parent: total={%var.total}", total=total)
@@ -168,7 +171,7 @@ class ChargeAction(BaseAction[ChargeParams, ChargeResult]):
 
     @regular_aspect("Record to ledger and call nested action")
     @result_float("total", required=True, min_value=0)
-    async def record_aspect(self, params, state, box, connections):
+    async def record_aspect(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         ledger = connections["ledger"]
         await ledger.execute(f"charge {params.sku} = {state['total']}")
         await box.run(                                    # nested call: ledger is proxied
@@ -179,7 +182,7 @@ class ChargeAction(BaseAction[ChargeParams, ChargeResult]):
         return {"total": state["total"]}
 
     @summary_aspect("Commit and return")
-    async def charge_summary(self, params, state, box, connections):
+    async def charge_summary(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ChargeResult:
         await connections["ledger"].commit()             # owner: commit allowed
         return ChargeResult(sku=params.sku, total=state["total"])
 

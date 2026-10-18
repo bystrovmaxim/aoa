@@ -128,6 +128,9 @@ The listing below is the complete remainder of the first file. Put it after the 
 The @check_roles(ManagerRole) line is a Python decorator: it attaches information to the class declaration. Here that information means “the caller must have the manager role.” The machine reads it before calling cancel_summary, so the method does not repeat the access check.
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 class AdminRole(ManagerRole):
     """Include every manager permission."""
 
@@ -141,7 +144,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -201,6 +204,9 @@ Make the distinction observable with a CANCELLED list. The summary method append
 model_dump(mode="json") converts a decision model to a dictionary of simple values suitable for JSON, a text data-exchange format. print below displays the Python dictionary, hence single quotes and None.
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 CANCELLED = []
 
 
@@ -210,7 +216,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         CANCELLED.append(params.order_id)
         return OrderResult(order_id=params.order_id)
@@ -403,6 +409,9 @@ AOA supplies two special requirement classes. GuestRole lets any caller pass the
 Both operations below return the identifier of a viewed order. Only their role requirement differs. Context() supplies an anonymous caller with no roles; member holds ManagerRole. We ask about access three times. A refusal converts to a dictionary with kind='refused', a gate identifying the refusing check, and an optional reason. CHECK_ROLES names the role check.
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.auth import AnyRole, ApplicationRole, GuestRole
 
 
@@ -412,7 +421,7 @@ class PublicAction(BaseAction[OrderParams, OrderResult]):
     """View an order after checking access."""
 
     @summary_aspect("View the order")
-    async def view_summary(self, params, state, box, connections):
+    async def view_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the order identifier."""
         return OrderResult(order_id=params.order_id)
 
@@ -423,7 +432,7 @@ class ProfileAction(BaseAction[OrderParams, OrderResult]):
     """View an order after checking access."""
 
     @summary_aspect("View the order")
-    async def view_summary(self, params, state, box, connections):
+    async def view_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the order identifier."""
         return OrderResult(order_id=params.order_id)
 
@@ -478,6 +487,9 @@ A manager and an auditor both need to view orders, but an auditor should not aut
 Declare AuditorRole directly from ApplicationRole and give @check_roles the list [ManagerRole, AuditorRole]. Read the list as “manager or auditor.” One matching role is sufficient. Each user in this experiment has only one role so that the alternative nature of the requirement is visible.
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 class AuditorRole(ApplicationRole):
     """Permit reviewing order operations."""
 
@@ -491,7 +503,7 @@ class ViewOrderAction(BaseAction[OrderParams, OrderResult]):
     """View an order after checking access."""
 
     @summary_aspect("View the order")
-    async def view_summary(self, params, state, box, connections):
+    async def view_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the order identifier."""
         return OrderResult(order_id=params.order_id)
 
@@ -542,6 +554,9 @@ Sometimes users already hold a role that must temporarily stop granting access. 
 @role_mode(RoleMode.SILENCED) marks a role as silenced. The machine removes it from the user's roles before matching requirements. TemporaryManagerRole below inherits ManagerRole but is silenced; the operation still requires ManagerRole. This isolates the effect of silencing despite valid inheritance.
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.intents.role_mode import RoleMode, role_mode
 
 
@@ -559,7 +574,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -616,6 +631,9 @@ A conditional grant expresses this: grant(ManagerRole, when=..., reason=...). gr
 The teaching data encodes team membership in the user identifier. lambda user: user.user_id.startswith("eu-") creates a short function checking the identifier's prefix. A real application should base membership on trusted information. With no other restrictions in this example, only that condition distinguishes the two callers.
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.intents.check_roles import check_roles, grant
 
 
@@ -625,7 +643,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -676,6 +694,9 @@ The administrator has user_id us-a1 and inherits ManagerRole. It therefore match
 A bare role class in @check_roles means a grant without a condition; AdminRole is equivalent to grant(AdminRole). Alternatives are evaluated in declaration order until one allows the call.
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.intents.check_roles import check_roles, grant
 
 
@@ -692,7 +713,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -742,6 +763,9 @@ The guard argument of @check_roles declares this shared condition. Its function 
 CancellationParams inherits order_id and adds the numeric amount field. lambda user, params: params.amount <= 100 compares that amount with the limit. user is unused in this rule but remains part of the required argument list. Both queries use the same caller and differ only in amount.
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 class CancellationParams(OrderParams):
     """Add the requested cancellation amount."""
 
@@ -754,7 +778,7 @@ class CancelOrderAction(BaseAction[CancellationParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: CancellationParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -832,6 +856,7 @@ The check returns a decision object. Allowed() permits execution to continue. FO
 The listing contains the complete operation and three calls by the same user. The access rule is separate from cancel_summary, whose job remains producing the allowed operation's result.
 
 ```python
+from aoa.action_machine.model import BaseState
 from aoa.action_machine.context.context_view import ContextView
 
 
@@ -876,7 +901,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -934,6 +959,7 @@ Ownership is not the only possible rule. Suppose the user is entitled to see the
 The object check can return Refused("ORDER_ALREADY_SHIPPED"). The application chooses that reason string. Refused defaults to the ACCESS_DECIDE gate, so the gate need not be repeated. STATUS stores one order's state. This experiment isolates the shipped-order rule rather than repeating ownership checks.
 
 ```python
+from aoa.action_machine.model import BaseState
 from aoa.action_machine.intents.access_control import Allowed, Refused, Verdict
 
 
@@ -967,7 +993,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1014,6 +1040,7 @@ ContextView does not expose a field merely because it exists in the full context
 This deliberately incorrect method first prints the allowed field, then reads the undeclared one. When it cannot finish, the machine returns Undecided, meaning it could not determine access. Unlike Refused, this does not claim the caller violated an access rule.
 
 ```python
+from aoa.action_machine.model import BaseState
 from aoa.action_machine.context.context_view import ContextView
 
 
@@ -1052,7 +1079,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1107,6 +1134,9 @@ Use a fixed rule: all manager cancellations are temporarily paused. The guard al
 The preliminary query returns refusal as an ordinary decision value. Execution cannot return a cancellation result because cancellation is prohibited, so it raises AccessDenied. That exception's verdict attribute carries the refusal. The example exercises both paths.
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.exceptions import AccessDenied
 
 
@@ -1116,7 +1146,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1170,6 +1200,7 @@ Undecided represents this third outcome. When a check raises an exception, the m
 The example immediately raises RuntimeError("order store unavailable") from the object check to reproduce a storage failure. The caller has the correct role and no other conditions obscure the result.
 
 ```python
+from aoa.action_machine.model import BaseState
 from aoa.action_machine.exceptions import AccessUndecided
 
 
@@ -1201,7 +1232,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         raise RuntimeError("order store unavailable")
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1273,6 +1304,7 @@ We have examined the rules separately. Now combine them to observe their order. 
 TRACE is an ordinary list, not an AOA feature. Each function appends its name when actually called; the summary does the same. in_team returns True, but cancellations_open returns False. The object check could allow access, yet it should never be reached. The experiment isolates stopping the sequence.
 
 ```python
+from aoa.action_machine.model import BaseState
 from aoa.action_machine.exceptions import AccessDenied
 
 
@@ -1327,7 +1359,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         TRACE.append("summary")
         return OrderResult(order_id=params.order_id)
@@ -1401,6 +1433,7 @@ BeforeAccessDecideAspectEvent marks the declared object check starting; AfterAcc
 The complete example declares the operation, plugin, and plugins=[AccessPrinter()] configuration. It makes only a preliminary access query, isolating the check's events from operation execution.
 
 ```python
+from aoa.action_machine.model import BaseState
 from aoa.action_machine.intents.access_control import Allowed, Verdict
 
 
@@ -1438,7 +1471,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1508,6 +1541,7 @@ The preceding check completed normally. This one raises RuntimeError while an op
 Its gate identifies the stage; exception_type names the original exception class. A plugin can use those fields for failure counters or diagnostics, without receiving the exception message. The example subscribes only to that event, then prints the caller's decision. It uses run rather than a preliminary query, which matters to event publication.
 
 ```python
+from aoa.action_machine.model import BaseState
 from aoa.action_machine.exceptions import AccessUndecided
 
 
@@ -1548,7 +1582,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         raise RuntimeError("order store unavailable")
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1630,6 +1664,7 @@ A faulty rule and a faulty declaration are detected at different times. When a m
 The operation below has two methods marked @access_decide. Each method is individually valid, but their relationship is unspecified. AOA requires one declared object check per operation rather than guessing how to combine them. We only construct the machine; no caller or order is needed to expose the declaration error.
 
 ```python
+from aoa.action_machine.model import BaseState
 from aoa.action_machine.exceptions import DuplicateAccessDecideError
 
 
@@ -1671,7 +1706,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1939,6 +1974,7 @@ A type annotation states a contract, but ordinary Python does not force the func
 The method below has a valid declaration. Its only deliberate mistake is return True instead of return Allowed(). The query shows whether that is treated as permission.
 
 ```python
+from aoa.action_machine.model import BaseState
 from aoa.action_machine.intents.access_control import Verdict
 
 
@@ -1967,7 +2003,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return True  # Deliberately wrong: the example demonstrates runtime validation.
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params, state, box, connections):
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 

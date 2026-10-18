@@ -23,6 +23,7 @@ from typing import Any, ClassVar, cast
 
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
+from aoa.action_machine.intents.aspects.aspect_signature import ASPECT_CONTRACTS, validate_types
 from aoa.action_machine.intents.aspects.regular_aspect_intent_resolver import RegularAspectIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -45,6 +46,7 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     required_context: list[RequiredContextGraphEdge]
 
     def __init__(self, aspect_func: Callable[..., Any], _action_cls: type[Any]) -> None:
+        validate_types(ASPECT_CONTRACTS["regular_aspect"], _action_cls, aspect_func)
         method_name = TypeIntrospection.unwrapped_callable_name(aspect_func)
         action_id = TypeIntrospection.full_qualname(_action_cls)
         node_id = f"{action_id}:{method_name}"

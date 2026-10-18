@@ -19,9 +19,12 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.cache_tag import CacheTag
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 # Cache only when the pipeline took at least this long (ms)
 HEAVY_MIN_MS = 50.0
@@ -61,7 +64,7 @@ class GetConfigAction(BaseAction[ConfigParams, ConfigResult]):
         return [CacheTag(key=f"{params.tenant_id}:{params.name}")]
 
     @summary_aspect("Load config")
-    async def load_summary(self, params, state, box, connections):
+    async def load_summary(self, params: ConfigParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ConfigResult:
         heavy = params.name != "ping"
         if heavy:
             await asyncio.sleep(0.08)

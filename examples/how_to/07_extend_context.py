@@ -28,6 +28,7 @@ from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context, Ctx
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.context.runtime_info import RuntimeInfo
 from aoa.action_machine.context.user_info import UserInfo
@@ -37,7 +38,10 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.context_requires.context_requires_decorator import context_requires
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 # ── Extend each part by inheritance with explicit fields ─────────────────────
@@ -73,7 +77,7 @@ class WhoamiAction(BaseAction[WhoamiParams, WhoamiResult]):
     # Mix standard Ctx.* constants with raw string paths for the custom fields.
     @summary_aspect("Read environment")
     @context_requires(Ctx.User.user_id, "user.tenant_id", "request.api_version", "runtime.region")
-    async def whoami_summary(self, params, state, box, connections, ctx):
+    async def whoami_summary(self, params: WhoamiParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> WhoamiResult:
         return WhoamiResult(summary=(
             f"user={ctx.get(Ctx.User.user_id)} "
             f"tenant={ctx.get('user.tenant_id')} "

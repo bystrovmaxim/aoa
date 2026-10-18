@@ -22,7 +22,7 @@ Run:
 from __future__ import annotations
 
 from collections import Counter
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import Field
 
@@ -43,8 +43,10 @@ from aoa.action_machine.intents.depends import depends
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 class ShopDomain(BaseDomain):
@@ -116,11 +118,11 @@ class PlaceOrderAction(BaseAction[PlaceOrderParams, PlaceOrderResult]):
 
     @regular_aspect("Price the order")
     @result_float("total", required=True, min_value=0)
-    async def price_aspect(self, params, state, box, connections):
+    async def price_aspect(self, params: PlaceOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         return {"total": (await box.resolve(PricingService)).price(params.sku)}
 
     @summary_aspect("Confirm")
-    async def confirm_summary(self, params, state, box, connections):
+    async def confirm_summary(self, params: PlaceOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> PlaceOrderResult:
         return PlaceOrderResult(total=state["total"])
 
 

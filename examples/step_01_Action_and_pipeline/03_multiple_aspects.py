@@ -27,6 +27,7 @@ Run:
 """
 
 import asyncio
+from typing import Any
 
 from pydantic import Field
 
@@ -40,7 +41,10 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 # ---------------------------------------------------------------------------
 # Domain
@@ -93,7 +97,7 @@ class ProcessInputAction(BaseAction[ProcessParams, ProcessResult]):
 
     @regular_aspect("Step 1: Strip whitespace and lowercase")
     @result_string("cleaned", required=True)
-    async def validate_aspect(self, params, state, box, connections):
+    async def validate_aspect(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         cleaned = params.raw_input.strip().lower()
         await box.info(
             Channel.business,
@@ -118,7 +122,7 @@ class ProcessInputAction(BaseAction[ProcessParams, ProcessResult]):
     @regular_aspect("Step 2: Enrich data")
     @result_string("cleaned", required=True)
     @result_string("enriched", required=True)
-    async def enrich_aspect(self, params, state, box, connections):
+    async def enrich_aspect(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         enriched = f"enriched::{state['cleaned']}"
         await box.info(
             Channel.business,
@@ -141,7 +145,7 @@ class ProcessInputAction(BaseAction[ProcessParams, ProcessResult]):
     # -----------------------------------------------------------------------
 
     @summary_aspect("Step 3: Assemble final result")
-    async def assemble_summary(self, params, state, box, connections):
+    async def assemble_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ProcessResult:
         final = f"{state['cleaned']} → {state['enriched']}"
         await box.info(
             Channel.business,

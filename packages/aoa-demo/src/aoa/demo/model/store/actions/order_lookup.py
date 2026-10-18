@@ -3,12 +3,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from aoa.action_machine.context import Ctx
+from aoa.action_machine.context import ContextView, Ctx
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_float, result_string
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.roles import ViewerRole
 from aoa.demo.model.store.actions.store_read import StoreReadAction
 from aoa.demo.model.store.store_domain import StoreDomain
@@ -25,10 +28,10 @@ class OrderLookupAction(StoreReadAction):
     async def load_aspect(
         self,
         params: StoreReadAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
-        ctx: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+        ctx: ContextView,
     ) -> dict[str, Any]:
         return {
             "order_id": params.order_id,
@@ -40,14 +43,14 @@ class OrderLookupAction(StoreReadAction):
     async def build_result_summary(
         self,
         params: StoreReadAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> StoreReadAction.Result:
         _ = (params, box, connections)
         return StoreReadAction.Result(
             ok=True,
-            order_id=state.order_id,
-            amount=state.amount,
-            status=state.status,
+            order_id=state.order_id,  # type: ignore[attr-defined]
+            amount=state.amount,  # type: ignore[attr-defined]
+            status=state.status,  # type: ignore[attr-defined]
         )
