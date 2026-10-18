@@ -44,9 +44,15 @@ for resource implementations, rather than direct calls from actions:
 - `self._fetchrow(query, params=None)` runs a query and answers its **first** row, or
   `None`. First, not only: a statement that can match several rows without an ordering
   yields an arbitrary one.
+- `self._fetch(query, params=None)` runs a query and answers **every** row it returned, in
+  the driver's order, or `[]` when it matched nothing. It neither sorts nor truncates: a
+  page's ordering and its bound belong in the statement.
+- `self._fetchval(query, params=None)` runs a query and answers the first value of its
+  **first** row, or `None`. No match and a SQL `NULL` both answer `None`, so a caller that
+  must tell them apart asks `_fetchrow` for the row.
 
-Both check that the connection is open — a resource that never opened, or one already
-closed, refuses with `HandleError("Connection is not open")` — and both turn a failure
+All four check that the connection is open — a resource that never opened, or one already
+closed, refuses with `HandleError("Connection is not open")` — and all four turn a failure
 of the driver into `HandleError("SQL execution failed: …")` with the driver's error
 chained as its cause. A method that wants its own message catches that error and raises
 its own with the cause attached. A resource that wants a public query surface publishes
@@ -667,6 +673,65 @@ TransactionLeftOpenError caused by HandleError
 ```
 
 The failed COMMIT leaves the transaction flag set. Cleanup rolls back and reports TransactionLeftOpenError, with the commit failure as its cause. This is a failure demonstration, not a guarantee about the outcome of a lost database connection.
+
+## A page through `_fetch` and a count through `_fetchval`
+
+Two of the four answers read more than one row, or one column of the first row: `_fetch`
+answers every row a statement returned, `_fetchval` answers the first value of the first
+row. A domain method states its own ordering and bound for a page, and decides what an
+absent value means.
+
+[Python](../../examples/extensions/postgresql/15_fetch_and_fetchval.py) · [Notebook](../../examples/extensions/postgresql/15_fetch_and_fetchval.ipynb)
+
+The following is the body of `main()` from the standalone example; the linked files include every definition and import.
+
+```python
+pool = RecordingPool()
+resource = NotesResource(pool=pool)
+await resource.open()
+connection = pool.connections[0]
+
+connection.rows = [{"id": "n1", "text": "first"}, {"id": "n2", "text": "second"}]
+print("page  :", await resource.list_notes(limit=2))
+
+connection.rows = []
+print("empty :", await resource.list_notes())
+
+connection.value = 2
+print("count :", await resource.count_notes())
+
+connection.value = None
+print("absent:", await resource.count_notes())
+
+await resource.close()
+await pool.close()
+try:
+    await resource.list_notes()
+except HandleError as error:
+    print("closed:", error)
+
+print("calls :", connection.calls)
+assert [call[1] for call in connection.calls[:2]] == [(2, 0), (2, 0)]
+print("borrowed:", len(pool.held))
+```
+
+Observed output:
+
+```text
+page  : [{'id': 'n1', 'text': 'first'}, {'id': 'n2', 'text': 'second'}]
+empty : []
+count : 2
+absent: 0
+closed: Connection is not open
+calls : [('SELECT id, text FROM notes ORDER BY id LIMIT $1 OFFSET $2', (2, 0)), ('SELECT id, text FROM notes ORDER BY id LIMIT $1 OFFSET $2', (2, 0)), ('SELECT count(*) FROM notes', ()), ('SELECT count(*) FROM notes', ())]
+borrowed: 0
+```
+
+`_fetch` answers a list: one row is a list of one, no match is `[]`. `_fetchval` answers
+the value itself, so no match and a SQL `NULL` are both `None` — ask `_fetchrow` for the
+row when the two must be told apart. The page's `ORDER BY`, `LIMIT` and `OFFSET` are the
+statement's business; the helper only carries the answer. After `close()` the resource has
+no connection and both helpers refuse with the framework's named error.
 
 ## The SQL stack: protocol, manager and wrapper
 

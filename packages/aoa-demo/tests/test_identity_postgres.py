@@ -11,9 +11,10 @@ in two modes, and both are checked here:
   and the pool is created at startup and closed at shutdown.
 
 The pool is faked: ``IdentityStore`` only ever calls ``acquire``, ``release`` and
-the connection's own ``execute`` / ``fetch``, so nothing here needs a server. The
-connection enforces the driver's one-operation-at-a-time rule, which is what makes
-"concurrent calls do not fail" mean something.
+the connection's own ``execute``, ``fetchrow``, ``fetch`` and ``fetchval``, so
+nothing here needs a server. The connection enforces the driver's
+one-operation-at-a-time rule, which is what makes "concurrent calls do not fail"
+mean something.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -63,6 +64,8 @@ class _FakeConnection:
         self._busy = False
         self.operations: list[str] = []
         self.calls: list[tuple[str, tuple[Any, ...]]] = []
+        self.rows: list[dict[str, Any]] = [dict(PERSON)]
+        self.value: Any = 1
 
     async def execute(self, query: str, *args: Any) -> str:
         """Run a statement, refusing a second operation while one is in flight."""
@@ -74,6 +77,16 @@ class _FakeConnection:
         if not args or args[0] != PERSON["id"]:
             return None
         return dict(PERSON)
+
+    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        """Answer a page read with the seeded rows, recording what it was asked for."""
+        await self._operation(query, args)
+        return [dict(row) for row in self.rows]
+
+    async def fetchval(self, query: str, *args: Any) -> Any:
+        """Answer a value read with the seeded value, recording what it was asked for."""
+        await self._operation(query, args)
+        return self.value
 
     async def _operation(self, query: str, args: tuple[Any, ...]) -> str:
         if self._busy:
@@ -323,3 +336,71 @@ async def test_the_pool_is_created_once_and_closed_on_shutdown(monkeypatch: pyte
     assert pool_holder.pool is None
     assert seen["dsn"] == "postgresql://example/db"
     assert seen["kwargs"] == {"min_size": 1, "max_size": 10}
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# The two new reads — a page through ``_fetch``, a count through ``_fetchval``
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+async def test_a_page_read_answers_mappings_in_the_stated_order() -> None:
+    """The page asks once, names its order and its bound, and turns records into mappings."""
+    pytest.importorskip("asyncpg")
+    pool = _FakePool()
+    store = _postgres_store(pool)
+    await store.open()
+    try:
+        page = await store._list_persons(limit=1, offset=0)
+    finally:
+        await store.close()
+
+    assert page == [PERSON]
+    statement, params = pool.connections[0].calls[-1]
+    assert "ORDER BY display_name, id" in statement
+    assert "LIMIT $1 OFFSET $2" in statement
+    assert params == (1, 0)
+
+
+async def test_a_page_read_answers_an_empty_list_when_nobody_matches() -> None:
+    """A page with no match is an empty list, which the caller iterates without a guard."""
+    pytest.importorskip("asyncpg")
+    pool = _FakePool()
+    store = _postgres_store(pool)
+    await store.open()
+    try:
+        pool.connections[0].rows = []
+        assert await store._list_persons() == []
+    finally:
+        await store.close()
+
+
+async def test_a_count_read_answers_a_number_not_a_record() -> None:
+    """The counter goes through ``_fetchval`` and answers an int, not the driver's record."""
+    pytest.importorskip("asyncpg")
+    pool = _FakePool()
+    store = _postgres_store(pool)
+    await store.open()
+    try:
+        pool.connections[0].value = 2
+        total = await store._count_persons()
+    finally:
+        await store.close()
+
+    assert total == 2
+    assert isinstance(total, int)
+    statement, params = pool.connections[0].calls[-1]
+    assert statement == "SELECT count(*) FROM identity_person_hub"
+    assert params == ()
+
+
+async def test_a_count_read_treats_no_answer_as_zero() -> None:
+    """The value helper's ``None`` becomes the domain's zero, decided at the call site."""
+    pytest.importorskip("asyncpg")
+    pool = _FakePool()
+    store = _postgres_store(pool)
+    await store.open()
+    try:
+        pool.connections[0].value = None
+        assert await store._count_persons() == 0
+    finally:
+        await store.close()

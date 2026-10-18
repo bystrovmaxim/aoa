@@ -140,11 +140,32 @@ Rollup support is also a real obligation. Generic BaseResource refuses it by def
 A SQL implementation must ensure that rollup=True makes commit roll back its explicit
 transaction. This is not an all-purpose undo mechanism for external systems.
 
-A subclass of `PostgresResource` can implement its methods using two protected helpers.
-`await self._execute(query, params)` runs a statement and answers the driver's command
-status; `await self._fetchrow(query, params)` answers the query's first row, or `None`.
-Both check that the connection is open and turn a failure of the driver into
-`HandleError` with the driver's error chained, so the method carries its business
-meaning and no transport mechanics. A method that wants its own message catches that
-error and raises its own with the cause attached. `SqlResource` does not require an
+A subclass of `PostgresResource` can implement its methods using four protected helpers,
+one per answer the driver gives. `await self._execute(query, params)` runs a statement and
+answers the driver's command status; `await self._fetchrow(query, params)` answers the
+query's first row, or `None`; `await self._fetch(query, params)` answers every row in the
+driver's order, or `[]`; `await self._fetchval(query, params)` answers the first value of
+the first row, or `None`. All four check that the connection is open and turn a failure of
+the driver into `HandleError` with the driver's error chained, so the method carries its
+business meaning and no transport mechanics. A method that wants its own message catches
+that error and raises its own with the cause attached. `SqlResource` does not require an
 `execute()` method; the resource defines the public methods its callers need.
+
+```python
+async def list_notes(self, limit: int = 20, offset: int = 0) -> list[dict[str, Any]]:
+    """Return one ordered, bounded page of notes."""
+    rows = await self._fetch(
+        "SELECT id, text FROM notes ORDER BY id LIMIT $1 OFFSET $2",
+        (limit, offset),
+    )
+    return [dict(row) for row in rows]
+
+async def count_notes(self) -> int:
+    """Return how many notes exist, with the helper's ``None`` answered as zero."""
+    total = await self._fetchval("SELECT count(*) FROM notes")
+    return 0 if total is None else int(total)
+```
+
+The page's `ORDER BY` and `LIMIT` are the statement's business, and no match answering
+`[]` is what lets the caller iterate without a guard. `_fetchval` cannot tell no row from
+a SQL `NULL`: ask `_fetchrow` for the row when the two must be distinguished.
