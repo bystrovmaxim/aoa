@@ -28,3 +28,14 @@ The folder **`index.ts`** exports **`ErdViewer`**, **`ErdViewerSelection`**, and
 | `parts/ErdGraphvizCanvas/ErdGraphvizCanvas.tsx` | DOT layout + SVG viewport. |
 | `hooks/useGraphviz.ts` | Re-export `loadGraphvizWasm` / types from `@/lib/prefetch/erdGraphviz`. |
 | `hooks/useSvgPanZoom.ts` | Pointer/wheel zoom helpers for SVG viewport. |
+
+## What a card is
+
+A table on this diagram is a **card**: a rounded outline in the domain's colour, a header band with
+the entity's name, and one row per field. Every coloured area inside it — the band, the primary-key
+tint, the foreign-key tint, a body row — is a **fill**, and every fill stops at the card's contour:
+its upper corners follow the top arcs, a tinted last row follows the bottom ones. The domain's colour
+therefore marks one shape, not a rectangle laid over it.
+
+The trimming happens in the canvas, in the render effect, and is described in
+[`parts/ErdGraphvizCanvas/README.md`](parts/ErdGraphvizCanvas/README.md).

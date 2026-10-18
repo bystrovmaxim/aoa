@@ -20,6 +20,7 @@ import {
   type ErdGraphvizLayout,
   type ErdRelation,
 } from "@/lib/buildDotSource";
+import { containNodeFills } from "@/lib/containNodeFills";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
@@ -337,7 +338,9 @@ export function ErdGraphvizCanvas({
         const engine = erdGraphvizEngine(layout) as Engine;
         const svg = gv.layout(dot, "svg", engine);
         if (cancelled) return;
-        setSvgMarkup(svg);
+        // The renderer paints a card's band and row tints as rectangles inside a rounded outline;
+        // this trims every fill to the contour before the markup reaches the page.
+        setSvgMarkup(containNodeFills(svg));
         setSvgRenderVersion((v) => v + 1);
       })
       .catch((e) => {
