@@ -18,11 +18,15 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$REPO_ROOT/deploy/stand/docker-compose.yml"
-# The host wiring (front-end network + aliases) lives in the override and is
-# appended only when present — local runs use the base compose alone.
+# The host wiring (front-end network + aliases) lives in the override named
+# `docker-compose.host.yml`, derived from the base file's name. It is appended
+# when present — local runs use the base compose alone, and a host run without
+# it is refused below rather than silently deploying containers the front end
+# cannot resolve.
+COMPOSE_HOST_FILE="${COMPOSE_FILE%.yml}.host.yml"
 COMPOSE_ARGS=(-f "$COMPOSE_FILE")
-if [[ -f "$COMPOSE_FILE.host" ]]; then
-    COMPOSE_ARGS+=(-f "$COMPOSE_FILE.host")
+if [[ -f "$COMPOSE_HOST_FILE" ]]; then
+    COMPOSE_ARGS+=(-f "$COMPOSE_HOST_FILE")
 fi
 
 # Configuration and secrets live on the host, outside the repository.
@@ -236,6 +240,10 @@ main() {
     local terminator
     terminator="$(detect_terminator)" || fail "terminator gate: no known TLS front end found (nginx/caddy/traefik) — identify the host's terminator before deploying."
     say "terminator: ${terminator}"
+
+    if [[ $LOCAL_MODE -eq 0 && ! -f "$COMPOSE_HOST_FILE" ]]; then
+        fail "overlay gate: '$COMPOSE_HOST_FILE' is missing — without it the containers never join the front end's network, and the virtual hosts point at a name nothing resolves."
+    fi
 
     say "=== build ==="
     docker compose "${COMPOSE_ARGS[@]}" build
