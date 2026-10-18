@@ -73,7 +73,10 @@ class GeneralizationParentAction(
     domain=GeneralizationShapesDomain,
 )
 @check_roles(GuestRole)
-class GeneralizationFirstChildAction(GeneralizationParentAction):
+class GeneralizationFirstChildAction(
+    GeneralizationParentAction,
+    BaseAction["GeneralizationFirstChildAction.Params", "GeneralizationFirstChildAction.Result"],
+):
     """
     AI-CORE-BEGIN
     ROLE: Drawing fixture child; its subclassing is the drawn inheritance edge.
@@ -106,7 +109,10 @@ class GeneralizationFirstChildAction(GeneralizationParentAction):
     domain=GeneralizationShapesDomain,
 )
 @check_roles(GuestRole)
-class GeneralizationSecondChildAction(GeneralizationParentAction):
+class GeneralizationSecondChildAction(
+    GeneralizationParentAction,
+    BaseAction["GeneralizationSecondChildAction.Params", "GeneralizationSecondChildAction.Result"],
+):
     """
     AI-CORE-BEGIN
     ROLE: Drawing fixture child; its subclassing is the drawn inheritance edge.

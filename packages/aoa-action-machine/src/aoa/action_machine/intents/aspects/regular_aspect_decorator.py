@@ -48,7 +48,12 @@ from aoa.action_machine.exceptions.decorator_target_error import DecoratorTarget
 from aoa.action_machine.exceptions.description_contract_error import DescriptionContractError
 from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
-from aoa.action_machine.intents.aspects.aspect_signature import ASPECT_CONTRACTS, validate_names, validate_positional
+from aoa.action_machine.intents.aspects.aspect_signature import (
+    ASPECT_CONTRACTS,
+    validate_annotated,
+    validate_names,
+    validate_positional,
+)
 
 # Required method suffix for regular aspect declarations.
 _REQUIRED_SUFFIX = "_aspect"
@@ -87,6 +92,7 @@ def _signature_invariant(func: Any) -> None:
     contract = ASPECT_CONTRACTS["regular_aspect"]
     validate_positional(contract, func)
     validate_names(contract, func)
+    validate_annotated(contract, func)
 
 
 def _method_suffix_invariant(func: Any, description: str) -> None:

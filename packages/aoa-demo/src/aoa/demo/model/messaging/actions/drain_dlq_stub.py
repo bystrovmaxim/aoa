@@ -1,8 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/messaging/actions/drain_dlq_stub.py
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
@@ -10,6 +8,9 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.messaging.domain import MessagingDomain
 
 
@@ -26,8 +27,8 @@ class DrainDlqStubAction(BaseAction["DrainDlqStubAction.Params", "DrainDlqStubAc
     async def drain_summary(
         self,
         params: DrainDlqStubAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> DrainDlqStubAction.Result:
         return DrainDlqStubAction.Result(drained=min(params.max_messages, 3))

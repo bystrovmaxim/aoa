@@ -105,7 +105,7 @@ class RoleGatedAction(BaseAction["RoleGatedAction.Params", "RoleGatedAction.Resu
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: RoleGatedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: RoleGatedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> RoleGatedAction.Result:
         """Produce the operation's result."""
         return RoleGatedAction.Result()
@@ -134,7 +134,7 @@ class GuardRefusedAction(BaseAction["GuardRefusedAction.Params", "GuardRefusedAc
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: GuardRefusedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: GuardRefusedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> GuardRefusedAction.Result:
         """Produce the operation's result."""
         return GuardRefusedAction.Result()
@@ -163,7 +163,7 @@ class ObjectGarbledAction(BaseAction["ObjectGarbledAction.Params", "ObjectGarble
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: ObjectGarbledAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: ObjectGarbledAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> ObjectGarbledAction.Result:
         """Produce the operation's result."""
         return ObjectGarbledAction.Result()
@@ -192,7 +192,7 @@ class ObjectCrashAction(BaseAction["ObjectCrashAction.Params", "ObjectCrashActio
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: ObjectCrashAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: ObjectCrashAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> ObjectCrashAction.Result:
         """Produce the operation's result."""
         return ObjectCrashAction.Result()
@@ -221,7 +221,7 @@ class ObjectDeniedAction(BaseAction["ObjectDeniedAction.Params", "ObjectDeniedAc
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: ObjectDeniedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: ObjectDeniedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> ObjectDeniedAction.Result:
         """Produce the operation's result."""
         return ObjectDeniedAction.Result()
@@ -250,7 +250,7 @@ class AllowedAction(BaseAction["AllowedAction.Params", "AllowedAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: AllowedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: AllowedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> AllowedAction.Result:
         """Produce the operation's result."""
         return AllowedAction.Result()

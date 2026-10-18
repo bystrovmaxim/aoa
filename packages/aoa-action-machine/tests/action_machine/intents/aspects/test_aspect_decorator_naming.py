@@ -38,7 +38,9 @@ class TestRegularAspectSuffix:
         with pytest.raises(NamingSuffixError, match="_aspect"):
 
             @regular_aspect("Data validation")
-            async def validate_data(self, params, state, box, connections):
+            async def validate_data(
+                self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+            ) -> dict[str, Any]:
                 return {}
 
     def test_wrong_suffix_raises(self) -> None:
@@ -48,7 +50,9 @@ class TestRegularAspectSuffix:
         with pytest.raises(NamingSuffixError, match="_aspect"):
 
             @regular_aspect("Data validation")
-            async def validate_data_step(self, params, state, box, connections):
+            async def validate_data_step(
+                self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+            ) -> dict[str, Any]:
                 return {}
 
 
@@ -72,7 +76,9 @@ class TestSummaryAspectSuffix:
         with pytest.raises(NamingSuffixError, match="_summary"):
 
             @summary_aspect("Building result")
-            async def build_result(self, params, state, box, connections):
+            async def build_result(
+                self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+            ) -> BaseResult:
                 pass
 
 

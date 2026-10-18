@@ -77,7 +77,9 @@ class TestOnErrorDecoratorSuccess:
         """Decorator returns the same function object without wrapping."""
 
         # Arrange — define the original async function
-        async def original_on_error(self, params, state, box, connections, error):
+        async def original_on_error(
+            self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception
+        ) -> BaseResult:
             pass
 
         # Act — apply the decorator to the function
@@ -231,7 +233,9 @@ class TestOnErrorNamingSuffix:
         """Name without '_on_error' suffix → NamingSuffixError."""
 
         # Arrange — method with correct signature but without suffix
-        async def handle_validation(self, params, state, box, connections, error):
+        async def handle_validation(
+            self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception
+        ) -> BaseResult:
             pass
 
         # Act & Assert
@@ -242,7 +246,9 @@ class TestOnErrorNamingSuffix:
         """Name with wrong suffix → NamingSuffixError."""
 
         # Arrange — suffix "_handler" instead of "_on_error"
-        async def handle_validation_handler(self, params, state, box, connections, error):
+        async def handle_validation_handler(
+            self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception
+        ) -> BaseResult:
             pass
 
         # Act & Assert

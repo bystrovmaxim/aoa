@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
@@ -16,6 +14,7 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from .domains import SystemDomain
 from .ping_action import PingAction
@@ -38,7 +37,7 @@ class DependsModeHostAction(BaseAction["DependsModeHostAction.Params", "DependsM
         self,
         params: DependsModeHostAction.Params,
         state: BaseState,
-        box: Any,
+        box: ToolsBox,
         connections: dict[str, BaseResource],
     ) -> DependsModeHostAction.Result:
         return DependsModeHostAction.Result()

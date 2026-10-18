@@ -34,6 +34,7 @@ from typing import Any
 
 import pytest
 
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.exceptions import AspectSignatureError
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.compensate import compensate
@@ -133,7 +134,7 @@ class TestTheContextParameter:
             state: Any,
             box: Any,
             connections: Any,
-            ctx: Any,
+            ctx: ContextView,
         ) -> Any:
             return None
 
@@ -155,7 +156,7 @@ class TestTheContextParameter:
             state: Any,
             box: Any,
             connections: Any,
-            ctx: Any,
+            ctx: ContextView,
         ) -> Any:
             return {}
 
@@ -218,7 +219,7 @@ class TestThatStillPasses:
             state: Any,
             box: Any,
             connections: Any,
-            ctx: Any,
+            ctx: ContextView,
         ) -> Any:
             return None
 

@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -12,6 +10,9 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.telemetry_pipeline.actions.edge_facility_downlink_brief_action import (
     EdgeFacilityDownlinkBriefAction,
 )
@@ -47,7 +48,7 @@ class CrossEdgeObservabilityPorticoAction(
         routed: bool = Field(default=False, description="Composite routing acknowledgement")
 
     @summary_aspect("Cross-edge observability portico")
-    async def portico_summary(self, params: Params, state: Any, box: Any, connections: Any) -> Result:
+    async def portico_summary(self, params: Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> Result:
         _ = (params, state, box, connections)
         await box.run(StreamNormalizationPassThreeAction, StreamNormalizationPassThreeAction.Params())
         return self.Result()

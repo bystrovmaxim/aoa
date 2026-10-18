@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -12,6 +10,9 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.settlement_desks.actions.atlantic_desk_liquidity_fork_action import (
     AtlanticDeskLiquidityForkAction,
 )
@@ -47,7 +48,7 @@ class BiDeskLiquidityBridgeAction(
         stitched: bool = Field(default=False, description="Bridge stitching acknowledgement")
 
     @summary_aspect("Bi-desk bridge merge")
-    async def bridge_summary(self, params: Params, state: Any, box: Any, connections: Any) -> Result:
+    async def bridge_summary(self, params: Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> Result:
         _ = (params, state, box, connections)
         await box.run(AtlanticDeskLiquidityForkAction, AtlanticDeskLiquidityForkAction.Params())
         return self.Result()

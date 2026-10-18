@@ -73,20 +73,20 @@ Repository root is the working directory. Source lives under `packages/aoa-actio
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Write `packages/aoa-action-machine/tests/action_machine/intents/aspects/test_aspect_signature_types.py` — missing parameter annotation, missing return, unresolvable forward reference, wrong `box`, bare `connections`, wrong `state`, bare `error`, wrong `state_after`; the four return contracts (`-> str` on a regular aspect, `-> dict` on a compensator, `-> Any` and a foreign `Result` on a summary and an on-error handler); the assembly refusal naming the moment it happened (FR-020); `AspectSignatureError` being catchable as `SignatureContractError` and as `TypeError` (FR-021); plus the function-local-operation case (a class declared inside the test function, annotated `-> "ThatAction.Result"`) that must be **accepted**.
+- [x] T014 [P] [US2] Write `packages/aoa-action-machine/tests/action_machine/intents/aspects/test_aspect_signature_types.py` — missing parameter annotation, missing return, unresolvable forward reference, wrong `box`, bare `connections`, wrong `state`, bare `error`, wrong `state_after`; the four return contracts (`-> str` on a regular aspect, `-> dict` on a compensator, `-> Any` and a foreign `Result` on a summary and an on-error handler); the assembly refusal naming the moment it happened (FR-020); `AspectSignatureError` being catchable as `SignatureContractError` and as `TypeError` (FR-021); plus the function-local-operation case (a class declared inside the test function, annotated `-> "ThatAction.Result"`) that must be **accepted**.
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Implement `validate_annotated` and `validate_types` in `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/aspect_signature.py`, the latter with the `localns` built from the operation class (research R3), an explicit refusal for annotations that are not classes, and the `return_rule` dispatch for all four kinds: `state_fragment` (`dict[str, Any]`) and `none` here, `operation_result` delegated to the summary and on-error nodes that know the operation's `Result`.
-- [ ] T016 [P] [US2] Wire `validate_annotated` into `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/summary_aspect_decorator.py`.
-- [ ] T017 [P] [US2] Wire `validate_annotated` into `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/regular_aspect_decorator.py`.
-- [ ] T018 [P] [US2] Wire `validate_annotated` into `packages/aoa-action-machine/src/aoa/action_machine/intents/on_error/on_error_decorator.py`.
-- [ ] T019 [P] [US2] Wire `validate_annotated` into `packages/aoa-action-machine/src/aoa/action_machine/intents/compensate/compensate_decorator.py`.
-- [ ] T020 [P] [US2] Call `validate_types` for the summary contract in `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/summary_aspect_graph_node.py`, before the node is built — parameters and the `Result` return, the latter via the rule completed in T029.
-- [ ] T021 [P] [US2] Call `validate_types` for the regular contract in `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/regular_aspect_graph_node.py`.
-- [ ] T022 [P] [US2] Call `validate_types` for the on-error contract in `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/error_handler_graph_node.py` — parameters, `error: Exception`, and the annotation naming the operation's `Result` (no run-time check of the handler's returned value: that path stays as unchecked as it is today).
-- [ ] T023 [P] [US2] Call `validate_types` for the compensate contract in `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/compensator_graph_node.py`.
-- [ ] T024 [US2] Adversarial pass: break each type rule (one annotation at a time), confirm the matching test fails alone, restore, record in `evidence/adversarial-us2.md`.
+- [x] T015 [US2] Implement `validate_annotated` and `validate_types` in `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/aspect_signature.py`, the latter with the `localns` built from the operation class (research R3), an explicit refusal for annotations that are not classes, and the `return_rule` dispatch for all four kinds: `state_fragment` (`dict[str, Any]`) and `none` here, `operation_result` delegated to the summary and on-error nodes that know the operation's `Result`.
+- [x] T016 [P] [US2] Wire `validate_annotated` into `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/summary_aspect_decorator.py`.
+- [x] T017 [P] [US2] Wire `validate_annotated` into `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/regular_aspect_decorator.py`.
+- [x] T018 [P] [US2] Wire `validate_annotated` into `packages/aoa-action-machine/src/aoa/action_machine/intents/on_error/on_error_decorator.py`.
+- [x] T019 [P] [US2] Wire `validate_annotated` into `packages/aoa-action-machine/src/aoa/action_machine/intents/compensate/compensate_decorator.py`.
+- [x] T020 [P] [US2] Call `validate_types` for the summary contract in `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/summary_aspect_graph_node.py`, before the node is built — parameters and the `Result` return, the latter via the rule completed in T029.
+- [x] T021 [P] [US2] Call `validate_types` for the regular contract in `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/regular_aspect_graph_node.py`.
+- [x] T022 [P] [US2] Call `validate_types` for the on-error contract in `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/error_handler_graph_node.py` — parameters, `error: Exception`, and the annotation naming the operation's `Result` (no run-time check of the handler's returned value: that path stays as unchecked as it is today).
+- [x] T023 [P] [US2] Call `validate_types` for the compensate contract in `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/compensator_graph_node.py`.
+- [x] T024 [US2] Adversarial pass: break each type rule (one annotation at a time), confirm the matching test fails alone, restore, record in `evidence/adversarial-us2.md`.
 
 **Checkpoint**: a mistyped declaration is refused before any call is served.
 

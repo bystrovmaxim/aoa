@@ -26,7 +26,7 @@ One instance per decorator. Fields:
 | --- | --- | --- | --- |
 | `summary` | `params, state, box, connections` | `BaseParams` (or subclass), `BaseState`, `ToolsBox`, `dict[str, BaseResource]`; `ctx`: `ContextView` | `operation_result` |
 | `regular` | the same | the same | `state_fragment` (`dict[str, Any]`) |
-| `on_error` | the same + `error` | the same; `error`: `Exception` | `operation_result` |
+| `on_error` | the same + `error` | the same; `error`: `Exception` or the class the handler was declared for | `operation_result` |
 | `compensate` | `params, state_before, state_after, box, connections, error` | `BaseParams`, `BaseState`, `BaseState \| None`, `ToolsBox`, `dict[str, BaseResource]`, `Exception`; `ctx`: `ContextView` | `none` |
 
 `return_rule` is enforced at assembly for all four kinds; `summary` and `on_error` need the operation's `Result` to do it, which is why it cannot happen while the class body runs. Only `summary` is enforced **again** at run time, on the returned value — the other three are not read as an answer by anything.

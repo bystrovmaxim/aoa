@@ -35,7 +35,14 @@ class TestOnErrorSuffix:
         with pytest.raises(NamingSuffixError, match="_on_error"):
 
             @on_error(ValueError, description="Validation error")
-            async def handle_validation(self, params, state, box, connections, error):
+            async def handle_validation(
+                self,
+                params: BaseParams,
+                state: BaseState,
+                box: ToolsBox,
+                connections: dict[str, BaseResource],
+                error: Exception,
+            ) -> BaseResult:
                 pass
 
 
