@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1a5] – 2026-10-18
+
 ### Added
 
 A domain resource over PostgreSQL can now read a **page of rows** and a **single value**
