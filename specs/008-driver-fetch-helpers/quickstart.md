@@ -31,10 +31,14 @@ grep -n "async def _execute\|async def _fetchrow\|async def _fetch\b\|async def 
 Expect exactly four lines. Then the negative:
 
 ```bash
-grep -rn "_fetchmany\|_executemany\|_fetchval_or\|_fetchrow_or" packages/*/src --include=*.py
+grep -n "_fetchmany\|_executemany\|_fetchval_or\|_fetchrow_or" \
+  packages/aoa-action-machine/src/aoa/action_machine/resources/postgres/postgres_resource.py
 ```
 
-Expect no hit.
+Expect no hit. The wide form over `packages/*/src` returns 36 hits, all in
+`packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py`, where `_executemany` is a
+module-level function over a DuckDB connection — another resource's own helper, unrelated to this driver and
+untouched by the change. It is classified here rather than counted as a violation.
 
 ## 2. The pair's answers
 
@@ -177,7 +181,7 @@ defect they exist for, and that no other case fails.
 | `_fetchval` returns the row instead of its first value | the scalar case |
 | both helpers read `self._conn` directly | the closed-resource and never-opened cases (`AttributeError`) |
 | the driver error is raised unwrapped | the chained-failure cases |
-| `_fetch` passes `params` as one argument instead of `*params` | the parameter and empty-tuple cases |
+| `_fetch` passes `params` as one argument instead of `*params` | the two parameter-forwarding cases and the `None`/`()` equality case — three, measured: `((),)` is not `()` |
 | `WrapperSqlResource` gains a delegating `_fetch` | the "exactly four members" and wrapper-absence cases |
 | the demo's list read drops `ORDER BY`/`LIMIT` | the demo's list case |
 | the demo's count read returns the record | the demo's count case |

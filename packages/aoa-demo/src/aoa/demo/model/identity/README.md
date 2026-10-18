@@ -9,7 +9,7 @@ whether or not a database is running.
 | Piece | What it is |
 | --- | --- |
 | `resources/identity_store_base.py` | What the domain asks of storage — `read_person`, `record_login` — stated once over two primitives it declares itself (`_read_person`, `_write_login`), with no driver imported |
-| `resources/identity_store.py` | The PostgreSQL store: `IdentityStoreBase` mixed with `PostgresResource`, built from a pool, one connection per call |
+| `resources/identity_store.py` | The PostgreSQL store: `IdentityStoreBase` mixed with `PostgresResource`, built from a pool, one connection per call; beside the domain's primitives it has two private reads — `_list_persons` through `_fetch` and `_count_persons` through `_fetchval` |
 | `resources/identity_store_stub.py` | The same two operations in memory, so the demo runs with no database and no driver |
 | `actions/identity_lookup.py` | `IdentityLookupAction` — declares `@connection(IdentityStoreBase, key="identity")` and never learns how the store was supplied |
 
@@ -20,9 +20,18 @@ helper (`_fetchrow`), converting the driver's record into a plain mapping at tha
 boundary; the in-memory store answers from its dictionaries. Two concurrent lookups
 never meet on one session.
 
-A statement is run only through the driver's protected helpers, by a method that
-belongs to the resource: the SQL contract carries no public query member, and a
+A statement or a read is run only through the driver's protected helpers, by a method
+that belongs to the resource: the SQL contract carries no public query member, and a
 generic passthrough is the resource's own business if it wants one ([#216](https://github.com/bystrovmaxim/aoa/issues/216)).
+The helpers are four — one per answer the driver gives: `_execute` for a statement,
+`_fetchrow` for the first row, `_fetch` for all rows and `_fetchval` for one value.
+
+The two newer reads are **private storage reads**, not domain operations: `_list_persons`
+answers an ordered, bounded page of plain mappings through `_fetch`, and `_count_persons`
+answers a number through `_fetchval`, treating the helper's `None` as `0`. No route or
+action publishes them; the demo's suite is their caller, and they exist so the pattern
+is written down where a reader copies it. The driver-free base and the in-memory store
+keep the two domain operations they always had ([#222](https://github.com/bystrovmaxim/aoa/issues/222)).
 
 ## The two modes
 
@@ -72,8 +81,10 @@ uv run python packages/aoa-demo/src/aoa/demo/fastapi_mcp_services/app_mcp_servic
 ## Tests
 
 `packages/aoa-demo/tests/test_identity_postgres.py` covers both modes: the holder's
-named failure, the in-memory route, the read answering one person or nothing, a read
-on a closed store naming the failure rather than an attribute error, twenty concurrent
-calls, two transactions that do not interleave, the finalizer running once per call,
-and the pool being created once with its stated bounds and closed at shutdown. Nothing there needs a server; the
-driver-dependent tests skip when the extra is absent.
+named failure, the in-memory route, the read answering one person or nothing, the page
+answering mappings and an empty list, the count answering a number and `0` for the
+helper's `None`, a read on a closed store naming the failure rather than an attribute
+error, twenty concurrent calls, two transactions that do not interleave, the finalizer
+running once per call, and the pool being created once with its stated bounds and
+closed at shutdown. Nothing there needs a server; the driver-dependent tests skip when
+the extra is absent.

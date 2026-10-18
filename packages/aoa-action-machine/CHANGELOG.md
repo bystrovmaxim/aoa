@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+A domain resource over PostgreSQL can now read a **page of rows** and a **single value**
+through the connection it holds, without reaching for that connection itself. `_fetch`
+runs a query and answers every row it returned, in the driver's order, so a statement that
+can match more than one row no longer has to be read one row at a time — or read past the
+helper. `_fetchval` runs a query and answers the first value of its first row, which is
+what a `count(*)`, an identifier or a flag needs. Both take positional parameters exactly
+as `_execute` and `_fetchrow` do, refuse a resource that is not open with the framework's
+named error, and turn a failure of the driver into the framework's error with the driver's
+error chained.
+
+The two answers follow the rules the existing pair already has. A page with no match is an
+empty list, not nothing, so a caller can iterate it without a guard; a value with no match
+is nothing, and the same answer is what a matched row whose first value is SQL `NULL`
+gives — the two cannot be told apart through `_fetchval`, so a caller that must know asks
+`_fetchrow` for the row. Ordering and the size of a page belong in the statement, not in
+the helper: `_fetch` preserves the order the driver produced and neither sorts nor
+truncates.
+
+Nothing is removed, and nothing is added to the SQL contract: `ProtocolSqlResource`,
+`SqlResource` and `WrapperSqlResource` stay as they were, so an existing resource needs no
+edit, and a nested action still receives a wrapper with no query member at all. The driver
+now offers exactly four protected answers — a statement, a first row, all rows and one
+value — one for each answer a SQL call can give.
+
 ## [1.0.1a4] – 2026-10-17
 
 A PostgreSQL resource is now a connection for one unit of work rather than a connection for the

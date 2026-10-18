@@ -25,6 +25,8 @@ ARCHITECTURE / DATA FLOW
     IdentityStore(IdentityStoreBase, PostgresResource)
         │  open()/close()      -> pool.acquire / pool.release   (once per call)
         │  read_person(id)     -> self._fetchrow(…)
+        │  _list_persons(…)    -> self._fetch(…)               (ordered, bounded page)
+        │  _count_persons()    -> self._fetchval(…)
         └── record_login(…)    -> BEGIN / INSERT / COMMIT       (own transaction)
 
 """
@@ -64,3 +66,17 @@ class IdentityStore(IdentityStoreBase, PostgresResource):
             (person_id,),
         )
         return None if row is None else dict(row)
+
+    async def _list_persons(self, limit: int = 20, offset: int = 0) -> list[dict[str, Any]]:
+        """Read one ordered, bounded page of people through the driver's page helper."""
+        rows = await self._fetch(
+            "SELECT id, email, display_name FROM identity_person_hub "
+            "ORDER BY display_name, id LIMIT $1 OFFSET $2",
+            (limit, offset),
+        )
+        return [dict(row) for row in rows]
+
+    async def _count_persons(self) -> int:
+        """Count the people through the driver's value helper, answering the domain's number."""
+        total = await self._fetchval("SELECT count(*) FROM identity_person_hub")
+        return 0 if total is None else int(total)

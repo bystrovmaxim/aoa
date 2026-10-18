@@ -10,10 +10,11 @@ No test in this feature may need a database, and the defect under test appears
 only under concurrency. This module supplies both halves of that instrument:
 
 * ``FakeConnection`` — one connection that performs **one operation at a time**,
-  the rule the real driver enforces with ``InterfaceError``. It answers both a
-  statement (``execute``) and a row read (``fetchrow``), and it records the
-  statement **and the positional parameters** of every call, so a test of a
-  driver helper can assert that parameters were forwarded rather than dropped;
+  the rule the real driver enforces with ``InterfaceError``. It answers a
+  statement (``execute``), a row read (``fetchrow``), a page of rows (``fetch``)
+  and a single value (``fetchval``), and it records the statement **and the
+  positional parameters** of every call, so a test of a driver helper can assert
+  that parameters were forwarded rather than dropped;
 * ``FakePool`` — a pool with stated bounds that records its high-water mark, so
   a test can assert that the ceiling was never exceeded and that no borrowed
   connection was left behind.
@@ -39,6 +40,7 @@ ARCHITECTURE / DATA FLOW
 
     high_water — the most connections held at once, for the ceiling assertion
     held       — connections still borrowed, for the leak assertion
+    rows/value — what ``fetch`` and ``fetchval`` answer, set by the test
 
 """
 
@@ -78,6 +80,8 @@ class FakeConnection:
         self.operations: list[str] = []
         self.calls: list[tuple[str, tuple[Any, ...]]] = []
         self.row: Any = row
+        self.rows: list[Any] = []
+        self.value: Any = None
 
     @property
     def busy(self) -> bool:
@@ -93,6 +97,16 @@ class FakeConnection:
         """Answer with the row this connection holds, recording what it was asked for."""
         await self._operate(query, args)
         return self.row
+
+    async def fetch(self, query: str, *args: Any) -> list[Any]:
+        """Answer with every row this connection holds, recording what it was asked for."""
+        await self._operate(query, args)
+        return list(self.rows)
+
+    async def fetchval(self, query: str, *args: Any) -> Any:
+        """Answer with the value this connection holds, recording what it was asked for."""
+        await self._operate(query, args)
+        return self.value
 
     async def close(self) -> None:
         """Mark this connection closed."""
