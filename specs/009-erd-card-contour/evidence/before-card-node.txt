@@ -1,0 +1,54 @@
+# Before the change — one card as the renderer emits it
+#
+# Produced: 2026-10-18, from packages/aoa-maxitor/client/src/lib/buildDotSource.ts (gv-dot-tb)
+# rendered by @hpcc-js/wasm-graphviz (Graphviz 14.1.4), the same build the client loads.
+# Payload: the ShowcaseEntity card of issue #226 — five fields, one of them the primary key.
+#
+# Contour: x 0 … 233.71, y -130.4 … 0; corner radius 12; fill inset 1.
+# The card carries 16 fills (the band, the key tints, the body rows).
+#
+# Every corner of every fill that leaves the inset contour, with how far it stands outside.
+# These are the tabs of the issue, in numbers — and these are what the check's gate A-1 turns red
+# on while the pass does nothing:
+#
+  fill #f5a623  corner (1, -129.4) stands 4.56 units outside the inset contour
+  fill #f5a623  corner (232.71, -129.4) stands 4.56 units outside the inset contour
+  fill #ffffff  corner (1, -1) stands 4.56 units outside the inset contour
+  fill #ffffff  corner (1, -1) stands 4.56 units outside the inset contour
+  fill #ffffff  corner (232.71, -1) stands 4.56 units outside the inset contour
+#
+# This file is the "before" evidence of the pull request.
+
+
+<title>datamodel.showcases.showcase_entity.ShowcaseEntity</title>
+<path fill="white" stroke="none" d="M12,0C12,0 221.71,0 221.71,0 227.71,0 233.71,-6 233.71,-12 233.71,-12 233.71,-118.4 233.71,-118.4 233.71,-124.4 227.71,-130.4 221.71,-130.4 221.71,-130.4 12,-130.4 12,-130.4 6,-130.4 0,-124.4 0,-118.4 0,-118.4 0,-12 0,-12 0,-6 6,0 12,0"/>
+<polygon fill="#f5a623" stroke="none" points="1,-107 1,-129.4 232.71,-129.4 232.71,-107 1,-107"/>
+<text xml:space="preserve" text-anchor="start" x="70.84" y="-115.6" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="12.00" fill="white">ShowcaseEntity</text>
+<polygon fill="#fef9c3" stroke="none" points="1,-85.8 1,-107 29,-107 29,-85.8 1,-85.8"/>
+<text xml:space="preserve" text-anchor="start" x="8.75" y="-94.7" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="9.00">PK</text>
+<polygon fill="#fef9c3" stroke="none" points="29,-85.8 29,-107 88.98,-107 88.98,-85.8 29,-85.8"/>
+<text xml:space="preserve" text-anchor="start" x="33" y="-92" font-family="Helvetica,sans-Serif" font-size="11.00">id</text>
+<polygon fill="#fef9c3" stroke="none" points="88.98,-85.8 88.98,-107 232.71,-107 232.71,-85.8 88.98,-85.8"/>
+<text xml:space="preserve" text-anchor="start" x="92.98" y="-94.1" font-family="Helvetica,sans-Serif" font-style="italic" font-size="11.00" fill="#64748b">str</text>
+<polygon fill="#ffffff" stroke="none" points="1,-64.6 1,-85.8 29,-85.8 29,-64.6 1,-64.6"/>
+<polygon fill="#ffffff" stroke="none" points="29,-64.6 29,-85.8 88.98,-85.8 88.98,-64.6 29,-64.6"/>
+<text xml:space="preserve" text-anchor="start" x="33" y="-70.8" font-family="Helvetica,sans-Serif" font-size="11.00">name</text>
+<polygon fill="#ffffff" stroke="none" points="88.98,-64.6 88.98,-85.8 232.71,-85.8 232.71,-64.6 88.98,-64.6"/>
+<text xml:space="preserve" text-anchor="start" x="92.98" y="-72.9" font-family="Helvetica,sans-Serif" font-style="italic" font-size="11.00" fill="#64748b">str</text>
+<polygon fill="#ffffff" stroke="none" points="1,-43.4 1,-64.6 29,-64.6 29,-43.4 1,-43.4"/>
+<polygon fill="#ffffff" stroke="none" points="29,-43.4 29,-64.6 88.98,-64.6 88.98,-43.4 29,-43.4"/>
+<text xml:space="preserve" text-anchor="start" x="33" y="-49.6" font-family="Helvetica,sans-Serif" font-size="11.00">public_key</text>
+<polygon fill="#ffffff" stroke="none" points="88.98,-43.4 88.98,-64.6 232.71,-64.6 232.71,-43.4 88.98,-43.4"/>
+<text xml:space="preserve" text-anchor="start" x="92.98" y="-51.7" font-family="Helvetica,sans-Serif" font-style="italic" font-size="11.00" fill="#64748b">str</text>
+<polygon fill="#ffffff" stroke="none" points="1,-22.2 1,-43.4 29,-43.4 29,-22.2 1,-22.2"/>
+<polygon fill="#ffffff" stroke="none" points="29,-22.2 29,-43.4 88.98,-43.4 88.98,-22.2 29,-22.2"/>
+<text xml:space="preserve" text-anchor="start" x="33" y="-28.4" font-family="Helvetica,sans-Serif" font-size="11.00">industries</text>
+<polygon fill="#ffffff" stroke="none" points="88.98,-22.2 88.98,-43.4 232.71,-43.4 232.71,-22.2 88.98,-22.2"/>
+<text xml:space="preserve" text-anchor="start" x="92.98" y="-30.5" font-family="Helvetica,sans-Serif" font-style="italic" font-size="11.00" fill="#64748b">tuple[IndustryCode, Ellipsis]</text>
+<polygon fill="#ffffff" stroke="none" points="1,-1 1,-22.2 29,-22.2 29,-1 1,-1"/>
+<polygon fill="#ffffff" stroke="none" points="29,-1 29,-22.2 88.98,-22.2 88.98,-1 29,-1"/>
+<text xml:space="preserve" text-anchor="start" x="33" y="-7.2" font-family="Helvetica,sans-Serif" font-size="11.00">created_at</text>
+<polygon fill="#ffffff" stroke="none" points="88.98,-1 88.98,-22.2 232.71,-22.2 232.71,-1 88.98,-1"/>
+<text xml:space="preserve" text-anchor="start" x="92.98" y="-9.3" font-family="Helvetica,sans-Serif" font-style="italic" font-size="11.00" fill="#64748b">datetime</text>
+<path fill="none" stroke="#f5a623" d="M12,0C12,0 221.71,0 221.71,0 227.71,0 233.71,-6 233.71,-12 233.71,-12 233.71,-118.4 233.71,-118.4 233.71,-124.4 227.71,-130.4 221.71,-130.4 221.71,-130.4 12,-130.4 12,-130.4 6,-130.4 0,-124.4 0,-118.4 0,-118.4 0,-12 0,-12 0,-6 6,0 12,0"/>
+
