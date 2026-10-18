@@ -135,7 +135,7 @@ A developer annotates a summary `-> Any`, or returns an instance of a result typ
 
 ### User Story 5 - The repository's own corpus complies (Priority: P3)
 
-A developer copies an example, or reads a page, and gets a declaration the framework accepts. That is true today and stops being true the moment the checks land: 523 declarations in this repository do not meet the new contract — 267 in `.py` (163 under `examples/`, 104 under `packages/`), 158 in the example notebooks, 98 in the pages under `docs/` — and most of them are unannotated rather than misnamed.
+A developer copies an example, or reads a page, and gets a declaration the framework accepts. That is true today and stops being true the moment the checks land: 499 declarations in this repository do not meet the new contract — 243 in `.py` (163 under `examples/`, 80 under `packages/`), 158 in the example notebooks, 98 in the pages under `docs/` — and most of them are unannotated rather than misnamed. Nineteen of the 499 are wrong on purpose: they sit inside `pytest.raises` blocks and are the tests that prove the refusals fire, so they stay wrong and only their expected messages move.
 
 **Why this priority**: it is a consequence of the change, not a feature, but it is not optional. The framework's examples are the documentation, and documentation the framework's own rules would refuse is worse than no documentation. It comes last because it can only be done once the rules are settled.
 
@@ -182,7 +182,7 @@ A developer copies an example, or reads a page, and gets a declaration the frame
 
 ### The repository's own declarations
 
-- **FR-013**: Every declaration in `examples/`, under `packages/` and in the pages under `docs/` MUST meet the contract this change introduces. The 523 sites that do not meet it today are migrated inside this change, not after it.
+- **FR-013**: Every declaration in `examples/`, under `packages/` and in the pages under `docs/` MUST meet the contract this change introduces, except the declarations that exist to demonstrate a refusal. The 480 sites that do not meet it today and are not such demonstrations are migrated inside this change, not after it.
 - **FR-014**: A migrated declaration MUST keep its behaviour: the operation, its descriptions, its suffixes and what it does to the state are unchanged; only the names and the annotations of its aspect methods move.
 - **FR-015**: The declarations that exist in the corpus to demonstrate a refusal MUST keep demonstrating it, with their expected messages updated where the message changed.
 - **FR-016**: The documentation that states these invariants MUST be updated in the same change, so that no page describes a rule the framework does not keep.
@@ -211,7 +211,7 @@ A developer copies an example, or reads a page, and gets a declaration the frame
 
 - **SC-001**: A declaration that renames, reorders, leaves something untyped or mistypes a parameter is refused before any call is served, in all four decorators, in 100 % of the cases listed as acceptance scenarios.
 - **SC-002**: Each refusal names the method, the expected signature and the correction; a reader who has never seen the rule can fix the declaration from the message alone.
-- **SC-003**: Zero declarations in `examples/`, under `packages/` and in `docs/` are refused by the new rules at the end of the change; the count of 523 non-conforming sites falls to zero, and the closing check run is green.
+- **SC-003**: Zero declarations in `examples/`, under `packages/` and in `docs/` are refused by the new rules *except* the ones that exist to demonstrate a refusal: the count of non-conforming sites falls from 499 to the 19 deliberate ones, each named with the test that asserts its refusal, and the closing check run is green.
 - **SC-004**: Every example runs and prints what it printed before, apart from the renamed and annotated declarations themselves.
 - **SC-005**: An operation that assembled and ran before this change assembles and runs with the same answer, the same events and the same logs after it, unless its declarations were among the non-conforming ones.
 - **SC-006**: Two summaries produce a refusal that names both methods, and the phrase naming a missing target node appears nowhere in it.
@@ -221,7 +221,7 @@ A developer copies an example, or reads a page, and gets a declaration the frame
 
 - The four decorators' parameter orders are the ones the engine uses today, verified in the code rather than taken from the issue: summary and regular `(self, params, state, box, connections)`, on-error the same plus `error`, compensate `(self, params, state_before, state_after, box, connections, error)`; `ctx` is appended last in every case.
 - The object check's two moments are the right model for the aspects: that implementation is the reference, and no new moment is invented.
-- The corpus migration is mechanical but large: 523 sites, measured across the four decorators and the three carriers of declarations — 267 in `.py`, 158 in notebook cells, 98 in documentation snippets. The earlier figure of 211 counted only the two decorators the issue's table names and only `.py` files; the plan's research records the correction. A migration done by hand at that size will contain mistakes, so the closing check run — plus a run of every example — is the gate rather than a spot check.
+- The corpus migration is mechanical but large: 480 sites, measured across the four decorators and the three carriers of declarations — 224 in `.py`, 158 in notebook cells, 98 in documentation snippets — plus 19 declarations that are wrong on purpose and stay wrong. The figures first written here (523 non-conforming, 211 in `.py`) came from a scan that judged only two of the four decorators and compared every declaration against the summary's name list; the measurement in `evidence/corpus-baseline.md` supersedes them, and the plan's research records the correction. A migration done by hand at that size will contain mistakes, so the closing check run — plus a run of every example — is the gate rather than a spot check.
 - Declarations in the corpus that are wrong on purpose are expected to keep failing for the reason they demonstrate, and their demonstration is updated rather than deleted.
 - Two new public errors appear — the signature's and the duplicate summary's — with the answer's rule reviving `ActionResultTypeError` rather than duplicating it; no other public vocabulary changes: no new decorator option, no new parameter, no renamed existing error.
 - No documentation page is written in this feature — only the pages that state the invariants this change makes true are updated, per the repository's rule that documentation ships with the change it describes.
