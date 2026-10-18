@@ -100,12 +100,12 @@ Repository root is the working directory. Source lives under `packages/aoa-actio
 
 ### Tests for User Story 3
 
-- [ ] T025 [P] [US3] Write `packages/aoa-action-machine/tests/action_machine/intents/aspects/test_duplicate_summary_aspect.py` — two summaries refused with `DuplicateSummaryAspectError` naming both; the error being catchable as `TypeError` like `DuplicateAccessDecideError` (FR-021); one summary unaffected; no summary still raises `MissingSummaryAspectError`; and the assertion that the message does **not** contain `missing target_node_id`.
+- [x] T025 [P] [US3] Write `packages/aoa-action-machine/tests/action_machine/intents/aspects/test_duplicate_summary_aspect.py` — two summaries refused with `DuplicateSummaryAspectError` naming both; the error being catchable as `TypeError` like `DuplicateAccessDecideError` (FR-021); one summary unaffected; no summary still raises `MissingSummaryAspectError`; and the assertion that the message does **not** contain `missing target_node_id`.
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Raise `DuplicateSummaryAspectError` from `SummaryAspectIntentResolver.resolve_summary_aspects` in `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/summary_aspect_intent_resolver.py`, mirroring `AccessDecideIntentResolver.resolve_check`.
-- [ ] T027 [US3] Adversarial pass: silence the new refusal, confirm the duplicate test fails (and the old `InvalidGraphError` returns), restore, record in `evidence/adversarial-us3.md`; update the expectation in `packages/aoa-action-machine/tests/action_machine/intents/aspects/test_aspect_intent_resolver.py` (currently asserts a list of two).
+- [x] T026 [US3] Raise `DuplicateSummaryAspectError` from `SummaryAspectIntentResolver.resolve_summary_aspects` in `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/summary_aspect_intent_resolver.py`, mirroring `AccessDecideIntentResolver.resolve_check`.
+- [x] T027 [US3] Adversarial pass: silence the new refusal, confirm the duplicate test fails (and the old `InvalidGraphError` returns), restore, record in `evidence/adversarial-us3.md`; update the expectation in `packages/aoa-action-machine/tests/action_machine/intents/aspects/test_aspect_intent_resolver.py` (currently asserts a list of two).
 
 **Checkpoint**: "no summary" and "two summaries" are two different answers.
 
@@ -119,14 +119,14 @@ Repository root is the working directory. Source lives under `packages/aoa-actio
 
 ### Tests for User Story 4
 
-- [ ] T028 [P] [US4] Write `packages/aoa-action-machine/tests/action_machine/runtime/test_summary_answer_contract.py` — assembly: `-> Any` refused, `-> OtherAction.Result` refused, `-> BaseResult` accepted, `-> own Result` accepted; runtime: a mapping, a foreign `Result` and the operation's own `Result`; plus the invariance test that a compliant operation keeps its answer, its event sequence and its log lines.
+- [x] T028 [P] [US4] Write `packages/aoa-action-machine/tests/action_machine/runtime/test_summary_answer_contract.py` — assembly: `-> Any` refused, `-> OtherAction.Result` refused, `-> BaseResult` accepted, `-> own Result` accepted; runtime: a mapping, a foreign `Result` and the operation's own `Result`; plus the invariance test that a compliant operation keeps its answer, its event sequence and its log lines.
 
 ### Implementation for User Story 4
 
-- [ ] T029 [US4] Add the return rule to the summary contract in `aspect_signature.py` (a supertype of the operation's `Result`, `Any` refused) and enforce it from `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/summary_aspect_graph_node.py`.
-- [ ] T030 [US4] In `packages/aoa-action-machine/src/aoa/action_machine/runtime/aspect_executor.py`, keep the result type `resolve_result_type` already resolves (line 215), compare the returned value with it, and raise `ActionResultTypeError` naming operation, declared `Result` and actual type.
-- [ ] T031 [US4] Adversarial pass: remove the run-time comparison, confirm the mapping/foreign tests fail and nothing else does; restore; record in `evidence/adversarial-us4.md`.
-- [ ] T032 [US4] Measure the exit path: 10 000 runs of one compliant operation before and after the change, on this machine, in the same session; record both numbers and their ratio in `evidence/performance.md` — the plan's target is at most 5 % longer, and anything above it is treated as a defect, not as noise.
+- [x] T029 [US4] Add the return rule to the summary contract in `aspect_signature.py` (a supertype of the operation's `Result`, `Any` refused) and enforce it from `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/summary_aspect_graph_node.py`.
+- [x] T030 [US4] In `packages/aoa-action-machine/src/aoa/action_machine/runtime/aspect_executor.py`, keep the result type `resolve_result_type` already resolves (line 215), compare the returned value with it, and raise `ActionResultTypeError` naming operation, declared `Result` and actual type.
+- [x] T031 [US4] Adversarial pass: remove the run-time comparison, confirm the mapping/foreign tests fail and nothing else does; restore; record in `evidence/adversarial-us4.md`.
+- [x] T032 [US4] Measure the exit path: 10 000 runs of one compliant operation before and after the change, on this machine, in the same session; record both numbers and their ratio in `evidence/performance.md` — the plan's target is at most 5 % longer, and anything above it is treated as a defect, not as noise.
 
 **Checkpoint**: the documented invariant "must return a typed `Result`" is true at both moments.
 
