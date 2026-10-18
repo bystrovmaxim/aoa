@@ -31,6 +31,8 @@ ARCHITECTURE / DATA FLOW
       | begin()   -> "BEGIN"      (opens the transaction flag)
       | _execute() -> a statement, for a subclass
       | _fetchrow()-> the first row, for a subclass
+      | _fetch()   -> every row, for a subclass
+      | _fetchval()-> one value, for a subclass
       | commit()  -> "COMMIT" or rollback when rollup=True (closes the flag)
       | rollback()-> "ROLLBACK"   (closes the flag)
       | close()   -> pool.release(conn) | conn.close()
@@ -82,7 +84,7 @@ class PostgresResource(SqlResource):
     """
     AI-CORE-BEGIN
         ROLE: Concrete SQL manager for Postgres runtime operations.
-        CONTRACT: Built from connection parameters or from a pool — exactly one; open/begin/commit/rollback/close over asyncpg, and its subclasses run statements through the protected ``_execute`` and ``_fetchrow``.
+        CONTRACT: Built from connection parameters or from a pool — exactly one; open/begin/commit/rollback/close over asyncpg, and its subclasses run statements and reads through the protected ``_execute``, ``_fetchrow``, ``_fetch`` and ``_fetchval`` — one per driver answer.
         INVARIANTS: Holds at most one connection, only for its own unit of work; never closes the pool; commit uses rollback when rollup=True; closing with a transaction open rolls it back, returns the connection, then raises ``TransactionLeftOpenError``.
         AI-CORE-END
     """
@@ -236,7 +238,8 @@ class PostgresResource(SqlResource):
 
         Returns:
             The driver's command status, such as ``"INSERT 0 1"``. Rows are discarded;
-            a subclass that reads rows uses ``_fetchrow``.
+            a subclass that reads rows uses ``_fetch`` for all of them or ``_fetchrow``
+            for the first.
 
         Raises:
             HandleError: if connection is closed or SQL execution fails.
@@ -270,5 +273,57 @@ class PostgresResource(SqlResource):
         try:
             row: Any = await conn.fetchrow(query, *params if params else ())
             return row
+        except Exception as e:
+            raise HandleError(f"SQL execution failed: {e}") from e
+
+    async def _fetch(self, query: str, params: tuple[Any, ...] | None = None) -> list[Any]:
+        """
+        Run a query for a subclass and return all its rows.
+
+        Answers every row the driver returned, in the driver's order: it neither
+        sorts nor truncates. A single row arrives as a list of one.
+
+        Args:
+            query: SQL query string.
+            params: optional positional query params.
+
+        Returns:
+            Every row, or ``[]`` when the query matched nothing.
+
+        Raises:
+            HandleError: if the connection is not open or the query fails.
+        """
+        conn = self._require_connection()
+        try:
+            rows: list[Any] = await conn.fetch(query, *params if params else ())
+            return rows
+        except Exception as e:
+            raise HandleError(f"SQL execution failed: {e}") from e
+
+    async def _fetchval(self, query: str, params: tuple[Any, ...] | None = None) -> Any:
+        """
+        Run a query for a subclass and return the first value of its first row.
+
+        Answers the **first** row's value, not one value per row: a statement
+        that can match several rows without an ordering yields an arbitrary
+        one, silently. No match answers ``None``, which is also what a matched
+        row whose first value is SQL ``NULL`` gives — this helper cannot tell
+        the two apart, so a caller that must know asks ``_fetchrow`` for the row.
+
+        Args:
+            query: SQL query string.
+            params: optional positional query params.
+
+        Returns:
+            The first value of the first row, or ``None`` when the query matched
+            nothing or that value is ``NULL``.
+
+        Raises:
+            HandleError: if the connection is not open or the query fails.
+        """
+        conn = self._require_connection()
+        try:
+            value: Any = await conn.fetchval(query, *params if params else ())
+            return value
         except Exception as e:
             raise HandleError(f"SQL execution failed: {e}") from e
