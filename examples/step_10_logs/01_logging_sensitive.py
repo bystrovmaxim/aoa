@@ -26,7 +26,10 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, ConsoleLogger, sensitive
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 class RootDomain(BaseDomain):
@@ -62,7 +65,7 @@ class LoginResult(BaseResult):
 class LoginAction(BaseAction[LoginParams, LoginResult]):
 
     @summary_aspect("Login")
-    async def login_summary(self, params, state, box, connections):
+    async def login_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> LoginResult:
         # 1. Variable substitution
         await box.info(
             Channel.business,

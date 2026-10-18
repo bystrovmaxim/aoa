@@ -9,6 +9,7 @@ Run:
 """
 
 import asyncio
+from typing import Any
 
 from pydantic import Field
 
@@ -20,7 +21,10 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_int, result_string
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 class ShopDomain(BaseDomain):
@@ -46,14 +50,14 @@ class BaselineItemAction(BaseAction[ItemParams, ItemResult]):
     @regular_aspect("Normalise item")
     @result_string("sku", required=True, min_length=3)
     @result_int("quantity", required=True, min_value=1)
-    async def normalise_aspect(self, params, state, box, connections):
+    async def normalise_aspect(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         return {
             "sku": params.raw_sku.strip().upper(),
             "quantity": params.quantity,
         }
 
     @summary_aspect("Assemble result")
-    async def assemble_summary(self, params, state, box, connections):
+    async def assemble_summary(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ItemResult:
         return ItemResult(
             sku=state["sku"],
             quantity=state["quantity"],
@@ -68,7 +72,7 @@ class WithInformingStepAction(BaseAction[ItemParams, ItemResult]):
     @regular_aspect("Normalise item")
     @result_string("sku", required=True, min_length=3)
     @result_int("quantity", required=True, min_value=1)
-    async def normalise_aspect(self, params, state, box, connections):
+    async def normalise_aspect(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         return {
             "sku": params.raw_sku.strip().upper(),
             "quantity": params.quantity,
@@ -77,14 +81,14 @@ class WithInformingStepAction(BaseAction[ItemParams, ItemResult]):
     @regular_aspect("Inform operator without changing business state")
     @result_string("sku", required=True, min_length=3)
     @result_int("quantity", required=True, min_value=1)
-    async def inform_aspect(self, params, state, box, connections):
+    async def inform_aspect(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         return {
             "sku": state["sku"],
             "quantity": state["quantity"],
         }
 
     @summary_aspect("Assemble result")
-    async def assemble_summary(self, params, state, box, connections):
+    async def assemble_summary(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ItemResult:
         return ItemResult(
             sku=state["sku"],
             quantity=state["quantity"],

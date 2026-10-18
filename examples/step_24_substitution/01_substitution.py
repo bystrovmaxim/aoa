@@ -40,7 +40,9 @@ from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.depends import depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.testing import TestBench
 
 
@@ -82,7 +84,7 @@ class QuoteResult(BaseResult):
 @depends(PricingService)
 class QuoteAction(BaseAction[QuoteParams, QuoteResult]):
     @summary_aspect("Quote")
-    async def quote_summary(self, params, state, box, connections):
+    async def quote_summary(self, params: QuoteParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> QuoteResult:
         return QuoteResult(price=(await box.resolve(PricingService)).price(params.sku))
 
 
@@ -101,7 +103,7 @@ class ReserveResult(BaseResult):
 @depends(StockGateway)
 class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
     @summary_aspect("Reserve")
-    async def reserve_summary(self, params, state, box, connections):
+    async def reserve_summary(self, params: ReserveParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ReserveResult:
         gateway = await box.resolve(StockGateway)
         return ReserveResult(reservation_id=await gateway.reserve(params.sku, params.qty))
 
@@ -119,7 +121,7 @@ class CheckoutResult(BaseResult):
 @check_roles(GuestRole)
 class CheckoutAction(BaseAction[CheckoutParams, CheckoutResult]):
     @summary_aspect("Checkout")
-    async def checkout_summary(self, params, state, box, connections):
+    async def checkout_summary(self, params: CheckoutParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CheckoutResult:
         reservation = await box.run(ReserveStockAction, ReserveParams(sku=params.sku, qty=params.qty))
         return CheckoutResult(reservation_id=reservation.reservation_id)
 
@@ -163,7 +165,7 @@ class RecordResult(BaseResult):
 @connection(JournalResource, key="journal")
 class RecordAction(BaseAction[RecordParams, RecordResult]):
     @summary_aspect("Write and commit")
-    async def record_summary(self, params, state, box, connections):
+    async def record_summary(self, params: RecordParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> RecordResult:
         journal = connections["journal"]
         await journal.write(params.row)
         await journal.commit()

@@ -25,6 +25,7 @@ from pydantic import Field
 
 from aoa.action_machine.auth import ApplicationRole, GuestRole
 from aoa.action_machine.context import Ctx
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.context_access_error import ContextAccessError
@@ -33,6 +34,9 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.context_requires.context_requires_decorator import context_requires
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.testing import TestBench
 
 
@@ -61,7 +65,7 @@ class WhoamiResult(BaseResult):
 class WhoamiAction(BaseAction[EmptyParams, WhoamiResult]):
     @summary_aspect("Read declared context")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id, Ctx.Runtime.service_name)
-    async def whoami_summary(self, params, state, box, connections, ctx):
+    async def whoami_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> WhoamiResult:
         return WhoamiResult(
             user_id=ctx.get(Ctx.User.user_id),
             trace_id=ctx.get(Ctx.Request.trace_id),
@@ -79,7 +83,7 @@ class LeakResult(BaseResult):
 class LeakAction(BaseAction[EmptyParams, LeakResult]):
     @summary_aspect("Read only what was declared")
     @context_requires(Ctx.User.user_id)          # client_ip is NOT declared
-    async def leak_summary(self, params, state, box, connections, ctx):
+    async def leak_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> LeakResult:
         try:
             ctx.get(Ctx.Request.client_ip)        # present in context, but undeclared
             refused = False

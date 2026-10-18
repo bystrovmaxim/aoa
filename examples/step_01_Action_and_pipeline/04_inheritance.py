@@ -33,6 +33,7 @@ Run:
 """
 
 import asyncio
+from typing import Any
 
 from pydantic import Field
 
@@ -46,7 +47,10 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 # ---------------------------------------------------------------------------
 # Domain
@@ -83,7 +87,7 @@ class BaseOrderAction(BaseAction[OrderParams, OrderResult]):
 
     @regular_aspect("Validate order identifier")
     @result_instance("steps", list, required=True)
-    async def validate_aspect(self, params, state, box, connections):
+    async def validate_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         await box.info(
             Channel.business,
             "[BaseOrderAction.validate_aspect] order_id={%var.oid|cyan}",
@@ -92,7 +96,7 @@ class BaseOrderAction(BaseAction[OrderParams, OrderResult]):
         return {"steps": ["validate"]}
 
     @summary_aspect("Assemble base result")
-    async def base_summary(self, params, state, box, connections):
+    async def base_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         await box.info(
             Channel.business,
             "[BaseOrderAction.base_summary] done",
@@ -119,7 +123,7 @@ class BaseOrderAction(BaseAction[OrderParams, OrderResult]):
 class ChildOrderAction(BaseOrderAction):
 
     @summary_aspect("Child result — only this aspect will execute")
-    async def child_summary(self, params, state, box, connections):
+    async def child_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
         await box.info(
             Channel.business,
             "[ChildOrderAction.child_summary] order_id={%var.oid|yellow}",
@@ -152,7 +156,7 @@ class ExtendedOrderAction(BaseOrderAction):
 
     @regular_aspect("Validate order identifier")   # explicitly declared — enters the pipeline
     @result_instance("steps", list, required=True)
-    async def validate_aspect(self, params, state, box, connections):
+    async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         # Execute parent aspect logic
         result = await super().validate_aspect(params, state, box, connections)
         # Add our own step on top
@@ -165,7 +169,7 @@ class ExtendedOrderAction(BaseOrderAction):
         return {"steps": steps}
 
     @summary_aspect("Assemble extended result")
-    async def extended_summary(self, params, state, box, connections):
+    async def extended_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
         await box.info(
             Channel.business,
             "[ExtendedOrderAction.extended_summary] done",

@@ -7,6 +7,7 @@ Run: uv run python examples/step_17_connections/17_holder_before_startup.py
 
 import asyncio
 
+
 class PoolHolder:
     """Expose a pool after service startup."""
     pool = None

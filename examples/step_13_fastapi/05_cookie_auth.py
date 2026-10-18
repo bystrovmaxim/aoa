@@ -28,6 +28,7 @@ Requires:
 """
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import jwt
 from fastapi import Response
@@ -45,9 +46,11 @@ from aoa.action_machine.intents.checkers import result_instance, result_string
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, ParamsStub
+from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.fastapi import FastApiAdapter
 
 # --- Signing config (shared by LoginAction and the cookie-reading coordinator --
@@ -110,7 +113,7 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
     @result_string("user_id", required=True, not_empty=True)  # type: ignore[untyped-decorator]
     @result_instance("role_names", list, required=True)  # type: ignore[untyped-decorator]
     @regular_aspect("Verify username/password against the user store; resolve role names.")
-    async def authenticate_user_aspect(self, params: LoginParams, state, box, connections) -> dict:
+    async def authenticate_user_aspect(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         _ = (state, box)
         store: UserStoreResource = connections["user_store"]
         record = await store.find(params.username)
@@ -120,7 +123,7 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         return {"user_id": params.username, "role_names": role_names}
 
     @summary_aspect("Sign a JWT carrying sub (user_id) and roles.")
-    async def issue_token_summary(self, params: LoginParams, state, box, connections) -> LoginResult:
+    async def issue_token_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> LoginResult:
         _ = (params, box, connections)
         now = datetime.now(UTC)
         payload = {
@@ -142,7 +145,7 @@ class OrderSummaryResult(BaseResult):
 class ListOrdersAction(BaseAction[ParamsStub, OrderSummaryResult]):
 
     @summary_aspect("Return a fixed confirmation message.")
-    async def build_summary(self, params, state, box, connections) -> OrderSummaryResult:
+    async def build_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderSummaryResult:
         _ = (params, state, box, connections)
         return OrderSummaryResult(
             message="orders: [] -- reached with a valid admin session cookie, no Authorization header sent"

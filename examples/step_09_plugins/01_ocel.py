@@ -16,6 +16,7 @@ Run:
 import asyncio
 import json
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field
 
@@ -31,7 +32,10 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.ocel import OCEL_FRAMES_KEY, InMemoryOcelStoreResource, OcelFrame, OcelPlugin
 
 
@@ -60,7 +64,7 @@ class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
     @regular_aspect("Validation")
     @result_string("validated_id", required=True)
     @result_instance(OCEL_FRAMES_KEY, list, required=False)
-    async def validate_aspect(self, params, state, box, connections):
+    async def validate_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         await box.info(
             Channel.business,
             "Validate order: id={%var.order_id}",
@@ -75,7 +79,7 @@ class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         }
 
     @summary_aspect("Create")
-    async def create_summary(self, params, state, box, connections):
+    async def create_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         return OrderResult(order_id=str(state["validated_id"]))
 
 
