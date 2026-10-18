@@ -122,7 +122,7 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
     @regular_aspect("Level-1 root bucket nodes (Applications, Domains, Roles, Actions, Entities, Resources).")
     async def build_level1_aspect(
         self,
-        _params: ParamsStub,
+        params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
@@ -142,7 +142,7 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
     @regular_aspect("Level-2 fixed diagram rows: Full graph under Applications, Entity all domains under Domains.")
     async def build_level2_diagrams_aspect(
         self,
-        _params: ParamsStub,
+        params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
@@ -178,7 +178,7 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
     @regular_aspect("Level-2 interchange nodes from DuckDB, each assigned to a root bucket by type.")
     async def build_level2_nodes_aspect(
         self,
-        _params: ParamsStub,
+        params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
@@ -216,7 +216,7 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
     @regular_aspect("Level-3 per-domain ERD rows and per-entity class/lifecycle diagram rows from DuckDB.")
     async def build_level3_diagrams_aspect(
         self,
-        _params: ParamsStub,
+        params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
@@ -267,7 +267,7 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
     @summary_aspect("Assemble sidebar Result from accumulated state.")
     async def build_result_summary(
         self,
-        _params: ParamsStub,
+        params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],

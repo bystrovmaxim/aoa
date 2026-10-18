@@ -45,6 +45,7 @@ from typing import Any
 import pytest
 
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.context.env_entry import EnvEntry
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
@@ -84,7 +85,7 @@ class _EnvAction(BaseAction["_EnvAction.Params", _EnvResult]):
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],
-        ctx: Any,
+        ctx: ContextView,
     ) -> _EnvResult:
         return _EnvResult(
             region=ctx.get("env.region"),

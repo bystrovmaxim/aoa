@@ -78,12 +78,18 @@ The `Context` fields are typed by the base classes, but pydantic keeps the passe
 An aspect declares the paths it needs. For standard fields — the `Ctx.*` constants (IDE autocomplete), for your own — **raw string paths** (`"user.tenant_id"`):
 
 ```python
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseResult
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.context import ContextView
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.context import Ctx
 from aoa.action_machine.intents.context_requires.context_requires_decorator import context_requires
 
 @summary_aspect("Read environment")
 @context_requires(Ctx.User.user_id, "user.tenant_id", "request.api_version", "runtime.region")
-async def whoami_summary(self, params, state, box, connections, ctx):
+async def whoami_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> BaseResult:
     tenant = ctx.get("user.tenant_id")
     region = ctx.get("runtime.region")
     ...

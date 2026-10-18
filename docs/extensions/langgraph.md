@@ -29,6 +29,9 @@ Without AOA a LangGraph node is just a function: the graph runs it but does not 
 ## The essentials
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.context import Context
 from aoa.action_machine.intents.connection import connection
 from aoa.langgraph import LangGraphController
@@ -68,7 +71,7 @@ ticket_graph = (
 @connection(LangGraphController, key="graph", description="Ticket-processing graph")
 class ProcessTicketAction(BaseAction[ProcessParams, ProcessResult]):
     @summary_aspect("Run the ticket graph")
-    async def run_summary(self, params, state, box, connections):
+    async def run_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ProcessResult:
         result = await connections["graph"].ainvoke(
             {"ticket_id": params.ticket_id, "note": params.note},
             box,          # box carries the resource pool for all Action nodes in the graph

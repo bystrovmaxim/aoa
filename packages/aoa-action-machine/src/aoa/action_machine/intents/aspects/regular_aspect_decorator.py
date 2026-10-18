@@ -40,7 +40,6 @@ If ``@context_requires`` is present, ``ContextView`` is passed as ``ctx``:
 from __future__ import annotations
 
 import asyncio
-import inspect
 from collections.abc import Callable
 from typing import Any
 
@@ -49,17 +48,12 @@ from aoa.action_machine.exceptions.decorator_target_error import DecoratorTarget
 from aoa.action_machine.exceptions.description_contract_error import DescriptionContractError
 from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
-from aoa.action_machine.exceptions.signature_contract_error import SignatureContractError
-
-# Parameter count without @context_requires.
-_BASE_PARAM_COUNT = 5
-
-# Parameter count with @context_requires.
-_CTX_PARAM_COUNT = 6
-
-# Parameter names used in validation messages.
-_BASE_PARAM_NAMES = "self, params, state, box, connections"
-_CTX_PARAM_NAMES = "self, params, state, box, connections, ctx"
+from aoa.action_machine.intents.aspects.aspect_signature import (
+    ASPECT_CONTRACTS,
+    validate_annotated,
+    validate_names,
+    validate_positional,
+)
 
 # Required method suffix for regular aspect declarations.
 _REQUIRED_SUFFIX = "_aspect"
@@ -93,18 +87,12 @@ def _method_async_invariant(func: Any, description: str) -> None:
         )
 
 
-def _method_params_count_invariant(func: Any, description: str) -> None:
-    has_context = hasattr(func, "_required_context_keys")
-    expected_count = _CTX_PARAM_COUNT if has_context else _BASE_PARAM_COUNT
-    expected_names = _CTX_PARAM_NAMES if has_context else _BASE_PARAM_NAMES
-    sig = inspect.signature(func)
-    param_count = len(sig.parameters)
-    if param_count != expected_count:
-        raise SignatureContractError(
-            f'@regular_aspect("{description}"): method {func.__name__} '
-            f"must accept {expected_count} parameters "
-            f"({expected_names}), got {param_count}."
-        )
+def _signature_invariant(func: Any) -> None:
+    """Refuse a signature the pipeline cannot call: position first, then the names, then ``ctx``."""
+    contract = ASPECT_CONTRACTS["regular_aspect"]
+    validate_positional(contract, func)
+    validate_names(contract, func)
+    validate_annotated(contract, func)
 
 
 def _method_suffix_invariant(func: Any, description: str) -> None:
@@ -128,7 +116,7 @@ def regular_aspect(description: str) -> Callable[[Any], Any]:
         """Validate target method and attach regular-aspect metadata."""
         _method_callable_invariant(func)
         _method_async_invariant(func, description)
-        _method_params_count_invariant(func, description)
+        _signature_invariant(func)
         _method_suffix_invariant(func, description)
         func._new_aspect_meta = {
             "type": "regular",

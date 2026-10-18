@@ -1,15 +1,15 @@
 # packages/aoa-demo/src/aoa/demo/model/store/actions/cart_abandon_stub.py
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
@@ -26,8 +26,8 @@ class CartAbandonStubAction(BaseAction["CartAbandonStubAction.Params", "CartAban
     async def schedule_summary(
         self,
         params: CartAbandonStubAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> CartAbandonStubAction.Result:
         return CartAbandonStubAction.Result(scheduled=bool(params.session_id))

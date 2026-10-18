@@ -138,7 +138,7 @@ class RolesOnlyAction(BaseAction["RolesOnlyAction.Params", "RolesOnlyAction.Resu
 
     @summary_aspect("S")
     async def roles_summary(
-        self, params: RolesOnlyAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: RolesOnlyAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> RolesOnlyAction.Result:
         """Produce the operation's result."""
         return RolesOnlyAction.Result()
@@ -169,7 +169,7 @@ class GuardAllowsAction(BaseAction["GuardAllowsAction.Params", "GuardAllowsActio
 
     @summary_aspect("S")
     async def guard_summary(
-        self, params: GuardAllowsAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: GuardAllowsAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> GuardAllowsAction.Result:
         """Produce the operation's result."""
         return GuardAllowsAction.Result()
@@ -226,7 +226,7 @@ class ObjectCheckedAction(BaseAction["ObjectCheckedAction.Params", "ObjectChecke
 
     @summary_aspect("S")
     async def object_summary(
-        self, params: ObjectCheckedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: ObjectCheckedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> ObjectCheckedAction.Result:
         """Produce the operation's result."""
         return ObjectCheckedAction.Result()

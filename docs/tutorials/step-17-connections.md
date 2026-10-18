@@ -55,6 +55,8 @@ Start with two HTTP calls to one route. The resource is constructed before the r
 [Python](../../examples/step_17_connections/01_connections.py) · [Notebook](../../examples/step_17_connections/01_connections.ipynb)
 
 ```python
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 import asyncio
 from fastapi.testclient import TestClient
 from pydantic import Field
@@ -106,7 +108,7 @@ class CountResult(BaseResult):
 class CountAction(BaseAction[EmptyParams, CountResult]):
     """Increment the supplied resource once."""
     @summary_aspect("Count one call")
-    async def count_summary(self, params, state, box, connections):
+    async def count_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CountResult:
         """Return the updated count."""
         counter = connections["counter"]
         counter.count += 1

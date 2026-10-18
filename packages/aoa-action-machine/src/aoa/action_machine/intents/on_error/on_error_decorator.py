@@ -94,7 +94,6 @@ Invalid (later handler never runs for overlapping types):
 from __future__ import annotations
 
 import asyncio
-import inspect
 from collections.abc import Callable
 from typing import Any
 
@@ -104,17 +103,12 @@ from aoa.action_machine.exceptions.decorator_target_error import DecoratorTarget
 from aoa.action_machine.exceptions.description_contract_error import DescriptionContractError
 from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
-from aoa.action_machine.exceptions.signature_contract_error import SignatureContractError
-
-# Parameter count without @context_requires.
-_BASE_PARAM_COUNT = 6
-
-# Parameter count with @context_requires.
-_CTX_PARAM_COUNT = 7
-
-# Parameter names for error messages.
-_BASE_PARAM_NAMES = "self, params, state, box, connections, error"
-_CTX_PARAM_NAMES = "self, params, state, box, connections, error, ctx"
+from aoa.action_machine.intents.aspects.aspect_signature import (
+    ASPECT_CONTRACTS,
+    validate_annotated,
+    validate_names,
+    validate_positional,
+)
 
 # Required method name suffix.
 _REQUIRED_SUFFIX = "_on_error"
@@ -192,19 +186,11 @@ def _validate_method(func: Any, description: str) -> None:
             f"Synchronous handlers are not supported."
         )
 
-    # Parameter count check (with @context_requires awareness).
-    has_context = hasattr(func, "_required_context_keys")
-    expected_count = _CTX_PARAM_COUNT if has_context else _BASE_PARAM_COUNT
-    expected_names = _CTX_PARAM_NAMES if has_context else _BASE_PARAM_NAMES
-
-    sig = inspect.signature(func)
-    param_count = len(sig.parameters)
-    if param_count != expected_count:
-        raise SignatureContractError(
-            f'@on_error("{description}"): method {func.__name__} '
-            f"must accept {expected_count} parameters "
-            f"({expected_names}), got {param_count}."
-        )
+    # Signature: the four values the pipeline hands over, then the error, plus ctx when asked for.
+    contract = ASPECT_CONTRACTS["on_error"]
+    validate_positional(contract, func)
+    validate_names(contract, func)
+    validate_annotated(contract, func)
 
     # Required method name suffix.
     if not func.__name__.endswith(_REQUIRED_SUFFIX):

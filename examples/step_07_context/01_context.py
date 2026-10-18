@@ -16,11 +16,13 @@ Run:
 """
 
 import asyncio
+from typing import Any
 
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context, Ctx
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -32,7 +34,10 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 class AuditDomain(BaseDomain):
@@ -57,7 +62,7 @@ class PlaceOrderAction(BaseAction[OrderParams, OrderResult]):
     # ContextView as the 6th parameter `ctx`, restricted to exactly these keys.
     @regular_aspect("Audit who placed the order and from which trace")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
-    async def audit_aspect(self, params, state, box, connections, ctx):
+    async def audit_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> dict[str, Any]:
         user_id = ctx.get(Ctx.User.user_id)
         trace_id = ctx.get(Ctx.Request.trace_id)
         await box.info(
@@ -75,7 +80,7 @@ class PlaceOrderAction(BaseAction[OrderParams, OrderResult]):
         return {}
 
     @summary_aspect("Confirm the order")
-    async def confirm_summary(self, params, state, box, connections):
+    async def confirm_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
         return OrderResult(order_id=params.order_id, status="placed")
 
 

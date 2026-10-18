@@ -8,12 +8,16 @@ Run: uv run python examples/step_19_resource/07_nested_action.py
 """
 
 import asyncio
-from aoa.action_machine.resources.postgres import PostgresResource
-from aoa.action_machine.resources.sql import WrapperSqlResource
+
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.exceptions import HandleError, TransactionLeftOpenError
+from aoa.action_machine.resources.postgres import PostgresResource
+from aoa.action_machine.resources.sql import WrapperSqlResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
+
 
 class RecordingConnection:
     """Record commands; do not parse SQL or simulate database storage."""
@@ -65,7 +69,8 @@ class RecordingPool:
         self.closed = True
 
 from pydantic import Field
-from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
+
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -74,6 +79,7 @@ from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+
 
 class NotesDomain(BaseDomain):
     """Group the connection lesson."""
@@ -115,12 +121,16 @@ class StatusResult(BaseResult):
 class QueryAction(BaseAction[EmptyParams, StatusResult]):
     """Use the supplied resource without managing its lifetime."""
     @summary_aspect("Execute a statement")
-    async def query_summary(self, params, state, box, connections):
+    async def query_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> StatusResult:
         """Return the driver's command status."""
         return StatusResult(status=await connections["db"].add_note("one note"))
 
-from aoa.action_machine.intents.depends import depends, UseCase
 from aoa.action_machine.exceptions import TransactionProhibitedError
+from aoa.action_machine.intents.depends import UseCase, depends
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
+
 
 @meta(description="Try closing a parent connection", domain=NotesDomain)
 @check_roles(GuestRole)
@@ -128,7 +138,7 @@ from aoa.action_machine.exceptions import TransactionProhibitedError
 class ChildAction(BaseAction[EmptyParams, StatusResult]):
     """Observe the wrapper supplied by the runtime."""
     @summary_aspect("Write through the proxy, then attempt closing")
-    async def close_summary(self, params, state, box, connections):
+    async def close_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> StatusResult:
         """Use what the domain delegates, and report that closing is still refused."""
         status = await connections["db"].add_note("from the child")
         try:
@@ -144,7 +154,7 @@ class ChildAction(BaseAction[EmptyParams, StatusResult]):
 class ParentAction(BaseAction[EmptyParams, StatusResult]):
     """Keep ownership while delegating part of the work."""
     @summary_aspect("Run child")
-    async def child_summary(self, params, state, box, connections):
+    async def child_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> StatusResult:
         """Pass the connection to the child through the runtime."""
         return await box.run(ChildAction, EmptyParams(), connections=connections)
 

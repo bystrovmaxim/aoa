@@ -39,6 +39,8 @@ Use an in-memory store so the only topic is the division between storage and the
 [Python](../../examples/step_19_resource/01_resource.py) · [Notebook](../../examples/step_19_resource/01_resource.ipynb)
 
 ```python
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 import asyncio
 from fastapi.testclient import TestClient
 from pydantic import Field
@@ -103,7 +105,7 @@ class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
     """Decide whether the requested stock is available."""
 
     @summary_aspect("Reserve if enough stock")
-    async def reserve_summary(self, params, state, box, connections):
+    async def reserve_summary(self, params: ReserveParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ReserveResult:
         """Reserve only when enough stock is available."""
         inventory = connections["inventory"]          # transport, supplied per request
         available = await inventory.get_stock(params.sku)

@@ -93,6 +93,9 @@ The `Params = ...` and `Result = ...` aliases inside the class are an optional c
 When logic breaks down into steps, each step is a separate regular aspect. Aspects run **in declaration order**. Each one receives the accumulated `state` and returns a **dict with every key** the later aspects and the summary need.
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from typing import Any, cast
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 
@@ -101,20 +104,20 @@ from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 class LoadGraphAction(BaseAction[LoadParams, LoadResult]):
 
     @regular_aspect("Validate that the URL is reachable and returns a graph.")
-    async def validate_url_aspect(self, params, state, box, connections) -> dict[str, Any]:
+    async def validate_url_aspect(self, params: LoadParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         _ = (state, box, connections)
         # ... validation logic ...
         return {"graph_url": params.url}
 
     @regular_aspect("Fetch raw graph data from the service.")
-    async def fetch_graph_aspect(self, params, state, box, connections) -> dict[str, Any]:
+    async def fetch_graph_aspect(self, params: LoadParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         _ = (params, box, connections)
         url = cast(str, state["graph_url"])
         # ... fetch logic ...
         return {"graph_url": url, "graph_data": data}
 
     @summary_aspect("Build result from fetched graph data.")
-    async def build_result_summary(self, params, state, box, connections) -> LoadResult:
+    async def build_result_summary(self, params: LoadParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> LoadResult:
         _ = (params, box, connections)
         data = cast(dict, state["graph_data"])
         return LoadResult(node_count=len(data["nodes"]))
@@ -127,18 +130,23 @@ class LoadGraphAction(BaseAction[LoadParams, LoadResult]):
 Checkers verify that an aspect returned the expected key with the expected type/non-empty value. A checker decorator goes **above** `@regular_aspect`:
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.intents.checkers import result_instance, result_string, result_int
 
 @result_string("graph_url", required=True, not_empty=True)
 @regular_aspect("Validate the URL.")
-async def validate_url_aspect(self, params, state, box, connections) -> dict[str, Any]:
+async def validate_url_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     ...
     return {"graph_url": url}
 
 @result_string("graph_url", required=True, not_empty=True)
 @result_instance("graph_data", dict, required=True)
 @regular_aspect("Fetch graph data.")
-async def fetch_graph_aspect(self, params, state, box, connections) -> dict[str, Any]:
+async def fetch_graph_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     ...
     return {"graph_url": url, "graph_data": data}
 ```
@@ -158,6 +166,10 @@ Checkers **don't** have a `description` parameter.
 If an operation needs an external resource (a DB, an HTTP client), declare it through `@connection` on the class. Aspects read the resource from `connections[key]`:
 
 ```python
+from typing import Any
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.intents.connection import connection
 
 @meta(description="Query sidebar data from DuckDB.", domain=MyDomain)
@@ -166,13 +178,13 @@ from aoa.action_machine.intents.connection import connection
 class GetSidebarAction(BaseAction[ParamsStub, GetSidebarResult]):
 
     @regular_aspect("Load nodes from DuckDB.")
-    async def load_nodes_aspect(self, params, state, box, connections) -> dict[str, Any]:
+    async def load_nodes_aspect(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         duck = cast(DuckDBResource, connections["db"])
         rows = duck.execute_fetch_dicts("SELECT id, label FROM nodes")
         return {"nodes": rows}
 
     @summary_aspect("Build result.")
-    async def build_result_summary(self, params, state, box, connections) -> GetSidebarResult:
+    async def build_result_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> GetSidebarResult:
         _ = (params, box, connections)
         return GetSidebarResult(nodes=cast(list, state["nodes"]))
 ```
@@ -194,7 +206,7 @@ class GetSidebarAction(BaseAction[ParamsStub, GetSidebarResult]):
     @summary_aspect("Build sidebar.")
     async def build_sidebar_summary(
         self,
-        _params: ParamsStub,
+        params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],

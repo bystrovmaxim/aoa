@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
@@ -12,7 +10,9 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.support.actions.support_ping import SupportPingAction
 from aoa.demo.model.support.support_domain import SupportDomain
 
@@ -41,9 +41,9 @@ class DependSameDomainIncludeAction(
     async def run_include_peer_summary(
         self,
         params: DependSameDomainIncludeAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> DependSameDomainIncludeAction.Result:
         nested = await box.run(SupportPingAction, SupportPingAction.Params())
         return DependSameDomainIncludeAction.Result(

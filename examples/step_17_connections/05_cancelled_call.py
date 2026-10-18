@@ -6,10 +6,12 @@ Run: uv run python examples/step_17_connections/05_cancelled_call.py
 """
 
 import asyncio
+
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
+
 
 @exclude_graph_model
 class TraceResource(BaseResource):

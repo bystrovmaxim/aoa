@@ -26,6 +26,7 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import Field
 
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
@@ -38,6 +39,8 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.testing import StubTesterRole, TestBench
 
 from ....support.domain_model.compensate_actions import (
@@ -101,27 +104,18 @@ class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
 
     @regular_aspect("Aspect")
     @result_string("txn_id", required=True)
-    async def charge_aspect(self, params, state, box, connections):
+    async def charge_aspect(self, params: CtxCheckParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         return {"txn_id": "TXN-001"}
 
     @compensate(charge_aspect, "Rollback with context")
     @context_requires(Ctx.User.user_id)
-    async def rollback_compensate(
-        self,
-        params,
-        state_before,
-        state_after,
-        box,
-        connections,
-        error,
-        ctx,
-    ):
+    async def rollback_compensate(self, params: CtxCheckParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception, ctx: ContextView) -> None:
         user_id = ctx.get(Ctx.User.user_id)
         payment = (await box.resolve(PaymentServiceResource)).service
         await payment.refund(f"refund_for_{user_id}")
 
     @summary_aspect("Summary")
-    async def summary(self, params, state, box, connections):
+    async def summary(self, params: CtxCheckParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CtxCheckResult:
         return CtxCheckResult()
 
 

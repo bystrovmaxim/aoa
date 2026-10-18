@@ -40,14 +40,19 @@ Take an order fulfillment of three steps: reserve the item, charge the payment, 
 `@compensate(target_aspect, description)` binds a compensator method to a regular aspect **by direct callable reference**. The target aspect must be defined before the compensator in the class body — the reference is captured at class definition time. A compensator method's name ends with `_compensate`.
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Reserve inventory")
 @result_string("reservation_id", required=True)
-async def reserve_aspect(self, params, state, box, connections):
+async def reserve_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     await box.info(Channel.business, "regular: reserve order={%var.order_id}", order_id=params.order_id)
     return {"reservation_id": f"res-{params.order_id}"}
 
 @compensate(reserve_aspect, "Release reservation")
-async def reserve_compensate(self, params, state_before, state_after, box, connections, error):
+async def reserve_compensate(self, params: BaseParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> None:
     rid = state_after["reservation_id"] if state_after else "?"
     await box.info(Channel.business, "compensate: release reservation {%var.rid}", rid=rid)
 ```
@@ -55,8 +60,13 @@ async def reserve_compensate(self, params, state_before, state_after, box, conne
 So the step and its rollback stand as a pair. `charge_aspect` has its own `charge_compensate` ("refund the money"). And `confirm_summary` in the example fails on purpose:
 
 ```python
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseResult
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @summary_aspect("Confirm order")
-async def confirm_summary(self, params, state, box, connections):
+async def confirm_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
     raise ValueError("order service unavailable")
 ```
 

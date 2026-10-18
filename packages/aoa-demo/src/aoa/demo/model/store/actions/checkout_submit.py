@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.context import Ctx
+from aoa.action_machine.context import ContextView, Ctx
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_float, result_string
@@ -18,7 +18,9 @@ from aoa.action_machine.intents.depends import depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.logging import sensitive
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.billing.resources.payment_gateway import PaymentGateway, PaymentGatewayResource
 from aoa.demo.model.messaging.resources.notification_gateway import NotificationGatewayResource
 from aoa.demo.model.roles import EditorRole
@@ -62,10 +64,10 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
     async def validate_aspect(
         self,
         params: CheckoutSubmitAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
-        ctx: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+        ctx: ContextView,
     ) -> dict[str, Any]:
         return {"validated_customer": params.customer_id}
 
@@ -75,9 +77,9 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
     async def charge_aspect(
         self,
         params: CheckoutSubmitAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         payment = await box.resolve(PaymentGatewayResource)
         txn_id = await payment.service.charge(params.amount)
@@ -87,26 +89,26 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
     async def charge_compensate(
         self,
         params: CheckoutSubmitAction.Params,
-        state_before: Any,
-        state_after: Any,
-        box: Any,
-        connections: Any,
+        state_before: BaseState,
+        state_after: BaseState | None,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> None:
         if state_after is not None:
             payment = await box.resolve(PaymentGatewayResource)
-            await payment.service.refund(state_after.txn_id)
+            await payment.service.refund(state_after.txn_id)  # type: ignore[attr-defined]
 
     @on_error(ValueError, description="Validation branch")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
     async def validation_error_on_error(
         self,
         params: CheckoutSubmitAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
         error: ValueError,
-        ctx: Any,
+        ctx: ContextView,
     ) -> CheckoutSubmitAction.Result:
         return CheckoutSubmitAction.Result(order_id="ERR", txn_id="NONE", status="validation_failed")
 
@@ -114,9 +116,9 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
     async def unexpected_error_on_error(
         self,
         params: CheckoutSubmitAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> CheckoutSubmitAction.Result:
         return CheckoutSubmitAction.Result(order_id="ERR", txn_id="NONE", status="internal_error")
@@ -125,12 +127,12 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
     async def build_result_summary(
         self,
         params: CheckoutSubmitAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> CheckoutSubmitAction.Result:
         return CheckoutSubmitAction.Result(
             order_id="ORD-SAMPLE-1",
-            txn_id=state.txn_id,
+            txn_id=state.txn_id,  # type: ignore[attr-defined]
             status="created",
         )

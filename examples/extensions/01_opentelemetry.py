@@ -24,6 +24,7 @@ Run:
 """
 
 import asyncio
+from typing import Any
 
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import InMemoryLogRecordExporter, SimpleLogRecordProcessor
@@ -40,7 +41,10 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_float
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.otel import OpenTelemetryPlugin
 
 
@@ -63,11 +67,11 @@ class PriceOrderAction(BaseAction[PriceParams, PriceResult]):
 
     @regular_aspect("Apply tax")
     @result_float("with_tax", required=True, min_value=0)
-    async def tax_aspect(self, params, state, box, connections):
+    async def tax_aspect(self, params: PriceParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         return {"with_tax": round(params.amount * 1.2, 2)}
 
     @summary_aspect("Build result")
-    async def build_summary(self, params, state, box, connections):
+    async def build_summary(self, params: PriceParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> PriceResult:
         return PriceResult(total=state["with_tax"])
 
 

@@ -83,6 +83,9 @@ class LegacyPaymentGateway(BaseResource, PaymentGateway):
 A single entry point, DI, and the ability to write tests appear. We do not touch the monster's logic yet — we move it "as is".
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 class ProcessPaymentParams(BaseParams):
     user_id: int = Field(description="User identifier")
     card_token: str = Field(description="Card token")
@@ -100,7 +103,7 @@ class ProcessPaymentResult(BaseResult):
 class ProcessPaymentAction(BaseAction[ProcessPaymentParams, ProcessPaymentResult]):
 
     @summary_aspect("A temporary wrapper over the legacy")
-    async def charge_summary(self, params, state, box, connections):
+    async def charge_summary(self, params: ProcessPaymentParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ProcessPaymentResult:
         gateway = await box.resolve(PaymentGateway)
         if not await gateway.validate_card(params.card_token, params.amount):
             return ProcessPaymentResult(success=False, txn="")
@@ -113,6 +116,10 @@ class ProcessPaymentAction(BaseAction[ProcessPaymentParams, ProcessPaymentResult
 One step per iteration. Each move makes the pipeline a little more detailed, and the monster a little thinner.
 
 ```python
+from typing import Any
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @meta(description="Process a payment", domain=BillingDomain)
 @check_roles(AnyRole)
 @depends(PaymentGateway)
@@ -121,7 +128,7 @@ class ProcessPaymentAction(BaseAction[ProcessPaymentParams, ProcessPaymentResult
 
     @regular_aspect("Check the user")
     @result_instance("user", UserEntity, required=True, no_none=True)
-    async def check_user_aspect(self, params, state, box, connections):
+    async def check_user_aspect(self, params: ProcessPaymentParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         users = await box.resolve(UserRepository)
         user = await users.get(params.user_id)
         if user is None:
@@ -129,7 +136,7 @@ class ProcessPaymentAction(BaseAction[ProcessPaymentParams, ProcessPaymentResult
         return {"user": user}
 
     @summary_aspect("Charge")
-    async def charge_summary(self, params, state, box, connections):
+    async def charge_summary(self, params: ProcessPaymentParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ProcessPaymentResult:
         gateway = await box.resolve(PaymentGateway)
         if not await gateway.validate_card(params.card_token, params.amount):
             return ProcessPaymentResult(success=False, txn="")
@@ -142,6 +149,9 @@ class ProcessPaymentAction(BaseAction[ProcessPaymentParams, ProcessPaymentResult
 Card validation is needed in other scenarios too — that is a signal to extract (see [Action, aspect, or resource](choosing-action-aspect-resource.md)).
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 class ValidateCardParams(BaseParams):
     card_token: str = Field(description="Card token")
     amount: float = Field(description="Amount")
@@ -157,7 +167,7 @@ class ValidateCardResult(BaseResult):
 class ValidateCardAction(BaseAction[ValidateCardParams, ValidateCardResult]):
 
     @summary_aspect("Card validation")
-    async def validate_summary(self, params, state, box, connections):
+    async def validate_summary(self, params: ValidateCardParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ValidateCardResult:
         gateway = await box.resolve(PaymentGateway)
         valid = await gateway.validate_card(params.card_token, params.amount)
         return ValidateCardResult(valid=valid)
@@ -166,9 +176,14 @@ class ValidateCardAction(BaseAction[ValidateCardParams, ValidateCardResult]):
 In the main operation the step becomes a call:
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Card validation")
 @result_bool("card_valid", required=True)
-async def validate_card_aspect(self, params, state, box, connections):
+async def validate_card_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     result = await box.run(
         ValidateCardAction,
         ValidateCardParams(card_token=params.card_token, amount=params.amount),
@@ -183,6 +198,11 @@ async def validate_card_aspect(self, params, state, box, connections):
 The monster accumulated statistics — that state cannot be lost. We isolate it as a resource.
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 class PaymentStats(BaseResource, ABC):
     @abstractmethod
     async def record(self, amount: float) -> None: ...
@@ -190,7 +210,7 @@ class PaymentStats(BaseResource, ABC):
 
 @regular_aspect("Record statistics")
 @result_bool("recorded", required=True)
-async def record_stats_aspect(self, params, state, box, connections):
+async def record_stats_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     await (await box.resolve(PaymentStats)).record(params.amount)
     return {"recorded": True}
 ```

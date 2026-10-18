@@ -6,10 +6,10 @@ Run: uv run python examples/extensions/postgresql/03_wait_bound.py
 """
 
 import asyncio
+
+from aoa.action_machine.exceptions import HandleError
 from aoa.action_machine.resources.postgres import PostgresResource
-from aoa.action_machine.resources.connection_scope import connection_scope
-from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.exceptions import HandleError, TransactionLeftOpenError
+
 
 class RecordingConnection:
     """Record commands; do not parse SQL or simulate database storage."""
