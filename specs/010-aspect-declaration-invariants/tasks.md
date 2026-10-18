@@ -25,7 +25,7 @@ Repository root is the working directory. Source lives under `packages/aoa-actio
 **Purpose**: capture what the tree does today, so the change can be shown as a before/after rather than asserted.
 
 - [ ] T001 Capture the three baseline probes into `specs/010-aspect-declaration-invariants/evidence/baseline.md`: a renamed `@summary_aspect` is accepted, a summary returning `{"not": "a result"}` answers with a `dict`, and `ActionResultTypeError` is raised nowhere in `packages/aoa-action-machine/src` — each with the exact command and its output.
-- [ ] T002 Re-measure the corpus with the AST scan and write the per-tree table into `specs/010-aspect-declaration-invariants/evidence/corpus-baseline.md`: 763 declarations examined, 523 non-conforming (104 `packages/*.py`, 163 `examples/*.py`, 158 notebook cells, 98 docs snippets), plus the list of the 26 `docs/**/*.md` files and 76 notebook files to migrate.
+- [ ] T002 Re-measure the corpus with the scan at `specs/010-aspect-declaration-invariants/evidence/scan_corpus.py` and write the per-tree table into `specs/010-aspect-declaration-invariants/evidence/corpus-baseline.md`: 763 declarations examined, 499 non-conforming (80 `packages/*.py`, 163 `examples/*.py`, 158 notebook cells, 98 docs snippets), of which 19 are deliberate `pytest.raises` fixtures and 480 are to migrate; plus the list of the 26 `docs/**/*.md` files and 76 notebook files that carry declarations.
 
 ---
 
@@ -61,7 +61,7 @@ Repository root is the working directory. Source lives under `packages/aoa-actio
 - [ ] T012 [P] [US1] Same replacement in `packages/aoa-action-machine/src/aoa/action_machine/intents/compensate/compensate_decorator.py`.
 - [ ] T013 [US1] Adversarial pass: disable each validator in turn, confirm exactly the matching test fails, restore, and record the before/after in `specs/010-aspect-declaration-invariants/evidence/adversarial-us1.md`.
 
-**Checkpoint**: a renamed declaration can no longer reach a run. Note that the tree is **not** green yet — 267 `.py` declarations and the fixtures still carry old names; that is US5's work.
+**Checkpoint**: a renamed declaration can no longer reach a run. Note that the tree is **not** green yet — 224 `.py` declarations still carry old names and missing annotations; that is US5's work.
 
 ---
 
@@ -140,10 +140,10 @@ Repository root is the working directory. Source lives under `packages/aoa-actio
 
 ### Implementation for User Story 5
 
-- [ ] T033 [US5] Migrate the 104 non-conforming declarations under `packages/` (source, `tests/support`, `aoa-demo`, `aoa-maxitor`, `aoa-langgraph`, …) with a throwaway codemod kept outside the repository; leave ambiguous sites for hand-fixing; `uv run --extra dev pytest packages/aoa-action-machine/tests/ -v` must pass.
+- [ ] T033 [US5] Migrate the 61 non-conforming declarations under `packages/` (source, `tests/support`, `aoa-demo`, `aoa-maxitor`, `aoa-langgraph`, …) with a throwaway codemod kept outside the repository; review the 19 that the scan marks as asserted refusals and confirm each really is one (a `pytest.raises` fixture stays wrong, with its expected message updated) — anything that is wrong by accident joins the migration; `uv run --extra dev pytest packages/aoa-action-machine/tests/ -v` must pass.
 - [ ] T034 [US5] Migrate the 163 declarations under `examples/**/*.py`, deriving each summary's `->` from the operation's declared `Result`; execute every example with the repository's environment and confirm it prints what it printed before.
 - [ ] T035 [US5] Migrate the 158 declarations in the 76 files under `examples/**/*.ipynb`, cell for cell, and confirm each touched notebook's shared cells match its `.py` twin.
-- [ ] T036 [US5] Re-run the corpus scan over `packages/`, `examples/` and the notebooks and write `evidence/corpus-after.md`: 0 of 665 non-conforming, per tree; list any site left deliberate and why. The 98 documentation snippets are counted separately and reach zero in T039, after the documentation step — the scan cannot claim them earlier, and the evidence file says so.
+- [ ] T036 [US5] Re-run the scan over `packages/`, `examples/` and the notebooks and write `evidence/corpus-after.md`: of the 665 declarations in those trees, exactly the 19 deliberate refusals remain non-conforming, each listed with the test that asserts it, and **0 are left to migrate**. The 98 documentation snippets are counted separately and reach the same state in T039, after the documentation step — the scan cannot claim them earlier, and the evidence file says so.
 - [ ] T037 [US5] Confirm nothing changed for compliant code: `git diff --stat` reviewed by tree, `uv run --extra dev pytest packages/ -v` green for all eight packages, and the refusals outside this feature unchanged (FR-022) — a wrong description, a synchronous method, a wrong suffix and a missing summary still raise exactly the errors they raise today, checked by the existing tests being untouched.
 
 **Checkpoint**: the tree satisfies its own contract.
@@ -224,7 +224,7 @@ Task: "Call validate_types in compensator_graph_node.py"               # T023
 
 ### MVP: US1 plus the migration it forces
 
-US1 alone is the smallest slice that changes behaviour, but it cannot ship alone: once the four decorators refuse renamed parameters, the repository's own 267 `.py` declarations stop compiling. The MVP is therefore **T001–T013 plus T033–T034** — the names rule and the `.py` corpus — and it ends with the suite green and every example script running.
+US1 alone is the smallest slice that changes behaviour, but it cannot ship alone: once the four decorators refuse renamed parameters, the repository's own 224 `.py` declarations stop compiling. The MVP is therefore **T001–T013 plus T033–T034** — the names rule and the `.py` corpus — and it ends with the suite green and every example script running.
 
 This pulls the `.py` half of US5 **forward**, ahead of US2–US4. That is deliberate and it is the one place the phase order is not the execution order: the migration adds the annotations and returns that US2 and US4 will later require, so nothing is done twice, and the rest of US5 (notebooks T035, scan T036, invariance T037) still runs last. The dependency section below says so explicitly.
 

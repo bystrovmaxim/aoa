@@ -17,7 +17,7 @@ Two refusals are added beside those: a second summary is reported as a second su
 
 One new shared module, `intents/aspects/aspect_signature.py`, holds the four contracts and the three validators; the reference implementation is `intents/access_decide/access_decide_signature.py`, whose two-moment split, `get_type_hints` use and message shape are followed deliberately. The vocabulary grows by two public errors (`AspectSignatureError`, `DuplicateSummaryAspectError`) and revives a third that is already public and raised nowhere (`ActionResultTypeError`).
 
-The repository's own corpus is part of the change: **523 declaration sites** do not meet the contract today — 267 in `.py` under `packages/` and `examples/`, 158 in the example notebooks, 98 in `docs/*.md` — and every one of them is migrated here, because the framework cannot ship examples its own rules refuse.
+The repository's own corpus is part of the change: **499 declarations** do not meet the contract today — 243 in `.py` under `packages/` and `examples/`, 158 in the example notebooks, 98 in `docs/*.md` — and 480 of them are migrated here, because the framework cannot ship examples its own rules refuse. The remaining 19 are wrong on purpose: they are the `pytest.raises` fixtures that prove the refusals fire, and they stay wrong.
 
 ## Technical Context
 
@@ -37,7 +37,7 @@ The repository's own corpus is part of the change: **523 declaration sites** do 
 
 **Constraints**: no new dependency, runtime or dev; the closing check run must end green; every new module follows principle III (path on line 1, `═`-ruled sections), every public type carries an AI-CORE block (principle IV), every class, function and method gets a one-line docstring (principle V); all code and history in English (principle II); nothing is committed without the maintainer's instruction (principle I).
 
-**Scale/Scope**: 4 decorators, 4 graph nodes, 1 intent resolver, 1 runtime method, 2 new exception modules, 1 new contract module; 343 aspect declarations under `packages/`, 163 under `examples/`, 158 in notebooks, 99 in `docs/*.md`.
+**Scale/Scope**: 4 decorators, 4 graph nodes, 1 intent resolver, 1 runtime method, 2 new exception modules, 1 new contract module; 763 declarations examined — 343 under `packages/`, 163 under `examples/`, 158 in notebooks, 99 in `docs/*.md` — of which 480 are migrated and 19 remain deliberately wrong.
 
 ## Constitution Check
 
@@ -112,7 +112,7 @@ examples/**/*.py, examples/**/*.ipynb, docs/**/*.md       # the corpus migration
 
 Five phases. Each leaves the tree green, because a phase whose checks refuse declarations the tree still contains is a broken commit rather than a phase — and the repository's rule is one phase, one commit.
 
-1. **The contract, its refusals, and the `.py` corpus.** `aspect_signature.py`, the two exception modules, the declaration checks in the four decorators, the assembly checks in the four nodes, the duplicate summary, the run-time answer check, their tests — and the 267 `.py` sites that the checks would otherwise refuse (104 under `packages/`, 163 under `examples/`). The suite does not run without the `packages/` half, so the engine and that half are one delivery even if they are reviewed as two: the maintainer may split the commit, but not the pair.
+1. **The contract, its refusals, and the `.py` corpus.** `aspect_signature.py`, the two exception modules, the declaration checks in the four decorators, the assembly checks in the four nodes, the duplicate summary, the run-time answer check, their tests — and the 224 `.py` sites that the checks would otherwise refuse (61 under `packages/`, 163 under `examples/`). The suite does not run without the `packages/` half, so the engine and that half are one delivery even if they are reviewed as two: the maintainer may split the commit, but not the pair.
 2. **The notebooks.** 158 sites in 76 example notebooks, kept step-for-step with their `.py` twins (constitution VI.5). They are not executed by the test suite, so this phase is green on either side of it.
 3. **The check run.** `bash scripts/run_checks_with_log.sh` to zero, with the two accepted remarks left alone.
 4. **The documentation.** `docs/reference/intents-and-invariants.md` and the 26 pages that show a declaration, written after the code is settled, every case shown and every snippet runnable.
@@ -126,4 +126,4 @@ Phases 3, 4 and 5 **are** the three reserved tail steps of principle VI — chec
 | --- | --- | --- |
 | A shared `aspect_signature.py` instead of per-decorator checks | Four decorators need one message shape, one order rule and one type table; four copies drift, and the refusal text is the feature's user interface | Reusing `access_decide_signature.py` was rejected: its contracts are the object check's four parameters, its return must be a `Verdict`, and it has no `state`, `error` or `state_after` column. Parameterising it into a general "declaration signature" module would rewrite the working, committed object check for no gain. |
 | Validation inside the four graph nodes, not in `ActionGraphNode` | The type check needs the operation class, which each interchange node already receives (`_action_cls`); the object check's precedent is identical (`AccessDecideGraphNode.__init__`) | A single check in `ActionGraphNode` was rejected: it would have to find the four callables again and duplicate the resolvers, while the nodes are built from those very callables. |
-| 523 corpus sites migrated in this change | The spec's decision: the framework's examples are documentation, and documentation its own rules refuse is worse than none | A deprecation window was rejected in the spec; a partial migration was rejected because the check run cannot be green with the rest left behind. |
+| 480 corpus sites migrated in this change | The spec's decision: the framework's examples are documentation, and documentation its own rules refuse is worse than none | A deprecation window was rejected in the spec; a partial migration was rejected because the check run cannot be green with the rest left behind. |

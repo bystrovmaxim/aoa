@@ -126,19 +126,19 @@ Measured with an AST scan that tracks whether a declaration is nested inside a f
 
 **Measured size** (AST scan of every declaration of the four decorators, 2026-10-18):
 
-| Tree | Declarations | Non-conforming | Of which |
-| --- | --- | --- | --- |
-| `.py` under `packages/` | 343 | 104 | 104 need names and/or annotations |
-| `.py` under `examples/` | 163 | 163 | every one |
-| example notebooks (`examples/**/*.ipynb`) | 158 | 158 | every one |
-| `docs/**/*.md` code blocks | 99 | 98 | 97 unannotated, 6 misnamed (some both) |
-| **total** | **763** | **523** | |
+| Tree | Declarations | Non-conforming | Deliberate | To migrate |
+| --- | --- | --- | --- | --- |
+| `.py` under `packages/` | 343 | 80 | 19 | 61 |
+| `.py` under `examples/` | 163 | 163 | 0 | 163 |
+| example notebooks (`examples/**/*.ipynb`) | 158 | 158 | 0 | 158 |
+| `docs/**/*.md` code blocks | 99 | 98 | 0 | 98 |
+| **total** | **763** | **499** | **19** | **480** |
 
-**Correction to the specification**: the spec's figure of 211 counted only the two decorators the issue's table names (summary, regular) and only `.py` files. Counting all four decorators and the two other carriers of declarations gives 523. The specification is updated to the measured total in the same pass as this research.
+**Corrections to the specification, measured twice**: the spec first said 211 (only the two decorators the issue's table names, only `.py` files), then 523 (all four decorators, all three carriers, but judging every declaration against the summary's name list). The scan that produced this table — `evidence/scan_corpus.py`, run in T002 — judges each decorator against its own contract and separates the declarations that are wrong on purpose, and gives **499 non-conforming, 19 deliberate, 480 to migrate**. The 24-declaration difference between 104 and 80 under `packages/` is exactly the `@on_error`/`@compensate` methods that match their own contract. The specification is updated to these figures in the same pass as this research, and `SC-003` is restated around the 19 deliberate sites rather than around a literal zero.
 
 **Why a codemod, and why it is not committed**
 
-1. 523 sites across 200+ files is past the size where hand-editing is safe, and the transformation is regular: parameter names are known, and the annotation to insert is known from the parameter's role.
+1. 480 sites across 200+ files is past the size where hand-editing is safe, and the transformation is regular: parameter names are known, and the annotation to insert is known from the parameter's role.
 2. A script that rewrites declarations is not part of the framework's surface; committing it would add a tool nobody runs again. Its evidence is the diff and the check run.
 3. The codemod must not guess: where a site is ambiguous (a declaration annotated with the operation's own `Params` that the codemod cannot name), it leaves the line untouched and reports it, and the migration fixes those by hand.
 
