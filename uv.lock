@@ -142,7 +142,7 @@ dev = [
 
 [[package]]
 name = "aoa-fastapi-adapter"
-version = "1.1.1"
+version = "1.2.0"
 source = { editable = "packages/aoa-fastapi-adapter" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -233,7 +233,7 @@ dev = [
 
 [[package]]
 name = "aoa-mcp-adapter"
-version = "1.1.1"
+version = "1.2.0"
 source = { editable = "packages/aoa-mcp-adapter" }
 dependencies = [
     { name = "aoa-action-machine" },
