@@ -5,14 +5,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aoa-fastapi-adapter"
-version = "1.1.1"
+version = "1.2.0"
 description = "FastAPI adapter for AOA — expose Actions as HTTP endpoints."
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.12"
 authors = [{ name = "@Bystrov.Maxim" }]
 dependencies = [
-    "aoa-action-machine>=1.0.0a5",
+    "aoa-action-machine>=1.0.1a4",
     "fastapi>=0.100,<1.0",
     "uvicorn[standard]>=0.20,<1.0",
 ]
