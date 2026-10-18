@@ -12,6 +12,7 @@ from aoa.action_machine.exceptions.action_result_declaration_error import Action
 from aoa.action_machine.exceptions.action_result_type_error import ActionResultTypeError
 from aoa.action_machine.exceptions.aspect_declaration_error import AspectDeclarationError
 from aoa.action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
+from aoa.action_machine.exceptions.aspect_signature_error import AspectSignatureError
 from aoa.action_machine.exceptions.async_required_error import AsyncRequiredError
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
@@ -32,6 +33,7 @@ from aoa.action_machine.exceptions.description_type_error import DescriptionType
 from aoa.action_machine.exceptions.domain_graph_edge_resolution_error import DomainGraphEdgeResolutionError
 from aoa.action_machine.exceptions.duplicate_access_decide_error import DuplicateAccessDecideError
 from aoa.action_machine.exceptions.duplicate_declaration_error import DuplicateDeclarationError
+from aoa.action_machine.exceptions.duplicate_summary_aspect_error import DuplicateSummaryAspectError
 from aoa.action_machine.exceptions.graph_edge_resolution_error import GraphEdgeResolutionError
 from aoa.action_machine.exceptions.handle_error import HandleError
 from aoa.action_machine.exceptions.include_contract_violation_error import IncludeContractViolationError
@@ -69,6 +71,7 @@ __all__ = [
     "ActionResultTypeError",
     "AspectDeclarationError",
     "AspectPipelineError",
+    "AspectSignatureError",
     "AspectPipelineError",
     "AsyncRequiredError",
     "AuthorizationError",
@@ -99,6 +102,7 @@ __all__ = [
     "DuplicateAccessDecideError",
     "DuplicateAccessDecideError",
     "DuplicateDeclarationError",
+    "DuplicateSummaryAspectError",
     "GraphEdgeResolutionError",
     "GraphEdgeResolutionError",
     "HandleError",
