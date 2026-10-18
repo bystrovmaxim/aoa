@@ -5,6 +5,16 @@ All notable changes to `aoa-mcp-adapter` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] – 2026-10-18
+
+### Added
+
+- **A tool call now runs its connections through the per-call lifecycle.** Each `machine.run` inside a tool call is wrapped in `connection_scope`: a resource declared as `PerCallConnection` is created, opened before the action runs, and finalized exactly once on the way out — on success, on a raised error and on cancellation — instead of being created and handed over unopened. A resource the application created itself is passed through untouched, and the tool's signature, JSON envelope, authentication and response mapping are unchanged. A closing failure never replaces the run's own error, it is reported beside it, and a cancellation stays a cancellation. ([#215](https://github.com/bystrovmaxim/aoa/issues/215))
+
+### Changed
+
+- **The package now requires `aoa-action-machine>=1.0.1a4`.** That is the first release carrying `connection_scope`; an older one would leave the adapter unable to import. ([#215](https://github.com/bystrovmaxim/aoa/issues/215))
+
 ## [1.1.1] – 2026-07-11
 
 ### Changed
