@@ -11,6 +11,9 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ....support.domain_model.domains import TestDomain
 from ....support.domain_model.roles import AdminRole
@@ -32,7 +35,7 @@ class TestActionGraphNodeGuard:
                 ok: bool = Field(default=True)
 
             @summary_aspect("s")
-            async def build_summary(self, params, state, box, connections):
+            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
                 return _NoGuardAction.Result()
 
         node = ActionGraphNode(_NoGuardAction)
@@ -49,7 +52,7 @@ class TestActionGraphNodeGuard:
                 ok: bool = Field(default=True)
 
             @summary_aspect("s")
-            async def build_summary(self, params, state, box, connections):
+            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
                 return _GuardedAction.Result()
 
         node = ActionGraphNode(_GuardedAction)
@@ -68,7 +71,7 @@ class TestActionGraphNodeGuard:
                 ok: bool = Field(default=True)
 
             @summary_aspect("s")
-            async def build_summary(self, params, state, box, connections):
+            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
                 return _GuardedAction.Result()
 
         node = ActionGraphNode(_GuardedAction)

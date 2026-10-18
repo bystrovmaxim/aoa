@@ -52,7 +52,7 @@ class OpsPingAction(BaseAction["OpsPingAction.Params", "OpsPingAction.Result"]):
         state: Any,
         box: Any,
         connections: Any,
-        _ctx: object,
+        ctx: object,
     ) -> OpsPingAction.Result:
         return OpsPingAction.Result(
             message="pong",

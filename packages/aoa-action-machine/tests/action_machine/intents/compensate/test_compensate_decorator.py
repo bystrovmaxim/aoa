@@ -25,9 +25,14 @@ from __future__ import annotations
 
 import pytest
 
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.exceptions import NamingSuffixError
 from aoa.action_machine.intents.compensate import compensate
 from aoa.action_machine.intents.context_requires import context_requires
+from aoa.action_machine.model.base_params import BaseParams
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stub callable used as target_aspect across tests
@@ -56,7 +61,7 @@ class TestCompensateDecoratorSuccess:
                 pass
 
             @compensate(charge_aspect, "Compensator description")
-            async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
+            async def rollback_compensate(self, params: BaseParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> None:
                 pass
 
         method = Action.rollback_compensate
@@ -76,9 +81,7 @@ class TestCompensateDecoratorSuccess:
 
             @compensate(charge_aspect, "Description with context")
             @context_requires("user.user_id")
-            async def rollback_with_context_compensate(
-                self, params, state_before, state_after, box, connections, error, ctx
-            ):
+            async def rollback_with_context_compensate(self, params: BaseParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception, ctx: ContextView) -> None:
                 pass
 
         method = Action.rollback_with_context_compensate
@@ -182,7 +185,7 @@ class TestCompensateMethodErrors:
 
     def test_too_few_parameters_without_context(self) -> None:
         """Fewer than 7 parameters without @context_requires → TypeError."""
-        with pytest.raises(TypeError, match="must accept 7 parameters"):
+        with pytest.raises(TypeError, match=r"must declare its parameters as \(self, params, state_before, state_after, box, connections, error\)"):
 
             @compensate(_stub_aspect, "Description")
             async def too_few_params_compensate(self, params, state_before, state_after, box, connections):
@@ -190,7 +193,7 @@ class TestCompensateMethodErrors:
 
     def test_too_many_parameters_without_context(self) -> None:
         """More than 7 parameters without @context_requires → TypeError."""
-        with pytest.raises(TypeError, match="must accept 7 parameters"):
+        with pytest.raises(TypeError, match=r"must declare its parameters as \(self, params, state_before, state_after, box, connections, error\)"):
 
             @compensate(_stub_aspect, "Description")
             async def too_many_params_compensate(
@@ -200,7 +203,7 @@ class TestCompensateMethodErrors:
 
     def test_too_few_parameters_with_context(self) -> None:
         """Fewer than 8 parameters with @context_requires → TypeError."""
-        with pytest.raises(TypeError, match="must accept 8 parameters"):
+        with pytest.raises(TypeError, match=r"must declare its parameters as \(self, params, state_before, state_after, box, connections, error, ctx\)"):
 
             @compensate(_stub_aspect, "Description")
             @context_requires("user.user_id")
@@ -209,7 +212,7 @@ class TestCompensateMethodErrors:
 
     def test_too_many_parameters_with_context(self) -> None:
         """More than 8 parameters with @context_requires → TypeError."""
-        with pytest.raises(TypeError, match="must accept 8 parameters"):
+        with pytest.raises(TypeError, match=r"must declare its parameters as \(self, params, state_before, state_after, box, connections, error, ctx\)"):
 
             @compensate(_stub_aspect, "Description")
             @context_requires("user.user_id")
@@ -248,7 +251,7 @@ class TestCompensateNamingSuffix:
 
         class Action:
             @compensate(_stub_aspect, "Description")
-            async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
+            async def rollback_compensate(self, params: BaseParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> None:
                 pass
 
         assert hasattr(Action.rollback_compensate, "_compensate_meta")

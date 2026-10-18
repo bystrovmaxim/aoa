@@ -147,7 +147,7 @@ class ListNodeTypesAction(BaseAction[ParamsStub, "ListNodeTypesAction.Result"]):
     @summary_aspect("Resolve graph-node type list with disk fill colours from DuckDB")
     async def build_list_node_types_summary(
         self,
-        _params: ParamsStub,
+        params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
         connections: dict[str, BaseResource],

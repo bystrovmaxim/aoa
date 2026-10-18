@@ -50,16 +50,16 @@ Repository root is the working directory. Source lives under `packages/aoa-actio
 
 ### Tests for User Story 1 (write first, confirm they fail)
 
-- [ ] T007 [P] [US1] Write `packages/aoa-action-machine/tests/action_machine/intents/aspects/test_aspect_signature_names.py` — renamed, reordered, keyword-only, `*args`, and both `ctx`-order cases, for all four decorators; assert the fragments in `contracts/refusals.md` R-1, R-2, R-3.
+- [x] T007 [P] [US1] Write `packages/aoa-action-machine/tests/action_machine/intents/aspects/test_aspect_signature_names.py` — renamed, reordered, keyword-only, `*args`, and both `ctx`-order cases, for all four decorators; assert the fragments in `contracts/refusals.md` R-1, R-2, R-3.
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement `validate_names`, `validate_positional` and the `ctx`-order hint in `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/aspect_signature.py`, reusing the message shape of `access_decide_signature.py` (`must declare its parameters as`, `binds by position`).
-- [ ] T009 [P] [US1] Replace the count-only invariant with `validate_names` + `validate_positional` in `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/summary_aspect_decorator.py`.
-- [ ] T010 [P] [US1] Same replacement in `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/regular_aspect_decorator.py`.
-- [ ] T011 [P] [US1] Same replacement in `packages/aoa-action-machine/src/aoa/action_machine/intents/on_error/on_error_decorator.py`.
-- [ ] T012 [P] [US1] Same replacement in `packages/aoa-action-machine/src/aoa/action_machine/intents/compensate/compensate_decorator.py`.
-- [ ] T013 [US1] Adversarial pass: disable each validator in turn, confirm exactly the matching test fails, restore, and record the before/after in `specs/010-aspect-declaration-invariants/evidence/adversarial-us1.md`.
+- [x] T008 [US1] Implement `validate_names`, `validate_positional` and the `ctx`-order hint in `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/aspect_signature.py`, reusing the message shape of `access_decide_signature.py` (`must declare its parameters as`, `binds by position`).
+- [x] T009 [P] [US1] Replace the count-only invariant with `validate_names` + `validate_positional` in `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/summary_aspect_decorator.py`.
+- [x] T010 [P] [US1] Same replacement in `packages/aoa-action-machine/src/aoa/action_machine/intents/aspects/regular_aspect_decorator.py`.
+- [x] T011 [P] [US1] Same replacement in `packages/aoa-action-machine/src/aoa/action_machine/intents/on_error/on_error_decorator.py`.
+- [x] T012 [P] [US1] Same replacement in `packages/aoa-action-machine/src/aoa/action_machine/intents/compensate/compensate_decorator.py`.
+- [x] T013 [US1] Adversarial pass: disable each validator in turn, confirm exactly the matching test fails, restore, and record the before/after in `specs/010-aspect-declaration-invariants/evidence/adversarial-us1.md`.
 
 **Checkpoint**: a renamed declaration can no longer reach a run. Note that the tree is **not** green yet — 224 `.py` declarations still carry old names and missing annotations; that is US5's work.
 
@@ -140,7 +140,7 @@ Repository root is the working directory. Source lives under `packages/aoa-actio
 
 ### Implementation for User Story 5
 
-- [ ] T033 [US5] Migrate the 61 non-conforming declarations under `packages/` (source, `tests/support`, `aoa-demo`, `aoa-maxitor`, `aoa-langgraph`, …) with a throwaway codemod kept outside the repository; review the 19 that the scan marks as asserted refusals and confirm each really is one (a `pytest.raises` fixture stays wrong, with its expected message updated) — anything that is wrong by accident joins the migration; `uv run --extra dev pytest packages/aoa-action-machine/tests/ -v` must pass.
+- [x] T033 [US5] Migrate the 61 non-conforming declarations under `packages/` (source, `tests/support`, `aoa-demo`, `aoa-maxitor`, `aoa-langgraph`, …) with a throwaway codemod kept outside the repository; review the 19 that the scan marks as asserted refusals and confirm each really is one (a `pytest.raises` fixture stays wrong, with its expected message updated) — anything that is wrong by accident joins the migration; `uv run --extra dev pytest packages/aoa-action-machine/tests/ -v` must pass.
 - [ ] T034 [US5] Migrate the 163 declarations under `examples/**/*.py`, deriving each summary's `->` from the operation's declared `Result`; execute every example with the repository's environment and confirm it prints what it printed before.
 - [ ] T035 [US5] Migrate the 158 declarations in the 76 files under `examples/**/*.ipynb`, cell for cell, and confirm each touched notebook's shared cells match its `.py` twin.
 - [ ] T036 [US5] Re-run the scan over `packages/`, `examples/` and the notebooks and write `evidence/corpus-after.md`: of the 665 declarations in those trees, exactly the 19 deliberate refusals remain non-conforming, each listed with the test that asserts it, and **0 are left to migrate**. The 98 documentation snippets are counted separately and reach the same state in T039, after the documentation step — the scan cannot claim them earlier, and the evidence file says so.
