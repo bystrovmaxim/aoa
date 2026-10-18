@@ -60,7 +60,7 @@ import inspect
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Literal
+from typing import Any, Literal, get_type_hints
 
 from aoa.action_machine.exceptions.aspect_signature_error import AspectSignatureError
 
@@ -80,6 +80,15 @@ _COMPENSATE_PARAMETERS: tuple[str, ...] = (
     "error",
 )
 """The compensator's parameters: two states, because it is called after one was replaced."""
+
+_DECLARED_MOMENT = " Refused while the class body was executing, where the declaration is written."
+"""Appended to every refusal made at declaration time, so the reader knows how far the class got."""
+
+_ASSEMBLED_MOMENT = (
+    " Refused while the capability was assembled: the class body had already executed, so this is the"
+    " first moment at which the operation's own names exist."
+)
+"""Appended to every refusal made at assembly, so the reader is not sent back to the class body."""
 
 class _LazyTypes(Mapping[str, Any]):
     """
@@ -242,7 +251,7 @@ def validate_positional(contract: AspectContract, func: Callable[..., Any]) -> N
         raise AspectSignatureError(
             f"@{contract.kind}: method '{func.__name__}' must be callable with positional arguments; "
             f"the pipeline passes ({passed}) by position, so keyword-only parameters, *args and "
-            f"**kwargs are refused."
+            f"**kwargs are refused." + _DECLARED_MOMENT
         )
     defaulted = [
         name for name, parameter in signature.parameters.items() if parameter.default is not inspect.Parameter.empty
@@ -251,7 +260,7 @@ def validate_positional(contract: AspectContract, func: Callable[..., Any]) -> N
         raise AspectSignatureError(
             f"@{contract.kind}: method '{func.__name__}' must declare every parameter without a default; "
             f"the pipeline always supplies ({passed}), so ({', '.join(defaulted)}) would never use its "
-            f"default and the signature would say something the call does not do."
+            f"default and the signature would say something the call does not do." + _DECLARED_MOMENT
         )
 
 
@@ -270,7 +279,192 @@ def validate_names(contract: AspectContract, func: Callable[..., Any]) -> None:
         f"@{contract.kind}: method '{func.__name__}' must declare its parameters as "
         f"({', '.join(expected)}), got ({', '.join(actual)}). The pipeline hands them over in "
         f"that order and Python binds by position, so a renamed or reordered parameter receives "
-        f"something other than it says." + _context_hint(contract, func, actual)
+        f"something other than it says." + _context_hint(contract, func, actual) + _DECLARED_MOMENT
+    )
+
+
+
+
+
+def validate_annotated(contract: AspectContract, func: Callable[..., Any]) -> None:
+    """
+    Refuse a declaration that leaves a parameter or its return untyped.
+
+    Raises:
+        AspectSignatureError: a parameter other than ``self`` carries no annotation, or the
+            return does.
+    """
+    parameters = inspect.signature(func).parameters
+    bare = [name for name, parameter in parameters.items() if name != "self" and parameter.annotation is inspect.Parameter.empty]
+    if bare:
+        raise AspectSignatureError(
+            f"@{contract.kind}: method '{func.__name__}' must annotate every parameter it receives; "
+            f"({', '.join(bare)}) carry no annotation." + _DECLARED_MOMENT
+        )
+    if inspect.signature(func).return_annotation is inspect.Signature.empty:
+        raise AspectSignatureError(
+            f"@{contract.kind}: method '{func.__name__}' must annotate what it returns "
+            f"({_return_expectation(contract)})." + _DECLARED_MOMENT
+        )
+
+
+def _return_expectation(contract: AspectContract) -> str:
+    """How to describe, in one short phrase, what the return of this kind of declaration must be."""
+    if contract.return_rule == "operation_result":
+        return "the operation's Result"
+    if contract.return_rule == "state_fragment":
+        return "dict[str, Any]"
+    return "None"
+
+
+def _resolved_hints(contract: AspectContract, action_cls: type[Any], func: Callable[..., Any]) -> dict[str, Any]:
+    """Resolve the annotations, letting the operation's own names and its nested types be found."""
+    localns: dict[str, Any] = dict(vars(action_cls))
+    localns[action_cls.__name__] = action_cls
+    leaf = action_cls.__qualname__.rpartition(".")[2]
+    localns[leaf] = action_cls
+    try:
+        return get_type_hints(func, localns=localns)
+    except Exception as exc:  # pylint: disable=broad-except
+        raise AspectSignatureError(
+            f"@{contract.kind}: {action_cls.__name__}.{func.__name__} annotates its signature with names "
+            f"that cannot be resolved ({exc}); the signature is part of the contract, so its annotations "
+            f"must be importable." + _ASSEMBLED_MOMENT
+        ) from exc
+
+
+def _name_of(annotation: Any) -> str:
+    """A readable name for an annotation in a message."""
+    return getattr(annotation, "__name__", None) or str(annotation).replace("typing.", "")
+
+
+def validate_types(contract: AspectContract, action_cls: type[Any], func: Callable[..., Any]) -> None:
+    """
+    Refuse a declaration whose annotations resolve to something the pipeline never hands over.
+
+    Called while the graph is assembled, because ``params`` is annotated with the operation's own
+    ``Params`` — a name that does not exist while its class body runs.
+
+    Raises:
+        AspectSignatureError: an annotation cannot be resolved, names a type the pipeline never
+            hands over, or promises a return the pipeline does not read.
+    """
+    hints = _resolved_hints(contract, action_cls, func)
+    for name, expected in contract.expected_types.items():
+        actual = hints.get(name)
+        if actual is None:
+            continue  # a parameter the declaration does not take (ctx, when no context was asked for)
+        if name == "connections":
+            _validate_connections(contract, action_cls, func, actual)
+        elif name == "state_after":
+            _validate_state_after(contract, action_cls, func, actual)
+        elif name == "error":
+            _validate_error(contract, action_cls, func, actual)
+        elif not (isinstance(actual, type) and issubclass(actual, expected)):
+            raise AspectSignatureError(
+                f"@{contract.kind}: {action_cls.__name__}.{func.__name__} annotates '{name}' as "
+                f"{_name_of(actual)}, but the pipeline hands over ({', '.join(contract.parameters)}) in "
+                f"that order: it must be {_name_of(expected)} or a subclass of it." + _ASSEMBLED_MOMENT
+            )
+    _validate_return(contract, action_cls, func, hints.get("return"))
+
+
+def _validate_connections(
+    contract: AspectContract,
+    action_cls: type[Any],
+    func: Callable[..., Any],
+    actual: Any,
+) -> None:
+    """``connections`` is a mapping of connection keys to resources, not a bare mapping."""
+    from aoa.action_machine.resources.base_resource import BaseResource  # pylint: disable=import-outside-toplevel
+
+    origin = getattr(actual, "__origin__", None)
+    arguments = tuple(getattr(actual, "__args__", ()))
+    well_formed = (
+        origin is dict
+        and len(arguments) == 2
+        and isinstance(arguments[0], type)
+        and issubclass(arguments[0], str)
+        and isinstance(arguments[1], type)
+        and issubclass(arguments[1], BaseResource)
+    )
+    if well_formed:
+        return
+    raise AspectSignatureError(
+        f"@{contract.kind}: {action_cls.__name__}.{func.__name__} annotates 'connections' as "
+        f"{_name_of(actual)}, but it must be dict[str, BaseResource]." + _ASSEMBLED_MOMENT
+    )
+
+
+def _validate_state_after(
+    contract: AspectContract,
+    action_cls: type[Any],
+    func: Callable[..., Any],
+    actual: Any,
+) -> None:
+    """The compensator's ``state_after`` is a state or ``None``: the aspect may not have finished."""
+    from aoa.action_machine.model.base_state import BaseState  # pylint: disable=import-outside-toplevel
+
+    members = set(getattr(actual, "__args__", ())) or {actual}
+    if members == {BaseState, type(None)}:
+        return
+    raise AspectSignatureError(
+        f"@{contract.kind}: {action_cls.__name__}.{func.__name__} annotates 'state_after' as "
+        f"{_name_of(actual)}, but the compensator receives BaseState | None — None when the aspect it "
+        f"compensates did not finish." + _ASSEMBLED_MOMENT
+    )
+
+
+def _validate_error(
+    contract: AspectContract,
+    action_cls: type[Any],
+    func: Callable[..., Any],
+    actual: Any,
+) -> None:
+    """The handler receives the exception it was declared for, so a specific class is true and a non-exception is not."""
+    if isinstance(actual, type) and issubclass(actual, Exception):
+        return
+    raise AspectSignatureError(
+        f"@{contract.kind}: {action_cls.__name__}.{func.__name__} annotates 'error' as "
+        f"{_name_of(actual)}, but the handler receives the exception it was declared for: it must be "
+        f"Exception or a subclass of it." + _ASSEMBLED_MOMENT
+    )
+
+
+def _validate_return(
+    contract: AspectContract,
+    action_cls: type[Any],
+    func: Callable[..., Any],
+    actual: Any,
+) -> None:
+    """The return is checked against what the pipeline does with it."""
+    from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import (  # pylint: disable=import-outside-toplevel
+        ActionSchemaIntentResolver,
+    )
+
+    if contract.return_rule == "operation_result":
+        declared = ActionSchemaIntentResolver.resolve_result_type(action_cls)
+        if isinstance(actual, type) and issubclass(declared, actual):
+            return
+        raise AspectSignatureError(
+            f"@{contract.kind}: {action_cls.__name__}.{func.__name__} annotates its return as "
+            f"{_name_of(actual)}, but a summary answers with the operation's Result — {declared.__name__}."
+            + _ASSEMBLED_MOMENT
+        )
+    if contract.return_rule == "state_fragment":
+        if getattr(actual, "__origin__", None) is dict or actual is dict:
+            return
+        raise AspectSignatureError(
+            f"@{contract.kind}: {action_cls.__name__}.{func.__name__} annotates its return as "
+            f"{_name_of(actual)}, but a regular aspect answers with the state fragment dict[str, Any]."
+            + _ASSEMBLED_MOMENT
+        )
+    if actual is None or actual is type(None):
+        return
+    raise AspectSignatureError(
+        f"@{contract.kind}: {action_cls.__name__}.{func.__name__} annotates its return as "
+        f"{_name_of(actual)}, but a compensator answers with nothing — its return value is ignored."
+        + _ASSEMBLED_MOMENT
     )
 
 

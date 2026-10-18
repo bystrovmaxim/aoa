@@ -1,17 +1,19 @@
 # packages/aoa-demo/src/aoa/demo/model/store/actions/ping.py
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Ctx
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, JsonSchemaValue
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.store.store_domain import StoreDomain
 
 _SAMPLE_AUDIT_SCHEMA: dict[str, object] = {
@@ -49,10 +51,10 @@ class OpsPingAction(BaseAction["OpsPingAction.Params", "OpsPingAction.Result"]):
     async def pong_summary(
         self,
         params: OpsPingAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
-        ctx: object,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+        ctx: ContextView,
     ) -> OpsPingAction.Result:
         return OpsPingAction.Result(
             message="pong",

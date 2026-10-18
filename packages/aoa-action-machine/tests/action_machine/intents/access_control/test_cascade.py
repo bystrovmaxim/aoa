@@ -100,7 +100,7 @@ class PlainAction(BaseAction["PlainAction.Params", "PlainAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: PlainAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: PlainAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> PlainAction.Result:
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1
@@ -131,7 +131,7 @@ class RoleOnlyAction(BaseAction["RoleOnlyAction.Params", "RoleOnlyAction.Result"
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: RoleOnlyAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: RoleOnlyAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> RoleOnlyAction.Result:
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1
@@ -162,7 +162,7 @@ class WhenAction(BaseAction["WhenAction.Params", "WhenAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: WhenAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: WhenAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> WhenAction.Result:
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1
@@ -193,7 +193,7 @@ class GuardAction(BaseAction["GuardAction.Params", "GuardAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: GuardAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: GuardAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> GuardAction.Result:
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1
@@ -224,7 +224,7 @@ class ObjectDeniedAction(BaseAction["ObjectDeniedAction.Params", "ObjectDeniedAc
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: ObjectDeniedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: ObjectDeniedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> ObjectDeniedAction.Result:
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1
@@ -255,7 +255,7 @@ class ObjectCrashAction(BaseAction["ObjectCrashAction.Params", "ObjectCrashActio
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: ObjectCrashAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, Any]
+        self, params: ObjectCrashAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
     ) -> ObjectCrashAction.Result:
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1

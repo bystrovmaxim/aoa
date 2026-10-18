@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.settlement_desks.actions.liquidity_platform_sweep_action import LiquidityPlatformSweepAction
 from aoa.demo.model.settlement_desks.arbitration_judge_role import ArbitrationJudgeRole
 from aoa.demo.model.settlement_desks.settlement_desks_domain import SettlementDesksDomain
@@ -20,9 +21,9 @@ class PacificDeskLiquidityForkAction(LiquidityPlatformSweepAction):
     async def pacific_fork_summary(
         self,
         params: LiquidityPlatformSweepAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> LiquidityPlatformSweepAction.Result:
         _ = (params, state, box, connections)
         return self.Result()

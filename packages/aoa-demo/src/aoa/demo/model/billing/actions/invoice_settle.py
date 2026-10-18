@@ -8,6 +8,7 @@ from typing import Any
 from pydantic import Field
 
 from aoa.action_machine.context import Ctx
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_float, result_string
@@ -19,6 +20,9 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.logging import sensitive
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.resources import BillingReadReplica, BillingWarehouse
 from aoa.demo.model.billing.resources.ledger_archive import LedgerArchiveService, LedgerArchiveServiceResource
@@ -67,10 +71,10 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
     async def validate_invoice_aspect(
         self,
         params: InvoiceSettleAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
-        ctx: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
+        ctx: ContextView,
     ) -> dict[str, Any]:
         return {"validated_invoice": params.invoice_id}
 
@@ -80,9 +84,9 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
     async def capture_aspect(
         self,
         params: InvoiceSettleAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> dict[str, Any]:
         payment = await box.resolve(PaymentGatewayResource)
         cents = float(params.gross_cents)
@@ -93,10 +97,10 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
     async def capture_compensate(
         self,
         params: InvoiceSettleAction.Params,
-        state_before: Any,
-        state_after: Any,
-        box: Any,
-        connections: Any,
+        state_before: BaseState,
+        state_after: BaseState | None,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> None:
         if state_after is not None:
@@ -108,11 +112,11 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
     async def validation_error_on_error(
         self,
         params: InvoiceSettleAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
         error: ValueError,
-        ctx: Any,
+        ctx: ContextView,
     ) -> InvoiceSettleAction.Result:
         return InvoiceSettleAction.Result(
             settlement_id="ERR",
@@ -124,9 +128,9 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
     async def unexpected_error_on_error(
         self,
         params: InvoiceSettleAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
         error: Exception,
     ) -> InvoiceSettleAction.Result:
         return InvoiceSettleAction.Result(
@@ -139,9 +143,9 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
     async def build_result_summary(
         self,
         params: InvoiceSettleAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> InvoiceSettleAction.Result:
         return InvoiceSettleAction.Result(
             settlement_id="STL-BILL-1",

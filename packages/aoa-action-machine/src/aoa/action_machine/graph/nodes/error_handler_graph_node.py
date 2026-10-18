@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
+from aoa.action_machine.intents.aspects.aspect_signature import ASPECT_CONTRACTS, validate_types
 from aoa.action_machine.intents.on_error.on_error_intent_resolver import OnErrorIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -37,6 +38,7 @@ class ErrorHandlerGraphNode(BaseGraphNode[Callable[..., Any]]):
     NODE_TYPE: ClassVar[str] = "ErrorHandler"
 
     def __init__(self, handler_func: Callable[..., Any], _action_cls: type[Any]) -> None:
+        validate_types(ASPECT_CONTRACTS["on_error"], _action_cls, handler_func)
         method_name = TypeIntrospection.unwrapped_callable_name(handler_func)
         action_id = TypeIntrospection.full_qualname(_action_cls)
         desc = OnErrorIntentResolver.resolve_description(handler_func)

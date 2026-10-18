@@ -97,7 +97,15 @@ class TestCompensateDecoratorSuccess:
         Decorator returns the same function object (not a wrapper).
         """
 
-        async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
+        async def rollback_compensate(
+            self,
+            params: BaseParams,
+            state_before: BaseState,
+            state_after: BaseState | None,
+            box: ToolsBox,
+            connections: dict[str, BaseResource],
+            error: Exception,
+        ) -> None:
             pass
 
         decorated = compensate(_stub_aspect, "Description")(rollback_compensate)
@@ -117,7 +125,15 @@ class TestCompensateTargetErrors:
         with pytest.raises(TypeError, match="target_aspect must be a callable"):
 
             @compensate(123, "Description")
-            async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
+            async def rollback_compensate(
+            self,
+            params: BaseParams,
+            state_before: BaseState,
+            state_after: BaseState | None,
+            box: ToolsBox,
+            connections: dict[str, BaseResource],
+            error: Exception,
+        ) -> None:
                 pass
 
     def test_target_aspect_callable_without_name(self) -> None:
@@ -130,7 +146,15 @@ class TestCompensateTargetErrors:
         with pytest.raises(TypeError, match="target_aspect must have __name__"):
 
             @compensate(_NoName(), "Description")
-            async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
+            async def rollback_compensate(
+            self,
+            params: BaseParams,
+            state_before: BaseState,
+            state_after: BaseState | None,
+            box: ToolsBox,
+            connections: dict[str, BaseResource],
+            error: Exception,
+        ) -> None:
                 pass
 
 
@@ -147,7 +171,15 @@ class TestCompensateDescriptionErrors:
         with pytest.raises(TypeError, match="description must be a string"):
 
             @compensate(_stub_aspect, 123)
-            async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
+            async def rollback_compensate(
+            self,
+            params: BaseParams,
+            state_before: BaseState,
+            state_after: BaseState | None,
+            box: ToolsBox,
+            connections: dict[str, BaseResource],
+            error: Exception,
+        ) -> None:
                 pass
 
     def test_description_empty_string(self) -> None:
@@ -155,7 +187,15 @@ class TestCompensateDescriptionErrors:
         with pytest.raises(ValueError, match="description cannot be empty"):
 
             @compensate(_stub_aspect, "")
-            async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
+            async def rollback_compensate(
+            self,
+            params: BaseParams,
+            state_before: BaseState,
+            state_after: BaseState | None,
+            box: ToolsBox,
+            connections: dict[str, BaseResource],
+            error: Exception,
+        ) -> None:
                 pass
 
     def test_description_whitespace_only(self) -> None:
@@ -163,7 +203,15 @@ class TestCompensateDescriptionErrors:
         with pytest.raises(ValueError, match="description cannot be empty"):
 
             @compensate(_stub_aspect, "   ")
-            async def rollback_compensate(self, params, state_before, state_after, box, connections, error):
+            async def rollback_compensate(
+            self,
+            params: BaseParams,
+            state_before: BaseState,
+            state_after: BaseState | None,
+            box: ToolsBox,
+            connections: dict[str, BaseResource],
+            error: Exception,
+        ) -> None:
                 pass
 
 

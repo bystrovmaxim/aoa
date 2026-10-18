@@ -1,8 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/messaging/actions/queue_depth_probe.py
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
@@ -10,6 +8,9 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, JsonSchemaValue
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.messaging.domain import MessagingDomain
 
 _SAMPLE_AUDIT_SCHEMA: dict[str, object] = {
@@ -46,9 +47,9 @@ class QueueDepthProbeAction(BaseAction["QueueDepthProbeAction.Params", "QueueDep
     async def probe_summary(
         self,
         params: QueueDepthProbeAction.Params,
-        state: Any,
-        box: Any,
-        connections: Any,
+        state: BaseState,
+        box: ToolsBox,
+        connections: dict[str, BaseResource],
     ) -> QueueDepthProbeAction.Result:
         return QueueDepthProbeAction.Result(
             depth=len(params.queue_name) % 5,

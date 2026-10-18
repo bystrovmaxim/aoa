@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -12,6 +10,9 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.logistics_mesh.actions.cross_dock_relay_adapter_action import CrossDockRelayAdapterAction
 from aoa.demo.model.logistics_mesh.actions.facility_corridor_relay_third_leg_action import (
     FacilityCorridorRelayThirdLegAction,
@@ -45,7 +46,7 @@ class MarshallingYardFacilityConcourseAction(
         synced: bool = Field(default=False, description="Orchestration sync acknowledgement")
 
     @summary_aspect("Marshalling concourse weave")
-    async def concourse_summary(self, params: Params, state: Any, box: Any, connections: Any) -> Result:
+    async def concourse_summary(self, params: Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> Result:
         _ = (params, state, box, connections)
         await box.run(
             FacilityCorridorRelayThirdLegAction,

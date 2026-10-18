@@ -48,7 +48,7 @@ async def create_order_summary(
 | `box` | `ToolsBox` | |
 | `connections` | `dict[str, BaseResource]` | a bare `dict` or `dict[str, Any]` is refused |
 | `ctx` | `ContextView` | only when context was declared |
-| `error` | `Exception` | a narrower class is refused: any exception can arrive |
+| `error` | `Exception` or the class the handler declares | the executor dispatches per declared type, so a `ValueError` handler never receives a `TypeError`; a non-exception annotation is refused |
 | `state_before` (`@compensate` only) | `BaseState` | |
 | `state_after` (`@compensate` only) | `BaseState \| None` | `None` when the compensated aspect did not finish |
 
