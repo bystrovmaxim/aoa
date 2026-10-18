@@ -82,12 +82,17 @@ pip install aoa-ocel
 The data flow: an aspect returns `list[OcelFrame]` → on `GlobalFinishEvent` `OcelPlugin` assembles an `OcelEvent` (with E2O links and object attributes) → writes it to the store. The aspect puts "frames" into `state` under the key `OCEL_FRAMES_KEY`; each `OcelFrame(object=entity, qualifier="...")` links the operation-event to a domain object:
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.ocel import OCEL_FRAMES_KEY, OcelFrame, OcelPlugin, InMemoryOcelStoreResource
 
 @regular_aspect("Validation")
 @result_string("validated_id", required=True)
 @result_instance(OCEL_FRAMES_KEY, list, required=False)
-async def validate_aspect(self, params, state, box, connections):
+async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     order = OrderEntity(id=params.order_id)
     return {
         "validated_id": params.order_id,

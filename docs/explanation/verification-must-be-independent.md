@@ -87,17 +87,21 @@ Phase 1 never disappeared. It retreated into places where being wrong is cheap: 
 **The practice.** The admissible shape of the solution is not described in prose but declared in code, in a form the runtime itself enforces. A business operation is an `Action`: a class with typed input and output, a declared domain, a declared access rule, a linear pipeline of steps, declared dependencies, and declared postconditions for every step.
 
 ```python
+from typing import Any
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @meta(description="Create order draft", domain=OrderDomain)
 @check_roles(GuestRole)
 class CreateDraftAction(BaseAction[CreateDraftParams, CreateDraftResult]):
 
     @regular_aspect("Normalise SKU")
     @result_string("sku", required=True, min_length=3)
-    async def normalise_aspect(self, params, state, box, connections):
+    async def normalise_aspect(self, params: CreateDraftParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         return {"sku": params.raw_sku.strip().upper()}
 
     @summary_aspect("Build draft result")
-    async def build_summary(self, params, state, box, connections):
+    async def build_summary(self, params: CreateDraftParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CreateDraftResult:
         return CreateDraftResult(sku=state["sku"])
 ```
 

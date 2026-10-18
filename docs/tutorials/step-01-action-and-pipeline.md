@@ -35,6 +35,9 @@ The code assumes fluency in Python: decorators, `async`/`await`, and [Pydantic](
 Let's start with an operation that does nothing useful — it prints a line and returns an empty stub. Its value is elsewhere: it shows the minimum of declarations AOA requires before it will run anything at all.
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 class GreetingDomain(BaseDomain):
     name = "greeting"
     description = "Greetings domain"
@@ -45,7 +48,7 @@ class GreetingDomain(BaseDomain):
 class SayHelloAction(BaseAction[ParamsStub, ResultStub]):
 
     @summary_aspect("Print greeting and return stub")
-    async def output_summary(self, params, state, box, connections):
+    async def output_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ResultStub:
         print("Hello, world!")
         return ResultStub()
 ```
@@ -90,6 +93,9 @@ The takeaway is worth stating plainly. Even an empty operation already carries a
 Stubs are fine for introductions; a real operation works with data. Let's give it an input and an output — and at the same time swap `print` for the instrument operations in AOA use to speak with the outside world.
 
 ```python
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 class GreetParams(BaseParams):
     name: str = Field(description="Name of the person to greet")
 
@@ -103,7 +109,7 @@ class GreetResult(BaseResult):
 class GreetPersonAction(BaseAction[GreetParams, GreetResult]):
 
     @summary_aspect("Build greeting and return result")
-    async def greet_summary(self, params, state, box, connections):
+    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> GreetResult:
         await box.info(
             Channel.business,
             "Greeting: Hello, {%var.name|cyan}!",
@@ -155,25 +161,29 @@ One step is rarely enough. Usually there are several, and intermediate data must
 A pipeline step is called an **aspect**. There are two kinds: intermediate (`@regular_aspect`) and terminal (`@summary_aspect`).
 
 ```python
+from typing import Any
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @meta(description="Process input string through multiple steps", domain=ProcessingDomain)
 @check_roles(GuestRole)
 class ProcessInputAction(BaseAction[ProcessParams, ProcessResult]):
 
     @regular_aspect("Step 1: Strip whitespace and lowercase")
     @result_string("cleaned", required=True)
-    async def validate_aspect(self, params, state, box, connections):
+    async def validate_aspect(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         cleaned = params.raw_input.strip().lower()
         return {"cleaned": cleaned}
 
     @regular_aspect("Step 2: Enrich data")
     @result_string("cleaned", required=True)
     @result_string("enriched", required=True)
-    async def enrich_aspect(self, params, state, box, connections):
+    async def enrich_aspect(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
         enriched = f"enriched::{state['cleaned']}"
         return {"cleaned": state["cleaned"], "enriched": enriched}
 
     @summary_aspect("Step 3: Assemble final result")
-    async def assemble_summary(self, params, state, box, connections):
+    async def assemble_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ProcessResult:
         return ProcessResult(
             cleaned=state["cleaned"],
             enriched=state["enriched"],

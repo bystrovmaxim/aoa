@@ -7,8 +7,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.context import Ctx
-from aoa.action_machine.context.context_view import ContextView
+from aoa.action_machine.context import ContextView, Ctx
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_string
@@ -19,9 +18,8 @@ from aoa.action_machine.intents.depends import depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.logging import sensitive
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.resources import MessagingDeadLetterStore, OutboxPrimaryDatabase
@@ -110,7 +108,7 @@ class PublishTransactionalOutboxAction(
     ) -> None:
         if state_after is not None:
             notifier = await box.resolve(NotificationGatewayResource)
-            await notifier.service.send(f"UNDO:{state_after.outbound_id}")
+            await notifier.service.send(f"UNDO:{state_after.outbound_id}")  # type: ignore[attr-defined]
 
     @on_error(ValueError, description="Envelope validation failed")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
@@ -153,7 +151,7 @@ class PublishTransactionalOutboxAction(
         connections: dict[str, BaseResource],
     ) -> PublishTransactionalOutboxAction.Result:
         return PublishTransactionalOutboxAction.Result(
-            outbound_id=state.outbound_id,
-            smtp_receipt=state.smtp_receipt,
+            outbound_id=state.outbound_id,  # type: ignore[attr-defined]
+            smtp_receipt=state.smtp_receipt,  # type: ignore[attr-defined]
             status="published",
         )

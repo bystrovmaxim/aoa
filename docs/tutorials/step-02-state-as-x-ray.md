@@ -42,6 +42,11 @@ Below we walk this path from the beginning: first we establish what counts as a 
 A checker is a verifiable promise on an aspect's output: which field must appear in `state`, what type it is, and what constraints it obeys. A single aspect can declare its whole output contract at once — a stack of decorators above the method.
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Validate and normalise all order fields")
 @result_string("order_id", required=True, min_length=5, max_length=20)
 @result_int("quantity", required=True, min_value=1, max_value=999)
@@ -50,7 +55,7 @@ A checker is a verifiable promise on an aspect's output: which field must appear
 @result_date("delivery_date", required=True, date_format="%Y-%m-%d", min_date=datetime(2024, 1, 1))
 @result_instance("customer", CustomerProfile, required=True, no_none=True, value_check=lambda c: c.is_active)
 @result_string("coupon_code", required=False)
-async def validate_aspect(self, params, state, box, connections):
+async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     result: dict = {
         "order_id": params.order_id.strip().upper(),
         "quantity": params.quantity,
@@ -71,8 +76,13 @@ Constraints like `min_length` or `max_value` are optional. Even a bare `@result_
 What this buys you is visible in the next aspect. The terminal step receives an already-checked state and simply assembles the result, re-verifying nothing:
 
 ```python
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseResult
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @summary_aspect("Assemble validated order result")
-async def assemble_summary(self, params, state, box, connections):
+async def assemble_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
     total = round(state["quantity"] * state["unit_price"], 2)
     has_coupon = "coupon_code" in state
     await box.info(
@@ -115,16 +125,21 @@ The first run is with a coupon, the second without. And here a subtlety is worth
 Now to the property of `state` we noticed in the previous chapter but did not explain. `state` is not a shared basket where aspects pile up their goods. Each regular aspect receives a snapshot of state on input and returns a new, independent snapshot for the next one. A snapshot is a self-contained copy of the data at the moment the step finished; later steps do not touch it.
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Step 1: Normalise SKU")
 @result_string("sku", required=True, min_length=3)
-async def normalise_aspect(self, params, state, box, connections):
+async def normalise_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     return {"sku": params.raw_sku.strip().upper()}
 
 
 @regular_aspect("Step 2: Validate quantity and forward SKU")
 @result_string("sku", required=True)
 @result_int("quantity", required=True, min_value=1, max_value=100)
-async def validate_quantity_aspect(self, params, state, box, connections):
+async def validate_quantity_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     return {
         "sku": state["sku"],
         "quantity": params.quantity,
@@ -156,10 +171,15 @@ sku='ABC-001', quantity=5, line_total=500
 Theory is worth testing on a broken case. Here is an aspect that promises a required `sku` but returns only `quantity`:
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Intentionally broken step")
 @result_string("sku", required=True)
 @result_int("quantity", required=True, min_value=1)
-async def broken_aspect(self, params, state, box, connections):
+async def broken_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     return {"quantity": params.quantity}
 ```
 
@@ -191,11 +211,16 @@ A contract protects not only a single aspect — it also protects the rebuilding
 Picture a working chain: an aspect normalizes the item, the terminal step assembles the result. Between them a new step needs to go in — notify an operator, write diagnostics, prepare data for a neighboring system. It must not change the business state. But it stands in the middle, and its output dictionary becomes the input for the terminal step — so it is obliged to return the same contract the code that follows expects.
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 # Before: data flows straight into summary
 @regular_aspect("Normalise item")
 @result_string("sku", required=True, min_length=3)
 @result_int("quantity", required=True, min_value=1)
-async def normalise_aspect(self, params, state, box, connections):
+async def normalise_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     return {"sku": params.raw_sku.strip().upper(), "quantity": params.quantity}
 
 
@@ -203,7 +228,7 @@ async def normalise_aspect(self, params, state, box, connections):
 @regular_aspect("Inform operator without changing business state")
 @result_string("sku", required=True, min_length=3)
 @result_int("quantity", required=True, min_value=1)
-async def inform_aspect(self, params, state, box, connections):
+async def inform_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     # This could be a notification, an audit entry, a debug event.
     # But for the next step this aspect must be transparent.
     return {"sku": state["sku"], "quantity": state["quantity"]}
@@ -370,10 +395,15 @@ An x-ray is good exactly as long as it does not show too much. Some fields are n
 For this, every checker has `opaque=True`.
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Validate order and mint payment token")
 @result_string("order_id", required=True, min_length=3)
 @result_string("payment_token", required=True, opaque=True)
-async def payment_aspect(self, params, state, box, connections):
+async def payment_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     token = f"tok_live_{params.card_last4}_{'x' * 16}"
     return {
         "order_id": params.order_id.upper(),
@@ -443,12 +473,17 @@ from aoa.action_machine.exceptions.validation_field_error import ValidationField
 A contract is assembled from several `@result_*` decorators — one per field.
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Multi-field step")
 @result_string("name", required=True, min_length=2)
 @result_int("age", required=True, min_value=0, max_value=150)
 @result_bool("is_verified", required=True)
 @result_string("nickname", required=False)
-async def some_aspect(self, params, state, box, connections):
+async def some_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     ...
 ```
 

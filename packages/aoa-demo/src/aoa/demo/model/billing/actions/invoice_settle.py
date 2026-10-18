@@ -7,8 +7,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.context import Ctx
-from aoa.action_machine.context.context_view import ContextView
+from aoa.action_machine.context import ContextView, Ctx
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_float, result_string
@@ -19,9 +18,8 @@ from aoa.action_machine.intents.depends import depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.logging import sensitive
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.resources import BillingReadReplica, BillingWarehouse
@@ -105,7 +103,7 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
     ) -> None:
         if state_after is not None:
             payment = await box.resolve(PaymentGatewayResource)
-            await payment.service.refund(state_after.capture_txn)
+            await payment.service.refund(state_after.capture_txn)  # type: ignore[attr-defined]
 
     @on_error(ValueError, description="Invoice validation failed")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
@@ -149,6 +147,6 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
     ) -> InvoiceSettleAction.Result:
         return InvoiceSettleAction.Result(
             settlement_id="STL-BILL-1",
-            capture_txn=state.capture_txn,
+            capture_txn=state.capture_txn,  # type: ignore[attr-defined]
             status="settled",
         )
