@@ -65,10 +65,15 @@ machine = ActionProductMachine(plugins=[OcelPlugin(store=store, short_names=True
 `OcelPlugin` turns operation runs into an object-centric event log. An aspect that wants to participate in process mining returns `OcelFrame` rows under the key `OCEL_FRAMES_KEY`; the plugin serializes them, and the store (`InMemoryOcelStoreResource`) writes JSON on `close()`:
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Validation")
 @result_string("validated_id", required=True)
 @result_instance(OCEL_FRAMES_KEY, list, required=False)
-async def validate_aspect(self, params, state, box, connections):
+async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
     order = OrderEntity(id=params.order_id)
     return {
         "validated_id": params.order_id,

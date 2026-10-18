@@ -247,7 +247,9 @@ def validate_positional(contract: AspectContract, func: Callable[..., Any]) -> N
     """
     passed = ", ".join(contract.parameters)
     signature = inspect.signature(func)
-    if func.__code__.co_kwonlyargcount or func.__code__.co_flags & inspect.CO_VARARGS or func.__code__.co_flags & inspect.CO_VARKEYWORDS:
+    kinds = {parameter.kind for parameter in signature.parameters.values()}
+    not_positional = kinds & {inspect.Parameter.KEYWORD_ONLY, inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD}
+    if not_positional:
         raise AspectSignatureError(
             f"@{contract.kind}: method '{func.__name__}' must be callable with positional arguments; "
             f"the pipeline passes ({passed}) by position, so keyword-only parameters, *args and "

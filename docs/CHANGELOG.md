@@ -1,5 +1,38 @@
 # Changelog
 
+## [2026-10-18] — A declaration says what it receives
+
+The four methods the machine calls itself — the regular step, the exit point, the error handler
+and the rollback — now declare their signature the way the machine calls them: `params`, `state`,
+`box`, `connections`, in that order, then `error` for a handler, then a trailing `ctx` only when
+the context was asked for. Rename one of them and the class no longer builds; the refusal names
+the order the pipeline uses and the order that was written, and says why the order is fixed —
+the values are passed by position, so a renamed parameter would quietly receive something else.
+
+Every one of those parameters now carries a type, and so does the answer. The shape is checked
+where the method is written; the types are checked when the operation is assembled, because
+`params` is the operation's own `Params` and does not exist before then. A regular step returns
+the state fragment, a rollback returns nothing, and the exit point returns the operation's
+`Result` — or a supertype of it, so `BaseResult` is fine and `Any` is not.
+
+An operation answers once. Two exit points are now refused as what they are, naming both methods;
+before this change the second one surfaced as a graph error about a node that was never written.
+And the answer itself is compared with the declared `Result` twice: the annotation when the
+operation is assembled, and the returned value when the operation runs, so a method that promises
+one thing and returns another is caught rather than handed back to the caller as the operation's
+result.
+
+The three errors are new names in the public exception namespace: `AspectSignatureError` for the
+signature, `DuplicateSummaryAspectError` for a second exit point, and `ActionResultTypeError` —
+which existed, was exported and had never been raised — for an answer that is not the operation's
+`Result`.
+
+Every example, notebook and page in this repository was migrated to the contract, because a
+framework cannot ship declarations its own rules refuse. The
+[reference page](reference/intents-and-invariants.md) states the contract, and
+[`examples/step_01_Action_and_pipeline/05_aspect_declarations.py`](../examples/step_01_Action_and_pipeline/05_aspect_declarations.py)
+runs each refusal — script and notebook — so the cases can be read and executed side by side.
+
 ## [2026-10-08] — Access lives in the declaration
 
 An operation can now state who may call it, which restrictions apply to every call, and what

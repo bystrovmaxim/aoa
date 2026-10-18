@@ -7,8 +7,7 @@ from typing import Any
 
 from pydantic import Field
 
-from aoa.action_machine.context import Ctx
-from aoa.action_machine.context.context_view import ContextView
+from aoa.action_machine.context import ContextView, Ctx
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_float, result_string
@@ -19,9 +18,8 @@ from aoa.action_machine.intents.depends import depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.logging import sensitive
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.billing.resources.payment_gateway import PaymentGateway, PaymentGatewayResource
 from aoa.demo.model.messaging.resources.notification_gateway import NotificationGatewayResource
@@ -99,7 +97,7 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
     ) -> None:
         if state_after is not None:
             payment = await box.resolve(PaymentGatewayResource)
-            await payment.service.refund(state_after.txn_id)
+            await payment.service.refund(state_after.txn_id)  # type: ignore[attr-defined]
 
     @on_error(ValueError, description="Validation branch")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
@@ -135,6 +133,6 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
     ) -> CheckoutSubmitAction.Result:
         return CheckoutSubmitAction.Result(
             order_id="ORD-SAMPLE-1",
-            txn_id=state.txn_id,
+            txn_id=state.txn_id,  # type: ignore[attr-defined]
             status="created",
         )

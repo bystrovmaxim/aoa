@@ -40,6 +40,8 @@ A dictionary dispatcher is enough to demonstrate a transport boundary. Its handl
 [Python](../../examples/how_to/01_custom_adapter.py) · [Notebook](../../examples/how_to/01_custom_adapter.ipynb)
 
 ```python
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.runtime.tools_box import ToolsBox
 import asyncio
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -176,7 +178,7 @@ class GreetAction(BaseAction[GreetParams, GreetResult]):
     """Build a greeting using the supplied resource."""
 
     @summary_aspect("Build greeting")
-    async def greet_summary(self, params, state, box, connections):
+    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> GreetResult:
         """Combine the prefix and requested name."""
         prefix = connections["greeting"].prefix()
         return GreetResult(message=f"{prefix}, {params.name}!")

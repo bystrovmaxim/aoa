@@ -46,9 +46,15 @@ This is rich information — and that is exactly why access to it is rationed.
 Without `@context_requires` an aspect does not get the context at all — it has neither a parameter for it nor a loophole (`box` does not hold the context). This is a deliberate least access: only what is declared is visible. The declaration changes the aspect's signature — a last parameter `ctx` is added:
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.context import ContextView
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Audit who placed the order and from which trace")
 @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
-async def audit_aspect(self, params, state, box, connections, ctx):
+async def audit_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> dict[str, Any]:
     user_id = ctx.get(Ctx.User.user_id)
     trace_id = ctx.get(Ctx.Request.trace_id)
     ...
@@ -125,9 +131,15 @@ class AppContext(Context):
 An aspect declares the needed keys via `@context_requires("env.<key>")` and reads them via `ctx.get(...)` — just like any other environment field:
 
 ```python
+from typing import Any
+from aoa.action_machine.model import BaseParams
+from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseState
+from aoa.action_machine.context import ContextView
+from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Apply regional settings")
 @context_requires("env.region", "env.max_retries")
-async def config_aspect(self, params, state, box, connections, ctx):
+async def config_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> dict[str, Any]:
     region = ctx.get("env.region")        # "eu-west-1"
     retries = ctx.get("env.max_retries")  # 3
     ...

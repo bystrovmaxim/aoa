@@ -14,37 +14,38 @@
 | Tree | Files | Declarations | Conforming | Non-conforming | of them asserted refusals | to migrate |
 | --- | --- | --- | --- | --- | --- | --- |
 | packages (**/*.py) | 1217 | 375 | 359 | **16** | 16 | 0 |
-| examples (**/*.py) | 156 | 163 | 163 | **0** | 0 | 0 |
-| examples (**/*.ipynb) | 154 | 158 | 158 | **0** | 0 | 0 |
-| docs (**/*.md, ```python blocks) | 86 | 99 | 1 | **98** | 0 | 98 |
-| **total** | | **795** | **681** | **114** | **16** | **98** |
+| examples (**/*.py) | 157 | 171 | 168 | **3** | 3 | 0 |
+| examples (**/*.ipynb) | 155 | 166 | 163 | **3** | 3 | 0 |
+| docs (**/*.md, ```python blocks) | 86 | 99 | 98 | **1** | 1 | 0 |
+| **total** | | **811** | **788** | **23** | **23** | **0** |
 
 | Declaration | Total | Non-conforming |
 | --- | --- | --- |
-| `@summary_aspect` | 537 | 66 |
-| `@regular_aspect` | 187 | 35 |
-| `@on_error` | 30 | 4 |
-| `@compensate` | 41 | 9 |
+| `@summary_aspect` | 551 | 8 |
+| `@regular_aspect` | 189 | 6 |
+| `@on_error` | 30 | 1 |
+| `@compensate` | 41 | 8 |
 
 | Fault | Declarations |
 | --- | --- |
-| names | 6 |
-| annotations | 112 |
-| return | 101 |
-| positional | 0 |
+| names | 9 |
+| annotations | 18 |
+| return | 12 |
+| positional | 2 |
 
 Fault combinations (a declaration can carry several):
 
 | Combination | Declarations |
 | --- | --- |
-| none | 681 |
-| annotations+return | 95 |
-| annotations | 12 |
+| none | 788 |
+| annotations | 7 |
+| annotations+return | 6 |
 | names+annotations+return | 5 |
+| names | 2 |
+| names+positional | 2 |
 | return | 1 |
-| names | 1 |
 
-Notebooks carrying declarations: 76
+Notebooks carrying declarations: 77
 
 - `examples/domain_model/01_domain_model.ipynb`
 - `examples/extensions/01_opentelemetry.ipynb`
@@ -59,6 +60,7 @@ Notebooks carrying declarations: 76
 - `examples/step_01_Action_and_pipeline/02_params_result_and_box.ipynb`
 - `examples/step_01_Action_and_pipeline/03_multiple_aspects.ipynb`
 - `examples/step_01_Action_and_pipeline/04_inheritance.ipynb`
+- `examples/step_01_Action_and_pipeline/05_aspect_declarations.ipynb`
 - `examples/step_02_state_as_x-ray_of_the_operation/01_checkers.ipynb`
 - `examples/step_02_state_as_x-ray_of_the_operation/02_independent_state.ipynb`
 - `examples/step_02_state_as_x-ray_of_the_operation/03_contract_violation.ipynb`
@@ -153,35 +155,6 @@ Documentation pages carrying declarations: 26
 - `docs/tutorials/step-19-resource.ru_draft.md`
 
 Files to migrate
-
-### docs (**/*.md, ```python blocks) (26 files)
-
-- `docs/explanation/system-altitudes.md` — 2 fault(s)
-- `docs/explanation/verification-must-be-independent.md` — 4 fault(s)
-- `docs/explanation/verification-must-be-independent_draft.md` — 4 fault(s)
-- `docs/extensions/langgraph.md` — 2 fault(s)
-- `docs/extensions/ocel.md` — 2 fault(s)
-- `docs/how-to/authoring-action.md` — 8 fault(s)
-- `docs/how-to/authoring-adapter.md` — 2 fault(s)
-- `docs/how-to/authoring-adapter.ru_draft.md` — 2 fault(s)
-- `docs/how-to/authoring-context-extension.md` — 2 fault(s)
-- `docs/how-to/migrating-legacy.md` — 12 fault(s)
-- `docs/reference/intents-and-invariants.md` — 4 fault(s)
-- `docs/reference/intents-and-invariants.ru_draft.md` — 4 fault(s)
-- `docs/research/environment-context-port.md` — 5 fault(s)
-- `docs/tutorials/step-01-action-and-pipeline.md` — 10 fault(s)
-- `docs/tutorials/step-02-state-as-x-ray.md` — 18 fault(s)
-- `docs/tutorials/step-03-authorization-and-roles.md` — 38 fault(s)
-- `docs/tutorials/step-03-authorization-and-roles.ru_draft.md` — 38 fault(s)
-- `docs/tutorials/step-04-saga-and-compensations.md` — 6 fault(s)
-- `docs/tutorials/step-05-error-handling.md` — 8 fault(s)
-- `docs/tutorials/step-06-dependencies.md` — 4 fault(s)
-- `docs/tutorials/step-07-context.md` — 4 fault(s)
-- `docs/tutorials/step-09-plugins.md` — 2 fault(s)
-- `docs/tutorials/step-17-connections.md` — 2 fault(s)
-- `docs/tutorials/step-17-connections.ru_draft.md` — 2 fault(s)
-- `docs/tutorials/step-19-resource.md` — 2 fault(s)
-- `docs/tutorials/step-19-resource.ru_draft.md` — 2 fault(s)
 ```
 
 
@@ -190,9 +163,9 @@ Files to migrate
 | Tree | Before | After | What moved it |
 | --- | --- | --- | --- |
 | `packages/` | 80 non-conforming, 19 deliberate | 16 non-conforming, all deliberate | phase 3 migrated 61 by codemod and by renaming a parameter in place; phase 4 replaced 256 `Any` annotations with the contract types |
-| `examples/**/*.py` | 163 non-conforming | 0 | 163 declarations: 160 by the same codemod, 3 renamed (`p, s, b, c`), and the dotted annotations of the classes under construction quoted, because those files carry no `from __future__ import annotations` |
-| `examples/**/*.ipynb` | 158 non-conforming | 0 | 86 code cells across 73 notebooks, cell by cell; one notebook (`how_to/02_custom_auth_coordinator.ipynb`) was left untouched because it splits a single import across two cells and holds no aspect declarations |
-| `docs/**/*.md` | 98 non-conforming | 98 | **not migrated yet** — the documentation step (T039) is where they go, after the check run, per principle VI |
+| `examples/**/*.py` | 163 non-conforming | 3, all in the new declaration example and marked deliberate | 163 declarations: 160 by the same codemod, 3 renamed (`p, s, b, c`), and the dotted annotations of the classes under construction quoted, because those files carry no `from __future__ import annotations` |
+| `examples/**/*.ipynb` | 158 non-conforming | 3, the same cases in its notebook twin | 86 code cells across 73 notebooks, cell by cell; one notebook (`how_to/02_custom_auth_coordinator.ipynb`) was left untouched because it splits a single import across two cells and holds no aspect declarations |
+| `docs/**/*.md` | 98 non-conforming | 1, marked deliberate | the documentation step (T039): 78 blocks migrated, and the one remaining block is a research sketch that says in a comment what it is |
 
 The 16 that remain in `packages/` are the tests of the rule: each lives inside a `pytest.raises`
 block that asserts the refusal it demonstrates. The file lists them by path and line.
@@ -219,3 +192,20 @@ after:  156 scripts, 150 exit 0, 6 non-zero
 The scan judges the declaration's shape and the presence of annotations. It does not resolve the
 types — that needs the operation assembled, and it is covered by the suites (2617 engine tests plus
 674 across the other packages, all passing after this phase).
+
+## Two markers a documentation block can carry
+
+A documentation snippet has no test around it, so the scan cannot tell a mistake from an
+explanation of a mistake by looking at the code. Rather than let those blocks sit in the scan's
+"to migrate" column for ever, the scan reads two comments a block can carry:
+
+```python
+# expected-refusal: NamingSuffixError   — the block demonstrates a refusal on purpose
+# design sketch: ...                    — the block is a proposed API, not the current one
+```
+
+A block carrying either is counted with the deliberate refusals, never as work left undone — and the
+same marker works in Python, within eight lines of the declaration, which is how the seven cases of
+`examples/step_01_Action_and_pipeline/05_aspect_declarations.py` and of its notebook say what they are. That
+is the same principle the pytest fixtures follow: a declaration that is wrong says so, in the
+place where it is wrong, in words a machine can read.

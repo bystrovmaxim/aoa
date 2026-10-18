@@ -117,6 +117,16 @@ def _faults(record: dict[str, object]) -> list[str]:
     return out
 
 
+DELIBERATE_MARKERS = ("# expected-refusal:", "# design sketch:")
+
+
+def _marked_deliberate(source: str, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """Whether the declaration says in a nearby comment that it is wrong on purpose."""
+    lines = source.splitlines()
+    window = "\n".join(lines[max(0, node.lineno - 8) : node.end_lineno])
+    return any(marker in window for marker in DELIBERATE_MARKERS)
+
+
 def _asserted_refusal(tree: ast.AST, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     """Whether the declaration sits inside a ``pytest.raises`` block, i.e. the refusal is the point."""
     for candidate in ast.walk(tree):
@@ -147,7 +157,7 @@ def _scan_source(source: str, where: str) -> list[dict[str, object]]:
         record["where"] = where
         record["line"] = node.lineno
         record["faults"] = _faults(record)
-        record["asserted"] = _asserted_refusal(tree, node)
+        record["asserted"] = _asserted_refusal(tree, node) or _marked_deliberate(source, node)
         found.append(record)
     return found
 
@@ -188,13 +198,22 @@ def _scan_notebooks(root: pathlib.Path) -> tuple[list[dict[str, object]], int]:
     return records, len(files)
 
 
+def _declares_its_intent(block: str) -> bool:
+    """Whether a documentation block says in a comment that its declarations are not meant to comply."""
+    return any(marker in block for marker in DELIBERATE_MARKERS)
+
+
 def _scan_docs(root: pathlib.Path) -> tuple[list[dict[str, object]], int]:
     records: list[dict[str, object]] = []
     files = _doc_files(root)
     for path in files:
         text = path.read_text(encoding="utf-8", errors="ignore")
         for block in re.findall(r"```python\n(.*?)```", text, re.S):
-            records.extend(_scan_source(block, str(path)))
+            scanned = _scan_source(block, str(path))
+            if _declares_its_intent(block):
+                for record in scanned:
+                    record["asserted"] = True
+            records.extend(scanned)
     return records, len(files)
 
 
