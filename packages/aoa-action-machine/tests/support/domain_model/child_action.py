@@ -51,7 +51,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from .domains import SystemDomain
@@ -89,7 +89,7 @@ class ChildAction(BaseAction["ChildAction.Params", "ChildAction.Result"]):
         params: "ChildAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict:
         """
         Prefix "processed:" to params.value.
@@ -106,7 +106,7 @@ class ChildAction(BaseAction["ChildAction.Params", "ChildAction.Result"]):
         params: "ChildAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         ctx: ContextView,
     ) -> "ChildAction.Result":
         """

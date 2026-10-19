@@ -11,7 +11,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.store.actions.ping import OpsPingAction
 from aoa.demo.model.support.support_domain import SupportDomain
@@ -43,7 +43,7 @@ class DependCrossDomainIncludeAction(
         params: DependCrossDomainIncludeAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> DependCrossDomainIncludeAction.Result:
         nested = await box.run(OpsPingAction, OpsPingAction.Params())
         return DependCrossDomainIncludeAction.Result(

@@ -80,7 +80,7 @@ from aoa.action_machine.logging.scoped_logger import ScopedLogger
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 
 P = TypeVar("P", bound=BaseParams)
@@ -179,14 +179,14 @@ class ToolsBox:
 
     def _wrap_connections(
         self,
-        connections: dict[str, BaseResource] | None,
-    ) -> dict[str, BaseResource] | None:
+        connections: Connections | None,
+    ) -> Connections | None:
         """
         Wrap each resource with its wrapper class for child-action propagation.
         """
         if connections is None:
             return None
-        wrapped: dict[str, BaseResource] = {}
+        wrapped: Connections = {}
         for key, connection in connections.items():
             wrapper_class = connection.get_wrapper_class()
             if wrapper_class is not None:
@@ -199,7 +199,7 @@ class ToolsBox:
         self,
         action_class: type[BaseAction[P, R]],
         params: P,
-        connections: dict[str, BaseResource] | None = None,
+        connections: Connections | None = None,
     ) -> R:
         """
         Run child action; ``Context`` is propagated by ``run_child`` closure.

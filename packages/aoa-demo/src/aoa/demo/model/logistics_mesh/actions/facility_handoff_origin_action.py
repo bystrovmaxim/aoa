@@ -9,7 +9,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.logistics_mesh.freight_network_director_role import FreightNetworkDirectorRole
 from aoa.demo.model.logistics_mesh.logistics_mesh_domain import LogisticsMeshDomain
@@ -27,6 +27,6 @@ class FacilityHandoffOriginAction(
         accepted: bool = Field(default=False, description="Origin acceptance acknowledgement")
 
     @summary_aspect("Facility origin ingest")
-    async def origin_summary(self, params: Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> Result:
+    async def origin_summary(self, params: Params, state: BaseState, box: ToolsBox, connections: Connections) -> Result:
         _ = (params, state, box, connections)
         return self.Result()

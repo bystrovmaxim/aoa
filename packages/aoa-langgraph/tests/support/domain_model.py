@@ -32,6 +32,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -162,7 +163,7 @@ class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
         params: "PingAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> "PingAction.Result":
         """Return a fixed Result with message 'pong'."""
         return PingAction.Result(message="pong")
@@ -225,7 +226,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         params: "FullAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict:
         """Charge funds via PaymentService and store the txn_id in state."""
         payment = (await box.resolve(PaymentServiceResource)).service
@@ -240,7 +241,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         params: "FullAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict:
         """Compute the order total (currently equal to params.amount)."""
         return {"txn_id": state["txn_id"], "total": params.amount}
@@ -251,7 +252,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         params: "FullAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> "FullAction.Result":
         """Notify the user and assemble the final Result from state."""
         notification = (await box.resolve(NotificationServiceResource)).service

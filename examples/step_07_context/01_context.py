@@ -38,6 +38,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 
 class AuditDomain(BaseDomain):
@@ -62,7 +63,7 @@ class PlaceOrderAction(BaseAction[OrderParams, OrderResult]):
     # ContextView as the 6th parameter `ctx`, restricted to exactly these keys.
     @regular_aspect("Audit who placed the order and from which trace")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
-    async def audit_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> dict[str, Any]:
+    async def audit_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> dict[str, Any]:
         user_id = ctx.get(Ctx.User.user_id)
         trace_id = ctx.get(Ctx.Request.trace_id)
         await box.info(
@@ -80,7 +81,7 @@ class PlaceOrderAction(BaseAction[OrderParams, OrderResult]):
         return {}
 
     @summary_aspect("Confirm the order")
-    async def confirm_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def confirm_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         return OrderResult(order_id=params.order_id, status="placed")
 
 

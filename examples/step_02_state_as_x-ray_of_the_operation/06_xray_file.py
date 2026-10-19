@@ -52,6 +52,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.otel import OpenTelemetryPlugin
+from aoa.action_machine.resources import Connections
 
 # ---------------------------------------------------------------------------
 # Domain, Params, Result  (same business logic as 05_xray_console.py)
@@ -81,14 +82,14 @@ class CheckoutAction(BaseAction[CheckoutParams, CheckoutResult]):
     @regular_aspect("Step 1: Validate SKU and quantity")
     @result_string("sku", required=True, min_length=3)
     @result_int("quantity", required=True, min_value=1, max_value=500)
-    async def validate_aspect(self, params: CheckoutParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def validate_aspect(self, params: CheckoutParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         return {"sku": params.sku.strip().upper(), "quantity": params.quantity}
 
     @regular_aspect("Step 2: Calculate total")
     @result_string("sku", required=True)
     @result_int("quantity", required=True)
     @result_float("total", required=True, min_value=0.01)
-    async def enrich_aspect(self, params: CheckoutParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def enrich_aspect(self, params: CheckoutParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         return {
             "sku": state["sku"],
             "quantity": state["quantity"],
@@ -96,7 +97,7 @@ class CheckoutAction(BaseAction[CheckoutParams, CheckoutResult]):
         }
 
     @summary_aspect("Step 3: Confirm order")
-    async def confirm_summary(self, params: CheckoutParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CheckoutResult:
+    async def confirm_summary(self, params: CheckoutParams, state: BaseState, box: ToolsBox, connections: Connections) -> CheckoutResult:
         return CheckoutResult(
             sku=state["sku"],
             total=state["total"],

@@ -16,7 +16,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ...support.domain_model.domains import TestDomain
@@ -41,7 +41,7 @@ class ChildNestedTestAction(BaseAction[ChildNestedParams, ChildNestedResult]):
     """Simple child action returning a fixed result via constructor."""
 
     @summary_aspect("Child summary")
-    async def build_summary(self, params: ChildNestedParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ChildNestedResult:
+    async def build_summary(self, params: ChildNestedParams, state: BaseState, box: ToolsBox, connections: Connections) -> ChildNestedResult:
         return ChildNestedResult(child_data="from_child", nest=box.nested_level)
 
 
@@ -65,12 +65,12 @@ class ParentNestedTestAction(BaseAction[ParentNestedParams, ParentNestedResult])
 
     @regular_aspect("Call child")
     @result_string("child_result", required=True)
-    async def call_child_aspect(self, params: ParentNestedParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def call_child_aspect(self, params: ParentNestedParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         child_result = await box.run(ChildNestedTestAction, ChildNestedParams())
         return {"child_result": child_result.child_data}
 
     @summary_aspect("Parent summary")
-    async def build_summary(self, params: ParentNestedParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ParentNestedResult:
+    async def build_summary(self, params: ParentNestedParams, state: BaseState, box: ToolsBox, connections: Connections) -> ParentNestedResult:
         return ParentNestedResult(
             combined=f"parent+{state['child_result']}",
             parent_nest=box.nested_level,
@@ -83,7 +83,7 @@ class NestLevelTestAction(BaseAction[ChildNestedParams, ChildNestedResult]):
     """Writes current nest_level from ToolsBox into the result."""
 
     @summary_aspect("Record nest_level")
-    async def build_summary(self, params: ChildNestedParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ChildNestedResult:
+    async def build_summary(self, params: ChildNestedParams, state: BaseState, box: ToolsBox, connections: Connections) -> ChildNestedResult:
         return ChildNestedResult(child_data="", nest=box.nested_level)
 
 
@@ -94,11 +94,11 @@ class NestLevelParentAction(BaseAction[ParentNestedParams, ParentNestedResult]):
 
     @regular_aspect("Call nest-level child")
     @result_string("info", required=True)
-    async def call_child_aspect(self, params: ParentNestedParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def call_child_aspect(self, params: ParentNestedParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         child_result = await box.run(NestLevelTestAction, ChildNestedParams())
         child_nest = child_result.nest
         return {"info": f"parent={box.nested_level},child={child_nest}"}
 
     @summary_aspect("Summary")
-    async def build_summary(self, params: ParentNestedParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ParentNestedResult:
+    async def build_summary(self, params: ParentNestedParams, state: BaseState, box: ToolsBox, connections: Connections) -> ParentNestedResult:
         return ParentNestedResult(combined=state["info"], parent_nest=box.nested_level)

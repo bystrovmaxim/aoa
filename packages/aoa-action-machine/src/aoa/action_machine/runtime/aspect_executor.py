@@ -55,7 +55,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
@@ -92,7 +92,7 @@ class AspectExecutor:
         params: BaseParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         context: Any,
     ) -> Any:
         """
@@ -146,7 +146,7 @@ class AspectExecutor:
         params: BaseParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         context: Any,
     ) -> tuple[BaseState, dict[str, Any], float]:
         """Execute one regular aspect with checker validation and state replacement."""
@@ -193,7 +193,7 @@ class AspectExecutor:
         params: BaseParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         context: Any,
     ) -> tuple[BaseResult, float]:
         """Execute summary aspect and return result with duration."""

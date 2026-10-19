@@ -57,7 +57,7 @@ class GreetAction(BaseAction[GreetParams, GreetResult]):
         params: GreetParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> GreetResult:
         _ = (state, box, connections)
         return GreetResult(message=f"Hello, {params.name}!")
@@ -104,20 +104,20 @@ from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 class LoadGraphAction(BaseAction[LoadParams, LoadResult]):
 
     @regular_aspect("Validate that the URL is reachable and returns a graph.")
-    async def validate_url_aspect(self, params: LoadParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def validate_url_aspect(self, params: LoadParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         _ = (state, box, connections)
         # ... validation logic ...
         return {"graph_url": params.url}
 
     @regular_aspect("Fetch raw graph data from the service.")
-    async def fetch_graph_aspect(self, params: LoadParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def fetch_graph_aspect(self, params: LoadParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         _ = (params, box, connections)
         url = cast(str, state["graph_url"])
         # ... fetch logic ...
         return {"graph_url": url, "graph_data": data}
 
     @summary_aspect("Build result from fetched graph data.")
-    async def build_result_summary(self, params: LoadParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> LoadResult:
+    async def build_result_summary(self, params: LoadParams, state: BaseState, box: ToolsBox, connections: Connections) -> LoadResult:
         _ = (params, box, connections)
         data = cast(dict, state["graph_data"])
         return LoadResult(node_count=len(data["nodes"]))
@@ -139,14 +139,14 @@ from aoa.action_machine.intents.checkers import result_instance, result_string, 
 
 @result_string("graph_url", required=True, not_empty=True)
 @regular_aspect("Validate the URL.")
-async def validate_url_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def validate_url_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     ...
     return {"graph_url": url}
 
 @result_string("graph_url", required=True, not_empty=True)
 @result_instance("graph_data", dict, required=True)
 @regular_aspect("Fetch graph data.")
-async def fetch_graph_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def fetch_graph_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     ...
     return {"graph_url": url, "graph_data": data}
 ```
@@ -178,13 +178,13 @@ from aoa.action_machine.intents.connection import connection
 class GetSidebarAction(BaseAction[ParamsStub, GetSidebarResult]):
 
     @regular_aspect("Load nodes from DuckDB.")
-    async def load_nodes_aspect(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def load_nodes_aspect(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         duck = cast(DuckDBResource, connections["db"])
         rows = duck.execute_fetch_dicts("SELECT id, label FROM nodes")
         return {"nodes": rows}
 
     @summary_aspect("Build result.")
-    async def build_result_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> GetSidebarResult:
+    async def build_result_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> GetSidebarResult:
         _ = (params, box, connections)
         return GetSidebarResult(nodes=cast(list, state["nodes"]))
 ```
@@ -209,7 +209,7 @@ class GetSidebarAction(BaseAction[ParamsStub, GetSidebarResult]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> GetSidebarResult:
         ...
 ```

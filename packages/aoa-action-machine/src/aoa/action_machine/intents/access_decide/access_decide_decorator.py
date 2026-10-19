@@ -34,7 +34,7 @@ ARCHITECTURE / DATA FLOW
             self,
             params: CancelOrderAction.Params,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
             ctx: ContextView,
         ) -> Verdict:
             …
@@ -133,7 +133,7 @@ def access_decide(description: str) -> Callable[[Callable[..., Any]], Callable[.
             self,
             params: CancelOrderAction.Params,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> Verdict:
             ...
     """

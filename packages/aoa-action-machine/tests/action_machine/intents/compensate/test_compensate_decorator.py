@@ -31,7 +31,7 @@ from aoa.action_machine.intents.compensate import compensate
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ class TestCompensateDecoratorSuccess:
                 pass
 
             @compensate(charge_aspect, "Compensator description")
-            async def rollback_compensate(self, params: BaseParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> None:
+            async def rollback_compensate(self, params: BaseParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: Connections, error: Exception) -> None:
                 pass
 
         method = Action.rollback_compensate
@@ -81,7 +81,7 @@ class TestCompensateDecoratorSuccess:
 
             @compensate(charge_aspect, "Description with context")
             @context_requires("user.user_id")
-            async def rollback_with_context_compensate(self, params: BaseParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception, ctx: ContextView) -> None:
+            async def rollback_with_context_compensate(self, params: BaseParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: Connections, error: Exception, ctx: ContextView) -> None:
                 pass
 
         method = Action.rollback_with_context_compensate
@@ -103,7 +103,7 @@ class TestCompensateDecoratorSuccess:
             state_before: BaseState,
             state_after: BaseState | None,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
             error: Exception,
         ) -> None:
             pass
@@ -131,7 +131,7 @@ class TestCompensateTargetErrors:
             state_before: BaseState,
             state_after: BaseState | None,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
             error: Exception,
         ) -> None:
                 pass
@@ -152,7 +152,7 @@ class TestCompensateTargetErrors:
             state_before: BaseState,
             state_after: BaseState | None,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
             error: Exception,
         ) -> None:
                 pass
@@ -177,7 +177,7 @@ class TestCompensateDescriptionErrors:
             state_before: BaseState,
             state_after: BaseState | None,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
             error: Exception,
         ) -> None:
                 pass
@@ -193,7 +193,7 @@ class TestCompensateDescriptionErrors:
             state_before: BaseState,
             state_after: BaseState | None,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
             error: Exception,
         ) -> None:
                 pass
@@ -209,7 +209,7 @@ class TestCompensateDescriptionErrors:
             state_before: BaseState,
             state_after: BaseState | None,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
             error: Exception,
         ) -> None:
                 pass
@@ -299,7 +299,7 @@ class TestCompensateNamingSuffix:
 
         class Action:
             @compensate(_stub_aspect, "Description")
-            async def rollback_compensate(self, params: BaseParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> None:
+            async def rollback_compensate(self, params: BaseParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: Connections, error: Exception) -> None:
                 pass
 
         assert hasattr(Action.rollback_compensate, "_compensate_meta")

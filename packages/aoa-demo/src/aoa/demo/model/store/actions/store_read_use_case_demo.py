@@ -10,7 +10,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.roles import ViewerRole
 from aoa.demo.model.store.actions.order_lookup import OrderLookupAction
@@ -46,7 +46,7 @@ class StoreReadUseCaseDemoAction(BaseAction["StoreReadUseCaseDemoAction.Params",
         params: StoreReadUseCaseDemoAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> StoreReadUseCaseDemoAction.Result:
         _ = (params, state, connections)
         await box.run(StoreReadAction, StoreReadAction.Params())

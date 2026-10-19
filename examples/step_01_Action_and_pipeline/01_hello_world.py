@@ -34,6 +34,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 # ---------------------------------------------------------------------------
 # Step 1 — Declare the domain
@@ -92,7 +93,7 @@ class SayHelloAction(BaseAction[ParamsStub, ResultStub]):
     # -----------------------------------------------------------------------
 
     @summary_aspect("Print greeting and return stub")
-    async def output_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ResultStub:
+    async def output_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> ResultStub:
         print("Hello, world!")
         return ResultStub()
 

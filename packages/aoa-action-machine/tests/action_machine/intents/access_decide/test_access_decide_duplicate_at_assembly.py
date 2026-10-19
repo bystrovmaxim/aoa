@@ -39,6 +39,7 @@ _SCRIPT = textwrap.dedent(
     from aoa.action_machine.model.base_result import BaseResult
     from aoa.action_machine.model.base_state import BaseState
     from aoa.action_machine.resources.base_resource import BaseResource
+    from aoa.action_machine.resources import Connections
     from aoa.action_machine.runtime.tools_box import ToolsBox
     from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
     from tests.support.domain_model.domains import SystemDomain
@@ -62,7 +63,7 @@ _SCRIPT = textwrap.dedent(
             params: BaseParams,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> BaseResult:
             print("RAN")
             return ProbeAction.Result()
@@ -72,7 +73,7 @@ _SCRIPT = textwrap.dedent(
             self,
             params: ProbeAction.Params,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> Verdict:
             return Allowed()
 
@@ -82,7 +83,7 @@ _SCRIPT = textwrap.dedent(
                 self,
                 params: ProbeAction.Params,
                 box: ToolsBox,
-                connections: dict[str, BaseResource],
+                connections: Connections,
             ) -> Verdict:
                 return Allowed()
 

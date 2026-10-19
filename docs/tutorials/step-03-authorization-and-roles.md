@@ -144,7 +144,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -216,7 +216,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         CANCELLED.append(params.order_id)
         return OrderResult(order_id=params.order_id)
@@ -421,7 +421,7 @@ class PublicAction(BaseAction[OrderParams, OrderResult]):
     """View an order after checking access."""
 
     @summary_aspect("View the order")
-    async def view_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def view_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the order identifier."""
         return OrderResult(order_id=params.order_id)
 
@@ -432,7 +432,7 @@ class ProfileAction(BaseAction[OrderParams, OrderResult]):
     """View an order after checking access."""
 
     @summary_aspect("View the order")
-    async def view_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def view_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the order identifier."""
         return OrderResult(order_id=params.order_id)
 
@@ -503,7 +503,7 @@ class ViewOrderAction(BaseAction[OrderParams, OrderResult]):
     """View an order after checking access."""
 
     @summary_aspect("View the order")
-    async def view_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def view_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the order identifier."""
         return OrderResult(order_id=params.order_id)
 
@@ -574,7 +574,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -643,7 +643,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -713,7 +713,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -778,7 +778,7 @@ class CancelOrderAction(BaseAction[CancellationParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: CancellationParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: CancellationParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -892,7 +892,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         self,
         params: OrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         ctx: ContextView,
     ) -> Verdict:
         """Decide access before cancelling the order."""
@@ -901,7 +901,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -985,7 +985,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         self,
         params: OrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Decide access before cancelling the order."""
         if STATUS[params.order_id] == "shipped":
@@ -993,7 +993,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1070,7 +1070,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         self,
         params: OrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         ctx: ContextView,
     ) -> Verdict:
         """Decide access before cancelling the order."""
@@ -1079,7 +1079,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1146,7 +1146,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1226,13 +1226,13 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         self,
         params: OrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Decide access before cancelling the order."""
         raise RuntimeError("order store unavailable")
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1352,14 +1352,14 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         self,
         params: OrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Decide access before cancelling the order."""
         TRACE.append("object")
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         TRACE.append("summary")
         return OrderResult(order_id=params.order_id)
@@ -1465,13 +1465,13 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         self,
         params: OrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Decide access before cancelling the order."""
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1576,13 +1576,13 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         self,
         params: OrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Decide access before cancelling the order."""
         raise RuntimeError("order store unavailable")
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1690,7 +1690,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         self,
         params: OrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Decide access before cancelling the order."""
         return Allowed()
@@ -1700,13 +1700,13 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         self,
         params: OrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Decide access before cancelling the order."""
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -1819,7 +1819,7 @@ async def main() -> None:
 
         @access_decide("Check the order")
         async def order_access_decide(
-            self, params: BaseParams, state: object, box: ToolsBox, connections: dict[str, BaseResource]
+            self, params: BaseParams, state: object, box: ToolsBox, connections: Connections
         ) -> Verdict:
             """Demonstrate the extra state argument."""
             return Allowed()
@@ -1882,7 +1882,7 @@ async def main() -> None:
     try:
 
         @access_decide("Check the order")
-        async def order_access_decide(self, params: BaseParams, box: ToolsBox, connections: dict[str, BaseResource]):
+        async def order_access_decide(self, params: BaseParams, box: ToolsBox, connections: Connections):
             """Demonstrate the missing return annotation."""
             return Allowed()
     except TypeError as exc:
@@ -1997,13 +1997,13 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         self,
         params: OrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Decide access before cancelling the order."""
         return True  # Deliberately wrong: the example demonstrates runtime validation.
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 

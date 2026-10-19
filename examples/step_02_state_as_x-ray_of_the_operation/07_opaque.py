@@ -50,6 +50,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.otel import OpenTelemetryPlugin
+from aoa.action_machine.resources import Connections
 
 # ---------------------------------------------------------------------------
 # Domain
@@ -85,7 +86,7 @@ class ChargeOrderAction(BaseAction[PaymentParams, PaymentResult]):
     @regular_aspect("Validate order and mint payment token")
     @result_string("order_id", required=True, min_length=3)
     @result_string("payment_token", required=True, opaque=True)  # ← excluded from x-ray
-    async def payment_aspect(self, params: PaymentParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def payment_aspect(self, params: PaymentParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         # Simulate minting a payment token from a payment gateway.
         # In production this would be a real API call; here we fabricate one.
         token = f"tok_live_{params.card_last4}_{'x' * 16}"
@@ -95,7 +96,7 @@ class ChargeOrderAction(BaseAction[PaymentParams, PaymentResult]):
         }
 
     @summary_aspect("Build payment receipt")
-    async def receipt_summary(self, params: PaymentParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> PaymentResult:
+    async def receipt_summary(self, params: PaymentParams, state: BaseState, box: ToolsBox, connections: Connections) -> PaymentResult:
         token: str = state["payment_token"]
         masked = token[:8] + "****" + token[-4:]
         return PaymentResult(

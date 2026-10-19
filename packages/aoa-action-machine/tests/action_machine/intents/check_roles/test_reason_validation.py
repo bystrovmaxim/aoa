@@ -50,7 +50,7 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ....support.domain_model.domains import SystemDomain
@@ -58,7 +58,7 @@ from ....support.domain_model.roles import AdminRole, ManagerRole
 
 _BOX = cast("ToolsBox", object())
 """The steps are handed a box; the probes below never read it."""
-_CONNECTIONS: dict[str, BaseResource] = {}
+_CONNECTIONS: Connections = {}
 
 
 def _is_sales_agent(user: Any) -> bool:

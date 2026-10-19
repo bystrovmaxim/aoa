@@ -74,7 +74,7 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 P = TypeVar("P", bound=BaseParams)
@@ -94,7 +94,7 @@ class SyncActionProductMachine(ActionProductMachine):
         context: Context,
         action: BaseAction[P, R],
         params: P,
-        connections: dict[str, BaseResource] | None = None,
+        connections: Connections | None = None,
     ) -> R:
         """
         Execute action synchronously via ``asyncio.run`` wrapper.

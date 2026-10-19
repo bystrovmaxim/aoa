@@ -20,6 +20,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 # %% Setup
 
@@ -60,13 +61,13 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         self,
         params: OrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Decide access before cancelling the order."""
         return True  # Deliberately wrong: the example demonstrates runtime validation.
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 

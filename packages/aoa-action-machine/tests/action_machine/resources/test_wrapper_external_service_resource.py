@@ -5,7 +5,7 @@ Tests for WrapperExternalServiceResource — nested-action proxy for external cl
 
 import pytest
 
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.external_service import (
     ExternalServiceResource,
     ProtocolExternalServiceResource,
@@ -106,7 +106,7 @@ class TestWrapConnectionsIntegration:
     def _wrap_connections(connections: dict | None) -> dict | None:
         if connections is None:
             return None
-        wrapped: dict[str, BaseResource] = {}
+        wrapped: Connections = {}
         for key, connection in connections.items():
             wrapper_class = connection.get_wrapper_class()
             if wrapper_class is not None:

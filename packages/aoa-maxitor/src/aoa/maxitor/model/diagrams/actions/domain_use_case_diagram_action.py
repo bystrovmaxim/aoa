@@ -21,7 +21,7 @@ from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.depends.use_case import VALID_USE_CASE_MODES
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.model.diagrams.actions.domain_use_case_diagram_action_schema import DomainUseCaseDiagramJson
 from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
@@ -247,7 +247,7 @@ class GetDomainUseCaseDiagramAction(
         params: GetDomainUseCaseDiagramAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> GetDomainUseCaseDiagramAction.Result:
         _ = (state, box)
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])

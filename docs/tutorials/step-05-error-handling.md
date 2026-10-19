@@ -45,13 +45,13 @@ from aoa.action_machine.model import BaseResult
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
 @summary_aspect("Validate credentials")
-async def login_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
+async def login_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
     if params.username == "bad":
         raise ValueError("invalid credentials")
     return LoginResult(username=params.username, status="ok")
 
 @on_error(ValueError, description="Invalid credentials")
-async def validation_error_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> BaseResult:
+async def validation_error_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections, error: Exception) -> BaseResult:
     await box.info(Channel.business, "on_error: {%var.msg}", msg=str(error))
     return LoginResult(username=params.username, status="login_failed")
 ```
@@ -89,11 +89,11 @@ from aoa.action_machine.model import BaseResult
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
 @on_error(PaymentDeclinedError, description="Payment declined — a clear status for the client")
-async def declined_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> BaseResult:
+async def declined_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections, error: Exception) -> BaseResult:
     return CreateOrderResult(status="payment_declined")
 
 @on_error(Exception, description="Everything else")
-async def fallback_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> BaseResult:
+async def fallback_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections, error: Exception) -> BaseResult:
     return CreateOrderResult(status="error")
 ```
 

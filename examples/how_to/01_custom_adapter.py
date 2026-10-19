@@ -33,6 +33,7 @@ from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 
 # ── 1. The route record: one route's contract (frozen, extends BaseRouteRecord) ──
@@ -147,7 +148,7 @@ class GreetAction(BaseAction[GreetParams, GreetResult]):
     """Build a greeting using the supplied resource."""
 
     @summary_aspect("Build greeting")
-    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> GreetResult:
+    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: Connections) -> GreetResult:
         """Combine the prefix and requested name."""
         prefix = connections["greeting"].prefix()
         return GreetResult(message=f"{prefix}, {params.name}!")

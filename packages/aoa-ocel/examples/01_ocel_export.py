@@ -37,7 +37,7 @@ from aoa.action_machine.intents.checkers import result_instance, result_string
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.ocel import OCEL_FRAMES_KEY, InMemoryOcelStoreResource, OcelFrame, OcelPlugin
@@ -90,7 +90,7 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
         params: CreateOrderParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         # Partial load: the customer relation IS loaded, so it participates in E2O.
         customer = CustomerEntity(id=params.customer_id, name=params.customer_name)
@@ -116,7 +116,7 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
         params: CreateOrderParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> CreateOrderResult:
         return CreateOrderResult(
             message=f"Order {params.order_id} created for {params.customer_name}",

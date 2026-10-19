@@ -52,7 +52,7 @@ from aoa.action_machine.model.params_stub import ParamsStub
 from aoa.action_machine.model.result_stub import ResultStub
 from aoa.action_machine.plugin.core.events import BasePluginEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -112,7 +112,7 @@ class CompliantAnswerAction(BaseAction[ParamsStub, ResultStub]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ResultStub:
         """Build the empty result."""
         return ResultStub()
@@ -148,7 +148,7 @@ class TestTheAnnotationAtAssembly:
                     params: ParamsStub,
                     state: BaseState,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> Any:
                     return ResultStub()
 
@@ -167,7 +167,7 @@ class TestTheAnnotationAtAssembly:
                     params: ParamsStub,
                     state: BaseState,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> OtherResult:
                     return OtherResult()
 
@@ -186,7 +186,7 @@ class TestTheAnnotationAtAssembly:
                 params: ParamsStub,
                 state: BaseState,
                 box: ToolsBox,
-                connections: dict[str, BaseResource],
+                connections: Connections,
             ) -> BaseResult:
                 return ResultStub()
 
@@ -206,7 +206,7 @@ class TestTheAnswerAtRuntime:
                 params: ParamsStub,
                 state: BaseState,
                 box: ToolsBox,
-                connections: dict[str, BaseResource],
+                connections: Connections,
             ) -> ResultStub:
                 return {"not": "a result"}  # type: ignore[return-value]
 
@@ -228,7 +228,7 @@ class TestTheAnswerAtRuntime:
                 params: ParamsStub,
                 state: BaseState,
                 box: ToolsBox,
-                connections: dict[str, BaseResource],
+                connections: Connections,
             ) -> ResultStub:
                 return OtherResult()  # type: ignore[return-value]
 

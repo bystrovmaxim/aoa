@@ -46,7 +46,7 @@ from aoa.action_machine.intents.compensate import compensate
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState, ParamsStub, ResultStub
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ....support.domain_model.domains import SystemDomain
@@ -104,12 +104,12 @@ class TestTheAnnotationsAreRequired:
         with pytest.raises(AspectSignatureError, match="must annotate what it returns"):
 
             @summary_aspect("S")
-            async def silent_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]):
+            async def silent_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections):
                 return ResultStub()
 
     def test_self_may_stay_bare(self) -> None:
         @summary_aspect("S")
-        async def acceptable_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ResultStub:
+        async def acceptable_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> ResultStub:
             return ResultStub()
 
         assert acceptable_summary.__name__ == "acceptable_summary"
@@ -157,14 +157,14 @@ class TestTheTypesAreCheckedAtAssembly:
                     params: ParamsStub,
                     state: BaseState,
                     box: str,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> ResultStub:
                     return ResultStub()
 
             _summary_node(WrongBoxAction)
 
     def test_a_bare_connections_mapping_is_refused(self) -> None:
-        with pytest.raises(AspectSignatureError, match=r"must be dict\[str, BaseResource\]"):
+        with pytest.raises(AspectSignatureError, match="must be Connections"):
 
             @meta(description="types: connections that are not resources", domain=SystemDomain)
             @check_roles(GuestRole)
@@ -193,7 +193,7 @@ class TestTheTypesAreCheckedAtAssembly:
                     params: ParamsStub,
                     state: dict,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> dict[str, Any]:
                     return {}
 
@@ -211,7 +211,7 @@ class TestTheTypesAreCheckedAtAssembly:
                     params: ParamsStub,
                     state: BaseState,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                     error: dict,
                 ) -> ResultStub:
                     return ResultStub()
@@ -228,7 +228,7 @@ class TestTheTypesAreCheckedAtAssembly:
                 params: ParamsStub,
                 state: BaseState,
                 box: ToolsBox,
-                connections: dict[str, BaseResource],
+                connections: Connections,
             ) -> dict[str, Any]:
                 return {}
 
@@ -239,7 +239,7 @@ class TestTheTypesAreCheckedAtAssembly:
                 state_before: BaseState,
                 state_after: BaseState | None,
                 box: ToolsBox,
-                connections: dict[str, BaseResource],
+                connections: Connections,
                 error: Exception,
             ) -> None:
                 return None
@@ -262,7 +262,7 @@ class TestTheReturnIsCheckedAtAssembly:
                     params: ParamsStub,
                     state: BaseState,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> Any:
                     return ResultStub()
 
@@ -280,7 +280,7 @@ class TestTheReturnIsCheckedAtAssembly:
                     params: ParamsStub,
                     state: BaseState,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> OtherResult:
                     return OtherResult()
 
@@ -296,7 +296,7 @@ class TestTheReturnIsCheckedAtAssembly:
                 params: ParamsStub,
                 state: BaseState,
                 box: ToolsBox,
-                connections: dict[str, BaseResource],
+                connections: Connections,
             ) -> BaseResult:
                 return ResultStub()
 
@@ -314,7 +314,7 @@ class TestTheReturnIsCheckedAtAssembly:
                     params: ParamsStub,
                     state: BaseState,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> str:
                     return "state"
 
@@ -332,7 +332,7 @@ class TestTheReturnIsCheckedAtAssembly:
                     params: ParamsStub,
                     state: BaseState,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> dict[str, Any]:
                     return {}
 
@@ -343,7 +343,7 @@ class TestTheReturnIsCheckedAtAssembly:
                     state_before: BaseState,
                     state_after: BaseState | None,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                     error: Exception,
                 ) -> dict[str, Any]:
                     return {}
@@ -370,7 +370,7 @@ class TestTheHintsAreResolvable:
                 params: LocalAction.Params,
                 state: BaseState,
                 box: ToolsBox,
-                connections: dict[str, BaseResource],
+                connections: Connections,
             ) -> LocalAction.Result:
                 return LocalAction.Result()
 
@@ -388,7 +388,7 @@ class TestTheHintsAreResolvable:
                     params: NeverDefinedAnywhere,  # noqa: F821
                     state: BaseState,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> ResultStub:
                     return ResultStub()
 
@@ -410,7 +410,7 @@ class TestTheRefusalItself:
                     params: ParamsStub,
                     state: BaseState,
                     box: str,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> ResultStub:
                     return ResultStub()
 

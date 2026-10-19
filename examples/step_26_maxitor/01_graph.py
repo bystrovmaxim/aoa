@@ -47,6 +47,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 
 class ShopDomain(BaseDomain):
@@ -118,11 +119,11 @@ class PlaceOrderAction(BaseAction[PlaceOrderParams, PlaceOrderResult]):
 
     @regular_aspect("Price the order")
     @result_float("total", required=True, min_value=0)
-    async def price_aspect(self, params: PlaceOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def price_aspect(self, params: PlaceOrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         return {"total": (await box.resolve(PricingService)).price(params.sku)}
 
     @summary_aspect("Confirm")
-    async def confirm_summary(self, params: PlaceOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> PlaceOrderResult:
+    async def confirm_summary(self, params: PlaceOrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> PlaceOrderResult:
         return PlaceOrderResult(total=state["total"])
 
 

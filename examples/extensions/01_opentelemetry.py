@@ -46,6 +46,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.otel import OpenTelemetryPlugin
+from aoa.action_machine.resources import Connections
 
 
 class ShopDomain(BaseDomain):
@@ -67,11 +68,11 @@ class PriceOrderAction(BaseAction[PriceParams, PriceResult]):
 
     @regular_aspect("Apply tax")
     @result_float("with_tax", required=True, min_value=0)
-    async def tax_aspect(self, params: PriceParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def tax_aspect(self, params: PriceParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         return {"with_tax": round(params.amount * 1.2, 2)}
 
     @summary_aspect("Build result")
-    async def build_summary(self, params: PriceParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> PriceResult:
+    async def build_summary(self, params: PriceParams, state: BaseState, box: ToolsBox, connections: Connections) -> PriceResult:
         return PriceResult(total=state["with_tax"])
 
 

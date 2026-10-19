@@ -105,7 +105,7 @@ class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
     """Decide whether the requested stock is available."""
 
     @summary_aspect("Reserve if enough stock")
-    async def reserve_summary(self, params: ReserveParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ReserveResult:
+    async def reserve_summary(self, params: ReserveParams, state: BaseState, box: ToolsBox, connections: Connections) -> ReserveResult:
         """Reserve only when enough stock is available."""
         inventory = connections["inventory"]          # transport, supplied per request
         available = await inventory.get_stock(params.sku)
