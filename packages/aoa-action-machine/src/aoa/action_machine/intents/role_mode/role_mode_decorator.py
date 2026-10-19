@@ -89,15 +89,32 @@ class RoleMode(Enum):
         return raw
 
 
+_ALLOWED_MODES = ", ".join(member.name for member in RoleMode)
+
+
 def role_mode(mode: RoleMode) -> Callable[[_RT], _RT]:
     """
     Attach ``RoleMode`` metadata to a role class (``_role_mode_info``).
 
+    AI-CORE-BEGIN
+    ROLE: The only way a role declares its lifecycle mode.
+    CONTRACT: Takes one of the four ``RoleMode`` members and stores it on ``_role_mode_info["mode"]``, verbatim.
+    INVARIANTS: Any other argument, and the bare ``@role_mode`` form, raise ``RoleModeDeclarationError`` at the declaration.
+    AI-CORE-END
     """
+    if isinstance(mode, type):
+        raise RoleModeDeclarationError(
+            f"@role_mode: expected a RoleMode member, got the class {mode.__qualname__} itself — "
+            f"the parentheses are missing. Write @role_mode(RoleMode.ALIVE). Allowed: {_ALLOWED_MODES}."
+        )
 
     def decorator(cls: _RT) -> _RT:
         if not isinstance(cls, type):
             raise DecoratorTargetError(f"@role_mode applies only to classes, got {type(cls)!r}.")
+        if not isinstance(mode, RoleMode):
+            raise RoleModeDeclarationError(
+                f"@role_mode({cls.__qualname__}): expected a RoleMode member, got {mode!r}. Allowed: {_ALLOWED_MODES}."
+            )
         cast(Any, cls)._role_mode_info = {"mode": mode}
         return cls
 

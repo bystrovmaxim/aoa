@@ -23,7 +23,7 @@ Both refusals raise `RoleModeDeclarationError`. They are the feature's only user
 ## Refusal 2 — the decorator without parentheses
 
 ```text
-@role_mode: expected a RoleMode member, got the class Bare itself — did you mean @role_mode(RoleMode.ALIVE)? Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.
+@role_mode: expected a RoleMode member, got the class Bare itself — the parentheses are missing. Write @role_mode(RoleMode.ALIVE). Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.
 ```
 
 | Property | Requirement |
