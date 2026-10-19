@@ -70,7 +70,7 @@ Each break is applied, the suite is run, the expected tests fail alone, and the 
 | move the check from `decorator(cls)` into `declared_for` | the "refused at import, no assembly" tests | the `declared_for` guard tests |
 | drop the value from the message | the value-content assertions | the refusal-type assertions |
 | print three members instead of four | the "all four, in order" assertion | the other message assertions |
-| delete the missing-parentheses check | the bare-form test (which then sees an `issubclass()` `TypeError`) | the set-check tests |
+| delete the missing-parentheses check | the bare-form tests (which then fail with `DID NOT RAISE`: the class becomes a function) | the set-check tests |
 | write `_role_mode_info` before the check | the no-metadata-on-refusal test | the rest |
 
 ## 5. The closing run

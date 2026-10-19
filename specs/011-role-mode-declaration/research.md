@@ -72,7 +72,7 @@ _ALLOWED_MODES = ", ".join(member.name for member in RoleMode)
 
 ```text
 @role_mode(ViewerRole): expected a RoleMode member, got 'alive'. Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.
-@role_mode: expected a RoleMode member, got the class Bare itself — did you mean @role_mode(RoleMode.ALIVE)? Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.
+@role_mode: expected a RoleMode member, got the class Bare itself — the parentheses are missing. Write @role_mode(RoleMode.ALIVE). Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.
 ```
 
 **Rationale**
@@ -80,7 +80,7 @@ _ALLOWED_MODES = ", ".join(member.name for member in RoleMode)
 1. The shape follows the package's existing refusals: `@check_roles expected a BaseRole subclass, got {spec!r}.` and `@depends(...): ... got {mode!r}.` — decorator, then what was expected, then what arrived.
 2. `!r` is what satisfies FR-003: measured, `None` renders `None` and `"None"` renders `'None'`; `42` renders `42` and `"42"` renders `'42'`; a foreign member renders `<Other.ALIVE: 'alive'>`, which names its class.
 3. The role's `__qualname__` matches how `declared_for` already speaks (`Role {role.__qualname__} ...`), so the two refusals read as one family without sharing a sentence.
-4. The bare-form message names the class it received and a member to write, so the developer does not have to look up either.
+4. The bare-form message says that the parentheses are missing, names the class it received and gives a member to write, so the developer does not have to look up either (`FR-019`).
 
 **Evidence** — the intended wording, run against the real `RoleMode` (`evidence/probes/refusal_probe.py`):
 
@@ -89,7 +89,7 @@ wrong string: @role_mode(ViewerRole): expected a RoleMode member, got 'alive'. A
 wrong number: @role_mode(CounterRole): expected a RoleMode member, got 42. Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.
 none: @role_mode(EmptyRole): expected a RoleMode member, got None. Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.
 other enum: @role_mode(ForeignRole): expected a RoleMode member, got <Other.ALIVE: 'alive'>. Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.
-missing parentheses: @role_mode: expected a RoleMode member, got the class Bare itself — did you mean @role_mode(RoleMode.ALIVE)? Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.
+missing parentheses: @role_mode: expected a RoleMode member, got the class Bare itself — the parentheses are missing. Write @role_mode(RoleMode.ALIVE). Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.
 accepted member: accepted -> <class 'Good'>; stored verbatim: True
 ```
 

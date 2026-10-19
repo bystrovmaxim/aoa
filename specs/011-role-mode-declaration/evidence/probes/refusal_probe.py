@@ -24,7 +24,7 @@ def proposed_role_mode(mode: RoleMode) -> Callable[[_RT], _RT]:
     if isinstance(mode, type):
         raise RoleModeDeclarationError(
             f"@role_mode: expected a RoleMode member, got the class {mode.__qualname__} itself — "
-            f"did you mean @role_mode(RoleMode.ALIVE)? Allowed: {_ALLOWED}."
+            f"the parentheses are missing. Write @role_mode(RoleMode.ALIVE). Allowed: {_ALLOWED}."
         )
 
     def decorator(cls: _RT) -> _RT:
