@@ -25,6 +25,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.fastapi import FastApiAdapter
+from aoa.action_machine.resources import Connections
 
 
 class SystemDomain(BaseDomain):
@@ -41,7 +42,7 @@ class PingResult(BaseResult):
 class PingAction(BaseAction[ParamsStub, PingResult]):
 
     @summary_aspect("Return a fixed pong message.")
-    async def build_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> PingResult:
+    async def build_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> PingResult:
         _ = (params, state, box, connections)
         return PingResult(message="pong")
 

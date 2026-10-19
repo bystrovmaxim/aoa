@@ -41,7 +41,7 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ....support.domain_model.domains import SystemDomain
@@ -64,7 +64,7 @@ class DeclaringAction(BaseAction["DeclaringAction.Params", "DeclaringAction.Resu
         self,
         params: DeclaringAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Allowed:
         """Answer that the object may be touched."""
         return Allowed()
@@ -104,7 +104,7 @@ class OwnCheckAction(DeclaringAction):
         self,
         params: OwnCheckAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Allowed:
         """Answer with this subclass's own decision."""
         return Allowed()
@@ -332,7 +332,7 @@ class TestWhatTheTypesMustBe:
                 self,
                 params: BaseParams,
                 box: str,
-                connections: dict[str, BaseResource],
+                connections: Connections,
             ) -> Allowed:
                 return Allowed()
 
@@ -360,7 +360,7 @@ class TestWhatTheTypesMustBe:
                     params: BaseParams,
                     context: Context,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> Allowed:
                     return Allowed()
 
@@ -381,7 +381,7 @@ class TestWhatTheTypesMustBe:
                 self,
                 params: BaseParams,
                 box: ToolsBox,
-                connections: dict[str, BaseResource],
+                connections: Connections,
             ) -> str:
                 return "yes"
 
@@ -409,6 +409,6 @@ class TestWhatTheTypesMustBe:
             ) -> Allowed:
                 return Allowed()
 
-        with pytest.raises(TypeError, match="must be dict"):
+        with pytest.raises(TypeError, match="must be Connections"):
             ActionGraphNode(LooseConnectionsAction)
 

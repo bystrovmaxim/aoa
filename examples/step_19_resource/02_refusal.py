@@ -21,6 +21,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 
 class WarehouseDomain(BaseDomain):
@@ -71,7 +72,7 @@ class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
     """Decide whether the requested stock is available."""
 
     @summary_aspect("Reserve if enough stock")
-    async def reserve_summary(self, params: ReserveParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ReserveResult:
+    async def reserve_summary(self, params: ReserveParams, state: BaseState, box: ToolsBox, connections: Connections) -> ReserveResult:
         """Reserve only when enough stock is available."""
         inventory = connections["inventory"]          # transport, supplied per request
         available = await inventory.get_stock(params.sku)

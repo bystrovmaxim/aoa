@@ -125,14 +125,14 @@ def _base_types() -> dict[str, Any]:
     from aoa.action_machine.context.context_view import ContextView  # pylint: disable=import-outside-toplevel
     from aoa.action_machine.model.base_params import BaseParams  # pylint: disable=import-outside-toplevel
     from aoa.action_machine.model.base_state import BaseState  # pylint: disable=import-outside-toplevel
-    from aoa.action_machine.resources.base_resource import BaseResource  # pylint: disable=import-outside-toplevel
+    from aoa.action_machine.resources.connections import Connections  # pylint: disable=import-outside-toplevel
     from aoa.action_machine.runtime.tools_box import ToolsBox  # pylint: disable=import-outside-toplevel
 
     return {
         "params": BaseParams,
         "state": BaseState,
         "box": ToolsBox,
-        "connections": dict[str, BaseResource],
+        "connections": Connections,
         "ctx": ContextView,
     }
 
@@ -142,7 +142,7 @@ def _compensate_types() -> dict[str, Any]:
     from aoa.action_machine.context.context_view import ContextView  # pylint: disable=import-outside-toplevel
     from aoa.action_machine.model.base_params import BaseParams  # pylint: disable=import-outside-toplevel
     from aoa.action_machine.model.base_state import BaseState  # pylint: disable=import-outside-toplevel
-    from aoa.action_machine.resources.base_resource import BaseResource  # pylint: disable=import-outside-toplevel
+    from aoa.action_machine.resources.connections import Connections  # pylint: disable=import-outside-toplevel
     from aoa.action_machine.runtime.tools_box import ToolsBox  # pylint: disable=import-outside-toplevel
 
     return {
@@ -150,7 +150,7 @@ def _compensate_types() -> dict[str, Any]:
         "state_before": BaseState,
         "state_after": BaseState | None,
         "box": ToolsBox,
-        "connections": dict[str, BaseResource],
+        "connections": Connections,
         "error": Exception,
         "ctx": ContextView,
     }
@@ -394,7 +394,7 @@ def _validate_connections(
         return
     raise AspectSignatureError(
         f"@{contract.kind}: {action_cls.__name__}.{func.__name__} annotates 'connections' as "
-        f"{_name_of(actual)}, but it must be dict[str, BaseResource]." + _ASSEMBLED_MOMENT
+        f"{_name_of(actual)}, but it must be Connections." + _ASSEMBLED_MOMENT
     )
 
 

@@ -12,7 +12,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.graph_json_domain import ExampleModelGraphJsonDomain
 from aoa.demo.model.services.graph_json_service import ExampleModelGraphJsonService
@@ -40,7 +40,7 @@ class GetExampleModelGraphJsonAction(
         params: GetExampleModelGraphJsonAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> GetExampleModelGraphJsonAction.Result:
         raw = ExampleModelGraphJsonService().coordinator_json()
         return GetExampleModelGraphJsonAction.Result(coordinator_json=raw)

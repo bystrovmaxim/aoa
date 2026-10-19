@@ -40,6 +40,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.testing import TestBench
+from aoa.action_machine.resources import Connections
 
 
 class BillingDomain(BaseDomain):
@@ -80,21 +81,21 @@ class ChargeAction(BaseAction[ChargeParams, ChargeResult]):
 
     @regular_aspect("Charge via gateway")
     @result_string("txn_id", required=True)
-    async def charge_aspect(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def charge_aspect(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         gateway = await box.resolve(PaymentService)
         return {"txn_id": await gateway.charge(params.amount)}
 
     @compensate(charge_aspect, "Refund the charge")
-    async def charge_compensate(self, params: ChargeParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> None:
+    async def charge_compensate(self, params: ChargeParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: Connections, error: Exception) -> None:
         gateway = await box.resolve(PaymentService)
         await gateway.refund(state_after["txn_id"])
 
     @summary_aspect("Build result")
-    async def build_summary(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ChargeResult:
+    async def build_summary(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: Connections) -> ChargeResult:
         return ChargeResult(txn_id=state["txn_id"], amount=params.amount)
 
     @on_error(ValueError, description="Reject when the gateway declines")
-    async def declined_on_error(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> ChargeResult:
+    async def declined_on_error(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: Connections, error: Exception) -> ChargeResult:
         return ChargeResult(txn_id="declined", amount=0.0)
 
 

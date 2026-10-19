@@ -30,6 +30,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.fastapi import FastApiAdapter
+from aoa.action_machine.resources import Connections
 
 
 class GreetingDomain(BaseDomain):
@@ -56,7 +57,7 @@ class GreetResult(BaseResult):
 class GreetAction(BaseAction[GreetParams, GreetResult]):
 
     @summary_aspect("Build greeting")
-    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> GreetResult:
+    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: Connections) -> GreetResult:
         return GreetResult(message=f"Hello, {params.name}!")
 
 
@@ -66,7 +67,7 @@ class GreetAction(BaseAction[GreetParams, GreetResult]):
 class AdminPingAction(BaseAction[GreetParams, GreetResult]):
 
     @summary_aspect("Admin ping")
-    async def ping_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> GreetResult:
+    async def ping_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: Connections) -> GreetResult:
         return GreetResult(message=f"pong for {params.name}")
 
 

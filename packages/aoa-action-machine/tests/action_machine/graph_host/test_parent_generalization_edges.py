@@ -22,7 +22,7 @@ from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.model.params_stub import ParamsStub
 from aoa.action_machine.model.result_stub import ResultStub
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -46,7 +46,7 @@ class _ParentGenAction(BaseAction["_ParentGenAction.Params", "_ParentGenAction.R
         params: _ParentGenAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> _ParentGenAction.Result:
         return self.Result(message="x")
 

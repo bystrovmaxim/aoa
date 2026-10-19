@@ -33,7 +33,7 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ....support.domain_model.domains import SystemDomain
@@ -41,7 +41,7 @@ from ....support.domain_model.roles import AdminRole, ManagerRole
 
 _BOX = cast("ToolsBox", object())
 """The steps are handed a box; the stand-ins below never read it."""
-_CONNECTIONS: dict[str, BaseResource] = {}
+_CONNECTIONS: Connections = {}
 
 
 @meta(description="cascade: an operation whose object check refuses", domain=SystemDomain)
@@ -60,7 +60,7 @@ class RefusingObjectAction(BaseAction["RefusingObjectAction.Params", "RefusingOb
         self,
         params: RefusingObjectAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Refused:
         """Refuse, naming the developer's own reason."""
         return Refused("the object is not yours")
@@ -82,7 +82,7 @@ class ExplodingObjectAction(BaseAction["ExplodingObjectAction.Params", "Explodin
         self,
         params: ExplodingObjectAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Fail to tell anything about the object."""
         raise RuntimeError("store is down")
@@ -104,7 +104,7 @@ class MuteCheckAction(BaseAction["MuteCheckAction.Params", "MuteCheckAction.Resu
         self,
         params: MuteCheckAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Answer with nothing."""
         return None
@@ -126,7 +126,7 @@ class GarbledCheckAction(BaseAction["GarbledCheckAction.Params", "GarbledCheckAc
         self,
         params: GarbledCheckAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Answer with a word the vocabulary does not know."""
         return True
@@ -148,7 +148,7 @@ class HesitantCheckAction(BaseAction["HesitantCheckAction.Params", "HesitantChec
         self,
         params: HesitantCheckAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Undecided:
         """Answer that nobody can tell."""
         return Undecided(gate=Gate.ACCESS_DECIDE)
@@ -236,7 +236,7 @@ def _install(monkeypatch: pytest.MonkeyPatch, calls: list[Gate], plan: dict[Gate
             action: BaseAction[Any, Any],
             params: BaseParams | None,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
             _gate: Gate = gate,
         ) -> Verdict | None:
             calls.append(_gate)
@@ -261,7 +261,7 @@ async def _passing_step(
     action: BaseAction[Any, Any],
     params: BaseParams | None,
     box: ToolsBox,
-    connections: dict[str, BaseResource],
+    connections: Connections,
 ) -> Verdict | None:
     """A step that lets the decision continue."""
     return None

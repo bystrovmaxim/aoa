@@ -9,6 +9,7 @@ from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 # %% Setup
 
@@ -22,7 +23,7 @@ async def main() -> None:
 
         @access_decide("Check the order")
         async def order_access_decide(
-            self, params: BaseParams, state: object, box: ToolsBox, connections: dict[str, BaseResource]
+            self, params: BaseParams, state: object, box: ToolsBox, connections: Connections
         ) -> Verdict:
             """Demonstrate the extra state argument."""
             return Allowed()

@@ -25,7 +25,7 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.model.json_schema_value import JsonSchemaValue
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ...support.domain_model.domains import TestDomain
@@ -63,7 +63,7 @@ class AdapterTestAction(BaseAction["AdapterTestAction.Params", "AdapterTestActio
         params: AdapterTestAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         return AdapterTestAction.Result(
             domain=params.label,

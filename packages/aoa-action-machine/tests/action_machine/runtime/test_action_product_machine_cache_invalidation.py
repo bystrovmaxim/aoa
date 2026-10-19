@@ -18,7 +18,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.cache_tag import CacheTag
@@ -75,7 +75,7 @@ class WriteReportAction(BaseAction["WriteReportAction.Params", "WriteReportActio
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         _pipeline_runs.append("WriteReportAction")
         return WriteReportAction.Result(value=f"report:{params.report_id}")
@@ -103,7 +103,7 @@ class InvalidateReportsAction(BaseAction["InvalidateReportsAction.Params", "Inva
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         _pipeline_runs.append("InvalidateReportsAction")
         return InvalidateReportsAction.Result()
@@ -141,7 +141,7 @@ class WriteInvoiceInvalidatesReportAction(
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         _pipeline_runs.append("WriteInvoiceInvalidatesReportAction")
         return WriteInvoiceInvalidatesReportAction.Result(value=f"invoice:{params.invoice_id}")
@@ -171,7 +171,7 @@ class NoCacheKeyButInvalidatesAction(
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         _pipeline_runs.append("NoCacheKeyButInvalidatesAction")
         return NoCacheKeyButInvalidatesAction.Result()
@@ -198,7 +198,7 @@ class NoneWriteAction(BaseAction["NoneWriteAction.Params", "NoneWriteAction.Resu
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         _pipeline_runs.append("NoneWriteAction")
         return NoneWriteAction.Result()
@@ -225,7 +225,7 @@ class BadWriteTypeAction(BaseAction["BadWriteTypeAction.Params", "BadWriteTypeAc
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         return BadWriteTypeAction.Result()
 
@@ -251,7 +251,7 @@ class BadWriteItemAction(BaseAction["BadWriteItemAction.Params", "BadWriteItemAc
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         return BadWriteItemAction.Result()
 
@@ -274,7 +274,7 @@ class BadInvalidateTypeAction(BaseAction["BadInvalidateTypeAction.Params", "BadI
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         return BadInvalidateTypeAction.Result()
 
@@ -297,7 +297,7 @@ class BadInvalidateItemAction(BaseAction["BadInvalidateItemAction.Params", "BadI
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         return BadInvalidateItemAction.Result()
 
@@ -328,7 +328,7 @@ class ErrorPathCachedAction(BaseAction["ErrorPathCachedAction.Params", "ErrorPat
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         if params.fail:
             raise ValueError("boom")
@@ -341,7 +341,7 @@ class ErrorPathCachedAction(BaseAction["ErrorPathCachedAction.Params", "ErrorPat
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> Result:
         return ErrorPathCachedAction.Result(status="handled")

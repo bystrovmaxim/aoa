@@ -39,7 +39,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.testing import StubTesterRole, TestBench
 
@@ -104,18 +104,18 @@ class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
 
     @regular_aspect("Aspect")
     @result_string("txn_id", required=True)
-    async def charge_aspect(self, params: CtxCheckParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def charge_aspect(self, params: CtxCheckParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         return {"txn_id": "TXN-001"}
 
     @compensate(charge_aspect, "Rollback with context")
     @context_requires(Ctx.User.user_id)
-    async def rollback_compensate(self, params: CtxCheckParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception, ctx: ContextView) -> None:
+    async def rollback_compensate(self, params: CtxCheckParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: Connections, error: Exception, ctx: ContextView) -> None:
         user_id = ctx.get(Ctx.User.user_id)
         payment = (await box.resolve(PaymentServiceResource)).service
         await payment.refund(f"refund_for_{user_id}")
 
     @summary_aspect("Summary")
-    async def summary(self, params: CtxCheckParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CtxCheckResult:
+    async def summary(self, params: CtxCheckParams, state: BaseState, box: ToolsBox, connections: Connections) -> CtxCheckResult:
         return CtxCheckResult()
 
 

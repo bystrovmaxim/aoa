@@ -26,7 +26,7 @@ from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core.events import AspectEvent, GlobalLifecycleEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.cache_entry import CacheEntry
@@ -111,7 +111,7 @@ class CacheableCountingAction(BaseAction["CacheableCountingAction.Params", "Cach
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         _summary_counter["n"] += 1
         return CacheableCountingAction.Result(n=_summary_counter["n"])
@@ -144,7 +144,7 @@ class PerUserOrderCacheAction(BaseAction["PerUserOrderCacheAction.Params", "PerU
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         _summary_counter["n"] += 1
         return PerUserOrderCacheAction.Result(n=_summary_counter["n"])
@@ -184,7 +184,7 @@ class StaleReadCacheAction(BaseAction["StaleReadCacheAction.Params", "StaleReadC
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         return StaleReadCacheAction.Result(tag="fresh")
 
@@ -218,7 +218,7 @@ class BadDictReadCacheAction(BaseAction["BadDictReadCacheAction.Params", "BadDic
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         return BadDictReadCacheAction.Result(x=1)
 
@@ -241,7 +241,7 @@ class EmptyKeyCacheAction(BaseAction["EmptyKeyCacheAction.Params", "EmptyKeyCach
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         return EmptyKeyCacheAction.Result(x=1)
 
@@ -272,7 +272,7 @@ class BadWriteDecisionAction(BaseAction["BadWriteDecisionAction.Params", "BadWri
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         return BadWriteDecisionAction.Result(x=1)
 
@@ -303,7 +303,7 @@ class BoomWriteCacheAction(BaseAction["BoomWriteCacheAction.Params", "BoomWriteC
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         return BoomWriteCacheAction.Result(x=1)
 
@@ -337,7 +337,7 @@ class BoomReadCacheAction(BaseAction["BoomReadCacheAction.Params", "BoomReadCach
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         return BoomReadCacheAction.Result(x=1)
 
@@ -368,7 +368,7 @@ class ManagerOnlyCacheAction(BaseAction["ManagerOnlyCacheAction.Params", "Manage
         params: Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Result:
         return ManagerOnlyCacheAction.Result(ok=True)
 
@@ -396,7 +396,7 @@ class CacheableErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         _error_aspect_calls["n"] += 1
         if params.should_fail:
@@ -409,7 +409,7 @@ class CacheableErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ErrorTestResult:
         return ErrorTestResult(status="ok", detail=state["processed"])
 
@@ -419,7 +419,7 @@ class CacheableErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> ErrorTestResult:
         return ErrorTestResult(status="handled", detail=str(error))

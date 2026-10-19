@@ -39,6 +39,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.langgraph import LangGraphController
+from aoa.action_machine.resources import Connections
 
 # ─── Domain ───────────────────────────────────────────────────────────────────
 
@@ -91,7 +92,7 @@ async def enrich_ticket(state: Any) -> dict:
 @check_roles(GuestRole)
 class ClassifyTicketAction(BaseAction[ClassifyParams, ClassifyResult]):
     @summary_aspect("Classify ticket")
-    async def classify_summary(self, params: ClassifyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ClassifyResult:
+    async def classify_summary(self, params: ClassifyParams, state: BaseState, box: ToolsBox, connections: Connections) -> ClassifyResult:
         # params.note is the enriched note produced by the function node above
         text = params.note.lower()
         if "billing" in text or "invoice" in text or "payment" in text:
@@ -107,7 +108,7 @@ class ClassifyTicketAction(BaseAction[ClassifyParams, ClassifyResult]):
 @check_roles(GuestRole)
 class EngineeringAction(BaseAction[ResolveParams, ResolveResult]):
     @summary_aspect("Assign to engineering")
-    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ResolveResult:
+    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: Connections) -> ResolveResult:
         tag = params.category.upper()
         return ResolveResult(
             resolved=True,
@@ -119,7 +120,7 @@ class EngineeringAction(BaseAction[ResolveParams, ResolveResult]):
 @check_roles(GuestRole)
 class BillingAction(BaseAction[ResolveParams, ResolveResult]):
     @summary_aspect("Assign to billing")
-    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ResolveResult:
+    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: Connections) -> ResolveResult:
         return ResolveResult(
             resolved=True,
             resolution_note=f"[BILLING] #{params.ticket_id} → billing team",
@@ -144,7 +145,7 @@ class ProcessResult(BaseResult):
 @check_roles(GuestRole)
 class ProcessTicketAction(BaseAction[ProcessParams, ProcessResult]):
     @summary_aspect("Run graph with function pre-processing")
-    async def run_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ProcessResult:
+    async def run_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: Connections) -> ProcessResult:
         ctrl = (
             LangGraphController()
             .inp("ticket_id", str, "Ticket identifier")

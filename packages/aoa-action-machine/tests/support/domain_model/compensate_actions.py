@@ -43,7 +43,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from .domains import OrdersDomain
@@ -127,7 +127,7 @@ class CompensatedOrderAction(
         params: CompensateTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         """Charge funds via PaymentService."""
         payment = (await box.resolve(PaymentServiceResource)).service
@@ -141,7 +141,7 @@ class CompensatedOrderAction(
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> None:
         """
@@ -162,7 +162,7 @@ class CompensatedOrderAction(
         params: CompensateTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         """Reserve stock via InventoryService."""
         inventory = (await box.resolve(InventoryServiceResource)).service
@@ -176,7 +176,7 @@ class CompensatedOrderAction(
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> None:
         """
@@ -197,7 +197,7 @@ class CompensatedOrderAction(
         params: CompensateTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         """Finalize order. When should_fail=True — raises ValueError."""
         if params.should_fail:
@@ -210,7 +210,7 @@ class CompensatedOrderAction(
         params: CompensateTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> CompensateTestResult:
         """Build final Result from state."""
         return CompensateTestResult(
@@ -261,7 +261,7 @@ class CompensateAndOnErrorAction(
         params: CompensateTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         payment = (await box.resolve(PaymentServiceResource)).service
         txn_id = await payment.charge(params.amount, "RUB")
@@ -274,7 +274,7 @@ class CompensateAndOnErrorAction(
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> None:
         if state_after is None:
@@ -289,7 +289,7 @@ class CompensateAndOnErrorAction(
         params: CompensateTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         inventory = (await box.resolve(InventoryServiceResource)).service
         reservation_id = await inventory.reserve(params.item_id, 1)
@@ -302,7 +302,7 @@ class CompensateAndOnErrorAction(
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> None:
         if state_after is None:
@@ -317,7 +317,7 @@ class CompensateAndOnErrorAction(
         params: CompensateTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         raise ValueError(f"Finalize error for {params.user_id}")
 
@@ -327,7 +327,7 @@ class CompensateAndOnErrorAction(
         params: CompensateTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> CompensateTestResult:
         return CompensateTestResult(status="ok")
 
@@ -337,7 +337,7 @@ class CompensateAndOnErrorAction(
         params: CompensateTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> CompensateTestResult:
         """
@@ -391,7 +391,7 @@ class CompensateWithContextAction(
         params: CompensateTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         payment = (await box.resolve(PaymentServiceResource)).service
         txn_id = await payment.charge(params.amount, "RUB")
@@ -405,7 +405,7 @@ class CompensateWithContextAction(
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
         ctx: ContextView,
     ) -> None:
@@ -427,7 +427,7 @@ class CompensateWithContextAction(
         params: CompensateTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         raise ValueError("Finalize error")
 
@@ -437,6 +437,6 @@ class CompensateWithContextAction(
         params: CompensateTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> CompensateTestResult:
         return CompensateTestResult(status="ok")

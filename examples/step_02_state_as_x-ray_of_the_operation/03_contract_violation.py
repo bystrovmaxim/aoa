@@ -26,6 +26,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 
 class ShopDomain(BaseDomain):
@@ -51,11 +52,11 @@ class BrokenItemAction(BaseAction[ItemParams, ItemResult]):
     @regular_aspect("Intentionally broken step")
     @result_string("sku", required=True)
     @result_int("quantity", required=True, min_value=1)
-    async def broken_aspect(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def broken_aspect(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         return {"quantity": params.quantity}
 
     @summary_aspect("Never reached")
-    async def never_summary(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ItemResult:
+    async def never_summary(self, params: ItemParams, state: BaseState, box: ToolsBox, connections: Connections) -> ItemResult:
         return ItemResult(sku="?", quantity=0, line_total=0)
 
 

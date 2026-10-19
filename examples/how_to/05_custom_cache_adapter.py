@@ -52,6 +52,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 # ── The cache adapter: a stand-in for Redis (plain dict, namespaced) ─────────
 
@@ -150,7 +151,7 @@ class QuoteAction(BaseAction[QuoteParams, QuoteResult]):
         return [CacheTag(type=Quote, key=params.sku)]
 
     @summary_aspect("Expensive pricing")
-    async def quote_summary(self, params: QuoteParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> QuoteResult:
+    async def quote_summary(self, params: QuoteParams, state: BaseState, box: ToolsBox, connections: Connections) -> QuoteResult:
         EXECUTIONS.append(params.sku)  # the "expensive" work
         return QuoteResult(price=len(params.sku) * 10.0)
 

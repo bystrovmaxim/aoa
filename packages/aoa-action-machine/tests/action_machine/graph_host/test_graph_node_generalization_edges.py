@@ -15,7 +15,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -38,7 +38,7 @@ class _Pr3ParentAction(BaseAction["_Pr3ParentAction.Params", "_Pr3ParentAction.R
         params: _Pr3ParentAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> _Pr3ParentAction.Result:
         return self.Result(message="p")
 
@@ -52,7 +52,7 @@ class _Pr3ChildAction(_Pr3ParentAction):
         params: _Pr3ParentAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> _Pr3ParentAction.Result:
         return _Pr3ParentAction.Result(message="c")
 

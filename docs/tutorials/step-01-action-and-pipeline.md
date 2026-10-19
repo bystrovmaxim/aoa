@@ -48,7 +48,7 @@ class GreetingDomain(BaseDomain):
 class SayHelloAction(BaseAction[ParamsStub, ResultStub]):
 
     @summary_aspect("Print greeting and return stub")
-    async def output_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ResultStub:
+    async def output_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> ResultStub:
         print("Hello, world!")
         return ResultStub()
 ```
@@ -109,7 +109,7 @@ class GreetResult(BaseResult):
 class GreetPersonAction(BaseAction[GreetParams, GreetResult]):
 
     @summary_aspect("Build greeting and return result")
-    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> GreetResult:
+    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: Connections) -> GreetResult:
         await box.info(
             Channel.business,
             "Greeting: Hello, {%var.name|cyan}!",
@@ -171,19 +171,19 @@ class ProcessInputAction(BaseAction[ProcessParams, ProcessResult]):
 
     @regular_aspect("Step 1: Strip whitespace and lowercase")
     @result_string("cleaned", required=True)
-    async def validate_aspect(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def validate_aspect(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         cleaned = params.raw_input.strip().lower()
         return {"cleaned": cleaned}
 
     @regular_aspect("Step 2: Enrich data")
     @result_string("cleaned", required=True)
     @result_string("enriched", required=True)
-    async def enrich_aspect(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def enrich_aspect(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         enriched = f"enriched::{state['cleaned']}"
         return {"cleaned": state["cleaned"], "enriched": enriched}
 
     @summary_aspect("Step 3: Assemble final result")
-    async def assemble_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ProcessResult:
+    async def assemble_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: Connections) -> ProcessResult:
         return ProcessResult(
             cleaned=state["cleaned"],
             enriched=state["enriched"],

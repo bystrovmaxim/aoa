@@ -27,7 +27,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core.events import AfterOnErrorAspectEvent, BeforeOnErrorAspectEvent, UnhandledErrorEvent
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.error_handler_executor import ErrorHandlerExecutor
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core import TypeIntrospection
@@ -60,7 +60,7 @@ class _CtxOnErrorProbeAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, str]:
         return {"processed": "ok"}
 
@@ -70,13 +70,13 @@ class _CtxOnErrorProbeAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ErrorTestResult:
         return ErrorTestResult(status="ok", detail="")
 
     @on_error(RuntimeError, description="handler with ContextView")
     @context_requires(Ctx.User.user_id)
-    async def runtime_probe_on_error(self, params: ErrorTestParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception, ctx: ContextView) -> ErrorTestResult:
+    async def runtime_probe_on_error(self, params: ErrorTestParams, state: BaseState, box: ToolsBox, connections: Connections, error: Exception, ctx: ContextView) -> ErrorTestResult:
         return ErrorTestResult(status="handled", detail=str(ctx.get(Ctx.User.user_id)))
 
 

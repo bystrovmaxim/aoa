@@ -165,7 +165,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.aspect_executor import AspectExecutor
 from aoa.action_machine.runtime.base_action_machine import BaseActionMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
@@ -414,7 +414,7 @@ class ActionProductMachine(BaseActionMachine):
         action: BaseAction[P, R],
         params: P,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         context: Context,
         plugin_ctx: PluginRunContext,
         action_graph_node: ActionGraphNode[BaseAction[Any, Any]],
@@ -575,7 +575,7 @@ class ActionProductMachine(BaseActionMachine):
         context: Context,
         action: BaseAction[P, R],
         params: P,
-        connections: dict[str, BaseResource] | None = None,
+        connections: Connections | None = None,
     ) -> R:
         """Execute one action; production uses ``rollup=False`` and ``nested_level=0``."""
         # pylint: disable=invalid-overridden-method
@@ -599,7 +599,7 @@ class ActionProductMachine(BaseActionMachine):
         action: type[BaseAction[Any, Any]],
         params: BaseParams | None = None,
         *,
-        connections: dict[str, BaseResource] | None = None,
+        connections: Connections | None = None,
     ) -> Verdict:
         """Ask whether a call would be allowed — without running any step of the operation.
 
@@ -684,7 +684,7 @@ class ActionProductMachine(BaseActionMachine):
         action: BaseAction[Any, Any],
         params: Any,
         box: ToolsBox,
-        conns: dict[str, BaseResource],
+        conns: Connections,
         *,
         gates: tuple[Gate, ...],
     ) -> Verdict:
@@ -814,7 +814,7 @@ class ActionProductMachine(BaseActionMachine):
         action: BaseAction[P, R],
         params: P,
         resources: dict[type, Any] | None,
-        connections: dict[str, BaseResource] | None,
+        connections: Connections | None,
         nested_level: int,
         rollup: bool,
     ) -> R:

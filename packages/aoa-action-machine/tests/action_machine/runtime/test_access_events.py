@@ -63,7 +63,7 @@ from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core.events import BasePluginEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -138,7 +138,7 @@ class RolesOnlyAction(BaseAction["RolesOnlyAction.Params", "RolesOnlyAction.Resu
 
     @summary_aspect("S")
     async def roles_summary(
-        self, params: RolesOnlyAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: RolesOnlyAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> RolesOnlyAction.Result:
         """Produce the operation's result."""
         return RolesOnlyAction.Result()
@@ -169,7 +169,7 @@ class GuardAllowsAction(BaseAction["GuardAllowsAction.Params", "GuardAllowsActio
 
     @summary_aspect("S")
     async def guard_summary(
-        self, params: GuardAllowsAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: GuardAllowsAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> GuardAllowsAction.Result:
         """Produce the operation's result."""
         return GuardAllowsAction.Result()
@@ -215,7 +215,7 @@ class ObjectCheckedAction(BaseAction["ObjectCheckedAction.Params", "ObjectChecke
         self,
         params: ObjectCheckedAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Answer the way the test set up, failing with a text nobody may see."""
         if _OBJECT_BEHAVIOUR == "failed":
@@ -226,7 +226,7 @@ class ObjectCheckedAction(BaseAction["ObjectCheckedAction.Params", "ObjectChecke
 
     @summary_aspect("S")
     async def object_summary(
-        self, params: ObjectCheckedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: ObjectCheckedAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> ObjectCheckedAction.Result:
         """Produce the operation's result."""
         return ObjectCheckedAction.Result()

@@ -27,7 +27,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -92,7 +92,7 @@ class PlainAction(BaseAction["PlainAction.Params", "PlainAction.Result"]):
         self,
         params: PlainAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Allowed:
         """Allow the object, recording that the step was reached."""
         _CALLS["access_decide"] += 1
@@ -100,7 +100,7 @@ class PlainAction(BaseAction["PlainAction.Params", "PlainAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: PlainAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: PlainAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> PlainAction.Result:
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1
@@ -123,7 +123,7 @@ class RoleOnlyAction(BaseAction["RoleOnlyAction.Params", "RoleOnlyAction.Result"
         self,
         params: RoleOnlyAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Allowed:
         """Allow the object if this step is ever reached."""
         _CALLS["access_decide"] += 1
@@ -131,7 +131,7 @@ class RoleOnlyAction(BaseAction["RoleOnlyAction.Params", "RoleOnlyAction.Result"
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: RoleOnlyAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: RoleOnlyAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> RoleOnlyAction.Result:
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1
@@ -154,7 +154,7 @@ class WhenAction(BaseAction["WhenAction.Params", "WhenAction.Result"]):
         self,
         params: WhenAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Allowed:
         """Allow the object if this step is ever reached."""
         _CALLS["access_decide"] += 1
@@ -162,7 +162,7 @@ class WhenAction(BaseAction["WhenAction.Params", "WhenAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: WhenAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: WhenAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> WhenAction.Result:
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1
@@ -185,7 +185,7 @@ class GuardAction(BaseAction["GuardAction.Params", "GuardAction.Result"]):
         self,
         params: GuardAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Allowed:
         """Allow the object if this step is ever reached."""
         _CALLS["access_decide"] += 1
@@ -193,7 +193,7 @@ class GuardAction(BaseAction["GuardAction.Params", "GuardAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: GuardAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: GuardAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> GuardAction.Result:
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1
@@ -216,7 +216,7 @@ class ObjectDeniedAction(BaseAction["ObjectDeniedAction.Params", "ObjectDeniedAc
         self,
         params: ObjectDeniedAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Allowed:
         """Refuse the object, recording that the step was reached."""
         _CALLS["access_decide"] += 1
@@ -224,7 +224,7 @@ class ObjectDeniedAction(BaseAction["ObjectDeniedAction.Params", "ObjectDeniedAc
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: ObjectDeniedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: ObjectDeniedAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> ObjectDeniedAction.Result:
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1
@@ -247,7 +247,7 @@ class ObjectCrashAction(BaseAction["ObjectCrashAction.Params", "ObjectCrashActio
         self,
         params: ObjectCrashAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Allowed:
         """Fail the way a store fails."""
         _CALLS["access_decide"] += 1
@@ -255,7 +255,7 @@ class ObjectCrashAction(BaseAction["ObjectCrashAction.Params", "ObjectCrashActio
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: ObjectCrashAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: ObjectCrashAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> ObjectCrashAction.Result:
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1

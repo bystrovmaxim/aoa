@@ -71,14 +71,14 @@ from aoa.action_machine.intents.access_decide.access_decide_intent_resolver impo
 from aoa.action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 StepAnswer = Verdict | None
 """What a step answers: the decision, or ``None`` to let the next step decide."""
 
 Step = Callable[
-    [Context, BaseAction[Any, Any], BaseParams | None, ToolsBox, dict[str, BaseResource]],
+    [Context, BaseAction[Any, Any], BaseParams | None, ToolsBox, Connections],
     Awaitable[StepAnswer],
 ]
 """One ordered step of the decision: it answers, or it passes."""
@@ -99,7 +99,7 @@ async def auth_gate(
     action: BaseAction[Any, Any],
     params: BaseParams | None,
     box: ToolsBox,
-    connections: dict[str, BaseResource],
+    connections: Connections,
 ) -> StepAnswer:
     """Answer for the credentials the caller presented; this step owns ``AUTH_COORDINATOR``.
 
@@ -118,7 +118,7 @@ async def roles_gate(
     action: BaseAction[Any, Any],
     params: BaseParams | None,
     box: ToolsBox,
-    connections: dict[str, BaseResource],
+    connections: Connections,
 ) -> StepAnswer:
     """Answer for the roles the caller holds; this step owns ``CHECK_ROLES`` and ``WHEN``."""
     _ = (box, connections)
@@ -142,7 +142,7 @@ async def guard_gate(
     action: BaseAction[Any, Any],
     params: BaseParams | None,
     box: ToolsBox,
-    connections: dict[str, BaseResource],
+    connections: Connections,
 ) -> StepAnswer:
     """Answer for the operation's shared condition; this step owns ``GUARD``."""
     _ = (box, connections)
@@ -155,7 +155,7 @@ async def _call_declared(
     params: BaseParams | None,
     context: Context,
     box: ToolsBox,
-    connections: dict[str, BaseResource],
+    connections: Connections,
 ) -> Any:
     """Call the declared check the way it was declared.
 
@@ -176,7 +176,7 @@ async def object_gate(
     action: BaseAction[Any, Any],
     params: BaseParams | None,
     box: ToolsBox,
-    connections: dict[str, BaseResource],
+    connections: Connections,
 ) -> StepAnswer:
     """Answer about the object of the call; an operation that declares no check passes.
 
@@ -216,7 +216,7 @@ async def decide(
     action: BaseAction[Any, Any],
     params: BaseParams | None,
     box: ToolsBox,
-    connections: dict[str, BaseResource],
+    connections: Connections,
     gates: tuple[Gate, ...] = GATES,
 ) -> Verdict:
     """

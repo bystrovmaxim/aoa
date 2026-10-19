@@ -19,7 +19,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.logging import sensitive
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.resources import CatalogObjectStore, CatalogSearchSidecar
@@ -67,7 +67,7 @@ class ProductEnrichmentAction(
         params: ProductEnrichmentAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         ctx: ContextView,
     ) -> dict[str, Any]:
         return {"normalized_sku": params.sku.strip().upper()}
@@ -80,7 +80,7 @@ class ProductEnrichmentAction(
         params: ProductEnrichmentAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         pricing = await box.resolve(PricingFeedClientResource)
         price = await pricing.service.list_price(state.normalized_sku)  # type: ignore[attr-defined]
@@ -98,7 +98,7 @@ class ProductEnrichmentAction(
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> None:
         if state_after is not None:
@@ -112,7 +112,7 @@ class ProductEnrichmentAction(
         params: ProductEnrichmentAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: ValueError,
         ctx: ContextView,
     ) -> ProductEnrichmentAction.Result:
@@ -124,7 +124,7 @@ class ProductEnrichmentAction(
         params: ProductEnrichmentAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> ProductEnrichmentAction.Result:
         return ProductEnrichmentAction.Result(doc_id="ERR", list_price=0.0, status="internal_error")
@@ -135,7 +135,7 @@ class ProductEnrichmentAction(
         params: ProductEnrichmentAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ProductEnrichmentAction.Result:
         return ProductEnrichmentAction.Result(
             doc_id=state.doc_id,  # type: ignore[attr-defined]

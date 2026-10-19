@@ -37,6 +37,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.fastapi import FastApiAdapter
+from aoa.action_machine.resources import Connections
 
 # --- Signing config (shared by LoginAction and JwtAuthCoordinator -- see the
 # "same parameters on both sides" discussion: secret_key and algorithm MUST
@@ -99,7 +100,7 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
     @result_string("user_id", required=True, not_empty=True)  # type: ignore[untyped-decorator]
     @result_instance("role_names", list, required=True)  # type: ignore[untyped-decorator]
     @regular_aspect("Verify username/password against the user store; resolve role names.")
-    async def authenticate_user_aspect(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def authenticate_user_aspect(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         _ = (state, box)
         store: UserStoreResource = connections["user_store"]
         record = await store.find(params.username)
@@ -109,7 +110,7 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         return {"user_id": params.username, "role_names": role_names}
 
     @summary_aspect("Sign a JWT carrying sub (user_id) and roles; return it as a bearer token.")
-    async def issue_token_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> LoginResult:
+    async def issue_token_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: Connections) -> LoginResult:
         _ = (params, box, connections)
         now = datetime.now(UTC)
         payload = {
@@ -131,7 +132,7 @@ class OrderSummaryResult(BaseResult):
 class ListOrdersAction(BaseAction[ParamsStub, OrderSummaryResult]):
 
     @summary_aspect("Return a fixed confirmation message.")
-    async def build_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderSummaryResult:
+    async def build_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> OrderSummaryResult:
         _ = (params, state, box, connections)
         return OrderSummaryResult(message="orders: [] -- reached with a valid admin Bearer token")
 

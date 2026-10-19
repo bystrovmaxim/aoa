@@ -48,7 +48,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -75,7 +75,7 @@ class ContextAwareAction(BaseAction["ContextAwareAction.Params", "ContextAwareAc
         self,
         params: ContextAwareAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         ctx: ContextView,
     ) -> Verdict:
         """Remember what arrived, and prove that only the declared key is reachable."""
@@ -93,7 +93,7 @@ class ContextAwareAction(BaseAction["ContextAwareAction.Params", "ContextAwareAc
         params: ContextAwareAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ContextAwareAction.Result:
         """Produce the operation's result."""
         return ContextAwareAction.Result()
@@ -115,7 +115,7 @@ class PlainCheckAction(BaseAction["PlainCheckAction.Params", "PlainCheckAction.R
         self,
         params: PlainCheckAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Record that the step handed over exactly what it always hands over."""
         _SEEN["plain_ran"] = True
@@ -127,7 +127,7 @@ class PlainCheckAction(BaseAction["PlainCheckAction.Params", "PlainCheckAction.R
         params: PlainCheckAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> PlainCheckAction.Result:
         """Produce the operation's result."""
         return PlainCheckAction.Result()
@@ -240,7 +240,7 @@ class TestWithoutTheDeclaration:
                     self,
                     params: BaseParams,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                     ctx: ContextView,
                 ) -> Verdict:
                     return Allowed()
@@ -265,7 +265,7 @@ class TestWithoutTheDeclaration:
                     self,
                     params: BaseParams,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> Verdict:
                     return Allowed()
 
@@ -291,7 +291,7 @@ class TestTheContextParameterItself:
                 self,
                 params: BaseParams,
                 box: ToolsBox,
-                connections: dict[str, BaseResource],
+                connections: Connections,
                 ctx: Any,
             ) -> Verdict:
                 return Allowed()
@@ -319,7 +319,7 @@ class TestTheContextParameterItself:
                 self,
                 params: BaseParams,
                 box: ToolsBox,
-                connections: dict[str, BaseResource],
+                connections: Connections,
                 ctx: Context,
             ) -> Verdict:
                 return Allowed()
@@ -348,7 +348,7 @@ class TestTheContextParameterItself:
                     params: BaseParams,
                     box: ToolsBox,
                     ctx: ContextView,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> Verdict:
                     return Allowed()
 
@@ -372,7 +372,7 @@ class TestTheContextParameterItself:
                     self,
                     params: BaseParams,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                     context_view: ContextView,
                 ) -> Verdict:
                     return Allowed()
@@ -400,7 +400,7 @@ class TestTheMistakeIsExplained:
                     self,
                     params: BaseParams,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                     ctx: ContextView,
                 ) -> Verdict:
                     return Allowed()
@@ -425,7 +425,7 @@ class TestTheMistakeIsExplained:
                     self,
                     params: BaseParams,
                     box: ToolsBox,
-                    connections: dict[str, BaseResource],
+                    connections: Connections,
                 ) -> Verdict:
                     return Allowed()
 

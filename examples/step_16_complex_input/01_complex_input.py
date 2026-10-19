@@ -39,6 +39,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.fastapi import FastApiAdapter
 from aoa.mcp import McpAdapter
+from aoa.action_machine.resources import Connections
 
 
 class OrdersDomain(BaseDomain):
@@ -87,7 +88,7 @@ class CreateOrderResult(BaseResult):
 class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
 
     @summary_aspect("Create order")
-    async def create_summary(self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CreateOrderResult:
+    async def create_summary(self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> CreateOrderResult:
         return CreateOrderResult(order_id="ord-1", item_count=len(params.lines))
 
 
