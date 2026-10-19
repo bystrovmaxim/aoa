@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 
 from aoa.action_machine.exceptions import RoleModeDeclarationError
-from aoa.action_machine.intents.role_mode import RoleMode, role_mode
+from aoa.action_machine.intents.role_mode import RoleMode, RoleModeIntent, role_mode
 
 _ALLOWED_IN_ORDER = "ALIVE, DEPRECATED, SILENCED, UNUSED"
 
@@ -79,3 +79,49 @@ class TestTheDecoratorWithoutParentheses:
     def test_the_failure_is_the_declaration_error_and_not_a_later_issubclass_error(self) -> None:
         error = _refused("@role_mode\nclass ViewerRole:\n    pass\n")
         assert isinstance(error, RoleModeDeclarationError)
+
+
+class TestTheFourAcceptedMembers:
+    @pytest.mark.parametrize("member", list(RoleMode))
+    def test_each_member_is_accepted_and_stored_by_identity(self, member: RoleMode) -> None:
+        class Plain:
+            pass
+
+        decorated = role_mode(member)(Plain)
+
+        assert decorated is Plain
+        assert Plain._role_mode_info["mode"] is member
+
+
+class TestWhatARefusalLeavesBehind:
+    def test_a_refused_argument_writes_no_metadata(self) -> None:
+        class Plain:
+            pass
+
+        with pytest.raises(RoleModeDeclarationError):
+            role_mode("alive")(Plain)
+
+        assert not hasattr(Plain, "_role_mode_info")
+
+
+class TestTheAccessorKeepsItsGuards:
+    def test_a_role_without_the_decorator_is_refused(self) -> None:
+        class UndecoratedRole(RoleModeIntent):
+            pass
+
+        with pytest.raises(RoleModeDeclarationError, match="has no _role_mode_info"):
+            RoleMode.declared_for(UndecoratedRole)
+
+    def test_metadata_that_is_not_a_member_is_refused(self) -> None:
+        @role_mode(RoleMode.ALIVE)
+        class ViewerRole(RoleModeIntent):
+            pass
+
+        ViewerRole._role_mode_info = {"mode": "alive"}
+
+        with pytest.raises(RoleModeDeclarationError) as caught:
+            RoleMode.declared_for(ViewerRole)
+
+        message = str(caught.value)
+        assert "invalid _role_mode_info['mode']" in message
+        assert "DEPRECATED" not in message
