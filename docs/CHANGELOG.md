@@ -1,5 +1,33 @@
 # Changelog
 
+## [2026-10-19] — A role's mode is checked where it is written
+
+A role declares its lifecycle mode once, with `@role_mode`, and the four members it may carry
+are `ALIVE`, `DEPRECATED`, `SILENCED` and `UNUSED`. Until now the decorator accepted anything and
+wrote it down: `@role_mode("alive")` — the string the enum carries — was stored as a string, and
+the first reader refused it with a message that named the value and not one thing that would
+have worked. A role nobody read was never refused at all.
+
+Now the argument is checked at the declaration, while the module is imported. The refusal names
+the role, the value that arrived and all four members, so it can be fixed from the message alone:
+
+```
+@role_mode(ViewerRole): expected a RoleMode member, got 'alive'. Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.
+```
+
+`@role_mode` written without parentheses is refused too. It used to bind the class name to the
+decorator's inner function and fail much later as `TypeError: issubclass() arg 1 must be a class`;
+now it says that the parentheses are missing, and names the class it received.
+
+Nothing about what the four modes mean has moved. `UNUSED` still cannot be required through
+`@check_roles`, `DEPRECATED` still warns, `SILENCED` still grants nothing — those rules belong to
+the consumers, and a valid member is not a member that is apt in every context. A role that
+carries no mode at all is still refused when something reads it.
+
+[The reference page](reference/intents-and-invariants.md) states the invariant, and
+[`examples/step_03_authorization_and_roles/17_a_wrong_role_mode.py`](../examples/step_03_authorization_and_roles/17_a_wrong_role_mode.py)
+runs each refusal — script and notebook — so the cases can be read and executed side by side.
+
 ## [2026-10-18] — A declaration says what it receives
 
 The four methods the machine calls itself — the regular step, the exit point, the error handler
