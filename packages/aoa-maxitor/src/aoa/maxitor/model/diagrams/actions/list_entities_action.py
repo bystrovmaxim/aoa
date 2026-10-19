@@ -27,7 +27,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.fastapi.query_field_before import QUERY_STR_LIST_BEFORE
 from aoa.maxitor.model.diagrams.actions.list_entities_action_schema import ListEntitiesDomainSlicesJson
@@ -339,7 +339,7 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         params: ListEntitiesAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ListEntitiesAction.Result:
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
         if not params.domain_qualnames:

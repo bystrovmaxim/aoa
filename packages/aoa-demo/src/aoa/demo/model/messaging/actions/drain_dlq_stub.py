@@ -8,7 +8,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.messaging.domain import MessagingDomain
 
@@ -28,6 +28,6 @@ class DrainDlqStubAction(BaseAction["DrainDlqStubAction.Params", "DrainDlqStubAc
         params: DrainDlqStubAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> DrainDlqStubAction.Result:
         return DrainDlqStubAction.Result(drained=min(params.max_messages, 3))

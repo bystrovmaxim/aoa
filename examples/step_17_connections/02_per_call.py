@@ -24,6 +24,7 @@ from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.fastapi import FastApiAdapter
+from aoa.action_machine.resources import Connections
 
 
 class CounterDomain(BaseDomain):
@@ -61,7 +62,7 @@ class CountResult(BaseResult):
 class CountAction(BaseAction[EmptyParams, CountResult]):
     """Increment the supplied resource once."""
     @summary_aspect("Count one call")
-    async def count_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CountResult:
+    async def count_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: Connections) -> CountResult:
         """Return the updated count."""
         counter = connections["counter"]
         counter.count += 1

@@ -41,6 +41,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 
 # %% Setup
@@ -118,7 +119,7 @@ class MistypedAction(BaseAction[ParamsStub, ResultStub]):
         params: ParamsStub,
         state: BaseState,
         box: str,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ResultStub:
         """Assemble the result."""
         return ResultStub()
@@ -147,7 +148,7 @@ class TwoSummariesAction(BaseAction[ParamsStub, ResultStub]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ResultStub:
         """Assemble the result, first way."""
         return ResultStub()
@@ -158,7 +159,7 @@ class TwoSummariesAction(BaseAction[ParamsStub, ResultStub]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ResultStub:
         """Assemble the result, second way."""
         return ResultStub()
@@ -185,7 +186,7 @@ class WrongAnswerAction(BaseAction[ParamsStub, ResultStub]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ResultStub:
         """Return something that is not the declared Result."""
         return {"not": "a result"}  # type: ignore[return-value]
@@ -211,7 +212,7 @@ class CorrectAction(BaseAction[ParamsStub, ResultStub]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ResultStub:
         """Build the empty result."""
         return ResultStub()

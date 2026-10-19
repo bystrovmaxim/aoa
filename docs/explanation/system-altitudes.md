@@ -122,7 +122,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Reserve inventory")
 @result_string("reservation_id", required=True, min_length=1)
 @context_requires("user.tenant_id", "env.inventory_region")
-async def reserve_inventory_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> dict[str, Any]:
+async def reserve_inventory_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> dict[str, Any]:
     inventory = box.resolve(InventoryResource)
     reservation_id = await inventory.reserve(
         tenant_id=ctx.get("user.tenant_id"),

@@ -52,6 +52,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 # ---------------------------------------------------------------------------
 # Domain
@@ -140,7 +141,7 @@ class ValidateOrderAction(BaseAction[OrderParams, OrderResult]):
     @result_instance("customer", CustomerProfile, required=True, no_none=True,
                      value_check=lambda c: c.is_active)
     @result_string("coupon_code", required=False)
-    async def validate_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def validate_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         result: dict = {
             "order_id": params.order_id.strip().upper(),
             "quantity": params.quantity,
@@ -155,7 +156,7 @@ class ValidateOrderAction(BaseAction[OrderParams, OrderResult]):
         return result
 
     @summary_aspect("Assemble validated order result")
-    async def assemble_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def assemble_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         total = round(state["quantity"] * state["unit_price"], 2)
         has_coupon = "coupon_code" in state
         await box.info(

@@ -85,6 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`Connections`: a public name for the mapping every aspect receives.** `from aoa.action_machine.resources import Connections` says `dict[str, BaseResource]` once instead of in every declaration. The alias is an ordinary assignment, so the validator reads the same `__origin__`/`__args__` as before, both spellings stay interchangeable, and the value an aspect receives is unchanged.
+
 - **`aoa-otel` package: OpenTelemetry plugin as a standalone distribution.** A new separate package `aoa-otel` (`pip install aoa-otel`) provides `OpenTelemetryPlugin` under the `aoa.otel` namespace. The package depends on `aoa-action-machine`, `opentelemetry-api`, and `opentelemetry-sdk`. ([#70](https://github.com/bystrovmaxim/aoa/issues/70) · [aoa-otel CHANGELOG](../packages/aoa-otel/CHANGELOG.md))
 
 - **`@env` decorator for declarative environment providers on `Context`.** `@env(key, value_or_callable, ttl=0)` registers a lazy provider on a `Context` subclass. Constants are auto-wrapped; any `Callable[[], T]` is accepted as-is. `ttl=0` caches the value forever; `ttl>0` re-calls the provider after N seconds; `ttl<0` raises `ValueError` at declaration. Subclasses inherit all parent entries and can override individual keys without touching the parent dict. Aspects declare needed keys via `@context_requires("env.<key>")` and read them through `ctx.get(...)` — the same path as `user.*`, `request.*`, and `runtime.*` fields. An undeclared key raises `ContextAccessError`; a key registered in `@env` but absent from `@context_requires` is simply inaccessible, not missing. ([#60](https://github.com/bystrovmaxim/aoa/issues/60))

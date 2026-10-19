@@ -25,7 +25,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.model.diagrams.actions.list_domains_action import _LIST_DOMAINS_DISTINCT_COLORS
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import (
@@ -267,7 +267,7 @@ class FullGraphAction(BaseAction[ParamsStub, "FullGraphAction.Result"]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> FullGraphAction.Result:
         _ = (state, box)
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])

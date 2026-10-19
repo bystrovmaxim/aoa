@@ -50,7 +50,7 @@ EXAMPLES
         self,
         params: CancelOrderAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         order = await connections["db"].get(params.order_id)
         if order is None or order.owner_id != context.user.user_id:

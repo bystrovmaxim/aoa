@@ -48,6 +48,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 
 # ── The logger: ship each accepted line as a structured record to a sink ─────
@@ -82,7 +83,7 @@ class PayResult(BaseResult):
 @check_roles(GuestRole)
 class PayAction(BaseAction[PayParams, PayResult]):
     @summary_aspect("Charge")
-    async def charge_summary(self, params: PayParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> PayResult:
+    async def charge_summary(self, params: PayParams, state: BaseState, box: ToolsBox, connections: Connections) -> PayResult:
         await box.info(Channel.business, "Charging {%var.amount}", amount=params.amount)
         await box.warning(Channel.business, "Large amount {%var.amount} flagged", amount=params.amount)
         return PayResult(ok=True)

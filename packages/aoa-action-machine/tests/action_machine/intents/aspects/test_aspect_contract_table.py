@@ -35,7 +35,7 @@ from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.intents.aspects.aspect_signature import ASPECT_CONTRACTS, AspectContract
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 EXPLAINED_ORDER = "contracts/declaration-contract.md"
@@ -88,7 +88,7 @@ class TestEachEntryIsWellFormed:
             assert types["params"] is BaseParams, kind
             assert types["state"] is BaseState, kind
             assert types["box"] is ToolsBox, kind
-            assert types["connections"] == dict[str, BaseResource], kind
+            assert types["connections"] == Connections, kind
             assert types["ctx"] is ContextView, kind
 
     def test_the_error_is_the_root_exception(self) -> None:

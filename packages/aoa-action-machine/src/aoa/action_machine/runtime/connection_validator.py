@@ -33,6 +33,7 @@ from typing import Any
 from aoa.action_machine.exceptions.connection_validation_error import ConnectionValidationError
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.model.base_action import BaseAction
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 
 
@@ -116,9 +117,9 @@ class ConnectionValidator:
     def validate(
         self,
         action: BaseAction[Any, Any],
-        connections: dict[str, BaseResource] | None,
+        connections: Connections | None,
         action_node: ActionGraphNode[BaseAction[Any, Any]],
-    ) -> dict[str, BaseResource]:
+    ) -> Connections:
         """Validate connections against keys from ``action_node.connection_keys()``."""
         declared_keys = action_node.connection_keys()
         actual_keys: set[str] = set(connections.keys()) if connections else set()

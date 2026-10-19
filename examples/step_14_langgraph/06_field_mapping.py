@@ -43,6 +43,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.langgraph import LangGraphController
+from aoa.action_machine.resources import Connections
 
 # ─── Domain ───────────────────────────────────────────────────────────────────
 
@@ -90,7 +91,7 @@ class AuditResult(BaseResult):
 @check_roles(GuestRole)
 class ClassifyTicketAction(BaseAction[ClassifyParams, ClassifyResult]):
     @summary_aspect("Classify ticket")
-    async def classify_summary(self, params: ClassifyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ClassifyResult:
+    async def classify_summary(self, params: ClassifyParams, state: BaseState, box: ToolsBox, connections: Connections) -> ClassifyResult:
         text = params.note.lower()
         if "billing" in text or "invoice" in text or "payment" in text:
             cat = "billing"
@@ -105,7 +106,7 @@ class ClassifyTicketAction(BaseAction[ClassifyParams, ClassifyResult]):
 @check_roles(GuestRole)
 class EngineeringAction(BaseAction[ResolveParams, ResolveResult]):
     @summary_aspect("Assign to engineering")
-    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ResolveResult:
+    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: Connections) -> ResolveResult:
         tag = params.category.upper()
         return ResolveResult(
             resolved=True,
@@ -117,7 +118,7 @@ class EngineeringAction(BaseAction[ResolveParams, ResolveResult]):
 @check_roles(GuestRole)
 class BillingAction(BaseAction[ResolveParams, ResolveResult]):
     @summary_aspect("Assign to billing")
-    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ResolveResult:
+    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: Connections) -> ResolveResult:
         return ResolveResult(
             resolved=True,
             resolution_note=f"[BILLING] #{params.ticket_id} → billing team",
@@ -128,7 +129,7 @@ class BillingAction(BaseAction[ResolveParams, ResolveResult]):
 @check_roles(GuestRole)
 class AuditLogAction(BaseAction[AuditParams, AuditResult]):
     @summary_aspect("Audit log")
-    async def audit_summary(self, params: AuditParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> AuditResult:
+    async def audit_summary(self, params: AuditParams, state: BaseState, box: ToolsBox, connections: Connections) -> AuditResult:
         print(f"    [AUDIT] #{params.ticket_id}: {params.resolution_note}")
         return AuditResult()
 
@@ -226,7 +227,7 @@ class ProcessResult(BaseResult):
 @check_roles(GuestRole)
 class ProcessTicketAction(BaseAction[ProcessParams, ProcessResult]):
     @summary_aspect("Run mapped ticket graph")
-    async def run_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ProcessResult:
+    async def run_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: Connections) -> ProcessResult:
         ctrl = build_mapped_graph()
         result = await ctrl.ainvoke(
             {"ticket_id": params.ticket_id, "user_query": params.user_query},

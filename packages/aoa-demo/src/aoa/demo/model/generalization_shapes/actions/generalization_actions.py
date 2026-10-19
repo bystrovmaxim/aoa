@@ -28,7 +28,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.generalization_shapes.generalization_shapes_domain import GeneralizationShapesDomain
 
@@ -61,7 +61,7 @@ class GeneralizationParentAction(
         params: GeneralizationParentAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> GeneralizationParentAction.Result:
         """Build the empty fixture result."""
         _ = (params, state, box, connections)
@@ -97,7 +97,7 @@ class GeneralizationFirstChildAction(
         params: GeneralizationFirstChildAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> GeneralizationFirstChildAction.Result:
         """Build the empty fixture result."""
         _ = (params, state, box, connections)
@@ -133,7 +133,7 @@ class GeneralizationSecondChildAction(
         params: GeneralizationSecondChildAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> GeneralizationSecondChildAction.Result:
         """Build the empty fixture result."""
         _ = (params, state, box, connections)

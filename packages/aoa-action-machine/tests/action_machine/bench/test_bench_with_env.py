@@ -55,7 +55,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.testing import TestBench
 
@@ -84,7 +84,7 @@ class _EnvAction(BaseAction["_EnvAction.Params", _EnvResult]):
         params: _EnvAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         ctx: ContextView,
     ) -> _EnvResult:
         return _EnvResult(

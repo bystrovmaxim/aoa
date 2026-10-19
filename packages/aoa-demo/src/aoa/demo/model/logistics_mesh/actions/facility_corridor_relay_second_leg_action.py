@@ -7,7 +7,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.logistics_mesh.actions.facility_corridor_relay_first_leg_action import (
     FacilityCorridorRelayFirstLegAction,
@@ -31,7 +31,7 @@ class FacilityCorridorRelaySecondLegAction(FacilityCorridorRelayFirstLegAction):
         params: FacilityCorridorRelayFirstLegAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> FacilityCorridorRelayFirstLegAction.Result:
         _ = (params, state, box, connections)
         return self.Result()

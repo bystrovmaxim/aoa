@@ -55,7 +55,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 @result_date("delivery_date", required=True, date_format="%Y-%m-%d", min_date=datetime(2024, 1, 1))
 @result_instance("customer", CustomerProfile, required=True, no_none=True, value_check=lambda c: c.is_active)
 @result_string("coupon_code", required=False)
-async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     result: dict = {
         "order_id": params.order_id.strip().upper(),
         "quantity": params.quantity,
@@ -82,7 +82,7 @@ from aoa.action_machine.model import BaseResult
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
 @summary_aspect("Assemble validated order result")
-async def assemble_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
+async def assemble_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
     total = round(state["quantity"] * state["unit_price"], 2)
     has_coupon = "coupon_code" in state
     await box.info(
@@ -132,14 +132,14 @@ from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Step 1: Normalise SKU")
 @result_string("sku", required=True, min_length=3)
-async def normalise_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def normalise_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     return {"sku": params.raw_sku.strip().upper()}
 
 
 @regular_aspect("Step 2: Validate quantity and forward SKU")
 @result_string("sku", required=True)
 @result_int("quantity", required=True, min_value=1, max_value=100)
-async def validate_quantity_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def validate_quantity_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     return {
         "sku": state["sku"],
         "quantity": params.quantity,
@@ -179,7 +179,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Intentionally broken step")
 @result_string("sku", required=True)
 @result_int("quantity", required=True, min_value=1)
-async def broken_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def broken_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     return {"quantity": params.quantity}
 ```
 
@@ -220,7 +220,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Normalise item")
 @result_string("sku", required=True, min_length=3)
 @result_int("quantity", required=True, min_value=1)
-async def normalise_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def normalise_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     return {"sku": params.raw_sku.strip().upper(), "quantity": params.quantity}
 
 
@@ -228,7 +228,7 @@ async def normalise_aspect(self, params: BaseParams, state: BaseState, box: Tool
 @regular_aspect("Inform operator without changing business state")
 @result_string("sku", required=True, min_length=3)
 @result_int("quantity", required=True, min_value=1)
-async def inform_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def inform_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     # This could be a notification, an audit entry, a debug event.
     # But for the next step this aspect must be transparent.
     return {"sku": state["sku"], "quantity": state["quantity"]}
@@ -403,7 +403,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Validate order and mint payment token")
 @result_string("order_id", required=True, min_length=3)
 @result_string("payment_token", required=True, opaque=True)
-async def payment_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def payment_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     token = f"tok_live_{params.card_last4}_{'x' * 16}"
     return {
         "order_id": params.order_id.upper(),
@@ -483,7 +483,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 @result_int("age", required=True, min_value=0, max_value=150)
 @result_bool("is_verified", required=True)
 @result_string("nickname", required=False)
-async def some_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def some_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     ...
 ```
 

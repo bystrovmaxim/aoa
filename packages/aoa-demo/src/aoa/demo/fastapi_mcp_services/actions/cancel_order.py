@@ -48,7 +48,7 @@ from aoa.action_machine.intents.check_roles import check_roles, grant
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ..orders_domain import OrdersDomain
@@ -95,7 +95,7 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
         self,
         params: "CancelOrderAction.Params",
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         ctx: ContextView,
     ) -> Verdict:
         """The order must belong to the caller; anyone else is refused, with no reason."""
@@ -109,6 +109,6 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
         params: "CancelOrderAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> "CancelOrderAction.Result":
         return CancelOrderAction.Result(order_id=params.order_id, status="cancelled")

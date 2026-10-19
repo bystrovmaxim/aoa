@@ -21,6 +21,7 @@ from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 
 from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.connections import Connections
 
 
 @dataclass(frozen=True)
@@ -71,9 +72,9 @@ def validate_connection_entries(
 
 def resolve_connections(
     connections: Mapping[str, ConnectionValue] | None,
-) -> dict[str, BaseResource] | None:
+) -> Connections | None:
     """
-    Build the ``dict[str, BaseResource]`` passed to ``machine.run``.
+    Build the ``Connections`` passed to ``machine.run``.
 
     ``PerCallConnection`` entries call ``factory()`` on every invocation. The
     lifecycle — opening what was created and finalizing it — belongs to
@@ -82,7 +83,7 @@ def resolve_connections(
     if not connections:
         return None
 
-    result: dict[str, BaseResource] = {}
+    result: Connections = {}
     for key, value in connections.items():
         if not isinstance(key, str) or not key:
             raise TypeError("Connection key must be a non-empty string.")

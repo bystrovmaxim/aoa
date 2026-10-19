@@ -11,7 +11,7 @@ from aoa.action_machine.exceptions import NamingSuffixError
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
@@ -23,7 +23,7 @@ class TestOnErrorSuffix:
         from aoa.action_machine.intents.on_error import on_error
 
         @on_error(ValueError, description="Validation error")
-        async def handle_validation_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> BaseResult:
+        async def handle_validation_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections, error: Exception) -> BaseResult:
             pass
 
         assert hasattr(handle_validation_on_error, "_on_error_meta")
@@ -40,7 +40,7 @@ class TestOnErrorSuffix:
                 params: BaseParams,
                 state: BaseState,
                 box: ToolsBox,
-                connections: dict[str, BaseResource],
+                connections: Connections,
                 error: Exception,
             ) -> BaseResult:
                 pass

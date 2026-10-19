@@ -103,7 +103,7 @@ class ProcessPaymentResult(BaseResult):
 class ProcessPaymentAction(BaseAction[ProcessPaymentParams, ProcessPaymentResult]):
 
     @summary_aspect("A temporary wrapper over the legacy")
-    async def charge_summary(self, params: ProcessPaymentParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ProcessPaymentResult:
+    async def charge_summary(self, params: ProcessPaymentParams, state: BaseState, box: ToolsBox, connections: Connections) -> ProcessPaymentResult:
         gateway = await box.resolve(PaymentGateway)
         if not await gateway.validate_card(params.card_token, params.amount):
             return ProcessPaymentResult(success=False, txn="")
@@ -128,7 +128,7 @@ class ProcessPaymentAction(BaseAction[ProcessPaymentParams, ProcessPaymentResult
 
     @regular_aspect("Check the user")
     @result_instance("user", UserEntity, required=True, no_none=True)
-    async def check_user_aspect(self, params: ProcessPaymentParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def check_user_aspect(self, params: ProcessPaymentParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         users = await box.resolve(UserRepository)
         user = await users.get(params.user_id)
         if user is None:
@@ -136,7 +136,7 @@ class ProcessPaymentAction(BaseAction[ProcessPaymentParams, ProcessPaymentResult
         return {"user": user}
 
     @summary_aspect("Charge")
-    async def charge_summary(self, params: ProcessPaymentParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ProcessPaymentResult:
+    async def charge_summary(self, params: ProcessPaymentParams, state: BaseState, box: ToolsBox, connections: Connections) -> ProcessPaymentResult:
         gateway = await box.resolve(PaymentGateway)
         if not await gateway.validate_card(params.card_token, params.amount):
             return ProcessPaymentResult(success=False, txn="")
@@ -167,7 +167,7 @@ class ValidateCardResult(BaseResult):
 class ValidateCardAction(BaseAction[ValidateCardParams, ValidateCardResult]):
 
     @summary_aspect("Card validation")
-    async def validate_summary(self, params: ValidateCardParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ValidateCardResult:
+    async def validate_summary(self, params: ValidateCardParams, state: BaseState, box: ToolsBox, connections: Connections) -> ValidateCardResult:
         gateway = await box.resolve(PaymentGateway)
         valid = await gateway.validate_card(params.card_token, params.amount)
         return ValidateCardResult(valid=valid)
@@ -183,7 +183,7 @@ from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Card validation")
 @result_bool("card_valid", required=True)
-async def validate_card_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def validate_card_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     result = await box.run(
         ValidateCardAction,
         ValidateCardParams(card_token=params.card_token, amount=params.amount),
@@ -210,7 +210,7 @@ class PaymentStats(BaseResource, ABC):
 
 @regular_aspect("Record statistics")
 @result_bool("recorded", required=True)
-async def record_stats_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def record_stats_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     await (await box.resolve(PaymentStats)).record(params.amount)
     return {"recorded": True}
 ```

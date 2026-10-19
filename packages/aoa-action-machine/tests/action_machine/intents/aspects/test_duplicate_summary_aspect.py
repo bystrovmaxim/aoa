@@ -37,7 +37,7 @@ from aoa.action_machine.intents.aspects.summary_aspect_intent_resolver import Su
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseState, ParamsStub, ResultStub
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ....support.domain_model.domains import SystemDomain
@@ -55,7 +55,7 @@ class TwoSummariesAction(BaseAction[ParamsStub, ResultStub]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ResultStub:
         """Assemble the result, first way."""
         return ResultStub()
@@ -66,7 +66,7 @@ class TwoSummariesAction(BaseAction[ParamsStub, ResultStub]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ResultStub:
         """Assemble the result, second way."""
         return ResultStub()
@@ -84,7 +84,7 @@ class OneSummaryAction(BaseAction[ParamsStub, ResultStub]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ResultStub:
         """Assemble the result."""
         return ResultStub()
@@ -102,7 +102,7 @@ class NoSummaryAction(BaseAction[ParamsStub, ResultStub]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, object]:
         """Return an empty state fragment."""
         return {}

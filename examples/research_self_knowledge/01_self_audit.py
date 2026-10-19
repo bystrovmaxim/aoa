@@ -39,6 +39,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 
 class ShopDomain(BaseDomain):
@@ -70,15 +71,15 @@ class ChargeResult(BaseResult):
 class ChargeAction(BaseAction[ChargeParams, ChargeResult]):
     @regular_aspect("Charge")
     @result_string("txn_id", required=True)
-    async def charge_aspect(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def charge_aspect(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         return {"txn_id": f"txn-{params.order_id}"}
 
     @compensate(charge_aspect, "Refund the charge")
-    async def charge_compensate(self, params: ChargeParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> None:
+    async def charge_compensate(self, params: ChargeParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: Connections, error: Exception) -> None:
         pass
 
     @summary_aspect("Done")
-    async def done_summary(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ChargeResult:
+    async def done_summary(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: Connections) -> ChargeResult:
         return ChargeResult(txn_id=state["txn_id"])
 
 
@@ -88,11 +89,11 @@ class ChargeAction(BaseAction[ChargeParams, ChargeResult]):
 class ShipAction(BaseAction[ChargeParams, ChargeResult]):
     @regular_aspect("Ship")
     @result_string("txn_id", required=True)
-    async def ship_aspect(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def ship_aspect(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         return {"txn_id": f"ship-{params.order_id}"}
 
     @summary_aspect("Done")
-    async def done_summary(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ChargeResult:
+    async def done_summary(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: Connections) -> ChargeResult:
         return ChargeResult(txn_id=state["txn_id"])
 
 

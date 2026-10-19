@@ -34,6 +34,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 # ---------------------------------------------------------------------------
 # Application Context with @env providers
@@ -81,7 +82,7 @@ class ShipOrderAction(BaseAction[ShipOrderParams, ShipOrderResult]):
     # returns the default (None).
     @regular_aspect("Read shipping configuration from env")
     @context_requires("env.region", "env.max_retries", "env.feature_flag")
-    async def config_aspect(self, params: ShipOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> dict[str, Any]:
+    async def config_aspect(self, params: ShipOrderParams, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> dict[str, Any]:
         region = ctx.get("env.region")
         max_retries = ctx.get("env.max_retries")
         feature_flag = ctx.get("env.feature_flag")
@@ -93,7 +94,7 @@ class ShipOrderAction(BaseAction[ShipOrderParams, ShipOrderResult]):
         return {}
 
     @summary_aspect("Confirm shipment")
-    async def ship_summary(self, params: ShipOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ShipOrderResult:
+    async def ship_summary(self, params: ShipOrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> ShipOrderResult:
         return ShipOrderResult(order_id=params.order_id, status="shipped")
 
 

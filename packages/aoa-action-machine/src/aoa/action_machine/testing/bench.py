@@ -155,7 +155,7 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core.plugin import Plugin
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 from aoa.action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
@@ -580,7 +580,7 @@ class TestBench:
         action: BaseAction[P, R],
         params: P,
         rollup: bool,
-        connections: dict[str, BaseResource] | None = None,
+        connections: Connections | None = None,
     ) -> R:
         """
         Full action run on async and sync machines with result comparison.
@@ -637,7 +637,7 @@ class TestBench:
         params: BaseParams,
         state: dict[str, Any],
         rollup: bool,
-        connections: dict[str, BaseResource] | None = None,
+        connections: Connections | None = None,
     ) -> dict[str, Any]:
         """
         Execute one regular aspect with state validation.
@@ -704,7 +704,7 @@ class TestBench:
         params: BaseParams,
         state: dict[str, Any],
         rollup: bool,
-        connections: dict[str, BaseResource] | None = None,
+        connections: Connections | None = None,
     ) -> BaseResult:
         """
         Execute summary aspect only with full state validation.
@@ -767,7 +767,7 @@ class TestBench:
         state_before: BaseState,
         state_after: BaseState | None,
         error: Exception,
-        connections: dict[str, BaseResource] | None = None,
+        connections: Connections | None = None,
         context: dict[str, Any] | None = None,
     ) -> None:
         """
@@ -875,7 +875,7 @@ class TestBench:
         async def run_child(
             child_action: BaseAction[Any, Any],
             child_params: BaseParams,
-            child_connections: dict[str, BaseResource] | None = None,
+            child_connections: Connections | None = None,
         ) -> BaseResult:
             if isinstance(child_action, MockAction):
                 return child_action.run(child_params)

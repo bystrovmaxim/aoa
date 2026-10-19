@@ -54,13 +54,13 @@ def _expected_types() -> dict[str, Any]:
     """What each parameter must be annotated with, imported when the check actually runs."""
     from aoa.action_machine.context.context_view import ContextView  # pylint: disable=import-outside-toplevel
     from aoa.action_machine.model.base_params import BaseParams  # pylint: disable=import-outside-toplevel
-    from aoa.action_machine.resources.base_resource import BaseResource  # pylint: disable=import-outside-toplevel
+    from aoa.action_machine.resources.connections import Connections  # pylint: disable=import-outside-toplevel
     from aoa.action_machine.runtime.tools_box import ToolsBox  # pylint: disable=import-outside-toplevel
 
     return {
         "params": BaseParams,
         "box": ToolsBox,
-        "connections": dict[str, BaseResource],
+        "connections": Connections,
         "ctx": ContextView,
     }
 
@@ -190,7 +190,7 @@ def _validate_connections(action_cls: type[Any], check: Callable[..., Any], actu
         return
     raise DeclarationStructureError(
         f"@access_decide: {action_cls.__name__}.{check.__name__} annotates 'connections' as "
-        f"{_name_of(actual)}, but {RUNTIME_NOTE}: it must be dict[str, BaseResource]."
+        f"{_name_of(actual)}, but {RUNTIME_NOTE}: it must be Connections."
     )
 
 

@@ -33,7 +33,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance, result_string
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.model.core.core_domain import CoreDomain
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
@@ -97,7 +97,7 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         params: LoadAOAServiceParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         _ = (state, box, connections)
         url = _with_default_scheme(params.service_url)
@@ -123,7 +123,7 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         params: LoadAOAServiceParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         _ = (params, box, connections)
         url = cast(str, state["service_graph_json_url"]).rstrip("/")
@@ -142,7 +142,7 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         params: LoadAOAServiceParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         _ = (params, box, connections)
         url = cast(str, state["service_graph_json_url"])
@@ -189,7 +189,7 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         params: LoadAOAServiceParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         _ = (params, box, connections)
         url = cast(str, state["service_graph_json_url"])
@@ -220,7 +220,7 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         params: LoadAOAServiceParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> LoadAOAServiceResult:
         _ = (params, box, connections)
         url = cast(str, state["service_graph_json_url"])

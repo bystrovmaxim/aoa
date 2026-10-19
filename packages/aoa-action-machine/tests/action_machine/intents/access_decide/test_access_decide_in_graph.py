@@ -23,7 +23,7 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -47,7 +47,7 @@ class VisibleCheckAction(BaseAction["VisibleCheckAction.Params", "VisibleCheckAc
         self,
         params: VisibleCheckAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Allowed:
         """Answer that the object may be touched."""
         return Allowed()

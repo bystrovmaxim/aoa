@@ -30,7 +30,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ....action_machine.scenarios.intents_with_runtime.test_role_checker_pr2 import OrderManagerRole, OrderViewerRole
@@ -74,7 +74,7 @@ class OrRolesProbeAction(BaseAction["OrRolesProbeAction.Params", "OrRolesProbeAc
         params: OrRolesProbeAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> OrRolesProbeAction.Result:
         return OrRolesProbeAction.Result(ok=True)
 
@@ -108,7 +108,7 @@ class AnyRoleProbeAction(BaseAction["AnyRoleProbeAction.Params", "AnyRoleProbeAc
         params: AnyRoleProbeAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> AnyRoleProbeAction.Result:
         return AnyRoleProbeAction.Result(ok=True)
 
@@ -142,7 +142,7 @@ class HierarchyRoleProbeAction(BaseAction["HierarchyRoleProbeAction.Params", "Hi
         params: HierarchyRoleProbeAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> HierarchyRoleProbeAction.Result:
         return HierarchyRoleProbeAction.Result(ok=True)
 
@@ -226,7 +226,7 @@ class GrantGuardProbeAction(BaseAction["GrantGuardProbeAction.Params", "GrantGua
         params: GrantGuardProbeAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> GrantGuardProbeAction.Result:
         return GrantGuardProbeAction.Result(ok=True)
 
@@ -297,7 +297,7 @@ class GuestWhenProbeAction(BaseAction["GuestWhenProbeAction.Params", "GuestWhenP
         params: GuestWhenProbeAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> GuestWhenProbeAction.Result:
         return GuestWhenProbeAction.Result(ok=True)
 
@@ -327,7 +327,7 @@ class AnyWhenProbeAction(BaseAction["AnyWhenProbeAction.Params", "AnyWhenProbeAc
         params: AnyWhenProbeAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> AnyWhenProbeAction.Result:
         return AnyWhenProbeAction.Result(ok=True)
 

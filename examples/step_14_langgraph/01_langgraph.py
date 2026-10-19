@@ -38,6 +38,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.langgraph import AgentState, LangGraphAdapter, RouteKeyError, StateFieldMismatchError, UnregisteredNodeError
+from aoa.action_machine.resources import Connections
 
 # ─── State ────────────────────────────────────────────────────────────────────
 # TypedDict becomes the LangGraph state schema.
@@ -91,7 +92,7 @@ class ResolveResult(BaseResult):
 class ClassifyTicketAction(BaseAction[ClassifyParams, ClassifyResult]):
 
     @summary_aspect("Classify ticket")
-    async def classify_summary(self, params: ClassifyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ClassifyResult:
+    async def classify_summary(self, params: ClassifyParams, state: BaseState, box: ToolsBox, connections: Connections) -> ClassifyResult:
         text = params.note.lower()
         if "billing" in text or "invoice" in text or "payment" in text:
             cat = "billing"
@@ -107,7 +108,7 @@ class ClassifyTicketAction(BaseAction[ClassifyParams, ClassifyResult]):
 class EngineeringAction(BaseAction[ResolveParams, ResolveResult]):
 
     @summary_aspect("Assign to engineering")
-    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ResolveResult:
+    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: Connections) -> ResolveResult:
         tag = params.category.upper()
         return ResolveResult(
             resolved=True,
@@ -120,7 +121,7 @@ class EngineeringAction(BaseAction[ResolveParams, ResolveResult]):
 class BillingAction(BaseAction[ResolveParams, ResolveResult]):
 
     @summary_aspect("Assign to billing")
-    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ResolveResult:
+    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: Connections) -> ResolveResult:
         return ResolveResult(
             resolved=True,
             note=f"[BILLING] #{params.ticket_id} → billing team",

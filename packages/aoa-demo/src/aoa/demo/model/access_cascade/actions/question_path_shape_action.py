@@ -31,7 +31,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDomain
 from aoa.demo.model.access_cascade.roles import CascadeOfficerRole
@@ -69,7 +69,7 @@ class QuestionPathShapeAction(
         self,
         params: QuestionPathShapeAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """The fixture always allows; the question path is the shape being proven."""
         _ = (params, box, connections)
@@ -81,7 +81,7 @@ class QuestionPathShapeAction(
         params: QuestionPathShapeAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> QuestionPathShapeAction.Result:
         """Count the pipeline probe and build the empty fixture result."""
         _ = (params, state, box, connections)

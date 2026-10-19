@@ -20,7 +20,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.include_contract_checker import IncludeContractChecker
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -51,7 +51,7 @@ class LeafAForGatherAction(BaseAction["LeafAForGatherAction.Params", "LeafAForGa
         params: LeafAForGatherAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> LeafAForGatherAction.Result:
         return LeafAForGatherAction.Result()
 
@@ -71,7 +71,7 @@ class LeafBForGatherAction(BaseAction["LeafBForGatherAction.Params", "LeafBForGa
         params: LeafBForGatherAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> LeafBForGatherAction.Result:
         return LeafBForGatherAction.Result()
 
@@ -91,7 +91,7 @@ class LeafForContractAction(BaseAction["LeafForContractAction.Params", "LeafForC
         params: LeafForContractAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> LeafForContractAction.Result:
         return LeafForContractAction.Result()
 
@@ -144,7 +144,7 @@ class HostIncludeSingleAction(BaseAction["HostIncludeSingleAction.Params", "Host
         params: HostIncludeSingleAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> HostIncludeSingleAction.Result:
         return HostIncludeSingleAction.Result()
 
@@ -166,7 +166,7 @@ class HostIncludeTwoAction(BaseAction["HostIncludeTwoAction.Params", "HostInclud
         params: HostIncludeTwoAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> HostIncludeTwoAction.Result:
         return HostIncludeTwoAction.Result()
 
@@ -192,7 +192,7 @@ async def test_include_violation_when_peer_never_run() -> None:
             params: IncludeViolatorAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> IncludeViolatorAction.Result:
             return IncludeViolatorAction.Result()
 
@@ -220,7 +220,7 @@ async def test_include_ok_when_box_run_peer() -> None:
             params: IncludeRunnerAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> IncludeRunnerAction.Result:
             await box.run(LeafForContractAction, LeafForContractAction.Params())
             return IncludeRunnerAction.Result()
@@ -248,7 +248,7 @@ async def test_extend_not_enforced_by_include_checker() -> None:
             params: ExtendHostAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> ExtendHostAction.Result:
             return ExtendHostAction.Result()
 
@@ -274,7 +274,7 @@ async def test_include_transitive_success_when_nested_runs_leaf() -> None:
             params: MiddleRunsLeafAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> dict:
             await box.run(LeafForContractAction, LeafForContractAction.Params())
             return {}
@@ -285,7 +285,7 @@ async def test_include_transitive_success_when_nested_runs_leaf() -> None:
             params: MiddleRunsLeafAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> MiddleRunsLeafAction.Result:
             return MiddleRunsLeafAction.Result()
 
@@ -305,7 +305,7 @@ async def test_include_transitive_success_when_nested_runs_leaf() -> None:
             params: RootTransitiveOkAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> dict:
             await box.run(MiddleRunsLeafAction, MiddleRunsLeafAction.Params())
             return {}
@@ -316,7 +316,7 @@ async def test_include_transitive_success_when_nested_runs_leaf() -> None:
             params: RootTransitiveOkAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> RootTransitiveOkAction.Result:
             return RootTransitiveOkAction.Result()
 
@@ -342,7 +342,7 @@ async def test_include_transitive_fails_when_leaf_never_run() -> None:
             params: MiddleSkipsLeafAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> dict:
             return {}
 
@@ -352,7 +352,7 @@ async def test_include_transitive_fails_when_leaf_never_run() -> None:
             params: MiddleSkipsLeafAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> MiddleSkipsLeafAction.Result:
             return MiddleSkipsLeafAction.Result()
 
@@ -372,7 +372,7 @@ async def test_include_transitive_fails_when_leaf_never_run() -> None:
             params: RootTransitiveFailAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> dict:
             await box.run(MiddleSkipsLeafAction, MiddleSkipsLeafAction.Params())
             return {}
@@ -383,7 +383,7 @@ async def test_include_transitive_fails_when_leaf_never_run() -> None:
             params: RootTransitiveFailAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> RootTransitiveFailAction.Result:
             return RootTransitiveFailAction.Result()
 
@@ -412,7 +412,7 @@ async def test_gather_merges_nested_machine_runs_into_one_tracker() -> None:
             params: GatherIncludeHostAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> GatherIncludeHostAction.Result:
             await asyncio.gather(
                 box.run(LeafAForGatherAction, LeafAForGatherAction.Params()),
@@ -447,7 +447,7 @@ async def test_create_task_awaited_still_shares_root_include_tracker() -> None:
             params: CreateTaskIncludeHostAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> CreateTaskIncludeHostAction.Result:
             task = asyncio.create_task(box.run(LeafForContractAction, LeafForContractAction.Params()))
             await task
@@ -476,7 +476,7 @@ async def test_resolve_only_does_not_satisfy_include() -> None:
             params: ResolveOnlyHostAction.Params,
             state: BaseState,
             box: ToolsBox,
-            connections: dict[str, BaseResource],
+            connections: Connections,
         ) -> ResolveOnlyHostAction.Result:
             _ = await box.resolve(LeafForContractAction)
             return ResolveOnlyHostAction.Result()

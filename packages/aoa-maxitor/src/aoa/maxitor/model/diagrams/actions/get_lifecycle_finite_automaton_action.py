@@ -29,7 +29,7 @@ from aoa.action_machine.intents.checkers import result_instance, result_string
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action_schema import LifecycleFiniteAutomatonJson
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
@@ -86,7 +86,7 @@ class GetLifecycleFiniteAutomatonAction(
         params: GetLifecycleFiniteAutomatonAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         _ = (state, box, connections)
         node_id = params.lifecycle_graph_node_id.strip()
@@ -115,7 +115,7 @@ class GetLifecycleFiniteAutomatonAction(
         params: GetLifecycleFiniteAutomatonAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         _ = (params, box)
         graph = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
@@ -146,7 +146,7 @@ class GetLifecycleFiniteAutomatonAction(
         params: GetLifecycleFiniteAutomatonAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         _ = (params, box)
         graph = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
@@ -182,7 +182,7 @@ class GetLifecycleFiniteAutomatonAction(
         params: GetLifecycleFiniteAutomatonAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         _ = (params, box)
         graph = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
@@ -214,7 +214,7 @@ class GetLifecycleFiniteAutomatonAction(
         params: GetLifecycleFiniteAutomatonAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> GetLifecycleFiniteAutomatonAction.Result:
         _ = (params, box, connections)
         node_id = cast(str, state["lifecycle_graph_node_id"])

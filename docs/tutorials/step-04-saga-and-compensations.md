@@ -47,12 +47,12 @@ from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Reserve inventory")
 @result_string("reservation_id", required=True)
-async def reserve_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def reserve_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     await box.info(Channel.business, "regular: reserve order={%var.order_id}", order_id=params.order_id)
     return {"reservation_id": f"res-{params.order_id}"}
 
 @compensate(reserve_aspect, "Release reservation")
-async def reserve_compensate(self, params: BaseParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> None:
+async def reserve_compensate(self, params: BaseParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: Connections, error: Exception) -> None:
     rid = state_after["reservation_id"] if state_after else "?"
     await box.info(Channel.business, "compensate: release reservation {%var.rid}", rid=rid)
 ```
@@ -66,7 +66,7 @@ from aoa.action_machine.model import BaseResult
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
 @summary_aspect("Confirm order")
-async def confirm_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
+async def confirm_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
     raise ValueError("order service unavailable")
 ```
 

@@ -45,7 +45,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection  # pylint: disable=no-name-in-module
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ..domain import IdentityDomain
@@ -86,7 +86,7 @@ class IdentityLookupAction(BaseAction["IdentityLookupAction.Params", "IdentityLo
         params: IdentityLookupAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> IdentityLookupAction.Result:
         """Read through the declared connection, and write inside the transaction it owns."""
         store = cast(IdentityStoreBase, connections["identity"])

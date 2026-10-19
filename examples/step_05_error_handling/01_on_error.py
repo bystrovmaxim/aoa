@@ -24,6 +24,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 
 class RootDomain(BaseDomain):
@@ -45,13 +46,13 @@ class LoginResult(BaseResult):
 class LoginAction(BaseAction[LoginParams, LoginResult]):
 
     @summary_aspect("Validate credentials")
-    async def login_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> LoginResult:
+    async def login_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: Connections) -> LoginResult:
         if params.username == "bad":
             raise ValueError("invalid credentials")
         return LoginResult(username=params.username, status="ok")
 
     @on_error(ValueError, description="Invalid credentials")
-    async def validation_error_on_error(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> LoginResult:
+    async def validation_error_on_error(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: Connections, error: Exception) -> LoginResult:
         await box.info(Channel.business, "on_error: {%var.msg}", msg=str(error))
         return LoginResult(username=params.username, status="login_failed")
 

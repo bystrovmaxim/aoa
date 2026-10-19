@@ -71,7 +71,7 @@ ticket_graph = (
 @connection(LangGraphController, key="graph", description="Ticket-processing graph")
 class ProcessTicketAction(BaseAction[ProcessParams, ProcessResult]):
     @summary_aspect("Run the ticket graph")
-    async def run_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ProcessResult:
+    async def run_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: Connections) -> ProcessResult:
         result = await connections["graph"].ainvoke(
             {"ticket_id": params.ticket_id, "note": params.note},
             box,          # box carries the resource pool for all Action nodes in the graph

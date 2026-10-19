@@ -73,7 +73,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Validation")
 @result_string("validated_id", required=True)
 @result_instance(OCEL_FRAMES_KEY, list, required=False)
-async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     order = OrderEntity(id=params.order_id)
     return {
         "validated_id": params.order_id,

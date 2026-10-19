@@ -45,7 +45,7 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -78,7 +78,7 @@ class ObjectScopedAction(BaseAction["ObjectScopedAction.Params", "ObjectScopedAc
         self,
         params: ObjectScopedAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         ctx: ContextView,
     ) -> Verdict:
         """One branch for both situations: no such object, and somebody else's object."""

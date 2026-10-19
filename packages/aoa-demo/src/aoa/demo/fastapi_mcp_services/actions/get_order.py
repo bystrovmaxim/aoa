@@ -35,7 +35,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ..orders_domain import OrdersDomain
@@ -81,7 +81,7 @@ class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"
         params: "GetOrderAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> "GetOrderAction.Result":
         """Return stub order data for the requested ``order_id``."""
         await box.info(

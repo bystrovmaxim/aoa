@@ -45,7 +45,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -80,7 +80,7 @@ class UnstableGateAction(BaseAction["UnstableGateAction.Params", "UnstableGateAc
         self,
         params: UnstableGateAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Fail the way the test asks, until it asks for an answer instead."""
         global _CHECK_CALLS
@@ -93,7 +93,7 @@ class UnstableGateAction(BaseAction["UnstableGateAction.Params", "UnstableGateAc
 
     @summary_aspect("S")
     async def unstable_summary(
-        self, params: UnstableGateAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: UnstableGateAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> UnstableGateAction.Result:
         """Produce the operation's result, counting how often the pipeline really ran."""
         global _SUMMARY_CALLS

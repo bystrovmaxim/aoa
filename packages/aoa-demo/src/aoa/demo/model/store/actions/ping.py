@@ -10,7 +10,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState, JsonSchemaValue
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.store.store_domain import StoreDomain
 
@@ -51,7 +51,7 @@ class OpsPingAction(BaseAction["OpsPingAction.Params", "OpsPingAction.Result"]):
         params: OpsPingAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         ctx: ContextView,
     ) -> OpsPingAction.Result:
         return OpsPingAction.Result(

@@ -26,7 +26,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -73,7 +73,7 @@ class GuardedAction(BaseAction["GuardedAction.Params", "GuardedAction.Result"]):
         self,
         params: GuardedAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Allowed:
         """Record the parameters the object step was handed, and allow."""
         _SEEN["object"].append(params)
@@ -81,7 +81,7 @@ class GuardedAction(BaseAction["GuardedAction.Params", "GuardedAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: GuardedAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: GuardedAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> GuardedAction.Result:
         """Produce the operation's result."""
         return GuardedAction.Result()
@@ -100,7 +100,7 @@ class GuestAction(BaseAction["GuestAction.Params", "GuestAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: GuestAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: GuestAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> GuestAction.Result:
         """Produce the operation's result."""
         return GuestAction.Result()
@@ -119,7 +119,7 @@ class AnyRoleAction(BaseAction["AnyRoleAction.Params", "AnyRoleAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: AnyRoleAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: AnyRoleAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> AnyRoleAction.Result:
         """Produce the operation's result."""
         return AnyRoleAction.Result()

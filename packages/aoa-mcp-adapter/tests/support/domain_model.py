@@ -42,6 +42,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -266,7 +267,7 @@ class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
         params: "PingAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> "PingAction.Result":
         """Return a fixed Result with message 'pong'."""
         return PingAction.Result(message="pong")
@@ -305,7 +306,7 @@ class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
         params: "SimpleAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict:
         """
         Validate and normalize the name from params.
@@ -324,7 +325,7 @@ class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
         params: "SimpleAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> "SimpleAction.Result":
         """
         Build greeting from validated_name in state.
@@ -393,7 +394,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         params: "FullAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict:
         """
         Charge funds via PaymentService.
@@ -416,7 +417,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         params: "FullAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict:
         """
         Compute order total.
@@ -435,7 +436,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         params: "FullAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> "FullAction.Result":
         """
         Build the final Result from state.

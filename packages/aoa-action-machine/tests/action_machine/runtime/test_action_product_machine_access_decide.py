@@ -17,7 +17,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -50,7 +50,7 @@ class DenyAllAccessDecideAction(BaseAction["DenyAllAccessDecideAction.Params", "
         self,
         params: DenyAllAccessDecideAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Refused:
         """Refuse every object, without a reason of its own."""
         return FORBIDDEN_OBJECT
@@ -61,7 +61,7 @@ class DenyAllAccessDecideAction(BaseAction["DenyAllAccessDecideAction.Params", "
         params: DenyAllAccessDecideAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> DenyAllAccessDecideAction.Result:
         _summary_calls["n"] += 1
         return DenyAllAccessDecideAction.Result(ok=True)
@@ -99,7 +99,7 @@ class AllowAccessDecideAction(BaseAction["AllowAccessDecideAction.Params", "Allo
         self,
         params: AllowAccessDecideAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Allowed:
         """Allow every object."""
         return Allowed()
@@ -110,7 +110,7 @@ class AllowAccessDecideAction(BaseAction["AllowAccessDecideAction.Params", "Allo
         params: AllowAccessDecideAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> AllowAccessDecideAction.Result:
         return AllowAccessDecideAction.Result(ok=True)
 
@@ -135,7 +135,7 @@ class NoDeclaredCheckAction(BaseAction["NoDeclaredCheckAction.Params", "NoDeclar
         params: NoDeclaredCheckAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> NoDeclaredCheckAction.Result:
         return NoDeclaredCheckAction.Result(ok=True)
 

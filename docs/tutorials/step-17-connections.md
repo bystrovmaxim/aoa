@@ -108,7 +108,7 @@ class CountResult(BaseResult):
 class CountAction(BaseAction[EmptyParams, CountResult]):
     """Increment the supplied resource once."""
     @summary_aspect("Count one call")
-    async def count_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CountResult:
+    async def count_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: Connections) -> CountResult:
         """Return the updated count."""
         counter = connections["counter"]
         counter.count += 1
