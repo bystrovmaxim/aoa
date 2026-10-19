@@ -67,9 +67,9 @@ description: "Task list for #233 — a role's mode is refused where it is declar
 
 ### Tests for User Story 2
 
-- [ ] T007 [US2] In `test_role_mode_decorator_invariants.py` add one test per member (`ALIVE`, `DEPRECATED`, `SILENCED`, `UNUSED`) asserting `_role_mode_info["mode"] is member` (identity, not equality) and one asserting the decorator returns the very class it was given.
-- [ ] T008 [US2] In the same module add the no-metadata-on-refusal test: `decorator = role_mode("alive")`, apply it to a class by hand inside `pytest.raises`, and assert the class carries no `_role_mode_info` (`FR-005`; not observable through decorator syntax, where the class is never bound).
-- [ ] T009 [US2] Run T007 and T008: green. Then break the storage (`{"mode": mode.value}` instead of `{"mode": mode}`) and confirm T007's identity tests fail alone; restore.
+- [x] T007 [US2] In `test_role_mode_decorator_invariants.py` add one test per member (`ALIVE`, `DEPRECATED`, `SILENCED`, `UNUSED`) asserting `_role_mode_info["mode"] is member` (identity, not equality) and one asserting the decorator returns the very class it was given.
+- [x] T008 [US2] In the same module add the no-metadata-on-refusal test: `decorator = role_mode("alive")`, apply it to a class by hand inside `pytest.raises`, and assert the class carries no `_role_mode_info` (`FR-005`; not observable through decorator syntax, where the class is never bound).
+- [x] T009 [US2] Run T007 and T008: green. Then break the storage — store `{"mode": RoleMode.ALIVE}` whatever arrived — and confirm exactly three of the four identity cases fail and nothing else does; restore. (Storing `mode.value` instead was measured to fail earlier, at the import of the support roles, so it cannot isolate the identity assertion.)
 
 **Checkpoint**: the accepted side is proved to be unchanged.
 
@@ -83,9 +83,9 @@ description: "Task list for #233 — a role's mode is refused where it is declar
 
 ### Tests for User Story 3
 
-- [ ] T010 [US3] In `test_role_mode_decorator_invariants.py` add `declared_for`'s two guards: a `RoleModeIntent` subclass with no `@role_mode` anywhere in its MRO → "has no `_role_mode_info`"; a role whose `_role_mode_info["mode"]` was replaced with `"alive"` → "has invalid `_role_mode_info['mode']`". Assert the substrings that identify each case, and that neither message carries the list of four (`FR-010`, clarification 2).
-- [ ] T011 [P] [US3] Run the two files that own the context rules unchanged — `packages/aoa-action-machine/tests/action_machine/scenarios/intents_with_runtime/test_role_checker_pr2.py` (`UNUSED` → `RoleSpecTypeError`, `DEPRECATED` → warning) and `packages/aoa-action-machine/tests/action_machine/intents/access_control/test_roles.py` (`SILENCED` grants nothing) — and confirm they are green with no edit to either file (`FR-011`, `FR-012`, `SC-004`).
-- [ ] T012 [US3] Prove T010 adversarially: delete the `isinstance(raw, RoleMode)` check in `RoleMode.declared_for` → the corrupted-metadata test fails alone; restore. Confirm the check written by US1 does not rescue it (the metadata is written after the decorator, so only `declared_for` sees it).
+- [x] T010 [US3] In `test_role_mode_decorator_invariants.py` add `declared_for`'s two guards: a `RoleModeIntent` subclass with no `@role_mode` anywhere in its MRO → "has no `_role_mode_info`"; a role whose `_role_mode_info["mode"]` was replaced with `"alive"` → "has invalid `_role_mode_info['mode']`". Assert the substrings that identify each case, and that neither message carries the list of four (`FR-010`, clarification 2).
+- [x] T011 [P] [US3] Run the two files that own the context rules unchanged — `packages/aoa-action-machine/tests/action_machine/scenarios/intents_with_runtime/test_role_checker_pr2.py` (`UNUSED` → `RoleSpecTypeError`, `DEPRECATED` → warning) and `packages/aoa-action-machine/tests/action_machine/intents/access_control/test_roles.py` (`SILENCED` grants nothing) — and confirm they are green with no edit to either file (`FR-011`, `FR-012`, `SC-004`).
+- [x] T012 [US3] Prove T010 adversarially: delete the `isinstance(raw, RoleMode)` check in `RoleMode.declared_for` → the corrupted-metadata test fails alone; restore. Confirm the check written by US1 does not rescue it (the metadata is written after the decorator, so only `declared_for` sees it).
 
 **Checkpoint**: all three stories are done; the first commit is complete.
 
@@ -95,9 +95,9 @@ description: "Task list for #233 — a role's mode is refused where it is declar
 
 > **NOTE**: each of these is its own commit, and no task above may absorb one of them.
 
-- [ ] T013 The check run to zero: walk `quickstart.md` steps 1–4 by hand (scan, the two-refusal script, the feature's suite, the adversarial table), then run `bash scripts/run_checks_with_log.sh` and fix every remark it reports. The two accepted remarks (the Vite chunk-size advisory and LangGraph's pending deprecation) stay. Three checks belong to this task because only a whole-tree run can make them: (a) `git diff` touches none of the four prose placeholders and no declaration site, so `FR-014`/`FR-015` hold and `SC-003` is met; (b) the public exception namespace gained no name — `git diff packages/aoa-action-machine/src/aoa/action_machine/exceptions/__init__.py` is empty (`SC-005`); (c) the demo model's roles, which carry the four modes, still import through the suite (`SC-004`). Paste the tail of the log into the report.
-- [ ] T014 The documentation: add the invariant under `## Mandatory roles` in `docs/reference/intents-and-invariants.md` — the four members, a wrong argument refused at the declaration, the context rules that stay with their consumers — and the same text in `docs/reference/intents-and-invariants.ru_draft.md` (gitignored, reported as a link). Then write the example pair `examples/step_03_authorization_and_roles/17_a_wrong_role_mode.py` and `17_a_wrong_role_mode.ipynb`: the accepted declaration, the string refused, the missing parentheses refused, each printed from a real run (constitution VI.4–VI.6, `FR-017`). Execute the script and the notebook, and paste their output into the report.
-- [ ] T015 The changelog: one article at the top of `docs/CHANGELOG.md`, dated `2026-10-19`, in the form the existing dated entries use — what a reader can now rely on (a wrong role mode is visible where it is declared, the message names the four), no file list, no technical detail (`FR-018`).
+- [x] T013 The check run to zero: walk `quickstart.md` steps 1–4 by hand (scan, the two-refusal script, the feature's suite, the adversarial table), then run `bash scripts/run_checks_with_log.sh` and fix every remark it reports. The two accepted remarks (the Vite chunk-size advisory and LangGraph's pending deprecation) stay. Three checks belong to this task because only a whole-tree run can make them: (a) `git diff` touches none of the four prose placeholders and no declaration site, so `FR-014`/`FR-015` hold and `SC-003` is met; (b) the public exception namespace gained no name — `git diff packages/aoa-action-machine/src/aoa/action_machine/exceptions/__init__.py` is empty (`SC-005`); (c) the demo model's roles, which carry the four modes, still import through the suite (`SC-004`). Paste the tail of the log into the report.
+- [x] T014 The documentation: add the invariant under `## Mandatory roles` in `docs/reference/intents-and-invariants.md` — the four members, a wrong argument refused at the declaration, the context rules that stay with their consumers — and the same text in `docs/reference/intents-and-invariants.ru_draft.md` (gitignored, reported as a link). Then write the example pair `examples/step_03_authorization_and_roles/17_a_wrong_role_mode.py` and `17_a_wrong_role_mode.ipynb`: the accepted declaration, the string refused, the missing parentheses refused, each printed from a real run (constitution VI.4–VI.6, `FR-017`). Execute the script and the notebook, and paste their output into the report.
+- [x] T015 The changelog: one article at the top of `docs/CHANGELOG.md`, dated `2026-10-19`, in the form the existing dated entries use — what a reader can now rely on (a wrong role mode is visible where it is declared, the message names the four), no file list, no technical detail (`FR-018`).
 
 **Checkpoint**: the change is finished by the repository's own definition.
 
@@ -166,7 +166,7 @@ Not applicable: one source file, one test module. The only genuine parallelism i
 
 ## Notes
 
-- Every test is written before the code it judges and is proved by a break, per `AGENTS.md`; the six breaks are listed in T006, T009 and T012 and in `quickstart.md` step 4. Break T006(f) — metadata written before the check — is demonstrated together with T008, because the test that observes it belongs to Phase 3.
+- Every test is written before the code it judges and is proved by a break, per `AGENTS.md`; the six breaks are listed in T006, T009 and T012 and in `quickstart.md` step 4. Break T006(f) — metadata written before the check — is demonstrated with T008, whose test observes it: with the write moved above the check, that one test fails and the other seventeen pass.
 - Do not touch the four prose placeholders (`@role_mode(...)`, `@role_mode(RoleMode.…)`): they are text, not calls (`FR-015`).
 - Do not move `UNUSED`/`DEPRECATED`/`SILENCED` rules into the decorator (`FR-011`) and do not rename or re-word `declared_for`'s messages (`FR-010`).
 - Do not edit `.specify/memory/constitution.md`, and do not commit anything without the maintainer's instruction (principle I).
