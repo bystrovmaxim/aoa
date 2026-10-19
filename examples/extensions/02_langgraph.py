@@ -38,6 +38,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.langgraph import AgentState, LangGraphAdapter
+from aoa.action_machine.resources import Connections
 
 # ─── State ────────────────────────────────────────────────────────────────────
 # TypedDict becomes the LangGraph state schema.
@@ -93,7 +94,7 @@ class ConfirmResult(BaseResult):
 @check_roles(GuestRole)
 class ValidateOrderAction(BaseAction[ValidateParams, ValidateResult]):
     @summary_aspect("Check order_id format")
-    async def validate_summary(self, params: ValidateParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ValidateResult:
+    async def validate_summary(self, params: ValidateParams, state: BaseState, box: ToolsBox, connections: Connections) -> ValidateResult:
         return ValidateResult(valid=params.order_id.startswith("ORD-"))
 
 
@@ -101,7 +102,7 @@ class ValidateOrderAction(BaseAction[ValidateParams, ValidateResult]):
 @check_roles(GuestRole)
 class ConfirmOrderAction(BaseAction[ConfirmParams, ConfirmResult]):
     @summary_aspect("Issue confirmation token")
-    async def confirm_summary(self, params: ConfirmParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> ConfirmResult:
+    async def confirm_summary(self, params: ConfirmParams, state: BaseState, box: ToolsBox, connections: Connections) -> ConfirmResult:
         return ConfirmResult(status=f"confirmed:{params.order_id}")
 
 

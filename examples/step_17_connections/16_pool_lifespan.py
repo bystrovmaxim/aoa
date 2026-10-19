@@ -103,7 +103,7 @@ class StatusResult(BaseResult):
 class QueryAction(BaseAction[EmptyParams, StatusResult]):
     """Use the supplied resource without managing its lifetime."""
     @summary_aspect("Execute a statement")
-    async def query_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> StatusResult:
+    async def query_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: Connections) -> StatusResult:
         """Return the driver's command status."""
         return StatusResult(status=await connections["db"].add_note("one note"))
 
@@ -112,6 +112,7 @@ from contextlib import asynccontextmanager
 from fastapi.testclient import TestClient
 
 from aoa.fastapi import FastApiAdapter
+from aoa.action_machine.resources import Connections
 
 
 class PoolHolder:

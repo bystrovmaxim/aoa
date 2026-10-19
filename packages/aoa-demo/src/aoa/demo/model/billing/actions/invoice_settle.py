@@ -19,7 +19,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.logging import sensitive
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.resources import BillingReadReplica, BillingWarehouse
@@ -71,7 +71,7 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         params: InvoiceSettleAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         ctx: ContextView,
     ) -> dict[str, Any]:
         return {"validated_invoice": params.invoice_id}
@@ -84,7 +84,7 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         params: InvoiceSettleAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         payment = await box.resolve(PaymentGatewayResource)
         cents = float(params.gross_cents)
@@ -98,7 +98,7 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> None:
         if state_after is not None:
@@ -112,7 +112,7 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         params: InvoiceSettleAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: ValueError,
         ctx: ContextView,
     ) -> InvoiceSettleAction.Result:
@@ -128,7 +128,7 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         params: InvoiceSettleAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> InvoiceSettleAction.Result:
         return InvoiceSettleAction.Result(
@@ -143,7 +143,7 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         params: InvoiceSettleAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> InvoiceSettleAction.Result:
         return InvoiceSettleAction.Result(
             settlement_id="STL-BILL-1",

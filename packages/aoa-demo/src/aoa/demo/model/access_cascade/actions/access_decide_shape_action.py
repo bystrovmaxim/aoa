@@ -29,7 +29,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDomain
 from aoa.demo.model.access_cascade.roles import CascadeOfficerRole
@@ -62,7 +62,7 @@ class AccessDecideShapeAction(
         self,
         params: AccessDecideShapeAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """The fixture always allows; the declaration is the shape being drawn."""
         _ = (params, box, connections)
@@ -74,7 +74,7 @@ class AccessDecideShapeAction(
         params: AccessDecideShapeAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> AccessDecideShapeAction.Result:
         """Build the empty fixture result."""
         _ = (params, state, box, connections)

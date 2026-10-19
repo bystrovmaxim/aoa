@@ -23,7 +23,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ....support.domain_model.domains import TestDomain
@@ -95,7 +95,7 @@ class TestCheckRolesNormalization:
         @check_roles(_EditorRole)
         class _NormTypeAction(BaseAction[_P, _R]):
             @summary_aspect("s")
-            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
+            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
                 return _R()
 
         assert _NormTypeAction._role_info["spec"] is _EditorRole
@@ -112,7 +112,7 @@ class TestCheckRolesNormalization:
         @check_roles([_EditorRole, _ViewerRole])
         class _MultiRolesAction(BaseAction[_P, _R]):
             @summary_aspect("s")
-            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
+            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
                 return _R()
 
         spec = _MultiRolesAction._role_info["spec"]

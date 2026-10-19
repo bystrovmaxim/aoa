@@ -40,7 +40,7 @@ from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Select flow")
-async def select_flow_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def select_flow_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     if os.getenv("ENABLE_NEW_FLOW") == "true":
         ...
 ```

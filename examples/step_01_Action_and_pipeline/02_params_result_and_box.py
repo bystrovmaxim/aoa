@@ -43,6 +43,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 # ---------------------------------------------------------------------------
 # Domain
@@ -99,7 +100,7 @@ class GreetPersonAction(BaseAction[GreetParams, GreetResult]):
     # -----------------------------------------------------------------------
 
     @summary_aspect("Build greeting and return result")
-    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> GreetResult:
+    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: Connections) -> GreetResult:
         await box.info(
             Channel.business,
             "Greeting: Hello, {%var.name|cyan}!",

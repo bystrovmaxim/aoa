@@ -55,7 +55,7 @@ from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Compute total via the pricing service")
 @result_float("total", required=True, min_value=0)
-async def price_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def price_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     pricing = await box.resolve(PricingService)      # declared in @depends
     return {"total": pricing.price(params.sku) * params.qty}
 ```
@@ -91,7 +91,7 @@ from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Record to ledger and call nested action")
-async def record_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def record_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     ledger = connections["ledger"]
     await ledger.execute(f"charge {params.sku} = {state['total']}")   # the owner writes
     await box.run(                                                     # ledger is proxied

@@ -188,7 +188,7 @@ The four methods the machine calls itself — `@summary_aspect`, `@regular_aspec
 
 - **The names are the engine's names, in the engine's order.** They are not a style preference: the pipeline passes these values by position, so `self, p, state, box, connections` runs and `p` receives the parameters object. Renaming or reordering is refused where the method is declared, with `AspectSignatureError` naming both orders.
 - **Every parameter but `self` carries an annotation, and so does the return.** A bare one is refused at declaration.
-- **The annotations resolve to what the pipeline hands over**, checked when the capability is assembled, because `params` is annotated with the operation's own `Params` — a name that does not exist while the class body runs. `params`: `BaseParams` or the operation's `Params`; `state`: `BaseState`; `box`: `ToolsBox`; `connections`: `dict[str, BaseResource]`; `ctx`: `ContextView`; `error`: `Exception` or the class the handler was declared for; a compensator's `state_after`: `BaseState | None`, because the aspect it compensates may not have finished.
+- **The annotations resolve to what the pipeline hands over**, checked when the capability is assembled, because `params` is annotated with the operation's own `Params` — a name that does not exist while the class body runs. `params`: `BaseParams` or the operation's `Params`; `state`: `BaseState`; `box`: `ToolsBox`; `connections`: `Connections`; `ctx`: `ContextView`; `error`: `Exception` or the class the handler was declared for; a compensator's `state_after`: `BaseState | None`, because the aspect it compensates may not have finished.
 - **The signature must be callable by position.** Keyword-only parameters, `*args`, `**kwargs` and defaults on values the pipeline always supplies are refused.
 - **The return is the one the pipeline reads**: a summary and an on-error handler answer with the operation's `Result`, a regular aspect returns a state fragment `dict[str, Any]`, a compensator returns nothing.
 - **The moment is in the message.** A refusal made while the class body executes says so; one made while the capability is assembled says the class body had already run, so a reader is not sent back to code that is already correct.
@@ -213,7 +213,7 @@ The rules are the subject of [`examples/step_01_Action_and_pipeline/05_aspect_de
 - **A description is required, and it is not empty.** The sentence travels into the assembled graph, where the check is a node of its own with its own name and explanation.
 - **The method is `async`.** The step awaits it; a plain `def` is refused where it is written.
 - **The name ends with `_access_decide`.** Short names are refused the way they are for every declared behaviour.
-- **The signature is fixed.** `(self, params, box, connections)`, plus the trailing `ctx` that `@context_requires` adds — names in that order, every parameter annotated, the annotations resolving to what the step hands over: `params` (`BaseParams` or the operation's own `Params`), `box: ToolsBox`, `connections: dict[str, BaseResource]`, `ctx: ContextView`.
+- **The signature is fixed.** `(self, params, box, connections)`, plus the trailing `ctx` that `@context_requires` adds — names in that order, every parameter annotated, the annotations resolving to what the step hands over: `params` (`BaseParams` or the operation's own `Params`), `box: ToolsBox`, `connections: Connections`, `ctx: ContextView`.
 - **It answers with a verdict.** A return of `Verdict` or one of its three answers; anything else is refused at assembly, and at run time a check that returns something else becomes `Undecided` rather than permission.
 
 **Context is declared, never granted.** As with every declared behaviour, the context reaches the check only through `@context_requires` under the declaration: the trailing `ctx` then exists, it is a `ContextView` limited to the keys that were named, and another key raises `ContextAccessError`. There is no parameter that hands over the whole context.
@@ -264,11 +264,11 @@ from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
 @regular_aspect("Validation")
 @result_string("validated_id", required=True)
-async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
     return {"validated_id": params.order_id}
 
 @summary_aspect("Creation")
-async def create_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
+async def create_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
     state.validated_id  # guaranteed to be there — usable without a check
 ```
 

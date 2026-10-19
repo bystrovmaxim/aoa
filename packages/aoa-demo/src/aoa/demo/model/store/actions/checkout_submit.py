@@ -19,7 +19,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.logging import sensitive
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.billing.resources.payment_gateway import PaymentGateway, PaymentGatewayResource
 from aoa.demo.model.messaging.resources.notification_gateway import NotificationGatewayResource
@@ -66,7 +66,7 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         params: CheckoutSubmitAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         ctx: ContextView,
     ) -> dict[str, Any]:
         return {"validated_customer": params.customer_id}
@@ -79,7 +79,7 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         params: CheckoutSubmitAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         payment = await box.resolve(PaymentGatewayResource)
         txn_id = await payment.service.charge(params.amount)
@@ -92,7 +92,7 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> None:
         if state_after is not None:
@@ -106,7 +106,7 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         params: CheckoutSubmitAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: ValueError,
         ctx: ContextView,
     ) -> CheckoutSubmitAction.Result:
@@ -118,7 +118,7 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         params: CheckoutSubmitAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> CheckoutSubmitAction.Result:
         return CheckoutSubmitAction.Result(order_id="ERR", txn_id="NONE", status="internal_error")
@@ -129,7 +129,7 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         params: CheckoutSubmitAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> CheckoutSubmitAction.Result:
         return CheckoutSubmitAction.Result(
             order_id="ORD-SAMPLE-1",

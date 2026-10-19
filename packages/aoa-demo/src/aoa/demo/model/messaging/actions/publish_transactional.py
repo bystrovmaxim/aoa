@@ -19,7 +19,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.logging import sensitive
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.resources import MessagingDeadLetterStore, OutboxPrimaryDatabase
@@ -74,7 +74,7 @@ class PublishTransactionalOutboxAction(
         params: PublishTransactionalOutboxAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         ctx: ContextView,
     ) -> dict[str, Any]:
         return {"validated_topic": params.topic}
@@ -87,7 +87,7 @@ class PublishTransactionalOutboxAction(
         params: PublishTransactionalOutboxAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         notifier = await box.resolve(NotificationGatewayResource)
         await notifier.service.send(params.body)
@@ -103,7 +103,7 @@ class PublishTransactionalOutboxAction(
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> None:
         if state_after is not None:
@@ -117,7 +117,7 @@ class PublishTransactionalOutboxAction(
         params: PublishTransactionalOutboxAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: ValueError,
         ctx: ContextView,
     ) -> PublishTransactionalOutboxAction.Result:
@@ -133,7 +133,7 @@ class PublishTransactionalOutboxAction(
         params: PublishTransactionalOutboxAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> PublishTransactionalOutboxAction.Result:
         return PublishTransactionalOutboxAction.Result(
@@ -148,7 +148,7 @@ class PublishTransactionalOutboxAction(
         params: PublishTransactionalOutboxAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> PublishTransactionalOutboxAction.Result:
         return PublishTransactionalOutboxAction.Result(
             outbound_id=state.outbound_id,  # type: ignore[attr-defined]

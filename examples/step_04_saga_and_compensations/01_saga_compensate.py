@@ -26,6 +26,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 
 class RootDomain(BaseDomain):
@@ -48,7 +49,7 @@ class FulfillOrderAction(BaseAction[OrderParams, OrderResult]):
 
     @regular_aspect("Reserve inventory")
     @result_string("reservation_id", required=True)
-    async def reserve_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def reserve_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         await box.info(
             Channel.business,
             "regular: reserve order={%var.order_id}",
@@ -57,7 +58,7 @@ class FulfillOrderAction(BaseAction[OrderParams, OrderResult]):
         return {"reservation_id": f"res-{params.order_id}"}
 
     @compensate(reserve_aspect, "Release reservation")
-    async def reserve_compensate(self, params: OrderParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> None:
+    async def reserve_compensate(self, params: OrderParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: Connections, error: Exception) -> None:
         rid = state_after["reservation_id"] if state_after else "?"
         await box.info(
             Channel.business,
@@ -67,7 +68,7 @@ class FulfillOrderAction(BaseAction[OrderParams, OrderResult]):
 
     @regular_aspect("Charge payment")
     @result_string("txn_id", required=True)
-    async def charge_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def charge_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         await box.info(
             Channel.business,
             "regular: charge order={%var.order_id}",
@@ -76,7 +77,7 @@ class FulfillOrderAction(BaseAction[OrderParams, OrderResult]):
         return {"txn_id": f"txn-{params.order_id}"}
 
     @compensate(charge_aspect, "Refund payment")
-    async def charge_compensate(self, params: OrderParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> None:
+    async def charge_compensate(self, params: OrderParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: Connections, error: Exception) -> None:
         txn = state_after["txn_id"] if state_after else "?"
         await box.info(
             Channel.business,
@@ -85,7 +86,7 @@ class FulfillOrderAction(BaseAction[OrderParams, OrderResult]):
         )
 
     @summary_aspect("Confirm order")
-    async def confirm_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def confirm_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         raise ValueError("order service unavailable")
 
 

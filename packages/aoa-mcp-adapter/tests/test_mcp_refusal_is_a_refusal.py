@@ -41,7 +41,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.mcp.adapter import _make_tool_handler
@@ -70,7 +70,7 @@ class RefusingToolAction(BaseAction["RefusingToolAction.Params", "RefusingToolAc
         self,
         params: RefusingToolAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Refuse: the caller holds the role, the object is not theirs."""
         return FORBIDDEN_OBJECT
@@ -81,7 +81,7 @@ class RefusingToolAction(BaseAction["RefusingToolAction.Params", "RefusingToolAc
         params: RefusingToolAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> RefusingToolAction.Result:
         """Produce the result an allowed caller would see."""
         return RefusingToolAction.Result(message="allowed")
@@ -105,7 +105,7 @@ class FailingGateToolAction(BaseAction["FailingGateToolAction.Params", "FailingG
         self,
         params: FailingGateToolAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Fail, the way a store that is down fails."""
         raise ConnectionError(_FAILURE_TEXT)
@@ -116,7 +116,7 @@ class FailingGateToolAction(BaseAction["FailingGateToolAction.Params", "FailingG
         params: FailingGateToolAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> FailingGateToolAction.Result:
         """Produce the result a healthy call would see."""
         return FailingGateToolAction.Result(message="allowed")
@@ -141,7 +141,7 @@ class AllowingToolAction(BaseAction["AllowingToolAction.Params", "AllowingToolAc
         params: AllowingToolAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> AllowingToolAction.Result:
         """Produce the result."""
         return AllowingToolAction.Result(message="allowed")

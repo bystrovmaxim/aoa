@@ -14,7 +14,7 @@ from aoa.action_machine.exceptions import NamingSuffixError
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
@@ -26,7 +26,7 @@ class TestRegularAspectSuffix:
         from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 
         @regular_aspect("Data validation")
-        async def validate_data_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+        async def validate_data_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
             return {}
 
         assert hasattr(validate_data_aspect, "_new_aspect_meta")
@@ -39,7 +39,7 @@ class TestRegularAspectSuffix:
 
             @regular_aspect("Data validation")
             async def validate_data(
-                self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+                self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections
             ) -> dict[str, Any]:
                 return {}
 
@@ -51,7 +51,7 @@ class TestRegularAspectSuffix:
 
             @regular_aspect("Data validation")
             async def validate_data_step(
-                self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+                self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections
             ) -> dict[str, Any]:
                 return {}
 
@@ -64,7 +64,7 @@ class TestSummaryAspectSuffix:
         from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 
         @summary_aspect("Building result")
-        async def build_result_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
+        async def build_result_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
             pass
 
         assert hasattr(build_result_summary, "_new_aspect_meta")
@@ -77,7 +77,7 @@ class TestSummaryAspectSuffix:
 
             @summary_aspect("Building result")
             async def build_result(
-                self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+                self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections
             ) -> BaseResult:
                 pass
 

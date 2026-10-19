@@ -89,7 +89,7 @@ from aoa.action_machine.intents.context_requires.context_requires_decorator impo
 
 @summary_aspect("Read environment")
 @context_requires(Ctx.User.user_id, "user.tenant_id", "request.api_version", "runtime.region")
-async def whoami_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> BaseResult:
+async def whoami_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> BaseResult:
     tenant = ctx.get("user.tenant_id")
     region = ctx.get("runtime.region")
     ...

@@ -7,7 +7,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.settlement_desks.actions.liquidity_platform_sweep_action import LiquidityPlatformSweepAction
 from aoa.demo.model.settlement_desks.arbitration_judge_role import ArbitrationJudgeRole
@@ -23,7 +23,7 @@ class PacificDeskLiquidityForkAction(LiquidityPlatformSweepAction):
         params: LiquidityPlatformSweepAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> LiquidityPlatformSweepAction.Result:
         _ = (params, state, box, connections)
         return self.Result()

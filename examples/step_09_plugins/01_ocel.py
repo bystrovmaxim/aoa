@@ -37,6 +37,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.ocel import OCEL_FRAMES_KEY, InMemoryOcelStoreResource, OcelFrame, OcelPlugin
+from aoa.action_machine.resources import Connections
 
 
 class RootDomain(BaseDomain):
@@ -64,7 +65,7 @@ class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
     @regular_aspect("Validation")
     @result_string("validated_id", required=True)
     @result_instance(OCEL_FRAMES_KEY, list, required=False)
-    async def validate_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def validate_aspect(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         await box.info(
             Channel.business,
             "Validate order: id={%var.order_id}",
@@ -79,7 +80,7 @@ class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
         }
 
     @summary_aspect("Create")
-    async def create_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> OrderResult:
+    async def create_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
         return OrderResult(order_id=str(state["validated_id"]))
 
 

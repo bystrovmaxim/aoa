@@ -121,7 +121,7 @@ class StatusResult(BaseResult):
 class QueryAction(BaseAction[EmptyParams, StatusResult]):
     """Use the supplied resource without managing its lifetime."""
     @summary_aspect("Execute a statement")
-    async def query_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> StatusResult:
+    async def query_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: Connections) -> StatusResult:
         """Return the driver's command status."""
         return StatusResult(status=await connections["db"].add_note("one note"))
 
@@ -130,6 +130,7 @@ from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.action_machine.resources import Connections
 
 
 @meta(description="Try closing a parent connection", domain=NotesDomain)
@@ -138,7 +139,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 class ChildAction(BaseAction[EmptyParams, StatusResult]):
     """Observe the wrapper supplied by the runtime."""
     @summary_aspect("Write through the proxy, then attempt closing")
-    async def close_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> StatusResult:
+    async def close_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: Connections) -> StatusResult:
         """Use what the domain delegates, and report that closing is still refused."""
         status = await connections["db"].add_note("from the child")
         try:
@@ -154,7 +155,7 @@ class ChildAction(BaseAction[EmptyParams, StatusResult]):
 class ParentAction(BaseAction[EmptyParams, StatusResult]):
     """Keep ownership while delegating part of the work."""
     @summary_aspect("Run child")
-    async def child_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> StatusResult:
+    async def child_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: Connections) -> StatusResult:
         """Pass the connection to the child through the runtime."""
         return await box.run(ChildAction, EmptyParams(), connections=connections)
 

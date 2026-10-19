@@ -8,7 +8,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.catalog_custody.actions.ledger_posting_pulse_action import LedgerPostingPulseAction
 from aoa.demo.model.catalog_custody.actions.lineage_inspect_action import LineageInspectAction
@@ -39,7 +39,7 @@ class CustodyWorkbenchMergeAction(RegisterSnapshotPeekAction):
         params: RegisterSnapshotPeekAction.Params,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> RegisterSnapshotPeekAction.Result:
         _ = (params, state, box, connections)
         await box.run(LineageInspectAction, LineageInspectAction.Params())

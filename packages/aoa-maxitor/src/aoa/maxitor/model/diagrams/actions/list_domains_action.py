@@ -35,7 +35,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.model.diagrams.actions.list_domains_action_schema import ListDomainsJson
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
@@ -157,7 +157,7 @@ class ListDomainsAction(BaseAction[ParamsStub, "ListDomainsAction.Result"]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ListDomainsAction.Result:
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
         return ListDomainsAction.Result(list_domains=ListDomainsAction.domain_accent_rows(duck))

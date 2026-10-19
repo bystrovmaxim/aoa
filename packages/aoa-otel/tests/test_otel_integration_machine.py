@@ -51,7 +51,7 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core.events import GlobalFinishEvent
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.otel import OpenTelemetryPlugin
@@ -83,7 +83,7 @@ class OtelOrderAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         params: OtelOrderParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         return {"order_id": params.order_id}
 
@@ -95,7 +95,7 @@ class OtelOrderAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         params: OtelOrderParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         return {"order_id": state["order_id"], "secret_token": "tok-super-secret"}
 
@@ -105,7 +105,7 @@ class OtelOrderAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         params: OtelOrderParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> OtelOrderResult:
         return OtelOrderResult(order_id=state["order_id"])
 
@@ -121,7 +121,7 @@ class OtelFailingAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         params: OtelOrderParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         raise ValueError("integration boom")
 
@@ -131,7 +131,7 @@ class OtelFailingAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         params: OtelOrderParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> OtelOrderResult:
         return OtelOrderResult(order_id="unreachable")
 
@@ -151,7 +151,7 @@ class OtelSagaAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         params: OtelOrderParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         return {"txn_id": "TXN-1"}
 
@@ -162,7 +162,7 @@ class OtelSagaAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> None:
         return None
@@ -175,7 +175,7 @@ class OtelSagaAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         params: OtelOrderParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         return {"txn_id": state["txn_id"], "reservation_id": "RES-1"}
 
@@ -186,7 +186,7 @@ class OtelSagaAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         state_before: BaseState,
         state_after: BaseState | None,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> None:
         return None
@@ -197,7 +197,7 @@ class OtelSagaAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         params: OtelOrderParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         raise ValueError("saga finalize boom")
 
@@ -207,7 +207,7 @@ class OtelSagaAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         params: OtelOrderParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> OtelOrderResult:
         return OtelOrderResult(order_id="unreachable")
 
@@ -222,13 +222,13 @@ class OtelFailingGateAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         self,
         params: OtelOrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         raise ConnectionError(_FAILURE_TEXT)
 
     @summary_aspect("build")
     async def build_summary(
-        self, params: OtelOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: OtelOrderParams, state: BaseState, box: ToolsBox, connections: Connections
     ) -> OtelOrderResult:
         return OtelOrderResult(order_id="unreachable")
 
@@ -243,13 +243,13 @@ class OtelRefusingGateAction(BaseAction[OtelOrderParams, OtelOrderResult]):
         self,
         params: OtelOrderParams,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         return FORBIDDEN_OBJECT
 
     @summary_aspect("build")
     async def build_summary(
-        self, params: OtelOrderParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: OtelOrderParams, state: BaseState, box: ToolsBox, connections: Connections
     ) -> OtelOrderResult:
         return OtelOrderResult(order_id="unreachable")
 

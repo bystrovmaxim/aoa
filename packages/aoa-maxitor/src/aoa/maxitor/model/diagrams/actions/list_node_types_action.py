@@ -33,7 +33,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.model.diagrams.actions.list_node_types_action_schema import ListNodeTypesJson
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
@@ -150,7 +150,7 @@ class ListNodeTypesAction(BaseAction[ParamsStub, "ListNodeTypesAction.Result"]):
         params: ParamsStub,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ListNodeTypesAction.Result:
         _ = (state, box)
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])

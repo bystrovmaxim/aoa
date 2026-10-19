@@ -60,13 +60,14 @@ class CountResult(BaseResult):
 class CountAction(BaseAction[EmptyParams, CountResult]):
     """Increment the supplied resource once."""
     @summary_aspect("Count one call")
-    async def count_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CountResult:
+    async def count_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: Connections) -> CountResult:
         """Return the updated count."""
         counter = connections["counter"]
         counter.count += 1
         return CountResult(count=counter.count)
 
 from contextlib import asynccontextmanager
+from aoa.action_machine.resources import Connections
 
 
 async def main():

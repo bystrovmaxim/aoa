@@ -12,7 +12,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ....support.domain_model.domains import TestDomain
@@ -35,7 +35,7 @@ class TestActionGraphNodeGuard:
                 ok: bool = Field(default=True)
 
             @summary_aspect("s")
-            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
+            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
                 return _NoGuardAction.Result()
 
         node = ActionGraphNode(_NoGuardAction)
@@ -52,7 +52,7 @@ class TestActionGraphNodeGuard:
                 ok: bool = Field(default=True)
 
             @summary_aspect("s")
-            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
+            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
                 return _GuardedAction.Result()
 
         node = ActionGraphNode(_GuardedAction)
@@ -71,7 +71,7 @@ class TestActionGraphNodeGuard:
                 ok: bool = Field(default=True)
 
             @summary_aspect("s")
-            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> BaseResult:
+            async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
                 return _GuardedAction.Result()
 
         node = ActionGraphNode(_GuardedAction)

@@ -97,11 +97,11 @@ class CreateDraftAction(BaseAction[CreateDraftParams, CreateDraftResult]):
 
     @regular_aspect("Normalise SKU")
     @result_string("sku", required=True, min_length=3)
-    async def normalise_aspect(self, params: CreateDraftParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> dict[str, Any]:
+    async def normalise_aspect(self, params: CreateDraftParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         return {"sku": params.raw_sku.strip().upper()}
 
     @summary_aspect("Build draft result")
-    async def build_summary(self, params: CreateDraftParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> CreateDraftResult:
+    async def build_summary(self, params: CreateDraftParams, state: BaseState, box: ToolsBox, connections: Connections) -> CreateDraftResult:
         return CreateDraftResult(sku=state["sku"])
 ```
 

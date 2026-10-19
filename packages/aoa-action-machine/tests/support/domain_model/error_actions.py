@@ -35,7 +35,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from .domains import OrdersDomain
@@ -88,7 +88,7 @@ class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         if params.should_fail:
             raise ValueError(f"Processing error: {params.value}")
@@ -100,7 +100,7 @@ class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ErrorTestResult:
         return ErrorTestResult(status="ok", detail=state["processed"])
 
@@ -110,7 +110,7 @@ class ErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> ErrorTestResult:
         return ErrorTestResult(status="handled", detail=str(error))
@@ -143,7 +143,7 @@ class HandlerRaisesAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict[str, Any]:
         if params.should_fail:
             raise ValueError(f"Error: {params.value}")
@@ -155,7 +155,7 @@ class HandlerRaisesAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> ErrorTestResult:
         return ErrorTestResult(status="ok", detail=state["processed"])
 
@@ -165,7 +165,7 @@ class HandlerRaisesAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         params: ErrorTestParams,
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
         error: Exception,
     ) -> ErrorTestResult:
         raise RuntimeError(f"Error in handler: {error}")

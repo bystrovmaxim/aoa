@@ -12,7 +12,7 @@ from aoa.action_machine.intents.on_error.on_error_intent_resolver import hydrate
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core import TypeIntrospection
 from aoa.action_machine.testing.checker_interchange_snapshot import CheckerInterchangeSnapshot
@@ -34,7 +34,7 @@ def _checker_from_meta(row: tuple[tuple[str, Any], ...]) -> CheckerInterchangeSn
 
 class _RoundtripOnErrorAction(OnErrorIntent):
     @on_error(ValueError, description="h")
-    async def value_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], error: Exception) -> BaseResult:
+    async def value_on_error(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections, error: Exception) -> BaseResult:
         return {}
 
 

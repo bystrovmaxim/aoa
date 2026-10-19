@@ -52,7 +52,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core import events as events_module
 from aoa.action_machine.plugin.core.events import BasePluginEvent, GlobalFinishEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -144,7 +144,7 @@ class PlainSummaryAction(BaseAction["PlainSummaryAction.Params", "PlainSummaryAc
 
     @summary_aspect("S")
     async def plain_summary(
-        self, params: PlainSummaryAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: PlainSummaryAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> PlainSummaryAction.Result:
         """Produce the operation's result."""
         return PlainSummaryAction.Result()
@@ -166,14 +166,14 @@ class CheckedSummaryAction(BaseAction["CheckedSummaryAction.Params", "CheckedSum
         self,
         params: CheckedSummaryAction.Params,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> Verdict:
         """Allow every caller the role requirement admitted."""
         return Allowed()
 
     @summary_aspect("S")
     async def checked_summary(
-        self, params: CheckedSummaryAction.Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]
+        self, params: CheckedSummaryAction.Params, state: BaseState, box: ToolsBox, connections: Connections
     ) -> CheckedSummaryAction.Result:
         """Produce the operation's result."""
         return CheckedSummaryAction.Result()

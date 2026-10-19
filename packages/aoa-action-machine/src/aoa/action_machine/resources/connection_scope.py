@@ -50,6 +50,7 @@ from dataclasses import dataclass
 
 from aoa.action_machine.exceptions.resource_contract_violation_error import ResourceContractViolationError
 from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.connections import Connections
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, PerCallConnection
 
 
@@ -65,7 +66,7 @@ class _Created:
 @asynccontextmanager
 async def connection_scope(
     connections: Mapping[str, ConnectionValue] | None,
-) -> AsyncIterator[dict[str, BaseResource] | None]:
+) -> AsyncIterator[Connections | None]:
     """
     AI-CORE-BEGIN
         ROLE: Apply the per-call lifecycle — open what this call created, yield it, finalize it once.
@@ -77,7 +78,7 @@ async def connection_scope(
         yield None
         return
 
-    resolved: dict[str, BaseResource] = {}
+    resolved: Connections = {}
     created: list[_Created] = []
     failure: BaseException | None = None
 

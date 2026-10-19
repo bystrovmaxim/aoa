@@ -49,7 +49,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from .domains import SystemDomain
@@ -89,7 +89,7 @@ class AdminAction(BaseAction["AdminAction.Params", "AdminAction.Result"]):
         params: "AdminAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> dict:
         """
         Run an administrative operation on the target.
@@ -107,7 +107,7 @@ class AdminAction(BaseAction["AdminAction.Params", "AdminAction.Result"]):
         params: "AdminAction.Params",
         state: BaseState,
         box: ToolsBox,
-        connections: dict[str, BaseResource],
+        connections: Connections,
     ) -> "AdminAction.Result":
         """
         Build administrative Result.

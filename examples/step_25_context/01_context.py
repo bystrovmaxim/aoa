@@ -38,6 +38,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.testing import TestBench
+from aoa.action_machine.resources import Connections
 
 
 class AuditDomain(BaseDomain):
@@ -65,7 +66,7 @@ class WhoamiResult(BaseResult):
 class WhoamiAction(BaseAction[EmptyParams, WhoamiResult]):
     @summary_aspect("Read declared context")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id, Ctx.Runtime.service_name)
-    async def whoami_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> WhoamiResult:
+    async def whoami_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> WhoamiResult:
         return WhoamiResult(
             user_id=ctx.get(Ctx.User.user_id),
             trace_id=ctx.get(Ctx.Request.trace_id),
@@ -83,7 +84,7 @@ class LeakResult(BaseResult):
 class LeakAction(BaseAction[EmptyParams, LeakResult]):
     @summary_aspect("Read only what was declared")
     @context_requires(Ctx.User.user_id)          # client_ip is NOT declared
-    async def leak_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource], ctx: ContextView) -> LeakResult:
+    async def leak_summary(self, params: EmptyParams, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> LeakResult:
         try:
             ctx.get(Ctx.Request.client_ip)        # present in context, but undeclared
             refused = False

@@ -10,7 +10,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.logistics_mesh.actions.cross_dock_relay_adapter_action import CrossDockRelayAdapterAction
 from aoa.demo.model.logistics_mesh.actions.facility_corridor_relay_third_leg_action import (
@@ -45,7 +45,7 @@ class MarshallingYardFacilityConcourseAction(
         synced: bool = Field(default=False, description="Orchestration sync acknowledgement")
 
     @summary_aspect("Marshalling concourse weave")
-    async def concourse_summary(self, params: Params, state: BaseState, box: ToolsBox, connections: dict[str, BaseResource]) -> Result:
+    async def concourse_summary(self, params: Params, state: BaseState, box: ToolsBox, connections: Connections) -> Result:
         _ = (params, state, box, connections)
         await box.run(
             FacilityCorridorRelayThirdLegAction,
