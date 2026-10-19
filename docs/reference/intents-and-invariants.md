@@ -144,6 +144,20 @@ class DeleteOrderAction(BaseAction[...]): ...
 class GetOrderStatusAction(BaseAction[...]): ...
 ```
 
+A role also declares its lifecycle mode, once, with `@role_mode`. The set is closed — `ALIVE`, `DEPRECATED`, `SILENCED`, `UNUSED` — and the argument is checked where it is written: a string, a member of another enum or a class is refused while the module is imported, and the refusal names the role, the value that arrived and all four members. What a mode *means* is decided by its consumer, never by the decorator: `@check_roles` refuses to require an `UNUSED` role and warns about a `DEPRECATED` one, and the access check grants nothing to a `SILENCED` one.
+
+```python
+# ✗ the string the enum carries — RoleModeDeclarationError at import
+@role_mode("alive")
+class ViewerRole(ApplicationRole): ...
+
+# ✓ the member — and what it means is still the consumer's business
+@role_mode(RoleMode.ALIVE)
+class ViewerRole(ApplicationRole): ...
+```
+
+[`examples/step_03_authorization_and_roles/17_a_wrong_role_mode.py`](../../examples/step_03_authorization_and_roles/17_a_wrong_role_mode.py) runs both refusals, and the `UNUSED` refusal that follows from `@check_roles`.
+
 Access is one cascade, and it is checked in two moments: identity, roles and both conditions **before the run exists**, and the declared object rule **inside the run**, on a real object. Five words are published, and each of them can end a call — `AUTH_COORDINATOR`, `CHECK_ROLES`, `WHEN` (a role matched but its own condition refused), `GUARD` (the shared condition refused) and `ACCESS_DECIDE`. Each step carries its own invariants:
 
 - **A condition declares the reason it refuses with.** `grant(..., when=..., reason=...)` and `@check_roles(guard=..., guard_reason=...)` are declared together: one without the other is refused where it is written. The declared sentence travels into `Refused.reason`, and the framework invents no reason of its own.
