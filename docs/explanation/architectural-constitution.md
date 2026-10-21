@@ -144,17 +144,36 @@ An Intent is orthogonal to the other primitives — it can be mixed into `BaseAc
 
 ### `Lifecycle` — a finite state machine
 
-The graph of transitions between a domain object's states. A standalone primitive — not a resource, not a coordinator.
+A lifecycle is a set of possible states and permitted transitions for one aspect of a domain object. For an order, `new → confirmed → shipped` describes progress through fulfilment. The template states which moves are legal; an individual order holds a lifecycle referring to its selected status object.
+
+A status object supplies the stable code, a human label and any additional domain fields. `StateVocabulary` collects these objects on the lifecycle class. The template on that same class gives each state its classification and its outgoing transitions:
 
 ```python
-class OrderLifecycle(Lifecycle):
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+
+
+class OrderStateEntity(BaseStateEntity):
+    """Describe one possible order status."""
+
+
+class OrderLifecycle(Lifecycle, StateVocabulary):
+    """Declare the statuses and allowed order transitions."""
+
+    NEW = OrderStateEntity(code="new", display_name="New")
+    CONFIRMED = OrderStateEntity(code="confirmed", display_name="Confirmed")
+    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped")
+
     _template = (
         Lifecycle()
-        .state("new",       "New").to("confirmed").initial()
-        .state("confirmed", "Confirmed").to("shipped").intermediate()
-        .state("shipped",   "Shipped").final()
+        .state(NEW).to(CONFIRMED).initial()
+        .state(CONFIRMED).to(SHIPPED).intermediate()
+        .state(SHIPPED).final()
     )
 ```
+
+The description and the runtime value have different jobs. `OrderLifecycle.by_code("confirmed")` returns the status description; `OrderLifecycle("confirmed")` creates a value for one order that refers to the declared status. `current_status` returns that object, and `current_state` returns its code without storing a second current code. `transition("shipped")` checks the template and returns a new value. The application applies and persists that value. Status fields do not perform the transition, and status classes are automatically excluded from the graph's entity list.
+
+See [Lifecycle](../tutorials/step-22-lifecycle.md) for the declaration, runtime calls and graph output as separate runnable examples.
 
 ---
 

@@ -58,7 +58,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AggregateMany, AssociationOne, BaseEntity, Lifecycle, NoInverse, Rel
+from aoa.action_machine.domain import (
+    AggregateMany,
+    AssociationOne,
+    BaseEntity,
+    BaseStateEntity,
+    Lifecycle,
+    NoInverse,
+    Rel,
+    StateVocabulary,
+)
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -80,7 +89,13 @@ class TestDomain(BaseDomain):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class DraftLifecycle(Lifecycle):
+class DraftStateEntity(BaseStateEntity):
+    """Status of the draft axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class DraftLifecycle(Lifecycle, StateVocabulary):
     """
     Three-state machine: draft → active → archived.
 
@@ -88,16 +103,12 @@ class DraftLifecycle(Lifecycle):
     when ``NodeGraphCoordinator.build()`` examines entity classes.
     """
 
+    DRAFT = DraftStateEntity(code="draft", display_name="Draft", sort_order=1)
+    ACTIVE = DraftStateEntity(code="active", display_name="Active", sort_order=2)
+    ARCHIVED = DraftStateEntity(code="archived", display_name="Archived", sort_order=3)
+
     _template = (
-        Lifecycle()
-        .state("draft", "Draft")
-        .to("active")
-        .initial()
-        .state("active", "Active")
-        .to("archived")
-        .intermediate()
-        .state("archived", "Archived")
-        .final()
+        Lifecycle().state(DRAFT).to(ACTIVE).initial().state(ACTIVE).to(ARCHIVED).intermediate().state(ARCHIVED).final()
     )
 
 

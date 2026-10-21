@@ -3,20 +3,36 @@
 
 from __future__ import annotations
 
-from aoa.action_machine.domain import Lifecycle
+from pydantic import Field
+
+from aoa.action_machine.domain import (
+    BaseStateEntity,
+    Lifecycle,
+    StateVocabulary,
+)
 
 
-class SalesOrderLineLifecycle(Lifecycle):
+class SalesOrderLineStateEntity(BaseStateEntity):
+    """Status of the SalesOrderLine axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class SalesOrderLineLifecycle(Lifecycle, StateVocabulary):
     """Three states: open → reserved → fulfilled."""
+
+    OPEN = SalesOrderLineStateEntity(code="open", display_name="Open", sort_order=1)
+    RESERVED = SalesOrderLineStateEntity(code="reserved", display_name="Reserved", sort_order=2)
+    FULFILLED = SalesOrderLineStateEntity(code="fulfilled", display_name="Fulfilled", sort_order=3)
 
     _template = (
         Lifecycle()
-        .state("open", "Open")
-        .to("reserved")
+        .state(OPEN)
+        .to(RESERVED)
         .initial()
-        .state("reserved", "Reserved")
-        .to("fulfilled")
+        .state(RESERVED)
+        .to(FULFILLED)
         .intermediate()
-        .state("fulfilled", "Fulfilled")
+        .state(FULFILLED)
         .final()
     )

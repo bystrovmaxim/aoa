@@ -28,10 +28,12 @@ from aoa.action_machine.domain import (
     AssociationMany,
     AssociationOne,
     BaseEntity,
+    BaseStateEntity,
     CompositeMany,
     Inverse,
     Lifecycle,
     Rel,
+    StateVocabulary,
     build,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -43,10 +45,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.action_machine.resources import Connections
 
 # ---------------------------------------------------------------------------
 # Domain
@@ -63,25 +65,65 @@ class StoreDomain(BaseDomain):
 # ---------------------------------------------------------------------------
 
 
-class OrderLifecycle(Lifecycle):
+class OrderStateEntity(BaseStateEntity):
+    """Status of the order axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class OrderLifecycle(Lifecycle, StateVocabulary):
+    NEW = OrderStateEntity(code="new", display_name="New", sort_order=1)
+    CONFIRMED = OrderStateEntity(code="confirmed", display_name="Confirmed", sort_order=2)
+    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped", sort_order=3)
+    DELIVERED = OrderStateEntity(code="delivered", display_name="Delivered", sort_order=4)
+    CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled", sort_order=5)
+
     _template = (
         Lifecycle()
-        .state("new", "New").to("confirmed", "cancelled").initial()
-        .state("confirmed", "Confirmed").to("shipped", "cancelled").intermediate()
-        .state("shipped", "Shipped").to("delivered").intermediate()
-        .state("delivered", "Delivered").final()
-        .state("cancelled", "Cancelled").final()
+        .state(NEW)
+        .to(CONFIRMED, CANCELLED)
+        .initial()
+        .state(CONFIRMED)
+        .to(SHIPPED, CANCELLED)
+        .intermediate()
+        .state(SHIPPED)
+        .to(DELIVERED)
+        .intermediate()
+        .state(DELIVERED)
+        .final()
+        .state(CANCELLED)
+        .final()
     )
 
 
-class OrderLineLifecycle(Lifecycle):
+class OrderLineStateEntity(BaseStateEntity):
+    """Status of the order-line axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class OrderLineLifecycle(Lifecycle, StateVocabulary):
+    PENDING = OrderLineStateEntity(code="pending", display_name="Pending", sort_order=1)
+    RESERVED = OrderLineStateEntity(code="reserved", display_name="Reserved", sort_order=2)
+    SHIPPED = OrderLineStateEntity(code="shipped", display_name="Shipped", sort_order=3)
+    DELIVERED = OrderLineStateEntity(code="delivered", display_name="Delivered", sort_order=4)
+    CANCELLED = OrderLineStateEntity(code="cancelled", display_name="Cancelled", sort_order=5)
+
     _template = (
         Lifecycle()
-        .state("pending", "Pending").to("reserved", "cancelled").initial()
-        .state("reserved", "Reserved").to("shipped").intermediate()
-        .state("shipped", "Shipped").to("delivered").intermediate()
-        .state("delivered", "Delivered").final()
-        .state("cancelled", "Cancelled").final()
+        .state(PENDING)
+        .to(RESERVED, CANCELLED)
+        .initial()
+        .state(RESERVED)
+        .to(SHIPPED)
+        .intermediate()
+        .state(SHIPPED)
+        .to(DELIVERED)
+        .intermediate()
+        .state(DELIVERED)
+        .final()
+        .state(CANCELLED)
+        .final()
     )
 
 
@@ -213,7 +255,9 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
 
     @regular_aspect("Load and validate customer")
     @result_string("customer_name", required=True)
-    async def load_customer_aspect(self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
+    async def load_customer_aspect(
+        self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> dict[str, Any]:
         repo = connections["orders"]
         customer = await repo.load_customer(params.customer_id)
         return {"customer_name": customer.name}
@@ -221,7 +265,9 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
     @regular_aspect("Calculate order total")
     @result_string("customer_name", required=True)
     @result_float("total", required=True, min_value=0)
-    async def calculate_total_aspect(self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
+    async def calculate_total_aspect(
+        self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> dict[str, Any]:
         return {
             "customer_name": state["customer_name"],
             "total": sum(item["qty"] * item["price"] for item in params.lines),
@@ -231,7 +277,9 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
     @result_string("customer_name", required=True)
     @result_float("total", required=True, min_value=0)
     @result_string("order_id", required=True)
-    async def persist_order_aspect(self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
+    async def persist_order_aspect(
+        self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> dict[str, Any]:
         repo = connections["orders"]
         order_id = f"ord-{uuid.uuid4().hex[:8]}"
         await repo.save_order(
@@ -247,7 +295,9 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
         }
 
     @summary_aspect("Build result")
-    async def final_summary(self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> CreateOrderResult:
+    async def final_summary(
+        self, params: CreateOrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> CreateOrderResult:
         return CreateOrderResult(
             order_id=state["order_id"],
             total=state["total"],

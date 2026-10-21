@@ -710,6 +710,9 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
                 },
                 "state_key": {
                   "type": "string"
+                },
+                "attributes": {
+                  "type": "object"
                 }
               }
             }

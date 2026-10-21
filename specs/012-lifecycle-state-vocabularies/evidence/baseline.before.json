@@ -1,0 +1,1014 @@
+{
+  "generated_by": "scan_lifecycle_calls.py",
+  "corpus": {
+    "files_with_state_calls": 23,
+    "declarations": 32,
+    "private_declarations": 4,
+    "states_from_templates": 98,
+    "transition_pairs_from_templates": 68,
+    "state_calls_textual": 98,
+    "to_calls_textual": 65,
+    "failures": 0
+  },
+  "state_row_before": {
+    "state_row": {
+      "id": "aoa.demo.model.store.entities.sales_core.SalesOrderEntity:lifecycle:lifecycle:payment_pending",
+      "type": "StateIntermediate",
+      "label": "payment_pending",
+      "properties": {
+        "lifecycle_class_id": "aoa.demo.model.store.entities.sales_order_lifecycle.SalesOrderLifecycle",
+        "state_key": "payment_pending",
+        "attributes": {}
+      }
+    },
+    "declared_display_name_in_StateInfo": "Payment pending",
+    "fsm_state_item_as_maxitor_builds_it": {
+      "key": "payment_pending",
+      "display_name": "payment_pending",
+      "state_type": "intermediate",
+      "transitions": [
+        "cancelled",
+        "confirmed"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "declaration": "AnalyticsPipelineLifecycle",
+      "module": "aoa.demo.model.analytics.entities.an_dense_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/analytics/entities/an_dense_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "ingest",
+          "display_name": "Ingest",
+          "state_type": "initial",
+          "transitions": [
+            "hydrate"
+          ]
+        },
+        {
+          "key": "hydrate",
+          "display_name": "Hydrate",
+          "state_type": "intermediate",
+          "transitions": [
+            "commit"
+          ]
+        },
+        {
+          "key": "commit",
+          "display_name": "Committed",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "AnalyticsFactLifecycle",
+      "module": "aoa.demo.model.analytics.entities.an_dense_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/analytics/entities/an_dense_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "open",
+          "display_name": "Open",
+          "state_type": "initial",
+          "transitions": [
+            "indexed"
+          ]
+        },
+        {
+          "key": "indexed",
+          "display_name": "Indexed",
+          "state_type": "intermediate",
+          "transitions": [
+            "frozen"
+          ]
+        },
+        {
+          "key": "frozen",
+          "display_name": "Frozen",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "_AnDirectedCycleSketchLifecycle",
+      "module": "aoa.demo.model.analytics.entities.analytics_er_cycle_quad_stub",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/analytics/entities/analytics_er_cycle_quad_stub.py",
+      "private": true,
+      "states": [
+        {
+          "key": "open",
+          "display_name": "Open",
+          "state_type": "initial",
+          "transitions": [
+            "settled"
+          ]
+        },
+        {
+          "key": "settled",
+          "display_name": "Settled",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "AssurancePortfolioLifecycle",
+      "module": "aoa.demo.model.assurance_portfolio.entities.ap_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/assurance_portfolio/entities/ap_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "intake",
+          "display_name": "Intake",
+          "state_type": "initial",
+          "transitions": [
+            "steady"
+          ]
+        },
+        {
+          "key": "steady",
+          "display_name": "Steady",
+          "state_type": "intermediate",
+          "transitions": [
+            "frozen"
+          ]
+        },
+        {
+          "key": "frozen",
+          "display_name": "Frozen",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "BillingDenseLifecycle",
+      "module": "aoa.demo.model.billing.entities.billing_dense_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_dense_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "open",
+          "display_name": "Open",
+          "state_type": "initial",
+          "transitions": [
+            "finalized"
+          ]
+        },
+        {
+          "key": "finalized",
+          "display_name": "Finalized",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "BillingPipelineLifecycle",
+      "module": "aoa.demo.model.billing.entities.billing_dense_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_dense_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "staged",
+          "display_name": "Staged",
+          "state_type": "initial",
+          "transitions": [
+            "validated"
+          ]
+        },
+        {
+          "key": "validated",
+          "display_name": "Validated",
+          "state_type": "intermediate",
+          "transitions": [
+            "exported"
+          ]
+        },
+        {
+          "key": "exported",
+          "display_name": "Exported",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "CounterpartyLinkageLifecycle",
+      "module": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "private": false,
+      "states": [
+        {
+          "key": "unlinked",
+          "display_name": "Unlinked",
+          "state_type": "initial",
+          "transitions": [
+            "verified"
+          ]
+        },
+        {
+          "key": "verified",
+          "display_name": "Verified",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "LedgerPostingWaveLifecycle",
+      "module": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "private": false,
+      "states": [
+        {
+          "key": "queued",
+          "display_name": "Queued",
+          "state_type": "initial",
+          "transitions": [
+            "posted"
+          ]
+        },
+        {
+          "key": "posted",
+          "display_name": "Posted",
+          "state_type": "intermediate",
+          "transitions": [
+            "reconciled"
+          ]
+        },
+        {
+          "key": "reconciled",
+          "display_name": "Reconciled",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "SchemeDisputeClockLifecycle",
+      "module": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "private": false,
+      "states": [
+        {
+          "key": "notice_received",
+          "display_name": "Notice received",
+          "state_type": "initial",
+          "transitions": [
+            "evidence_window"
+          ]
+        },
+        {
+          "key": "evidence_window",
+          "display_name": "Evidence window",
+          "state_type": "intermediate",
+          "transitions": [
+            "ruling_pending"
+          ]
+        },
+        {
+          "key": "ruling_pending",
+          "display_name": "Ruling pending",
+          "state_type": "intermediate",
+          "transitions": [
+            "closed"
+          ]
+        },
+        {
+          "key": "closed",
+          "display_name": "Closed",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "TreasuryCutoverProgramLifecycle",
+      "module": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "private": false,
+      "states": [
+        {
+          "key": "blueprint",
+          "display_name": "Blueprint",
+          "state_type": "initial",
+          "transitions": [
+            "dry_run"
+          ]
+        },
+        {
+          "key": "dry_run",
+          "display_name": "Dry run",
+          "state_type": "intermediate",
+          "transitions": [
+            "canary"
+          ]
+        },
+        {
+          "key": "canary",
+          "display_name": "Canary",
+          "state_type": "intermediate",
+          "transitions": [
+            "full_cut"
+          ]
+        },
+        {
+          "key": "full_cut",
+          "display_name": "Full cut",
+          "state_type": "intermediate",
+          "transitions": [
+            "steady"
+          ]
+        },
+        {
+          "key": "steady",
+          "display_name": "Steady state",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "NostroLiquiditySweepLifecycle",
+      "module": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "private": false,
+      "states": [
+        {
+          "key": "sweep_planned",
+          "display_name": "Sweep planned",
+          "state_type": "initial",
+          "transitions": [
+            "sweep_sent"
+          ]
+        },
+        {
+          "key": "sweep_sent",
+          "display_name": "Sweep sent",
+          "state_type": "intermediate",
+          "transitions": [
+            "sweep_acknowledged"
+          ]
+        },
+        {
+          "key": "sweep_acknowledged",
+          "display_name": "Sweep acknowledged",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "PaymentEventLifecycle",
+      "module": "aoa.demo.model.billing.entities.payment_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/billing/entities/payment_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "recorded",
+          "display_name": "Recorded",
+          "state_type": "initial",
+          "transitions": [
+            "settled"
+          ]
+        },
+        {
+          "key": "settled",
+          "display_name": "Settled",
+          "state_type": "intermediate",
+          "transitions": [
+            "archived"
+          ]
+        },
+        {
+          "key": "archived",
+          "display_name": "Archived",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "CatalogDenseLifecycle",
+      "module": "aoa.demo.model.catalog.entities.catalog_dense_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_dense_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "draft",
+          "display_name": "Draft",
+          "state_type": "initial",
+          "transitions": [
+            "staged"
+          ]
+        },
+        {
+          "key": "staged",
+          "display_name": "Staged",
+          "state_type": "intermediate",
+          "transitions": [
+            "archived"
+          ]
+        },
+        {
+          "key": "archived",
+          "display_name": "Archived",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "_CatalogDirectedCycleSketchLifecycle",
+      "module": "aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_er_cycle_triangle_stub.py",
+      "private": true,
+      "states": [
+        {
+          "key": "open",
+          "display_name": "Open",
+          "state_type": "initial",
+          "transitions": [
+            "settled"
+          ]
+        },
+        {
+          "key": "settled",
+          "display_name": "Settled",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "CatalogProductLifecycle",
+      "module": "aoa.demo.model.catalog.entities.catalog_product_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_product_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "draft",
+          "display_name": "Draft",
+          "state_type": "initial",
+          "transitions": [
+            "active"
+          ]
+        },
+        {
+          "key": "active",
+          "display_name": "Active",
+          "state_type": "intermediate",
+          "transitions": [
+            "retired"
+          ]
+        },
+        {
+          "key": "retired",
+          "display_name": "Retired",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "ClinicalSupplyLifecycle",
+      "module": "aoa.demo.model.clinical_supply.entities.cs_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/clinical_supply/entities/cs_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "draft",
+          "display_name": "Draft",
+          "state_type": "initial",
+          "transitions": [
+            "active"
+          ]
+        },
+        {
+          "key": "active",
+          "display_name": "Active",
+          "state_type": "intermediate",
+          "transitions": [
+            "retired"
+          ]
+        },
+        {
+          "key": "retired",
+          "display_name": "Retired",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "ProjectionDemoCustomerLifecycle",
+      "module": "aoa.demo.model.entity_projection_demo.entities.projection_demo_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/entity_projection_demo/entities/projection_demo_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "active",
+          "display_name": "Active",
+          "state_type": "initial",
+          "transitions": [
+            "archived"
+          ]
+        },
+        {
+          "key": "archived",
+          "display_name": "Archived",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "ProjectionDemoOrderLifecycle",
+      "module": "aoa.demo.model.entity_projection_demo.entities.projection_demo_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/entity_projection_demo/entities/projection_demo_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "draft",
+          "display_name": "Draft",
+          "state_type": "initial",
+          "transitions": [
+            "confirmed"
+          ]
+        },
+        {
+          "key": "confirmed",
+          "display_name": "Confirmed",
+          "state_type": "intermediate",
+          "transitions": [
+            "cancelled"
+          ]
+        },
+        {
+          "key": "cancelled",
+          "display_name": "Cancelled",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "IdentityDenseLifecycle",
+      "module": "aoa.demo.model.identity.entities.id_dense_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/identity/entities/id_dense_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "registered",
+          "display_name": "Registered",
+          "state_type": "initial",
+          "transitions": [
+            "active"
+          ]
+        },
+        {
+          "key": "active",
+          "display_name": "Active",
+          "state_type": "intermediate",
+          "transitions": [
+            "dormant"
+          ]
+        },
+        {
+          "key": "dormant",
+          "display_name": "Dormant",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "InvDenseLifecycle",
+      "module": "aoa.demo.model.inventory.entities.inv_dense_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/inventory/entities/inv_dense_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "available",
+          "display_name": "Available",
+          "state_type": "initial",
+          "transitions": [
+            "committed"
+          ]
+        },
+        {
+          "key": "committed",
+          "display_name": "Committed",
+          "state_type": "intermediate",
+          "transitions": [
+            "depleted"
+          ]
+        },
+        {
+          "key": "depleted",
+          "display_name": "Depleted",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "InvPipelineLifecycle",
+      "module": "aoa.demo.model.inventory.entities.inv_dense_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/inventory/entities/inv_dense_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "receipt",
+          "display_name": "Receipt",
+          "state_type": "initial",
+          "transitions": [
+            "staging"
+          ]
+        },
+        {
+          "key": "staging",
+          "display_name": "Staging",
+          "state_type": "intermediate",
+          "transitions": [
+            "anchored"
+          ]
+        },
+        {
+          "key": "anchored",
+          "display_name": "Anchored",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "MsgDenseLifecycle",
+      "module": "aoa.demo.model.messaging.entities.msg_dense_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_dense_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "queued",
+          "display_name": "Queued",
+          "state_type": "initial",
+          "transitions": [
+            "routed"
+          ]
+        },
+        {
+          "key": "routed",
+          "display_name": "Routed",
+          "state_type": "intermediate",
+          "transitions": [
+            "drained"
+          ]
+        },
+        {
+          "key": "drained",
+          "display_name": "Drained",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "MsgWebhookLifecycle",
+      "module": "aoa.demo.model.messaging.entities.msg_dense_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_dense_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "received",
+          "display_name": "Received",
+          "state_type": "initial",
+          "transitions": [
+            "verified"
+          ]
+        },
+        {
+          "key": "verified",
+          "display_name": "Verified",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "_MsgDirectedCycleSketchLifecycle",
+      "module": "aoa.demo.model.messaging.entities.msg_er_cycle_triangle_stub",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_er_cycle_triangle_stub.py",
+      "private": true,
+      "states": [
+        {
+          "key": "open",
+          "display_name": "Open",
+          "state_type": "initial",
+          "transitions": [
+            "settled"
+          ]
+        },
+        {
+          "key": "settled",
+          "display_name": "Settled",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "OutboxMessageLifecycle",
+      "module": "aoa.demo.model.messaging.entities.outbox_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/messaging/entities/outbox_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "pending",
+          "display_name": "Pending",
+          "state_type": "initial",
+          "transitions": [
+            "published"
+          ]
+        },
+        {
+          "key": "published",
+          "display_name": "Published",
+          "state_type": "intermediate",
+          "transitions": [
+            "consumed"
+          ]
+        },
+        {
+          "key": "consumed",
+          "display_name": "Consumed",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "AuditLogEntryLifecycle",
+      "module": "aoa.demo.model.store.entities.audit_log_entry_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/store/entities/audit_log_entry_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "written",
+          "display_name": "Written",
+          "state_type": "initial",
+          "transitions": [
+            "indexed"
+          ]
+        },
+        {
+          "key": "indexed",
+          "display_name": "Indexed",
+          "state_type": "intermediate",
+          "transitions": [
+            "retained"
+          ]
+        },
+        {
+          "key": "retained",
+          "display_name": "Retained",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "CustomerAccountLifecycle",
+      "module": "aoa.demo.model.store.entities.customer_account_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/store/entities/customer_account_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "provisioned",
+          "display_name": "Provisioned",
+          "state_type": "initial",
+          "transitions": [
+            "active"
+          ]
+        },
+        {
+          "key": "active",
+          "display_name": "Active",
+          "state_type": "intermediate",
+          "transitions": [
+            "closed"
+          ]
+        },
+        {
+          "key": "closed",
+          "display_name": "Closed",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "SalesOrderLifecycle",
+      "module": "aoa.demo.model.store.entities.sales_order_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/store/entities/sales_order_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "new",
+          "display_name": "New",
+          "state_type": "initial",
+          "transitions": [
+            "cancelled",
+            "payment_pending"
+          ]
+        },
+        {
+          "key": "payment_pending",
+          "display_name": "Payment pending",
+          "state_type": "intermediate",
+          "transitions": [
+            "cancelled",
+            "confirmed"
+          ]
+        },
+        {
+          "key": "confirmed",
+          "display_name": "Confirmed",
+          "state_type": "intermediate",
+          "transitions": [
+            "pending_fulfillment",
+            "rework"
+          ]
+        },
+        {
+          "key": "rework",
+          "display_name": "Rework",
+          "state_type": "intermediate",
+          "transitions": [
+            "confirmed"
+          ]
+        },
+        {
+          "key": "pending_fulfillment",
+          "display_name": "Pending fulfillment",
+          "state_type": "intermediate",
+          "transitions": [
+            "shipped"
+          ]
+        },
+        {
+          "key": "shipped",
+          "display_name": "Shipped",
+          "state_type": "intermediate",
+          "transitions": [
+            "out_for_delivery"
+          ]
+        },
+        {
+          "key": "out_for_delivery",
+          "display_name": "Out for delivery",
+          "state_type": "intermediate",
+          "transitions": [
+            "delivered"
+          ]
+        },
+        {
+          "key": "delivered",
+          "display_name": "Delivered",
+          "state_type": "final",
+          "transitions": []
+        },
+        {
+          "key": "cancelled",
+          "display_name": "Cancelled",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "SalesOrderLineLifecycle",
+      "module": "aoa.demo.model.store.entities.sales_order_line_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/store/entities/sales_order_line_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "open",
+          "display_name": "Open",
+          "state_type": "initial",
+          "transitions": [
+            "reserved"
+          ]
+        },
+        {
+          "key": "reserved",
+          "display_name": "Reserved",
+          "state_type": "intermediate",
+          "transitions": [
+            "fulfilled"
+          ]
+        },
+        {
+          "key": "fulfilled",
+          "display_name": "Fulfilled",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "StoreDualEntryLifecycle",
+      "module": "aoa.demo.model.store.entities.store_dual_entry_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/store/entities/store_dual_entry_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "online_draft",
+          "display_name": "Online draft",
+          "state_type": "initial",
+          "transitions": [
+            "active"
+          ]
+        },
+        {
+          "key": "walk_in_quote",
+          "display_name": "Walk-in quote",
+          "state_type": "initial",
+          "transitions": [
+            "active"
+          ]
+        },
+        {
+          "key": "active",
+          "display_name": "Active",
+          "state_type": "intermediate",
+          "transitions": [
+            "fulfilled"
+          ]
+        },
+        {
+          "key": "fulfilled",
+          "display_name": "Fulfilled",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "_StoreDirectedCycleSketchLifecycle",
+      "module": "aoa.demo.model.store.entities.store_er_cycle_ping_pong",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/store/entities/store_er_cycle_ping_pong.py",
+      "private": true,
+      "states": [
+        {
+          "key": "open",
+          "display_name": "Open",
+          "state_type": "initial",
+          "transitions": [
+            "settled"
+          ]
+        },
+        {
+          "key": "settled",
+          "display_name": "Settled",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    },
+    {
+      "declaration": "SupportSparseLifecycle",
+      "module": "aoa.demo.model.support.entities.support_simple_lifecycle",
+      "file": "/private/tmp/aoa-before/packages/aoa-demo/src/aoa/demo/model/support/entities/support_simple_lifecycle.py",
+      "private": false,
+      "states": [
+        {
+          "key": "intake",
+          "display_name": "Intake",
+          "state_type": "initial",
+          "transitions": [
+            "working"
+          ]
+        },
+        {
+          "key": "working",
+          "display_name": "Working",
+          "state_type": "intermediate",
+          "transitions": [
+            "done"
+          ]
+        },
+        {
+          "key": "done",
+          "display_name": "Done",
+          "state_type": "final",
+          "transitions": []
+        }
+      ]
+    }
+  ]
+}

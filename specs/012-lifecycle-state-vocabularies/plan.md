@@ -15,7 +15,7 @@ The change introduces one object — a state entity — and makes the chain, the
 3. **The chain.** The statuses and the links are declared in one class body: `.state(status)` and `.to(status, …)` take objects, the label comes from the object, classification and transitions stay in `_template`, and the string form is removed at the end of the branch. The class keeps the objects, so `get_state_entity(code)` can hand a status to whoever asks.
 4. **The graph.** The state row keeps its id and kind, takes its label from the status, and carries all declared fields as `attributes`.
 5. **Maxitor.** The diagram store keeps the attributes, the FSM snapshot reports the human label and orders by the declared order, and the DOT source uses the declared colour with a fallback to today's palette.
-6. **The corpus.** 32 lifecycle declarations (28 chains and 4 private cycle sketches), 90 `.state(...)` and 65 `.to(...)` calls in `aoa-demo`, plus the framework tests, the examples and the documentation examples, because the string form disappears.
+6. **The corpus.** 32 lifecycle declarations (28 chains and 4 private cycle sketches), 98 `.state(...)` and 65 `.to(...)` calls in `aoa-demo`, plus the framework tests, the examples and the documentation examples, because the string form disappears.
 
 ## Technical Context
 
@@ -35,7 +35,7 @@ The change introduces one object — a state entity — and makes the chain, the
 
 **Constraints**: no new dependency; the closing check run must end green; every new module keeps its principle-III header; both public classes get AI-CORE blocks (principle IV); every new symbol gets a one-line docstring (principle V); all text in English (principle II); nothing is committed without the maintainer's instruction (principle I).
 
-**Scale/Scope**: 2 new public types, 1 new module, 4 framework modules edited, 1 state-row schema extended, 1 DuckDB table extended, 1 FSM action extended, 1 FSM schema extended, 1 client type and 1 DOT builder extended, 32 demo declarations migrated, 90 state calls and 65 transition calls rewritten, 1 framework test module and its support entities migrated, 2 example directories, 3 documentation pages plus 2 Russian drafts, 1 changelog article.
+**Scale/Scope**: 2 new public types, 2 new modules, 4 framework modules edited, 1 state-row schema extended, 1 DuckDB table extended, 1 FSM action extended, 1 FSM schema extended, 1 client type and 1 DOT builder extended, 32 demo declarations migrated, 98 state calls and 65 transition calls rewritten, 1 framework test module and its support entities migrated, 2 example directories, 3 documentation pages plus 2 Russian drafts, 1 changelog article.
 
 ## Constitution Check
 
@@ -68,7 +68,10 @@ specs/012-lifecycle-state-vocabularies/
 │   ├── state-declaration-contract.md   # What the vocabulary and the chain accept, and what they refuse
 │   └── graph-and-fsm-contract.md       # The state row, the store column and the FSM wire shape
 ├── evidence/
-│   └── scan_lifecycle_calls.py   # the corpus before and after: codes and transition pairs per chain
+│   ├── scan_lifecycle_calls.py   # the corpus of one tree: codes and transition pairs per chain
+│   ├── compare_baselines.py      # before vs after, per declaration
+│   ├── baseline.before.json      # the corpus at HEAD, before the migration
+│   └── baseline.after.json       # the corpus after the migration
 ├── checklists/
 │   └── requirements.md  # Spec quality checklist (from /speckit-specify)
 └── tasks.md             # Phase 2 output (/speckit-tasks — NOT created here)
@@ -79,7 +82,8 @@ specs/012-lifecycle-state-vocabularies/
 ```text
 packages/aoa-action-machine/src/aoa/action_machine/
 ├── domain/
-│   ├── entity.py                       # BaseStateEntity, next to BaseEntity
+│   ├── entity.py                       # unchanged
+│   ├── state_entity.py                 # NEW — BaseStateEntity, with the full header
 │   ├── state_vocabulary.py             # NEW — the StateVocabulary mixin, with the full header
 │   ├── lifecycle.py                    # entity-accepting DSL, _state_entities, get_state_entity
 │   └── __init__.py                     # both names exported
@@ -121,10 +125,10 @@ docs/CHANGELOG.md                       # one article
 
 Eight phases, one phase — one commit, each leaving the tree green and each proved adversarially before it ends.
 
-1. **The object and the axis class.** `BaseStateEntity` in `entity.py`, `StateVocabulary` as a mixin in a new module with the full header, both exported; the mixin collects the class's status attributes, validates them, exposes `members`/`entity_type`/`by_code`/`codes`, inherits members in a subclass that declares none, and checks that every status in `_template` is a member; the DSL accepts statuses and stores them (`_state_entities`, `get_state_entity`), with overloads for `mypy --strict`. The string form stays accepted for now (see Complexity Tracking). Tests: the object's fields and refusals, the mixin's order/lookup/duplicates/mixed types/inheritance/template check, the equivalence of a template built both ways.
+1. **The object and the axis class.** `BaseStateEntity` in a new `state_entity.py` with the full header, `StateVocabulary` as a mixin in a new `state_vocabulary.py`, both exported; the mixin collects the class's status attributes, validates them, exposes `members`/`entity_type`/`by_code`/`codes`, inherits members in a subclass that declares none, and checks that every status in `_template` is a member; the DSL accepts statuses and stores them (`_state_entities`, `get_state_entity`), with overloads for `mypy --strict`. The string form stays accepted for now (see Complexity Tracking). Tests: the object's fields and refusals, the mixin's order/lookup/duplicates/mixed types/inheritance/template check, the equivalence of a template built both ways.
 2. **The state row.** `StateGraphPayload` carries the status; `label` from the display name; `properties.attributes` from `model_dump(mode="json")`; `GRAPH_JSON_SCHEMA` widened. Tests: id and kind unchanged, label, all fields present, schema still validates, `Field(exclude=True)` excluded, a non-JSON field refused at build.
 3. **Maxitor.** `state.attributes` in DuckDB (both insert paths and the view), `load_states` and the FSM payload, `_STATE_ITEM.attributes`, ordering by `sort_order`, client type and DOT colour with fallback. Tests: attributes round-trip, human label in the payload, order, unchanged DOT with no attributes.
-4. **The corpus.** 32 demo declarations migrated (28 chains and 4 sketches), 90 `.state` and 65 `.to` calls rewritten, framework tests and support entities migrated, the two example directories migrated, docstring examples migrated. Evidence: per-chain sets of codes and transition pairs, before and after, identical. Tests: demo suite and examples green on entities.
+4. **The corpus.** 32 demo declarations migrated (28 chains and 4 sketches), 98 `.state` and 65 `.to` calls rewritten, framework tests and support entities migrated, the two example directories migrated, docstring examples migrated. Evidence: per-chain sets of codes and transition pairs, before and after, identical. Tests: demo suite and examples green on entities.
 5. **The removal.** The string branch leaves `state()`/`to()`; the transitional tests are replaced by the refusal tests; a scan proves zero `.state("…"` and `.to("…"` remain in the repository. This is the commit that makes the string form gone, and it is deliberately separate so that phases 1–4 could be reviewed without it.
 6. **The check run.** `bash scripts/run_checks_with_log.sh` to zero, the two accepted remarks left alone.
 7. **The documentation.** The state-as-object invariant in `docs/reference/intents-and-invariants.md` (FSM section) and the declaration form in `docs/tutorials/step-22-lifecycle.md`, each with its `ru_draft`; a runnable example pair (script + notebook) in `examples/step_22_lifecycle/` showing the vocabulary, the chain, and the state row with its attributes.
@@ -141,4 +145,5 @@ Phases 6, 7 and 8 **are** the three reserved tail steps of principle VI — chec
 | A new module for the vocabulary rather than a class inside `entity.py` | The vocabulary is not an entity and has a different lifecycle of change from the entity base; it also keeps `entity.py` from growing a third subject | Inside `entity.py` it would sit next to `BaseStateEntity` but import the graph opt-out and the naming rules of an entity it is not |
 | Exclusion from the model graph is automatic | A forgotten decorator either breaks every graph build (`MissingEntityInfoError`, measured) or doubles the entities; the status type is not a model entity by decision, so the framework enforces it | A per-class decorator is one more line to forget in 32 files, and the failure mode is a broken build, not a visible extra node |
 | Attributes are nested under `attributes` rather than spread into `properties` | A status field may be named `state_key` or `lifecycle_class_id`; spreading would let it silently overwrite the row's own fields, and the schema would need a new entry per domain field | Flat properties require a reserved-name list and a schema that changes on every new status attribute |
+| The FSM state item carries a closed presentation-attribute object | The strict wire-schema type refuses a free-form object, and the diagram reads only the order and the colour | Making the wire free-form needs a framework change to the strict schema type; carrying a JSON string keeps every field but stops being a schema object and forces every client to parse |
 | The FSM order is initial, then `sort_order`, then key | `initial` first is a drawing invariant, not a status property; `sort_order` is a status property; the key is a stable tiebreak that reproduces today's order when nothing is declared | Sorting only by `sort_order` would let a status with the default `0` jump before the initial state; sorting only by key keeps today's wrong order |

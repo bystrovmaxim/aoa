@@ -55,6 +55,12 @@ The feature adds one object and two carriers of data derived from it: the graph 
 4. The chain additionally holds `_state_entities: dict[str, BaseStateEntity]`, copied to instances, exposed by `get_state_entity(code)`.
 5. The statuses and the template are declared in one class body; every status object in `_template` is one of that class's attributes, checked at class creation.
 
+## Runtime current status
+
+A specialized lifecycle accepts a code, validates it against the template and stores `_current_status` as a reference to the declared object in `_state_entities`. There is no `_current_state` field. `current_status` returns that same object; `current_state` reads its `code`.
+
+`transition(code)` checks the permitted edge and creates a new instance of the same lifecycle class, referring to the declared destination object. It does not construct a status or alter the original lifecycle. `current_state_info` continues to read the template's `StateInfo` by code. A template has no current status, so runtime properties raise `RuntimeError`; repr, equality and hashing still support templates. Instance equality and hashing use the concrete lifecycle class and code, not status fields.
+
 ## Graph state row
 
 | Field | Value | Source |
@@ -97,7 +103,7 @@ The feature adds one object and two carriers of data derived from it: the graph 
 | `display_name` | `str` | `label` |
 | `state_type` | `str` | `kind` → `initial` / `intermediate` / `final` |
 | `transitions` | `list[str]` | the transition edges |
-| `attributes` | `object`, optional | the `attributes` column |
+| `attributes` | closed object, optional | the presentation attributes of the `attributes` column (`code`, `display_name`, `sort_order`, `color`, `fill_color`); other fields stay in the graph row |
 
 **Invariants**
 

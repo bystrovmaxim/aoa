@@ -16,7 +16,7 @@ The lifecycle template holds a `dict` of state keys to metadata, and the graph r
 - **The diagram therefore shows keys.** The FSM payload's `display_name` is read from the node label, so the wire answer says `{"key": "payment_pending", "display_name": "payment_pending", ...}` — a human label was declared one layer above and never arrived.
 - **The order is alphabetical.** The FSM orders states "initial first, then by key", so a chain that thinks in `new → payment_pending → confirmed → …` is drawn `cancelled, confirmed, delivered, new, …`.
 - **A status has no room for anything of its own.** There is no object, no type and no place for an order, a colour or any domain attribute: the pair of strings is the whole declaration.
-- **The corpus.** 32 lifecycle declarations in 23 files under `packages/aoa-demo/src`: 28 named chains in 19 `*_lifecycle.py` files and 4 private cycle-sketch classes in the `*_stub.py` / `*_cycle_*.py` fixtures. 90 `.state(...)` calls and 65 `.to(...)` calls, measured by scanning `packages/aoa-demo/src`. Further call sites live in `packages/aoa-action-machine/tests`, `examples/` (including `examples/step_26_maxitor/`), the docstrings of the framework modules, and the rationale page `docs/explanation/architectural-constitution.md`; the string form is removed, so they move in the same change.
+- **The corpus.** 32 lifecycle declarations in 23 files under `packages/aoa-demo/src`: 28 named chains in 19 `*_lifecycle.py` files and 4 private cycle-sketch classes in the `*_stub.py` / `*_cycle_*.py` fixtures. 98 `.state(...)` calls and 65 `.to(...)` calls — 68 transition pairs once the templates are read — measured by scanning `packages/aoa-demo/src`. Further call sites live in `packages/aoa-action-machine/tests`, `examples/` (including `examples/step_26_maxitor/`), the docstrings of the framework modules, and the rationale page `docs/explanation/architectural-constitution.md`; the string form is removed, so they move in the same change.
 
 ## Clarifications
 
@@ -135,12 +135,12 @@ The maintainer migrates the demo's 32 declarations (28 chains and 4 private cycl
 - **FR-004**: A lifecycle class MUST accept status objects in its template and transitions, MUST take the label from the object, and MUST refuse a string argument. When the template is declared in the same class, it MUST refuse a status object that is not one of that class's status attributes, naming the status and the class.
 - **FR-005**: A chain MUST keep the links and the classification: whether a state is initial, intermediate or final, and which transitions exist, MUST remain declared in the chain and MUST NOT be derived from the status object.
 - **FR-006**: A status MUST carry no initial/final flag; the same status MAY be classified differently by two chains.
-- **FR-007**: The state key inside the machine MUST remain the code string; state metadata, the current-state API, transition checking and serialization MUST keep their current shape and behaviour.
-- **FR-008**: A chain MUST expose its status objects by code, so that code outside the chain can read the object of the current state.
+- **FR-007**: The constructor and transition methods MUST keep accepting code strings. A runtime instance MUST store a reference to the declared status object without a separate current-code field; `current_state` MUST return its code. State metadata, transition checking and code-based serialization MUST retain their existing behaviour.
+- **FR-008**: A chain MUST expose its status objects by code and a runtime instance MUST expose `current_status` as the exact selected declared object. Transitions MUST reuse the declared destination object while creating a new lifecycle instance. Templates MUST reject current-state property access with `RuntimeError`; equality and hashing MUST remain based on the lifecycle class and code.
 - **FR-009**: The graph state row MUST keep its identity and its kind, MUST take its label from the status object, and MUST carry every declared field of the status object with its value.
 - **FR-010**: A status object MUST NOT appear as an entity of the model graph; the graph builds with no added entities and no failure for the status type.
 - **FR-011**: The interchange graph schema MUST admit the status fields and MUST keep validating every state row.
-- **FR-012**: The diagram store MUST retain the status fields, and the FSM snapshot MUST expose them per state.
+- **FR-012**: The diagram store MUST retain the status fields, and the FSM snapshot MUST expose the presentation attributes per state — the order, the colour and the code/label the drawing reads. Arbitrary domain fields stay in the graph state row; the FSM wire is a closed diagram contract, because the strict wire-schema type refuses a free-form object.
 - **FR-013**: The FSM snapshot MUST report the human label as the state's display name, MUST order states as initial first and then the declared order, and MUST fall back to today's order when no order is declared.
 - **FR-014**: The diagram source MUST use a status's declared colour when present and MUST fall back to the existing per-type palette otherwise; with no attributes anywhere, the drawing MUST be identical to today's.
 - **FR-015**: The demo's 32 declarations (28 chains and 4 private cycle sketches) MUST be migrated with codes and transition pairs kept 1:1, and the string form MUST be removed from the framework tests, examples and documentation examples in the same change.
@@ -162,7 +162,7 @@ The maintainer migrates the demo's 32 declarations (28 chains and 4 private cycl
 - **SC-002**: After the change, 0 string state declarations remain in the demo, the framework tests, the examples and the documentation examples.
 - **SC-003**: 100% of states in the FSM snapshots report the declared human label as their display name; 0 report the code.
 - **SC-004**: 100% of FSM snapshots order the initial state first and then follow the declared order where one is declared; where none is declared the order equals today's.
-- **SC-005**: 100% of declared status fields that are not opted out with `Field(exclude=True)` appear, with their values, in the graph state row and in the FSM snapshot.
+- **SC-005**: 100% of declared status fields that are not opted out with `Field(exclude=True)` appear, with their values, in the graph state row; 100% of the presentation attributes (`code`, `display_name`, `sort_order`, `color`, `fill_color`) appear in the FSM snapshot, and no other field does.
 - **SC-006**: The model graph's entity count is unchanged by the change; 0 state types appear as entities.
 - **SC-007**: Every refusal in FR-002, FR-003 and FR-004 is covered by a test, and each is measured at declaration time.
 - **SC-008**: The full check run is zero, apart from the two accepted remarks.
@@ -171,13 +171,14 @@ The maintainer migrates the demo's 32 declarations (28 chains and 4 private cycl
 
 - **Placement: the axis class.** The statuses and the links are declared in one class body, the class applies `StateVocabulary` as a mixin next to `Lifecycle`, and the status type is module-level beside it. No binding, generic, decorator or nesting. Nesting a status type inside the same class as a nested vocabulary does not work — a nested class body does not see the enclosing class namespace — which is one more reason the axis class keeps the type at module level.
 - **Exclusion is automatic.** Every status type is kept out of the model graph by the framework, not by a decorator the author must remember; a forgotten decorator would either break every graph build or double the entities.
+- **The FSM wire is closed.** The strict wire-schema type requires an object to declare its properties and forbid extras, so the FSM state item carries only the presentation attributes; every domain field still reaches Maxitor through the graph state row, which the store keeps whole.
 - **No second identity.** A status has no id of its own; the code is the identity, and the graph's usual synthetic `id` column does not apply to state rows.
 - **Attributes are JSON-representable.** A declared status field is expected to have a JSON form; a field that does not is refused at build rather than silently dropped.
 - **Codes and labels are duplicated in the attributes payload.** The state row already carries the code and the label; they appear again among the fields on purpose, because the rule is "all declared fields", without a special case.
 - **Ordering.** Initial first, then the declared order, then the code as a tiebreak; no declared order degrades to today's ordering.
 - **Colour.** The declared colour applies to the state's outline; a declared fill colour, when present, applies to its fill; otherwise the per-type palette is used.
 - **Transport is out of scope.** A status object is not made a field of an operation result or of another entity here; the chain exposes the object by code, and the transport question — raw object or a wire projection — is a separate task.
-- **Persistence is out of scope.** The current state stays a code string; no status object is stored or hydrated.
+- **Persistence is out of scope.** Persisted values remain code strings. Runtime resolves a code to an already declared status object and stores that reference; it does not create or hydrate a new status object. `current_state` exposes the code for persistence.
 - **The demo is the corpus.** The 32 declarations are migrated here; a shared vocabulary across chains is not introduced.
 - **Two forms on the branch.** The delivered state has one form. On the branch the string form stays accepted until the corpus has moved, so that every commit stays importable; its removal is its own commit, and the delivered behaviour is the single form.
 
@@ -188,4 +189,5 @@ The specification names two public type names, `BaseStateEntity` and `StateVocab
 Two corrections against the issue are recorded rather than smoothed over:
 
 - The issue speaks of "28 lifecycle classes"; the scan finds 32 declarations in 23 files — 28 named chains in 19 files plus 4 private cycle-sketch classes that also declare states with the string form and therefore move in the same change. The plan budgets for 32, not 28.
+- The issue and the first draft of this specification counted 90 `.state(...)` calls; that was lines, not occurrences. The scan counts 98 calls on 90 lines. The plan and tasks use 98, and 68 transition pairs where the templates are read rather than the source counted.
 - The issue's example `OrderStateEntity(code="new", display_name="New")` has no domain field; the fields the diagrams need (`sort_order`, `color`) are introduced by this specification, so the plan budgets for them rather than discovering them mid-migration.

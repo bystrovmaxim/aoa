@@ -61,7 +61,7 @@ Three layers read a status after the chain has accepted it: the interchange grap
 
 The envelope stays strict; the inside of `attributes` is free, so a new domain field needs no schema change.
 
-**Compatibility**: a row without `attributes` stays valid (it is not required); the store reads it as an empty object. A status field that cannot be represented as JSON fails the build — the row is never emitted broken.
+**Compatibility**: a row without `attributes` stays valid (it is not required); the store reads it as an empty object. During phases 1–4 a state declared with the string form keeps its key as the label and carries `{}` as attributes. A status field that cannot be represented as JSON fails the build — the row is never emitted broken.
 
 ## 2. DuckDB `state` table
 
@@ -109,7 +109,7 @@ FROM state
 }
 ```
 
-**Schema**: `attributes` is an optional object on the state item; `key`, `display_name`, `state_type`, `transitions` stay required; no field is removed.
+**Schema**: `attributes` is a **closed** object on the state item — `code`, `display_name`, `sort_order`, `color`, `fill_color`, `additionalProperties: false`; `key`, `display_name`, `state_type`, `transitions` stay required; no field is removed. The strict wire-schema type refuses a free-form object, so this is the diagram contract: arbitrary domain fields remain in the graph state row and are dropped here.
 
 **Order**: initial first, then `attributes.sort_order` (default `0`), then `key`. With no `sort_order` anywhere, the order equals today's (`initial` first, then key).
 

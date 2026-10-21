@@ -35,6 +35,13 @@ function paletteForStateType(t: string): { fill: string; stroke: string } {
   return { fill: "#eff6ff", stroke: "#2563eb" };
 }
 
+/** A declared colour, stripped of characters that would break the DOT attribute; the palette otherwise. */
+function dotColor(value: unknown, fallback: string): string {
+  if (typeof value !== "string") return fallback;
+  const cleaned = value.trim().replace(/["\\\n\r]/g, "");
+  return cleaned.length > 0 ? cleaned : fallback;
+}
+
 export type LifecycleFsmRankdir = "LR" | "TB";
 
 /** DOT source for Graphviz ``dot`` layout (UML-style entry / exit pseudostates). */
@@ -69,10 +76,13 @@ export function buildLifecycleFsmDotSource(data: LifecycleFiniteAutomatonPayload
   for (const s of data.states) {
     const id = dotQuoteId(s.key);
     const { fill, stroke } = paletteForStateType(s.state_type ?? "");
+    const attributes = s.attributes ?? {};
+    const nodeFill = dotColor(attributes.fill_color, fill);
+    const nodeStroke = dotColor(attributes.color, stroke);
     const title = formatStateTitle(s.display_name, s.key);
     const label = `<<B>${htmlEscape(title)}</B>>`;
     lines.push(
-      `  ${id} [label=${label}, shape=box, style="rounded,filled", fillcolor="${fill}", color="${stroke}", penwidth=1.15];`,
+      `  ${id} [label=${label}, shape=box, style="rounded,filled", fillcolor="${nodeFill}", color="${nodeStroke}", penwidth=1.15];`,
     );
   }
 
