@@ -1,5 +1,49 @@
 # Changelog
 
+## [2026-10-21] — A lifecycle state is an object, and the diagram shows it
+
+A lifecycle state used to be two strings, a key and a label: `.state("paid", "Paid")`. The label
+was stored in the template and never left it, so the graph kept the key as the label and Maxitor
+drew `paid`; a status had nowhere to keep anything of its own.
+
+A state is now an object with a stable `code`, a human `display_name` and any fields the status
+needs. One axis is one class: the statuses are class attributes and the transitions are declared in
+the same body, with `StateVocabulary` next to `Lifecycle`:
+
+```python
+class OrderStateEntity(BaseStateEntity):
+    sort_order: int = Field(default=0, description="Presentation order")
+    color: str = Field(default="#9e9e9e", description="Diagram colour")
+
+
+class OrderLifecycle(Lifecycle, StateVocabulary):
+    DRAFT = OrderStateEntity(code="draft", display_name="Draft", sort_order=1)
+    PAID = OrderStateEntity(code="paid", display_name="Paid", sort_order=2)
+
+    _template = (
+        Lifecycle()
+        .state(DRAFT).to(PAID).initial()
+        .state(PAID).final()
+    )
+```
+
+The diagram now shows the label, orders the states as declared (`sort_order`) and uses the declared
+colour. The graph state row carries every declared field as attributes; the diagram's own data
+carries the presentation fields it draws — `code`, `display_name`, `sort_order`, `color`,
+`fill_color` — and the rest stays in the graph, where other consumers read it.
+
+An entity with several status axes has several such classes, one per lifecycle field. The identity
+inside the machine is still the `code`, so stored rows, events, graph ids and transitions do not
+change.
+
+**Breaking change.** The string form is gone: `.state("paid", "Paid")` and `.to("shipped")` now
+raise an error at declaration and name what arrived. The runtime is not affected:
+`OrderLifecycle("paid")` and `transition("paid")` still take the code, and `current_state` is still
+that code. The instance also offers `current_status` — the declared status object itself, with its
+fields.
+
+The demo's 32 declarations were migrated with their codes and transition pairs unchanged.
+
 ## [2026-10-19] — A role's mode is checked where it is written
 
 A role declares its lifecycle mode once, with `@role_mode`, and the four members it may carry
