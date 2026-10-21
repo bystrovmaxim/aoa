@@ -96,14 +96,24 @@ uv run python specs/013-entity-type-markers/evidence/scan_entity_classes.py
 Expected, on the delivered branch:
 
 ```
-classes directly on BaseEntity: 6 (the six markers)
-classes on a marker: 539
-  with a kind suffix: 539
-  without: 0
-old names still present in packages/ or examples/: 0
+Repository scan — entity classes
+  markers found                                       6  ['BaseAssocEntity', 'BaseCoreEntity', 'BaseDetailEntity', 'BaseEnumEntity', 'BaseSpecEntity', 'BaseStateEntity']
+  classes directly on BaseEntity (real)               0
+    of them decorated with @entity                    0
+    of them without @entity                           0
+  classes on a marker                                 539
+    of them on BaseStateEntity                        63
+  real classes (on the base or on a marker)           539
+    with a kind suffix                                539
+    without a kind suffix                             0
+      CoreEntity / AssocEntity / DetailEntity / SpecEntity / EnumEntity / StateEntity
+  old names recorded in the map                       476
+  old names still present                             0 occurrence(s)
 ```
 
-Before the change the same scan reports `476` classes directly on the base and `0` with a kind suffix; the two runs are the before/after of the migration.
+The six per-kind lines are the split the mapping produced: their values are what the migration decided, and their sum is the 539 above.
+
+Before the change the same scan reports `476` classes directly on the base, `470` of them decorated, `63` on the state marker, `63` with a kind suffix and `476` without — the block recorded verbatim in `specs/013-entity-type-markers/evidence/scan.before.txt`. The two runs are the before and after of the migration.
 
 ## 5. The migration changed names only
 

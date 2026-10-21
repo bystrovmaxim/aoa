@@ -1,0 +1,29 @@
+# specs/013-entity-type-markers/evidence/scan.before.txt
+# Taken on the branch base: feature/issue-210-entity-type-markers @ b09a0f2f, 2026-10-22.
+# Body captured verbatim from: UV_CACHE_DIR=./.uvcache uv run --extra dev python specs/013-entity-type-markers/evidence/scan_entity_classes.py
+# Compare with scan.after.txt once the migration of T021-T024 has run; run_checks_with_log.sh reads neither.
+
+Repository scan — entity classes
+  markers found                                       1  ['BaseStateEntity']
+  classes directly on BaseEntity (real)               476
+    of them decorated with @entity                    470
+    of them without @entity                           6
+  classes on a marker                                 63
+    of them on BaseStateEntity                        63
+  real classes (on the base or on a marker)           539
+    with a kind suffix                                63
+    without a kind suffix                             476
+      CoreEntity                                      0
+      AssocEntity                                     0
+      DetailEntity                                    0
+      SpecEntity                                      0
+      EnumEntity                                      0
+      StateEntity                                     63
+  classes without @entity (teaching examples and negative fixtures):
+    examples/step_21_relations/32_error_undeclared_entity.py::FirstPressEntity
+    examples/step_22_lifecycle/01_lifecycle.py::OrderEntity
+    examples/step_22_lifecycle/19_non_json_field.py::OrderEntity
+    packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py::StrangerAxisEntity
+    packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_sweep.py::NotAnEntityAlternativeEntity
+    packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_sweep.py::UndeclaredAlternativeEntity
+  old names still present                             no map yet — the migration has not been planned
