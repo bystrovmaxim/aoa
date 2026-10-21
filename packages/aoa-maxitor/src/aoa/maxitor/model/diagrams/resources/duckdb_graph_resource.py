@@ -217,7 +217,8 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       label VARCHAR NOT NULL,
       kind VARCHAR NOT NULL,
       lifecycle_class_id VARCHAR NOT NULL,
-      state_key VARCHAR NOT NULL
+      state_key VARCHAR NOT NULL,
+      attributes JSON
     );""",
             """CREATE TABLE sensitive (
       id VARCHAR NOT NULL PRIMARY KEY,
@@ -570,7 +571,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT id, label, CAST('checker' AS VARCHAR) AS type, json_object('type_checker', type_checker, 'checker_required', checker_required) AS payload FROM checker",
         "SELECT id, label, CAST('required_context' AS VARCHAR) AS type, json_object('ctx_key', ctx_key) AS payload FROM required_context",
         "SELECT id, label, CAST('lifecycle' AS VARCHAR) AS type, json_object('field_name', field_name) AS payload FROM lifecycle",
-        "SELECT id, label, kind AS type, json_object('lifecycle_class_id', lifecycle_class_id, 'state_key', state_key) AS payload FROM state",
+        "SELECT id, label, kind AS type, json_object('lifecycle_class_id', lifecycle_class_id, 'state_key', state_key, 'attributes', attributes) AS payload FROM state",
         "SELECT id, label, CAST('sensitive' AS VARCHAR) AS type, json_object('properties', properties) AS payload FROM sensitive",
         "SELECT id, label, CAST('role' AS VARCHAR) AS type, json_object('role_mode', role_mode) AS payload FROM role",
     ]
@@ -789,8 +790,8 @@ def _fill_table_state(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]
         p = _get_properties(node)
         t = node["type"]
         con.execute(
-            "INSERT INTO state VALUES (?, ?, ?, ?, ?)",
-            [node["id"], node["label"], t, p["lifecycle_class_id"], p["state_key"]],
+            "INSERT INTO state VALUES (?, ?, ?, ?, ?, ?)",
+            [node["id"], node["label"], t, p["lifecycle_class_id"], p["state_key"], _pack_json_or_none(p.get("attributes", {}))],
         )
 
 
@@ -1243,9 +1244,16 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     )
     _executemany(
         con,
-        "INSERT INTO state VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO state VALUES (?, ?, ?, ?, ?, ?)",
         [
-            [n["id"], n["label"], n["type"], _get_properties(n)["lifecycle_class_id"], _get_properties(n)["state_key"]]
+            [
+                n["id"],
+                n["label"],
+                n["type"],
+                _get_properties(n)["lifecycle_class_id"],
+                _get_properties(n)["state_key"],
+                _pack_json_or_none(_get_properties(n).get("attributes", {})),
+            ]
             for n in [
                 *nodes_by_type.get("StateInitial", []),
                 *nodes_by_type.get("StateIntermediate", []),

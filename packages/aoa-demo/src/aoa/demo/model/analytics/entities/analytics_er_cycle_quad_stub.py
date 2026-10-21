@@ -12,14 +12,34 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, Inverse, Lifecycle, NoInverse, Rel
+from aoa.action_machine.domain import (
+    AssociationOne,
+    BaseEntity,
+    BaseStateEntity,
+    Inverse,
+    Lifecycle,
+    NoInverse,
+    Rel,
+    StateVocabulary,
+)
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.analytics_canonical_telemetry_row import AnalyticsCanonicalTelemetryRowEntity
 
 
-class _AnDirectedCycleSketchLifecycle(Lifecycle):
-    _template = Lifecycle().state("open", "Open").to("settled").initial().state("settled", "Settled").final()
+class _AnDirectedCycleSketchStateEntity(BaseStateEntity):
+    """Status of the _AnDirectedCycleSketch axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class _AnDirectedCycleSketchLifecycle(Lifecycle, StateVocabulary):
+    """Statuses and links of the _AnDirectedCycleSketchLifecycle axis."""
+
+    OPEN = _AnDirectedCycleSketchStateEntity(code="open", display_name="Open", sort_order=1)
+    SETTLED = _AnDirectedCycleSketchStateEntity(code="settled", display_name="Settled", sort_order=2)
+
+    _template = Lifecycle().state(OPEN).to(SETTLED).initial().state(SETTLED).final()
 
 
 @entity(description="Analytics quad vertex A (\u2192B / \u2190D reciprocal)", domain=AnalyticsDomain)

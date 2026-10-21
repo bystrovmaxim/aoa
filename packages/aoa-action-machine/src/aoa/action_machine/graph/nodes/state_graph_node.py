@@ -21,6 +21,7 @@ from typing import Any, ClassVar, TypeVar
 
 from aoa.action_machine.domain.exceptions import LifecycleGraphError
 from aoa.action_machine.domain.lifecycle import Lifecycle, StateType
+from aoa.action_machine.domain.state_entity import BaseStateEntity
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.edges.state_graph_edge import StateGraphEdge
@@ -36,6 +37,7 @@ class StateGraphPayload:
     lifecycle_class: type[Lifecycle]
     state_key: str
     lifecycle_graph_node_id: str
+    state_entity: BaseStateEntity | None = None
 
 
 @dataclass(init=False, frozen=True)
@@ -43,9 +45,9 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange graph node for one state key scoped under the parent interchange row :class:`~aoa.action_machine.graph.nodes.lifecycle_graph_node.LifeCycleGraphNode`.
-    CONTRACT: ``node_id`` is ``lifecycle_graph_node_id.strip() + ':' + state_key.strip()``; ``node_type`` mirrors ``StateInfo.state_type`` on the lifecycle template; ``label`` trimmed state key; ``properties`` carry ``lifecycle_class_id`` / ``state_key``; ``node_obj`` is :class:`StateGraphPayload` (``lifecycle_graph_node_id`` matches parent's ``node_id``).
+    CONTRACT: ``node_id`` is ``lifecycle_graph_node_id.strip() + ':' + state_key.strip()``; ``node_type`` mirrors ``StateInfo.state_type`` on the lifecycle template; ``label`` is the status display name when the state carries an object and the trimmed key otherwise; ``properties`` carry ``lifecycle_class_id`` / ``state_key`` / ``attributes`` (the status fields as JSON, or an empty object); ``node_obj`` is :class:`StateGraphPayload` (``lifecycle_graph_node_id`` matches parent's ``node_id``).
     INVARIANTS: Frozen; :attr:`lifecycle_transitions` lists transitions from :meth:`~aoa.action_machine.graph.edges.state_graph_edge.StateGraphEdge.get_lifecycle_transition_edges` and is surfaced by ``get_all_edges``; :meth:`get_companion_nodes` is always empty (lifecycle rows register via ``LifeCycleGraphEdge``).
-    FAILURES: :exc:`ValueError` when ``lifecycle_graph_node_id`` or ``state_key`` is blank after strip; :exc:`LifecycleGraphError` when the lifecycle class has no template or ``state_key`` is missing from that template.
+    FAILURES: :exc:`ValueError` when ``lifecycle_graph_node_id`` or ``state_key`` is blank after strip; :exc:`LifecycleGraphError` when the lifecycle class has no template or ``state_key`` is missing from that template; a pydantic serialization error when a status field has no JSON form.
     AI-CORE-END
     """
 
@@ -98,10 +100,14 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
         if not key_stripped:
             raise ValueError("state_key must be non-empty")
 
+        template = lifecycle_cls._get_template()
+        state_entity = template.get_state_entity(key_stripped) if template is not None else None
+
         payload = StateGraphPayload(
             lifecycle_class=lifecycle_cls,
             state_key=key_stripped,
             lifecycle_graph_node_id=parent_id,
+            state_entity=state_entity,
         )
 
         node_type_str = type(self)._node_type_for_lifecycle_state_key(lifecycle_cls, key_stripped)
@@ -109,10 +115,11 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
         super().__init__(
             node_id=f"{parent_id}:{key_stripped}",
             node_type=node_type_str,
-            label=key_stripped,
+            label=state_entity.display_name if state_entity is not None else key_stripped,
             properties={
                 "lifecycle_class_id": TypeIntrospection.full_qualname(lifecycle_cls),
                 "state_key": key_stripped,
+                "attributes": state_entity.model_dump(mode="json") if state_entity is not None else {},
             },
             node_obj=payload,
         )
@@ -126,6 +133,7 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
             "properties": {
                 "lifecycle_class_id": str(self.properties["lifecycle_class_id"]),
                 "state_key": str(self.properties["state_key"]),
+                "attributes": dict(self.properties["attributes"]),
             },
         }
 

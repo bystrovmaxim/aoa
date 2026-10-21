@@ -68,13 +68,15 @@ EXAMPLES
     from pydantic import Field
 
     from aoa.action_machine.domain import (
+        AssociationOne,
         BaseDomain,
         BaseEntity,
-        Lifecycle,
-        AssociationOne,
+        BaseStateEntity,
         CompositeMany,
         Inverse,
+        Lifecycle,
         Rel,
+        StateVocabulary,
         build,
     )
 
@@ -82,17 +84,24 @@ EXAMPLES
         name = "shop"
         description = "E-commerce shop bounded context"
 
+    class OrderStateEntity(BaseStateEntity):
+        sort_order: int = Field(default=0, description="Presentation order")
+
+    class OrderLifecycle(Lifecycle, StateVocabulary):
+        NEW = OrderStateEntity(code="new", display_name="New", sort_order=1)
+        DONE = OrderStateEntity(code="done", display_name="Done", sort_order=2)
+
+        _template = (
+            Lifecycle()
+            .state(NEW).to(DONE).initial()
+            .state(DONE).final()
+        )
+
     @entity(description="Customer order", domain=ShopDomain)
     class OrderEntity(BaseEntity):
-        lifecycle = (
-            Lifecycle("Order lifecycle")
-            .state("new", "New").to("confirmed", "cancelled").initial()
-            .state("confirmed", "Confirmed").to("shipped").intermediate()
-            .state("delivered", "Delivered").final()
-            .state("cancelled", "Cancelled").final()
-        )
         id: str = Field(description="Order identifier")
         amount: float = Field(description="Order total", ge=0)
+        lifecycle: OrderLifecycle = Field(description="Order status axis")
 
     order = build({"id": "123", "amount": 100.0}, OrderEntity)
 """
@@ -128,6 +137,8 @@ from aoa.action_machine.domain.relation_markers import (
     Rel,
 )
 from aoa.action_machine.domain.specialization_containers import Classifier, Generalization, Specialization
+from aoa.action_machine.domain.state_entity import BaseStateEntity
+from aoa.action_machine.domain.state_vocabulary import StateVocabulary
 from aoa.action_machine.domain.testing import make
 from aoa.action_machine.intents.entity.entity_intent import EntityIntent
 
@@ -143,6 +154,7 @@ __all__ = [
     "BaseRelationMany",
     # Relation containers
     "BaseRelationOne",
+    "BaseStateEntity",
     "Classifier",
     "CompositeMany",
     "CompositeOne",
@@ -167,6 +179,7 @@ __all__ = [
     "SpecializationDeclarationError",
     "StateInfo",
     "StateType",
+    "StateVocabulary",
     # Utilities
     "build",
     "entity_schema_marker_from_annotated",

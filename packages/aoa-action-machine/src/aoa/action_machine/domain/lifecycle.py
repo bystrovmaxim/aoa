@@ -4,7 +4,7 @@ Declarative finite-state **lifecycle** templates and typed **runtime** state for
 
 `Lifecycle` serves two roles: a **template** built with a fluent import-time API
 (state graph), and a **specialized subclass** whose instances hold the current
-state key on each entity. ``NodeGraphCoordinator`` validates graph rules at
+declared status object on each entity, exposing its code through ``current_state``. ``NodeGraphCoordinator`` validates graph rules at
 **build** time; instances enforce valid keys and transitions at **runtime**.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -21,7 +21,7 @@ SCOPE (IN / OUT)
 
 **In scope**
     Fluent template construction (`.state().to().initial()` / `intermediate` / `final`).
-    `StateInfo` metadata, `StateType` classification, instance API (`current_state`,
+    `StateInfo` metadata, `StateType` classification, instance API (`current_status`, `current_state`,
     `can_transition`, `transition`).
     Strict validation while building templates (keys, display names, final states
     without transitions).
@@ -59,7 +59,8 @@ RATIONALE
 Encoding the graph in a fluent DSL keeps the FSM colocated with the domain model
 and avoids scattering stringly state checks. Splitting **template** (class body)
 from **instance** (field value) matches pydantic’s model: the template is shared
-metadata; each entity row holds one current key. Immutability aligns with
+metadata; each instance holds a reference to its declared status object and
+exposes that object's code for storage. Immutability aligns with
 `BaseEntity`: transitions return new lifecycle objects suitable for `model_copy`.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -77,7 +78,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import cast
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from aoa.action_machine.domain.state_entity import BaseStateEntity
+
+
+def _state_entity_class() -> type[BaseStateEntity]:
+    """Return the status base class, imported lazily to break the entity↔lifecycle cycle."""
+    from aoa.action_machine.domain.state_entity import BaseStateEntity  # pylint: disable=import-outside-toplevel
+
+    return BaseStateEntity
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # EXCEPTIONS
@@ -219,18 +231,26 @@ class _StateBuilder:
         _lifecycle: Parent template under construction.
         _key: State key.
         _display_name: Display label.
+        _entity: Status object declared with this state, when the entity form is used.
         _transitions: Target keys added via ``.to()``.
         _completed: Set after ``.initial()`` / ``.intermediate()`` / ``.final()``.
     """
 
-    def __init__(self, lifecycle: Lifecycle, key: str, display_name: str) -> None:
+    def __init__(
+        self,
+        lifecycle: Lifecycle,
+        key: str,
+        display_name: str,
+        entity: BaseStateEntity | None = None,
+    ) -> None:
         self._lifecycle = lifecycle
         self._key = key
         self._display_name = display_name
+        self._entity = entity
         self._transitions: set[str] = set()
         self._completed = False
 
-    def to(self, *target_keys: str) -> _StateBuilder:
+    def to(self, *targets: BaseStateEntity) -> _StateBuilder:
         """
         Add allowed transition targets from this state.
 
@@ -238,23 +258,20 @@ class _StateBuilder:
         multiple times.
 
         Args:
-            *target_keys: Target state keys.
+            *targets: Target status objects.
 
         Returns:
             ``self`` for chaining.
 
         Raises:
-            TypeError: A target key is not a ``str``.
-            ValueError: A target key is empty or whitespace-only.
+            TypeError: A target is not a status object.
         """
-        for key in target_keys:
-            if not isinstance(key, str):
-                raise TypeError(f"Transition target key must be str, got {type(key).__name__}: {key!r}.")
-            if not key.strip():
-                raise ValueError(
-                    f"Transition target key cannot be empty or whitespace-only " f"in state '{self._key}'."
-                )
-            self._transitions.add(key)
+        entity_class = _state_entity_class()
+        for target in targets:
+            if not isinstance(target, entity_class):
+                raise TypeError(f"Transition target must be a state entity, got {type(target).__name__}: {target!r}.")
+            self._transitions.add(target.code)
+            self._lifecycle._transition_entities[target.code] = target
         return self
 
     def initial(self) -> Lifecycle:
@@ -301,6 +318,8 @@ class _StateBuilder:
             transitions=frozenset(self._transitions),
         )
         self._lifecycle._register_state(state_info)
+        if self._entity is not None:
+            self._lifecycle._state_entities[state_info.key] = self._entity
         return self._lifecycle
 
     @property
@@ -340,7 +359,9 @@ class Lifecycle:
             InvalidStateError: ``current_state`` is not a key in ``_template``.
         """
         self._states: dict[str, StateInfo] = {}
-        self._current_state: str | None = None
+        self._state_entities: dict[str, BaseStateEntity] = {}
+        self._transition_entities: dict[str, BaseStateEntity] = {}
+        self._current_status: BaseStateEntity | None = None
         self._current_builder: _StateBuilder | None = None
 
         if current_state is not None:
@@ -359,7 +380,9 @@ class Lifecycle:
                     valid_states=valid_states,
                 )
             self._states = dict(template._states)
-            self._current_state = current_state
+            self._state_entities = dict(template._state_entities)
+            self._transition_entities = dict(template._transition_entities)
+            self._current_status = self._state_entities[current_state]
 
     @classmethod
     def _get_template(cls) -> Lifecycle | None:
@@ -380,50 +403,54 @@ class Lifecycle:
     # Fluent API (template construction)
     # ─────────────────────────────────────────────────────────────────────
 
-    def state(self, key: str, display_name: str) -> _StateBuilder:
+    def state(self, status: BaseStateEntity) -> _StateBuilder:
         """
-        Declare a new state on this template.
+        Declare a new state on this template from a status object.
 
         Args:
-            key: Unique state key.
-            display_name: Non-empty label for UI and exports.
+            status: The status object; its code becomes the state key and its
+                display name becomes the label.
 
         Returns:
             ``_StateBuilder`` for ``.to()`` and classification.
 
         Raises:
             RuntimeError: Previous state was not finalized.
-            TypeError: ``key`` or ``display_name`` is not a ``str``.
-            ValueError: Empty / whitespace-only ``key`` or ``display_name``, or
-                duplicate ``key``.
+            TypeError: ``status`` is not a status object.
+            ValueError: The code is already declared on this template.
         """
         if self._current_builder is not None and not self._current_builder.is_completed:
             raise RuntimeError(
                 f"State '{self._current_builder._key}' is not complete. "
                 f"Call .initial(), .intermediate(), or .final() "
-                f"before declaring a new state '{key}'."
+                f"before declaring a new state '{status!r}'."
             )
 
-        if not isinstance(key, str):
-            raise TypeError(f"State key must be str, got {type(key).__name__}: {key!r}.")
-        if not key.strip():
-            raise ValueError("State key cannot be empty or whitespace-only.")
+        if not isinstance(status, _state_entity_class()):
+            raise TypeError(f"State must be a state entity, got {type(status).__name__}: {status!r}.")
 
-        if not isinstance(display_name, str):
-            raise TypeError(f"State display name must be str, got {type(display_name).__name__}: {display_name!r}.")
-        if not display_name.strip():
-            raise ValueError(f"State display name for '{key}' cannot be empty or whitespace-only.")
+        if status.code in self._states:
+            raise ValueError(f"State '{status.code}' is already defined.")
 
-        if key in self._states:
-            raise ValueError(f"State '{key}' is already defined.")
-
-        builder = _StateBuilder(self, key, display_name)
+        builder = _StateBuilder(self, status.code, status.display_name, status)
         self._current_builder = builder
         return builder
 
     def _register_state(self, state_info: StateInfo) -> None:
         """Register a finalized ``StateInfo`` (used by ``_StateBuilder``)."""
         self._states[state_info.key] = state_info
+
+    def get_state_entity(self, key: str) -> BaseStateEntity | None:
+        """Return the status object declared under ``key``, or ``None``."""
+        return self._state_entities.get(key)
+
+    def get_state_entities(self) -> dict[str, BaseStateEntity]:
+        """Copy of the status objects declared on this template, by code."""
+        return dict(self._state_entities)
+
+    def get_transition_entities(self) -> dict[str, BaseStateEntity]:
+        """Copy of the status objects named as transition targets, by code."""
+        return dict(self._transition_entities)
 
     # ─────────────────────────────────────────────────────────────────────
     # Instance API (current state)
@@ -437,13 +464,24 @@ class Lifecycle:
         Raises:
             RuntimeError: This object is a template without ``current_state``.
         """
-        if self._current_state is None:
+        if self._current_status is None:
             raise RuntimeError(
                 f"{self.__class__.__name__} is a template, not an instance. "
                 f"current_state is only available on instances such as "
                 f"{self.__class__.__name__}('state_key')."
             )
-        return self._current_state
+        return self._current_status.code
+
+    @property
+    def current_status(self) -> BaseStateEntity:
+        """Return the declared status object; templates raise ``RuntimeError``."""
+        if self._current_status is None:
+            raise RuntimeError(
+                f"{self.__class__.__name__} is a template, not an instance. "
+                f"current_status is only available on instances such as "
+                f"{self.__class__.__name__}('state_key')."
+            )
+        return self._current_status
 
     @property
     def current_state_info(self) -> StateInfo:
@@ -540,8 +578,9 @@ class Lifecycle:
         return key in self._states
 
     def __repr__(self) -> str:
-        if self._current_state is not None:
-            return f"{self.__class__.__name__}('{self._current_state}')"
+        """Describe an instance by code, or a template by structure."""
+        if self._current_status is not None:
+            return f"{self.__class__.__name__}('{self.current_state}')"
         return (
             f"Lifecycle(states={len(self._states)}, "
             f"initial={len(self.get_initial_keys())}, "
@@ -549,9 +588,15 @@ class Lifecycle:
         )
 
     def __eq__(self, other: object) -> bool:
+        """Compare lifecycle class and current code, including unset templates."""
         if not isinstance(other, Lifecycle):
             return NotImplemented
-        return type(self) is type(other) and self._current_state == other._current_state
+        if type(self) is not type(other):
+            return False
+        if self._current_status is None or other._current_status is None:
+            return self._current_status is None and other._current_status is None
+        return self.current_state == other.current_state
 
     def __hash__(self) -> int:
-        return hash((type(self), self._current_state))
+        """Hash the lifecycle class and code, never the status fields."""
+        return hash((type(self), self.current_state if self._current_status is not None else None))

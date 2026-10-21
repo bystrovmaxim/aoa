@@ -10,86 +10,149 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity, Lifecycle
+from aoa.action_machine.domain import (
+    BaseEntity,
+    BaseStateEntity,
+    Lifecycle,
+    StateVocabulary,
+)
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 
 
-class CounterpartyLinkageLifecycle(Lifecycle):
+class CounterpartyLinkageStateEntity(BaseStateEntity):
+    """Status of the CounterpartyLinkage axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class CounterpartyLinkageLifecycle(Lifecycle, StateVocabulary):
     """Two states, **one** transition: counterparty still needs KYC ring alignment."""
 
-    _template = Lifecycle().state("unlinked", "Unlinked").to("verified").initial().state("verified", "Verified").final()
+    UNLINKED = CounterpartyLinkageStateEntity(code="unlinked", display_name="Unlinked", sort_order=1)
+    VERIFIED = CounterpartyLinkageStateEntity(code="verified", display_name="Verified", sort_order=2)
+
+    _template = Lifecycle().state(UNLINKED).to(VERIFIED).initial().state(VERIFIED).final()
 
 
-class LedgerPostingWaveLifecycle(Lifecycle):
+class LedgerPostingWaveStateEntity(BaseStateEntity):
+    """Status of the LedgerPostingWave axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class LedgerPostingWaveLifecycle(Lifecycle, StateVocabulary):
     """Three states, **two** transitions: GL wave for a clearing batch."""
 
+    QUEUED = LedgerPostingWaveStateEntity(code="queued", display_name="Queued", sort_order=1)
+    POSTED = LedgerPostingWaveStateEntity(code="posted", display_name="Posted", sort_order=2)
+    RECONCILED = LedgerPostingWaveStateEntity(code="reconciled", display_name="Reconciled", sort_order=3)
+
     _template = (
         Lifecycle()
-        .state("queued", "Queued")
-        .to("posted")
+        .state(QUEUED)
+        .to(POSTED)
         .initial()
-        .state("posted", "Posted")
-        .to("reconciled")
+        .state(POSTED)
+        .to(RECONCILED)
         .intermediate()
-        .state("reconciled", "Reconciled")
+        .state(RECONCILED)
         .final()
     )
 
 
-class SchemeDisputeClockLifecycle(Lifecycle):
+class SchemeDisputeClockStateEntity(BaseStateEntity):
+    """Status of the SchemeDisputeClock axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class SchemeDisputeClockLifecycle(Lifecycle, StateVocabulary):
     """Four states, **three** transitions: card-network dispute window."""
 
+    NOTICE_RECEIVED = SchemeDisputeClockStateEntity(
+        code="notice_received", display_name="Notice received", sort_order=1
+    )
+    EVIDENCE_WINDOW = SchemeDisputeClockStateEntity(
+        code="evidence_window", display_name="Evidence window", sort_order=2
+    )
+    RULING_PENDING = SchemeDisputeClockStateEntity(code="ruling_pending", display_name="Ruling pending", sort_order=3)
+    CLOSED = SchemeDisputeClockStateEntity(code="closed", display_name="Closed", sort_order=4)
+
     _template = (
         Lifecycle()
-        .state("notice_received", "Notice received")
-        .to("evidence_window")
+        .state(NOTICE_RECEIVED)
+        .to(EVIDENCE_WINDOW)
         .initial()
-        .state("evidence_window", "Evidence window")
-        .to("ruling_pending")
+        .state(EVIDENCE_WINDOW)
+        .to(RULING_PENDING)
         .intermediate()
-        .state("ruling_pending", "Ruling pending")
-        .to("closed")
+        .state(RULING_PENDING)
+        .to(CLOSED)
         .intermediate()
-        .state("closed", "Closed")
+        .state(CLOSED)
         .final()
     )
 
 
-class TreasuryCutoverProgramLifecycle(Lifecycle):
+class TreasuryCutoverProgramStateEntity(BaseStateEntity):
+    """Status of the TreasuryCutoverProgram axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class TreasuryCutoverProgramLifecycle(Lifecycle, StateVocabulary):
     """Five states, **four** transitions: staged treasury rail cutover."""
 
+    BLUEPRINT = TreasuryCutoverProgramStateEntity(code="blueprint", display_name="Blueprint", sort_order=1)
+    DRY_RUN = TreasuryCutoverProgramStateEntity(code="dry_run", display_name="Dry run", sort_order=2)
+    CANARY = TreasuryCutoverProgramStateEntity(code="canary", display_name="Canary", sort_order=3)
+    FULL_CUT = TreasuryCutoverProgramStateEntity(code="full_cut", display_name="Full cut", sort_order=4)
+    STEADY = TreasuryCutoverProgramStateEntity(code="steady", display_name="Steady state", sort_order=5)
+
     _template = (
         Lifecycle()
-        .state("blueprint", "Blueprint")
-        .to("dry_run")
+        .state(BLUEPRINT)
+        .to(DRY_RUN)
         .initial()
-        .state("dry_run", "Dry run")
-        .to("canary")
+        .state(DRY_RUN)
+        .to(CANARY)
         .intermediate()
-        .state("canary", "Canary")
-        .to("full_cut")
+        .state(CANARY)
+        .to(FULL_CUT)
         .intermediate()
-        .state("full_cut", "Full cut")
-        .to("steady")
+        .state(FULL_CUT)
+        .to(STEADY)
         .intermediate()
-        .state("steady", "Steady state")
+        .state(STEADY)
         .final()
     )
 
 
-class NostroLiquiditySweepLifecycle(Lifecycle):
+class NostroLiquiditySweepStateEntity(BaseStateEntity):
+    """Status of the NostroLiquiditySweep axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class NostroLiquiditySweepLifecycle(Lifecycle, StateVocabulary):
     """Three states, **two** transitions: nostro sweep (distinct labels from ledger posting wave)."""
+
+    SWEEP_PLANNED = NostroLiquiditySweepStateEntity(code="sweep_planned", display_name="Sweep planned", sort_order=1)
+    SWEEP_SENT = NostroLiquiditySweepStateEntity(code="sweep_sent", display_name="Sweep sent", sort_order=2)
+    SWEEP_ACKNOWLEDGED = NostroLiquiditySweepStateEntity(
+        code="sweep_acknowledged", display_name="Sweep acknowledged", sort_order=3
+    )
 
     _template = (
         Lifecycle()
-        .state("sweep_planned", "Sweep planned")
-        .to("sweep_sent")
+        .state(SWEEP_PLANNED)
+        .to(SWEEP_SENT)
         .initial()
-        .state("sweep_sent", "Sweep sent")
-        .to("sweep_acknowledged")
+        .state(SWEEP_SENT)
+        .to(SWEEP_ACKNOWLEDGED)
         .intermediate()
-        .state("sweep_acknowledged", "Sweep acknowledged")
+        .state(SWEEP_ACKNOWLEDGED)
         .final()
     )
 

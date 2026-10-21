@@ -14,14 +14,34 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, Inverse, Lifecycle, NoInverse, Rel
+from aoa.action_machine.domain import (
+    AssociationOne,
+    BaseEntity,
+    BaseStateEntity,
+    Inverse,
+    Lifecycle,
+    NoInverse,
+    Rel,
+    StateVocabulary,
+)
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import CustomerAccountEntity, SalesOrderEntity
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
-class _StoreDirectedCycleSketchLifecycle(Lifecycle):
-    _template = Lifecycle().state("open", "Open").to("settled").initial().state("settled", "Settled").final()
+class _StoreDirectedCycleSketchStateEntity(BaseStateEntity):
+    """Status of the _StoreDirectedCycleSketch axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class _StoreDirectedCycleSketchLifecycle(Lifecycle, StateVocabulary):
+    """Statuses and links of the _StoreDirectedCycleSketchLifecycle axis."""
+
+    OPEN = _StoreDirectedCycleSketchStateEntity(code="open", display_name="Open", sort_order=1)
+    SETTLED = _StoreDirectedCycleSketchStateEntity(code="settled", display_name="Settled", sort_order=2)
+
+    _template = Lifecycle().state(OPEN).to(SETTLED).initial().state(SETTLED).final()
 
 
 @entity(
