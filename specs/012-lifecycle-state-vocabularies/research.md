@@ -94,6 +94,7 @@ Every unknown in the plan's Technical Context is resolved below. Measurements we
 1. The diagram is served from the already-loaded DuckDB graph, and the design is explicit that this path must not import the service's classes — so the attributes must be in the store, not fetched from Python.
 2. Order: measured today is `(state_type != "initial", key)`; a chain that thinks `new → payment_pending → confirmed` is drawn alphabetically. `initial` first is a drawing invariant; `sort_order` is a status property; the key is the tiebreak that reproduces today's order when nothing is declared.
 3. The DOT builder already parametrises fill/stroke by state type (`paletteForStateType`); the declared colour is one lookup with a fallback, and with no attributes the source is byte-identical.
+4. The FSM state item carries a **closed** attribute object. Measured: `JsonSchemaValue` requires an object branch to declare `properties` and `additionalProperties: false`, so a free-form `{"type": "object"}` is refused at import (`ValueError: ... must declare 'properties' as an object`). The wire therefore carries the presentation attributes only; the store keeps every field and the graph row exposes them whole.
 
 **Alternatives considered**
 
@@ -118,7 +119,7 @@ Every unknown in the plan's Technical Context is resolved below. Measurements we
 
 ## R8 — The corpus and the branch's sequence
 
-**Decision**: 32 lifecycle declarations in 23 files under `packages/aoa-demo/src` — 28 named chains in 19 `*_lifecycle.py` files and 4 private cycle-sketch classes in the `*_stub.py` / `*_cycle_*.py` fixtures — with 90 `.state(...)` and 65 `.to(...)` calls. All 32 move, because they all use the string form. The string form is kept until phase 5 so every phase leaves the tree green.
+**Decision**: 32 lifecycle declarations in 23 files under `packages/aoa-demo/src` — 28 named chains in 19 `*_lifecycle.py` files and 4 private cycle-sketch classes in the `*_stub.py` / `*_cycle_*.py` fixtures — with 98 `.state(...)` and 65 `.to(...)` calls, 68 transition pairs once the templates are read. All 32 move, because they all use the string form. The string form is kept until phase 5 so every phase leaves the tree green.
 
 **Rationale**
 

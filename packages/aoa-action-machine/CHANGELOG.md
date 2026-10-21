@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking changes
+
+- **Lifecycle states now have their own descriptions.** Declare status objects with a stable code, a human name and optional domain fields, then use those objects in the transition template. String arguments to `.state()` and `.to()` are no longer supported. The lifecycle keeps the selected declared object and exposes it through `current_status`; `current_state` returns its code. Construction and transitions still accept code strings, so existing codes can be kept. Vocabulary checks catch invalid declarations before the graph is built. ([#209](https://github.com/bystrovmaxim/aoa/issues/209))
+
 ## [1.0.1a5] – 2026-10-18
 
 ### Added

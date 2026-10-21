@@ -5,6 +5,7 @@ export type LifecycleFsmStateWire = {
   display_name: string;
   state_type: string;
   transitions: string[];
+  attributes?: Record<string, unknown>;
 };
 
 export type LifecycleFsmTransitionWire = {

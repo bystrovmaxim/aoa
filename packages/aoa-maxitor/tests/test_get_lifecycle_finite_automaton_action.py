@@ -204,8 +204,143 @@ async def test_full_pipeline_payload(connections: dict[str, DuckDBGraphResource]
         "display_name": "draft",
         "state_type": "initial",
         "transitions": ["published"],
+        "attributes": {},
     }
     assert fsm["transitions"] == [
         {"source": "draft", "target": "published"},
         {"source": "published", "target": "archived"},
     ]
+
+
+# ─── attributes and order ────────────────────────────────────────────────────
+
+_ATTR_LC_ID = "my.domain.PayEntity:lifecycle:status"
+
+_ATTRIBUTES_GRAPH_JSON: dict[str, Any] = {
+    "nodes": [
+        {"id": _ATTR_LC_ID, "type": "Lifecycle", "label": "status", "properties": {"field_name": "status"}},
+        {
+            "id": f"{_ATTR_LC_ID}:payment_pending",
+            "type": "StateInitial",
+            "label": "Payment pending",
+            "properties": {
+                "lifecycle_class_id": "my.domain.PayLifecycle",
+                "state_key": "payment_pending",
+                "attributes": {
+                    "code": "payment_pending",
+                    "display_name": "Payment pending",
+                    "sort_order": 2,
+                    "color": "#1565c0",
+                    "reason": "fraud review",
+                },
+            },
+        },
+        {
+            "id": f"{_ATTR_LC_ID}:confirmed",
+            "type": "StateIntermediate",
+            "label": "Confirmed",
+            "properties": {
+                "lifecycle_class_id": "my.domain.PayLifecycle",
+                "state_key": "confirmed",
+                "attributes": {"sort_order": 2},
+            },
+        },
+        {
+            "id": f"{_ATTR_LC_ID}:cancelled",
+            "type": "StateFinal",
+            "label": "Cancelled",
+            "properties": {
+                "lifecycle_class_id": "my.domain.PayLifecycle",
+                "state_key": "cancelled",
+                "attributes": {"sort_order": 3},
+            },
+        },
+    ],
+    "edges": [
+        {
+            "source_id": _ATTR_LC_ID, "target_id": f"{_ATTR_LC_ID}:payment_pending",
+            "type": "lifecycle_contains_state", "relationship": "COMPOSITION", "is_dag": False,
+            "properties": {"state_key": "payment_pending"},
+        },
+        {
+            "source_id": _ATTR_LC_ID, "target_id": f"{_ATTR_LC_ID}:confirmed",
+            "type": "lifecycle_contains_state", "relationship": "COMPOSITION", "is_dag": False,
+            "properties": {"state_key": "confirmed"},
+        },
+        {
+            "source_id": _ATTR_LC_ID, "target_id": f"{_ATTR_LC_ID}:cancelled",
+            "type": "lifecycle_contains_state", "relationship": "COMPOSITION", "is_dag": False,
+            "properties": {"state_key": "cancelled"},
+        },
+        {
+            "source_id": f"{_ATTR_LC_ID}:payment_pending", "target_id": f"{_ATTR_LC_ID}:confirmed",
+            "type": "lifecycle_transition", "relationship": "COMPOSITION", "is_dag": False,
+            "properties": {"from_state": "payment_pending", "to_state": "confirmed"},
+        },
+        {
+            "source_id": f"{_ATTR_LC_ID}:payment_pending", "target_id": f"{_ATTR_LC_ID}:cancelled",
+            "type": "lifecycle_transition", "relationship": "COMPOSITION", "is_dag": False,
+            "properties": {"from_state": "payment_pending", "to_state": "cancelled"},
+        },
+    ],
+}
+
+
+@pytest.fixture(scope="module")
+def attribute_connections() -> dict[str, DuckDBGraphResource]:
+    return {DUCKDB_GRAPH_CONNECTION_KEY: DuckDBGraphResource.build_from_json(_ATTRIBUTES_GRAPH_JSON)}
+
+
+async def _run_pipeline(node_id: str, connections: dict[str, DuckDBGraphResource]) -> Any:
+    params = _params(node_id)
+    state = _state()
+    for aspect in (
+        _ACTION.parse_interchange_id_aspect,
+        _ACTION.validate_lifecycle_node_aspect,
+        _ACTION.load_states_aspect,
+        _ACTION.load_transitions_aspect,
+    ):
+        state = _state(**await aspect(params, state, None, connections))  # type: ignore[arg-type]
+    result = await _ACTION.build_fsm_summary(params, state, None, connections)  # type: ignore[arg-type]
+    return result.lifecycle_finite_automaton
+
+
+async def test_attributes_reach_the_payload(attribute_connections: dict[str, DuckDBGraphResource]) -> None:
+    fsm = await _run_pipeline(_ATTR_LC_ID, attribute_connections)
+    states = {state["key"]: state for state in fsm["states"]}
+    assert states["payment_pending"]["attributes"] == {
+        "code": "payment_pending",
+        "display_name": "Payment pending",
+        "sort_order": 2,
+        "color": "#1565c0",
+    }
+    assert states["payment_pending"]["display_name"] == "Payment pending"
+
+
+async def test_states_are_ordered_by_sort_order(attribute_connections: dict[str, DuckDBGraphResource]) -> None:
+    fsm = await _run_pipeline(_ATTR_LC_ID, attribute_connections)
+    assert [state["key"] for state in fsm["states"]] == ["payment_pending", "confirmed", "cancelled"]
+
+
+async def test_graph_without_attributes_yields_empty_objects(
+    connections: dict[str, DuckDBGraphResource],
+) -> None:
+    fsm = await _run_pipeline(_LC_ID, connections)
+    assert all(state["attributes"] == {} for state in fsm["states"])
+
+
+async def test_store_keeps_domain_fields_while_the_wire_drops_them(
+    attribute_connections: dict[str, DuckDBGraphResource],
+) -> None:
+    state = _state(
+        lifecycle_graph_node_id=_ATTR_LC_ID,
+        host_entity_type_qualname="my.domain.PayEntity",
+        field_name="status",
+    )
+    loaded = await _ACTION.load_states_aspect(None, state, None, attribute_connections)  # type: ignore[arg-type]
+    row = next(r for r in loaded["state_rows"] if r["state_key"] == "payment_pending")
+    assert row["attributes"]["reason"] == "fraud review"
+
+    fsm = await _run_pipeline(_ATTR_LC_ID, attribute_connections)
+    states = {item["key"]: item for item in fsm["states"]}
+    assert "reason" not in states["payment_pending"]["attributes"]
