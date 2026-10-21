@@ -3,20 +3,36 @@
 
 from __future__ import annotations
 
-from aoa.action_machine.domain import Lifecycle
+from pydantic import Field
+
+from aoa.action_machine.domain import (
+    BaseStateEntity,
+    Lifecycle,
+    StateVocabulary,
+)
 
 
-class AuditLogEntryLifecycle(Lifecycle):
+class AuditLogEntryStateEntity(BaseStateEntity):
+    """Status of the AuditLogEntry axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class AuditLogEntryLifecycle(Lifecycle, StateVocabulary):
     """Three states: written → indexed → retained."""
+
+    WRITTEN = AuditLogEntryStateEntity(code="written", display_name="Written", sort_order=1)
+    INDEXED = AuditLogEntryStateEntity(code="indexed", display_name="Indexed", sort_order=2)
+    RETAINED = AuditLogEntryStateEntity(code="retained", display_name="Retained", sort_order=3)
 
     _template = (
         Lifecycle()
-        .state("written", "Written")
-        .to("indexed")
+        .state(WRITTEN)
+        .to(INDEXED)
         .initial()
-        .state("indexed", "Indexed")
-        .to("retained")
+        .state(INDEXED)
+        .to(RETAINED)
         .intermediate()
-        .state("retained", "Retained")
+        .state(RETAINED)
         .final()
     )

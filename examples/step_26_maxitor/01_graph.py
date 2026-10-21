@@ -31,9 +31,11 @@ from aoa.action_machine.domain import (
     AssociationMany,
     AssociationOne,
     BaseEntity,
+    BaseStateEntity,
     Inverse,
     Lifecycle,
     Rel,
+    StateVocabulary,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
@@ -44,10 +46,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.action_machine.resources import Connections
 
 
 class ShopDomain(BaseDomain):
@@ -69,13 +71,30 @@ class PricingService(BaseResource):
         return None
 
 
-class OrderLifecycle(Lifecycle):
+class OrderStateEntity(BaseStateEntity):
+    """Status of the order axis."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+
+
+class OrderLifecycle(Lifecycle, StateVocabulary):
+    NEW = OrderStateEntity(code="new", display_name="New", sort_order=1)
+    PAID = OrderStateEntity(code="paid", display_name="Paid", sort_order=2)
+    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped", sort_order=3)
+    CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled", sort_order=4)
+
     _template = (
         Lifecycle()
-        .state("new", "New").to("paid", "cancelled").initial()
-        .state("paid", "Paid").to("shipped").intermediate()
-        .state("shipped", "Shipped").final()
-        .state("cancelled", "Cancelled").final()
+        .state(NEW)
+        .to(PAID, CANCELLED)
+        .initial()
+        .state(PAID)
+        .to(SHIPPED)
+        .intermediate()
+        .state(SHIPPED)
+        .final()
+        .state(CANCELLED)
+        .final()
     )
 
 
@@ -119,11 +138,15 @@ class PlaceOrderAction(BaseAction[PlaceOrderParams, PlaceOrderResult]):
 
     @regular_aspect("Price the order")
     @result_float("total", required=True, min_value=0)
-    async def price_aspect(self, params: PlaceOrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
+    async def price_aspect(
+        self, params: PlaceOrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> dict[str, Any]:
         return {"total": (await box.resolve(PricingService)).price(params.sku)}
 
     @summary_aspect("Confirm")
-    async def confirm_summary(self, params: PlaceOrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> PlaceOrderResult:
+    async def confirm_summary(
+        self, params: PlaceOrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> PlaceOrderResult:
         return PlaceOrderResult(total=state["total"])
 
 

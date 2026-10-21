@@ -18,6 +18,7 @@ aspects still need and drops the rest.
 
 from __future__ import annotations
 
+import json
 from typing import Any, cast
 
 from pydantic import Field
@@ -42,6 +43,20 @@ _KIND_TO_SLUG: dict[str, str] = {
     "StateIntermediate": "intermediate",
     "StateFinal": "final",
 }
+
+# The FSM wire is a diagram contract: arbitrary domain fields stay in the graph JSON,
+# and only the presentation attributes the drawing reads cross into the payload.
+_FSM_ATTRIBUTE_KEYS: tuple[str, ...] = ("code", "display_name", "sort_order", "color", "fill_color")
+
+
+def _decode_attributes(raw: Any) -> dict[str, Any]:
+    """Decode the ``attributes`` JSON column into a mapping (an absent value is ``{}``)."""
+    if raw is None or raw == "":
+        return {}
+    if isinstance(raw, dict):
+        return raw
+    decoded = json.loads(str(raw))
+    return decoded if isinstance(decoded, dict) else {}
 
 
 @meta(
@@ -154,7 +169,7 @@ class GetLifecycleFiniteAutomatonAction(
 
         state_rows = graph.execute_fetch_dicts(
             """
-            SELECT s.state_key, s.kind, s.label, s.lifecycle_class_id
+            SELECT s.state_key, s.kind, s.label, s.lifecycle_class_id, s.attributes
             FROM lifecycle_contains_state_edges lcs
             JOIN state s ON s.id = lcs.target_id
             WHERE lcs.source_id = ?
@@ -162,6 +177,8 @@ class GetLifecycleFiniteAutomatonAction(
             """,
             [node_id],
         )
+        for row in state_rows:
+            row["attributes"] = _decode_attributes(row.get("attributes"))
         return {
             "lifecycle_graph_node_id": node_id,
             "host_entity_type_qualname": state["host_entity_type_qualname"],
@@ -238,16 +255,28 @@ class GetLifecycleFiniteAutomatonAction(
                 initials.append(key)
             if not lifecycle_class_qualname:
                 lifecycle_class_qualname = str(sr["lifecycle_class_id"])
+            attributes = {
+                key: value
+                for key, value in cast(dict[str, Any], sr.get("attributes") or {}).items()
+                if key in _FSM_ATTRIBUTE_KEYS
+            }
             states_json.append(
                 {
                     "key": key,
                     "display_name": str(sr["label"]),
                     "state_type": st_slug,
                     "transitions": sorted(transitions_by_state.get(key, [])),
+                    "attributes": attributes,
                 },
             )
 
-        states_json.sort(key=lambda s: (s["state_type"] != "initial", s["key"]))
+        states_json.sort(
+            key=lambda s: (
+                s["state_type"] != "initial",
+                s["attributes"].get("sort_order") if isinstance(s["attributes"].get("sort_order"), int) else 0,
+                s["key"],
+            )
+        )
         edges_json = [
             {"source": str(tr["from_state"]), "target": str(tr["to_state"])}
             for tr in transition_rows

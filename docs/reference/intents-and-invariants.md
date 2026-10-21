@@ -447,6 +447,51 @@ A single-alternative axis is accepted by the model. The current ERD emits no alt
 
 ## Lifecycle FSM
 
+A lifecycle axis is one aspect of an entity's progress, with its own possible states and transitions. For example, payment and delivery may have separate lifecycles. `BaseStateEntity` describes a possible status; a `Lifecycle` instance holds a reference to the selected declared status object. `StateVocabulary`, used alongside `Lifecycle`, collects the descriptions declared on that class and provides lookup by code.
+
+```python
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+
+
+class OrderStateEntity(BaseStateEntity):
+    """Describe one possible order status."""
+
+
+class OrderLifecycle(Lifecycle, StateVocabulary):
+    """Declare the statuses and allowed order transitions."""
+
+    NEW = OrderStateEntity(code="new", display_name="New")
+    CONFIRMED = OrderStateEntity(code="confirmed", display_name="Confirmed")
+    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped")
+
+    _template = (
+        Lifecycle()
+        .state(NEW).to(CONFIRMED).initial()
+        .state(CONFIRMED).to(SHIPPED).intermediate()
+        .state(SHIPPED).final()
+    )
+```
+
+| Contract | Behaviour |
+| --- | --- |
+| Status fields | `code` and `display_name` are required non-blank strings; extra domain fields must be declared on the status subclass. Status objects are frozen. |
+| Vocabulary members | Status attributes are collected in declaration order. Their codes must be unique within the vocabulary and their concrete Python types must match. |
+| Lookup | `members` is a tuple; `codes()` returns a list in declaration order; `entity_type` is the common type; `by_code(code)` returns the declared object or raises `KeyError`. |
+| Declaring a template | `.state(status)` and `.to(*statuses)` take status objects, not strings. Referenced statuses must belong to the vocabulary when its class declares `_template`. A new template without status attributes is refused. |
+| Inheritance | A subclass without new status attributes or a replacement template inherits its parent's members and rules. `StateVocabulary` cannot be applied without `Lifecycle`. |
+| Classification | `.initial()`, `.intermediate()` and `.final()` belong to the template; a status field does not imply a classification. The same description may be classified differently in different templates. |
+| Runtime | The constructor and `transition(target)` take code strings and resolve them to declared status objects. `current_status` returns that exact object; `current_state` returns its code. No separate current code is stored. A transition checks the edge and creates a new Lifecycle, not a new status object, leaving the original unchanged. |
+| Current metadata | `current_state_info` still returns the template's `StateInfo`, with classification and transitions. Reading current-state properties on a template raises `RuntimeError`. |
+| Equality and hashing | Use the concrete lifecycle class and current code. Domain fields do not participate, including unhashable fields. Template repr, equality and hashing retain their unset-state behaviour. |
+| Status access on a lifecycle | `get_state_entity(code)` returns the attached object or `None`; `get_state_entities()` returns a copy of the mapping. |
+| Graph export | The state keeps its code-based id and template classification. The label comes from `display_name`; `properties.attributes` contains the status's JSON-serialized fields, except fields excluded from serialization. A non-serializable value fails export. Status types do not become `Entity` nodes. |
+| Maxitor response | The diagram state attributes contain only `code`, `display_name`, `sort_order`, `color` and `fill_color` when supplied. Other domain fields remain in the full graph. |
+| Maxitor presentation | Initial states come first in the returned list, then integer `sort_order` (zero if absent or not an integer), then code. This does not prescribe screen coordinates. `color` overrides the outline, `fill_color` the fill; absent or unusable colour values use the existing palette. |
+
+A malformed status raises Pydantic `ValidationError` when created. Vocabulary errors happen at class definition: duplicate codes or a new template without members raise `ValueError`; mixed types, a non-Lifecycle base, or a foreign status raise `TypeError`. Passing strings to the template builder raises `TypeError` at that call. At runtime an unknown current code raises `InvalidStateError`, and a forbidden move raises `InvalidTransitionError`.
+
+For the rationale and independent runnable cases, see [Step 22](../tutorials/step-22-lifecycle.md).
+
 Every lifecycle template declared on an entity passes eight structural rules at `coordinator.build()`. A violation of any is a `LifecycleValidationError` with the entity name, the field name, and a description of the violation.
 
 1. Every state has a `.initial()`, `.intermediate()`, or `.final()` label.
@@ -458,7 +503,7 @@ Every lifecycle template declared on an entity passes eight structural rules at 
 7. From every initial state at least one final state is reachable.
 8. Every non-initial state is the target of at least one transition.
 
-At runtime `lifecycle.transition("shipped")` raises an error if the transition is not allowed from the current state — the guard against "an order goes from `cancelled` to `shipped`" works both at build and on every call.
+At runtime `lifecycle.transition("shipped")` checks the move against the current state. Graph validation checks the declared rules; it does not execute an order's transition or validate a sequence of past events.
 
 Maxitor draws lifecycles as FSM diagrams straight from the entity code. The analogs are XState in the JS world, statecharts in aviation and medical software.
 

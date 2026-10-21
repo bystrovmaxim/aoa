@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Lifecycle diagrams use state descriptions.** States now receive human names, an optional display order and optional outline and fill colours from the model. Initial states stay first; without presentation settings, the existing ordering and palette remain. Other domain fields stay available in the full graph rather than being copied into the diagram response. ([#209](https://github.com/bystrovmaxim/aoa/issues/209))
+
 - **A table on the entity diagram is one shape.** The band above a table's fields and the tinted rows that mark its primary and foreign keys used to keep their square corners, so every card wore small tabs where the colour ran past its rounded outline. The colour now follows the outline: the band's upper corners sit on the arcs and a tinted last row follows the lower ones, while the small gap the drawing always left between a fill and the border stays exactly as it was. Everything else about the card is what it was — the outline, the colours, the text, the arrows and the canvas — and the lifecycle and use-case diagrams are untouched. ([#226](https://github.com/bystrovmaxim/aoa/issues/226))
 
 ## [1.3.0] – 2026-10-17

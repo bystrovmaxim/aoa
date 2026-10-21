@@ -9,6 +9,18 @@ from __future__ import annotations
 
 from aoa.action_machine.model import JsonSchemaValue
 
+_ATTRIBUTES_ITEM = {
+    "type": "object",
+    "properties": {
+        "code": {"type": "string"},
+        "display_name": {"type": "string"},
+        "sort_order": {"type": ["integer", "number"]},
+        "color": {"type": "string"},
+        "fill_color": {"type": "string"},
+    },
+    "additionalProperties": False,
+}
+
 _STATE_ITEM = {
     "type": "object",
     "properties": {
@@ -16,6 +28,7 @@ _STATE_ITEM = {
         "display_name": {"type": "string"},
         "state_type": {"type": "string"},
         "transitions": {"type": "array", "items": {"type": "string"}},
+        "attributes": _ATTRIBUTES_ITEM,
     },
     "required": ["key", "display_name", "state_type", "transitions"],
     "additionalProperties": False,
