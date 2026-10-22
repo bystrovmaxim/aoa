@@ -1,18 +1,23 @@
 # tests/action_machine/domain/test_state_entity.py
+# ruff: noqa: F821  # the class-name alias is the surface this module tests
 """
-Tests for `BaseStateEntity` and the `StateVocabulary` mixin.
+Tests for `BaseStateEntity`, its status catalogue and the graph exclusion.
 
-Covers the status object's fields and refusals, the mixin's collection and
-checks at class creation, the inherited axis, the plain-methods API, and the
-status type never appearing as an entity of the model graph.
+Covers the status object's fields and refusals, the declaration surface, the
+catalogue and its inheritance, and the status type never appearing as an entity
+of the model graph.
 """
 
 from __future__ import annotations
 
-import pytest
-from pydantic import Field, ValidationError
+from typing import Any, ClassVar
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+import pytest
+from pydantic import ConfigDict, Field, ValidationError
+from pydantic.errors import PydanticUserError
+
+from aoa.action_machine.domain import BaseStateEntity
+from aoa.action_machine.domain.state_spec import state
 from aoa.action_machine.graph.core.exclude_graph_model import excluded_from_graph_model
 from aoa.action_machine.graph.inspectors.entity_graph_node_inspector import EntityGraphNodeInspector
 
@@ -22,29 +27,36 @@ class SampleStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-
-class AlternateStateEntity(BaseStateEntity):
-    """A second status type, used to prove the mixed-type refusal."""
-
-    reason: str = Field(default="", description="Refund reason")
-
-
-FOREIGN = AlternateStateEntity(code="foreign", display_name="Foreign")
-
-
-class SampleLifecycle(Lifecycle, StateVocabulary):
-    """The axis the tests read."""
-
     NEW = SampleStateEntity(code="new", display_name="New", sort_order=1)
     PAID = SampleStateEntity(code="paid", display_name="Paid", sort_order=2)
     CANCELLED = SampleStateEntity(code="cancelled", display_name="Cancelled", sort_order=3)
 
-    _template = (
-        Lifecycle()
-        .state(NEW).to(PAID, CANCELLED).initial()
-        .state(PAID).to(CANCELLED).intermediate()
-        .state(CANCELLED).final()
-    )
+
+
+class CatalogueStateEntity(BaseStateEntity):
+    """A state type that declares its own statuses and catalogue."""
+
+    sort_order: int = Field(default=0, description="Presentation order")
+    color: str = Field(default="#9e9e9e", description="Diagram colour")
+    requires_receipt: bool = Field(default=False, description="Whether a receipt is needed")
+
+    DRAFT = CatalogueStateEntity(code="draft", display_name="Draft", sort_order=99)
+    PAID = CatalogueStateEntity(code="paid", display_name="Paid", sort_order=1, requires_receipt=True)
+    CANCELLED = CatalogueStateEntity(code="cancelled", display_name="Cancelled", sort_order=2)
+
+
+class EmptyCatalogueStateEntity(BaseStateEntity):
+    """A state type that declares no statuses."""
+
+
+class InheritedCatalogueStateEntity(CatalogueStateEntity):
+    """A subclass that inherits the parent's catalogue."""
+
+
+class ExtendedCatalogueStateEntity(CatalogueStateEntity):
+    """A subclass that declares its own status."""
+
+    EXTRA = ExtendedCatalogueStateEntity(code="extra", display_name="Extra")
 
 
 class TestStateEntity:
@@ -82,66 +94,105 @@ class TestStateEntity:
         assert all(node.node_obj is not SampleStateEntity for node in nodes)
 
 
-class TestVocabulary:
-    """The mixin's collection, lookup and checks."""
+class TestStateTypeCatalogue:
+    """The state type declares its own statuses and exposes their catalogue."""
 
-    def test_members_in_declaration_order(self):
-        assert [member.code for member in SampleLifecycle.members] == ["new", "paid", "cancelled"]
+    def test_every_field_is_initialised(self):
+        draft = CatalogueStateEntity.DRAFT
+        assert draft.model_dump() == {
+            "code": "draft",
+            "display_name": "Draft",
+            "sort_order": 99,
+            "color": "#9e9e9e",
+            "requires_receipt": False,
+        }
+        assert CatalogueStateEntity.PAID.requires_receipt is True
 
-    def test_codes_and_lookup(self):
-        assert SampleLifecycle.codes() == ["new", "paid", "cancelled"]
-        assert SampleLifecycle.by_code("paid") is SampleLifecycle.PAID
+    def test_omitted_fields_take_defaults(self):
+        assert CatalogueStateEntity.CANCELLED.color == "#9e9e9e"
+        assert CatalogueStateEntity.CANCELLED.requires_receipt is False
+
+    def test_members_order_codes_and_lookup(self):
+        assert [member.code for member in CatalogueStateEntity.members] == ["draft", "paid", "cancelled"]
+        assert CatalogueStateEntity.codes() == ["draft", "paid", "cancelled"]
+        assert CatalogueStateEntity.by_code("paid") is CatalogueStateEntity.PAID
         with pytest.raises(KeyError):
-            SampleLifecycle.by_code("missing")
+            CatalogueStateEntity.by_code("missing")
+        assert CatalogueStateEntity.entity_type is CatalogueStateEntity
 
-    def test_shared_status_type(self):
-        assert SampleLifecycle.entity_type is SampleStateEntity
+    def test_misspelled_field_is_refused(self):
+        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
 
-    def test_api_is_plain_methods(self):
-        instance = SampleLifecycle("new")
-        assert not hasattr(SampleLifecycle, "__len__")
-        assert not hasattr(instance, "__iter__")
-        assert not hasattr(instance, "__contains__")
+            class BrokenStateEntity(BaseStateEntity):
+                sort_order: int = Field(default=0)
+                DRAFT = BrokenStateEntity(code="draft", display_name="Draft", sort_ordr=1)
+
+    def test_missing_required_field_is_refused(self):
+        with pytest.raises(ValidationError, match="Field required"):
+
+            class IncompleteStateEntity(BaseStateEntity):
+                DRAFT = IncompleteStateEntity(display_name="Draft")
+
+    def test_wrong_type_is_refused(self):
+        with pytest.raises(ValidationError, match="valid integer"):
+
+            class WrongTypeStateEntity(BaseStateEntity):
+                sort_order: int = Field(default=0)
+                DRAFT = WrongTypeStateEntity(code="draft", display_name="Draft", sort_order="abc")
+
+    def test_coercible_value_is_stored_by_pydantic(self):
+        class CoercedStateEntity(BaseStateEntity):
+            sort_order: int = Field(default=0)
+            DRAFT = CoercedStateEntity(code="draft", display_name="Draft", sort_order="42")
+
+        assert CoercedStateEntity.DRAFT.sort_order == 42
 
     def test_duplicate_code_is_refused(self):
         with pytest.raises(ValueError, match="duplicate status code"):
 
-            class DuplicateAxis(Lifecycle, StateVocabulary):
-                A = SampleStateEntity(code="same", display_name="A")
-                B = SampleStateEntity(code="same", display_name="B")
-                _template = Lifecycle().state(A).initial()
+            class DuplicateStateEntity(BaseStateEntity):
+                A = DuplicateStateEntity(code="same", display_name="A")
+                B = DuplicateStateEntity(code="same", display_name="B")
 
-    def test_mixed_types_are_refused(self):
-        with pytest.raises(TypeError, match="different types"):
+    def test_empty_catalogue_is_valid(self):
+        assert EmptyCatalogueStateEntity.members == ()
+        assert EmptyCatalogueStateEntity.codes() == []
+        assert EmptyCatalogueStateEntity.entity_type is EmptyCatalogueStateEntity
 
-            class MixedAxis(Lifecycle, StateVocabulary):
-                A = SampleStateEntity(code="a", display_name="A")
-                B = AlternateStateEntity(code="b", display_name="B")
-                _template = Lifecycle().state(A).initial()
+    def test_subclass_without_statuses_inherits(self):
+        assert InheritedCatalogueStateEntity.members == CatalogueStateEntity.members
+        assert InheritedCatalogueStateEntity.by_code("paid") is CatalogueStateEntity.PAID
+        assert InheritedCatalogueStateEntity.entity_type is InheritedCatalogueStateEntity
 
-    def test_axis_without_statuses_is_refused(self):
-        with pytest.raises(ValueError, match="at least one status"):
+    def test_subclass_with_statuses_gets_its_own_catalogue(self):
+        assert ExtendedCatalogueStateEntity.codes() == ["extra"]
+        assert ExtendedCatalogueStateEntity.by_code("extra") is ExtendedCatalogueStateEntity.EXTRA
+        assert ExtendedCatalogueStateEntity.entity_type is ExtendedCatalogueStateEntity
 
-            class EmptyAxis(Lifecycle, StateVocabulary):
-                _template = Lifecycle().state(FOREIGN).initial()
+    def test_the_alias_is_only_the_call(self):
+        class AliasStateEntity(BaseStateEntity):
+            ALIAS: ClassVar[Any] = AliasStateEntity
 
-    def test_mixin_without_lifecycle_is_refused(self):
-        with pytest.raises(TypeError, match="Lifecycle subclass"):
+        assert AliasStateEntity.ALIAS is state
 
-            class NotAnAxis(StateVocabulary):
-                pass
+    def test_an_unknown_name_still_raises_name_error(self):
+        with pytest.raises(NameError):
 
-    def test_foreign_status_in_template_is_refused(self):
-        with pytest.raises(TypeError, match="is not a status of this lifecycle"):
+            class UnknownStateEntity(BaseStateEntity):
+                X = MISSING
 
-            class ForeignAxis(Lifecycle, StateVocabulary):
-                A = SampleStateEntity(code="a", display_name="A")
-                _template = Lifecycle().state(A).to(FOREIGN).initial()
+    def test_a_global_with_the_same_name_is_shadowed(self):
+        shadowed_state_entity = object()
 
-    def test_subclass_inherits_members(self):
-        class SpecializedSampleLifecycle(SampleLifecycle):
-            pass
+        class ShadowedStateEntity(BaseStateEntity):
+            DRAFT = ShadowedStateEntity(code="draft", display_name="Draft")
 
-        assert SpecializedSampleLifecycle.members == SampleLifecycle.members
-        assert SpecializedSampleLifecycle.by_code("paid") is SampleLifecycle.PAID
-        assert SpecializedSampleLifecycle("paid").current_state == "paid"
+        assert ShadowedStateEntity is not shadowed_state_entity
+        assert ShadowedStateEntity.DRAFT.code == "draft"
+
+    def test_removing_ignored_types_fails_class_creation(self):
+        with pytest.raises(PydanticUserError):
+
+            class UnignoredStateEntity(BaseStateEntity):
+                model_config = ConfigDict(ignored_types=())
+                DRAFT = UnignoredStateEntity(code="draft", display_name="Draft")

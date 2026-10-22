@@ -27,14 +27,14 @@ from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.edges.state_graph_edge import StateGraphEdge
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
-TLifecycle = TypeVar("TLifecycle", bound=Lifecycle)
+TLifecycle = TypeVar("TLifecycle", bound=Lifecycle[Any])
 
 
 @dataclass(frozen=True)
 class StateGraphPayload:
     """Frozen payload for :attr:`~aoa.action_machine.graph.core.base_graph_node.BaseGraphNode.node_obj`."""
 
-    lifecycle_class: type[Lifecycle]
+    lifecycle_class: type[Lifecycle[Any]]
     state_key: str
     lifecycle_graph_node_id: str
     state_entity: BaseStateEntity | None = None
@@ -59,7 +59,7 @@ class StateGraphNode(BaseGraphNode[StateGraphPayload]):
     @classmethod
     def _node_type_for_lifecycle_state_key(
         cls,
-        lifecycle_cls: type[Lifecycle],
+        lifecycle_cls: type[Lifecycle[Any]],
         state_key: str,
     ) -> str:
         """Resolve graph ``node_type`` from the lifecycle class template and ``state_key``."""

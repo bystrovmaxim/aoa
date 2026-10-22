@@ -7,7 +7,7 @@ Run: uv run python examples/step_20_entity/08_state.py
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 from aoa.action_machine.graph.core.exclude_graph_model import excluded_from_graph_model
 
 
@@ -16,18 +16,20 @@ class OrderStateEntity(BaseStateEntity):
 
     requires_receipt: bool = Field(default=False, description="Whether a receipt is required")
 
+    DRAFT = OrderStateEntity(code="draft", display_name="Draft")  # noqa: F821
+    PAID = OrderStateEntity(code="paid", display_name="Payment received", requires_receipt=True)  # noqa: F821
 
-class OrderLifecycle(Lifecycle, StateVocabulary):
+
+
+class OrderLifecycle(Lifecycle[OrderStateEntity]):
     """Allow an order to move from draft to paid."""
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft")
-    PAID = OrderStateEntity(code="paid", display_name="Payment received", requires_receipt=True)
-    _template = Lifecycle().state(DRAFT).to(PAID).initial().state(PAID).final()
+    _template = Lifecycle().state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID).initial().state(OrderStateEntity.PAID).final()
 
 paid = OrderLifecycle("draft").transition("paid")
-assert paid.current_status is OrderLifecycle.PAID
+assert paid.current_status is OrderStateEntity.PAID
 assert excluded_from_graph_model(OrderStateEntity)
 print("code:", paid.current_state)
 print("receipt required:", paid.current_status.requires_receipt)
-print("shared declared object:", paid.current_status is OrderLifecycle.PAID)
+print("shared declared object:", paid.current_status is OrderStateEntity.PAID)
 print("excluded from entity graph:", excluded_from_graph_model(OrderStateEntity))

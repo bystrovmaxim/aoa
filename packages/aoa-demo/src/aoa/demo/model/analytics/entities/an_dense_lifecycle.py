@@ -1,10 +1,10 @@
 # packages/aoa-demo/src/aoa/demo/model/analytics/entities/an_dense_lifecycle.py
+# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 from pydantic import Field
 
 from aoa.action_machine.domain import (
     BaseStateEntity,
     Lifecycle,
-    StateVocabulary,
 )
 
 
@@ -13,16 +13,18 @@ class AnalyticsPipelineStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
+    INGEST = AnalyticsPipelineStateEntity(code="ingest", display_name="Ingest", sort_order=1)  # noqa: F821
+    HYDRATE = AnalyticsPipelineStateEntity(code="hydrate", display_name="Hydrate", sort_order=2)  # noqa: F821
+    COMMIT = AnalyticsPipelineStateEntity(code="commit", display_name="Committed", sort_order=3)  # noqa: F821
 
-class AnalyticsPipelineLifecycle(Lifecycle, StateVocabulary):
+
+
+class AnalyticsPipelineLifecycle(Lifecycle[AnalyticsPipelineStateEntity]):
     """ingest phases for linear spine."""
 
-    INGEST = AnalyticsPipelineStateEntity(code="ingest", display_name="Ingest", sort_order=1)
-    HYDRATE = AnalyticsPipelineStateEntity(code="hydrate", display_name="Hydrate", sort_order=2)
-    COMMIT = AnalyticsPipelineStateEntity(code="commit", display_name="Committed", sort_order=3)
 
     _template = (
-        Lifecycle().state(INGEST).to(HYDRATE).initial().state(HYDRATE).to(COMMIT).intermediate().state(COMMIT).final()
+        Lifecycle().state(AnalyticsPipelineStateEntity.INGEST).to(AnalyticsPipelineStateEntity.HYDRATE).initial().state(AnalyticsPipelineStateEntity.HYDRATE).to(AnalyticsPipelineStateEntity.COMMIT).intermediate().state(AnalyticsPipelineStateEntity.COMMIT).final()
     )
 
 
@@ -31,14 +33,16 @@ class AnalyticsFactStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
+    OPEN = AnalyticsFactStateEntity(code="open", display_name="Open", sort_order=1)  # noqa: F821
+    INDEXED = AnalyticsFactStateEntity(code="indexed", display_name="Indexed", sort_order=2)  # noqa: F821
+    FROZEN = AnalyticsFactStateEntity(code="frozen", display_name="Frozen", sort_order=3)  # noqa: F821
 
-class AnalyticsFactLifecycle(Lifecycle, StateVocabulary):
+
+
+class AnalyticsFactLifecycle(Lifecycle[AnalyticsFactStateEntity]):
     """wide hub satellites."""
 
-    OPEN = AnalyticsFactStateEntity(code="open", display_name="Open", sort_order=1)
-    INDEXED = AnalyticsFactStateEntity(code="indexed", display_name="Indexed", sort_order=2)
-    FROZEN = AnalyticsFactStateEntity(code="frozen", display_name="Frozen", sort_order=3)
 
     _template = (
-        Lifecycle().state(OPEN).to(INDEXED).initial().state(INDEXED).to(FROZEN).intermediate().state(FROZEN).final()
+        Lifecycle().state(AnalyticsFactStateEntity.OPEN).to(AnalyticsFactStateEntity.INDEXED).initial().state(AnalyticsFactStateEntity.INDEXED).to(AnalyticsFactStateEntity.FROZEN).intermediate().state(AnalyticsFactStateEntity.FROZEN).final()
     )

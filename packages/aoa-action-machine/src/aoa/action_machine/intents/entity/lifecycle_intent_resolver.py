@@ -19,7 +19,7 @@ class LifeCycleFieldResolution:
     """One model field typed as a concrete ``Lifecycle`` subclass with ``_template``."""
 
     field_name: str
-    lifecycle_class: type[Lifecycle]
+    lifecycle_class: type[Lifecycle[Any]]
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,7 @@ class LifeCycleFiniteAutomaton:
     exposes ``transitions``, ``state_type``, ``display_name``.
     """
 
-    lifecycle_class: type[Lifecycle]
+    lifecycle_class: type[Lifecycle[Any]]
     states: Mapping[str, StateInfo]
 
     def __post_init__(self) -> None:
@@ -57,7 +57,7 @@ def _lifecycle_annotation_denotes_subclass(annotation: Any) -> bool:
     return False
 
 
-def _extract_concrete_lifecycle_class(annotation: Any) -> type[Lifecycle] | None:
+def _extract_concrete_lifecycle_class(annotation: Any) -> type[Lifecycle[Any]] | None:
     """First concrete ``Lifecycle`` subclass found in annotation (Annotated / unions)."""
     if get_origin(annotation) is Annotated:
         base = get_args(annotation)[0]

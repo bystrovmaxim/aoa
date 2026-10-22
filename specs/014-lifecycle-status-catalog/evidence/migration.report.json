@@ -1,0 +1,501 @@
+[
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/analytics/entities/an_dense_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "AnalyticsPipelineLifecycle",
+        "state_type": "AnalyticsPipelineStateEntity",
+        "statuses": 3
+      },
+      {
+        "axis": "AnalyticsFactLifecycle",
+        "state_type": "AnalyticsFactStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/analytics/entities/analytics_er_cycle_quad_stub.py",
+    "migrated": [
+      {
+        "axis": "_AnDirectedCycleSketchLifecycle",
+        "state_type": "_AnDirectedCycleSketchStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/assurance_portfolio/entities/ap_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "AssurancePortfolioLifecycle",
+        "state_type": "AssurancePortfolioStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_dense_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "BillingDenseLifecycle",
+        "state_type": "BillingDenseStateEntity",
+        "statuses": 2
+      },
+      {
+        "axis": "BillingPipelineLifecycle",
+        "state_type": "BillingPipelineStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+    "migrated": [
+      {
+        "axis": "CounterpartyLinkageLifecycle",
+        "state_type": "CounterpartyLinkageStateEntity",
+        "statuses": 2
+      },
+      {
+        "axis": "LedgerPostingWaveLifecycle",
+        "state_type": "LedgerPostingWaveStateEntity",
+        "statuses": 3
+      },
+      {
+        "axis": "SchemeDisputeClockLifecycle",
+        "state_type": "SchemeDisputeClockStateEntity",
+        "statuses": 4
+      },
+      {
+        "axis": "TreasuryCutoverProgramLifecycle",
+        "state_type": "TreasuryCutoverProgramStateEntity",
+        "statuses": 5
+      },
+      {
+        "axis": "NostroLiquiditySweepLifecycle",
+        "state_type": "NostroLiquiditySweepStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/payment_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "PaymentEventLifecycle",
+        "state_type": "PaymentEventStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_dense_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "CatalogDenseLifecycle",
+        "state_type": "CatalogDenseStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_er_cycle_triangle_stub.py",
+    "migrated": [
+      {
+        "axis": "_CatalogDirectedCycleSketchLifecycle",
+        "state_type": "_CatalogDirectedCycleSketchStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_product_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "CatalogProductLifecycle",
+        "state_type": "CatalogProductStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/clinical_supply/entities/cs_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "ClinicalSupplyLifecycle",
+        "state_type": "ClinicalSupplyStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/entity_projection_demo/entities/projection_demo_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "ProjectionDemoCustomerLifecycle",
+        "state_type": "ProjectionDemoCustomerStateEntity",
+        "statuses": 2
+      },
+      {
+        "axis": "ProjectionDemoOrderLifecycle",
+        "state_type": "ProjectionDemoOrderStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/identity/entities/id_dense_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "IdentityDenseLifecycle",
+        "state_type": "IdentityDenseStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/inventory/entities/inv_dense_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "InvDenseLifecycle",
+        "state_type": "InvDenseStateEntity",
+        "statuses": 3
+      },
+      {
+        "axis": "InvPipelineLifecycle",
+        "state_type": "InvPipelineStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_dense_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "MsgDenseLifecycle",
+        "state_type": "MsgDenseStateEntity",
+        "statuses": 3
+      },
+      {
+        "axis": "MsgWebhookLifecycle",
+        "state_type": "MsgWebhookStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_er_cycle_triangle_stub.py",
+    "migrated": [
+      {
+        "axis": "_MsgDirectedCycleSketchLifecycle",
+        "state_type": "_MsgDirectedCycleSketchStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/messaging/entities/outbox_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "OutboxMessageLifecycle",
+        "state_type": "OutboxMessageStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/audit_log_entry_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "AuditLogEntryLifecycle",
+        "state_type": "AuditLogEntryStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/customer_account_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "CustomerAccountLifecycle",
+        "state_type": "CustomerAccountStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/sales_order_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "SalesOrderLifecycle",
+        "state_type": "SalesOrderStateEntity",
+        "statuses": 9
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/sales_order_line_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "SalesOrderLineLifecycle",
+        "state_type": "SalesOrderLineStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/store_dual_entry_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "StoreDualEntryLifecycle",
+        "state_type": "StoreDualEntryStateEntity",
+        "statuses": 4
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/store_er_cycle_ping_pong.py",
+    "migrated": [
+      {
+        "axis": "_StoreDirectedCycleSketchLifecycle",
+        "state_type": "_StoreDirectedCycleSketchStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-demo/src/aoa/demo/model/support/entities/support_simple_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "SupportSparseLifecycle",
+        "state_type": "SupportSparseStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/domain_model/01_domain_model.py",
+    "migrated": [
+      {
+        "axis": "OrderLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 5
+      },
+      {
+        "axis": "OrderLineLifecycle",
+        "state_type": "OrderLineStateEntity",
+        "statuses": 5
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/step_20_entity/08_state.py",
+    "migrated": [
+      {
+        "axis": "OrderLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/step_22_lifecycle/01_lifecycle.py",
+    "migrated": [
+      {
+        "axis": "OrderLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/step_22_lifecycle/02_lifecycle_axis.py",
+    "migrated": [
+      {
+        "axis": "OrderLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/step_22_lifecycle/03_forbidden_transition.py",
+    "migrated": [
+      {
+        "axis": "OrderLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/step_22_lifecycle/04_unknown_state.py",
+    "migrated": [
+      {
+        "axis": "OrderLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/step_22_lifecycle/05_graph_attributes.py",
+    "migrated": [
+      {
+        "axis": "OrderLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/step_22_lifecycle/06_maxitor_states.py",
+    "migrated": [
+      {
+        "axis": "OrderLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/step_22_lifecycle/07_inherited_vocabulary.py",
+    "migrated": [
+      {
+        "axis": "OrderLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/step_22_lifecycle/12_duplicate_code.py",
+    "migrated": [
+      {
+        "axis": "DuplicateLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/step_22_lifecycle/13_mixed_types.py",
+    "migrated": [],
+    "skipped": [
+      {
+        "axis": "MixedLifecycle",
+        "reason": "mixed status types: ['OrderStateEntity', 'PaymentStateEntity']"
+      }
+    ]
+  },
+  {
+    "file": "examples/step_22_lifecycle/14_empty_vocabulary.py",
+    "migrated": [],
+    "skipped": [
+      {
+        "axis": "EmptyLifecycle",
+        "reason": "no statuses (negative example)"
+      }
+    ]
+  },
+  {
+    "file": "examples/step_22_lifecycle/15_foreign_status.py",
+    "migrated": [
+      {
+        "axis": "BrokenLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 1
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/step_22_lifecycle/19_non_json_field.py",
+    "migrated": [
+      {
+        "axis": "OrderLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "examples/step_26_maxitor/01_graph.py",
+    "migrated": [
+      {
+        "axis": "OrderLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 4
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle_current_status.py",
+    "migrated": [
+      {
+        "axis": "OrderLifecycle",
+        "state_type": "OrderStateEntity",
+        "statuses": 2
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-action-machine/tests/action_machine/domain/test_state_entity.py",
+    "migrated": [
+      {
+        "axis": "SampleLifecycle",
+        "state_type": "SampleStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "file": "packages/aoa-action-machine/tests/support/domain_model/entities.py",
+    "migrated": [
+      {
+        "axis": "DraftLifecycle",
+        "state_type": "DraftStateEntity",
+        "statuses": 3
+      }
+    ],
+    "skipped": []
+  }
+]

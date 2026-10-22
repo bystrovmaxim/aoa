@@ -1,5 +1,29 @@
 # Changelog
 
+## [2026-10-22] — A lifecycle status belongs to its type
+
+A status used to be declared on the lifecycle axis, with a separate `StateVocabulary`
+mixin collecting the status attributes next to it. The status and its catalogue were
+two different objects, and a typo in a template was refused late.
+
+Now the state type declares its own statuses in its own body and carries their catalogue:
+`members`, `codes()`, `by_code()` and `entity_type` are on the type. The axis names the
+type with `Lifecycle[OrderStateEntity]` and keeps only the transition template. Every
+status is a typed instance, so a misspelled field is caught where the status is written.
+A status from another type, an equal but different instance, and a declared status that
+does not appear in the template are refused at class definition, with the type and the
+allowed codes named. A status used only as a transition target is still missing.
+
+The declaration surface is the type's own name: inside the body it resolves to the
+declaration factory, and it shadows a same-named global. A narrowed axis declares the
+narrowed type; a subtype without statuses inherits the catalogue. `members`, `by_code()`
+and the other lookups have moved from the axis to the type; `StateVocabulary` and
+axis-level status attributes are gone. To migrate, move the status assignments into the
+state type, write `Lifecycle[StateType]`, and replace axis lookups with the type. The
+demo's 32 axes and the example and test corpus are on the new form; the mixed, empty and
+mixin examples were removed because those situations no longer exist.
+([#237](https://github.com/bystrovmaxim/aoa/issues/237))
+
 ## [2026-10-22] — The model distinguishes what each entity represents
 
 An entity now declares its role: an independent object, a technical connection,

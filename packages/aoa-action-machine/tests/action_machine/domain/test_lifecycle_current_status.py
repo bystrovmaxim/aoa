@@ -3,7 +3,7 @@
 import pytest
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 from aoa.action_machine.domain.lifecycle import InvalidStateError, InvalidTransitionError
 
 
@@ -13,13 +13,15 @@ class OrderStateEntity(BaseStateEntity):
     requires_receipt: bool = Field(default=False, description="Whether a receipt is needed")
     labels: list[str] = Field(default_factory=list, description="Additional domain labels")
 
+    PAID = OrderStateEntity(code="paid", display_name="Payment received", requires_receipt=True)  # noqa: F821
+    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped")  # noqa: F821
 
-class OrderLifecycle(Lifecycle, StateVocabulary):
+
+
+class OrderLifecycle(Lifecycle[OrderStateEntity]):
     """Allow a paid order to be shipped."""
 
-    PAID = OrderStateEntity(code="paid", display_name="Payment received", requires_receipt=True)
-    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped")
-    _template = Lifecycle().state(PAID).to(SHIPPED).initial().state(SHIPPED).final()
+    _template = Lifecycle().state(OrderStateEntity.PAID).to(OrderStateEntity.SHIPPED).initial().state(OrderStateEntity.SHIPPED).final()
 
 
 class OtherOrderLifecycle(OrderLifecycle):
@@ -29,7 +31,7 @@ class OtherOrderLifecycle(OrderLifecycle):
 def test_current_status_is_the_declared_object():
     """Expose the exact declared object and its domain fields."""
     current = OrderLifecycle("paid")
-    assert current.current_status is OrderLifecycle.PAID
+    assert current.current_status is OrderStateEntity.PAID
     assert current.current_status.requires_receipt is True
     assert current.current_state == "paid"
 
@@ -37,7 +39,7 @@ def test_current_status_is_the_declared_object():
 def test_instance_stores_only_the_status_reference():
     """Keep no second mutable source for the current code."""
     current = OrderLifecycle("paid")
-    assert current._current_status is OrderLifecycle.PAID
+    assert current._current_status is OrderStateEntity.PAID
     assert "_current_state" not in vars(current)
 
 
@@ -47,9 +49,9 @@ def test_transition_selects_the_declared_target_without_changing_the_original():
     following = current.transition("shipped")
     assert following is not current
     assert type(following) is OrderLifecycle
-    assert following._current_status is OrderLifecycle.SHIPPED
+    assert following._current_status is OrderStateEntity.SHIPPED
     assert following.current_state == "shipped"
-    assert current._current_status is OrderLifecycle.PAID
+    assert current._current_status is OrderStateEntity.PAID
     assert current.current_state == "paid"
 
 
