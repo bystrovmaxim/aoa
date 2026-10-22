@@ -7,12 +7,13 @@ Run from the repository root:
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
 from aoa.action_machine.domain import (
     BaseCoreEntity,
+    BaseEnumEntity,
     BaseSpecEntity,
     Classifier,
     Generalization,
@@ -32,16 +33,23 @@ class MusicDomain(BaseDomain):
     description = "A music catalogue"
 
 
+@entity(description="Kind of VinylRecordCoreEntity", domain=MusicDomain)
+class VinylRecordKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    FIRST = VinylRecordKindEnumEntity(code="first", display_name="First")  # noqa: F821
+    REPRESS = VinylRecordKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
+    TEST = VinylRecordKindEnumEntity(code="test", display_name="Test")  # noqa: F821
+
+
 @entity(description="Vinyl record", domain=MusicDomain)
 class VinylRecordCoreEntity(BaseCoreEntity):
     """Describe the information shared by all pressings."""
 
     id: str = Field(description="Record identifier")
     title: str = Field(description="Album title")
-    media: str = Field(description="Pressing code")
     pressing: Annotated[
-        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
-        Classifier(field="media", codes=Literal["first", "repress", "test"]),
+        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="Details of this pressing")
 
@@ -54,7 +62,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
     stamper: str = Field(description="Stamper code")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["first"]),
+        Classifier(field="record", variant=VinylRecordKindEnumEntity.FIRST),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
@@ -67,7 +75,7 @@ class RepressSpecEntity(BaseSpecEntity):
     year: int = Field(description="Re-pressing year")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["repress"]),
+        Classifier(field="record", variant=VinylRecordKindEnumEntity.REPRESS),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
@@ -80,7 +88,7 @@ class TestPressSpecEntity(BaseSpecEntity):
     approved_by: str = Field(description="Reviewer name")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["test"]),
+        Classifier(field="record", variant=VinylRecordKindEnumEntity.TEST),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
@@ -100,10 +108,9 @@ def main() -> None:
     record = VinylRecordCoreEntity(
         id="rec-1",
         title="Kind of Blue",
-        media="first",
-        pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+        pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
             id="rec-1",
-            variant="first",
+            variant=VinylRecordKindEnumEntity.FIRST,
             entity=first,
         ),
     )

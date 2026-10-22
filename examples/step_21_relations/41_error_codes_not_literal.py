@@ -1,13 +1,26 @@
-"""Codes must be written as a Literal.
+"""A code list is not how an axis is classified.
 
-What does the marker check before any model is built?
+What does the marker check before any model is built, and what replaced the code list?
 Run from the repository root:
     uv run python examples/step_21_relations/41_error_codes_not_literal.py
 """
 
-from typing import Literal
+from aoa.action_machine.domain import BaseDomain, BaseEnumEntity, Classifier
+from aoa.action_machine.intents.entity import entity
 
-from aoa.action_machine.domain import Classifier
+
+class MediaDomain(BaseDomain):
+    """Group the declarations this experiment needs."""
+
+    name = "media"
+    description = "Media"
+
+
+@entity(description="Media kind", domain=MediaDomain)
+class MediaKindEnumEntity(BaseEnumEntity):
+    """Declare the codes an axis borrows, in the class body."""
+
+    VINYL = MediaKindEnumEntity(code="vinyl", display_name="Vinyl")  # noqa: F821
 
 
 def main() -> None:
@@ -19,8 +32,9 @@ def main() -> None:
     else:
         raise AssertionError("The invalid marker was accepted")
 
-    marker = Classifier("media", Literal["first"])
-    print("Corrected:", marker.code_values)
+    marker = Classifier(field="record", variant=MediaKindEnumEntity.VINYL)
+    print("A dictionary value, not a code list:", marker.variant.code)
+    print("Declared:", MediaKindEnumEntity.codes())
 
 
 if __name__ == "__main__":

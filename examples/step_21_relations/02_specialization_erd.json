@@ -4,118 +4,177 @@
       "id": "FirstPressSpecEntity",
       "label": "FirstPressSpecEntity",
       "domain_qualname": "MusicDomain",
+      "entity_kind": "spec",
       "fields": [
         {
           "field_id": "FirstPressSpecEntity:id",
           "name": "id",
           "type": "str",
           "primary_key": true,
-          "foreign_key": false
+          "foreign_key": false,
+          "reference_qualname": null
         },
         {
           "field_id": "FirstPressSpecEntity:stamper",
           "name": "stamper",
           "type": "str",
           "primary_key": false,
-          "foreign_key": false
+          "foreign_key": false,
+          "reference_qualname": null
         },
         {
           "field_id": "FirstPressSpecEntity:record",
           "name": "record",
           "type": "Generalization[VinylRecordCoreEntity]",
           "primary_key": false,
-          "foreign_key": false
+          "foreign_key": false,
+          "reference_qualname": null
         }
-      ]
+      ],
+      "values": []
     },
     {
       "id": "RepressSpecEntity",
       "label": "RepressSpecEntity",
       "domain_qualname": "MusicDomain",
+      "entity_kind": "spec",
       "fields": [
         {
           "field_id": "RepressSpecEntity:id",
           "name": "id",
           "type": "str",
           "primary_key": true,
-          "foreign_key": false
+          "foreign_key": false,
+          "reference_qualname": null
         },
         {
           "field_id": "RepressSpecEntity:year",
           "name": "year",
           "type": "int",
           "primary_key": false,
-          "foreign_key": false
+          "foreign_key": false,
+          "reference_qualname": null
         },
         {
           "field_id": "RepressSpecEntity:record",
           "name": "record",
           "type": "Generalization[VinylRecordCoreEntity]",
           "primary_key": false,
-          "foreign_key": false
+          "foreign_key": false,
+          "reference_qualname": null
         }
-      ]
+      ],
+      "values": []
     },
     {
       "id": "TestPressSpecEntity",
       "label": "TestPressSpecEntity",
       "domain_qualname": "MusicDomain",
+      "entity_kind": "spec",
       "fields": [
         {
           "field_id": "TestPressSpecEntity:id",
           "name": "id",
           "type": "str",
           "primary_key": true,
-          "foreign_key": false
+          "foreign_key": false,
+          "reference_qualname": null
         },
         {
           "field_id": "TestPressSpecEntity:approved_by",
           "name": "approved_by",
           "type": "str",
           "primary_key": false,
-          "foreign_key": false
+          "foreign_key": false,
+          "reference_qualname": null
         },
         {
           "field_id": "TestPressSpecEntity:record",
           "name": "record",
           "type": "Generalization[VinylRecordCoreEntity]",
           "primary_key": false,
-          "foreign_key": false
+          "foreign_key": false,
+          "reference_qualname": null
         }
-      ]
+      ],
+      "values": []
     },
     {
       "id": "VinylRecordCoreEntity",
       "label": "VinylRecordCoreEntity",
       "domain_qualname": "MusicDomain",
+      "entity_kind": "core",
       "fields": [
         {
           "field_id": "VinylRecordCoreEntity:id",
           "name": "id",
           "type": "str",
           "primary_key": true,
-          "foreign_key": false
+          "foreign_key": false,
+          "reference_qualname": null
         },
         {
           "field_id": "VinylRecordCoreEntity:pressing",
           "name": "pressing",
           "type": "FirstPressSpec (first) | RepressSpec (repress) | TestPressSpec (test)",
           "primary_key": false,
-          "foreign_key": true
+          "foreign_key": true,
+          "reference_qualname": null
         },
         {
           "field_id": "VinylRecordCoreEntity:title",
           "name": "title",
           "type": "str",
           "primary_key": false,
-          "foreign_key": false
+          "foreign_key": false,
+          "reference_qualname": null
+        }
+      ],
+      "values": []
+    },
+    {
+      "id": "VinylRecordKindEnumEntity",
+      "label": "VinylRecordKindEnumEntity",
+      "domain_qualname": "MusicDomain",
+      "entity_kind": "enum",
+      "fields": [
+        {
+          "field_id": "VinylRecordKindEnumEntity:id",
+          "name": "id",
+          "type": "str",
+          "primary_key": true,
+          "foreign_key": false,
+          "reference_qualname": null
         },
         {
-          "field_id": "VinylRecordCoreEntity:media",
-          "name": "media",
+          "field_id": "VinylRecordKindEnumEntity:code",
+          "name": "code",
           "type": "str",
           "primary_key": false,
-          "foreign_key": false
+          "foreign_key": false,
+          "reference_qualname": null
+        },
+        {
+          "field_id": "VinylRecordKindEnumEntity:display_name",
+          "name": "display_name",
+          "type": "str",
+          "primary_key": false,
+          "foreign_key": false,
+          "reference_qualname": null
+        }
+      ],
+      "values": [
+        {
+          "code": "first",
+          "display_name": "First"
+        },
+        {
+          "code": "repress",
+          "display_name": "Repress"
+        },
+        {
+          "code": "test",
+          "display_name": "Test"
         }
       ]
     }
@@ -124,7 +183,7 @@
     {
       "source": "VinylRecordCoreEntity",
       "target": "VinylRecordCoreEntity:pressing",
-      "label": "by media",
+      "label": "by VinylRecordKindEnumEntity",
       "relationship_kind": "specialization",
       "source_cardinality": "zero_many",
       "target_cardinality": "one"
@@ -157,8 +216,9 @@
   "groups": [
     {
       "group_id": "VinylRecordCoreEntity:pressing",
-      "label": "pressing (by media)",
-      "classifier_field": "media",
+      "label": "pressing (by VinylRecordKindEnumEntity)",
+      "classifier_field": null,
+      "dictionary_label": "VinylRecordKindEnumEntity",
       "members": [
         "FirstPressSpecEntity",
         "RepressSpecEntity",

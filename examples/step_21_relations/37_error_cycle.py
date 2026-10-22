@@ -7,11 +7,12 @@ Run from the repository root:
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
 from aoa.action_machine.domain import (
+    BaseEnumEntity,
     BaseSpecEntity,
     Classifier,
     Generalization,
@@ -30,18 +31,31 @@ class MusicDomain(BaseDomain):
     description = "Cycle experiment"
 
 
+@entity(description="Kind of ASpecEntity", domain=MusicDomain)
+class ASpecEntityKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    B = ASpecEntityKindEnumEntity(code="b", display_name="B")  # noqa: F821
+
+
 @entity(description="First level", domain=MusicDomain)
 class ASpecEntity(BaseSpecEntity):
     """Declare the first level of detail."""
 
     id: str = Field(description="Identifier")
-    kind: str = Field(description="Detail code")
-    detail: Annotated[Specialization[BSpecEntity], Classifier("kind", Literal["b"]), Inverse(field_name="back")] = Rel(
+    detail: Annotated[Specialization[BSpecEntity, ASpecEntityKindEnumEntity], Inverse(field_name="back")] = Rel(
         description="Next level"
     )
-    back: Annotated[Generalization[BSpecEntity], Classifier("back", Literal["a"]), Inverse(BSpecEntity, "detail")] = Rel(
+    back: Annotated[Generalization[BSpecEntity], Classifier(field="back", variant=BSpecEntityKindEnumEntity.A), Inverse(BSpecEntity, "detail")] = Rel(
         description="Return to B"
     )
+
+
+@entity(description="Kind of BSpecEntity", domain=MusicDomain)
+class BSpecEntityKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    A = BSpecEntityKindEnumEntity(code="a", display_name="A")  # noqa: F821
 
 
 @entity(description="Second level", domain=MusicDomain)
@@ -49,11 +63,10 @@ class BSpecEntity(BaseSpecEntity):
     """Declare the second level of detail."""
 
     id: str = Field(description="Identifier")
-    kind: str = Field(description="Detail code")
-    back: Annotated[Generalization[ASpecEntity], Classifier("back", Literal["b"]), Inverse(ASpecEntity, "detail")] = Rel(
+    back: Annotated[Generalization[ASpecEntity], Classifier(field="back", variant=ASpecEntityKindEnumEntity.B), Inverse(ASpecEntity, "detail")] = Rel(
         description="Return to A"
     )
-    detail: Annotated[Specialization[ASpecEntity], Classifier("kind", Literal["a"]), Inverse(field_name="back")] = Rel(
+    detail: Annotated[Specialization[ASpecEntity, BSpecEntityKindEnumEntity], Inverse(field_name="back")] = Rel(
         description="Next level"
     )
 

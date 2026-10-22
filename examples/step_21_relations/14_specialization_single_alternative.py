@@ -6,12 +6,13 @@ Run: uv run python examples/step_21_relations/14_specialization_single_alternati
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
 from aoa.action_machine.domain import (
     BaseCoreEntity,
+    BaseEnumEntity,
     BaseSpecEntity,
     Classifier,
     Generalization,
@@ -31,16 +32,21 @@ class MusicDomain(BaseDomain):
     description = "A music catalogue"
 
 
+@entity(description="Kind of VinylRecordCoreEntity", domain=MusicDomain)
+class VinylRecordKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    FIRST = VinylRecordKindEnumEntity(code="first", display_name="First")  # noqa: F821
+
+
 @entity(description="Vinyl record", domain=MusicDomain)
 class VinylRecordCoreEntity(BaseCoreEntity):
     """Describe the information shared by all pressings."""
 
     id: str = Field(description="Record identifier")
     title: str = Field(description="Album title")
-    media: str = Field(description="Pressing code")
     pressing: Annotated[
-        Specialization[FirstPressSpecEntity],
-        Classifier(field="media", codes=Literal["first"]),
+        Specialization[FirstPressSpecEntity, VinylRecordKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="Details of this pressing")
 
@@ -53,7 +59,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
     stamper: str = Field(description="Stamper code")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["first"]),
+        Classifier(field="record", variant=VinylRecordKindEnumEntity.FIRST),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 

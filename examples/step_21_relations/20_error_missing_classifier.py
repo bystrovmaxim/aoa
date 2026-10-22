@@ -1,4 +1,4 @@
-"""The head has no classifier marker.
+"""The head names no dictionary.
 
 Which declaration is wrong, and how do we repair it?
 Run from the repository root:
@@ -37,11 +37,10 @@ class VinylRecordCoreEntity(BaseCoreEntity):
 
     id: str = Field(description="Record identifier")
     title: str = Field(description="Album title")
-    media: str = Field(description="Pressing code")
     pressing: Annotated[
         Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
         Inverse(field_name="record"),
-    ] = Rel(description="Details of this pressing")
+    ] = Rel(description="Details of this pressing, classified by nothing")
 
 
 @entity(description="First pressing", domain=MusicDomain)
