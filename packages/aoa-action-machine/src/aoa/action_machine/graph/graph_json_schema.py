@@ -387,6 +387,10 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
                 "primary_key_hint": {
                   "type": "boolean",
                   "description": "Heuristic (field name == id); not database or schema authority."
+                },
+                "reference_qualname": {
+                  "type": "string",
+                  "description": "Interchange qualname of the closed dictionary this field references; absent for a scalar field."
                 }
               }
             }

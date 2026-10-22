@@ -9,10 +9,14 @@ import json
 
 import pytest
 from jsonschema import Draft202012Validator
+from pydantic import Field
 
+from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_field_graph_node import EntityFieldGraphNode
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 from ...support.domain_model.entities import RelatedCoreEntity, SampleCoreEntity
@@ -92,3 +96,77 @@ def test_entity_field_export_validates_against_graph_schema() -> None:
     assert {e["properties"]["ordinal"] for e in sample_field_edges} == {0, 1, 2}
     assert all(e["relationship"] == "Composition" for e in sample_field_edges)
     assert all(e["is_dag"] is False for e in sample_field_edges)
+
+
+class ReferenceShopDomain(BaseDomain):
+    """The domain the reference fixtures belong to."""
+
+    name = "reference-shop"
+    description = "Reference shop"
+
+
+@exclude_graph_model
+@entity(description="Currency reference value", domain=ReferenceShopDomain)
+class ReferenceCurrencyEnumEntity(BaseEnumEntity):
+    """A closed dictionary a field can reference."""
+
+    USD = ReferenceCurrencyEnumEntity(code="usd", display_name="US dollar")  # noqa: F821
+
+
+@exclude_graph_model
+class EmptyDictionaryEnumEntity(BaseEnumEntity):
+    """A base dictionary that declares no values; a field cannot be typed by it."""
+
+
+@exclude_graph_model
+@entity(description="Price tag", domain=ReferenceShopDomain)
+class ReferenceTagCoreEntity(BaseCoreEntity):
+    """A row with a dictionary reference, an optional one, and a scalar."""
+
+    id: str = Field(description="Tag id")
+    currency: ReferenceCurrencyEnumEntity = Field(description="Money unit")
+    settlement_currency: ReferenceCurrencyEnumEntity | None = Field(default=None, description="Optional unit")
+    note: str = Field(description="Free note")
+
+
+@exclude_graph_model
+@entity(description="Broken tag", domain=ReferenceShopDomain)
+class EmptyDictionaryTagCoreEntity(BaseCoreEntity):
+    """A row whose field is typed by a dictionary with no values."""
+
+    id: str = Field(description="Tag id")
+    currency: EmptyDictionaryEnumEntity = Field(description="Money unit")
+
+
+def _field_nodes(entity_cls: type) -> dict[str, EntityFieldGraphNode]:
+    """Return the entity's field nodes by field name."""
+    return {
+        edge.target_node.label: edge.target_node
+        for edge in EntityGraphNode(entity_cls).entity_field_edges
+        if edge.target_node is not None
+    }
+
+
+def test_a_dictionary_typed_field_names_the_dictionary() -> None:
+    """A reference is recognizable: the field row points at the dictionary it references."""
+    fields = _field_nodes(ReferenceTagCoreEntity)
+    expected = TypeIntrospection.full_qualname(ReferenceCurrencyEnumEntity)
+
+    assert fields["currency"].properties["reference_qualname"] == expected
+    assert fields["settlement_currency"].properties["reference_qualname"] == expected
+    assert "reference_qualname" not in fields["note"].properties
+
+
+def test_a_reference_field_row_validates_against_the_schema() -> None:
+    """The interchange schema declares ``reference_qualname`` on the field row."""
+    row = _field_nodes(ReferenceTagCoreEntity)["currency"].to_dict()
+    assert row["properties"]["reference_qualname"] == TypeIntrospection.full_qualname(ReferenceCurrencyEnumEntity)
+
+    document = {"schema_version": "1.0", "nodes": [EntityGraphNode(ReferenceTagCoreEntity).to_dict(), row], "edges": []}
+    Draft202012Validator(GRAPH_JSON_SCHEMA).validate(document)
+
+
+def test_a_field_typed_by_an_empty_dictionary_is_refused() -> None:
+    """A dictionary with no values could never fill the field, so the build refuses it."""
+    with pytest.raises(ValueError, match="declares no values; type the field with a concrete dictionary"):
+        EntityGraphNode(EmptyDictionaryTagCoreEntity)

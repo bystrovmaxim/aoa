@@ -82,16 +82,16 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 
 ### Tests for User Story 2
 
-- [ ] T021 [P] [US2] Add `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_core_schema.py` — declared value, reference object, bare code refused, unknown code, constructed copy, absent on an optional field, serialization, code-authoritative read
-- [ ] T022 [P] [US2] Add the reference assertions to `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_graph.py` — `reference_qualname` set for a dictionary-typed field, absent for `str`
+- [x] T021 [P] [US2] Add `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_core_schema.py` — declared value, reference object, bare code refused, unknown code, constructed copy, absent on an optional field, serialization, code-authoritative read
+- [x] T022 [P] [US2] Add the reference assertions to `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_graph.py` — `reference_qualname` set for a dictionary-typed field, absent for `str`
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Implement `__get_pydantic_core_schema__`, `__get_pydantic_json_schema__` and `to_reference()` on `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`, accepting a declared instance or its reference object, resolving by `code`, refusing a bare code and a copy by identity
-- [ ] T024 [US2] Refuse a field typed by an intermediate dictionary with no values in `packages/aoa-action-machine/src/aoa/action_machine/graph/edges/entity_field_graph_edge.py`
-- [ ] T025 [US2] Set `reference_qualname` for a dictionary-typed field in `packages/aoa-action-machine/src/aoa/action_machine/graph/edges/entity_field_graph_edge.py` and declare the property in `packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.py`
-- [ ] T026 [US2] Add one referencing field to `examples/step_20_entity/07_enumeration.py` and its notebook, showing the accepted reference object, the refused bare code and the serialized value
-- [ ] T027 [US2] Run `pytest packages/aoa-action-machine/tests -q` and `mypy packages/aoa-action-machine/src`
+- [x] T023 [US2] Implement `__get_pydantic_core_schema__`, `__get_pydantic_json_schema__` and `to_reference()` on `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`, accepting a declared instance or its reference object, resolving by `code`, refusing a bare code and a copy by identity
+- [x] T024 [US2] Refuse a field typed by an intermediate dictionary with no values in `packages/aoa-action-machine/src/aoa/action_machine/graph/edges/entity_field_graph_edge.py`
+- [x] T025 [US2] Set `reference_qualname` for a dictionary-typed field in `packages/aoa-action-machine/src/aoa/action_machine/graph/edges/entity_field_graph_edge.py` and declare the property in `packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.py`
+- [x] T026 [US2] Add one referencing field to `examples/step_20_entity/07_enumeration.py` and its notebook, showing the accepted reference object, the refused bare code and the serialized value
+- [x] T027 [US2] Run `pytest packages/aoa-action-machine/tests -q` and `mypy packages/aoa-action-machine/src`
 
 **Checkpoint**: a dictionary is a usable type; the graph can draw a reference.
 

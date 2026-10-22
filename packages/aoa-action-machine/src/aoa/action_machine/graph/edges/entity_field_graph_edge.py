@@ -11,8 +11,9 @@ from __future__ import annotations
 from typing import Any, ClassVar
 
 from aoa.action_machine.domain.entity import BaseEntity
+from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 from aoa.action_machine.graph.core.composition_graph_edge import CompositionGraphEdge
-from aoa.action_machine.graph.nodes.entity_field_graph_node import EntityFieldGraphNode
+from aoa.action_machine.graph.nodes.entity_field_graph_node import EntityFieldGraphNode, plain_annotation
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 
 
@@ -59,6 +60,16 @@ class EntityFieldGraphEdge(CompositionGraphEdge):
         }
 
     @staticmethod
+    def _refuse_empty_dictionary(entity_cls: type[BaseEntity], name: str, annotation: Any) -> None:
+        """A field typed by a dictionary with no values could never hold one."""
+        plain = plain_annotation(annotation)
+        if isinstance(plain, type) and issubclass(plain, BaseEnumEntity) and not plain.members:
+            raise ValueError(
+                f"{entity_cls.__name__}.{name}: {plain.__name__} declares no values; "
+                f"type the field with a concrete dictionary."
+            )
+
+    @staticmethod
     def get_entity_field_edges(entity_cls: type[BaseEntity]) -> list[EntityFieldGraphEdge]:
         """Return ``entity_field`` composition edges with wired :class:`EntityFieldGraphNode` targets (scalar fields only)."""
         relation_names = {rel.field_name for rel in EntityIntentResolver.resolve_entity_relations(entity_cls)}
@@ -70,6 +81,7 @@ class EntityFieldGraphEdge(CompositionGraphEdge):
 
         edges: list[EntityFieldGraphEdge] = []
         for ordinal, (name, ann) in enumerate(items):
+            EntityFieldGraphEdge._refuse_empty_dictionary(entity_cls, name, ann)
             node = EntityFieldGraphNode(entity_cls, name, annotation=ann)
             edges.append(EntityFieldGraphEdge(field_node=node, ordinal=ordinal))
         return edges
