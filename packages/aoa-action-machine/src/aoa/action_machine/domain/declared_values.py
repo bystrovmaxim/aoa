@@ -122,7 +122,9 @@ class _DeclaredValues:
 
     __declared_values_inherit__: ClassVar[bool] = True
     __declared_values_require_any__: ClassVar[bool] = False
-    __declared_values_noun__: ClassVar[str] = "declared value"
+    __declared_values_noun__: ClassVar[str] = "declared"
+    __declared_values_noun_plural__: ClassVar[str] = "values"
+    __declared_values_empty_refusal__: ClassVar[str] = "declare them in the class body."
 
     members: ClassVar[tuple[Any, ...]] = ()
     _by_code: ClassVar[dict[str, Any]] = {}
@@ -141,11 +143,6 @@ class _DeclaredValues:
             if not cls.__declared_values_inherit__:
                 cls.members = ()
                 cls._by_code = {}
-            if cls.__declared_values_require_any__:
-                raise ValueError(
-                    f"{cls.__name__} declares no {cls.__declared_values_noun__} values; "
-                    f"declare them in the class body."
-                )
             return
 
         for name, spec in specs.items():
@@ -157,6 +154,15 @@ class _DeclaredValues:
             raise ValueError(f"{cls.__name__}: duplicate {cls.__declared_values_noun__} code(s) in {duplicates}.")
         cls.members = members
         cls._by_code = {member.code: member for member in members}
+
+    @classmethod
+    def _require_declared_values(cls) -> None:
+        """Refuse a concrete class of a kind that must declare values but declares none."""
+        if cls.__declared_values_require_any__ and not cls.members:
+            raise ValueError(
+                f"{cls.__name__} declares no {cls.__declared_values_noun_plural__}; "
+                f"{cls.__declared_values_empty_refusal__}"
+            )
 
     @classmethod
     def codes(cls) -> list[str]:

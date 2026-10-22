@@ -1,6 +1,8 @@
-"""Share a reference value.
+"""Share a closed set of reference values.
 
 EUR describes a currency used by many objects. Its symbol describes that value; it is not a dated exchange-rate quote or a position in an order process.
+
+The dictionary is closed: it declares every value it has, in its own body, and nothing else is a value.
 
 Run: uv run python examples/step_20_entity/07_enumeration.py
 """
@@ -21,11 +23,15 @@ class ShopDomain(BaseDomain):
 
 @entity(description="Currency reference value", domain=ShopDomain)
 class CurrencyEnumEntity(BaseEnumEntity):
-    """Describe a currency shared by monetary amounts."""
+    """Declare the currencies the shop uses, each one a value of this dictionary."""
 
-    code: str = Field(description="Currency code")
     symbol: str = Field(description="Currency symbol")
 
-currency = CurrencyEnumEntity(code="EUR", symbol="€")
-assert currency.code == "EUR"
-print(currency.code, currency.symbol)
+    EUR = CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")  # noqa: F821
+    USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")  # noqa: F821
+    RUB = CurrencyEnumEntity(code="rub", display_name="Ruble", symbol="₽")  # noqa: F821
+
+
+print(CurrencyEnumEntity.codes())
+print(CurrencyEnumEntity.by_code("eur").display_name, CurrencyEnumEntity.EUR.symbol)
+print(CurrencyEnumEntity.USD is CurrencyEnumEntity.by_code("usd"))

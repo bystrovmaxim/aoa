@@ -56,19 +56,19 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 
 ### Tests for User Story 1
 
-- [ ] T011 [P] [US1] Add `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_scope.py` — non-inheritance, the empty decorated dictionary, duplicate codes, blank `code`/`display_name`
-- [ ] T012 [P] [US1] Extend `packages/aoa-action-machine/tests/action_machine/domain/test_entity_kind.py` — the dictionary kind's word, suffix and declaration surface, and that its structural rules still hold: the marker is abstract and unconstructible, the class keeps the kind's suffix, and it stays in the entity graph (FR-013)
+- [x] T011 [P] [US1] Add `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_scope.py` — non-inheritance, the empty decorated dictionary, duplicate codes, blank `code`/`display_name`
+- [x] T012 [P] [US1] Extend `packages/aoa-action-machine/tests/action_machine/domain/test_entity_kind.py` — the dictionary kind's word, suffix and declaration surface, and that its structural rules still hold: the marker is abstract and unconstructible, the class keeps the kind's suffix, and it stays in the entity graph (FR-013)
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Add `code`/`display_name` with the non-blank validator to `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`
-- [ ] T014 [US1] Wire the declaration factory and the catalogue for the dictionary kind in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` (`metaclass=DeclaredValuesMeta`, `ignored_types=(ValueSpec,)`, own-class catalogue)
-- [ ] T015 [US1] Refuse a decorated dictionary with no values and a duplicate code in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`, with the messages of `specs/015-closed-dictionary-variants/contracts/dictionary-declaration.md` §4
-- [ ] T016 [US1] Publish the dictionary's values on its node in `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/entity_graph_node.py` (`properties.values`)
-- [ ] T017 [US1] Require `values` when `entity_kind` is `enum` with an `if/then` branch in `packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.py`
-- [ ] T018 [P] [US1] Add `packages/aoa-action-machine/tests/action_machine/graph/test_graph_json_schema_values.py` — an `enum` node with values validates and one without fails; a value produces no node of its own and no domain edge (FR-015)
-- [ ] T019 [US1] Rewrite `examples/step_20_entity/07_enumeration.py` and `examples/step_20_entity/07_enumeration.ipynb` as a closed dictionary with three values, printing the catalogue
-- [ ] T020 [US1] Rewrite the marker's docstring and `AI-CORE` block in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` for the closed-dictionary contract, and run `pytest packages/aoa-action-machine/tests -q`
+- [x] T013 [US1] Add `code`/`display_name` with the non-blank validator to `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`
+- [x] T014 [US1] Wire the declaration factory and the catalogue for the dictionary kind in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` (`metaclass=DeclaredValuesMeta`, `ignored_types=(ValueSpec,)`, own-class catalogue)
+- [x] T015 [US1] Refuse a decorated dictionary with no values and a duplicate code in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`, with the messages of `specs/015-closed-dictionary-variants/contracts/dictionary-declaration.md` §4
+- [x] T016 [US1] Publish the dictionary's values on its node in `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/entity_graph_node.py` (`properties.values`)
+- [x] T017 [US1] Require `values` when `entity_kind` is `enum` with an `if/then` branch in `packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.py`
+- [x] T018 [P] [US1] Add `packages/aoa-action-machine/tests/action_machine/graph/test_graph_json_schema_values.py` — an `enum` node with values validates and one without fails; a value produces no node of its own and no domain edge (FR-015)
+- [x] T019 [US1] Rewrite `examples/step_20_entity/07_enumeration.py` and `examples/step_20_entity/07_enumeration.ipynb` as a closed dictionary with three values, printing the catalogue
+- [x] T020 [US1] Rewrite the marker's docstring and `AI-CORE` block in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` for the closed-dictionary contract, and run `pytest packages/aoa-action-machine/tests -q`
 
 **Checkpoint**: a dictionary declares its values and refuses the two declaration mistakes; the graph carries them.
 
