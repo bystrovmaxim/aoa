@@ -67,9 +67,11 @@ USAGE
 from __future__ import annotations
 
 from abc import ABC
+from collections.abc import Mapping
 from typing import Any
 
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, GetCoreSchemaHandler, field_validator
+from pydantic_core import CoreSchema, core_schema
 
 from aoa.action_machine.domain.declared_values import (
     DeclaredValuesMeta,
@@ -106,6 +108,78 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesM
         """Hold every descendant to the kind's name suffix."""
         super().__init_subclass__(**kwargs)
         super()._require_kind_suffix("EnumEntity")
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+        """Accept a declared value or its reference object; refuse a bare code and a copy."""
+        model_schema = handler(source_type)
+        reference_keys = frozenset({"code", "display_name", "properties"})
+
+        def normalize(value: Any) -> Any:
+            if isinstance(value, cls):
+                return cls._declared_member(value)
+            if isinstance(value, str):
+                raise ValueError(
+                    f"{cls.__name__}: a bare code is not accepted; pass the declared value or its "
+                    f"reference object {{'code', 'display_name', 'properties'}}."
+                )
+            if isinstance(value, Mapping) and set(value) <= reference_keys:
+                if not cls.members:
+                    # the class is being created: its own values are constructed, not referenced
+                    return value
+                code = value.get("code")
+                if not isinstance(code, str) or not code.strip():
+                    raise ValueError(f"{cls.__name__}: a reference object needs a non-empty 'code'.")
+                try:
+                    return cls.by_code(code)
+                except KeyError:
+                    raise ValueError(
+                        f"'{code}' is not a declared value of {cls.__name__}. Declared: {cls.codes()}."
+                    ) from None
+            return value
+
+        return core_schema.no_info_before_validator_function(
+            normalize,
+            model_schema,
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                lambda declared: declared.to_reference(),
+                return_schema=core_schema.any_schema(),
+            ),
+        )
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, schema: CoreSchema, handler: Any) -> dict[str, Any]:
+        """Publish the reference object as this type's JSON shape."""
+        _ = (schema, handler)
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["code", "display_name", "properties"],
+            "properties": {
+                "code": {"type": "string", "minLength": 1},
+                "display_name": {"type": "string", "minLength": 1},
+                "properties": {"type": "object"},
+            },
+        }
+
+    @classmethod
+    def _declared_member(cls, value: Any) -> Any:
+        """Return the declared value ``value`` is, or refuse a copy."""
+        for member in cls.members:
+            if value is member:
+                return member
+        raise ValueError(
+            f"{cls.__name__}: a copy of a declared value is not a value; "
+            f"use the declared attribute (for example {cls.__name__}.{cls._attribute_of(value)})."
+        )
+
+    @classmethod
+    def _attribute_of(cls, member: Any) -> str:
+        """Return the class attribute a declared value is bound to, or a placeholder."""
+        for name, value in cls.__dict__.items():
+            if value is member:
+                return str(name)
+        return "<value>"
 
     def to_reference(self) -> dict[str, Any]:
         """Return the value's reference form: its code, its label and its extra fields."""
