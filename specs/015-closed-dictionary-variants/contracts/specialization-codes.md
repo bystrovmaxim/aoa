@@ -122,4 +122,4 @@ Each alternative produces one `entity_specialization` edge from the head's field
 
 ## 8. Migration
 
-Every existing axis moves in the same commit as the rule: 1 in the demo, 48 in 38 example scripts with their 38 notebooks, 61 in 7 framework test modules. Each loses its classifier field, gains the dictionary argument, and its extensions gain `variant=`. The codemod derives one dictionary per axis from the existing `Literal`s; the negative examples that assert the replaced rules are rewritten by hand. No axis may keep a `Literal` for its codes after the change.
+Every existing axis moves in the same commit as the rule: 1 in the demo, 48 in 38 example scripts with their 38 notebooks, 58 in 7 framework test modules. Each gains the dictionary argument and its extensions gain `variant=`; the 84 classifier fields the axes still name are deleted. The codemod derives one dictionary per axis from the existing `Literal`s; the negative examples that assert the replaced rules are rewritten by hand. No axis may keep a `Literal` for its codes after the change.
