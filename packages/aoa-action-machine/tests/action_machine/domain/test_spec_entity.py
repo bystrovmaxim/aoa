@@ -5,8 +5,7 @@ Tests for the value an extension declares.
 
 Every extension names, in its own `Classifier` marker, the dictionary value it
 is. The class exposes that value as `declared_variant`, so a container can check
-that the row it holds and the value it carries agree. A class whose marker names
-codes instead keeps `declared_variant` empty.
+that the row it holds and the value it carries agree. A class without a marker exposes no declared variant.
 """
 
 from __future__ import annotations
@@ -102,3 +101,22 @@ def test_the_value_is_derived_from_the_marker_not_written_by_hand() -> None:
 def test_an_extension_that_names_no_value_has_none() -> None:
     """The marker decides; without one, the class declares nothing."""
     assert declared_value(SpecUnmarkedSpecEntity) is None
+
+
+def test_declared_variant_is_available_after_resolving_a_forward_head() -> None:
+    """Declaration order must not leave the public variant attribute empty."""
+    @exclude_graph_model
+    class EarlierSpecEntity(BaseSpecEntity):
+        """Describe a head declared later in the module."""
+        record: Annotated[
+            Generalization[LaterCoreEntity],
+            Classifier(field="record", variant=SpecEditionKindEnumEntity.FIRST),
+        ]
+
+    @exclude_graph_model
+    class LaterCoreEntity(BaseCoreEntity):
+        """Provide the forward target."""
+        id: str
+
+    EarlierSpecEntity.model_rebuild(_types_namespace={"LaterCoreEntity": LaterCoreEntity})
+    assert EarlierSpecEntity.declared_variant is SpecEditionKindEnumEntity.FIRST

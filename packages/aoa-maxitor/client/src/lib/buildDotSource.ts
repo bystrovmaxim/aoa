@@ -30,6 +30,7 @@ export type ErdEntity = {
 export type ErdValue = {
   code: string;
   display_name: string;
+  properties?: { name: string; value: string }[];
 };
 
 export type ErdRelation = {
@@ -148,7 +149,11 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
           "<TR>" +
           `<TD BGCOLOR="#ecfdf5" WIDTH="28"></TD>` +
           `<TD BGCOLOR="#ecfdf5" ALIGN="LEFT">${escHtml(value.code)}</TD>` +
-          `<TD BGCOLOR="#ecfdf5" ALIGN="LEFT"><FONT COLOR="#047857"><I>${escHtml(value.display_name)}</I></FONT></TD>` +
+          `<TD BGCOLOR="#ecfdf5" ALIGN="LEFT"><FONT COLOR="#047857"><I>${escHtml(value.display_name)}</I></FONT>` +
+          (value.properties || [])
+            .map((item) => `<BR ALIGN="LEFT"/>${escHtml(item.name)}: ${escHtml(item.value)}`)
+            .join("") +
+          "</TD>" +
           "</TR>",
       )
       .join("\n      ");

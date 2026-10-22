@@ -1,8 +1,7 @@
-"""A code list is not how an axis is classified.
+"""Classifier accepts a value, not a list.
 
-What does the marker check before any model is built, and what replaced the code list?
-Run from the repository root:
-    uv run python examples/step_21_relations/41_error_codes_not_literal.py
+Pass a list of code strings to Classifier.
+Run: uv run python examples/step_21_relations/41_error_codes_not_literal.py
 """
 
 from aoa.action_machine.domain import BaseDomain, BaseEnumEntity, Classifier

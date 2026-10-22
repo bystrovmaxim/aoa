@@ -1,8 +1,7 @@
 """A record with first-pressing details.
 
-How do common record information and variant-specific information fit together?
-Run from the repository root:
-    uv run python examples/step_21_relations/02_specialization.py
+Construct the common record and its first-pressing data.
+Run: uv run python examples/step_21_relations/02_specialization.py
 """
 
 from __future__ import annotations
@@ -108,7 +107,9 @@ def main() -> None:
     record = VinylRecordCoreEntity(
         id="rec-1",
         title="Kind of Blue",
-        pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
+        pressing=Specialization[
+            FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity
+        ](
             id="rec-1",
             variant=VinylRecordKindEnumEntity.FIRST,
             entity=first,
@@ -116,7 +117,7 @@ def main() -> None:
     )
     print("Model built")
     print(record.title)
-    print(record.pressing.variant)
+    print(record.pressing.variant.code)
     print(record.pressing.entity.stamper)
     print(first.record.id)
 

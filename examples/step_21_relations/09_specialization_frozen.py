@@ -1,8 +1,7 @@
-"""Replacing a link instead of changing it.
+"""Replace a link instead of editing it.
 
-Can an existing link have its variant changed?
-Run from the repository root:
-    uv run python examples/step_21_relations/09_specialization_frozen.py
+Try to change the selected value on an existing container.
+Run: uv run python examples/step_21_relations/09_specialization_frozen.py
 """
 
 from __future__ import annotations
@@ -110,7 +109,7 @@ def main() -> None:
         print(error.errors()[0]["type"])
     else:
         raise AssertionError("A frozen link was changed")
-    print(link.variant)
+    print(link.variant.code)
 
 
 if __name__ == "__main__":

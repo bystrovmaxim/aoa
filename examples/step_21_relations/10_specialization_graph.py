@@ -1,8 +1,7 @@
-"""The two directions in the model graph.
+"""Read the declared alternatives from the graph.
 
-What does the built graph say about the declared alternatives?
-Run from the repository root:
-    uv run python examples/step_21_relations/10_specialization_graph.py
+Inspect forward edges, one reverse edge and the head's fields.
+Run: uv run python examples/step_21_relations/10_specialization_graph.py
 """
 
 from __future__ import annotations

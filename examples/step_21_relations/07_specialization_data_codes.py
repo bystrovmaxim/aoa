@@ -1,8 +1,7 @@
-"""A declaration does not validate a data code.
+"""An unknown variant is refused.
 
-Does a successfully built model reject an unknown code in a link?
-Run from the repository root:
-    uv run python examples/step_21_relations/07_specialization_data_codes.py
+Pass a reference whose code is unknown after a successful model build.
+Run: uv run python examples/step_21_relations/07_specialization_data_codes.py
 """
 
 from __future__ import annotations

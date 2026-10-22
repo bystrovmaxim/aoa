@@ -1,68 +1,34 @@
 # packages/aoa-action-machine/src/aoa/action_machine/intents/entity/entity_specialization_intent_resolver.py
 """
-EntitySpecializationIntentResolver — freeze one declared specialization axis from ``model_fields``.
+EntitySpecializationIntentResolver — read an axis and its dictionary.
 
-╔═══════════════════════════════════════════════════════════════════════════════
-║ PURPOSE
-╚═══════════════════════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
 
-Read one head field that points at one of N extension entities, and hand the graph
-and the build rules a plain description of it: which classes may be linked, which
-field chooses among them, which codes exist, and what each code selects.
+Read a head's ``Specialization[Alternatives, Dictionary]`` field, including an
+optional field, into a description used by graph construction and validation.
+An axis is one such field together with its dictionary and alternative classes.
+The dictionary supplies code order; the alternatives' reverse ``Classifier``
+markers supply the code-to-class correspondence. Union position does not assign
+codes. ``Generalization[Head]`` identifies the reverse target.
 
-A field is a specialization axis when its type is a subscripted ``Specialization[...]``
-container. The container is the discriminator, and it has to be: the ``Classifier``
-marker appears on **both** sides — on the head naming the choosing field and the whole
-code set, on each extension naming its own single code — so a marker alone never says
-which side a field is on.
+This module reads declarations; it neither loads rows nor proves their validity.
+The declaration validator checks coverage, value membership and relationship
+consistency. ``classifier_field`` remains an empty compatibility attribute on the
+resolver result; no selector field is part of the declaration or graph edge.
 
-╔═══════════════════════════════════════════════════════════════════════════════
-║ WHERE THE DATA LIVES — three places, and only two carry what we need
-╚═══════════════════════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
 
-``model_fields[field].annotation``
-    The container class pydantic built, e.g. ``Specialization[A | B]``. The
-    alternatives are inside it, but ``get_args`` on that class returns nothing —
-    pydantic materialises a real class — so they are read from
-    ``__pydantic_generic_metadata__["args"]``.
+::
 
-``FieldInfo.metadata``
-    The marker objects themselves: ``Classifier``, ``Inverse``, ``NoGraphEdge``.
-    They are never in ``annotation``.
-
-``get_type_hints(cls, include_extras=True)``
-    Both together, and unusable here: it raises on a model whose forward references
-    do not resolve, while ``model_fields`` stays readable. A parser that read the
-    hints first would lose every axis on such a model.
-
-The codes of the alternatives are not on the head at all. They are read from **the
-other side**: each class in the union declares its own code on its reverse field, and
-this resolver collects them into the ``code_to_target`` mapping everything else uses.
-
-╔═══════════════════════════════════════════════════════════════════════════════
-║ SCOPE (IN / OUT)
-╚═══════════════════════════════════════════════════════════════════════════════
-
-**In scope**
-    Recognising a specialization field, and reading the axis out of it.
-    Collecting each alternative's own code from its reverse field.
-    Exposing ``code_to_target``, the mapping a resource, the graph and the ERD read.
-
-**Out of scope**
-    Checking the declaration rules — mutuality, closure, one head per class, code
-    compatibility. They are decided across the whole model and belong to the build
-    validator.
-    Emitting graph nodes and edges, and drawing anything.
-
-╔═══════════════════════════════════════════════════════════════════════════════
-║ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
-╚═══════════════════════════════════════════════════════════════════════════════
-
-- **Import**: nothing runs; the row type and the helpers are defined.
-- **Build**: ``gather_entity_specialization_intent_resolvers(cls)`` is called per
-  entity class, by the graph node and by the validator.
-- **Runtime**: the axis and its mapping are data; nothing here reads a row.
-
+    head field -> container arguments -> alternatives + dictionary.codes()
+    alternative reverse fields -------> code_to_target
+                                        |
+                                        v
+                         declaration validator and graph edges
 """
 
 from __future__ import annotations
@@ -106,10 +72,14 @@ def _container_arguments_of(annotation: Any, container: type[Any]) -> tuple[Any,
     """
     Return the type arguments of a subscripted container, or ``None``.
 
-    Pydantic turns ``Specialization[A | B]`` and ``Generalization[Head]`` into real
+    Pydantic turns ``Specialization[A | B, Dictionary]`` and ``Generalization[Head]`` into real
     classes, so ``get_args`` on them is empty; the arguments survive in
     ``__pydantic_generic_metadata__``.
     """
+    if get_origin(annotation) in (typing.Union, types.UnionType):
+        members = tuple(arg for arg in get_args(annotation) if arg is not types.NoneType)
+        if len(members) == 1:
+            return _container_arguments_of(members[0], container)
     if not (isinstance(annotation, type) and issubclass(annotation, container)):
         return None
     metadata = getattr(annotation, "__pydantic_generic_metadata__", None)
@@ -257,8 +227,7 @@ def _axis_from_field(
 
     Raises:
         SpecializationDeclarationError: The field's type is a ``Specialization``
-            container but it declares no ``Classifier`` marker, or one alternative
-            declares more than one code on its reverse field.
+            container whose second type argument is not a closed dictionary.
     """
     metadata = tuple(field_info.metadata)
     container_args = _container_arguments(annotation)

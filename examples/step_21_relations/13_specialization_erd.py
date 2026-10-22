@@ -1,8 +1,7 @@
-"""Producing the Maxitor diagram data.
+"""Generate the specialization diagram.
 
-How are three alternative edges represented in the ERD data?
-Run from the repository root:
-    uv run python examples/step_21_relations/13_specialization_erd.py
+Inspect the payload produced by Maxitor from the complete model.
+Run: uv run python examples/step_21_relations/13_specialization_erd.py
 """
 
 from __future__ import annotations

@@ -5,8 +5,7 @@ Tests for the specialization container when its second type argument is a dictio
 
 The container holds a declared value; a bare code, an unknown code and a value
 that disagrees with the hydrated row are refused; the value serializes as its
-reference object. The one-argument form stays a code string, because the corpus
-migrates in the next step.
+reference object. The retired one-argument form is refused.
 """
 
 from __future__ import annotations
@@ -157,3 +156,17 @@ def test_a_container_must_name_its_dictionary() -> None:
     """The one-argument form is gone: a container without a dictionary is a TypeError."""
     with pytest.raises(TypeError, match="Too few arguments"):
         Specialization[ContainerFirstPressSpecEntity | ContainerRepressSpecEntity]
+
+
+def test_matching_codes_from_different_dictionaries_do_not_make_a_matching_pair() -> None:
+    """A loaded class must declare the exact selected value."""
+    @exclude_graph_model
+    class OtherEditionEnumEntity(BaseEnumEntity):
+        """Reuse a code in an independent dictionary."""
+        FIRST = OtherEditionEnumEntity(code="first", display_name="Another first")
+
+    with pytest.raises(ValidationError, match="does not match"):
+        Specialization[ContainerFirstPressSpecEntity, OtherEditionEnumEntity](
+            id="p1", variant=OtherEditionEnumEntity.FIRST,
+            entity=ContainerFirstPressSpecEntity.partial(record=None),
+        )

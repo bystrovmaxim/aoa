@@ -51,8 +51,17 @@ ListEntitiesDomainSlicesJson = JsonSchemaValue.define(
                                             "properties": {
                                                 "code": {"type": "string", "minLength": 1},
                                                 "display_name": {"type": "string", "minLength": 1},
+                                                "properties": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {"name": {"type": "string"}, "value": {"type": "string"}},
+                                                        "required": ["name", "value"],
+                                                        "additionalProperties": False,
+                                                    },
+                                                },
                                             },
-                                            "required": ["code", "display_name"],
+                                            "required": ["code", "display_name", "properties"],
                                             "additionalProperties": False,
                                         },
                                     },

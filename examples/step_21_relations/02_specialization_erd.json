@@ -166,15 +166,18 @@
       "values": [
         {
           "code": "first",
-          "display_name": "First"
+          "display_name": "First",
+          "properties": []
         },
         {
           "code": "repress",
-          "display_name": "Repress"
+          "display_name": "Repress",
+          "properties": []
         },
         {
           "code": "test",
-          "display_name": "Test"
+          "display_name": "Test",
+          "properties": []
         }
       ]
     }

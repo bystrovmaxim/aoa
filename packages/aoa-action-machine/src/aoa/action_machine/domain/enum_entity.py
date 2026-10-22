@@ -70,7 +70,7 @@ from abc import ABC
 from collections.abc import Mapping
 from typing import Any
 
-from pydantic import ConfigDict, Field, GetCoreSchemaHandler, field_validator
+from pydantic import ConfigDict, Field, GetCoreSchemaHandler, ValidationInfo, field_validator
 from pydantic_core import CoreSchema, core_schema
 
 from aoa.action_machine.domain.declared_values import (
@@ -80,6 +80,8 @@ from aoa.action_machine.domain.declared_values import (
 )
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+
+_VALUE_CONSTRUCTION = object()
 
 
 class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesMeta):
@@ -104,9 +106,12 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesM
     code: str = Field(description="Stable value code — identity inside the dictionary")
     display_name: str = Field(description="Human label for UI and diagrams")
 
-    def __init__(self, **data: Any) -> None:  # pylint: disable=useless-parent-delegation
+    def __init__(self, **data: Any) -> None:  # pylint: disable=super-init-not-called
         """Build a value from its validated fields."""
-        super().__init__(**data)
+        # Use BaseModel's validation path with a private, type-specific construction context.
+        self.__pydantic_validator__.validate_python(
+            data, self_instance=self, context=(_VALUE_CONSTRUCTION, type(self))
+        )
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Hold every descendant to the kind's name suffix."""
@@ -121,7 +126,10 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesM
         model_schema = handler(source_type)
         reference_keys = frozenset({"code", "display_name", "properties"})
 
-        def normalize(value: Any) -> Any:
+        def normalize(value: Any, info: ValidationInfo) -> Any:
+            """Resolve references while allowing the constructor to validate declared fields."""
+            if info.context == (_VALUE_CONSTRUCTION, cls):
+                return value
             if isinstance(value, cls):
                 return cls._declared_member(value)
             if isinstance(value, str):
@@ -129,10 +137,12 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesM
                     f"{cls.__name__}: a bare code is not accepted; pass the declared value or its "
                     f"reference object {{'code', 'display_name', 'properties'}}."
                 )
-            if isinstance(value, Mapping) and set(value) <= reference_keys:
-                if not cls.members:
-                    # the class is being created: its own values are constructed, not referenced
-                    return value
+            if isinstance(value, Mapping):
+                if not set(value) <= reference_keys:
+                    raise ValueError(
+                        f"{cls.__name__}: a reference object may only contain "
+                        "'code', 'display_name' and 'properties'; put descriptive fields under 'properties'."
+                    )
                 code = value.get("code")
                 if not isinstance(code, str) or not code.strip():
                     raise ValueError(f"{cls.__name__}: a reference object needs a non-empty 'code'.")
@@ -144,7 +154,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesM
                     ) from None
             return value
 
-        return core_schema.no_info_before_validator_function(
+        return core_schema.with_info_before_validator_function(
             normalize,
             model_schema,
             serialization=core_schema.plain_serializer_function_ser_schema(

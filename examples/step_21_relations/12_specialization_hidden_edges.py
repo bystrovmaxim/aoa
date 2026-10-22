@@ -1,8 +1,7 @@
-"""Hiding forward edges.
+"""Hide forward edges only.
 
-Does hiding a specialization edge remove the field or its reverse edge?
-Run from the repository root:
-    uv run python examples/step_21_relations/12_specialization_hidden_edges.py
+Add NoGraphEdge to the head's pressing field.
+Run: uv run python examples/step_21_relations/12_specialization_hidden_edges.py
 """
 
 from __future__ import annotations

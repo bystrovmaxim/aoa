@@ -1,8 +1,7 @@
-"""A reverse declaration is outside the union.
+"""A reverse link must belong to the declared axis.
 
-Which declaration is wrong, and how do we repair it?
-Run from the repository root:
-    uv run python examples/step_21_relations/35_error_outside_alternative.py
+Add a class pointing at the head without listing it among the alternatives.
+Run: uv run python examples/step_21_relations/35_error_outside_alternative.py
 """
 
 from __future__ import annotations

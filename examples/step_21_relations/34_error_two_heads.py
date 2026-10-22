@@ -1,8 +1,7 @@
-"""Two heads claim the same alternative.
+"""An alternative belongs to one head.
 
-Which declaration is wrong, and how do we repair it?
-Run from the repository root:
-    uv run python examples/step_21_relations/34_error_two_heads.py
+List the same alternative class under two different heads.
+Run: uv run python examples/step_21_relations/34_error_two_heads.py
 """
 
 from __future__ import annotations

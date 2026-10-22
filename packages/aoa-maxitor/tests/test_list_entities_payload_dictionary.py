@@ -1,58 +1,58 @@
-# tests/maxitor/test_list_entities_payload_dictionary.py
-"""The ERD payload carries a dictionary's values and the fields that reference it."""
+"""Dictionary values and references survive the ERD query without a demo dependency."""
 
-from __future__ import annotations
-
-import json
 from typing import Any
+
+import pytest
 
 from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
-_DICTIONARIES = "aoa.demo.model.dictionaries.domain.DictionariesDomain"
-_BILLING = "aoa.demo.model.billing.domain.BillingDomain"
+_DOMAIN = "shop.ShopDomain"
+_CURRENCY = "shop.CurrencyEnumEntity"
+_TAG = "shop.PriceTagCoreEntity"
+_VALUES = [
+    {"code": "eur", "display_name": "Euro", "properties": {"symbol": "€"}},
+    {"code": "usd", "display_name": "US dollar", "properties": {"symbol": "$"}},
+]
 
 
-def _slice(domain: str = _DICTIONARIES) -> dict[str, Any]:
-    """Build the demo graph, then read one domain's slice."""
-    from aoa.demo.model.interchange_demo_coordinator import (
-        build_registered_interchange_coordinator,
-    )
+@pytest.fixture(scope="module")
+def diagram() -> dict[str, Any]:
+    """Query a small graph containing a dictionary and one referring field."""
+    graph = {
+        "schema_version": "1.0",
+        "nodes": [
+            {"id": _DOMAIN, "type": "Domain", "label": "ShopDomain", "properties": {"name": "shop", "description": "Shop"}},
+            {"id": _CURRENCY, "type": "Entity", "label": "CurrencyEnumEntity", "properties": {"description": "Currencies", "entity_kind": "enum", "values": _VALUES}},
+            {"id": _TAG, "type": "Entity", "label": "PriceTagCoreEntity", "properties": {"description": "Tag", "entity_kind": "core"}},
+            {"id": _TAG + ":currency", "type": "EntityField", "label": "currency", "properties": {"field_type": "CurrencyEnumEntity", "primary_key_hint": False, "reference_qualname": _CURRENCY}},
+        ],
+        "edges": [
+            *({"source_id": identifier, "target_id": _DOMAIN, "type": "domain", "relationship": "Composition", "is_dag": False} for identifier in (_CURRENCY, _TAG)),
+            {"source_id": _TAG, "target_id": _TAG + ":currency", "type": "entity_field", "relationship": "Composition", "is_dag": False, "properties": {"ordinal": 0, "field_name": "currency"}},
+        ],
+    }
+    store = DuckDBGraphResource.build_from_json(graph)
+    return ListEntitiesAction._slice_payload(store, _DOMAIN, include_neighbors=False)
 
-    graph = json.loads(build_registered_interchange_coordinator().to_json())
-    duck = DuckDBGraphResource.build_from_json(graph)
-    payload = ListEntitiesAction._slice_payload(duck, domain, include_neighbors=False)
-    assert isinstance(payload, dict)
-    return payload
 
-
-def test_the_dictionary_row_carries_its_values() -> None:
-    """The card has the rows a reader needs, and nothing else."""
-    currency = next(entity for entity in _slice()["entities"] if entity["label"] == "CurrencyEnumEntity")
-
+def test_the_dictionary_row_carries_its_values(diagram: dict[str, Any]) -> None:
+    """A card retains declaration order, labels and descriptive properties."""
+    currency = next(item for item in diagram["entities"] if item["id"] == _CURRENCY)
     assert currency["entity_kind"] == "enum"
     assert currency["values"] == [
-        {"code": "usd", "display_name": "US dollar"},
-        {"code": "eur", "display_name": "Euro"},
-        {"code": "rub", "display_name": "Ruble"},
+        {"code": "eur", "display_name": "Euro", "properties": [{"name": "symbol", "value": "€"}]},
+        {"code": "usd", "display_name": "US dollar", "properties": [{"name": "symbol", "value": "$"}]},
     ]
 
 
-def test_a_plain_entity_carries_no_values() -> None:
-    """Only a dictionary declares values; the key is present and empty elsewhere."""
-    for entity in _slice()["entities"]:
-        if entity["label"] != "CurrencyEnumEntity":
-            assert entity["values"] == []
+def test_a_plain_entity_carries_no_values(diagram: dict[str, Any]) -> None:
+    """A business object does not acquire a dictionary catalogue."""
+    tag = next(item for item in diagram["entities"] if item["id"] == _TAG)
+    assert tag["values"] == []
 
 
-def test_a_field_that_references_the_dictionary_names_it() -> None:
-    """A reference is readable in the payload, so the client can draw it as a reference."""
-    payload = _slice(_BILLING)
-    references = [
-        field
-        for entity in payload["entities"]
-        for field in entity["fields"]
-        if (field.get("reference_qualname") or "").endswith("CurrencyEnumEntity")
-    ]
-
-    assert references, "a currency field in the dictionaries domain must reference the dictionary"
+def test_a_reference_field_names_its_dictionary(diagram: dict[str, Any]) -> None:
+    """The renderer can identify the referenced class without domain knowledge."""
+    tag = next(item for item in diagram["entities"] if item["id"] == _TAG)
+    assert tag["fields"][0]["reference_qualname"] == _CURRENCY

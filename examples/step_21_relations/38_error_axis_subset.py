@@ -1,8 +1,7 @@
-"""A second axis has a different alternative set.
+"""A second axis cannot omit a reverse-linked class.
 
-Are different classifier fields sufficient for two different alternative sets?
-Run from the repository root:
-    uv run python examples/step_21_relations/38_error_axis_subset.py
+The second axis covers a smaller set than the classes pointing at this head.
+Run: uv run python examples/step_21_relations/38_error_axis_subset.py
 """
 
 from __future__ import annotations

@@ -1,8 +1,7 @@
-"""Two classifications on the same record.
+"""Reuse a dictionary on two axes.
 
-Can a record carry the catalogue classification and a separately reported classification?
-Run from the repository root:
-    uv run python examples/step_21_relations/11_specialization_two_axes.py
+The catalogue and another source can report separate classifications.
+Run: uv run python examples/step_21_relations/11_specialization_two_axes.py
 """
 
 from __future__ import annotations
@@ -107,7 +106,7 @@ def main() -> None:
 
     ActionProductMachine(loggers=[])
     for axis in EntityIntentResolver.resolve_entity_specializations(VinylRecordCoreEntity):
-        print(axis.field_name, "by", axis.classifier_field)
+        print(axis.field_name, "by", axis.dictionary.__name__)
 
 
 if __name__ == "__main__":

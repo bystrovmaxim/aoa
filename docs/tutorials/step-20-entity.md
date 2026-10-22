@@ -63,7 +63,7 @@ There are two separate declarations here. `BaseCoreEntity` supplies the kind and
 | `BaseAssocEntity` | Only the fact that participants are connected | `AssocEntity` |
 | `BaseDetailEntity` | An identifiable part of one owner | `DetailEntity` |
 | `BaseSpecEntity` | Variant-specific data of the same general object | `SpecEntity` |
-| `BaseEnumEntity` | A shared reference value | `EnumEntity` |
+| `BaseEnumEntity` | A declared value of a closed dictionary | `EnumEntity` |
 | `BaseStateEntity` | The description of a lifecycle state | `StateEntity` |
 
 ### A technical association records only a connection
@@ -124,21 +124,41 @@ The head's `Specialization[...]` field points to variant data and names a closed
 
 The contract calls for one reverse generalization and at most one instance of a given variant per head. It permits a lifecycle for variant-specific data, but does not make the specialization another specialization head or an owned component. The build checks the declared relationship and the two-sided value comparison: every value the dictionary declares has exactly one alternative, and every alternative names exactly one of its values. The kind marker itself does not validate key equality or enforce every domain restriction. The examples follow the identity contract even where the runtime does not enforce it.
 
-A currency is the other shape worth knowing. `CurrencyEnumEntity` declares `usd`, `eur` and `rub` in its own body, and a field typed by it — `currency_iso: CurrencyEnumEntity` — holds one of those values rather than a string. [07_enumeration](https://github.com/bystrovmaxim/aoa/blob/main/examples/step_20_entity/07_enumeration.py) is the runnable page: it shows the catalogue, a reference field and the refusal of a bare code.
-
 ### An enumeration describes a shared reference value
 
 [Script](../../examples/step_20_entity/07_enumeration.py) · [Notebook](../../examples/step_20_entity/07_enumeration.ipynb)
 
-A currency, country or edition kind is a value other objects refer to. A currency code identifies the value; its symbol and name describe it. Many orders may refer to EUR without owning the currency. Removing an order does not remove the reference value.
+A currency is a value many prices refer to. The currency's name and symbol describe that
+value; a dated exchange-rate quote is a separate business fact. Removing one price does
+not remove its currency. Unlike a state, the currency is not a position in a process.
+
+`BaseEnumEntity` describes a **closed dictionary**: the complete set of allowed values is
+declared in the class body. It supplies required, nonblank `code` and `display_name`
+fields. The currency class adds `symbol` and declares EUR and USD. These declarations
+become immutable, shared instances when the class is created.
+
+The example reads the catalogue:
 
 ```text
-EUR €
+Codes: ['eur', 'usd']
+Members: 2
+Same object: True
+Value: Euro €
 ```
 
-`BaseEnumEntity` adds no fields automatically. The example declares `code` and `symbol` because those fields describe its reference value. The role does not depend on how many entries the dictionary has or where they are stored.
+`codes()` preserves declaration order. `by_code("eur")` returns the declared EUR object;
+an unknown code raises `KeyError`. A field typed as `CurrencyEnumEntity` holds a declared
+value. Its serialized reference contains the code, label and descriptive properties.
+A bare string, an unknown reference code and a constructed copy are refused.
 
-Editing a label maintains the dictionary; it is not a business lifecycle transition. A currency symbol belongs in the currency value, whereas an exchange-rate quote for a particular date is a separate business fact. That fact should not be hidden among the dictionary's descriptive attributes.
+A dictionary subclass inherits fields but declares its own catalogue. An undecorated
+intermediate may have no values; a dictionary registered with `@entity` must have at least
+one. A table whose entries users maintain in data has a different purpose: model it as a
+core entity with a suitable unique code rather than pretending its set is closed in code.
+
+[Closed dictionaries in practice](step-20-dictionaries.md) develops these rules through
+separate runnable cases: a typed field, a stale reference payload, storage mapping,
+serialization, optional absence, inheritance, graph export and each invalid input.
 
 ### A state describes a position in a process
 

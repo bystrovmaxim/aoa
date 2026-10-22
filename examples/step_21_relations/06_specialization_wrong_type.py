@@ -1,8 +1,7 @@
-"""Rejecting an unrelated object.
+"""An unrelated loaded object is refused.
 
-Does the container accept a record where pressing details are required?
-Run from the repository root:
-    uv run python examples/step_21_relations/06_specialization_wrong_type.py
+Pass the head record where pressing details are required.
+Run: uv run python examples/step_21_relations/06_specialization_wrong_type.py
 """
 
 from __future__ import annotations
@@ -103,7 +102,9 @@ def main() -> None:
     record = VinylRecordCoreEntity(
         id="rec-1",
         title="Kind of Blue",
-        pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
+        pressing=Specialization[
+            FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity
+        ](
             id="rec-1",
             variant=VinylRecordKindEnumEntity.FIRST,
         ),

@@ -90,7 +90,9 @@ A dictionary is an Entity node whose `entity_kind` is `enum`; it carries `proper
 
 A field typed by a dictionary carries `reference_qualname`, the dictionary's interchange id. The card shows the dictionary's short name after the type, prefixed with an arrow. The axis container's label names the dictionary that classifies it.
 
-The payload's own schema is strict, so a value row carries `code` and `display_name` only: a value's extra fields travel in the graph but not in that payload. An entity that declares no dictionary has no values and no reference, and nothing in the rendering knows any domain's vocabulary.
+The ERD payload carries each value's `code`, `display_name` and descriptive `properties` as name/value text rows. The card renders these properties below the label; the full graph retains their original object form. The renderer escapes property text and does not know any domain-specific names. Ordinary entities have an empty value list.
+
+See the [dictionary example](../../examples/step_20_dictionaries/09_erd.py) and [Maxitor tutorial](../../docs/tutorials/step-26-maxitor.md#dictionaries-values-inside-the-entity-card) for the actual output.
 
 ---
 

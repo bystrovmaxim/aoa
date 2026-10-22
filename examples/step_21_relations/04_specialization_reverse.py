@@ -1,8 +1,7 @@
-"""Reading the common information from the details.
+"""Read back from details to the head.
 
-How does a loaded reverse link differ from an identifier-only reverse link?
-Run from the repository root:
-    uv run python examples/step_21_relations/04_specialization_reverse.py
+Compare two Generalization references to the same record.
+Run: uv run python examples/step_21_relations/04_specialization_reverse.py
 """
 
 from __future__ import annotations
@@ -101,7 +100,9 @@ def main() -> None:
     record = VinylRecordCoreEntity(
         id="rec-1",
         title="Kind of Blue",
-        pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
+        pressing=Specialization[
+            FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity
+        ](
             id="rec-1",
             variant=VinylRecordKindEnumEntity.FIRST,
         ),

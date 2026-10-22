@@ -338,7 +338,17 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         entities = duck.execute_fetch_dicts(entity_sql, [qual])
         for entity in entities:
             declared = json.loads(entity.pop("values_json") or "[]")
-            entity["values"] = [{"code": value["code"], "display_name": value["display_name"]} for value in declared]
+            entity["values"] = [
+                {
+                    "code": value["code"],
+                    "display_name": value["display_name"],
+                    "properties": [
+                        {"name": name, "value": item if isinstance(item, str) else json.dumps(item, ensure_ascii=False)}
+                        for name, item in value.get("properties", {}).items()
+                    ],
+                }
+                for value in declared
+            ]
         return {
             "entities": entities,
             "relations": relations,

@@ -156,6 +156,7 @@ echo "" >>"$LOG_FILE"
 # Do not chase either one; the steps below stay green with them in the log.
 run_and_log "(cd packages/aoa-maxitor/client && npm ci && npm run build)" "Maxitor client: npm ci and Vite build"
 run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-card-containment.ts)" "Maxitor client: ERD card containment"
+run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-dictionary-values.ts)" "Maxitor client: dictionary value properties"
 
 # The auto-fix step takes the same scope as the lint target below (`task lint`), so that the two
 # agree on what this repository lints. `examples/` and its notebooks are tutorial material and sit

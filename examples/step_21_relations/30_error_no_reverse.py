@@ -1,8 +1,7 @@
-"""An alternative has no reverse declaration.
+"""An alternative needs a reverse declaration.
 
-Which declaration is wrong, and how do we repair it?
-Run from the repository root:
-    uv run python examples/step_21_relations/30_error_no_reverse.py
+Remove the first pressing's Generalization field.
+Run: uv run python examples/step_21_relations/30_error_no_reverse.py
 """
 
 from __future__ import annotations

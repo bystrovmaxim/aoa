@@ -1,8 +1,7 @@
-"""A head code has no matching alternative.
+"""Every dictionary value needs an alternative.
 
-Which declaration is wrong, and how do we repair it?
-Run from the repository root:
-    uv run python examples/step_21_relations/23_error_unknown_head_code.py
+Add lost to the dictionary without adding its alternative.
+Run: uv run python examples/step_21_relations/23_error_unknown_head_code.py
 """
 
 from __future__ import annotations

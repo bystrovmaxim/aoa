@@ -1,8 +1,7 @@
-"""The head names no dictionary, and something else stands in its place.
+"""The second argument must be a dictionary.
 
-Which declaration is wrong, and how do we repair it?
-Run from the repository root:
-    uv run python examples/step_21_relations/20_error_missing_classifier.py
+Use str as the second type argument.
+Run: uv run python examples/step_21_relations/20_error_missing_classifier.py
 """
 
 from __future__ import annotations

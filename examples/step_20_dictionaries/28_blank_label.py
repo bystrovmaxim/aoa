@@ -1,0 +1,56 @@
+"""A declared display_name cannot be blank.
+
+Declare a value with a whitespace-only display_name.
+Run: uv run python examples/step_20_dictionaries/28_blank_label.py
+"""
+
+from pydantic import Field, ValidationError
+
+from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity
+from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entity import entity
+
+
+class ShopDomain(BaseDomain):
+    """Group the shop declarations."""
+
+    name = "shop"
+    description = "Shop model"
+
+
+@entity(description="Currencies accepted by the shop", domain=ShopDomain)
+class CurrencyEnumEntity(BaseEnumEntity):
+    """Declare the shop's currency vocabulary."""
+
+    symbol: str = Field(description="Currency symbol")
+
+    EUR = CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")  # noqa: F821
+    USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")  # noqa: F821
+
+
+@entity(description="Price tag", domain=ShopDomain)
+class PriceTagCoreEntity(BaseCoreEntity):
+    """Associate an amount with its currency."""
+
+    id: str = Field(description="Tag identifier")
+    amount: float = Field(description="Price amount")
+    currency: CurrencyEnumEntity = Field(description="Money unit")
+
+
+def main() -> None:
+    """Run this one learning experiment."""
+    try:
+
+        class BlankEnumEntity(BaseEnumEntity):
+            """Intentionally omit meaningful identity or label text."""
+
+            VALUE = BlankEnumEntity(code="valid", display_name=" ")  # noqa: F821
+    except ValidationError as error:
+        print(error.errors()[0]["loc"][0])
+        print(error.errors()[0]["msg"])
+    else:
+        raise AssertionError("A blank field was accepted")
+
+
+if __name__ == "__main__":
+    main()

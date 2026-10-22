@@ -1,8 +1,7 @@
-"""A reference without the object.
+"""Known variant, unloaded details.
 
-What can we read before pressing details have been loaded?
-Run from the repository root:
-    uv run python examples/step_21_relations/03_specialization_unloaded.py
+Keep a reference to a first pressing without loading its stamper data.
+Run: uv run python examples/step_21_relations/03_specialization_unloaded.py
 """
 
 from __future__ import annotations
@@ -103,7 +102,7 @@ def main() -> None:
         variant=VinylRecordKindEnumEntity.FIRST,
     )
     print(link.id)
-    print(link.variant)
+    print(link.variant.code)
     print(link.entity)
 
 
