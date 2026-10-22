@@ -35,6 +35,27 @@ ListEntitiesDomainSlicesJson = JsonSchemaValue.define(
                                             "(for accent coloring)."
                                         ),
                                     },
+                                    "entity_kind": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Kind of the entity row; 'enum' marks a closed dictionary.",
+                                    },
+                                    "values": {
+                                        "type": "array",
+                                        "description": (
+                                            "The values a closed dictionary declares, each one its reference "
+                                            "object; empty for every other kind."
+                                        ),
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {"type": "string", "minLength": 1},
+                                                "display_name": {"type": "string", "minLength": 1},
+                                            },
+                                            "required": ["code", "display_name"],
+                                            "additionalProperties": False,
+                                        },
+                                    },
                                     "fields": {
                                         "type": "array",
                                         "items": {
@@ -51,6 +72,13 @@ ListEntitiesDomainSlicesJson = JsonSchemaValue.define(
                                                 "type": {"type": "string"},
                                                 "primary_key": {"type": "boolean"},
                                                 "foreign_key": {"type": "boolean"},
+                                                "reference_qualname": {
+                                                    "type": ["string", "null"],
+                                                    "description": (
+                                                        "Interchange qualname of the closed dictionary this field "
+                                                        "references; null for a scalar field."
+                                                    ),
+                                                },
                                             },
                                             "required": [
                                                 "name",
@@ -62,7 +90,14 @@ ListEntitiesDomainSlicesJson = JsonSchemaValue.define(
                                         },
                                     },
                                 },
-                                "required": ["id", "label", "domain_qualname", "fields"],
+                                "required": [
+                                    "id",
+                                    "label",
+                                    "domain_qualname",
+                                    "entity_kind",
+                                    "values",
+                                    "fields",
+                                ],
                                 "additionalProperties": False,
                             },
                         },

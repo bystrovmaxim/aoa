@@ -17,6 +17,7 @@ edges); relation slots appear as ``FK -> …`` rows. The wire ``domain_slices`` 
 
 from __future__ import annotations
 
+import json
 from typing import Annotated, Any, cast
 
 from pydantic import Field
@@ -211,7 +212,8 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             vf.field_type AS type,
             vf.primary_key_hint AS primary_key,
             FALSE AS foreign_key,
-            efe.ordinal AS ordinal
+            efe.ordinal AS ordinal,
+            vf.reference_qualname AS reference_qualname
           FROM entity_field_edges efe
           INNER JOIN entity_field vf ON vf.id = efe.target_id
           WHERE efe.target_id NOT IN (SELECT field_node_id FROM excluded_field_nodes WHERE field_node_id IS NOT NULL)
@@ -223,10 +225,11 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             rr.type,
             FALSE AS primary_key,
             TRUE AS foreign_key,
-            rr.ordinal
+            rr.ordinal,
+            CAST(NULL AS VARCHAR) AS reference_qualname
           FROM rendered_rows rr
           UNION ALL
-          SELECT entity_id, CAST(NULL AS VARCHAR) AS field_node_id, name, type, FALSE AS primary_key, foreign_key, 2147483647 AS ordinal FROM fk
+          SELECT entity_id, CAST(NULL AS VARCHAR) AS field_node_id, name, type, FALSE AS primary_key, foreign_key, 2147483647 AS ordinal, CAST(NULL AS VARCHAR) AS reference_qualname FROM fk
         ), ordered_field_rows AS (
           SELECT DISTINCT
                  fr.entity_id,
@@ -235,31 +238,35 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
                  fr.type,
                  fr.primary_key,
                  fr.foreign_key,
-                 fr.ordinal AS sort_key
+                 fr.ordinal AS sort_key,
+                 fr.reference_qualname
           FROM field_rows fr
         )
         SELECT e.id, e.label, COALESCE(MIN(de.target_id), '') AS domain_qualname,
+               e.entity_kind AS entity_kind, e.values_json AS values_json,
                COALESCE(
                  list(struct_pack(
                    field_id := fr.field_node_id,
                    name := fr.name,
                    type := fr.type,
                    primary_key := fr.primary_key,
-                   foreign_key := fr.foreign_key
+                   foreign_key := fr.foreign_key,
+                   reference_qualname := fr.reference_qualname
                  ) ORDER BY fr.sort_key, fr.name) FILTER (WHERE fr.name IS NOT NULL),
                  CAST([] AS STRUCT(
                    field_id VARCHAR,
                    name VARCHAR,
                    type VARCHAR,
                    primary_key BOOLEAN,
-                   foreign_key BOOLEAN
+                   foreign_key BOOLEAN,
+                   reference_qualname VARCHAR
                  )[])
                ) AS fields
         FROM selected_entity se
         JOIN entity e ON e.id = se.id
         LEFT JOIN domain_edges de ON de.source_id = e.id
         LEFT JOIN ordered_field_rows fr ON fr.entity_id = e.id
-        GROUP BY e.id, e.label
+        GROUP BY e.id, e.label, e.entity_kind, e.values_json
         ORDER BY e.id
     """
         group_sql = f"""
@@ -327,8 +334,12 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         ORDER BY pe.source_id, pe.target_id
         """
         relations.extend(duck.execute_fetch_dicts(parent_entity_sql, [qual]))
+        entities = duck.execute_fetch_dicts(entity_sql, [qual])
+        for entity in entities:
+            declared = json.loads(entity.pop("values_json") or "[]")
+            entity["values"] = [{"code": value["code"], "display_name": value["display_name"]} for value in declared]
         return {
-            "entities": duck.execute_fetch_dicts(entity_sql, [qual]),
+            "entities": entities,
             "relations": relations,
             "groups": groups,
         }

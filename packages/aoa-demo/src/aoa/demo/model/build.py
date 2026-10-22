@@ -11,6 +11,9 @@ from typing import Final
 
 _MODULES: Final[tuple[str, ...]] = (
     "aoa.demo.model.roles",
+    # shared reference dictionaries every domain may reference
+    "aoa.demo.model.dictionaries.domain",
+    "aoa.demo.model.dictionaries.entities",
     # billing: full contour, matching store depth
     "aoa.demo.model.billing.domain",
     "aoa.demo.model.billing.entities",

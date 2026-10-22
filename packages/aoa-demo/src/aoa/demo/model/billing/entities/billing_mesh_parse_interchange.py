@@ -11,6 +11,7 @@ from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
 from aoa.demo.model.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceCoreEntity
+from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
 
 
 @entity(description="Bridge joining parser lifecycle with interchange economics island", domain=BillingDomain)
@@ -19,7 +20,7 @@ class BillingParseInterchangeBridgeCoreEntity(BaseCoreEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Bridge lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: str = Field(description="Declared ISO-4217 money unit")
+    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
     posting_timezone: str = Field(description="Business-calendar timezone identifier")
     parse_pass: Annotated[
         AssociationOne[BillingParsePassCoreEntity],
