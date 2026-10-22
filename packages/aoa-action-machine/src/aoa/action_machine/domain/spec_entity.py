@@ -50,6 +50,14 @@ def declared_value(entity_cls: type[Any]) -> Any:
     return None
 
 
+class _DeclaredVariant:
+    """Read the class's marker after forward references have been resolved."""
+
+    def __get__(self, instance: Any, owner: type[Any]) -> Any:
+        """Return the currently resolved declaration on the owning class."""
+        return declared_value(owner)
+
+
 @exclude_graph_model
 class BaseSpecEntity(BaseEntity, ABC):
     """
@@ -62,19 +70,9 @@ class BaseSpecEntity(BaseEntity, ABC):
     AI-CORE-END
     """
 
-    declared_variant: ClassVar[Any] = None
+    declared_variant: ClassVar[Any] = _DeclaredVariant()
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Hold every descendant to the kind's name suffix."""
         super().__init_subclass__(**kwargs)
         super()._require_kind_suffix("SpecEntity")
-
-    @classmethod
-    def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
-        """Expose the declared value this extension's own marker names."""
-        super().__pydantic_init_subclass__(**kwargs)
-        for info in cls.model_fields.values():
-            for meta in info.metadata:
-                if isinstance(meta, Classifier) and meta.variant is not None:
-                    cls.declared_variant = meta.variant
-                    return

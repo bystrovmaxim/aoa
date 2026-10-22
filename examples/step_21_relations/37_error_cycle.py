@@ -1,8 +1,7 @@
-"""Two entities form a specialization cycle.
+"""Specialization cannot form a cycle.
 
-Can two individually consistent relationships form a cycle?
-Run from the repository root:
-    uv run python examples/step_21_relations/37_error_cycle.py
+Make two classes specialize one another.
+Run: uv run python examples/step_21_relations/37_error_cycle.py
 """
 
 from __future__ import annotations
@@ -46,9 +45,11 @@ class ASpecEntity(BaseSpecEntity):
     detail: Annotated[Specialization[BSpecEntity, ASpecEntityKindEnumEntity], Inverse(field_name="back")] = Rel(
         description="Next level"
     )
-    back: Annotated[Generalization[BSpecEntity], Classifier(field="back", variant=BSpecEntityKindEnumEntity.A), Inverse(BSpecEntity, "detail")] = Rel(
-        description="Return to B"
-    )
+    back: Annotated[
+        Generalization[BSpecEntity],
+        Classifier(field="back", variant=BSpecEntityKindEnumEntity.A),
+        Inverse(BSpecEntity, "detail"),
+    ] = Rel(description="Return to B")
 
 
 @entity(description="Kind of BSpecEntity", domain=MusicDomain)
@@ -63,9 +64,11 @@ class BSpecEntity(BaseSpecEntity):
     """Declare the second level of detail."""
 
     id: str = Field(description="Identifier")
-    back: Annotated[Generalization[ASpecEntity], Classifier(field="back", variant=ASpecEntityKindEnumEntity.B), Inverse(ASpecEntity, "detail")] = Rel(
-        description="Return to A"
-    )
+    back: Annotated[
+        Generalization[ASpecEntity],
+        Classifier(field="back", variant=ASpecEntityKindEnumEntity.B),
+        Inverse(ASpecEntity, "detail"),
+    ] = Rel(description="Return to A")
     detail: Annotated[Specialization[ASpecEntity, BSpecEntityKindEnumEntity], Inverse(field_name="back")] = Rel(
         description="Next level"
     )

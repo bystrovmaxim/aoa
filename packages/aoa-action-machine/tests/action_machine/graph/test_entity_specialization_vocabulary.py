@@ -219,3 +219,60 @@ for _fixture in (
     VocabularyCopySpecEntity,
 ):
     _fixture.model_rebuild()
+
+
+def test_a_head_side_classifier_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The dictionary is the head's only classification declaration."""
+    info = VocabularyGoodHeadCoreEntity.model_fields["kind"]
+    monkeypatch.setattr(info, "metadata", [
+        *info.metadata, Classifier(field="id", variant=VocabularyKindEnumEntity.FIRST),
+    ])
+    with pytest.raises(SpecializationDeclarationError, match=r"head.*Classifier"):
+        validate_entity_specializations([
+            VocabularyGoodHeadCoreEntity, VocabularyFirstSpecEntity, VocabularyRepressSpecEntity,
+        ])
+
+
+def test_a_classifier_must_name_the_reverse_field_it_marks(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A marker cannot silently point at a nonexistent reverse field."""
+    info = VocabularyFirstSpecEntity.model_fields["record"]
+    monkeypatch.setattr(info, "metadata", [Classifier(field="missing", variant=VocabularyKindEnumEntity.FIRST)])
+    with pytest.raises(SpecializationDeclarationError, match=r"names 'missing'.*'record'"):
+        validate_entity_specializations([
+            VocabularyGoodHeadCoreEntity, VocabularyFirstSpecEntity, VocabularyRepressSpecEntity,
+        ])
+
+
+def test_an_optional_axis_keeps_its_dictionary_and_graph_edges() -> None:
+    """Absence of a value must not hide the declared axis from the graph."""
+    from aoa.action_machine.graph.edges.entity_specialization_graph_edge import EntitySpecializationGraphEdge
+
+    @exclude_graph_model
+    @entity(description="Optional kind", domain=VocabularyDomain)
+    class OptionalKindEnumEntity(BaseEnumEntity):
+        """Declare the one possible classification."""
+        FIRST = OptionalKindEnumEntity(code="first", display_name="First")
+
+    @exclude_graph_model
+    @entity(description="Optional head", domain=VocabularyDomain)
+    class OptionalHeadCoreEntity(BaseCoreEntity):
+        """Allow a head whose classification has not been supplied."""
+        kind: Specialization[OptionalDetailsSpecEntity, OptionalKindEnumEntity] | None = Rel(description="Optional choice")
+
+    @exclude_graph_model
+    @entity(description="Optional details", domain=VocabularyDomain)
+    class OptionalDetailsSpecEntity(BaseSpecEntity):
+        """Describe the classified head."""
+        record: Annotated[
+            Generalization[OptionalHeadCoreEntity],
+            Classifier(field="record", variant=OptionalKindEnumEntity.FIRST),
+        ] = Rel(description="Head")
+
+    OptionalHeadCoreEntity.model_rebuild(_types_namespace=locals())
+    OptionalDetailsSpecEntity.model_rebuild(_types_namespace=locals())
+    axes = gather_entity_specialization_intent_resolvers(OptionalHeadCoreEntity)
+    assert len(axes) == 1
+    assert axes[0].dictionary is OptionalKindEnumEntity
+    validate_entity_specializations([OptionalHeadCoreEntity, OptionalDetailsSpecEntity])
+    assert len(EntitySpecializationGraphEdge.get_entity_specialization_edges(OptionalHeadCoreEntity)) == 1
+    assert OptionalHeadCoreEntity(kind=None).kind is None

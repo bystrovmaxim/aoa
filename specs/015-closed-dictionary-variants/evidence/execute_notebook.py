@@ -16,6 +16,7 @@ because half-written outputs are worse than stale ones.
 
 from __future__ import annotations
 
+import codeop
 import io
 import json
 import subprocess
@@ -31,6 +32,7 @@ def _run(path: Path) -> bool:
     notebook: dict[str, Any] = json.loads(path.read_text())
     namespace: dict[str, Any] = {"__name__": "__main__", "__file__": str(path)}
     counts = 0
+    compiler = codeop.Compile()
     for cell in notebook.get("cells", []):
         if cell.get("cell_type") != "code":
             continue
@@ -39,7 +41,7 @@ def _run(path: Path) -> bool:
         buffer = io.StringIO()
         try:
             with redirect_stdout(buffer):
-                exec(compile(source, f"{path}:cell{counts}", "exec"), namespace)
+                exec(compiler(source, f"{path}:cell{counts}", "exec"), namespace)
         except Exception:
             print(f"{path}: cell {counts} failed", file=sys.stderr)
             traceback.print_exc()

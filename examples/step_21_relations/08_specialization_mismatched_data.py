@@ -1,8 +1,7 @@
-"""A link does not choose its object.
+"""The loaded class must match the value.
 
-Does variant="first" require the supplied object to be a FirstPressSpecEntity?
-Run from the repository root:
-    uv run python examples/step_21_relations/08_specialization_mismatched_data.py
+Pair FIRST with an otherwise valid RepressSpecEntity.
+Run: uv run python examples/step_21_relations/08_specialization_mismatched_data.py
 """
 
 from __future__ import annotations

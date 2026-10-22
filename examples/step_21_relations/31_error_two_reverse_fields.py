@@ -1,8 +1,7 @@
-"""An alternative has two reverse fields.
+"""Two reverse fields are ambiguous.
 
-Which declaration is wrong, and how do we repair it?
-Run from the repository root:
-    uv run python examples/step_21_relations/31_error_two_reverse_fields.py
+Give one alternative two Generalization fields pointing to the same head.
+Run: uv run python examples/step_21_relations/31_error_two_reverse_fields.py
 """
 
 from __future__ import annotations

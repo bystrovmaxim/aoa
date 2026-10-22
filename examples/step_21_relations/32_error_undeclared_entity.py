@@ -1,8 +1,7 @@
-"""An alternative is not declared as an entity.
+"""The alternative must be registered.
 
-Which declaration is wrong, and how do we repair it?
-Run from the repository root:
-    uv run python examples/step_21_relations/32_error_undeclared_entity.py
+Leave FirstPressSpecEntity without @entity.
+Run: uv run python examples/step_21_relations/32_error_undeclared_entity.py
 """
 
 from __future__ import annotations

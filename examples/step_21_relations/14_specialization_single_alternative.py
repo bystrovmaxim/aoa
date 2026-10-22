@@ -1,6 +1,6 @@
-"""One alternative in the ERD.
+"""A single alternative needs no frame.
 
-Does a one-alternative specialization create a group or a relation line?
+Use a dictionary with one value and an axis with one alternative.
 Run: uv run python examples/step_21_relations/14_specialization_single_alternative.py
 """
 

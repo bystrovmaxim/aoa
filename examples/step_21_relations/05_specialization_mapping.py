@@ -1,8 +1,7 @@
-"""Reading the declared code-to-class mapping.
+"""The dictionary orders the mapping.
 
-Does a code identify a class by its position in the union?
-Run from the repository root:
-    uv run python examples/step_21_relations/05_specialization_mapping.py
+Declare TEST before FIRST and REPRESS, keeping the alternative union unchanged.
+Run: uv run python examples/step_21_relations/05_specialization_mapping.py
 """
 
 from __future__ import annotations
@@ -104,7 +103,7 @@ def main() -> None:
     ActionProductMachine(loggers=[])
     axis = EntityIntentResolver.resolve_entity_specializations(VinylRecordCoreEntity)[0]
     print("Field:", axis.field_name)
-    print("Classifier:", axis.classifier_field)
+    print("Dictionary:", axis.dictionary.__name__)
     for code in axis.codes:
         print(code, "->", axis.code_to_target[code].__name__)
 

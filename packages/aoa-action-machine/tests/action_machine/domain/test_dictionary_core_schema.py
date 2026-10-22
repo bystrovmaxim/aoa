@@ -119,3 +119,13 @@ def test_the_value_itself_dumps_as_its_reference_object() -> None:
         "display_name": "US dollar",
         "properties": {"symbol": "$"},
     }
+
+
+@pytest.mark.parametrize("code", ["usd", "bootleg"])
+def test_flat_model_data_cannot_fabricate_a_dictionary_field(code: str) -> None:
+    """Only reference-shaped mappings may enter a dictionary field."""
+    with pytest.raises(ValidationError, match="reference object"):
+        SchemaPriceTagCoreEntity(
+            id="flat", amount=1.0,
+            currency={"code": code, "display_name": "Forged", "symbol": "?"},
+        )

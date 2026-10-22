@@ -15,6 +15,7 @@
 - [The full graph](#the-full-graph)
 - [ERD, use case, and lifecycle](#erd-use-case-and-lifecycle)
 - [It's the same graph the machine builds](#its-the-same-graph-the-machine-builds)
+- [Dictionaries: values inside the entity card](#dictionaries-values-inside-the-entity-card)
 - [Specialization: the variants in one frame](#specialization-the-variants-in-one-frame)
 - [Maxitor as an AOA application](#maxitor-as-an-aoa-application)
 - [How to run it](#how-to-run-it)
@@ -112,59 +113,66 @@ No diagram was drawn by hand — this is the running system's own graph.
 
 You can see how each declared intent became a node or an edge: the domain and the role, the `@depends` resource, both aspects and the checker, two entities with five fields and a relation, the order automaton with states and transitions. This is exactly what Maxitor unfolds into four projections.
 
+## Dictionaries: values inside the entity card
+
+An **entity–relationship diagram**, or **ERD**, describes the declared domain model.
+Each table-shaped card represents an entity class; its rows describe fields. The shape
+does not prove that a database table exists. `PK` and `FK` are diagram hints, not generated
+database constraints.
+
+A closed dictionary is one entity class with several declared values. Maxitor therefore
+shows one dictionary card, with its values listed beneath its fields. Each value row shows
+its code and display name, followed by descriptive properties such as a currency symbol.
+The values are not separate cards or graph nodes. A field typed by a dictionary names the
+referenced dictionary beside its type, with an arrow marker.
+
+The [dictionary ERD script](../../examples/step_20_dictionaries/09_erd.py) and
+[notebook](../../examples/step_20_dictionaries/09_erd.ipynb) build a small currency/price
+model and pass its actual graph through Maxitor's query. They print:
+
+```text
+{'code': 'eur', 'display_name': 'Euro', 'properties': [{'name': 'symbol', 'value': '€'}]}
+CurrencyEnumEntity
+```
+
+The full graph preserves descriptive fields in each value's `properties` object. The ERD
+response converts them to name/value text rows for presentation. This allows the card to
+show fields without knowing any currency names or property names. For non-string values,
+the text uses JSON notation. The response also preserves `entity_kind`, `values` and each
+referencing field's `reference_qualname`.
+
 ## Specialization: the variants in one frame
 
 ### Read the entity diagram before interpreting its arrows
 
-An **entity–relationship diagram**, abbreviated **ERD**, shows the declared data model. Each table-shaped box represents an entity class. Its header names the class, and the rows beneath it name fields and their types. AOA's entities are not database mappings, so a table-shaped box does not establish that a physical database table exists. The `PK` and `FK` decorations are diagram hints for identifiers and references, not proof of database constraints.
+The [record model](step-21-relations.md#generalization-and-specialization) has a head,
+`VinylRecordCoreEntity`, with common record information. Its first-pressing, re-pressing and
+test-pressing classes contain the alternative sets of specific data. The `pressing` field
+and `VinylRecordKindEnumEntity` dictionary form one **axis**: one declared choice among
+those classes.
 
-The [record example](step-21-relations.md#generalization-and-specialization) separates an album title from the details of each kind of pressing. `VinylRecordCoreEntity` is the common class, or head. `FirstPressSpecEntity`, `RepressSpecEntity`, and `TestPressSpecEntity` are the possible detail classes, or alternatives. The head's `pressing` field and the closed dictionary it names form one specialization axis: one declared choice among those alternatives.
-
-The ERD payload gives that field one row named `pressing`. The specialization group carries the label `pressing (by VinylRecordKindEnumEntity)`, identifying the reference field and the dictionary that classifies it. The type text lists `FirstPressSpec (first) | RepressSpec (repress) | TestPressSpec (test)`. Read each pair as a class display name followed by its declared code. The `Entity` suffix is omitted in this type text to reduce repetition; the class names in the table headers retain it.
-
-The card of a dictionary shows its values as rows under its fields — the code and the display name, with no key marker — and a field typed by a dictionary shows the dictionary's short name after its type in teal, prefixed with an arrow. Nothing in the rendering knows a domain's vocabulary: the payload carries `entity_kind`, `values` and `reference_qualname`, and a model that declares no dictionary simply has none of them.
-
-There is one row because `pressing` is one field. Listing three alternatives does not add three simultaneous references to every record. It tells us which kinds of object this field can refer to. The diagram describes the declaration; it does not show which alternative a particular stored record currently has.
+The head has one `pressing` row. It has no additional `media` selector, because the selected
+value belongs to the specialization container. The ERD groups the three alternatives in a
+dashed frame labelled `pressing (by VinylRecordKindEnumEntity)`. That frame represents a
+choice; it is not another entity and does not mean all alternatives are loaded at once.
 
 ### Generate the diagram data from the working model
 
-This experiment answers one question: how does Maxitor turn the three declared alternatives into its ERD data? The [script](../../examples/step_21_relations/13_specialization_erd.py) and [notebook](../../examples/step_21_relations/13_specialization_erd.ipynb) repeat the complete four-class preparation from [Step 21](step-21-relations.md#declare-the-complete-model). Keep that preparation unchanged and replace its final experiment with the block below.
-
-`machine.graph_coordinator.to_json()` exports the class graph built by AOA. `DuckDBGraphResource.build_from_json` loads that graph into Maxitor's queryable store; these are diagram metadata, not music-catalogue rows. The selected domain identifier comes from the built graph. `ListEntitiesAction._slice_payload` is the actual ERD query used here to reproduce the diagram without starting the HTTP service. Its leading underscore matters: this example inspects Maxitor's current implementation, rather than introducing a public API for application business logic.
-
-
-```python
-import json
-from pathlib import Path
-
-from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
-
-machine = ActionProductMachine(loggers=[])
-graph = json.loads(machine.graph_coordinator.to_json())
-store = DuckDBGraphResource.build_from_json(graph)
-domain_id = next(node.node_id for node in machine.graph_coordinator.get_all_nodes() if node.label == "MusicDomain")
-diagram = ListEntitiesAction._slice_payload(store, domain_id, include_neighbors=False)
-head = next(item for item in diagram["entities"] if item["label"] == "VinylRecordCoreEntity")
-field = next(item for item in head["fields"] if item["name"] == "pressing")
-print(field["name"])
-print(field["type"])
-print("Groups:", len(diagram["groups"]))
-print("Alternatives:", len(diagram["groups"][0]["members"]))
-print("Group links:", sum(item.get("relationship_kind") == "specialization" for item in diagram["relations"]))
-output = Path("examples/step_21_relations/02_specialization_erd.json")
-output.write_text(json.dumps(diagram, indent=2) + "\n")
-print("Saved:", output.as_posix())
-```
-
-`entities` contains the table-shaped boxes and their fields. `groups` contains display groups, each with member entity identifiers. `relations` contains the connections to draw. The last part of the example saves this actual payload next to the scripts so the image can be reproduced from the same data.
-
+The [script](../../examples/step_21_relations/13_specialization_erd.py) and
+[notebook](../../examples/step_21_relations/13_specialization_erd.ipynb) contain the complete
+five-class model: dictionary, head and three alternatives. Run the script from the
+repository root:
 
 ```bash
 uv run python examples/step_21_relations/13_specialization_erd.py
 ```
 
-Actual output:
+It builds AOA's graph, loads the exported metadata into `DuckDBGraphResource` and asks
+`ListEntitiesAction._slice_payload` for the ERD projection. This is the internal query
+used by the viewer; the example uses it to inspect the diagram without starting an HTTP
+service. It is not a public persistence API for application data.
+
+Output:
 
 ```text
 pressing
@@ -175,142 +183,66 @@ Group links: 1
 Saved: examples/step_21_relations/02_specialization_erd.json
 ```
 
-Three forward edges in the logical model have produced one combined field row, one group containing three alternatives, and one group-directed relation. The group identifier is derived from the head and field, but it does not create another entity. The alternatives retain their own boxes and fields.
+`entities` supplies cards, `groups` supplies visual frames and `relations` supplies drawing
+connections. The type text lists class display names and their declared codes; the `Entity`
+suffix is omitted in that text. The dictionary supplies alternative order, while each
+alternative's marker determines its corresponding code.
 
 ### Inspect the actual rendered picture
 
-The following image was generated from the saved payload with the repository's `buildDotSource` function and the Graphviz renderer used by Maxitor. Graphviz is the layout program that positions the boxes and arrows; its input format is called DOT.
+![Record specialization rendered by Maxitor](../../examples/step_21_relations/02_specialization_erd.svg)
 
-![Current Maxitor rendering of the record specialization](../../examples/step_21_relations/02_specialization_erd.svg)
+The dictionary card lists first, repress and test. The alternatives remain separate cards
+inside the frame, so their fields—stamper, year and approved_by—remain readable. The head
+sits outside that frame. Its field is summarized as `Specialization 3+`; the tooltip holds
+the full mapping. Generalization arrows lead from the alternatives back to the head.
+The payload's group-directed connection is a rendering instruction, not an extra object.
 
-The dashed frame is labelled `pressing (by media)` and contains the three detail classes. `VinylRecordCoreEntity` sits outside it. You can read each detail class independently: `stamper`, `year`, and `approved_by` remain on their respective classes. The frame is a visual grouping of possible details, not a fourth kind of detail object.
-
-The current DOT renderer shows the head field as `Specialization 3+`, with the code-to-class mapping in its tooltip. It draws a labelled generalization arrow from each variant back to the head. The payload's group-directed relation is a drawing instruction; it is not rendered as a separate entity or a line ending at an extra label. The frame and these arrows describe the same declared choice. They do not mean that every record has all three variants loaded.
-
-To reproduce the image, first run the Python experiment above. Then, with the Maxitor client's dependencies installed, run:
-
+To regenerate the image after the Python script, use the installed client dependencies:
 
 ```bash
 node examples/step_21_relations/render_specialization_erd.mjs
 ```
 
-Output:
-
-
-```text
-Saved: examples/step_21_relations/02_specialization_erd.dot
-Saved: examples/step_21_relations/02_specialization_erd.svg
-```
-
-The [JSON payload](../../examples/step_21_relations/02_specialization_erd.json), [complete DOT source](../../examples/step_21_relations/02_specialization_erd.dot), and [SVG image](../../examples/step_21_relations/02_specialization_erd.svg) are saved together. The renderer helper uses the client's installed tooling and current source. After editing a model, rerun the data-producing Python script and then the renderer; editing another example does not automatically refresh this saved image.
+This writes the [DOT source](../../examples/step_21_relations/02_specialization_erd.dot)
+and [SVG image](../../examples/step_21_relations/02_specialization_erd.svg) from the saved
+[JSON payload](../../examples/step_21_relations/02_specialization_erd.json), using Maxitor's
+current `buildDotSource` and Graphviz renderer. Graphviz is the program that positions the
+cards and arrows; DOT is its input language.
 
 ### What happens when there is only one alternative?
 
-A model may declare `Specialization[FirstPressSpecEntity]` with the single code `first`. There is then no choice to group. For this experiment, remove `RepressSpecEntity` and `TestPressSpecEntity` from the model, remove their entries from the head's union and code list, and rebuild only the remaining head and alternative. The complete two-class preparation is below. It replaces the four-class preparation for this experiment.
-
-```python
-from __future__ import annotations
-
-from typing import Annotated
-
-from pydantic import Field
-
-from aoa.action_machine.domain import (
-    BaseCoreEntity,
-    BaseEnumEntity,
-    BaseSpecEntity,
-    Classifier,
-    Generalization,
-    Inverse,
-    Rel,
-    Specialization,
-)
-from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.intents.entity import entity
-from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-
-
-class MusicDomain(BaseDomain):
-    """Group the music catalogue declarations."""
-
-    name = "music"
-    description = "A music catalogue"
-
-
-@entity(description="Pressing kind", domain=MusicDomain)
-class VinylRecordKindEnumEntity(BaseEnumEntity):
-    """Declare the values the axis borrows."""
-
-    FIRST = VinylRecordKindEnumEntity(code="first", display_name="First")
-
-
-@entity(description="Vinyl record", domain=MusicDomain)
-class VinylRecordCoreEntity(BaseCoreEntity):
-    """Describe the information shared by all pressings."""
-
-    id: str = Field(description="Record identifier")
-    title: str = Field(description="Album title")
-    pressing: Annotated[
-        Specialization[FirstPressSpecEntity, VinylRecordKindEnumEntity],
-        Inverse(field_name="record"),
-    ] = Rel(description="Details of this pressing")
-
-
-@entity(description="First pressing", domain=MusicDomain)
-class FirstPressSpecEntity(BaseSpecEntity):
-    """Describe the stamper used for a first pressing."""
-
-    id: str = Field(description="The head record identifier")
-    stamper: str = Field(description="Stamper code")
-    record: Annotated[
-        Generalization[VinylRecordCoreEntity],
-        Classifier(field="record", variant=VinylRecordKindEnumEntity.FIRST),
-        Inverse(VinylRecordCoreEntity, "pressing"),
-    ] = Rel(description="Record described by this pressing")
-
-
-VinylRecordCoreEntity.model_rebuild()
-FirstPressSpecEntity.model_rebuild()
-```
-
-[Script](../../examples/step_21_relations/14_specialization_single_alternative.py) · [Notebook](../../examples/step_21_relations/14_specialization_single_alternative.ipynb)
-
-
-```python
-import json
-
-from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
-
-machine = ActionProductMachine(loggers=[])
-store = DuckDBGraphResource.build_from_json(json.loads(machine.graph_coordinator.to_json()))
-domain_id = next(node.node_id for node in machine.graph_coordinator.get_all_nodes() if node.label == "MusicDomain")
-diagram = ListEntitiesAction._slice_payload(store, domain_id, include_neighbors=False)
-print("Groups:", len(diagram["groups"]))
-print("Relation lines:", len(diagram["relations"]))
-```
-
-
-```bash
-uv run python examples/step_21_relations/14_specialization_single_alternative.py
-```
-
-Actual output:
+A dictionary with one value can classify `Specialization[FirstPressSpecEntity, Dictionary]`.
+There is a relationship, but there are no competing alternatives to enclose in a frame.
+The [single-alternative script](../../examples/step_21_relations/14_specialization_single_alternative.py)
+and [notebook](../../examples/step_21_relations/14_specialization_single_alternative.ipynb)
+use a complete model with only that value and class. They print:
 
 ```text
 Groups: 0
-Relation lines: 0
+Relation lines: 1
 ```
 
-The current ERD emits no frame for that declaration. It also emits no ordinary replacement relation line; the raw specialization field remains in the head's table. Therefore the absence of a drawn line is not evidence that the model lacks a relationship. This limitation is separate from whether the model builds successfully.
+The single relation is the reverse generalization. No multi-alternative group is created.
+Similarly, filtering a multi-alternative frame down to fewer than two visible members
+removes the frame from the view; it does not change the declaration.
 
-The viewer's entity filter also removes a multi-alternative display group when fewer than two of its members remain visible. The model declaration has not changed; only the selected view has changed. Likewise, `NoGraphEdge` on a head's specialization field removes the forward edges needed to produce the group, while preserving the field itself.
+`NoGraphEdge` on the head field suppresses the forward specialization edges needed to
+build a group, while preserving the field and reverse edges. The
+[focused example](../../examples/step_21_relations/12_specialization_hidden_edges.py) shows
+these counts independently of rendering.
 
 ### Why the full graph looks different
 
-The **logical graph** contains entity and field nodes and the declared edges between them. The ERD is one presentation built from those data, with additional grouping instructions for its drawing. The full-graph view has no such display groups. It retains the forward `entity_specialization` edges as associations and filters out edges whose relationship is `Generalization`, including the reverse `parent_entity` edges.
+The logical graph contains entity and field nodes and their declared relationships. The
+ERD adds display groups to those data. The full-graph view has no ERD frames: it retains
+forward `entity_specialization` associations and filters edges whose relationship is
+`Generalization`, including reverse `parent_entity` edges.
 
-Thus three visible forward edges in the full graph and one alternatives group in the ERD describe the same declaration at different levels. Neither view loads a record, chooses its variant or checks its stored data. To check those behaviours, use the value-construction experiments in [Step 21](step-21-relations.md#generalization-and-specialization).
+These are different presentations of the same model. Neither view loads business rows,
+selects a variant or validates stored data. The
+[container examples](step-21-relations.md#generalization-and-specialization) explain those
+separate runtime operations.
 
 ## Maxitor as an AOA application
 
@@ -371,8 +303,8 @@ With this the tutorial walks the whole path: an operation and its pipeline → t
 
 7. Why does `pressing` occupy one field row even though the declaration lists three alternatives?
 8. What is the dashed frame, and why does it not imply an additional entity or database table?
-9. What does the current arrow endpoint show, and what limitation does it expose?
-10. Why can a valid one-alternative relationship have no relation line in this ERD?
+9. Why are dictionary values rows inside one card rather than separate entities?
+10. Why does a single alternative have no frame while its reverse relation remains?
 
 > **Exercise.** In [01_graph.py](../../examples/step_26_maxitor/01_graph.py) add a second `Action` with a compensator (`@compensate`) and a handler (`@on_error`) and print the node-type breakdown again — find `Compensator` and `ErrorHandler` among them. Then add a new relation to the entities and confirm the number of `entity_relation` edges grew.
 

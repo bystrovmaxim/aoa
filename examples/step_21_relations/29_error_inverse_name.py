@@ -1,8 +1,7 @@
-"""The reverse field name disagrees.
+"""The inverse name must match.
 
-Which declaration is wrong, and how do we repair it?
-Run from the repository root:
-    uv run python examples/step_21_relations/29_error_inverse_name.py
+The head names album while alternatives point back through record.
+Run: uv run python examples/step_21_relations/29_error_inverse_name.py
 """
 
 from __future__ import annotations

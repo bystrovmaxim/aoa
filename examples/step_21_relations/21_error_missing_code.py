@@ -1,8 +1,7 @@
-"""An alternative has no code.
+"""An alternative must name a value.
 
-Which declaration is wrong, and how do we repair it?
-Run from the repository root:
-    uv run python examples/step_21_relations/21_error_missing_code.py
+Leave the first pressing's reverse field without Classifier.
+Run: uv run python examples/step_21_relations/21_error_missing_code.py
 """
 
 from __future__ import annotations

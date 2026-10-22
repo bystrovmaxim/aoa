@@ -132,7 +132,7 @@ For an honestly one-way link, put `NoInverse()` (the absence of a reverse side i
 
 ## Partial loading of relations
 
-Loading the related object into a container is also called **hydration**. It does not happen automatically. The [partial-loading](step-20-entity.md#one-entity-different-load-levels) rule extends to relations too: the container **always knows the id**, but the related entity may not be loaded. Reaching through an un-hydrated container is a `RelationNotLoadedError`, not a silent `None` and not a hidden query:
+Loading the related object into a container is also called **hydration**. It does not happen automatically. The [partial-loading](step-20-entity.md#distinguish-unloaded-data-from-a-loaded-value) rule extends to relations too: the container **always knows the id**, but the related entity may not be loaded. Reaching through an un-hydrated container is a `RelationNotLoadedError`, not a silent `None` and not a hidden query:
 
 ```python
 order = OrderCoreEntity(
@@ -189,33 +189,58 @@ Different queries return one `OrderCoreEntity` with different relation-load dept
 
 ### Start with the information we need to represent
 
-Suppose we are building a catalogue of vinyl records. Every record has an identifier and an album title. We also want to describe how a particular copy was pressed. For a first pressing we record the stamper code; for a later re-pressing we record its year; for a test pressing we record who approved it. A stamper is the tool used to press the record, and its code identifies that tool.
+Consider a catalogue of vinyl records. Every record has an identifier and an album title.
+A first pressing additionally has a stamper code; a re-pressing has the year it was pressed
+again; a test pressing has the name of its reviewer. A stamper is the tool used to press
+the record. These fields describe different kinds of the same record, rather than three
+independent objects that happen to be related to it.
 
-These are different sets of information. Putting all three sets of fields on every record would make the reader of our model work out which fields belong together and which are relevant to a particular copy. Three independent association fields would describe three separate links, while our intention is one choice among kinds of pressing details.
+We put shared information in `VinylRecordCoreEntity`. This class is called the **head**.
+The classes containing the different sets of specific information are its **alternatives**:
+`FirstPressSpecEntity`, `RepressSpecEntity` and `TestPressSpecEntity`. An alternative inherits
+`BaseSpecEntity` and shares the head object's identity. It is not a component with a
+separate identity, and it is not a Python subclass of the head.
 
-We will therefore use one class for the common record information and a separate class for each kind of pressing details. In this relationship, the common class is called the **head**, and the possible detail classes are its **alternatives**. An alternative is also called a variant or an extension. Here the head is `VinylRecordCoreEntity`; its alternatives are `FirstPressSpecEntity`, `RepressSpecEntity`, and `TestPressSpecEntity`.
+The head's `pressing` field points towards one alternative. This direction is called
+**specialization**. Each alternative's `record` field points back towards the shared
+information. That direction is **generalization**. The corresponding containers are
+`Specialization[Alternatives, Dictionary]` and `Generalization[Head]`. They carry references
+and optionally loaded objects; they do not load rows or generate database tables.
 
-The head's `pressing` field can refer to any one of these alternatives. AOA calls this direction **specialization**, represented by `Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity]`. The vertical bars are Python's union notation: the related object may have any of the listed types. Each detail class also declares a way back to the common record. That direction is **generalization**, represented by `Generalization[VinylRecordCoreEntity]`.
+Before connecting these classes, we need names for the possible choices. The closed
+dictionary `VinylRecordKindEnumEntity` declares `FIRST`, `REPRESS` and `TEST`, with codes
+`first`, `repress` and `test`. A code is an identifier within this dictionary, not a Python
+class name. If closed dictionaries are new to you, read
+[the dictionary guide](step-20-dictionaries.md) first.
 
-This declaration does not make the detail classes Python subclasses of `VinylRecordCoreEntity`. The head inherits `BaseCoreEntity`; its alternatives inherit `BaseSpecEntity`. These bases express the different roles of common and variant-specific data. Nor does it create database tables. An application may store common data and detail data in separate tables, or assemble them from another source; the declarations describe the domain objects and their relationship.
-
-We also need a way to name a kind of pressing in data. We choose the strings `first`, `repress`, and `test`. These strings are **codes**; they are application vocabulary, not Python class names. The record's `media` field holds such a code. A field used to distinguish the alternatives is called a **classifier field**. The `Classifier` marker names that field and the codes declared by the model. It describes a correspondence for application code to use; it does not perform a query or construct the chosen object.
+One specialization field together with its dictionary and alternative classes is an
+**axis**. Here `pressing` is the only axis. The term becomes useful when an object has
+several such fields, because each field describes a separate choice.
 
 ### Declare the complete model
 
-The following preparation is shared by the experiments in this section. Put it at the start of a Python file, then append the first experiment below. Later experiments replace that final block; they do not run on top of the previous experiment's data. Each linked script already contains its own complete copy of the necessary declarations, and each notebook starts with a fresh copy. Use one notebook per kernel session so that intentionally invalid declarations from another experiment do not enter the model being checked.
-
-The imports supply Python's annotation tools, Pydantic's field descriptions, and AOA's declaration types. `MusicDomain` groups the catalogue in the model graph; it does not connect to a database. `@entity` registers each class as part of that declared model.
-
+This preparation is complete: dictionary, head, alternatives and the type-resolution
+calls. Run it before an experiment below. Every linked script and notebook contains its
+own copy, so each experiment can also be run independently. Do not import several of the
+intentionally invalid examples into one process: model build examines loaded declarations.
 
 ```python
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseSpecEntity, Classifier, Generalization, Inverse, Rel, Specialization
+from aoa.action_machine.domain import (
+    BaseCoreEntity,
+    BaseEnumEntity,
+    BaseSpecEntity,
+    Classifier,
+    Generalization,
+    Inverse,
+    Rel,
+    Specialization,
+)
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -228,16 +253,23 @@ class MusicDomain(BaseDomain):
     description = "A music catalogue"
 
 
+@entity(description="Kind of VinylRecordCoreEntity", domain=MusicDomain)
+class VinylRecordKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    FIRST = VinylRecordKindEnumEntity(code="first", display_name="First")  # noqa: F821
+    REPRESS = VinylRecordKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
+    TEST = VinylRecordKindEnumEntity(code="test", display_name="Test")  # noqa: F821
+
+
 @entity(description="Vinyl record", domain=MusicDomain)
 class VinylRecordCoreEntity(BaseCoreEntity):
     """Describe the information shared by all pressings."""
 
     id: str = Field(description="Record identifier")
     title: str = Field(description="Album title")
-    media: str = Field(description="Pressing code")
     pressing: Annotated[
-        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
-        Classifier(field="media", codes=Literal["first", "repress", "test"]),
+        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="Details of this pressing")
 
@@ -250,7 +282,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
     stamper: str = Field(description="Stamper code")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["first"]),
+        Classifier(field="record", variant=VinylRecordKindEnumEntity.FIRST),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
@@ -263,7 +295,7 @@ class RepressSpecEntity(BaseSpecEntity):
     year: int = Field(description="Re-pressing year")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["repress"]),
+        Classifier(field="record", variant=VinylRecordKindEnumEntity.REPRESS),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
@@ -276,7 +308,7 @@ class TestPressSpecEntity(BaseSpecEntity):
     approved_by: str = Field(description="Reviewer name")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["test"]),
+        Classifier(field="record", variant=VinylRecordKindEnumEntity.TEST),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
@@ -285,24 +317,35 @@ for model in (VinylRecordCoreEntity, FirstPressSpecEntity, RepressSpecEntity, Te
     model.model_rebuild()
 ```
 
-Read the declaration of `VinylRecordCoreEntity.pressing` in three parts. `Specialization[...]` lists the allowed types of the related object. `Classifier(field="media", codes=Literal["first", "repress", "test"])` says where the code lives and which codes this declaration names. `Literal` describes specific values in Python's typing vocabulary. Finally, `Inverse(field_name="record")` says that the paired field on every alternative is called `record`. There is no single target class to give this head-side marker: the union already supplies the alternatives.
+Read `pressing` from the inside out. The first argument of `Specialization` is a union:
+the vertical bars mean that loaded details can have any of the three listed types.
+The second argument names the dictionary that supplies the allowed values. The head
+stores the selected value in its container's `variant`; it needs no second scalar field
+and no `Classifier` marker. `Inverse(field_name="record")` names the paired field on every
+alternative. `Rel` provides the relationship description, not loaded data.
 
-Now read `FirstPressSpecEntity.record` in the other direction. `Generalization[VinylRecordCoreEntity]` identifies the common class. Its `Classifier("record", Literal["first"])` declares the alternative's own code, `first`. On this reverse side, `record` names the reverse link; it is not a second ordinary data field containing a code. `Inverse(VinylRecordCoreEntity, "pressing")` identifies the paired field on the head. The other two alternatives follow the same pattern with their own codes and detail fields.
+Now read `FirstPressSpecEntity.record`. `Generalization[VinylRecordCoreEntity]` identifies
+the head. `Classifier(field="record", variant=VinylRecordKindEnumEntity.FIRST)` says which
+reverse field this marker describes and which dictionary value selects this class.
+`Inverse(VinylRecordCoreEntity, "pressing")` identifies the paired field on the head.
+The other alternatives follow the same form with their own values.
 
-`Rel(description=...)` supplies the description of each relationship. It does not supply a loaded relation value. We pass actual containers when constructing the objects below. Because the head and alternatives refer to one another, some names appear before their classes exist. `from __future__ import annotations` postpones their evaluation, and the final `model_rebuild()` calls resolve them after all four classes have been defined. This prepares Pydantic's types; it is different from building AOA's model graph.
+The dictionary declares the vocabulary once. Each alternative names a member of that
+vocabulary. Model build checks that every value selects exactly one alternative, and
+that every alternative names an actual member of this dictionary. Equal strings on a
+copied or foreign object do not establish membership.
 
-The codes appear on both sides so that AOA can compare the head's list with the alternatives' declarations. Every named code must have an owner, and every alternative must contribute exactly one distinct code. The correspondence comes from the reverse declarations, not from matching positions in two lists. A later experiment changes the order to make that distinction visible.
+Three different events are involved. Creating Python classes records declarations and
+constructs dictionary values. `model_rebuild()` resolves annotations that mention classes
+defined later. Creating `ActionProductMachine` builds and checks AOA's declared model.
+Finally, constructing a container validates the particular data supplied to it. A valid
+model does not prove that every row in a database is valid.
 
 ### A record with first-pressing details
 
-How do common record information and variant-specific information fit together?
-
-First we create the machine. Creating `ActionProductMachine` assembles a graph of the loaded declarations and checks their consistency; this is the **model build**. `loggers=[]` keeps this small experiment's output focused on its own prints. A successful build says the declarations passed their checks. It says nothing about rows in a database.
-
-Next we construct `first`, the details for one pressing. Its reverse link carries the identifier `rec-1` but no loaded record object. We then construct `record`, whose forward link carries `rec-1`, the code `first`, and the already-created `first` object. Both identifiers are `rec-1`: the head and its variant describe the same domain object. Key equality is the specialization contract, although the current runtime does not enforce it.
+Construct the common record and its first-pressing data.
 
 [Script](../../examples/step_21_relations/02_specialization.py) · [Notebook](../../examples/step_21_relations/02_specialization.ipynb)
-
 
 ```python
 ActionProductMachine(loggers=[])
@@ -314,24 +357,19 @@ first = FirstPressSpecEntity(
 record = VinylRecordCoreEntity(
     id="rec-1",
     title="Kind of Blue",
-    media="first",
-    pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+    pressing=Specialization[
+        FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity
+    ](
         id="rec-1",
-        variant="first",
+        variant=VinylRecordKindEnumEntity.FIRST,
         entity=first,
     ),
 )
 print("Model built")
 print(record.title)
-print(record.pressing.variant)
+print(record.pressing.variant.code)
 print(record.pressing.entity.stamper)
 print(first.record.id)
-```
-
-Run from the repository root:
-
-```bash
-uv run python examples/step_21_relations/02_specialization.py
 ```
 
 Output:
@@ -344,37 +382,22 @@ first
 rec-1
 ```
 
-The title belongs to the common record. The stamper belongs to its first-pressing details. We supplied both links explicitly; neither link loaded or created the other object.
+The head and its details describe the same record, so both use rec-1. variant holds FIRST; entity holds the FirstPressSpecEntity instance already in memory. This does not fetch data, create tables or copy fields between the two classes.
 
-The five printed lines follow those steps. `Model built` follows successful machine creation. `Kind of Blue` comes from the head's `title`; `first` comes from the link's explicitly supplied `variant`; `1A` comes from the supplied detail object's `stamper`. Finally, `rec-1` is available on the reverse link even though that link has no loaded record object. The framework has not inferred any of these data values from the declarations.
+### Known variant, unloaded details
 
-### Use the same preparation for the next experiments
-
-For the next examples, keep the complete declarations above and replace the code that follows them with the indicated block. Additional imports in a block belong with that block. The scripts remain independent, so you can also run them directly without copying anything. When an experiment changes a declaration, that change is shown before its code.
-
-### A reference without the object
-
-What can we read before pressing details have been loaded?
-
-Sometimes an application has read the identifier and the pressing code but has not read the pressing details. It can still construct a reference. This experiment isolates that state: no entity object is passed to the container.
+Keep a reference to a first pressing without loading its stamper data.
 
 [Script](../../examples/step_21_relations/03_specialization_unloaded.py) · [Notebook](../../examples/step_21_relations/03_specialization_unloaded.ipynb)
 
-
 ```python
-link = Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+link = Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
     id="rec-1",
-    variant="first",
+    variant=VinylRecordKindEnumEntity.FIRST,
 )
 print(link.id)
-print(link.variant)
+print(link.variant.code)
 print(link.entity)
-```
-
-Run from the repository root:
-
-```bash
-uv run python examples/step_21_relations/03_specialization_unloaded.py
 ```
 
 Output:
@@ -385,39 +408,56 @@ first
 None
 ```
 
-The identifier and code survive without the object. Here entity is None. No database call occurs, and this container does not proxy stamper access.
+The identifier and dictionary value remain available. entity is None because no object was supplied. It does not prove that the corresponding stored row is missing.
 
-Unlike the ownership containers described earlier, `Specialization` exposes the loaded object through `.entity`; it does not forward arbitrary attributes to it. Test `link.entity is not None` before reading its fields. Here `None` means that this container has no loaded object. It does not prove that the related data is absent from storage. Loading that data and constructing a new container is the resource or application code's responsibility.
+For the next example, the head field explicitly permits absence: its type is `Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity] | None`. All other declarations stay the same.
 
-### Reading the common information from the details
+### No classification yet
 
-How does a loaded reverse link differ from an identifier-only reverse link?
+An explicitly optional specialization can be absent while its model remains declared.
 
-The reverse direction can also be read at two load levels. Here we construct a record whose own pressing link is identifier-only, then make two reverse links to that same record. Only one receives the record object.
+[Script](../../examples/step_21_relations/17_specialization_absent.py) · [Notebook](../../examples/step_21_relations/17_specialization_absent.ipynb)
+
+```python
+from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
+
+ActionProductMachine(loggers=[])
+record = VinylRecordCoreEntity(id="rec-1", title="Kind of Blue", pressing=None)
+print("No choice:", record.pressing is None)
+print("Declared axes:", len(EntityIntentResolver.resolve_entity_specializations(VinylRecordCoreEntity)))
+assert record.pressing is None
+```
+
+Output:
+
+```text
+No choice: True
+Declared axes: 1
+```
+
+None means this object has no selected variant. This differs from a container whose variant is known and whose entity is None. The optional annotation does not remove the axis or its coverage checks from the graph.
+
+### Read back from details to the head
+
+Compare two Generalization references to the same record.
 
 [Script](../../examples/step_21_relations/04_specialization_reverse.py) · [Notebook](../../examples/step_21_relations/04_specialization_reverse.ipynb)
-
 
 ```python
 record = VinylRecordCoreEntity(
     id="rec-1",
     title="Kind of Blue",
-    media="first",
-    pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+    pressing=Specialization[
+        FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity
+    ](
         id="rec-1",
-        variant="first",
+        variant=VinylRecordKindEnumEntity.FIRST,
     ),
 )
 unloaded = Generalization[VinylRecordCoreEntity](id="rec-1")
 loaded = Generalization[VinylRecordCoreEntity](id="rec-1", entity=record)
 print(unloaded.id, unloaded.entity)
 print(loaded.entity.title)
-```
-
-Run from the repository root:
-
-```bash
-uv run python examples/step_21_relations/04_specialization_reverse.py
 ```
 
 Output:
@@ -427,25 +467,70 @@ rec-1 None
 Kind of Blue
 ```
 
-Both links identify the same record. Only the second has a record object because we passed entity=record. Generalization carries no variant field: its target type is already known.
+Both identify rec-1. Only the reference supplied with entity=record exposes the album title through entity.title. Generalization needs no variant because its target class is already fixed.
 
-### Reading the declared code-to-class mapping
+### Read a stored variant
 
-Does a code identify a class by its position in the union?
+Resolve a storage code before constructing the head.
 
-To inspect the declared correspondence, AOA provides `EntityIntentResolver.resolve_entity_specializations`. Each returned description represents one specialization field together with its classifier and alternatives. This combination is called a **specialization axis**. The term is useful when a head has more than one such field; in our first model there is only the `pressing` axis.
-
-For this experiment, replace just the `Classifier` line on `VinylRecordCoreEntity.pressing` with:
-
+[Script](../../examples/step_21_relations/15_specialization_storage.py) · [Notebook](../../examples/step_21_relations/15_specialization_storage.ipynb)
 
 ```python
-Classifier(field="media", codes=Literal["test", "first", "repress"]),
+row = {"id": "rec-1", "title": "Kind of Blue", "edition_key": "first"}
+value = VinylRecordKindEnumEntity.by_code(row["edition_key"])
+record = VinylRecordCoreEntity(
+    id=row["id"],
+    title=row["title"],
+    pressing=Specialization[
+        FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity
+    ](id=row["id"], variant=value),
+)
+print(record.pressing.variant.code)
+print("Same value:", record.pressing.variant is VinylRecordKindEnumEntity.FIRST)
+print("Details:", record.pressing.entity)
 ```
 
-Keep the union and all reverse declarations unchanged. `[0]` below selects the sole axis description. `code_to_target` is its dictionary from code strings to Python classes; `__name__` prints each class's readable name.
+Output:
+
+```text
+first
+Same value: True
+Details: None
+```
+
+edition_key is the resource's column name, not a field required by AOA. by_code resolves the value; this example deliberately leaves details unloaded. A loader can use axis.code_to_target[value.code] to select a class, then apply its own class-to-storage mapping.
+
+### Read a variant reference
+
+A reference object selects a declared value without loading its details.
+
+[Script](../../examples/step_21_relations/16_specialization_reference.py) · [Notebook](../../examples/step_21_relations/16_specialization_reference.ipynb)
+
+```python
+link = Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
+    id="rec-1", variant={"code": "first", "display_name": "Stale", "properties": {}}
+)
+print("Same value:", link.variant is VinylRecordKindEnumEntity.FIRST)
+print(link.model_dump()["variant"])
+assert link.variant is VinylRecordKindEnumEntity.FIRST
+```
+
+Output:
+
+```text
+Same value: True
+{'code': 'first', 'display_name': 'First', 'properties': {}}
+```
+
+The second type argument validates variant exactly as a dictionary-typed ordinary field. It resolves the code and emits the current declaration. The container does not construct or fetch the alternative object.
+
+The next standalone example changes the dictionary declaration order to TEST, FIRST, REPRESS. Its union remains FIRST, REPRESS, TEST.
+
+### The dictionary orders the mapping
+
+Declare TEST before FIRST and REPRESS, keeping the alternative union unchanged.
 
 [Script](../../examples/step_21_relations/05_specialization_mapping.py) · [Notebook](../../examples/step_21_relations/05_specialization_mapping.ipynb)
-
 
 ```python
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
@@ -453,39 +538,28 @@ from aoa.action_machine.intents.entity.entity_intent_resolver import EntityInten
 ActionProductMachine(loggers=[])
 axis = EntityIntentResolver.resolve_entity_specializations(VinylRecordCoreEntity)[0]
 print("Field:", axis.field_name)
-print("Classifier:", axis.classifier_field)
+print("Dictionary:", axis.dictionary.__name__)
 for code in axis.codes:
     print(code, "->", axis.code_to_target[code].__name__)
-```
-
-Run from the repository root:
-
-```bash
-uv run python examples/step_21_relations/05_specialization_mapping.py
 ```
 
 Output:
 
 ```text
 Field: pressing
-Classifier: media
+Dictionary: VinylRecordKindEnumEntity
 test -> TestPressSpecEntity
 first -> FirstPressSpecEntity
 repress -> RepressSpecEntity
 ```
 
-The head lists codes in a different order from the union. Each code still points to the class that declares it on its reverse field. The resolver reads declarations; it does not load data.
+The dictionary supplies presentation order. Each alternative's Classifier supplies the correspondence. TestPressSpecEntity still owns test regardless of its position in the union; the resolver performs no loading.
 
-Notice that `test` still maps to `TestPressSpecEntity`, although that class is third in the unchanged union. If application code reads a data code, it can look it up in this mapping and decide what to load. The resolver itself only reads class declarations. Restore the original code order before using the unmodified preparation in the following examples.
+### An unrelated loaded object is refused
 
-### Rejecting an unrelated object
-
-Does the container accept a record where pressing details are required?
-
-The type argument has an immediate effect on value construction. Here we deliberately pass a common record object where one of the pressing detail objects is required. The `try` block contains the one construction expected to fail. We print the exception name and its structured error type, leaving out Pydantic's repeated union-branch descriptions.
+Pass the head record where pressing details are required.
 
 [Script](../../examples/step_21_relations/06_specialization_wrong_type.py) · [Notebook](../../examples/step_21_relations/06_specialization_wrong_type.ipynb)
-
 
 ```python
 from pydantic import ValidationError
@@ -493,16 +567,17 @@ from pydantic import ValidationError
 record = VinylRecordCoreEntity(
     id="rec-1",
     title="Kind of Blue",
-    media="first",
-    pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+    pressing=Specialization[
+        FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity
+    ](
         id="rec-1",
-        variant="first",
+        variant=VinylRecordKindEnumEntity.FIRST,
     ),
 )
 try:
-    Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+    Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
         id="rec-1",
-        variant="first",
+        variant=VinylRecordKindEnumEntity.FIRST,
         entity=record,
     )
 except ValidationError as error:
@@ -512,12 +587,6 @@ else:
     raise AssertionError("An unrelated entity was accepted")
 ```
 
-Run from the repository root:
-
-```bash
-uv run python examples/step_21_relations/06_specialization_wrong_type.py
-```
-
 Output:
 
 ```text
@@ -525,55 +594,67 @@ ValidationError
 ['model_type']
 ```
 
-Pydantic checks the entity value against the union when constructing the container. A VinylRecordCoreEntity is not one of the three pressing classes. This check needs no machine build.
+The first type argument checks which object classes can fill entity. The head is outside that union, so Pydantic reports model_type. This is different from a permitted alternative paired with the wrong value.
 
-### A declaration does not validate a data code
+### A bare variant code is refused
 
-Does a successfully built model reject an unknown code in a link?
+A string cannot fill the dictionary-typed variant field.
 
-Checking an object's type is different from checking whether its data code is declared. Our `media` annotation is `str`, and the container's `variant` accepts a string. This experiment uses an unknown string on both sides after a successful model build.
-
-[Script](../../examples/step_21_relations/07_specialization_data_codes.py) · [Notebook](../../examples/step_21_relations/07_specialization_data_codes.ipynb)
-
+[Script](../../examples/step_21_relations/18_specialization_bare_code.py) · [Notebook](../../examples/step_21_relations/18_specialization_bare_code.ipynb)
 
 ```python
-ActionProductMachine(loggers=[])
-link = Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
-    id="rec-1",
-    variant="unknown",
-)
-record = VinylRecordCoreEntity(id="rec-1", title="Kind of Blue", media="unknown", pressing=link)
-print("Model built")
-print(record.media)
-print(record.pressing.variant)
-```
+from pydantic import ValidationError
 
-Run from the repository root:
-
-```bash
-uv run python examples/step_21_relations/07_specialization_data_codes.py
+try:
+    Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
+        id="rec-1", variant="first"
+    )
+except ValidationError as error:
+    print(error.errors()[0]["msg"])
+else:
+    raise AssertionError("A bare code was accepted")
 ```
 
 Output:
 
 ```text
-Model built
-unknown
-unknown
+Value error, VinylRecordKindEnumEntity: a bare code is not accepted; pass the declared value or its reference object {'code', 'display_name', 'properties'}.
 ```
 
-Both fields are strings, so the unknown code is accepted. Classifier metadata validates the declared mapping, not the values in an instance. The loading layer must decide how to reject or handle unknown data codes.
+Even a known code must be resolved explicitly or wrapped in a reference object. This keeps storage representation separate from the declared value used in memory.
 
-If your application requires a closed set of values for `media`, an appropriate field annotation such as `Literal["first", "repress", "test"]` can restrict normal Pydantic construction of that field. That still does not check agreement with the link's `variant`, verify a database row, or add automatic loading. Keep the declaration checks and the application's data checks separate.
+### An unknown variant is refused
 
-### A link does not choose its object
+Pass a reference whose code is unknown after a successful model build.
 
-Does variant="first" require the supplied object to be a FirstPressSpecEntity?
+[Script](../../examples/step_21_relations/07_specialization_data_codes.py) · [Notebook](../../examples/step_21_relations/07_specialization_data_codes.ipynb)
 
-There is a second, separate data question: does the supplied object agree with the supplied code? This experiment keeps a valid object type but deliberately labels a re-pressing as `first`.
+```python
+ActionProductMachine(loggers=[])
+try:
+    Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
+        id="rec-1",
+        variant={"code": "unknown"},
+    )
+except ValidationError as error:
+    print("Refused:", error.errors()[0]["msg"])
+else:
+    raise AssertionError("A case the example exists to refuse was accepted")
+```
+
+Output:
+
+```text
+Refused: Value error, 'unknown' is not a declared value of VinylRecordKindEnumEntity. Declared: ['first', 'repress', 'test'].
+```
+
+The build checks declarations; constructing the container checks the incoming value. An unknown code is not a legitimate unloaded or absent variant.
+
+### The loaded class must match the value
+
+Pair FIRST with an otherwise valid RepressSpecEntity.
 
 [Script](../../examples/step_21_relations/08_specialization_mismatched_data.py) · [Notebook](../../examples/step_21_relations/08_specialization_mismatched_data.ipynb)
-
 
 ```python
 repress = RepressSpecEntity(
@@ -581,47 +662,74 @@ repress = RepressSpecEntity(
     year=1997,
     record=Generalization[VinylRecordCoreEntity](id="rec-1"),
 )
-link = Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
-    id="rec-1",
-    variant="first",
-    entity=repress,
-)
-print(link.variant)
-print(type(link.entity).__name__)
-```
-
-Run from the repository root:
-
-```bash
-uv run python examples/step_21_relations/08_specialization_mismatched_data.py
+try:
+    Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
+        id="rec-1",
+        variant=VinylRecordKindEnumEntity.FIRST,
+        entity=repress,
+    )
+except ValidationError as error:
+    print("Refused:", error.errors()[0]["msg"])
+else:
+    raise AssertionError("A case the example exists to refuse was accepted")
 ```
 
 Output:
 
 ```text
-first
-RepressSpecEntity
+Refused: Value error, variant 'first' does not match RepressSpecEntity, which declares 'repress'
 ```
 
-RepressSpecEntity is inside the union, so the object passes type validation even though its code should be repress. The container does not compare variant to the object type. A loader must enforce that agreement.
+The entity type belongs to the union, but its declared value is REPRESS. The container rejects the pair. Matching uses the declared value's identity, so equal codes from different dictionaries cannot substitute for one another.
 
-The result is accepted, so application code must not assume that checking the union also checks this correspondence. The same responsibility covers agreement between the record's `media`, the link's `variant`, the linked object's identifier, and the reverse link. The declarations describe the intended relationship; these containers do not establish all of those instance-level agreements.
+### Equal codes from different dictionaries do not match
 
-### Replacing a link instead of changing it
+Pair a first-pressing object with another dictionary's value named first.
 
-Can an existing link have its variant changed?
-
-After a container has been constructed, its fields cannot be assigned new values. This property is called immutability. The experiment attempts one assignment and then reads the original value to distinguish a refused change from a successful one.
-
-[Script](../../examples/step_21_relations/09_specialization_frozen.py) · [Notebook](../../examples/step_21_relations/09_specialization_frozen.ipynb)
-
+[Script](../../examples/step_21_relations/19_specialization_foreign_pair.py) · [Notebook](../../examples/step_21_relations/19_specialization_foreign_pair.ipynb)
 
 ```python
 from pydantic import ValidationError
 
-link = Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+class OtherKindEnumEntity(BaseEnumEntity):
+    """Supply a distinct vocabulary with a coincidentally equal code."""
+
+    FIRST = OtherKindEnumEntity(code="first", display_name="Other first")  # noqa: F821
+
+first = FirstPressSpecEntity(id="rec-1", stamper="1A", record=Generalization[VinylRecordCoreEntity](id="rec-1"))
+try:
+    Specialization[FirstPressSpecEntity, OtherKindEnumEntity](
+        id="rec-1", variant=OtherKindEnumEntity.FIRST, entity=first
+    )
+except ValidationError as error:
+    print("Equal codes:", OtherKindEnumEntity.FIRST.code == VinylRecordKindEnumEntity.FIRST.code)
+    print("Pair accepted:", False)
+    assert "does not match" in error.errors()[0]["msg"]
+else:
+    raise AssertionError("Equal codes bypassed the pairing check")
+```
+
+Output:
+
+```text
+Equal codes: True
+Pair accepted: False
+```
+
+Codes identify values inside their own dictionary. The loaded class declares VinylRecordKindEnumEntity.FIRST; an equal string on OtherKindEnumEntity.FIRST does not make it that object. Normal model build also rejects alternatives declared with foreign values.
+
+### Replace a link instead of editing it
+
+Try to change the selected value on an existing container.
+
+[Script](../../examples/step_21_relations/09_specialization_frozen.py) · [Notebook](../../examples/step_21_relations/09_specialization_frozen.ipynb)
+
+```python
+from pydantic import ValidationError
+
+link = Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
     id="rec-1",
-    variant="first",
+    variant=VinylRecordKindEnumEntity.FIRST,
 )
 try:
     link.variant = "repress"
@@ -629,13 +737,7 @@ except ValidationError as error:
     print(error.errors()[0]["type"])
 else:
     raise AssertionError("A frozen link was changed")
-print(link.variant)
-```
-
-Run from the repository root:
-
-```bash
-uv run python examples/step_21_relations/09_specialization_frozen.py
+print(link.variant.code)
 ```
 
 Output:
@@ -645,78 +747,38 @@ frozen_instance
 first
 ```
 
-The frozen_instance error means assignment was refused. The original code remains first. Construct a new link when representing a different relation; Generalization is frozen in the same way.
+The container is frozen. Build a new link to represent another selection; the original variant remains first.
 
-### More than one choice on a head
+For the next example, the head declares `reported_pressing` alongside `pressing`, with the same container type, dictionary and reverse field. The standalone source includes both declarations.
 
-A catalogue might retain its own pressing classification and another catalogue's reported classification. This gives us two specialization fields on the same record. Each needs a separate code field. In this experiment both choices use exactly the same three detail classes and their existing `record` reverse field.
+### Reuse a dictionary on two axes
 
-Replace only the `VinylRecordCoreEntity` class from the preparation with this complete version. The other classes and the final rebuild loop remain unchanged:
-
-
-```python
-@entity(description="Vinyl record", domain=MusicDomain)
-class VinylRecordCoreEntity(BaseCoreEntity):
-    """Describe the information shared by all pressings."""
-
-    id: str = Field(description="Record identifier")
-    title: str = Field(description="Album title")
-    media: str = Field(description="Pressing code")
-    reported_media: str = Field(description="Pressing code reported by another catalogue")
-    reported_pressing: Annotated[
-        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
-        Classifier(field="reported_media", codes=Literal["first", "repress", "test"]),
-        Inverse(field_name="record"),
-    ] = Rel(description="Pressing reported by another catalogue")
-    pressing: Annotated[
-        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
-        Classifier(field="media", codes=Literal["first", "repress", "test"]),
-        Inverse(field_name="record"),
-    ] = Rel(description="Details of this pressing")
-```
-
-### Two classifications on the same record
-
-Can a record carry the catalogue classification and a separately reported classification?
+The catalogue and another source can report separate classifications.
 
 [Script](../../examples/step_21_relations/11_specialization_two_axes.py) · [Notebook](../../examples/step_21_relations/11_specialization_two_axes.ipynb)
-
 
 ```python
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 
 ActionProductMachine(loggers=[])
 for axis in EntityIntentResolver.resolve_entity_specializations(VinylRecordCoreEntity):
-    print(axis.field_name, "by", axis.classifier_field)
-```
-
-Run from the repository root:
-
-```bash
-uv run python examples/step_21_relations/11_specialization_two_axes.py
+    print(axis.field_name, "by", axis.dictionary.__name__)
 ```
 
 Output:
 
 ```text
-reported_pressing by reported_media
-pressing by media
+reported_pressing by VinylRecordKindEnumEntity
+pressing by VinylRecordKindEnumEntity
 ```
 
-Each field has its own classifier, so the model builds. Both axes deliberately use the same alternatives and reverse field. This is a narrow supported example: the current validator rejects disjoint sets of alternatives on the same head. It also does not check that the two instance values agree.
+Each field borrows the same dictionary and must cover it completely. This example deliberately reuses the same alternatives. The current closure check rejects disjoint alternative sets on one head; the dictionary change does not remove that restriction.
 
-Do not generalize this result to arbitrary independent variant sets. The current validator compares every alternative's reverse link to every axis on that head. A class accepted by one axis but omitted from another is refused. The [different-set diagnostic](../how-to/specialization-declaration-fails.md#a-second-axis-has-a-different-alternative-set) demonstrates this restriction with a real model. This is why the example uses the same alternatives, rather than promising that a pressing choice and an unrelated condition choice can be declared independently on this head.
+### Read the declared alternatives from the graph
 
-### From declarations to the diagram
-
-The model graph is a description of classes and their declared relationships. A **node** represents an item such as an entity class or field; an **edge** connects two nodes. The graph contains the possible alternatives even when no record instances have been created. The next experiment returns to the original one-axis preparation and reads those edges.
-
-### The two directions in the model graph
-
-What does the built graph say about the declared alternatives?
+Inspect forward edges, one reverse edge and the head's fields.
 
 [Script](../../examples/step_21_relations/10_specialization_graph.py) · [Notebook](../../examples/step_21_relations/10_specialization_graph.ipynb)
-
 
 ```python
 machine = ActionProductMachine(loggers=[])
@@ -732,12 +794,6 @@ for edge in first_node.get_all_edges():
 print("Columns:", [edge.target_node.label for edge in head.get_all_edges() if edge.edge_name == "entity_field"])
 ```
 
-Run from the repository root:
-
-```bash
-uv run python examples/step_21_relations/10_specialization_graph.py
-```
-
 Output:
 
 ```text
@@ -745,33 +801,18 @@ entity_specialization first -> FirstPressSpecEntity
 entity_specialization repress -> RepressSpecEntity
 entity_specialization test -> TestPressSpecEntity
 parent_entity first -> VinylRecordCoreEntity
-Columns: ['id', 'title', 'media', 'pressing']
+Columns: ['id', 'title', 'pressing']
 ```
 
-Each forward edge names one allowed class and its code. The reverse edge records the same declared relationship from the alternative. The pressing field also remains a column. These are class declarations, not links between stored record instances.
+Three forward edges describe three allowed alternatives, not three simultaneously loaded objects. The head has id, title and pressing; there is no separate selector field. Every forward edge also names the dictionary.
 
-The class graph has three forward edges because the declaration permits three alternatives. A particular `Specialization` value still carries only one object reference. The reverse `parent_entity` edge records the relationship from a detail class back to the common class; it does not mean Python inheritance. The [Maxitor chapter](step-26-maxitor.md#specialization-the-variants-in-one-frame) explains how the entity–relationship diagram, or **ERD**, turns this declaration into field rows and a frame around alternatives.
+For the next example, add `NoGraphEdge()` inside the head field's `Annotated` metadata, beside `Inverse`. The standalone source imports this marker and shows the complete annotation.
 
-### Hiding the forward edges
+### Hide forward edges only
 
-Sometimes the relationship should stay in the data model but its forward edges should be omitted from the exported graph. Starting from the original preparation, add `NoGraphEdge` to the imports from `aoa.action_machine.domain`, and replace the complete `pressing` field declaration with:
-
-
-```python
-pressing: Annotated[
-    Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
-    Classifier(field="media", codes=Literal["first", "repress", "test"]),
-    Inverse(field_name="record"),
-    NoGraphEdge(),
-] = Rel(description="Details of this pressing")
-```
-
-### Hiding forward edges
-
-Does hiding a specialization edge remove the field or its reverse edge?
+Add NoGraphEdge to the head's pressing field.
 
 [Script](../../examples/step_21_relations/12_specialization_hidden_edges.py) · [Notebook](../../examples/step_21_relations/12_specialization_hidden_edges.ipynb)
-
 
 ```python
 machine = ActionProductMachine(loggers=[])
@@ -783,12 +824,6 @@ print("Reverse edges:", len(first.generalizations))
 print("Field present:", any(edge.target_node.label == "pressing" for edge in head.entity_field_edges))
 ```
 
-Run from the repository root:
-
-```bash
-uv run python examples/step_21_relations/12_specialization_hidden_edges.py
-```
-
 Output:
 
 ```text
@@ -797,32 +832,39 @@ Reverse edges: 1
 Field present: True
 ```
 
-NoGraphEdge on pressing suppresses the forward specialization edges. It preserves the field and does not suppress the alternative-side parent_entity edge. Without forward edges Maxitor cannot construct the alternatives group.
+The field and reverse Generalization remain. Without the forward edges Maxitor cannot form the alternatives group. NoGraphEdge changes graph visibility, not the accepted runtime values.
 
-## Invariants
+## Invariants and application responsibilities
 
-For the ownership containers, `One`/`Many` describes the number of targets and `Composite`/`Aggregate`/`Association` describes ownership. They require an explicit inverse declaration or an intentional `NoInverse`, and their access rules distinguish identifiers from loaded objects.
+Ownership containers describe cardinality and ownership. Specialization instead describes
+which specific information accompanies one common object. Its dictionary value and loaded
+class must agree, and the declaration must cover the whole dictionary. Containers are
+immutable; `.entity` is the explicitly supplied object or `None`.
 
-Specialization describes a different aspect of the model: which kinds of detail object may accompany common information. The head and alternatives declare matching codes; each alternative belongs to one head; each axis on a head has its own classifier; specialization relationships must not form cycles. Their containers expose the object explicitly through `.entity`, which may be `None`, and do not load it or validate all agreements between instance values.
+Keep the head and details identifiers equal when they describe the same object. The
+containers do not compare all identifiers, inspect storage, enforce database uniqueness or
+load missing data. The resource remains responsible for reading the right row and deciding
+how to report invalid storage data. `by_code` has no fallback for an unknown code.
 
-The [reference](../reference/intents-and-invariants.md#entity-specialization-the-build-rules) lists the checks and their timing. For an invalid declaration, use [Diagnosing a specialization declaration](../how-to/specialization-declaration-fails.md), whose experiments start with this same working model and isolate one mistake at a time.
+The [reference](../reference/intents-and-invariants.md#entity-specialization-the-build-rules)
+lists declaration checks and current limitations. The
+[diagnostic guide](../how-to/specialization-declaration-fails.md) gives one independent
+broken model per error. [Step 26](step-26-maxitor.md#specialization-the-variants-in-one-frame)
+shows how Maxitor turns the model into a diagram.
 
 ## Review questions
 
-1. How do cardinality and ownership differ in `CompositeMany` and `AssociationOne`?
-2. Why must an inverse relation name a particular field rather than only a class?
-3. Which information is available in an identifier-only ownership container? What happens when you try to read the object?
-4. Why does the record example need separate detail classes? Which class is the head?
-5. What does `Classifier` declare on the head, and what does it declare on an alternative?
-6. Why does changing the head code order leave the code-to-class correspondence intact?
-7. How do `model_rebuild()`, the machine's model build, and constructing a relation value differ?
-8. What does `.entity is None` tell you, and what does it leave unknown?
-9. Which mistake in the examples produces `ValidationError`, and which inconsistent data is accepted?
-10. Why do three edges in the model graph not imply three loaded objects in a particular record?
+1. Why is pressing-specific information a specialization rather than an owned part?
+2. What do the two arguments of `Specialization[Alternatives, Dictionary]` each declare?
+3. Where is the selected value stored, and why is a separate selector unnecessary?
+4. How do an absent axis, a known variant with unloaded details and an unknown code differ?
+5. Why does reordering the dictionary change presentation order without changing the mapping?
+6. Which checks happen at class declaration, model build and container construction?
+7. What must the resource still check when it loads the head and its details?
 
-> **Exercise (ownership).** In `01_relations.py`, change `Inverse(CustomerCoreEntity, "orders")` to a field name that does not exist and observe the build failure. Restore it, then pass two loaded `OrderLineDetailEntity` objects to the order's `lines` container and iterate over them.
-
-> **Exercise (specialization).** In `05_specialization_mapping.py`, change only the order of the codes again. Predict the printed mapping and verify it. Then change the `first` code on one side only and use the diagnostics guide to explain the mismatch.
+> **Exercise.** Run the mapping example, then change only the dictionary's declaration
+> order and predict the output. Next, pass REPRESS with first-pressing details and explain
+> why this fails even though FirstPressSpecEntity is in the union.
 
 Next — **[Lifecycle](step-22-lifecycle.md)**: declaring an entity's permitted state transitions.
 

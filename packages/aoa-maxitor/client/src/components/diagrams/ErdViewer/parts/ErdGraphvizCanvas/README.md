@@ -47,9 +47,9 @@ before the pass, which is a measurement, not an assertion.
 ## A dictionary's values, and a field that references one
 
 A closed dictionary is an ordinary entity node whose payload carries two extra things: `entity_kind`
-is `"enum"`, and `values` is the list of codes and labels it declares, in declaration order. The card
+identifies the kind, and `values` is the list of declared codes, labels and descriptive properties in declaration order. The card
 draws those values as rows under the fields, with no PK/FK marker and a green tint, so a reader sees
-what the dictionary can hold without opening it.
+what the dictionary can hold without opening it. Each value's `properties` is an array of `{name, value}` text rows; these appear beneath the label, with HTML escaping applied to both names and values.
 
 A field whose type is a dictionary carries `reference_qualname`. The card shows the dictionary's
 short name after the type in teal, prefixed with an arrow: the field is not a string, it is a reference,
@@ -57,4 +57,4 @@ and the payload names the target. The axis container is labelled with `dictionar
 group carries one, so a cluster says which dictionary classifies it.
 
 Nothing here knows a domain's vocabulary: every name comes from the payload, and a model that declares
-no dictionary simply has no `values` and no `reference_qualname`.
+no dictionary has an empty `values` array, and ordinary scalar fields have no `reference_qualname`.

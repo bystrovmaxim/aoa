@@ -117,3 +117,21 @@ def test_a_blank_code_or_label_is_refused() -> None:
         CurrencyEnumEntity(code="  ", display_name="Blank code", symbol="$")
     with pytest.raises(ValidationError, match="cannot be empty or whitespace-only"):
         CurrencyEnumEntity(code="x", display_name=" ", symbol="$")
+
+
+def test_a_child_without_extra_fields_constructs_its_own_values() -> None:
+    """A parent's catalogue cannot intercept a child's declarations."""
+    @exclude_graph_model
+    class ParentEnumEntity(BaseEnumEntity):
+        """Declare the parent vocabulary."""
+        OLD = ParentEnumEntity(code="old", display_name="Old")
+
+    @exclude_graph_model
+    class ChildEnumEntity(ParentEnumEntity):
+        """Declare a separate vocabulary using the same fields."""
+        NEW = ChildEnumEntity(code="new", display_name="New")
+
+    assert ChildEnumEntity.codes() == ["new"]
+    assert ChildEnumEntity.NEW.code == "new"
+    assert type(ChildEnumEntity.NEW) is ChildEnumEntity
+    assert ParentEnumEntity.codes() == ["old"]

@@ -1,8 +1,7 @@
-"""Two alternatives claim one value, so one of them has none of its own.
+"""Two alternatives cannot share one value.
 
-Which declaration is wrong, and how do we repair it?
-Run from the repository root:
-    uv run python examples/step_21_relations/25_error_duplicate_code.py
+Give two alternative classes the same dictionary value.
+Run: uv run python examples/step_21_relations/25_error_duplicate_code.py
 """
 
 from __future__ import annotations
@@ -38,6 +37,7 @@ class VinylRecordKindEnumEntity(BaseEnumEntity):
 
     FIRST = VinylRecordKindEnumEntity(code="first", display_name="First")  # noqa: F821
     REPRESS = VinylRecordKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
+
 
 @entity(description="Vinyl record", domain=MusicDomain)
 class VinylRecordCoreEntity(BaseCoreEntity):

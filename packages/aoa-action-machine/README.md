@@ -16,7 +16,7 @@ This README is a quick start: from installation to an operation published over H
 
 ## Domain entities
 
-An entity declares domain information independently of storage. Choose its base by what one instance represents: `BaseCoreEntity` for an independent object, `BaseAssocEntity` for a technical link without business data, `BaseDetailEntity` for an owned part, `BaseSpecEntity` for variant-specific data of the same head object, `BaseEnumEntity` for a reference value, or `BaseStateEntity` for a lifecycle state.
+An entity declares domain information independently of storage. Choose its base by what one instance represents: `BaseCoreEntity` for an independent object, `BaseAssocEntity` for a technical link without business data, `BaseDetailEntity` for an owned part, `BaseSpecEntity` for variant-specific data of the same head object, `BaseEnumEntity` for a declared value of a closed dictionary, or `BaseStateEntity` for a lifecycle state.
 
 The name carries the matching suffix, for example `OrderCoreEntity(BaseCoreEntity)`. The hierarchy checks inheritance and names when Python creates the class, including intermediate and undecorated descendants. `@entity` supplies the description and domain for graph discovery. A status class instead belongs to its lifecycle and is excluded from ordinary Entity nodes.
 
@@ -206,3 +206,10 @@ Useful by topic:
 ## License
 
 [Apache-2.0](../../LICENSE)
+
+A closed dictionary declares its values in the class body and supplies `code`, `display_name`
+and an ordered catalogue. Dictionary-typed fields hold declared objects and serialize
+references with their descriptions. A specialization names the dictionary as its second
+type argument; each alternative names one value on its reverse field. Start with
+[closed dictionaries](../../docs/tutorials/step-20-dictionaries.md), then
+[the specialization tutorial](../../docs/tutorials/step-21-relations.md#generalization-and-specialization).
