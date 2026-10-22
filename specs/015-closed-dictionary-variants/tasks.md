@@ -99,6 +99,15 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 
 ## Phase 5: User Story 3 — Move a specialization axis onto a dictionary (Priority: P1)
 
+> **Delivered in two commits.** T028–T032 (the container, the marker and
+> `declared_variant`) are in the tree with a one-argument bridge that keeps every
+> existing axis on `variant: str`. T030 and T033–T038 are **not done**: until they
+> land, an axis written in the declared form is not refused — the validator
+> gathers axes only where the head carries a `Classifier` marker, so such an axis
+> has no coverage check, no specialization edges and no generalization edges, and
+> its container is drawn as a scalar column. Do not declare the new form before
+> T033.
+
 **Goal**: the head's specialization field names the dictionary as its second type argument and carries no classifier field; each extension names its field and the declared value it is; the container refuses a bare code and a value that disagrees with the hydrated row; the build refuses a `Literal`, a copy, a foreign value, a field that does not point back and an uncovered value; the edge publishes the dictionary.
 
 **Independent Test**: one complete axis builds; the five broken ones raise their named errors; a container with a mismatched pair is refused; the same dictionary on two axes builds when both cover it.
@@ -118,7 +127,7 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 - [ ] T035 [US3] Rewrite the codemod in `specs/015-closed-dictionary-variants/evidence/migrate_axes_to_dictionaries.py` — generate one `<Head>KindEnumEntity` per axis from its `Literal`s, delete the head's classifier field, add the dictionary argument, drop the head's `Classifier`, rewrite the extension markers and every construction or payload that set the deleted field, editing `.py` files and `.ipynb` code cells only
 - [ ] T036 [US3] Run the codemod on `examples/step_20_entity/06_specialization.py` with its notebook and on the 37 scripts with their 37 notebooks in `examples/step_21_relations/` — 38 scripts and 38 notebooks in all — then review each diff
 - [ ] T037 [US3] Run the codemod on the 7 framework test modules under `packages/aoa-action-machine/tests/action_machine/graph/` (105 `Classifier` declarations, including `test_entity_specialization_sweep.py`), keeping the existing rules' tests unchanged: alternatives are declared entities, one class in one head, no cycles (FR-026)
-- [ ] T038 [US3] Rewrite by hand the examples that assert the replaced rules — `examples/step_21_relations/41_error_codes_not_literal.py` and any other negative case the codemod cannot express — keeping their scenario and their printed message; then run every migrated example script, the whole `aoa-action-machine` suite and the scan, which must report 0 `Classifier(…, Literal[…])` and 0 classifier fields on axes in `packages/` and `examples/`
+- [ ] T038 [US3] Remove the one-argument bridge from `Specialization.__class_getitem__` and the interim `, str` it forced in `packages/aoa-demo/src/aoa/demo/model/generalization_shapes/entities/generalization_entities.py`, so a container must name its dictionary; then rewrite by hand the examples that assert the replaced rules — `examples/step_21_relations/41_error_codes_not_literal.py` and any other negative case the codemod cannot express — keeping their scenario and their printed message; then run every migrated example script, the whole `aoa-action-machine` suite and the scan, which must report 0 `Classifier(…, Literal[…])` and 0 classifier fields on axes in `packages/` and `examples/`
 
 **Checkpoint**: the whole corpus is on the container form and the refusals have tests.
 
@@ -140,7 +149,7 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 - [x] T041 [US4] Create `packages/aoa-demo/src/aoa/demo/model/dictionaries/__init__.py`, `dictionaries_domain.py` and `entities/currency_enum.py` with `USD`, `EUR`, `RUB`
 - [x] T042 [US4] Retype the 25 currency fields in the 22 demo files `packages/aoa-demo/src/aoa/demo/model/**/entities/*.py` (`currency_iso`, `settlement_currency_iso`, `quote_currency_iso`) to `CurrencyEnumEntity`
 - [x] T043 [US4] Point the default at the declared value in `packages/aoa-demo/src/aoa/demo/model/store/entities/sales_core.py`
-- [ ] T044 [US4] Move the demo's axis onto the dictionary in `packages/aoa-demo/src/aoa/demo/model/generalization_shapes/entities/generalization_entities.py`
+- [ ] T044 [US4] Move the demo's axis onto the dictionary in `packages/aoa-demo/src/aoa/demo/model/generalization_shapes/entities/generalization_entities.py`, dropping the interim `, str` second argument
 - [x] T045 [US4] Add `values_json` to the `entity` table and `reference_qualname` to the `entity_field` table, and fill them, in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py`
 - [x] T046 [US4] Select the two new values into the ERD payload in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py` and its schema
 - [ ] T047 [US4] Add `values` and `reference_qualname` to `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`, render the value rows in the ERD card, draw the reference and label the axis container in `packages/aoa-maxitor/client/src/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/ErdGraphvizCanvas.tsx`, and write the component README
@@ -165,7 +174,7 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 
 **Purpose**: the closing steps. No other task may absorb them.
 
-- [ ] T053 Run `bash scripts/run_checks_with_log.sh` and fix every remark it reports, to zero; only the two named remarks stay — record the run in `specs/015-closed-dictionary-variants/evidence/check-run.txt`
+- [x] T053 Run `bash scripts/run_checks_with_log.sh` and fix every remark it reports, to zero; only the two named remarks stay — record the run in `specs/015-closed-dictionary-variants/evidence/check-run.txt`
 - [ ] T054 Write the documentation in `docs/tutorials/step-20-entity.md`, `docs/tutorials/step-26-maxitor.md`, `docs/reference/glossary.md`, `docs/reference/intents-and-invariants.md`, `docs/how-to/specialization-declaration-fails.md` and `packages/aoa-maxitor/README.md` — every case and every refusal, each shown twice as a script and a notebook under `examples/`, with every touched example and notebook executed; write `<page>.ru_draft.md` beside each page
 - [ ] T055 Write the changelog as one article in `docs/CHANGELOG.md` with an `[Unreleased]` entry for `packages/aoa-action-machine/CHANGELOG.md`, `packages/aoa-demo/CHANGELOG.md` and `packages/aoa-maxitor/CHANGELOG.md` — what this work created, in plain words, without technical detail
 

@@ -1,0 +1,35 @@
+# The closing check run (T053)
+
+**Date**: 2026-10-22
+**Command**: `UV_CACHE_DIR=/tmp/uv-cache bash scripts/run_checks_with_log.sh`
+**Log**: `archive/logs/check-all.txt`
+**Exit code**: 0 — every step passed.
+
+The environment could not initialise `~/.cache/uv` (the sandbox denies it), so the
+first attempt failed every step with `failed to open file .../uv/sdists-v9/.git:
+Operation not permitted`. Running with a writable `UV_CACHE_DIR` is what the
+script needs; it is an environment fact, not a repository change.
+
+## Fixes this run demanded
+
+| Step | Remark | Fix |
+|---|---|---|
+| mypy | `CurrencyEnumEntity(code=…)`: unexpected keyword arguments | the dictionary kind now states `__init__(**data)`, as the state kind does |
+| mypy | `Specialization[…]` expects 2 type arguments | the demo's unmigrated axis names `str` as the second argument, which is the bridge's default; the dictionary argument arrives with the corpus migration |
+| pylint | undefined-variable for the class-name alias | the demo dictionary file disables it, as the state kinds' files do |
+| pylint | `arguments-renamed` / `arguments-differ` / `import-outside-toplevel` | named the subscript parameter after `object.__class_getitem__`, disabled the pydantic hook signature check, kept the cycle-closing import inline with a disable |
+| samples public API | `aoa.action_machine.domain.base_domain` is not a facade | the demo's `DictionariesDomain` imports `BaseDomain` from `aoa.action_machine.domain` |
+
+## The two accepted remarks
+
+The Vite chunk-size advisory was in the log: (!) Some chunks are larger than 500 kB after minification. Consider:
+The LangGraph deprecation was in the log: /Users/bystrovmaxim/PythonDev/aoa/.venv/lib/python3.12/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+
+## Scope of this run
+
+This is the run at the current state of the branch: the dictionary kinds, the
+container and the demo's currency references are in place; the corpus still
+carries the earlier `Literal` form and the client does not render the values yet.
+The constitution's closing run belongs to the finished change, so it is repeated
+after the corpus migration and the client work, and that later log supersedes this
+one.

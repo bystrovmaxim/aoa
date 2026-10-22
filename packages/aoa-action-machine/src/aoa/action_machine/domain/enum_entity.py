@@ -104,13 +104,19 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesM
     code: str = Field(description="Stable value code — identity inside the dictionary")
     display_name: str = Field(description="Human label for UI and diagrams")
 
+    def __init__(self, **data: Any) -> None:  # pylint: disable=useless-parent-delegation
+        """Build a value from its validated fields."""
+        super().__init__(**data)
+
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Hold every descendant to the kind's name suffix."""
         super().__init_subclass__(**kwargs)
         super()._require_kind_suffix("EnumEntity")
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+    def __get_pydantic_core_schema__(  # pylint: disable=arguments-differ
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
         """Accept a declared value or its reference object; refuse a bare code and a copy."""
         model_schema = handler(source_type)
         reference_keys = frozenset({"code", "display_name", "properties"})
@@ -148,7 +154,9 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesM
         )
 
     @classmethod
-    def __get_pydantic_json_schema__(cls, schema: CoreSchema, handler: Any) -> dict[str, Any]:
+    def __get_pydantic_json_schema__(  # pylint: disable=arguments-differ
+        cls, schema: CoreSchema, handler: Any
+    ) -> dict[str, Any]:
         """Publish the reference object as this type's JSON shape."""
         _ = (schema, handler)
         return {

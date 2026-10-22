@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.domain import BaseDomain
 
 
 class DictionariesDomain(BaseDomain):

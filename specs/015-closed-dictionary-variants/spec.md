@@ -82,6 +82,7 @@
 
 - Q: Must the head keep a classifier field? → A: No. The dictionary is the second type argument of the head's field; a head-side `Classifier`, a separate field or a `Literal` is refused.
 - Q: Does the extension keep naming a field? → A: Yes. `Classifier(field="record", variant=…)`; without the field name the pairing would be implicit, and neither a human nor an agent could read it from the declaration.
+- Q: Is the declared form usable while the corpus is still on `Literal`? → A: No. The container accepts it, but the build gathers axes only where the head carries a `Classifier` marker, so such an axis would have no coverage check and no axis edges. The form is refused-or-ignored until the build rules land with the migration; it must not be advertised before then.
 - Q: Does the container accept a bare code? → A: No. A declared value or its reference object only.
 - Q: Who turns the stored code into a value? → A: The resource, with a local domain error naming the row, the field, the code and the declared set.
 - Q: Does the container check that the hydrated class matches the value? → A: Yes; the extension exposes its declared value and the container compares them.
@@ -282,6 +283,7 @@ The demo's currency references become dictionary references, the one dictionary 
 - **Full coverage, no subset.** An axis covers its dictionary completely; a dictionary wider than an axis is not a subset relation and would need a projection feature that is out of scope.
 - **One mechanism, two kinds.** The state kind's declaration machinery is shared, but the kinds stay siblings: the state kind keeps its lifecycle role, its exclusion from the entity graph and its inherited catalogue; the dictionary keeps its ordinary-entity role and its non-inherited values.
 - **The dictionary is a type argument of the container.** `Specialization[Alternatives, Dictionary]` names it; the `CodeOf`-style marker and the head-side `Classifier` considered earlier are unnecessary once the dictionary itself is the closed type, and neither is introduced.
+- **The one-argument container is a migration device, not a form.** Until the corpus moves, `Specialization[A | B]` keeps `variant: str` through a bridge and the demo carries one interim `, str`; both are removed by the migration task, and the declared form is the two-argument one.
 - **Storage keeps a code column.** Its name is not fixed and is chosen by the resource; the model never sees the column name. The resource resolves the code into a declared value and fails before the model is constructed when the code is undeclared.
 - **The container accepts values, not codes.** The model refuses a bare code string; only a declared value or its reference object enters.
 - **The values are not nodes.** A value is the dictionary's declaration data, carried on its node; the condition for revisiting this is stated in the issue (per-value identity, audit or filtering).
