@@ -51,8 +51,8 @@ class VocabularyKindEnumEntity(BaseEnumEntity):
 
     note: str = Field(default="", description="Free note")
 
-    FIRST = VocabularyKindEnumEntity(code="first", display_name="First press")  # noqa: F821
-    REPRESS = VocabularyKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
+    FIRST = VocabularyKindEnumEntity(code="first", display_name="First press")
+    REPRESS = VocabularyKindEnumEntity(code="repress", display_name="Repress")
 
 
 @exclude_graph_model
@@ -65,7 +65,7 @@ class EmptyKindEnumEntity(BaseEnumEntity):
 class OtherKindEnumEntity(BaseEnumEntity):
     """A second dictionary, whose values do not belong to the first."""
 
-    EXTRA = OtherKindEnumEntity(code="extra", display_name="Extra")  # noqa: F821
+    EXTRA = OtherKindEnumEntity(code="extra", display_name="Extra")
 
 
 @exclude_graph_model

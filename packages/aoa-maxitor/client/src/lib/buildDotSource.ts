@@ -9,15 +9,27 @@ export type ErdField = {
   type?: string;
   primary_key?: boolean;
   foreign_key?: boolean;
+  /** Interchange qualname of the closed dictionary this field references, when it references one. */
+  reference_qualname?: string | null;
 };
 
 export type ErdEntity = {
   id: string;
   label?: string;
   color?: string;
+  /** `enum` marks a closed dictionary; every other kind is an ordinary entity. */
+  entity_kind?: string;
+  /** The values a closed dictionary declares, in declaration order. */
+  values?: ErdValue[];
   /** Interchange domain qualname (for legend / filter when 1-hop adds neighbors). */
   domain_qualname?: string;
   fields?: ErdField[];
+};
+
+/** One value of a closed dictionary, as the entity card shows it. */
+export type ErdValue = {
+  code: string;
+  display_name: string;
 };
 
 export type ErdRelation = {
@@ -39,6 +51,8 @@ export type ErdGroup = {
   group_id: string;
   label: string;
   classifier_field?: string;
+  /** The closed dictionary the axis borrows its codes from, when it borrows one. */
+  dictionary_label?: string;
   members: string[];
 };
 
@@ -128,6 +142,17 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
 
   const nodeSource = (nd: ErdEntity): string => {
     const color = nd.color || "#3b82f6";
+    const valueRows = (nd.values || [])
+      .map(
+        (value) =>
+          "<TR>" +
+          `<TD BGCOLOR="#ecfdf5" WIDTH="28"></TD>` +
+          `<TD BGCOLOR="#ecfdf5" ALIGN="LEFT">${escHtml(value.code)}</TD>` +
+          `<TD BGCOLOR="#ecfdf5" ALIGN="LEFT"><FONT COLOR="#047857"><I>${escHtml(value.display_name)}</I></FONT></TD>` +
+          "</TR>",
+      )
+      .join("\n      ");
+
     const rows = (nd.fields || [])
       .map((f) => {
         const bg = f.primary_key ? "#fef9c3" : f.foreign_key ? "#dbeafe" : "#ffffff";
@@ -137,6 +162,9 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
           : `<TD BGCOLOR="${bg}" WIDTH="28"></TD>`;
         // A specialization axis row collapses its alternatives into "Specialization N+"
         // and carries the full list as the cell's hover tooltip.
+        const reference = f.reference_qualname
+          ? ` <FONT COLOR="#0f766e">→ ${escHtml(String(f.reference_qualname).split(".").pop() || "")}</FONT>`
+          : "";
         const specialization = parseSpecializationType(f.type || "");
         const typeText = specialization !== null ? `Specialization ${specialization.alternatives.length}+` : f.type || "";
         const tooltipAttr =
@@ -150,7 +178,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
           "<TR>" +
           iconTd +
           `<TD BGCOLOR="${bg}" ALIGN="LEFT">${escHtml(f.name)}</TD>` +
-          `<TD BGCOLOR="${bg}" ALIGN="LEFT"${tooltipAttr}><FONT COLOR="#64748b"><I>${escHtml(typeText)}</I></FONT></TD>` +
+          `<TD BGCOLOR="${bg}" ALIGN="LEFT"${tooltipAttr}><FONT COLOR="#64748b"><I>${escHtml(typeText)}</I></FONT>${reference}</TD>` +
           "</TR>"
         );
       })
@@ -160,7 +188,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
       `  "${nd.id}" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="${color}">` +
       `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="CENTER">` +
       `<FONT COLOR="white" POINT-SIZE="12"><B>${escHtml(nd.label || nd.id)}</B></FONT>` +
-      `</TD></TR>${rows}</TABLE>>]`
+      `</TD></TR>${rows}${valueRows}</TABLE>>]`
     );
   };
 
@@ -171,7 +199,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
     if (members.length < 2) continue;
     lines.push(
       `  subgraph "cluster_${group.group_id}" {`,
-      `    label="${escHtml(group.label)}";`,
+      `    label="${escHtml(group.label)}${group.dictionary_label ? ` (${escHtml(group.dictionary_label)})` : ""}";`,
       '    style="rounded,dashed";',
       '    color="#94a3b8";',
       '    fontsize=10;',

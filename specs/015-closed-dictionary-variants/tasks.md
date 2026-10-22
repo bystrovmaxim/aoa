@@ -124,9 +124,9 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 - [x] T032 [US3] Change the extension marker to `Classifier(field=…, variant=…)` and derive `declared_variant` on `packages/aoa-action-machine/src/aoa/action_machine/domain/spec_entity.py`
 - [x] T033 [US3] Read the dictionary from the head field's second type argument in `packages/aoa-action-machine/src/aoa/action_machine/intents/entity/entity_specialization_intent_resolver.py`, and rewrite the rules in `packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py`: `_validate_axis_vocabulary` first, the classifier-field rules deleted
 - [x] T034 [US3] Drop `classifier_field` from `packages/aoa-action-machine/src/aoa/action_machine/graph/edges/entity_specialization_graph_edge.py` and from `packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.py`, keeping `field_name`, `classifier_value` and the dictionary properties
-- [ ] T035 [US3] Rewrite the codemod in `specs/015-closed-dictionary-variants/evidence/migrate_axes_to_dictionaries.py` — generate one `<Head>KindEnumEntity` per axis from its `Literal`s, delete the head's classifier field, add the dictionary argument, drop the head's `Classifier`, rewrite the extension markers and every construction or payload that set the deleted field, editing `.py` files and `.ipynb` code cells only
+- [x] T035 [US3] Rewrite the codemod in `specs/015-closed-dictionary-variants/evidence/migrate_axes_to_dictionaries.py` — generate one `<Head>KindEnumEntity` per axis from its `Literal`s, delete the head's classifier field, add the dictionary argument, drop the head's `Classifier`, rewrite the extension markers and every construction or payload that set the deleted field, editing `.py` files and `.ipynb` code cells only
 - [ ] T036 [US3] Run the codemod on `examples/step_20_entity/06_specialization.py` with its notebook and on the 37 scripts with their 37 notebooks in `examples/step_21_relations/` — 38 scripts and 38 notebooks in all — then review each diff
-- [ ] T037 [US3] Run the codemod on the 7 framework test modules under `packages/aoa-action-machine/tests/action_machine/graph/` (105 `Classifier` declarations, including `test_entity_specialization_sweep.py`), keeping the existing rules' tests unchanged: alternatives are declared entities, one class in one head, no cycles (FR-026)
+- [x] T037 [US3] Run the codemod on the 7 framework test modules under `packages/aoa-action-machine/tests/action_machine/graph/` (105 `Classifier` declarations, including `test_entity_specialization_sweep.py`), keeping the existing rules' tests unchanged: alternatives are declared entities, one class in one head, no cycles (FR-026)
 - [ ] T038 [US3] Remove the one-argument bridge from `Specialization.__class_getitem__` and the interim `, str` it forced in `packages/aoa-demo/src/aoa/demo/model/generalization_shapes/entities/generalization_entities.py`, so a container must name its dictionary; then rewrite by hand the examples that assert the replaced rules — `examples/step_21_relations/41_error_codes_not_literal.py` and any other negative case the codemod cannot express — keeping their scenario and their printed message; then run every migrated example script, the whole `aoa-action-machine` suite and the scan, which must report 0 `Classifier(…, Literal[…])` and 0 classifier fields on axes in `packages/` and `examples/`
 
 **Checkpoint**: the whole corpus is on the container form and the refusals have tests.
@@ -141,21 +141,21 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 
 ### Tests for User Story 4
 
-- [ ] T039 [P] [US4] Add the demo graph assertions in `packages/aoa-demo/tests/` — the `enum` node with three values, 25 `reference_qualname` fields, the axis edge with the dictionary and without `classifier_field`
-- [ ] T040 [P] [US4] Add the payload test in `packages/aoa-maxitor/tests/` for `values` and `reference_qualname` reaching the ERD slice
+- [x] T039 [P] [US4] Add the demo graph assertions in `packages/aoa-demo/tests/` — the `enum` node with three values, 25 `reference_qualname` fields, the axis edge with the dictionary and without `classifier_field`
+- [x] T040 [P] [US4] Add the payload test in `packages/aoa-maxitor/tests/` for `values` and `reference_qualname` reaching the ERD slice
 
 ### Implementation for User Story 4
 
 - [x] T041 [US4] Create `packages/aoa-demo/src/aoa/demo/model/dictionaries/__init__.py`, `dictionaries_domain.py` and `entities/currency_enum.py` with `USD`, `EUR`, `RUB`
 - [x] T042 [US4] Retype the 25 currency fields in the 22 demo files `packages/aoa-demo/src/aoa/demo/model/**/entities/*.py` (`currency_iso`, `settlement_currency_iso`, `quote_currency_iso`) to `CurrencyEnumEntity`
 - [x] T043 [US4] Point the default at the declared value in `packages/aoa-demo/src/aoa/demo/model/store/entities/sales_core.py`
-- [ ] T044 [US4] Move the demo's axis onto the dictionary in `packages/aoa-demo/src/aoa/demo/model/generalization_shapes/entities/generalization_entities.py`, dropping the interim `, str` second argument
+- [x] T044 [US4] Move the demo's axis onto the dictionary in `packages/aoa-demo/src/aoa/demo/model/generalization_shapes/entities/generalization_entities.py`, dropping the interim `, str` second argument
 - [x] T045 [US4] Add `values_json` to the `entity` table and `reference_qualname` to the `entity_field` table, and fill them, in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py`
 - [x] T046 [US4] Select the two new values into the ERD payload in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py` and its schema
-- [ ] T047 [US4] Add `values` and `reference_qualname` to `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`, render the value rows in the ERD card, draw the reference and label the axis container in `packages/aoa-maxitor/client/src/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/ErdGraphvizCanvas.tsx`, and write the component README
+- [x] T047 [US4] Add `values` and `reference_qualname` to `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`, render the value rows in the ERD card, draw the reference and label the axis container in `packages/aoa-maxitor/client/src/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/ErdGraphvizCanvas.tsx`, and write the component README
 - [ ] T048 [US4] Run the scan and `compare_baselines.py`, record `specs/015-closed-dictionary-variants/evidence/baseline.after.json`, and confirm only the intended differences
-- [ ] T049 [US4] Run `npm run build` in `packages/aoa-maxitor/client` and `pytest packages/aoa-maxitor/tests -q`
-- [ ] T050 [US4] Search `packages/aoa-maxitor` for any dictionary, kind or value name of AOA's and remove it from the rendering path
+- [x] T049 [US4] Run `npm run build` in `packages/aoa-maxitor/client` and `pytest packages/aoa-maxitor/tests -q`
+- [x] T050 [US4] Search `packages/aoa-maxitor` for any dictionary, kind or value name of AOA's and remove it from the rendering path
 
 **Checkpoint**: the feature is visible end-to-end and nothing in the viewer knows AOA's vocabulary.
 

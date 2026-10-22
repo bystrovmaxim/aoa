@@ -176,6 +176,8 @@ def test_the_generalization_table_holds_one_row_per_alternative(duck: DuckDBGrap
             {
                 "field_name",
                 "classifier_field",
+                "dictionary_qualname",
+                "dictionary_label",
                 "classifier_value",
                 "alternative_index",
                 "alternatives",

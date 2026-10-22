@@ -72,6 +72,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
+from aoa.action_machine.domain.spec_entity import declared_value
 from aoa.action_machine.domain.specialization_containers import (
     Classifier,
     Specialization,
@@ -200,7 +201,11 @@ def _validate_declared_variants(axis: EntitySpecializationIntentResolver) -> Non
     dictionary = cast(Any, axis.dictionary)
     members = tuple(dictionary.members)
     for alternative in axis.alternatives:
-        declared = getattr(alternative, "declared_variant", None)
+        if not read_reverse_declarations(alternative, axis.head_entity):
+            # The reachability rule owns this case and says it better; the two-sided
+            # comparison below reports the value the head names and nobody owns.
+            continue
+        declared = declared_value(alternative)
         if declared is None:
             _fail(
                 axis,

@@ -35,7 +35,7 @@ would make an unrelated test fail for a reason that belongs to another task.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 import pytest
 from pydantic import Field, ValidationError
@@ -43,6 +43,7 @@ from pydantic import Field, ValidationError
 from aoa.action_machine.domain import (
     BaseCoreEntity,
     BaseEntity,
+    BaseEnumEntity,
     BaseSpecEntity,
     Classifier,
     Generalization,
@@ -79,7 +80,7 @@ class _FirstSpecEntity(BaseSpecEntity):
     stamper: str = Field(description="a column of its own")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier("record", Literal["first"]),
+        Classifier(field="record", variant=_HeadKindEnumEntity.FIRST),
         Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
@@ -91,7 +92,7 @@ class _SecondSpecEntity(BaseSpecEntity):
     year: int = Field(description="a column of its own")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier("record", Literal["repress"]),
+        Classifier(field="record", variant=_HeadKindEnumEntity.REPRESS),
         Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
@@ -102,9 +103,19 @@ class _ThirdSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier("record", Literal["test"]),
+        Classifier(field="record", variant=_HeadKindEnumEntity.TEST),
         Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
+
+
+@exclude_graph_model
+@entity(description="Kind of _HeadCoreEntity", domain=_GDomain)
+class _HeadKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    FIRST = _HeadKindEnumEntity(code="first", display_name="First")  # noqa: F821
+    REPRESS = _HeadKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
+    TEST = _HeadKindEnumEntity(code="test", display_name="Test")  # noqa: F821
 
 
 @exclude_graph_model
@@ -112,10 +123,8 @@ class _ThirdSpecEntity(BaseSpecEntity):
 class _HeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     title: str = Field(description="a plain column")
-    media: str = Field(description="classifier")
     pressed: Annotated[
-        Specialization[_FirstSpecEntity | _SecondSpecEntity | _ThirdSpecEntity],
-        Classifier(field="media", codes=Literal["first", "repress", "test"]),
+        Specialization[_FirstSpecEntity | _SecondSpecEntity | _ThirdSpecEntity, _HeadKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="how it was pressed")
 
@@ -158,7 +167,7 @@ def test_the_field_is_still_a_column() -> None:
     node = _node(_HeadCoreEntity)
     columns = [edge.target_node.label for edge in node.entity_field_edges if edge.target_node is not None]
 
-    assert columns == ["id", "title", "media", "pressed"], "a reader has to see the field itself"
+    assert columns == ["id", "title", "pressed"], "a reader sees the axis; the classifier field is gone"
 
 
 def test_the_same_field_is_not_emitted_twice() -> None:
@@ -172,7 +181,7 @@ def test_the_head_carries_both_its_columns_and_its_alternatives() -> None:
     kinds = [edge.edge_name for edge in _node(_HeadCoreEntity).get_all_edges()]
 
     assert kinds.count("entity_specialization") == 3
-    assert kinds.count("entity_field") == 4
+    assert kinds.count("entity_field") == 3
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -195,7 +204,8 @@ def test_every_edge_repeats_the_whole_declaration() -> None:
 
     for edge in _specialization_edges():
         assert edge.properties["alternatives"] == listed, "one edge is enough to read the whole cluster"
-        assert edge.properties["classifier_field"] == "media"
+        assert "classifier_field" not in edge.properties
+        assert edge.properties["dictionary_label"] == "_HeadKindEnumEntity"
         assert edge.properties["relation_type"] == "specialization"
         assert edge.properties["cardinality"] == "one"
         assert edge.properties["field_name"] == "pressed"
@@ -216,7 +226,8 @@ def test_an_edge_serializes_with_its_own_properties_only() -> None:
     assert row["target_id"] == TypeIntrospection.full_qualname(_FirstSpecEntity)
     assert set(properties) == {
         "field_name",
-        "classifier_field",
+        "dictionary_qualname",
+        "dictionary_label",
         "classifier_value",
         "alternative_index",
         "alternatives",
@@ -288,18 +299,18 @@ def test_the_coordinator_refuses_an_edge_whose_target_is_not_a_node() -> None:
 
 def test_a_link_keeps_its_identifier_and_variant_without_a_loaded_row() -> None:
     head = _HeadCoreEntity(
-        id="h", title="t", media="first", pressed=Specialization[_FirstSpecEntity](id="h", variant="first")
+        id="h", title="t", pressed=Specialization[_FirstSpecEntity, _HeadKindEnumEntity](id="h", variant=_HeadKindEnumEntity.FIRST)
     )
 
     assert head.pressed.id == "h"
-    assert head.pressed.variant == "first"
+    assert head.pressed.variant is _HeadKindEnumEntity.FIRST
     assert head.pressed.entity is None
 
 
 def test_a_loaded_row_reads_back_as_the_object_put_in() -> None:
     row = _FirstSpecEntity(id="h", stamper="1A")
     head = _HeadCoreEntity(
-        id="h", title="t", media="first", pressed=Specialization[_FirstSpecEntity](id="h", variant="first", entity=row)
+        id="h", title="t", pressed=Specialization[_FirstSpecEntity, _HeadKindEnumEntity](id="h", variant=_HeadKindEnumEntity.FIRST, entity=row)
     )
 
     assert head.pressed.entity is row
@@ -307,7 +318,7 @@ def test_a_loaded_row_reads_back_as_the_object_put_in() -> None:
 
 def test_a_class_outside_the_union_is_refused() -> None:
     with pytest.raises(ValidationError):
-        Specialization[_FirstSpecEntity](id="h", variant="first", entity=_ThirdSpecEntity(id="h"))
+        Specialization[_FirstSpecEntity, _HeadKindEnumEntity](id="h", variant=_HeadKindEnumEntity.FIRST, entity=_ThirdSpecEntity(id="h"))
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -379,7 +379,9 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL,
       field_name VARCHAR NOT NULL,
-      classifier_field VARCHAR NOT NULL,
+      classifier_field VARCHAR,
+      dictionary_qualname VARCHAR,
+      dictionary_label VARCHAR,
       classifier_value VARCHAR NOT NULL,
       alternative_index INTEGER NOT NULL,
       alternatives VARCHAR NOT NULL,
@@ -600,7 +602,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT source_id, target_id, relationship, is_dag, CAST('connection_edges' AS VARCHAR) AS type, json_object('conn_key', conn_key) AS payload FROM connection_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('required_context_edges' AS VARCHAR) AS type, json_object('ctx_key', ctx_key) AS payload FROM required_context_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_relation_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'relation_type', relation_type, 'cardinality', cardinality, 'description', description, 'has_inverse', has_inverse, 'deprecated', deprecated, 'inverse_entity_id', inverse_entity_id, 'inverse_field', inverse_field) AS payload FROM entity_relation_edges",
-        "SELECT source_id, target_id, relationship, is_dag, CAST('entity_specialization_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'classifier_field', classifier_field, 'classifier_value', classifier_value, 'alternative_index', alternative_index, 'alternatives', alternatives, 'labels', labels, 'relation_type', relation_type, 'cardinality', cardinality, 'description', description, 'has_inverse', has_inverse, 'deprecated', deprecated) AS payload FROM entity_specialization_edges",
+        "SELECT source_id, target_id, relationship, is_dag, CAST('entity_specialization_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'dictionary_qualname', dictionary_qualname, 'dictionary_label', dictionary_label, 'classifier_field', classifier_field, 'classifier_value', classifier_value, 'alternative_index', alternative_index, 'alternatives', alternatives, 'labels', labels, 'relation_type', relation_type, 'cardinality', cardinality, 'description', description, 'has_inverse', has_inverse, 'deprecated', deprecated) AS payload FROM entity_specialization_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('parent_entity_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'inverse_field', inverse_field, 'classifier_value', classifier_value, 'head_entity_id', head_entity_id) AS payload FROM parent_entity_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_view_edges' AS VARCHAR) AS type, json_object('field_name', field_name) AS payload FROM entity_view_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_field_edges' AS VARCHAR) AS type, json_object('ordinal', ordinal, 'field_name', field_name) AS payload FROM entity_field_edges",
@@ -983,7 +985,9 @@ def _fill_table_entity_specialization_edges(con: duckdb.DuckDBPyConnection, rows
             [
                 *_base_edge_row(edge),
                 p["field_name"],
-                p["classifier_field"],
+                p.get("classifier_field"),
+                p.get("dictionary_qualname"),
+                p.get("dictionary_label"),
                 p["classifier_value"],
                 p["alternative_index"],
                 json.dumps(p["alternatives"], ensure_ascii=False),
@@ -997,7 +1001,7 @@ def _fill_table_entity_specialization_edges(con: duckdb.DuckDBPyConnection, rows
         )
     _executemany(
         con,
-        "INSERT INTO entity_specialization_edges (source_id, target_id, relationship, is_dag, field_name, classifier_field, classifier_value, alternative_index, alternatives, labels, relation_type, cardinality, description, has_inverse, deprecated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO entity_specialization_edges (source_id, target_id, relationship, is_dag, field_name, classifier_field, dictionary_qualname, dictionary_label, classifier_value, alternative_index, alternatives, labels, relation_type, cardinality, description, has_inverse, deprecated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         data,
     )
 

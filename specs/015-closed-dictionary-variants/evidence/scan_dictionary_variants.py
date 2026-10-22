@@ -48,7 +48,7 @@ import ast
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -367,7 +367,7 @@ def _tools() -> dict[str, str]:
     except (OSError, subprocess.CalledProcessError):
         versions["uv"] = "unavailable"
     try:
-        import pydantic  # noqa: PLC0415
+        import pydantic
 
         versions["pydantic"] = pydantic.VERSION
     except ImportError:
@@ -411,7 +411,7 @@ def scan(include_graph: bool) -> dict[str, Any]:
     }
 
     report: dict[str, Any] = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "commit": _commit(),
         "tools": _tools(),
         "areas": areas,

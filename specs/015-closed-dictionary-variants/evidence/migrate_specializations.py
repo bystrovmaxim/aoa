@@ -11,10 +11,13 @@ are the sites a human has to look at: the field is going away.
 Usage::
 
     python migrate_specializations.py --plan FILE...
-    python migrate_specializations.py --write FILE...      # not implemented yet
+    python migrate_specializations.py --write FILE...
 
-`--plan` prints one JSON object per axis and changes nothing. The counters are what
-the migration task (T036/T037) reads before any file is touched.
+`--plan` prints one JSON object per axis and changes nothing. `--write` performs the
+four edits: the head's container names the dictionary, the head loses its classifier
+field and its `Classifier` marker, each extension's marker names a value, and the
+dictionary class is inserted before the head. Constructions that pass the classifier
+field as a keyword are counted and left alone: removing the field is a human's call.
 """
 
 from __future__ import annotations
@@ -113,6 +116,248 @@ def plan_class(cls: ast.ClassDef) -> dict[str, Any] | None:
     return None
 
 
+def _value_name(code: str) -> str:
+    """Return the class-body name a code is declared under."""
+    cleaned = "".join(character if character.isalnum() else "_" for character in code)
+    return cleaned.upper() if cleaned[:1].isdigit() is False else f"VALUE_{cleaned.upper()}"
+
+
+def _span(text: str, node: ast.AST) -> tuple[int, int]:
+    """Return the absolute (start, end) offsets of ``node`` in ``text``."""
+    lines = text.splitlines(keepends=True)
+    start = sum(len(line) for line in lines[: node.lineno - 1]) + node.col_offset
+    end = sum(len(line) for line in lines[: node.end_lineno - 1]) + node.end_col_offset
+    return start, end
+
+
+def _dictionary_source(axis: dict[str, Any], domain: str, *, exclude: bool, indent: str = "") -> str:
+    """Return the dictionary class the axis migrates to, decorated like its head."""
+    lines = [
+        *( [f"{indent}@exclude_graph_model"] if exclude else [] ),
+        f'{indent}@entity(description="Kind of {axis["head"]}", domain={domain})',
+        f'{indent}class {axis["dictionary"]}(BaseEnumEntity):',
+        f'{indent}    """Declare the codes the axis borrows."""',
+        "",
+    ]
+    for code in axis["codes"]:
+        name = _value_name(code)
+        lines.append(
+            f'{indent}    {name} = {axis["dictionary"]}('
+            f'code="{code}", display_name="{name.replace("_", " ").title()}")  # noqa: F821'
+        )
+    return "\n".join(lines)
+
+
+def _annotated_parts(annotation: ast.AST) -> tuple[ast.AST, list[ast.AST]] | None:
+    """Split ``Annotated[X, ...]`` into its type and its metadata nodes."""
+    if isinstance(annotation, ast.Subscript) and _dotted(annotation.value) == "Annotated":
+        elements = annotation.slice.elts if isinstance(annotation.slice, ast.Tuple) else []
+        if elements:
+            return elements[0], list(elements[1:])
+    return None
+
+
+def transform(text: str) -> tuple[str, int]:
+    """Return the migrated text and the number of axes it declares."""
+    tree = ast.parse(text)
+    plan = _plan_tree(text, tree)
+    if not plan["axes"]:
+        return text, 0
+
+    edits: list[tuple[int, int, str]] = []
+    domain = _domain_of(tree)
+
+    for axis in plan["axes"]:
+        head = next(
+            node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == axis["head"]
+        )
+        field_name = str(axis["field_name"])
+        statement = next(
+            node
+            for node in head.body
+            if isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == field_name
+        )
+        parts = _annotated_parts(statement.annotation)
+        if parts is None:
+            continue
+        container, metadata = parts
+        assert isinstance(container, ast.Subscript)
+        union = ast.get_source_segment(text, container.slice)
+        kept = [ast.get_source_segment(text, item) for item in metadata if not isinstance(item, ast.Call) or _dotted(item.func) != "Classifier"]
+        arguments = f"Specialization[{union}, {axis['dictionary']}]"
+        if kept and statement.annotation.end_lineno != statement.annotation.lineno:
+            inner = " " * (statement.col_offset + 4)
+            closing = " " * statement.col_offset
+            replacement = "Annotated[\n" + f"{inner}{arguments},\n"
+            replacement += "".join(f"{inner}{item},\n" for item in kept) + f"{closing}]"
+        else:
+            replacement = f"Annotated[{arguments}, {', '.join(kept)}]" if kept else arguments
+        start, end = _span(text, statement.annotation)
+        edits.append((start, end, replacement))
+
+        classifier_field = str(axis["classifier_field"])
+        for node in head.body:
+            if (
+                isinstance(node, ast.AnnAssign)
+                and isinstance(node.target, ast.Name)
+                and node.target.id == classifier_field
+            ):
+                field_start, _ = _span(text, node)
+                field_end = sum(len(line) for line in text.splitlines(keepends=True)[: node.end_lineno])
+                edits.append((field_start - len(text.splitlines(keepends=True)[node.lineno - 1][: node.col_offset]), field_end, ""))
+
+        anchor = head.decorator_list[0] if head.decorator_list else head
+        anchor_start = _span(text, anchor)[0] - anchor.col_offset
+        excluded = any(_dotted(decorator) == "exclude_graph_model" for decorator in head.decorator_list)
+        edits.append(
+            (anchor_start, anchor_start, _dictionary_source(axis, domain, exclude=excluded) + "\n\n\n")
+        )
+
+        edits.extend(_rewrite_markers(text, tree, axis))
+        edits.extend(_drop_constructor_arguments(text, tree, axis))
+
+    kept_edits: list[tuple[int, int, str]] = []
+    for start, end, replacement in sorted(edits, key=lambda edit: (edit[0], edit[1]), reverse=True):
+        overlaps = any(
+            start < kept_end and kept_start < (end if end > start else start + 1)
+            for kept_start, kept_end, _ in kept_edits
+            if kept_end > kept_start
+        )
+        if overlaps:
+            continue
+        kept_edits.append((start, end, replacement))
+    edits = kept_edits
+
+    for start, end, replacement in sorted(edits, key=lambda edit: (edit[0], edit[1]), reverse=True):
+        text = text[:start] + replacement + text[end:]
+
+    return _add_import(text), len(plan["axes"])
+
+
+def _plan_tree(text: str, tree: ast.AST) -> dict[str, Any]:
+    """Return the migration plan of one parsed module."""
+    axes = [axis for cls in ast.walk(tree) if isinstance(cls, ast.ClassDef) if (axis := plan_class(cls))]
+    classifier_fields = {str(axis["classifier_field"]) for axis in axes}
+    return {"axes": axes, "constructions_to_review": _constructions(tree, classifier_fields)}
+
+
+def write_file(path: Path) -> dict[str, Any]:
+    """Apply the migration to one file, and return what was done."""
+    if path.suffix == ".ipynb":
+        return _write_notebook(path)
+    text = path.read_text()
+    migrated, axes = transform(text)
+    if migrated != text:
+        path.write_text(migrated)
+    return {"file": str(path), "axes": axes, "changed": migrated != text}
+
+
+def _write_notebook(path: Path) -> dict[str, Any]:
+    """Apply the migration to every code cell of a notebook."""
+    import json
+
+    notebook = json.loads(path.read_text())
+    changed = 0
+    axes = 0
+    for cell in notebook.get("cells", []):
+        if cell.get("cell_type") != "code":
+            continue
+        source = "".join(cell.get("source", []))
+        migrated, count = transform(source)
+        axes += count
+        if migrated != source:
+            cell["source"] = migrated.splitlines(keepends=True)
+            changed += 1
+    if changed:
+        path.write_text(json.dumps(notebook, indent=1, ensure_ascii=False) + "\n")
+    return {"file": str(path), "axes": axes, "cells_changed": changed, "changed": changed > 0}
+
+
+def _drop_constructor_arguments(text: str, tree: ast.AST, axis: dict[str, Any]) -> list[tuple[int, int, str]]:
+    """Return the edits that stop constructions of the head from passing the removed field."""
+    edits: list[tuple[int, int, str]] = []
+    head_name = str(axis["head"])
+    classifier_field = str(axis["classifier_field"])
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or _dotted(node.func) != head_name:
+            continue
+        for keyword in node.keywords:
+            if keyword.arg != classifier_field:
+                continue
+            start, end = _span(text, keyword)
+            comma = text.rfind(",", 0, start)
+            if comma != -1 and not text[comma + 1 : start].strip():
+                start = comma
+            edits.append((start, end, ""))
+    return edits
+
+
+def _domain_of(tree: ast.AST) -> str:
+    """Return the domain class the file's entities are declared in."""
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and _dotted(node.func) == "entity":
+            for keyword in node.keywords:
+                if keyword.arg == "domain":
+                    return _dotted(keyword.value)
+    return ""
+
+
+def _rewrite_markers(text: str, tree: ast.AST, axis: dict[str, Any]) -> list[tuple[int, int, str]]:
+    """Return the edits that turn each extension's marker into the value form."""
+    edits: list[tuple[int, int, str]] = []
+    head_name = str(axis["head"])
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ClassDef):
+            continue
+        points_at_head = any(
+            f"Generalization[{head_name}]" in (ast.get_source_segment(text, statement.annotation) or "")
+            for statement in node.body
+            if isinstance(statement, ast.AnnAssign)
+        )
+        if not points_at_head:
+            continue
+        for statement in node.body:
+            if not isinstance(statement, ast.AnnAssign):
+                continue
+            call = _classifier_call(statement.annotation)
+            if call is None:
+                continue
+            field, codes = _classifier_arguments(call)
+            if not field or not codes:
+                continue
+            if codes[0] not in axis["codes"]:
+                # The head does not declare this code: the case is expressing a refusal that
+                # the dictionary form cannot write, so leave it for a human.
+                continue
+            start, end = _span(text, call)
+            edits.append(
+                (
+                    start,
+                    end,
+                    f'Classifier(field="{field}", variant={axis["dictionary"]}.{_value_name(codes[0])})',
+                )
+            )
+    return edits
+
+
+def _add_import(text: str) -> str:
+    """Add ``BaseEnumEntity`` to the action-machine domain import, once."""
+    if "from aoa.action_machine.domain import BaseEnumEntity" in text or "\n    BaseEnumEntity," in text:
+        return text
+    lines = text.splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        if line.startswith("from aoa.action_machine.domain import ("):
+            lines.insert(index + 1, "    BaseEnumEntity,\n")
+            return "".join(lines)
+    for index, line in enumerate(lines):
+        if line.startswith("from aoa.action_machine.domain import "):
+            lines.insert(index, "from aoa.action_machine.domain import BaseEnumEntity\n")
+            return "".join(lines)
+    return text
+
+
 def _constructions(tree: ast.AST, classifier_fields: set[str]) -> int:
     """Count the calls that pass a classifier field as a keyword."""
     count = 0
@@ -142,13 +387,13 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--plan", nargs="+", type=Path, metavar="FILE")
     parser.add_argument("--write", nargs="+", type=Path, metavar="FILE")
     arguments = parser.parse_args(argv)
-    if arguments.write:
-        print("--write is not implemented yet: the migration lands with T036-T038.", file=sys.stderr)
-        return 2
-    if not arguments.plan:
+    if not arguments.plan and not arguments.write:
         parser.error("name at least one file with --plan or --write")
-    plans = [plan_file(path) for path in arguments.plan]
-    print(json.dumps({"files": plans, "totals": {"axes": sum(len(p["axes"]) for p in plans)}}, indent=2))
+    if arguments.plan:
+        plans = [plan_file(path) for path in arguments.plan]
+        print(json.dumps({"files": plans, "totals": {"axes": sum(len(p["axes"]) for p in plans)}}, indent=2))
+    for path in arguments.write or []:
+        print(json.dumps(write_file(path)), file=sys.stderr)
     return 0
 
 

@@ -41,7 +41,7 @@ own tests do).
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 import pytest
 from jsonschema import Draft202012Validator
@@ -51,6 +51,7 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     BaseCoreEntity,
     BaseEntity,
+    BaseEnumEntity,
     BaseSpecEntity,
     Classifier,
     Generalization,
@@ -84,7 +85,7 @@ class SchemaFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[SchemaHeadCoreEntity],
-        Classifier("rec", Literal["first"]),
+        Classifier(field="rec", variant=SchemaHeadKindEnumEntity.FIRST),
         Inverse(SchemaHeadCoreEntity, "pack"),
     ] = Rel(description="back")
 
@@ -95,19 +96,26 @@ class SchemaSecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[SchemaHeadCoreEntity],
-        Classifier("rec", Literal["repress"]),
+        Classifier(field="rec", variant=SchemaHeadKindEnumEntity.REPRESS),
         Inverse(SchemaHeadCoreEntity, "pack"),
     ] = Rel(description="back")
+
+
+@exclude_graph_model
+@entity(description="Kind of SchemaHeadCoreEntity", domain=SchemaDomain)
+class SchemaHeadKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    FIRST = SchemaHeadKindEnumEntity(code="first", display_name="First")  # noqa: F821
+    REPRESS = SchemaHeadKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
 
 
 @exclude_graph_model
 @entity(description="Head", domain=SchemaDomain)
 class SchemaHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[SchemaFirstSpecEntity | SchemaSecondSpecEntity],
-        Classifier(field="media", codes=Literal["first", "repress"]),
+        Specialization[SchemaFirstSpecEntity | SchemaSecondSpecEntity, SchemaHeadKindEnumEntity],
         Inverse(field_name="rec"),
     ] = Rel(description="one of two")
 
@@ -210,7 +218,8 @@ def test_the_two_branches_carry_what_the_contract_promises() -> None:
 
     assert set(specialization["properties"]) == {
         "field_name",
-        "classifier_field",
+        "dictionary_qualname",
+        "dictionary_label",
         "classifier_value",
         "alternative_index",
         "alternatives",
