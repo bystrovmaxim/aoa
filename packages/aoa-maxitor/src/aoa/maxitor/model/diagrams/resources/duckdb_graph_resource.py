@@ -133,13 +133,15 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL,
-      entity_kind VARCHAR NOT NULL
+      entity_kind VARCHAR NOT NULL,
+      values_json VARCHAR NOT NULL
     );""",
             """CREATE TABLE entity_field (
       id VARCHAR NOT NULL PRIMARY KEY,
       label VARCHAR NOT NULL,
       field_type VARCHAR NOT NULL,
-      primary_key_hint BOOLEAN NOT NULL
+      primary_key_hint BOOLEAN NOT NULL,
+      reference_qualname VARCHAR
     );""",
             """CREATE TABLE resource (
       id VARCHAR NOT NULL PRIMARY KEY,
@@ -557,7 +559,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT id, label, CAST('action' AS VARCHAR) AS type, json_object('description', description) AS payload FROM action",
         "SELECT id, label, CAST('application' AS VARCHAR) AS type, json_object('name', name, 'description', description) AS payload FROM application",
         "SELECT id, label, CAST('domain' AS VARCHAR) AS type, json_object('name', name, 'description', description) AS payload FROM domain",
-        "SELECT id, label, CAST('entity' AS VARCHAR) AS type, json_object('description', description, 'entity_kind', entity_kind) AS payload FROM entity",
+        "SELECT id, label, CAST('entity' AS VARCHAR) AS type, json_object('description', description, 'entity_kind', entity_kind, 'values', from_json(values_json, '[\"json\"]')) AS payload FROM entity",
         "SELECT id, label, CAST('entity_field' AS VARCHAR) AS type, json_object('field_type', field_type, 'primary_key_hint', primary_key_hint) AS payload FROM entity_field",
         "SELECT id, label, CAST('resource' AS VARCHAR) AS type, json_object('description', description) AS payload FROM resource",
         f"SELECT id, label, CAST('params' AS VARCHAR) AS type, {_nj()} AS payload FROM params",
@@ -660,8 +662,8 @@ def _fill_table_entity(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]
     for node in rows:
         p = _get_properties(node)
         con.execute(
-            "INSERT INTO entity VALUES (?, ?, ?, ?)",
-            [node["id"], node["label"], p["description"], p["entity_kind"]],
+            "INSERT INTO entity VALUES (?, ?, ?, ?, ?)",
+            [node["id"], node["label"], p["description"], p["entity_kind"], json.dumps(p.get("values") or [])],
         )
 
 
@@ -1136,18 +1138,30 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     )
     _executemany(
         con,
-        "INSERT INTO entity VALUES (?, ?, ?, ?)",
+        "INSERT INTO entity VALUES (?, ?, ?, ?, ?)",
         [
-            [n["id"], n["label"], _get_properties(n)["description"], _get_properties(n)["entity_kind"]]
+            [
+                n["id"],
+                n["label"],
+                _get_properties(n)["description"],
+                _get_properties(n)["entity_kind"],
+                json.dumps(_get_properties(n).get("values") or []),
+            ]
             for n in nodes_by_type.get("Entity", [])
         ],
     )
     entity_field_nodes = nodes_by_type.get("EntityField", [])
     _executemany(
         con,
-        "INSERT INTO entity_field VALUES (?, ?, ?, ?)",
+        "INSERT INTO entity_field VALUES (?, ?, ?, ?, ?)",
         [
-            [n["id"], n["label"], _get_properties(n)["field_type"], _get_properties(n)["primary_key_hint"]]
+            [
+                n["id"],
+                n["label"],
+                _get_properties(n)["field_type"],
+                _get_properties(n)["primary_key_hint"],
+                _get_properties(n).get("reference_qualname"),
+            ]
             for n in entity_field_nodes
         ],
     )

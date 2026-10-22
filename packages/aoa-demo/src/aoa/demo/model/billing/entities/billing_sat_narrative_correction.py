@@ -10,6 +10,7 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_canonical_row_artifact import BillingCanonicalRowArtifactCoreEntity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
+from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
 
 
 @entity(description="Narrative correction attached to canonical ingest row", domain=BillingDomain)
@@ -18,7 +19,7 @@ class NarrativeCorrectionCoreEntity(BaseCoreEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Correction lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: str = Field(description="Declared ISO-4217 money unit")
+    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
     canonical_row: Annotated[
         AssociationOne[BillingCanonicalRowArtifactCoreEntity],
         NoInverse(),

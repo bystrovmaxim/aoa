@@ -28,6 +28,7 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.payment_event_log import PaymentEventLogCoreEntity
 from aoa.demo.model.catalog.entities.product_row import CatalogProductCoreEntity
+from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
 from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 from aoa.demo.model.store.entities.customer_account_lifecycle import CustomerAccountLifecycle
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
@@ -65,7 +66,7 @@ class CustomerAccountCoreEntity(BaseCoreEntity):
 class SalesOrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     amount: float = Field(description="Total", ge=0)
-    currency: str = Field(default="USD", description="Currency")
+    currency: CurrencyEnumEntity = Field(default=CurrencyEnumEntity.USD, description="Currency")
     lifecycle: SalesOrderLifecycle = Field(description="Lifecycle")
 
     storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")

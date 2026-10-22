@@ -114,7 +114,7 @@ def test_the_row_and_the_group_carry_what_the_contract_promises(slice_row: dict[
     head = next(entity for entity in entities if entity["label"] == "VinylRecordCoreEntity")
     axis_row = next(field for field in head["fields"] if field["name"] == "pressing" and field["foreign_key"])
 
-    assert set(axis_row) == {"field_id", "name", "type", "primary_key", "foreign_key"}
+    assert set(axis_row) == {"field_id", "name", "type", "primary_key", "foreign_key", "reference_qualname"}
     assert axis_row["foreign_key"] is True, "the ERD colours a leading-out column by this flag"
     assert "first" in axis_row["type"] and "test" in axis_row["type"], "every alternative is named"
 

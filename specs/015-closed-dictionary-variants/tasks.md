@@ -137,12 +137,12 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 
 ### Implementation for User Story 4
 
-- [ ] T041 [US4] Create `packages/aoa-demo/src/aoa/demo/model/dictionaries/__init__.py`, `dictionaries_domain.py` and `entities/currency_enum.py` with `USD`, `EUR`, `RUB`
-- [ ] T042 [US4] Retype the 25 currency fields in the 22 demo files `packages/aoa-demo/src/aoa/demo/model/**/entities/*.py` (`currency_iso`, `settlement_currency_iso`, `quote_currency_iso`) to `CurrencyEnumEntity`
-- [ ] T043 [US4] Point the default at the declared value in `packages/aoa-demo/src/aoa/demo/model/store/entities/sales_core.py`
+- [x] T041 [US4] Create `packages/aoa-demo/src/aoa/demo/model/dictionaries/__init__.py`, `dictionaries_domain.py` and `entities/currency_enum.py` with `USD`, `EUR`, `RUB`
+- [x] T042 [US4] Retype the 25 currency fields in the 22 demo files `packages/aoa-demo/src/aoa/demo/model/**/entities/*.py` (`currency_iso`, `settlement_currency_iso`, `quote_currency_iso`) to `CurrencyEnumEntity`
+- [x] T043 [US4] Point the default at the declared value in `packages/aoa-demo/src/aoa/demo/model/store/entities/sales_core.py`
 - [ ] T044 [US4] Move the demo's axis onto the dictionary in `packages/aoa-demo/src/aoa/demo/model/generalization_shapes/entities/generalization_entities.py`
-- [ ] T045 [US4] Add `values_json` to the `entity` table and `reference_qualname` to the `entity_field` table, and fill them, in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py`
-- [ ] T046 [US4] Select the two new values into the ERD payload in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py` and its schema
+- [x] T045 [US4] Add `values_json` to the `entity` table and `reference_qualname` to the `entity_field` table, and fill them, in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py`
+- [x] T046 [US4] Select the two new values into the ERD payload in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py` and its schema
 - [ ] T047 [US4] Add `values` and `reference_qualname` to `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`, render the value rows in the ERD card, draw the reference and label the axis container in `packages/aoa-maxitor/client/src/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/ErdGraphvizCanvas.tsx`, and write the component README
 - [ ] T048 [US4] Run the scan and `compare_baselines.py`, record `specs/015-closed-dictionary-variants/evidence/baseline.after.json`, and confirm only the intended differences
 - [ ] T049 [US4] Run `npm run build` in `packages/aoa-maxitor/client` and `pytest packages/aoa-maxitor/tests -q`
