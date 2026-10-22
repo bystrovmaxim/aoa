@@ -24,11 +24,11 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 
 **Purpose**: the baseline that every later phase is compared with.
 
-- [ ] T001 Confirm the branch `feature/issue-241-closed-dictionary-variants` is based on `70980156`, the tree is clean, and `uv sync` succeeds; record the commit and tool versions in `specs/015-closed-dictionary-variants/evidence/baseline.before.json`
-- [ ] T002 Write the scan script in `specs/015-closed-dictionary-variants/evidence/scan_dictionary_variants.py` — counts of decorated dictionaries, values, duplicate codes, `currency_iso: str`, other `*_iso` fields, `Classifier(…, Literal[…])` per area, axes per area, classifier fields per axis
-- [ ] T003 Run the scan and store the demo facts — `enum` nodes (expected 0), the 25 currency fields, the axes, their classifier fields and their codes — in `specs/015-closed-dictionary-variants/evidence/baseline.before.json`
-- [ ] T004 Write `specs/015-closed-dictionary-variants/evidence/compare_baselines.py`, reporting identity or a named difference between two graph dumps
-- [ ] T005 Re-measure the numbers quoted in `specs/015-closed-dictionary-variants/spec.md` and correct that file if anything moved since `70980156`
+- [x] T001 Confirm the branch `feature/issue-241-closed-dictionary-variants` is based on `70980156`, the tree is clean, and `uv sync` succeeds; record the commit and tool versions in `specs/015-closed-dictionary-variants/evidence/baseline.before.json`
+- [x] T002 Write the scan script in `specs/015-closed-dictionary-variants/evidence/scan_dictionary_variants.py` — counts of decorated dictionaries, values, duplicate codes, `currency_iso: str`, other `*_iso` fields, `Classifier(…, Literal[…])` per area, axes per area, classifier fields per axis
+- [x] T003 Run the scan and store the demo facts — `enum` nodes (expected 0), the 25 currency fields, the axes, their classifier fields and their codes — in `specs/015-closed-dictionary-variants/evidence/baseline.before.json`
+- [x] T004 Write `specs/015-closed-dictionary-variants/evidence/compare_baselines.py`, reporting identity or a named difference between two graph dumps
+- [x] T005 Re-measure the numbers quoted in `specs/015-closed-dictionary-variants/spec.md` and correct that file if anything moved since `70980156`
 
 ---
 
@@ -38,11 +38,11 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 
 **⚠️ CRITICAL**: no story work begins until this phase is green.
 
-- [ ] T006 Create `packages/aoa-action-machine/src/aoa/action_machine/domain/declared_values.py` with the full principle-III header: the `_DeclaredValues` mixin (no `BaseEntity` in its bases), `DeclaredValuesMeta(ModelMetaclass)`, the namespace that answers the class's own name, `ValueSpec`, and `value(**kwargs)`
-- [ ] T007 Move the conversion hook, the catalogue (`members`, `codes()`, `by_code()`, `entity_type`) and the duplicate refusal into the mixin, add the two configuration flags the kinds need — own-class catalogue and empty-catalogue refusal for the dictionary, inherited catalogue and no refusal for a state type — and make `packages/aoa-action-machine/src/aoa/action_machine/domain/state_entity.py` inherit it; delete `packages/aoa-action-machine/src/aoa/action_machine/domain/state_spec.py`
-- [ ] T008 [P] Add `packages/aoa-action-machine/tests/action_machine/domain/test_declared_values.py` — the mixin is not a kind base (`BaseEntity.__bases__` check and `_is_kind_base`), the placeholder is excluded from model fields, unknown names still raise `NameError`
-- [ ] T009 Run the `014` state suite unchanged (`pytest packages/aoa-action-machine/tests -q`) and prove no assertion had to move
-- [ ] T010 Keep the package surface coherent in `packages/aoa-action-machine/src/aoa/action_machine/domain/__init__.py` (`StateSpec`/`state` are not exported; nothing new leaks)
+- [x] T006 Create `packages/aoa-action-machine/src/aoa/action_machine/domain/declared_values.py` with the full principle-III header: the `_DeclaredValues` mixin (no `BaseEntity` in its bases), `DeclaredValuesMeta(ModelMetaclass)`, the namespace that answers the class's own name, `ValueSpec`, and `value(**kwargs)`
+- [x] T007 Move the conversion hook, the catalogue (`members`, `codes()`, `by_code()`, `entity_type`) and the duplicate refusal into the mixin, add the two configuration flags the kinds need — own-class catalogue and empty-catalogue refusal for the dictionary, inherited catalogue and no refusal for a state type — and make `packages/aoa-action-machine/src/aoa/action_machine/domain/state_entity.py` inherit it; delete `packages/aoa-action-machine/src/aoa/action_machine/domain/state_spec.py`
+- [x] T008 [P] Add `packages/aoa-action-machine/tests/action_machine/domain/test_declared_values.py` — the mixin is not a kind base (`BaseEntity.__bases__` check and `_is_kind_base`), the placeholder is excluded from model fields, unknown names still raise `NameError`
+- [x] T009 Run the `014` state suite unchanged (`pytest packages/aoa-action-machine/tests -q`) and prove no assertion had to move
+- [x] T010 Keep the package surface coherent in `packages/aoa-action-machine/src/aoa/action_machine/domain/__init__.py` (`StateSpec`/`state` are not exported; nothing new leaks)
 
 **Checkpoint**: the mechanism is shared and the state kind behaves exactly as before.
 
