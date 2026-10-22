@@ -27,3 +27,6 @@ Both come from tools rather than from this repository's code, and neither is act
 This is the run of the finished change: the dictionaries, the reference fields, the axis that
 borrows a dictionary, the demo, Maxitor's store and payload, the client, the migrated corpus
 and the documentation in this branch.
+
+The run was repeated after the documentation and the changelog landed, on the clean tree at
+commit `17760f08`: exit 0 again, the same two accepted remarks, no new step failures.
