@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Minimal actions whose ``Result`` and/or ``Params`` carry a partial JSON projection of
-``SampleEntity`` so MCP adapter tests can assert ``inputSchema`` and serialization
+``SampleCoreEntity`` so MCP adapter tests can assert ``inputSchema`` and serialization
 without new production actions.
 """
 
@@ -26,7 +26,7 @@ from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ...support.domain_model.domains import TestDomain
-from ...support.domain_model.entities import SampleEntity
+from ...support.domain_model.entities import SampleCoreEntity
 
 _SAMPLE_ENTITY_WIRE_SCHEMA: dict[str, object] = {
     "type": "object",
@@ -51,8 +51,8 @@ class EntityProjectionAdapterTestAction(
 
     class Result(BaseResult):
         domain: str = Field(description="Domain name")
-        order: SampleEntity.schema(schema=_SAMPLE_ENTITY_WIRE_SCHEMA) = Field(  # type: ignore[valid-type]
-            description="Partial SampleEntity wire projection",
+        order: SampleCoreEntity.schema(schema=_SAMPLE_ENTITY_WIRE_SCHEMA) = Field(  # type: ignore[valid-type]
+            description="Partial SampleCoreEntity wire projection",
         )
 
     @summary_aspect("Build result")
@@ -81,8 +81,8 @@ class EntityProjectionParamsMcpTestAction(
 
     class Params(BaseParams):
         label: str = Field(description="Label")
-        order: SampleEntity.schema(schema=_SAMPLE_ENTITY_WIRE_SCHEMA) = Field(  # type: ignore[valid-type]
-            description="Partial SampleEntity wire projection on input",
+        order: SampleCoreEntity.schema(schema=_SAMPLE_ENTITY_WIRE_SCHEMA) = Field(  # type: ignore[valid-type]
+            description="Partial SampleCoreEntity wire projection on input",
         )
 
     class Result(BaseResult):

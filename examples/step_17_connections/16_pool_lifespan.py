@@ -8,7 +8,6 @@ Run: uv run python examples/step_17_connections/16_pool_lifespan.py
 import asyncio
 
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.resources.postgres import PostgresResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -112,7 +111,6 @@ from contextlib import asynccontextmanager
 from fastapi.testclient import TestClient
 
 from aoa.fastapi import FastApiAdapter
-from aoa.action_machine.resources import Connections
 
 
 class PoolHolder:

@@ -42,6 +42,10 @@ Entities:
     BaseEntity — abstract base for all entities (frozen, `extra="forbid"`).
     EntityIntent — marker mixin: the type declares participation in the
     ``@entity`` grammar (graph-node inspectors at ``NodeGraphCoordinator.build()``).
+    The six kind markers — ``BaseCoreEntity`` (an independent object),
+    ``BaseAssocEntity`` (a technical link), ``BaseDetailEntity`` (an owner's part),
+    ``BaseSpecEntity`` (variant data of the same object), ``BaseEnumEntity``
+    (a shared reference value) and ``BaseStateEntity`` (a lifecycle state).
 
 State machines:
     Lifecycle — declarative finite-state machine template (import-time fluent API).
@@ -70,7 +74,7 @@ EXAMPLES
     from aoa.action_machine.domain import (
         AssociationOne,
         BaseDomain,
-        BaseEntity,
+        BaseCoreEntity,
         BaseStateEntity,
         CompositeMany,
         Inverse,
@@ -98,17 +102,21 @@ EXAMPLES
         )
 
     @entity(description="Customer order", domain=ShopDomain)
-    class OrderEntity(BaseEntity):
+    class OrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order identifier")
         amount: float = Field(description="Order total", ge=0)
         lifecycle: OrderLifecycle = Field(description="Order status axis")
 
-    order = build({"id": "123", "amount": 100.0}, OrderEntity)
+    order = build({"id": "123", "amount": 100.0}, OrderCoreEntity)
 """
 
+from aoa.action_machine.domain.assoc_entity import BaseAssocEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.domain.core_entity import BaseCoreEntity
+from aoa.action_machine.domain.detail_entity import BaseDetailEntity
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker, entity_schema_marker_from_annotated
+from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 from aoa.action_machine.domain.exceptions import (
     EntityDecoratorError,
     FieldNotLoadedError,
@@ -136,6 +144,7 @@ from aoa.action_machine.domain.relation_markers import (
     NoInverse,
     Rel,
 )
+from aoa.action_machine.domain.spec_entity import BaseSpecEntity
 from aoa.action_machine.domain.specialization_containers import Classifier, Generalization, Specialization
 from aoa.action_machine.domain.state_entity import BaseStateEntity
 from aoa.action_machine.domain.state_vocabulary import StateVocabulary
@@ -147,13 +156,16 @@ __all__ = [
     "AggregateOne",
     "AssociationMany",
     "AssociationOne",
-    # Domains
+    # Domains, entities and the six kind markers
+    "BaseAssocEntity",
+    "BaseCoreEntity",
+    "BaseDetailEntity",
     "BaseDomain",
-    # Entities
     "BaseEntity",
+    "BaseEnumEntity",
     "BaseRelationMany",
-    # Relation containers
     "BaseRelationOne",
+    "BaseSpecEntity",
     "BaseStateEntity",
     "Classifier",
     "CompositeMany",

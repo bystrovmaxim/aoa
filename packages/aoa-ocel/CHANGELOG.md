@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- **The export example follows the new entity model.** Orders and customers are declared as core objects, with the matching class names. When migrating your own model, account for these renames in exported object types and in reports that select them by name. ([#210](https://github.com/bystrovmaxim/aoa/issues/210))
+
 ## [1.0.1] – 2026-10-17
 
 ### Changed

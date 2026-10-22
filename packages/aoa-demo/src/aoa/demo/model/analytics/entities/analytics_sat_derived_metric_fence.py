@@ -5,19 +5,19 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle
-from aoa.demo.model.analytics.entities.analytics_sat_dimension_slice_stub import DimensionSliceStubEntity
+from aoa.demo.model.analytics.entities.analytics_sat_dimension_slice_stub import DimensionSliceStubCoreEntity
 
 
 @entity(
     description="Derived metric concurrency fence stacking on dimension slice ingress branch", domain=AnalyticsDomain
 )
-class DerivedMetricFenceEntity(BaseEntity):
+class DerivedMetricFenceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Fence id")
-    lifecycle: AnalyticsFactLifecycle = Field(description="DerivedMetricFenceEntity lifecycle")
+    lifecycle: AnalyticsFactLifecycle = Field(description="DerivedMetricFenceCoreEntity lifecycle")
 
     ingress_batch_key: str = Field(description="Loader partition key echoed into lake prefixes")
     source_anchor_slug: str = Field(description="Upstream subsystem / connector anchor moniker")
@@ -26,11 +26,11 @@ class DerivedMetricFenceEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     slice_stub: Annotated[
-        AssociationOne[DimensionSliceStubEntity],
+        AssociationOne[DimensionSliceStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream dimension slice facet"
     )  # type: ignore[assignment]
 
 
-DerivedMetricFenceEntity.model_rebuild()
+DerivedMetricFenceCoreEntity.model_rebuild()

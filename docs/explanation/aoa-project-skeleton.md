@@ -151,7 +151,7 @@ Action ──depends/connection──> Resource ──> PostgreSQL / API / Queue
 
 `Entity` is a domain object. It describes the fields, relations, and lifecycle of the subject area without being tied to a specific table or ORM mapping.
 
-This distinction is fundamental. An ORM model is often a reflection of the database schema. An `Entity` in AOA reflects the domain. The same `OrderEntity` can be assembled from PostgreSQL, MongoDB, an external API, or a test object. The business operation works with the order as a domain object, not as its storage form.
+This distinction is fundamental. An ORM model is often a reflection of the database schema. An `Entity` in AOA reflects the domain. The same `OrderCoreEntity` can be assembled from PostgreSQL, MongoDB, an external API, or a test object. The business operation works with the order as a domain object, not as its storage form.
 
 Relations (`Association`, `Aggregation`, `Composition`) and `Lifecycle` add another level: the subject area becomes not a bag of random classes but a checkable structure. An inconsistent relation or a broken state graph is caught at build time, not in production.
 

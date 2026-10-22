@@ -2,21 +2,21 @@
 from __future__ import annotations
 
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
-from aoa.demo.model.identity.entities.identity_credential_merge import IdentityCredentialMergeCorrelateEntity
-from aoa.demo.model.identity.entities.identity_credential_rotation_stub import IdentityCredentialRotationStubEntity
-from aoa.demo.model.identity.entities.identity_email_factor import IdentityEmailFactorEntity
-from aoa.demo.model.identity.entities.identity_federated_linkage import IdentityFederatedLinkageEntity
-from aoa.demo.model.identity.entities.identity_org_binding_stub import IdentityOrgBindingStubEntity
-from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubEntity
-from aoa.demo.model.identity.entities.identity_phone_factor import IdentityPhoneFactorEntity
+from aoa.demo.model.identity.entities.identity_credential_merge import IdentityCredentialMergeCorrelateCoreEntity
+from aoa.demo.model.identity.entities.identity_credential_rotation_stub import IdentityCredentialRotationStubCoreEntity
+from aoa.demo.model.identity.entities.identity_email_factor import IdentityEmailFactorCoreEntity
+from aoa.demo.model.identity.entities.identity_federated_linkage import IdentityFederatedLinkageCoreEntity
+from aoa.demo.model.identity.entities.identity_org_binding_stub import IdentityOrgBindingStubCoreEntity
+from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
+from aoa.demo.model.identity.entities.identity_phone_factor import IdentityPhoneFactorCoreEntity
 
 __all__ = [
-    "IdentityCredentialMergeCorrelateEntity",
-    "IdentityCredentialRotationStubEntity",
+    "IdentityCredentialMergeCorrelateCoreEntity",
+    "IdentityCredentialRotationStubCoreEntity",
     "IdentityDenseLifecycle",
-    "IdentityEmailFactorEntity",
-    "IdentityFederatedLinkageEntity",
-    "IdentityOrgBindingStubEntity",
-    "IdentityPersonHubEntity",
-    "IdentityPhoneFactorEntity",
+    "IdentityEmailFactorCoreEntity",
+    "IdentityFederatedLinkageCoreEntity",
+    "IdentityOrgBindingStubCoreEntity",
+    "IdentityPersonHubCoreEntity",
+    "IdentityPhoneFactorCoreEntity",
 ]

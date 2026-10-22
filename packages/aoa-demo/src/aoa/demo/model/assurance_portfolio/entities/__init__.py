@@ -1,82 +1,82 @@
 # packages/aoa-demo/src/aoa/demo/model/assurance_portfolio/entities/__init__.py
 from __future__ import annotations
 
-from aoa.demo.model.assurance_portfolio.entities.ap_actor_duty_coupling import AssuranceActorDutyCouplingEntity
-from aoa.demo.model.assurance_portfolio.entities.ap_campaign_wave_banner import AssuranceCampaignWaveBannerEntity
-from aoa.demo.model.assurance_portfolio.entities.ap_delegated_work_ticket import AssuranceDelegatedWorkTicketEntity
-from aoa.demo.model.assurance_portfolio.entities.ap_duty_privilege_bridge import AssuranceDutyPrivilegeBridgeEntity
-from aoa.demo.model.assurance_portfolio.entities.ap_evidence_carrier_stub import AssuranceEvidenceCarrierStubEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_actor_duty_coupling import AssuranceActorDutyCouplingCoreEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_campaign_wave_banner import AssuranceCampaignWaveBannerCoreEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_delegated_work_ticket import AssuranceDelegatedWorkTicketCoreEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_duty_privilege_bridge import AssuranceDutyPrivilegeBridgeCoreEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_evidence_carrier_stub import AssuranceEvidenceCarrierStubCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_execution_attempt_ticket import (
-    AssuranceExecutionAttemptTicketEntity,
+    AssuranceExecutionAttemptTicketCoreEntity,
 )
 from aoa.demo.model.assurance_portfolio.entities.ap_expectation_catalog_stub import (
-    AssuranceExpectationCatalogStubEntity,
+    AssuranceExpectationCatalogStubCoreEntity,
 )
 from aoa.demo.model.assurance_portfolio.entities.ap_expectation_outline_node import (
-    AssuranceExpectationOutlineNodeEntity,
+    AssuranceExpectationOutlineNodeCoreEntity,
 )
-from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_instruction_expectation_anchor import (
-    AssuranceInstructionExpectationAnchorEntity,
+    AssuranceInstructionExpectationAnchorCoreEntity,
 )
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
-from aoa.demo.model.assurance_portfolio.entities.ap_portfolio_lane_stub import AssurancePortfolioLaneStubEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_portfolio_lane_stub import AssurancePortfolioLaneStubCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_portfolio_workspace_coupler import (
-    AssurancePortfolioWorkspaceCouplerEntity,
+    AssurancePortfolioWorkspaceCouplerCoreEntity,
 )
 from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import (
-    AssuranceAccountPhaseAxisEntity,
-    AssuranceCheckpointToneAxisEntity,
-    AssuranceDelegationIntentAxisEntity,
-    AssuranceDutyTemplateAxisEntity,
-    AssuranceEvidenceKindAxisEntity,
-    AssuranceExpectationGenreAxisEntity,
-    AssuranceExpectationPhaseAxisEntity,
-    AssurancePrivilegeGrainAxisEntity,
-    AssuranceSpecificationDepthAxisEntity,
+    AssuranceAccountPhaseAxisCoreEntity,
+    AssuranceCheckpointToneAxisCoreEntity,
+    AssuranceDelegationIntentAxisCoreEntity,
+    AssuranceDutyTemplateAxisCoreEntity,
+    AssuranceEvidenceKindAxisCoreEntity,
+    AssuranceExpectationGenreAxisCoreEntity,
+    AssuranceExpectationPhaseAxisCoreEntity,
+    AssurancePrivilegeGrainAxisCoreEntity,
+    AssuranceSpecificationDepthAxisCoreEntity,
 )
 from aoa.demo.model.assurance_portfolio.entities.ap_regulated_expectation_row import (
-    AssuranceRegulatedExpectationRowEntity,
+    AssuranceRegulatedExpectationRowDetailEntity,
 )
 from aoa.demo.model.assurance_portfolio.entities.ap_scenario_instruction_line import (
-    AssuranceScenarioInstructionLineEntity,
+    AssuranceScenarioInstructionLineDetailEntity,
 )
-from aoa.demo.model.assurance_portfolio.entities.ap_scenario_sheet import AssuranceScenarioSheetEntity
-from aoa.demo.model.assurance_portfolio.entities.ap_wave_execution_slot import AssuranceWaveExecutionSlotEntity
-from aoa.demo.model.assurance_portfolio.entities.ap_wave_seat_coupling import AssuranceWaveSeatCouplingEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_scenario_sheet import AssuranceScenarioSheetCoreEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_wave_execution_slot import AssuranceWaveExecutionSlotCoreEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_wave_seat_coupling import AssuranceWaveSeatCouplingCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_workspace_program_stub import (
-    AssuranceWorkspaceProgramStubEntity,
+    AssuranceWorkspaceProgramStubCoreEntity,
 )
-from aoa.demo.model.assurance_portfolio.entities.ap_workspace_seat_grant import AssuranceWorkspaceSeatGrantEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_workspace_seat_grant import AssuranceWorkspaceSeatGrantCoreEntity
 
 __all__ = [
-    "AssuranceAccountPhaseAxisEntity",
-    "AssuranceActorDutyCouplingEntity",
-    "AssuranceCampaignWaveBannerEntity",
-    "AssuranceCheckpointToneAxisEntity",
-    "AssuranceDelegatedWorkTicketEntity",
-    "AssuranceDelegationIntentAxisEntity",
-    "AssuranceDutyPrivilegeBridgeEntity",
-    "AssuranceDutyTemplateAxisEntity",
-    "AssuranceEvidenceCarrierStubEntity",
-    "AssuranceEvidenceKindAxisEntity",
-    "AssuranceExecutionAttemptTicketEntity",
-    "AssuranceExpectationCatalogStubEntity",
-    "AssuranceExpectationGenreAxisEntity",
-    "AssuranceExpectationOutlineNodeEntity",
-    "AssuranceExpectationPhaseAxisEntity",
-    "AssuranceFacilityActorEntity",
-    "AssuranceInstructionExpectationAnchorEntity",
-    "AssurancePortfolioLaneStubEntity",
+    "AssuranceAccountPhaseAxisCoreEntity",
+    "AssuranceActorDutyCouplingCoreEntity",
+    "AssuranceCampaignWaveBannerCoreEntity",
+    "AssuranceCheckpointToneAxisCoreEntity",
+    "AssuranceDelegatedWorkTicketCoreEntity",
+    "AssuranceDelegationIntentAxisCoreEntity",
+    "AssuranceDutyPrivilegeBridgeCoreEntity",
+    "AssuranceDutyTemplateAxisCoreEntity",
+    "AssuranceEvidenceCarrierStubCoreEntity",
+    "AssuranceEvidenceKindAxisCoreEntity",
+    "AssuranceExecutionAttemptTicketCoreEntity",
+    "AssuranceExpectationCatalogStubCoreEntity",
+    "AssuranceExpectationGenreAxisCoreEntity",
+    "AssuranceExpectationOutlineNodeCoreEntity",
+    "AssuranceExpectationPhaseAxisCoreEntity",
+    "AssuranceFacilityActorCoreEntity",
+    "AssuranceInstructionExpectationAnchorCoreEntity",
+    "AssurancePortfolioLaneStubCoreEntity",
     "AssurancePortfolioLifecycle",
-    "AssurancePortfolioWorkspaceCouplerEntity",
-    "AssurancePrivilegeGrainAxisEntity",
-    "AssuranceRegulatedExpectationRowEntity",
-    "AssuranceScenarioInstructionLineEntity",
-    "AssuranceScenarioSheetEntity",
-    "AssuranceSpecificationDepthAxisEntity",
-    "AssuranceWaveExecutionSlotEntity",
-    "AssuranceWaveSeatCouplingEntity",
-    "AssuranceWorkspaceProgramStubEntity",
-    "AssuranceWorkspaceSeatGrantEntity",
+    "AssurancePortfolioWorkspaceCouplerCoreEntity",
+    "AssurancePrivilegeGrainAxisCoreEntity",
+    "AssuranceRegulatedExpectationRowDetailEntity",
+    "AssuranceScenarioInstructionLineDetailEntity",
+    "AssuranceScenarioSheetCoreEntity",
+    "AssuranceSpecificationDepthAxisCoreEntity",
+    "AssuranceWaveExecutionSlotCoreEntity",
+    "AssuranceWaveSeatCouplingCoreEntity",
+    "AssuranceWorkspaceProgramStubCoreEntity",
+    "AssuranceWorkspaceSeatGrantCoreEntity",
 ]

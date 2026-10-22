@@ -26,7 +26,7 @@ from aoa.action_machine.context import Context
 from aoa.action_machine.context.request_info import RequestInfo
 from aoa.action_machine.domain import (
     AssociationOne,
-    BaseEntity,
+    BaseCoreEntity,
     NoInverse,
     Rel,
 )
@@ -52,18 +52,18 @@ class ShopDomain(BaseDomain):
 
 @meta(description="Customer placing orders", domain=ShopDomain)
 @entity(description="Customer placing orders", domain=ShopDomain)
-class CustomerEntity(BaseEntity):
+class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer identifier")
     name: str = Field(description="Customer name")
 
 
 @meta(description="Order created in the shop", domain=ShopDomain)
 @entity(description="Order created in the shop", domain=ShopDomain)
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     sku: str = Field(description="Ordered SKU")
     customer: Annotated[
-        AssociationOne[CustomerEntity] | None,
+        AssociationOne[CustomerCoreEntity] | None,
         NoInverse(),
     ] = Rel(description="Customer who placed the order")  # type: ignore[assignment]
 
@@ -93,8 +93,8 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
         connections: Connections,
     ) -> dict[str, Any]:
         # Partial load: the customer relation IS loaded, so it participates in E2O.
-        customer = CustomerEntity(id=params.customer_id, name=params.customer_name)
-        order = OrderEntity(
+        customer = CustomerCoreEntity(id=params.customer_id, name=params.customer_name)
+        order = OrderCoreEntity(
             id=params.order_id,
             sku=params.sku,
             customer=AssociationOne(id=customer.id, entity=customer),

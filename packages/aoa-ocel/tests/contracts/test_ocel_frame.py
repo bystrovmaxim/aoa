@@ -11,11 +11,11 @@ from aoa.ocel import OcelFrame
 from aoa.ocel.dto import OcelAttribute
 from aoa.ocel.exceptions import OcelContractError
 
-from ..support import SampleEntity
+from ..support import SampleCoreEntity
 
 
 def test_ocel_frame_holds_entity() -> None:
-    entity = SampleEntity(id="1", name="A", value=1)
+    entity = SampleCoreEntity(id="1", name="A", value=1)
     frame = OcelFrame(object=entity, qualifier="Primary entity")
     assert frame.object is entity
     assert frame.qualifier == "Primary entity"
@@ -24,21 +24,21 @@ def test_ocel_frame_holds_entity() -> None:
 
 def test_ocel_frame_is_frozen() -> None:
     frame = OcelFrame(
-        object=SampleEntity(id="1", name="A", value=1),
+        object=SampleCoreEntity(id="1", name="A", value=1),
         qualifier="Primary entity",
     )
     with pytest.raises(FrozenInstanceError):
-        frame.object = SampleEntity(id="2", name="B", value=2)  # type: ignore[misc]
+        frame.object = SampleCoreEntity(id="2", name="B", value=2)  # type: ignore[misc]
 
 
 def test_empty_qualifier_raises() -> None:
     with pytest.raises(OcelContractError, match="qualifier must be non-empty"):
-        OcelFrame(object=SampleEntity(id="1", name="A", value=1), qualifier="   ")
+        OcelFrame(object=SampleCoreEntity(id="1", name="A", value=1), qualifier="   ")
 
 
 def test_attributes_optional() -> None:
     frame = OcelFrame(
-        object=SampleEntity(id="1", name="A", value=1),
+        object=SampleCoreEntity(id="1", name="A", value=1),
         qualifier="Primary entity",
         attributes=[OcelAttribute(name="domain", value="shop")],
     )

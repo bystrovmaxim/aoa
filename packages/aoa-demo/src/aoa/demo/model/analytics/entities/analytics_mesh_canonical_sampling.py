@@ -5,19 +5,21 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.demo.model.analytics.entities.analytics_canonical_telemetry_row import AnalyticsCanonicalTelemetryRowEntity
-from aoa.demo.model.analytics.entities.analytics_sampling_policy import AnalyticsSamplingPolicyEntity
+from aoa.demo.model.analytics.entities.analytics_canonical_telemetry_row import (
+    AnalyticsCanonicalTelemetryRowDetailEntity,
+)
+from aoa.demo.model.analytics.entities.analytics_sampling_policy import AnalyticsSamplingPolicyCoreEntity
 
 
 @entity(
     description="Short-circuit between canonical telemetry egress and exploratory sampling subgraph",
     domain=AnalyticsDomain,
 )
-class AnalyticsCanonicalSamplingCorrelateEntity(BaseEntity):
+class AnalyticsCanonicalSamplingCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Correlator lifecycle")
 
@@ -28,18 +30,18 @@ class AnalyticsCanonicalSamplingCorrelateEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     canonical_row: Annotated[
-        AssociationOne[AnalyticsCanonicalTelemetryRowEntity],
+        AssociationOne[AnalyticsCanonicalTelemetryRowDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Canonical telemetry anchor"
     )  # type: ignore[assignment]
 
     sampling_policy: Annotated[
-        AssociationOne[AnalyticsSamplingPolicyEntity],
+        AssociationOne[AnalyticsSamplingPolicyCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Sampling workload anchor"
     )  # type: ignore[assignment]
 
 
-AnalyticsCanonicalSamplingCorrelateEntity.model_rebuild()
+AnalyticsCanonicalSamplingCorrelateCoreEntity.model_rebuild()

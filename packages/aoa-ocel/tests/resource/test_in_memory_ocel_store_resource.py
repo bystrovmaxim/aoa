@@ -26,8 +26,8 @@ def event_time() -> datetime:
 
 def _sample_event(event_time: datetime, event_id: str = "trace-001") -> OcelEvent:
     obj = OcelObject(
-        id="aoa.shop.domain.order.OrderEntity:id=order_1",
-        type="aoa.shop.domain.order.OrderEntity",
+        id="aoa.shop.domain.order.OrderCoreEntity:id=order_1",
+        type="aoa.shop.domain.order.OrderCoreEntity",
         attributes=[OcelAttribute(name="id", value="order_1")],
     )
     return OcelEvent(
@@ -54,7 +54,7 @@ def test_close_writes_ocel_json(tmp_path: Path, event_time: datetime) -> None:
     doc = json.loads(output.read_text(encoding="utf-8"))
     assert set(doc) == {"eventTypes", "objectTypes", "events", "objects"}
     assert doc["events"][0]["id"] == "trace-001"
-    assert doc["objects"][0]["id"].startswith("aoa.shop.domain.order.OrderEntity:")
+    assert doc["objects"][0]["id"].startswith("aoa.shop.domain.order.OrderCoreEntity:")
 
 
 def test_duplicate_event_id_raises(tmp_path: Path, event_time: datetime) -> None:

@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.demo.model.analytics.entities.analytics_dedup_bloom_row import AnalyticsDedupBloomRowEntity
-from aoa.demo.model.analytics.entities.analytics_sat_dimension_slice_stub import DimensionSliceStubEntity
+from aoa.demo.model.analytics.entities.analytics_dedup_bloom_row import AnalyticsDedupBloomRowDetailEntity
+from aoa.demo.model.analytics.entities.analytics_sat_dimension_slice_stub import DimensionSliceStubCoreEntity
 
 
 @entity(description="Tie row connecting dedupe spine ingress with parallel dimension branching", domain=AnalyticsDomain)
-class AnalyticsDedupDimensionCorrelateEntity(BaseEntity):
+class AnalyticsDedupDimensionCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Correlator lifecycle")
 
@@ -25,18 +25,18 @@ class AnalyticsDedupDimensionCorrelateEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     dedup_row: Annotated[
-        AssociationOne[AnalyticsDedupBloomRowEntity],
+        AssociationOne[AnalyticsDedupBloomRowDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Dedup bloom anchor"
     )  # type: ignore[assignment]
 
     dimension_stub: Annotated[
-        AssociationOne[DimensionSliceStubEntity],
+        AssociationOne[DimensionSliceStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Dimension slice anchor"
     )  # type: ignore[assignment]
 
 
-AnalyticsDedupDimensionCorrelateEntity.model_rebuild()
+AnalyticsDedupDimensionCorrelateCoreEntity.model_rebuild()

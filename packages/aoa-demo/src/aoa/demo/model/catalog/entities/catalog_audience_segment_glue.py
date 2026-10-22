@@ -5,11 +5,11 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
-from aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule import BundleCardinalityRuleEntity
-from aoa.demo.model.catalog.entities.catalog_conversion_attribution_stub import ConversionAttributionStubEntity
+from aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule import BundleCardinalityRuleCoreEntity
+from aoa.demo.model.catalog.entities.catalog_conversion_attribution_stub import ConversionAttributionStubCoreEntity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 
 
@@ -17,7 +17,7 @@ from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDense
     description="Diamond bridge: merges acquisition funnel with assortment island (still no SKU star)",
     domain=CatalogDomain,
 )
-class AudienceSegmentGlueEntity(BaseEntity):
+class AudienceSegmentGlueCoreEntity(BaseCoreEntity):
     id: str = Field(description="Glue id")
     lifecycle: CatalogDenseLifecycle = Field(description="Glue lifecycle")
 
@@ -28,18 +28,18 @@ class AudienceSegmentGlueEntity(BaseEntity):
     hash_stale_after_sec: int = Field(description="Seconds until cached facets must invalidate", ge=0)
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
     conversion_stub: Annotated[
-        AssociationOne[ConversionAttributionStubEntity],
+        AssociationOne[ConversionAttributionStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Attribution conversion stub row"
     )  # type: ignore[assignment]
 
     bundle_rule: Annotated[
-        AssociationOne[BundleCardinalityRuleEntity],
+        AssociationOne[BundleCardinalityRuleCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Cardinality island anchor"
     )  # type: ignore[assignment]
 
 
-AudienceSegmentGlueEntity.model_rebuild()
+AudienceSegmentGlueCoreEntity.model_rebuild()

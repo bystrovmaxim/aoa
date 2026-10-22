@@ -5,22 +5,22 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
-from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestEntity
+from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestCoreEntity
 
 
 @entity(description="Profit-center split hanging off ingest manifest root", domain=BillingDomain)
-class ProfitCenterContributionEntity(BaseEntity):
+class ProfitCenterContributionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Slice id")
     lifecycle: BillingDenseLifecycle = Field(description="Profit center lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
     currency_iso: str = Field(description="Declared ISO-4217 money unit")
     ingest_manifest: Annotated[
-        AssociationOne[BillingFileIngestManifestEntity],
+        AssociationOne[BillingFileIngestManifestCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning ingest manifest"
@@ -32,4 +32,4 @@ class ProfitCenterContributionEntity(BaseEntity):
     profit_center_label: str = Field(description="Readable profit center moniker")
 
 
-ProfitCenterContributionEntity.model_rebuild()
+ProfitCenterContributionCoreEntity.model_rebuild()

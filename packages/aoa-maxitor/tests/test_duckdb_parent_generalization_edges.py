@@ -97,8 +97,8 @@ def _sample_with_specialization_edges() -> dict:
         "schema_version": "1.0",
         "nodes": [
             {"id": "d.demo", "type": "Domain", "label": "Demo", "properties": {"name": "Demo", "description": ""}},
-            {"id": "e.Head", "type": "Entity", "label": "Head", "properties": {"description": "head"}},
-            {"id": "e.Alt", "type": "Entity", "label": "Alt", "properties": {"description": "alt"}},
+            {"id": "e.Head", "type": "Entity", "label": "Head", "properties": {"description": "head", "entity_kind": "core"}},
+            {"id": "e.Alt", "type": "Entity", "label": "Alt", "properties": {"description": "alt", "entity_kind": "core"}},
         ],
         "edges": [
             {

@@ -47,6 +47,17 @@ from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 TEntity = TypeVar("TEntity", bound=BaseEntity)
 
 
+def entity_kind_of(entity_cls: type) -> str:
+    """The word a class's kind base class declares through its own name."""
+    for base in entity_cls.__mro__:
+        if BaseEntity in base.__bases__:
+            return base.__name__.removeprefix("Base").removesuffix("Entity").lower()
+    raise TypeError(
+        f"{entity_cls.__name__} carries no kind base class, so its row cannot state a kind; "
+        f"inherit one of the six base classes instead of BaseEntity itself."
+    )
+
+
 @dataclass(init=False, frozen=True)
 class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
@@ -71,7 +82,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             node_id=TypeIntrospection.full_qualname(entity_cls),
             node_type=EntityGraphNode.NODE_TYPE,
             label=entity_cls.__name__,
-            properties={"description": description},
+            properties={"description": description, "entity_kind": entity_kind_of(entity_cls)},
             node_obj=entity_cls,
         )
         object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self))
@@ -96,6 +107,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             "label": self.label,
             "properties": {
                 "description": str(self.properties["description"]),
+                "entity_kind": str(self.properties["entity_kind"]),
             },
         }
 

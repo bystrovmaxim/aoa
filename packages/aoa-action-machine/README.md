@@ -14,6 +14,14 @@ This README is a quick start: from installation to an operation published over H
 
 ---
 
+## Domain entities
+
+An entity declares domain information independently of storage. Choose its base by what one instance represents: `BaseCoreEntity` for an independent object, `BaseAssocEntity` for a technical link without business data, `BaseDetailEntity` for an owned part, `BaseSpecEntity` for variant-specific data of the same head object, `BaseEnumEntity` for a reference value, or `BaseStateEntity` for a lifecycle state.
+
+The name carries the matching suffix, for example `OrderCoreEntity(BaseCoreEntity)`. The hierarchy checks inheritance and names when Python creates the class, including intermediate and undecorated descendants. `@entity` supplies the description and domain for graph discovery. A status class instead belongs to its lifecycle and is excluded from ordinary Entity nodes.
+
+The [entity tutorial](../../docs/tutorials/step-20-entity.md) explains the distinctions before introducing their code, with a separate script and notebook for each case. The marker does not infer business meaning from fields or impose database keys and deletion behaviour.
+
 ## Installation
 
 ```bash

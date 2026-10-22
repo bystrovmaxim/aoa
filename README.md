@@ -56,7 +56,7 @@ AOA covers three architectural layers. Each level has its own specialized elemen
 
 - **Service layer** — the outer boundary that keeps operations cleanly separated from their environment. Its elements — adapters (`FastApiAdapter`, `McpAdapter`, `CLIAdapter`, `GraphQLAdapter`, …) — publish the same Actions over different transports (HTTP, MCP, CLI, GraphQL) without mixing business logic with delivery details.
 - **Business layer** — describes the system's operations. Its core element is `Action`: a self-contained unit of meaning with a clear interface (`Params` as input, `Result` as output), declarative ports `@depends` / `@connection` / `@context_requires`, and a direct pipeline of aspects. Inside the pipeline live `RegularAspect`, a shared `State` contract, `SummaryAspect` for assembling the result, and `Compensate` handlers for rollbacks on failure. At every step boundary the machine generates events for `@plugin`.
-- **Data and domain model layer** — responsible for access to sources and description of the problem domain. Its elements are `Resource` and `Entity`: `Resource` abstracts an external source (PostgreSQL, MongoDB, ClickHouse, API, a test fixture), while `Entity` describes domain objects, their relationships, and lifecycle without coupling to tables or ORM mappings. Where an ORM model is a mirror of the DB schema, `Entity` is a domain object: the same `OrderEntity` can be assembled from different sources, and the business code never notices.
+- **Data and domain model layer** — responsible for access to sources and description of the problem domain. Its elements are `Resource` and `Entity`: `Resource` abstracts an external source (PostgreSQL, MongoDB, ClickHouse, API, a test fixture), while `Entity` describes domain objects, their relationships, and lifecycle without coupling to tables or ORM mappings. Where an ORM model is a mirror of the DB schema, `Entity` is a domain object: the same `OrderCoreEntity` can be assembled from different sources, and the business code never notices.
 
 Each of these layers is covered in detail below. Code examples are in [aoa-action-machine](packages/aoa-action-machine/README.md) and [examples/](examples/), system visualization is in [aoa-maxitor](packages/aoa-maxitor/README.md).
 
@@ -605,11 +605,11 @@ A resource can be a thin adapter over a standard protocol, or a domain-oriented 
 
 ```python
 class OrderResource(PostgresResource):
-    async def load_customer(self, customer_id: str) -> CustomerEntity:
+    async def load_customer(self, customer_id: str) -> CustomerCoreEntity:
         row = await self._fetchrow(
             "SELECT * FROM customers WHERE id = $1", (customer_id,)
         )
-        return build(row, CustomerEntity)
+        return build(row, CustomerCoreEntity)
 
     async def save_order(self, order_id: str, customer_id: str, total: float) -> None:
         await self._execute(
@@ -632,13 +632,13 @@ class SupportAgentResource(BaseResource):
 
 ### Entity: domain object without storage coupling
 
-`Entity` describes domain objects — fields, relationships, and lifecycle. There are no tables, collections, or ORM mappings here. The same `OrderEntity` is assembled from PostgreSQL, MongoDB, an external API response, or a test fixture — the source changes, the model stays the same.
+`Entity` describes domain objects — fields, relationships, and lifecycle. There are no tables, collections, or ORM mappings here. The same `OrderCoreEntity` is assembled from PostgreSQL, MongoDB, an external API response, or a test fixture — the source changes, the model stays the same.
 
 Every field must have a `description` — this is not a comment but structured metadata: it goes into the system graph, ArchiMate diagrams, and auto-generated documentation. A missing description is a build error.
 
 ```python
 @entity(description="Customer order", domain=StoreDomain)
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     total: float = Field(description="Order total", ge=0)
     currency: str = Field(description="Currency code", default="RUB")
@@ -646,60 +646,62 @@ class OrderEntity(BaseEntity):
     lifecycle: OrderLifecycle = Field(description="Order lifecycle state")
 ```
 
+An entity chooses one of six kinds: an independent object (`Core`), a technical link without business data (`Assoc`), an owned part (`Detail`), variant-specific data of the same object (`Spec`), a reference value (`Enum`), or a lifecycle state (`State`). Its base and name agree, for example `OrderCoreEntity(BaseCoreEntity)`. The hierarchy checks this when Python creates the class, before decorators run; intermediate classes follow the same rule. See [the entity tutorial](docs/tutorials/step-20-entity.md) for one-case examples and declaration failures.
+
 ### Entity Relationships
 
 As the model grows, entities reference each other. AOA describes these relationships explicitly — not as bare `customer_id` fields, but as relations with semantics and cardinality.
 
 Three relationship types:
 
-- **Association** (`AssociationOne` / `AssociationMany`) — equal-peer relationships between core entities. Neither owns the other: `OrderEntity` references `CustomerEntity`, `CustomerEntity` references its orders — both exist independently.
+- **Association** (`AssociationOne` / `AssociationMany`) — equal-peer relationships between core entities. Neither owns the other: `OrderCoreEntity` references `CustomerCoreEntity`, `CustomerCoreEntity` references its orders — both exist independently.
 - **Aggregation** (`AggregateOne` / `AggregateMany`) — weak ownership. The object is part of a whole but exists independently: a catalog product is aggregated into an order line item but lives outside any specific order.
-- **Composition** (`CompositeOne` / `CompositeMany`) — strict ownership. The child object belongs exclusively to the parent and has no meaning without it: order line items (`OrderLineEntity`) do not exist outside a specific order.
+- **Composition** (`CompositeOne` / `CompositeMany`) — strict ownership. The child object belongs exclusively to the parent and has no meaning without it: order line items (`OrderLineDetailEntity`) do not exist outside a specific order.
 
 Cardinality is set by the suffix: `One` — a single object, `Many` — a collection.
 
 ```python
 @entity(description="Customer account", domain=StoreDomain)
-class CustomerEntity(BaseEntity):
+class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer identifier")
     name: str = Field(description="Display name")
     email: str = Field(description="Contact email")
 
     orders: Annotated[
-        AssociationMany[OrderEntity],
-        Inverse(OrderEntity, "customer"),
+        AssociationMany[OrderCoreEntity],
+        Inverse(OrderCoreEntity, "customer"),
     ] = Rel(description="Orders placed by this customer")
 
 
 @entity(description="Customer order", domain=StoreDomain)
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     total: float = Field(description="Order total", ge=0)
     lifecycle: OrderLifecycle = Field(description="Order lifecycle state")
 
     # equal peers — both exist independently
     customer: Annotated[
-        AssociationOne[CustomerEntity],
-        Inverse(CustomerEntity, "orders"),
+        AssociationOne[CustomerCoreEntity],
+        Inverse(CustomerCoreEntity, "orders"),
     ] = Rel(description="Customer who placed the order")
 
     # strict ownership — lines cannot exist without this order
     lines: Annotated[
-        CompositeMany[OrderLineEntity],
-        Inverse(OrderLineEntity, "order"),
+        CompositeMany[OrderLineDetailEntity],
+        Inverse(OrderLineDetailEntity, "order"),
     ] = Rel(description="Line items of the order")
 
 
 @entity(description="Single line item within an order", domain=StoreDomain)
-class OrderLineEntity(BaseEntity):
+class OrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Line item identifier")
     product_name: str = Field(description="Product display name")
     quantity: int = Field(description="Quantity ordered", ge=1)
     unit_price: float = Field(description="Unit price at time of order", ge=0)
 
     order: Annotated[
-        AssociationOne[OrderEntity],
-        Inverse(OrderEntity, "lines"),
+        AssociationOne[OrderCoreEntity],
+        Inverse(OrderCoreEntity, "lines"),
     ] = Rel(description="Parent order")
 ```
 

@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.demo.model.analytics.entities.analytics_dedup_bloom_row import AnalyticsDedupBloomRowEntity
+from aoa.demo.model.analytics.entities.analytics_dedup_bloom_row import AnalyticsDedupBloomRowDetailEntity
 
 
 @entity(description="Canonical telemetry facet on dedup spine (no shared fact hub)", domain=AnalyticsDomain)
-class AnalyticsCanonicalTelemetryRowEntity(BaseEntity):
+class AnalyticsCanonicalTelemetryRowDetailEntity(BaseDetailEntity):
     id: str = Field(description="Row id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Canonical telemetry lifecycle")
 
@@ -24,11 +24,11 @@ class AnalyticsCanonicalTelemetryRowEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     dedup: Annotated[
-        AssociationOne[AnalyticsDedupBloomRowEntity],
+        AssociationOne[AnalyticsDedupBloomRowDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Dedup bloom parent"
     )  # type: ignore[assignment]
 
 
-AnalyticsCanonicalTelemetryRowEntity.model_rebuild()
+AnalyticsCanonicalTelemetryRowDetailEntity.model_rebuild()

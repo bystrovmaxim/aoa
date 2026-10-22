@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.identity.domain import IdentityDomain
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
-from aoa.demo.model.identity.entities.identity_federated_linkage import IdentityFederatedLinkageEntity
-from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubEntity
+from aoa.demo.model.identity.entities.identity_federated_linkage import IdentityFederatedLinkageCoreEntity
+from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 
 
 @entity(description="Organization binding for a person through a federated linkage", domain=IdentityDomain)
-class IdentityOrgBindingStubEntity(BaseEntity):
+class IdentityOrgBindingStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Binding id")
     lifecycle: IdentityDenseLifecycle = Field(description="Org binding lifecycle")
 
@@ -25,18 +25,18 @@ class IdentityOrgBindingStubEntity(BaseEntity):
     recovery_budget_left: int = Field(description="Remaining recovery-token attempts envelope", ge=0)
     linkage_audit_seq: int = Field(description="Monotonic merge audit ticker", ge=0)
     federated_linkage: Annotated[
-        AssociationOne[IdentityFederatedLinkageEntity],
+        AssociationOne[IdentityFederatedLinkageCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent federated linkage row"
     )  # type: ignore[assignment]
 
     person: Annotated[
-        AssociationOne[IdentityPersonHubEntity],
+        AssociationOne[IdentityPersonHubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Bound person identity"
     )  # type: ignore[assignment]
 
 
-IdentityOrgBindingStubEntity.model_rebuild()
+IdentityOrgBindingStubCoreEntity.model_rebuild()

@@ -4,11 +4,11 @@
 from __future__ import annotations
 
 from aoa.demo.model.entity_projection_demo.entities.projection_demo_core import (
-    ProjectionDemoCustomerEntity,
-    ProjectionDemoOrderEntity,
+    ProjectionDemoCustomerCoreEntity,
+    ProjectionDemoOrderCoreEntity,
 )
 
 __all__ = [
-    "ProjectionDemoCustomerEntity",
-    "ProjectionDemoOrderEntity",
+    "ProjectionDemoCustomerCoreEntity",
+    "ProjectionDemoOrderCoreEntity",
 ]

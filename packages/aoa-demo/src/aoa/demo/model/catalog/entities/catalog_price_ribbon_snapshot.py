@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
-from aoa.demo.model.catalog.entities.catalog_search_boost_weight import SearchBoostWeightEntity
+from aoa.demo.model.catalog.entities.catalog_search_boost_weight import SearchBoostWeightCoreEntity
 
 
 @entity(description="Price ribbon chained from search/boost spine (still no SKU hop)", domain=CatalogDomain)
-class PriceRibbonSnapshotEntity(BaseEntity):
+class PriceRibbonSnapshotCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ribbon id")
     lifecycle: CatalogDenseLifecycle = Field(description="Price ribbon lifecycle")
 
@@ -24,11 +24,11 @@ class PriceRibbonSnapshotEntity(BaseEntity):
     hash_stale_after_sec: int = Field(description="Seconds until cached facets must invalidate", ge=0)
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
     search_boost: Annotated[
-        AssociationOne[SearchBoostWeightEntity],
+        AssociationOne[SearchBoostWeightCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream search/boost facet"
     )  # type: ignore[assignment]
 
 
-PriceRibbonSnapshotEntity.model_rebuild()
+PriceRibbonSnapshotCoreEntity.model_rebuild()

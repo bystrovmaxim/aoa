@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingPipelineLifecycle
 
 
 @entity(description="Billing file ingest manifest", domain=BillingDomain)
-class BillingFileIngestManifestEntity(BaseEntity):
+class BillingFileIngestManifestCoreEntity(BaseCoreEntity):
     id: str = Field(description="Manifest id")
     lifecycle: BillingPipelineLifecycle = Field(description="Ingest lifecycle")
     file_logical_name: str = Field(description="Declared file label before landing")
@@ -22,4 +22,4 @@ class BillingFileIngestManifestEntity(BaseEntity):
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
 
 
-BillingFileIngestManifestEntity.model_rebuild()
+BillingFileIngestManifestCoreEntity.model_rebuild()

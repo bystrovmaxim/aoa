@@ -28,11 +28,10 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.langgraph.controller import LangGraphController
 from aoa.langgraph.exceptions import FieldTypeMismatchError
-from aoa.action_machine.resources import Connections
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Scenario A — correct types

@@ -5,15 +5,17 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.demo.model.analytics.entities.analytics_canonical_telemetry_row import AnalyticsCanonicalTelemetryRowEntity
+from aoa.demo.model.analytics.entities.analytics_canonical_telemetry_row import (
+    AnalyticsCanonicalTelemetryRowDetailEntity,
+)
 
 
 @entity(description="Metric rollup staging chained from canonical row", domain=AnalyticsDomain)
-class AnalyticsMetricRollupStagingEntity(BaseEntity):
+class AnalyticsMetricRollupStagingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Staging shard id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Rollup lifecycle")
 
@@ -24,11 +26,11 @@ class AnalyticsMetricRollupStagingEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     canonical_row: Annotated[
-        AssociationOne[AnalyticsCanonicalTelemetryRowEntity],
+        AssociationOne[AnalyticsCanonicalTelemetryRowDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Canonical telemetry parent"
     )  # type: ignore[assignment]
 
 
-AnalyticsMetricRollupStagingEntity.model_rebuild()
+AnalyticsMetricRollupStagingCoreEntity.model_rebuild()

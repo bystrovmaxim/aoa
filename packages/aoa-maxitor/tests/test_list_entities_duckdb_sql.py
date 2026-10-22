@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import json
+
 from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
@@ -16,7 +18,7 @@ def test_slice_payload_empty_fields_list_when_entity_has_no_scalar_rows() -> Non
         "schema_version": "1.0",
         "nodes": [
             {"id": "d1", "type": "Domain", "label": "D", "properties": {"name": "D", "description": "d"}},
-            {"id": "e1", "type": "Entity", "label": "E", "properties": {"description": "e"}},
+            {"id": "e1", "type": "Entity", "label": "E", "properties": {"description": "e", "entity_kind": "core"}},
         ],
         "edges": [
             {
@@ -40,7 +42,7 @@ def test_slice_payload_includes_scalar_field_from_entity_field_tables() -> None:
         "schema_version": "1.0",
         "nodes": [
             {"id": "d1", "type": "Domain", "label": "D", "properties": {"name": "D", "description": "d"}},
-            {"id": "e1", "type": "Entity", "label": "E", "properties": {"description": "e"}},
+            {"id": "e1", "type": "Entity", "label": "E", "properties": {"description": "e", "entity_kind": "core"}},
             {
                 "id": "e1:f1",
                 "type": "EntityField",
@@ -77,3 +79,22 @@ def test_slice_payload_includes_scalar_field_from_entity_field_tables() -> None:
             "foreign_key": False,
         },
     ]
+
+
+def test_the_kind_the_wire_carries_is_the_kind_the_store_returns() -> None:
+    """A row keeps its kind through the store, so the renderer reads data and never parses a name."""
+    payload = {
+        "schema_version": "1.0",
+        "nodes": [
+            {"id": "d1", "type": "Domain", "label": "D", "properties": {"name": "D", "description": "d"}},
+            {"id": "e1", "type": "Entity", "label": "E", "properties": {"description": "e", "entity_kind": "spec"}},
+        ],
+        "edges": [
+            {"source_id": "e1", "target_id": "d1", "type": "domain", "relationship": "Composition", "is_dag": False},
+        ],
+    }
+    duck = DuckDBGraphResource.build_from_json(payload)
+
+    stored = duck.execute_fetch_dicts("SELECT payload FROM nodes WHERE id = ?", ["e1"])[0]["payload"]
+
+    assert json.loads(stored)["entity_kind"] == "spec"

@@ -5,9 +5,9 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.invoice_record import InvoiceRecordEntity
+from aoa.demo.model.store.entities.invoice_record import InvoiceRecordCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
@@ -15,7 +15,7 @@ from aoa.demo.model.store.store_domain import StoreDomain
 @entity(
     description="Loyalty earn projection keyed off invoicing artefacts (distinct from header mesh)", domain=StoreDomain
 )
-class LoyaltyEarnProjectionEntity(BaseEntity):
+class LoyaltyEarnProjectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Projection id")
     lifecycle: SalesOrderLifecycle = Field(description="Projection lifecycle")
 
@@ -26,11 +26,11 @@ class LoyaltyEarnProjectionEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     invoice: Annotated[
-        AssociationOne[InvoiceRecordEntity],
+        AssociationOne[InvoiceRecordCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning invoice artefact"
     )  # type: ignore[assignment]
 
 
-LoyaltyEarnProjectionEntity.model_rebuild()
+LoyaltyEarnProjectionCoreEntity.model_rebuild()

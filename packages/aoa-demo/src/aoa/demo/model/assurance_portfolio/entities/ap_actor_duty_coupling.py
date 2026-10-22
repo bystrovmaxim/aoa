@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
-from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
-from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import AssuranceDutyTemplateAxisEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import AssuranceDutyTemplateAxisCoreEntity
 
 
 @entity(description="Join between actor and duty catalogue (user_has_role analogue)", domain=AssurancePortfolioDomain)
-class AssuranceActorDutyCouplingEntity(BaseEntity):
+class AssuranceActorDutyCouplingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Coupling id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Coupling lifecycle")
 
@@ -25,18 +25,18 @@ class AssuranceActorDutyCouplingEntity(BaseEntity):
     automation_vendor: str = Field(description="Runner / harness vendor label")
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
     actor: Annotated[
-        AssociationOne[AssuranceFacilityActorEntity],
+        AssociationOne[AssuranceFacilityActorCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Subject actor"
     )  # type: ignore[assignment]
 
     duty_axis: Annotated[
-        AssociationOne[AssuranceDutyTemplateAxisEntity],
+        AssociationOne[AssuranceDutyTemplateAxisCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Assigned duty template"
     )  # type: ignore[assignment]
 
 
-AssuranceActorDutyCouplingEntity.model_rebuild()
+AssuranceActorDutyCouplingCoreEntity.model_rebuild()

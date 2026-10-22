@@ -11,7 +11,14 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity, Classifier, Generalization, Inverse, Rel, Specialization
+from aoa.action_machine.domain import (
+    BaseSpecEntity,
+    Classifier,
+    Generalization,
+    Inverse,
+    Rel,
+    Specialization,
+)
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -24,35 +31,35 @@ class MusicDomain(BaseDomain):
 
 
 @entity(description="First level", domain=MusicDomain)
-class AEntity(BaseEntity):
+class ASpecEntity(BaseSpecEntity):
     """Declare the first level of detail."""
 
     id: str = Field(description="Identifier")
     kind: str = Field(description="Detail code")
-    detail: Annotated[Specialization[BEntity], Classifier("kind", Literal["b"]), Inverse(field_name="back")] = Rel(
+    detail: Annotated[Specialization[BSpecEntity], Classifier("kind", Literal["b"]), Inverse(field_name="back")] = Rel(
         description="Next level"
     )
-    back: Annotated[Generalization[BEntity], Classifier("back", Literal["a"]), Inverse(BEntity, "detail")] = Rel(
+    back: Annotated[Generalization[BSpecEntity], Classifier("back", Literal["a"]), Inverse(BSpecEntity, "detail")] = Rel(
         description="Return to B"
     )
 
 
 @entity(description="Second level", domain=MusicDomain)
-class BEntity(BaseEntity):
+class BSpecEntity(BaseSpecEntity):
     """Declare the second level of detail."""
 
     id: str = Field(description="Identifier")
     kind: str = Field(description="Detail code")
-    back: Annotated[Generalization[AEntity], Classifier("back", Literal["b"]), Inverse(AEntity, "detail")] = Rel(
+    back: Annotated[Generalization[ASpecEntity], Classifier("back", Literal["b"]), Inverse(ASpecEntity, "detail")] = Rel(
         description="Return to A"
     )
-    detail: Annotated[Specialization[AEntity], Classifier("kind", Literal["a"]), Inverse(field_name="back")] = Rel(
+    detail: Annotated[Specialization[ASpecEntity], Classifier("kind", Literal["a"]), Inverse(field_name="back")] = Rel(
         description="Next level"
     )
 
 
-AEntity.model_rebuild()
-BEntity.model_rebuild()
+ASpecEntity.model_rebuild()
+BSpecEntity.model_rebuild()
 
 
 def main() -> None:

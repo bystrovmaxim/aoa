@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 
 
 @entity(description="Availability projection subgraph root independent of SKU FK", domain=CatalogDomain)
-class AvailabilityProjectionEntity(BaseEntity):
+class AvailabilityProjectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Projection id")
     lifecycle: CatalogDenseLifecycle = Field(description="Availability projection lifecycle")
 
@@ -22,4 +22,4 @@ class AvailabilityProjectionEntity(BaseEntity):
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
 
 
-AvailabilityProjectionEntity.model_rebuild()
+AvailabilityProjectionCoreEntity.model_rebuild()

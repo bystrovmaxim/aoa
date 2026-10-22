@@ -5,7 +5,7 @@ Use the vocabulary mixin on an unrelated class.
 Run: uv run python examples/step_22_lifecycle/16_mixin_without_lifecycle.py
 """
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, StateVocabulary
 
 
 class OrderStateEntity(BaseStateEntity):

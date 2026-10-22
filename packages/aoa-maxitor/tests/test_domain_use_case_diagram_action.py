@@ -46,7 +46,7 @@ def _sample_payload() -> dict:
                 "id": "e.stub.Entity",
                 "label": "Stub entity",
                 "type": "Entity",
-                "properties": {"description": ""},
+                "properties": {"description": "", "entity_kind": "core"},
             },
             {
                 "id": "r.child.Role",

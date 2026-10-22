@@ -7,9 +7,9 @@ Subpackages: ``dependencies``, ``resources``, ``plugins``, ``actions``; package-
 """
 
 from aoa.demo.model.messaging.domain import MessagingDomain
-from aoa.demo.model.messaging.entities import OutboxMessageEntity
+from aoa.demo.model.messaging.entities import OutboxMessageCoreEntity
 from aoa.demo.model.messaging.resources.notification_gateway import NotificationGateway
 
 _shared_notifier = NotificationGateway(channel="shared")
 
-__all__ = ["MessagingDomain", "NotificationGateway", "OutboxMessageEntity", "_shared_notifier"]
+__all__ = ["MessagingDomain", "NotificationGateway", "OutboxMessageCoreEntity", "_shared_notifier"]

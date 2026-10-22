@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.demo.model.analytics.entities.analytics_sampling_policy import AnalyticsSamplingPolicyEntity
+from aoa.demo.model.analytics.entities.analytics_sampling_policy import AnalyticsSamplingPolicyCoreEntity
 
 
 @entity(description="Sketch aggregate stub following sampling policy (two-node branch)", domain=AnalyticsDomain)
-class AnalyticsAggregateSketchStubEntity(BaseEntity):
+class AnalyticsAggregateSketchStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Sketch id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Sketch stub lifecycle")
 
@@ -24,11 +24,11 @@ class AnalyticsAggregateSketchStubEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     policy: Annotated[
-        AssociationOne[AnalyticsSamplingPolicyEntity],
+        AssociationOne[AnalyticsSamplingPolicyCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent sampling policy"
     )  # type: ignore[assignment]
 
 
-AnalyticsAggregateSketchStubEntity.model_rebuild()
+AnalyticsAggregateSketchStubCoreEntity.model_rebuild()

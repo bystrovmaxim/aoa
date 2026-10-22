@@ -3,14 +3,14 @@
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.outbox_lifecycle import OutboxMessageLifecycle
 
 
 @entity(description="Transactional outbox row (sample)", domain=MessagingDomain)
-class OutboxMessageEntity(BaseEntity):
+class OutboxMessageCoreEntity(BaseCoreEntity):
     id: str = Field(description="Message id")
     lifecycle: OutboxMessageLifecycle = Field(description="Outbox message lifecycle")
     topic: str = Field(description="Routing topic")
@@ -22,4 +22,4 @@ class OutboxMessageEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
 
 
-OutboxMessageEntity.model_rebuild()
+OutboxMessageCoreEntity.model_rebuild()

@@ -5,22 +5,22 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
-from aoa.demo.model.billing.entities.billing_canonical_row_artifact import BillingCanonicalRowArtifactEntity
+from aoa.demo.model.billing.entities.billing_canonical_row_artifact import BillingCanonicalRowArtifactCoreEntity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 
 
 @entity(description="Narrative correction attached to canonical ingest row", domain=BillingDomain)
-class NarrativeCorrectionEntity(BaseEntity):
+class NarrativeCorrectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Row id")
     lifecycle: BillingDenseLifecycle = Field(description="Correction lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
     currency_iso: str = Field(description="Declared ISO-4217 money unit")
     canonical_row: Annotated[
-        AssociationOne[BillingCanonicalRowArtifactEntity],
+        AssociationOne[BillingCanonicalRowArtifactCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent canonical ingest artifact"
@@ -32,4 +32,4 @@ class NarrativeCorrectionEntity(BaseEntity):
     corrected_at_iso: str = Field(description="Correction applied at (UTC)")
 
 
-NarrativeCorrectionEntity.model_rebuild()
+NarrativeCorrectionCoreEntity.model_rebuild()

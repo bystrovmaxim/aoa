@@ -5,17 +5,17 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 from aoa.demo.model.assurance_portfolio.entities.ap_workspace_program_stub import (
-    AssuranceWorkspaceProgramStubEntity,
+    AssuranceWorkspaceProgramStubCoreEntity,
 )
 
 
 @entity(description="Scenario blueprint bound to workspace (test_case analogue)", domain=AssurancePortfolioDomain)
-class AssuranceScenarioSheetEntity(BaseEntity):
+class AssuranceScenarioSheetCoreEntity(BaseCoreEntity):
     id: str = Field(description="Scenario sheet id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Scenario lifecycle")
 
@@ -26,11 +26,11 @@ class AssuranceScenarioSheetEntity(BaseEntity):
     automation_vendor: str = Field(description="Runner / harness vendor label")
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
     workspace_program: Annotated[
-        AssociationOne[AssuranceWorkspaceProgramStubEntity],
+        AssociationOne[AssuranceWorkspaceProgramStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning assurance workspace"
     )  # type: ignore[assignment]
 
 
-AssuranceScenarioSheetEntity.model_rebuild()
+AssuranceScenarioSheetCoreEntity.model_rebuild()

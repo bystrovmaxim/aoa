@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 
 
 @entity(description="Bundle cardinality island root for cross-subgraph bridging only", domain=CatalogDomain)
-class BundleCardinalityRuleEntity(BaseEntity):
+class BundleCardinalityRuleCoreEntity(BaseCoreEntity):
     id: str = Field(description="Rule id")
     lifecycle: CatalogDenseLifecycle = Field(description="Bundle cardinality lifecycle")
 
@@ -22,4 +22,4 @@ class BundleCardinalityRuleEntity(BaseEntity):
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
 
 
-BundleCardinalityRuleEntity.model_rebuild()
+BundleCardinalityRuleCoreEntity.model_rebuild()

@@ -5,17 +5,17 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import SalesOrderLineEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Kit explosion child line trace", domain=StoreDomain)
-class KitExplosionLineEntity(BaseEntity):
-    id: str = Field(description="KitExplosionLineEntity id")
-    lifecycle: SalesOrderLineLifecycle = Field(description="KitExplosionLineEntity lifecycle")
+class KitExplosionLineDetailEntity(BaseDetailEntity):
+    id: str = Field(description="KitExplosionLineDetailEntity id")
+    lifecycle: SalesOrderLineLifecycle = Field(description="KitExplosionLineDetailEntity lifecycle")
 
     storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
     compliance_rating: str = Field(description="Fraud / AML posture snapshot")
@@ -24,11 +24,11 @@ class KitExplosionLineEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     order_line: Annotated[
-        AssociationOne[SalesOrderLineEntity],
+        AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Owning order line anchor"
     )  # type: ignore[assignment]
 
 
-KitExplosionLineEntity.model_rebuild()
+KitExplosionLineDetailEntity.model_rebuild()

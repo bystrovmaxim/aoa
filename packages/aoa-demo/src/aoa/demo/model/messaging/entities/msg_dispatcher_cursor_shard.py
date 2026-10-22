@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.entities.outbox_message import OutboxMessageEntity
+from aoa.demo.model.messaging.entities.outbox_message import OutboxMessageCoreEntity
 
 
 @entity(description="Dispatcher shard tied to outbox", domain=MessagingDomain)
-class DispatcherCursorShardEntity(BaseEntity):
+class DispatcherCursorShardCoreEntity(BaseCoreEntity):
     id: str = Field(description="Cursor id")
     lifecycle: MsgDenseLifecycle = Field(description="Dispatcher cursor lifecycle")
 
@@ -24,11 +24,11 @@ class DispatcherCursorShardEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
     outbox_row: Annotated[
-        AssociationOne[OutboxMessageEntity],
+        AssociationOne[OutboxMessageCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent outbox envelope"
     )  # type: ignore[assignment]
 
 
-DispatcherCursorShardEntity.model_rebuild()
+DispatcherCursorShardCoreEntity.model_rebuild()

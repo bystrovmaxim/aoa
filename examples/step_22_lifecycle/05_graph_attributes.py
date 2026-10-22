@@ -6,6 +6,7 @@ Run: uv run python examples/step_22_lifecycle/05_graph_attributes.py
 """
 
 from pydantic import Field
+
 from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
 
 
@@ -23,7 +24,8 @@ class OrderLifecycle(Lifecycle, StateVocabulary):
     _template = Lifecycle().state(DRAFT).to(PAID).initial().state(PAID).final()
 
 import json
-from aoa.action_machine.domain import BaseEntity, BaseDomain
+
+from aoa.action_machine.domain import BaseCoreEntity, BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
@@ -36,7 +38,7 @@ class ShopDomain(BaseDomain):
 
 
 @entity(description="Customer order", domain=ShopDomain)
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     """Attach the lifecycle to a model entity."""
 
     id: str = Field(description="Order identifier")

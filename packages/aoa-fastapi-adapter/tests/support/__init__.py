@@ -10,7 +10,7 @@ tests can use a single flat ``from .support import ...`` line:
 - ``EntityProjectionAdapterTestAction`` / ``AdapterTestAction`` — schema-backed
   adapter-fixture actions (:mod:`.adapter_fixtures`).
 
-The :mod:`.domain_model` (domains, ``SampleEntity``) and the ``GraphJson`` /
+The :mod:`.domain_model` (domains, ``SampleCoreEntity``) and the ``GraphJson`` /
 ``EntityProjectionParamsMcpTestAction`` siblings remain available via their
 submodules for completeness.
 """
@@ -25,7 +25,7 @@ from .connections import DummyResourceManager
 from .domain_model import (
     OrdersDomain,
     PingAction,
-    SampleEntity,
+    SampleCoreEntity,
     SimpleAction,
     SystemDomain,
     TestDomain,
@@ -39,7 +39,7 @@ __all__ = [
     "GraphJson",
     "OrdersDomain",
     "PingAction",
-    "SampleEntity",
+    "SampleCoreEntity",
     "SimpleAction",
     "SystemDomain",
     "TestDomain",

@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.entities.msg_throttle_lease import ThrottleLeaseEntity
+from aoa.demo.model.messaging.entities.msg_throttle_lease import ThrottleLeaseCoreEntity
 
 
 @entity(description="Batching fence tail on reconciliation filament", domain=MessagingDomain)
-class BatchingFenceEntity(BaseEntity):
+class BatchingFenceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Fence id")
     lifecycle: MsgDenseLifecycle = Field(description="Batch fence lifecycle")
 
@@ -24,11 +24,11 @@ class BatchingFenceEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
     throttle_lease: Annotated[
-        AssociationOne[ThrottleLeaseEntity],
+        AssociationOne[ThrottleLeaseCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent throttle lease row"
     )  # type: ignore[assignment]
 
 
-BatchingFenceEntity.model_rebuild()
+BatchingFenceCoreEntity.model_rebuild()

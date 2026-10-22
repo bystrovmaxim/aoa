@@ -5,18 +5,18 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.demo.model.analytics.entities.analytics_metric_rollup_staging import AnalyticsMetricRollupStagingEntity
-from aoa.demo.model.analytics.entities.analytics_sat_privacy_budget_slice import PrivacyBudgetSliceEntity
+from aoa.demo.model.analytics.entities.analytics_metric_rollup_staging import AnalyticsMetricRollupStagingCoreEntity
+from aoa.demo.model.analytics.entities.analytics_sat_privacy_budget_slice import PrivacyBudgetSliceCoreEntity
 
 
 @entity(
     description="Associates heavyweight rollup egress with sovereign privacy budgeting island", domain=AnalyticsDomain
 )
-class AnalyticsRollupPrivacyCorrelateEntity(BaseEntity):
+class AnalyticsRollupPrivacyCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Correlator lifecycle")
 
@@ -27,18 +27,18 @@ class AnalyticsRollupPrivacyCorrelateEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     rollup_staging: Annotated[
-        AssociationOne[AnalyticsMetricRollupStagingEntity],
+        AssociationOne[AnalyticsMetricRollupStagingCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Rollup staging anchor"
     )  # type: ignore[assignment]
 
     privacy_slice: Annotated[
-        AssociationOne[PrivacyBudgetSliceEntity],
+        AssociationOne[PrivacyBudgetSliceCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Isolated privacy budget anchor"
     )  # type: ignore[assignment]
 
 
-AnalyticsRollupPrivacyCorrelateEntity.model_rebuild()
+AnalyticsRollupPrivacyCorrelateCoreEntity.model_rebuild()

@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.identity.domain import IdentityDomain
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
-from aoa.demo.model.identity.entities.identity_email_factor import IdentityEmailFactorEntity
-from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubEntity
+from aoa.demo.model.identity.entities.identity_email_factor import IdentityEmailFactorCoreEntity
+from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 
 
 @entity(description="Federated IdP linkage for a person and optional email credential factor", domain=IdentityDomain)
-class IdentityFederatedLinkageEntity(BaseEntity):
+class IdentityFederatedLinkageCoreEntity(BaseCoreEntity):
     id: str = Field(description="Linkage id")
     lifecycle: IdentityDenseLifecycle = Field(description="Federated linkage lifecycle")
 
@@ -25,18 +25,18 @@ class IdentityFederatedLinkageEntity(BaseEntity):
     recovery_budget_left: int = Field(description="Remaining recovery-token attempts envelope", ge=0)
     linkage_audit_seq: int = Field(description="Monotonic merge audit ticker", ge=0)
     email_factor: Annotated[
-        AssociationOne[IdentityEmailFactorEntity],
+        AssociationOne[IdentityEmailFactorCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream email credential row"
     )  # type: ignore[assignment]
 
     person: Annotated[
-        AssociationOne[IdentityPersonHubEntity],
+        AssociationOne[IdentityPersonHubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Federated account owner"
     )  # type: ignore[assignment]
 
 
-IdentityFederatedLinkageEntity.model_rebuild()
+IdentityFederatedLinkageCoreEntity.model_rebuild()

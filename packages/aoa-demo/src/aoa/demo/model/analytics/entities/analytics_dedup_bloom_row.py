@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.demo.model.analytics.entities.analytics_ingress_batch import AnalyticsIngressBatchEntity
+from aoa.demo.model.analytics.entities.analytics_ingress_batch import AnalyticsIngressBatchCoreEntity
 
 
 @entity(description="Dedup bloom facet on ingress batch", domain=AnalyticsDomain)
-class AnalyticsDedupBloomRowEntity(BaseEntity):
+class AnalyticsDedupBloomRowDetailEntity(BaseDetailEntity):
     id: str = Field(description="Bloom row id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Dedup lifecycle")
 
@@ -24,11 +24,11 @@ class AnalyticsDedupBloomRowEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     batch: Annotated[
-        AssociationOne[AnalyticsIngressBatchEntity],
+        AssociationOne[AnalyticsIngressBatchCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Inbound batch linkage"
     )  # type: ignore[assignment]
 
 
-AnalyticsDedupBloomRowEntity.model_rebuild()
+AnalyticsDedupBloomRowDetailEntity.model_rebuild()

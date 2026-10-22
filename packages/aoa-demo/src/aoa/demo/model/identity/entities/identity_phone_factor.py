@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.identity.domain import IdentityDomain
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
-from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubEntity
+from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 
 
 @entity(description="Phone credential factor for a person identity", domain=IdentityDomain)
-class IdentityPhoneFactorEntity(BaseEntity):
+class IdentityPhoneFactorCoreEntity(BaseCoreEntity):
     id: str = Field(description="Phone factor id")
     lifecycle: IdentityDenseLifecycle = Field(description="Phone factor lifecycle")
 
@@ -24,11 +24,11 @@ class IdentityPhoneFactorEntity(BaseEntity):
     recovery_budget_left: int = Field(description="Remaining recovery-token attempts envelope", ge=0)
     linkage_audit_seq: int = Field(description="Monotonic merge audit ticker", ge=0)
     person: Annotated[
-        AssociationOne[IdentityPersonHubEntity],
+        AssociationOne[IdentityPersonHubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning person identity"
     )  # type: ignore[assignment]
 
 
-IdentityPhoneFactorEntity.model_rebuild()
+IdentityPhoneFactorCoreEntity.model_rebuild()

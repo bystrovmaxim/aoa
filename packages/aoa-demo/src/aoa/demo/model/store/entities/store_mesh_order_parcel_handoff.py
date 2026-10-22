@@ -5,11 +5,11 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import SalesOrderEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelEntity
+from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelCoreEntity
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
@@ -17,7 +17,7 @@ from aoa.demo.model.store.store_domain import StoreDomain
     description="Junction aligning header orders with parcel fulfilment subgraph (dense mesh cue)",
     domain=StoreDomain,
 )
-class StoreOrderParcelHandoffEntity(BaseEntity):
+class StoreOrderParcelHandoffCoreEntity(BaseCoreEntity):
     id: str = Field(description="Link id")
     lifecycle: SalesOrderLifecycle = Field(description="Handoff lifecycle")
 
@@ -28,18 +28,18 @@ class StoreOrderParcelHandoffEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Referenced order aggregate"
     )  # type: ignore[assignment]
 
     parcel: Annotated[
-        AssociationOne[ShipmentParcelEntity],
+        AssociationOne[ShipmentParcelCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Referenced shipment parcel artefact"
     )  # type: ignore[assignment]
 
 
-StoreOrderParcelHandoffEntity.model_rebuild()
+StoreOrderParcelHandoffCoreEntity.model_rebuild()

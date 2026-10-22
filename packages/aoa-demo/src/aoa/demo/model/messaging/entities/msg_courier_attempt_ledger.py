@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
-from aoa.demo.model.messaging.entities.msg_batching_fence import BatchingFenceEntity
+from aoa.demo.model.messaging.entities.msg_batching_fence import BatchingFenceCoreEntity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 
 
 @entity(description="Courier ledger grafted onto reconciliation tail", domain=MessagingDomain)
-class CourierAttemptLedgerEntity(BaseEntity):
+class CourierAttemptLedgerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ledger id")
     lifecycle: MsgDenseLifecycle = Field(description="Courier ledger lifecycle")
 
@@ -24,11 +24,11 @@ class CourierAttemptLedgerEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
     batching_fence: Annotated[
-        AssociationOne[BatchingFenceEntity],
+        AssociationOne[BatchingFenceCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning batch coordination fence row"
     )  # type: ignore[assignment]
 
 
-CourierAttemptLedgerEntity.model_rebuild()
+CourierAttemptLedgerCoreEntity.model_rebuild()

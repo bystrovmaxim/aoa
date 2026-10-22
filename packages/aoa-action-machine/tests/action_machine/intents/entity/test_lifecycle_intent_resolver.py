@@ -10,11 +10,11 @@ import pytest
 from aoa.action_machine.domain.lifecycle import StateType
 from aoa.action_machine.intents.entity.lifecycle_intent_resolver import LifeCycleIntentResolver
 
-from ....support.domain_model.entities import DraftLifecycle, LifecycleEntity, RelatedEntity
+from ....support.domain_model.entities import DraftLifecycle, LifecycleCoreEntity, RelatedCoreEntity
 
 
 def test_resolve_lifecycle_fields_includes_expected_template() -> None:
-    resolver_rows = LifeCycleIntentResolver.resolve_lifecycle_fields(LifecycleEntity)
+    resolver_rows = LifeCycleIntentResolver.resolve_lifecycle_fields(LifecycleCoreEntity)
     assert len(resolver_rows) == 1
     row = resolver_rows[0]
     assert row.field_name == "lifecycle"
@@ -22,7 +22,7 @@ def test_resolve_lifecycle_fields_includes_expected_template() -> None:
 
 
 def test_resolve_finite_state_machine_returns_readonly_states() -> None:
-    fsm = LifeCycleIntentResolver.resolve_finite_state_machine(LifecycleEntity, "lifecycle")
+    fsm = LifeCycleIntentResolver.resolve_finite_state_machine(LifecycleCoreEntity, "lifecycle")
     assert fsm.lifecycle_class is DraftLifecycle
     assert isinstance(fsm.states, MappingProxyType)
     keys = set(fsm.states)
@@ -33,14 +33,14 @@ def test_resolve_finite_state_machine_returns_readonly_states() -> None:
 
 
 def test_resolve_finite_state_machine_strips_field_name() -> None:
-    alt = LifeCycleIntentResolver.resolve_finite_state_machine(LifecycleEntity, "  lifecycle\t")
+    alt = LifeCycleIntentResolver.resolve_finite_state_machine(LifecycleCoreEntity, "  lifecycle\t")
     assert alt.lifecycle_class is DraftLifecycle
 
 
 def test_entity_without_lifecycle_fields_returns_empty() -> None:
-    assert LifeCycleIntentResolver.resolve_lifecycle_fields(RelatedEntity) == []
+    assert LifeCycleIntentResolver.resolve_lifecycle_fields(RelatedCoreEntity) == []
 
 
 def test_unknown_field_raises_value_error() -> None:
     with pytest.raises(ValueError, match="no resolved lifecycle template"):
-        LifeCycleIntentResolver.resolve_finite_state_machine(LifecycleEntity, "missing_lc")
+        LifeCycleIntentResolver.resolve_finite_state_machine(LifecycleCoreEntity, "missing_lc")

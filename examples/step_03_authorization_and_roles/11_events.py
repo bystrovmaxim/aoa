@@ -20,10 +20,9 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core.events import AfterAccessDecideAspectEvent, BeforeAccessDecideAspectEvent
 from aoa.action_machine.plugin.core.plugin import Plugin
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.action_machine.resources import Connections
 
 # %% Setup
 

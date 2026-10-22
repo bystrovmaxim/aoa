@@ -7,9 +7,8 @@ import asyncio
 from aoa.action_machine.intents.access_control import Allowed
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.model import BaseParams
-from aoa.action_machine.resources import BaseResource
-from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.resources import Connections
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 # %% Setup
 

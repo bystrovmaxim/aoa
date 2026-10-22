@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
@@ -13,7 +13,7 @@ from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyL
     description="Cold-chain or courier modality row (transportation lookup analogue)",
     domain=ClinicalSupplyDomain,
 )
-class ClinicalTransportAnchorEntity(BaseEntity):
+class ClinicalTransportAnchorCoreEntity(BaseCoreEntity):
     id: str = Field(description="Transport modality id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Transport catalog lifecycle")
 
@@ -25,4 +25,4 @@ class ClinicalTransportAnchorEntity(BaseEntity):
     regulatory_territory: str = Field(description="Governing geography for distribution assertions")
 
 
-ClinicalTransportAnchorEntity.model_rebuild()
+ClinicalTransportAnchorCoreEntity.model_rebuild()

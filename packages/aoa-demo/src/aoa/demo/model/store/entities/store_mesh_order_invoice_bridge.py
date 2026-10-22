@@ -5,10 +5,10 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.invoice_record import InvoiceRecordEntity
-from aoa.demo.model.store.entities.sales_core import SalesOrderEntity
+from aoa.demo.model.store.entities.invoice_record import InvoiceRecordCoreEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
@@ -17,7 +17,7 @@ from aoa.demo.model.store.store_domain import StoreDomain
     description="Parallel billing bridge between orders and invoicing artefacts (creates cyclic routing options in ERD)",
     domain=StoreDomain,
 )
-class StoreOrderInvoiceBridgeEntity(BaseEntity):
+class StoreOrderInvoiceBridgeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bridge id")
     lifecycle: SalesOrderLifecycle = Field(description="Bridge lifecycle")
 
@@ -28,18 +28,18 @@ class StoreOrderInvoiceBridgeEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream order artefact"
     )  # type: ignore[assignment]
 
     invoice: Annotated[
-        AssociationOne[InvoiceRecordEntity],
+        AssociationOne[InvoiceRecordCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Downstream invoicing artefact"
     )  # type: ignore[assignment]
 
 
-StoreOrderInvoiceBridgeEntity.model_rebuild()
+StoreOrderInvoiceBridgeCoreEntity.model_rebuild()

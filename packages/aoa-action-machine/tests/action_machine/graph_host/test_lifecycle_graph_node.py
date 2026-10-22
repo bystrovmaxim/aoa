@@ -8,9 +8,9 @@ import pytest
 from pydantic import ConfigDict, Field
 from pydantic_core import PydanticSerializationError
 
+from aoa.action_machine.domain import BaseStateEntity
 from aoa.action_machine.domain.exceptions import LifecycleGraphError
 from aoa.action_machine.domain.lifecycle import Lifecycle
-from aoa.action_machine.domain.state_entity import BaseStateEntity
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.lifecycle_graph_node import LifeCycleGraphNode
 from aoa.action_machine.graph.nodes.state_graph_node import StateGraphNode

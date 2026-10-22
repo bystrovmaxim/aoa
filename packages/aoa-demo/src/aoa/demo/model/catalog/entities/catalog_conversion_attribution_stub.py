@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
-from aoa.demo.model.catalog.entities.catalog_touch_moment import TouchMomentEntity
+from aoa.demo.model.catalog.entities.catalog_touch_moment import TouchMomentCoreEntity
 
 
 @entity(description="Conversion attribution stub chained from touch moment", domain=CatalogDomain)
-class ConversionAttributionStubEntity(BaseEntity):
+class ConversionAttributionStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Stub id")
     lifecycle: CatalogDenseLifecycle = Field(description="Conversion stub lifecycle")
 
@@ -24,11 +24,11 @@ class ConversionAttributionStubEntity(BaseEntity):
     hash_stale_after_sec: int = Field(description="Seconds until cached facets must invalidate", ge=0)
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
     touch: Annotated[
-        AssociationOne[TouchMomentEntity],
+        AssociationOne[TouchMomentCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Last touch linkage"
     )  # type: ignore[assignment]
 
 
-ConversionAttributionStubEntity.model_rebuild()
+ConversionAttributionStubCoreEntity.model_rebuild()

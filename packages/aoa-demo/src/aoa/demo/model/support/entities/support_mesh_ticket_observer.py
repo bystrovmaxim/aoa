@@ -5,11 +5,11 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.support.entities.support_participant_row import SupportParticipantEntity
+from aoa.demo.model.support.entities.support_participant_row import SupportParticipantCoreEntity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
-from aoa.demo.model.support.entities.support_ticket_aggregate import SupportTicketAggregateEntity
+from aoa.demo.model.support.entities.support_ticket_aggregate import SupportTicketAggregateCoreEntity
 from aoa.demo.model.support.support_domain import SupportDomain
 
 
@@ -17,7 +17,7 @@ from aoa.demo.model.support.support_domain import SupportDomain
     description="Associative pairing on sparse support graph (triangle completion on ticket spine)",
     domain=SupportDomain,
 )
-class SupportTicketParticipantPairEntity(BaseEntity):
+class SupportTicketParticipantPairCoreEntity(BaseCoreEntity):
     id: str = Field(description="Assoc id")
     lifecycle: SupportSparseLifecycle = Field(description="Pair lifecycle")
 
@@ -28,18 +28,18 @@ class SupportTicketParticipantPairEntity(BaseEntity):
     language_locale: str = Field(description="Preferred conversational language tag")
     deflection_attempts: int = Field(description="Self-serve resolutions before escalation", ge=0)
     ticket: Annotated[
-        AssociationOne[SupportTicketAggregateEntity],
+        AssociationOne[SupportTicketAggregateCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Ticket aggregate anchor"
     )  # type: ignore[assignment]
 
     participant: Annotated[
-        AssociationOne[SupportParticipantEntity],
+        AssociationOne[SupportParticipantCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Participant row anchor"
     )  # type: ignore[assignment]
 
 
-SupportTicketParticipantPairEntity.model_rebuild()
+SupportTicketParticipantPairCoreEntity.model_rebuild()

@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgWebhookLifecycle
-from aoa.demo.model.messaging.entities.msg_webhook_ingress_receipt import WebhookIngressReceiptEntity
+from aoa.demo.model.messaging.entities.msg_webhook_ingress_receipt import WebhookIngressReceiptCoreEntity
 
 
 @entity(description="Signature verification envelope chained from webhook receipt", domain=MessagingDomain)
-class WebhookSignatureEnvelopeEntity(BaseEntity):
+class WebhookSignatureEnvelopeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Envelope id")
     lifecycle: MsgWebhookLifecycle = Field(description="Envelope lifecycle")
 
@@ -24,11 +24,11 @@ class WebhookSignatureEnvelopeEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
     receipt: Annotated[
-        AssociationOne[WebhookIngressReceiptEntity],
+        AssociationOne[WebhookIngressReceiptCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Ingress receipt linkage"
     )  # type: ignore[assignment]
 
 
-WebhookSignatureEnvelopeEntity.model_rebuild()
+WebhookSignatureEnvelopeCoreEntity.model_rebuild()
