@@ -3,8 +3,8 @@
 Artificial mutual ``AssociationOne`` pair for ERD cyclic-FK demos (store domain).
 
 ``Inverse`` pairing closes a **two-node** interchange cycle. One-way anchors (``NoInverse``)
-into :class:`~aoa.demo.model.store.entities.sales_core.CustomerAccountEntity` and
-:class:`~aoa.demo.model.store.entities.sales_core.SalesOrderEntity` merge the subgraph with
+into :class:`~aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity` and
+:class:`~aoa.demo.model.store.entities.sales_core.SalesOrderCoreEntity` merge the subgraph with
 the main storefront spine in a single interchange component.
 """
 
@@ -16,7 +16,7 @@ from pydantic import Field
 
 from aoa.action_machine.domain import (
     AssociationOne,
-    BaseEntity,
+    BaseCoreEntity,
     BaseStateEntity,
     Inverse,
     Lifecycle,
@@ -25,7 +25,7 @@ from aoa.action_machine.domain import (
     StateVocabulary,
 )
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import CustomerAccountEntity, SalesOrderEntity
+from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity, SalesOrderCoreEntity
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
@@ -48,7 +48,7 @@ class _StoreDirectedCycleSketchLifecycle(Lifecycle, StateVocabulary):
     description="Ping side of mutual FK skeleton (two-node interchange cycle demo)",
     domain=StoreDomain,
 )
-class StoreDirectedCyclePingEntity(BaseEntity):
+class StoreDirectedCyclePingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ping row id")
     lifecycle: _StoreDirectedCycleSketchLifecycle = Field(description="Ping sketch lifecycle")
 
@@ -59,14 +59,14 @@ class StoreDirectedCyclePingEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     pong_peer: Annotated[
-        AssociationOne[StoreDirectedCyclePongEntity],
-        Inverse(StoreDirectedCyclePongEntity, "ping_peer"),
+        AssociationOne[StoreDirectedCyclePongCoreEntity],
+        Inverse(StoreDirectedCyclePongCoreEntity, "ping_peer"),
     ] = Rel(
         description="Points at pong counterpart; closes a 2-node cycle"
     )  # type: ignore[assignment]
 
     storefront_customer_anchor: Annotated[
-        AssociationOne[CustomerAccountEntity],
+        AssociationOne[CustomerAccountCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Sample FK tying the ping row into core customer/order graph (no reciprocal field)",
@@ -77,7 +77,7 @@ class StoreDirectedCyclePingEntity(BaseEntity):
     description="Pong side of mutual FK skeleton (two-node interchange cycle demo)",
     domain=StoreDomain,
 )
-class StoreDirectedCyclePongEntity(BaseEntity):
+class StoreDirectedCyclePongCoreEntity(BaseCoreEntity):
     id: str = Field(description="Pong row id")
     lifecycle: _StoreDirectedCycleSketchLifecycle = Field(description="Pong sketch lifecycle")
 
@@ -88,19 +88,19 @@ class StoreDirectedCyclePongEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     ping_peer: Annotated[
-        AssociationOne[StoreDirectedCyclePingEntity],
-        Inverse(StoreDirectedCyclePingEntity, "pong_peer"),
+        AssociationOne[StoreDirectedCyclePingCoreEntity],
+        Inverse(StoreDirectedCyclePingCoreEntity, "pong_peer"),
     ] = Rel(
         description="Points at ping counterpart; completes mutual reference"
     )  # type: ignore[assignment]
 
     storefront_order_anchor: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Sample FK tying the pong row into the sales-order spine (no reciprocal field)",
     )  # type: ignore[assignment]
 
 
-StoreDirectedCyclePingEntity.model_rebuild()
-StoreDirectedCyclePongEntity.model_rebuild()
+StoreDirectedCyclePingCoreEntity.model_rebuild()
+StoreDirectedCyclePongCoreEntity.model_rebuild()

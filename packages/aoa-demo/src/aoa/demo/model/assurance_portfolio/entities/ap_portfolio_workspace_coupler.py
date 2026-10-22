@@ -5,18 +5,18 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
-from aoa.demo.model.assurance_portfolio.entities.ap_portfolio_lane_stub import AssurancePortfolioLaneStubEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_portfolio_lane_stub import AssurancePortfolioLaneStubCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_workspace_program_stub import (
-    AssuranceWorkspaceProgramStubEntity,
+    AssuranceWorkspaceProgramStubCoreEntity,
 )
 
 
 @entity(description="Associative linkage from lane to encapsulated workspace programs", domain=AssurancePortfolioDomain)
-class AssurancePortfolioWorkspaceCouplerEntity(BaseEntity):
+class AssurancePortfolioWorkspaceCouplerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Coupler id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Coupler lifecycle")
 
@@ -27,18 +27,18 @@ class AssurancePortfolioWorkspaceCouplerEntity(BaseEntity):
     automation_vendor: str = Field(description="Runner / harness vendor label")
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
     portfolio_lane: Annotated[
-        AssociationOne[AssurancePortfolioLaneStubEntity],
+        AssociationOne[AssurancePortfolioLaneStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning lane headline"
     )  # type: ignore[assignment]
 
     workspace_program: Annotated[
-        AssociationOne[AssuranceWorkspaceProgramStubEntity],
+        AssociationOne[AssuranceWorkspaceProgramStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Contained workspace capsule"
     )  # type: ignore[assignment]
 
 
-AssurancePortfolioWorkspaceCouplerEntity.model_rebuild()
+AssurancePortfolioWorkspaceCouplerCoreEntity.model_rebuild()

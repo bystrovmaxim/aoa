@@ -5,36 +5,36 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
-from aoa.demo.model.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceEntity
-from aoa.demo.model.billing.entities.billing_sat_tax_remit_stub import TaxRemittanceAdviceEntity
-from aoa.demo.model.billing.entities.payment_event_log import PaymentEventLogEntity
+from aoa.demo.model.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_tax_remit_stub import TaxRemittanceAdviceCoreEntity
+from aoa.demo.model.billing.entities.payment_event_log import PaymentEventLogCoreEntity
 
 
 @entity(description="Chargeback case opened on payment-event", domain=BillingDomain)
-class ChargebackTicketEntity(BaseEntity):
+class ChargebackTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ticket id")
     lifecycle: BillingDenseLifecycle = Field(description="Dispute lifecycle")
 
     payment_event: Annotated[
-        AssociationOne[PaymentEventLogEntity],
+        AssociationOne[PaymentEventLogCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Funding payment event anchor"
     )  # type: ignore[assignment]
 
     interchange_assessment_slice: Annotated[
-        AssociationOne[InterchangeAssessmentSliceEntity],
+        AssociationOne[InterchangeAssessmentSliceCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Associated interchange assessment economics slice"
     )  # type: ignore[assignment]
 
     tax_remit_advice: Annotated[
-        AssociationOne[TaxRemittanceAdviceEntity],
+        AssociationOne[TaxRemittanceAdviceCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Associated tax remittance advice stub row"
@@ -52,4 +52,4 @@ class ChargebackTicketEntity(BaseEntity):
     cardholder_contact_locale: str = Field(description="Locale hint for outbound comms")
 
 
-ChargebackTicketEntity.model_rebuild()
+ChargebackTicketCoreEntity.model_rebuild()

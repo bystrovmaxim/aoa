@@ -30,7 +30,7 @@ from aoa.action_machine.auth import ApplicationRole
 from aoa.action_machine.domain import (
     AssociationMany,
     AssociationOne,
-    BaseEntity,
+    BaseCoreEntity,
     BaseStateEntity,
     Inverse,
     Lifecycle,
@@ -99,28 +99,28 @@ class OrderLifecycle(Lifecycle, StateVocabulary):
 
 
 @entity(description="Customer", domain=ShopDomain)
-class CustomerEntity(BaseEntity):
+class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer id")
     name: str = Field(description="Display name")
     orders: Annotated[
-        AssociationMany[OrderEntity],
-        Inverse(OrderEntity, "customer"),
+        AssociationMany[OrderCoreEntity],
+        Inverse(OrderCoreEntity, "customer"),
     ] = Rel(description="Orders of this customer")
 
 
 @entity(description="Order", domain=ShopDomain)
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     total: float = Field(ge=0, description="Order total")
     lifecycle: OrderLifecycle = Field(description="Order lifecycle")
     customer: Annotated[
-        AssociationOne[CustomerEntity],
-        Inverse(CustomerEntity, "orders"),
+        AssociationOne[CustomerCoreEntity],
+        Inverse(CustomerCoreEntity, "orders"),
     ] = Rel(description="Customer who placed the order")
 
 
-CustomerEntity.model_rebuild()
-OrderEntity.model_rebuild()
+CustomerCoreEntity.model_rebuild()
+OrderCoreEntity.model_rebuild()
 
 
 class PlaceOrderParams(BaseParams):

@@ -5,19 +5,19 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
-from aoa.demo.model.inventory.entities.inv_bin_coordinate_stub import BinCoordinateStubEntity
+from aoa.demo.model.inventory.entities.inv_bin_coordinate_stub import BinCoordinateStubCoreEntity
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
-from aoa.demo.model.inventory.entities.inv_lot_age_bucket import LotAgeBucketEntity
+from aoa.demo.model.inventory.entities.inv_lot_age_bucket import LotAgeBucketCoreEntity
 
 
 @entity(
     description="Correlates physical bin coordinates with terminal aging buckets (facility mesh)",
     domain=InventoryDomain,
 )
-class InvBinAgeCorrelateEntity(BaseEntity):
+class InvBinAgeCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")
     lifecycle: InvDenseLifecycle = Field(description="Correlator lifecycle")
 
@@ -28,18 +28,18 @@ class InvBinAgeCorrelateEntity(BaseEntity):
     dock_door_anchor: str = Field(description="Primary receiving / staging door label")
     velocity_bucket: str = Field(description="ABC / throughput velocity class")
     bin_coordinate: Annotated[
-        AssociationOne[BinCoordinateStubEntity],
+        AssociationOne[BinCoordinateStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Structural bin anchor"
     )  # type: ignore[assignment]
 
     age_bucket: Annotated[
-        AssociationOne[LotAgeBucketEntity],
+        AssociationOne[LotAgeBucketCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Operational aging artefact anchor"
     )  # type: ignore[assignment]
 
 
-InvBinAgeCorrelateEntity.model_rebuild()
+InvBinAgeCorrelateCoreEntity.model_rebuild()

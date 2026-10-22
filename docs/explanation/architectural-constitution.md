@@ -67,10 +67,10 @@ class CreateOrderAction(BaseAction[CreateOrderAction.Params, CreateOrderAction.R
 
 ### `BaseEntity` — a domain object
 
-What the system **models**. A subject-area object with no tie to storage. It knows only its own structure and its `Lifecycle`.
+What the system **models**. `BaseEntity` supplies the shared domain-object mechanics without ties to storage. Application classes choose one of its six kind bases: Core, Assoc, Detail, Spec, Enum or State. These refine the Entity primitive; they are not additional primitives. [The entity tutorial](../tutorials/step-20-entity.md) explains their different identities and roles.
 
 ```python
-class Order(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     order_id: str
     status: str
 ```

@@ -42,6 +42,20 @@ def test_domain_public_exports_resolve() -> None:
         assert getattr(domain, name) is not None
 
 
+def test_domain_exports_the_six_kind_markers_and_the_kind_enum() -> None:
+    domain = importlib.import_module("aoa.action_machine.domain")
+    for name in (
+        "BaseCoreEntity",
+        "BaseAssocEntity",
+        "BaseDetailEntity",
+        "BaseSpecEntity",
+        "BaseEnumEntity",
+        "BaseStateEntity",
+    ):
+        assert getattr(domain, name) is not None, name
+    assert all(marker in domain.__all__ for marker in ("BaseCoreEntity", "BaseStateEntity"))
+
+
 def test_domain_getattr_raises_on_unknown_name() -> None:
     domain = importlib.import_module("aoa.action_machine.domain")
     with pytest.raises(AttributeError, match="has no attribute"):

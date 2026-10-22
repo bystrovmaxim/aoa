@@ -28,6 +28,10 @@ The full domain picture: [▶ Try in Colab](https://drive.google.com/file/d/10H7
 
 ---
 
+
+The [previous chapter](step-20-entity.md) distinguishes an entity's kind from its relationships. A core order can have an association to a core customer and own detail lines through composition. The presence of an association field does not turn the order into an associative entity. `BaseAssocEntity` is reserved for a separate technical link record with no domain data of its own. Likewise, variant-specific data uses `BaseSpecEntity`, not `BaseDetailEntity`: it describes the same head object rather than one of its parts.
+
+
 ## Containers: cardinality and ownership
 
 A relation container is an object that keeps the identifier of a related entity and, when available, the entity itself. The ownership containers describe two dimensions: **how many** (`One`/`Many`) and **whose ownership**:
@@ -52,7 +56,8 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     AssociationMany,
     AssociationOne,
-    BaseEntity,
+    BaseCoreEntity,
+    BaseDetailEntity,
     CompositeMany,
     Inverse,
     Rel,
@@ -69,48 +74,48 @@ class ShopDomain(BaseDomain):
 
 
 @entity(description="Customer account", domain=ShopDomain)
-class CustomerEntity(BaseEntity):
+class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer id")
     name: str = Field(description="Display name")
 
     orders: Annotated[
-        AssociationMany[OrderEntity],
-        Inverse(OrderEntity, "customer"),
+        AssociationMany[OrderCoreEntity],
+        Inverse(OrderCoreEntity, "customer"),
     ] = Rel(description="Orders placed by this customer")
 
 
 @entity(description="Customer order", domain=ShopDomain)
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     total: float = Field(ge=0, description="Order total")
 
     # association — order and customer exist independently
     customer: Annotated[
-        AssociationOne[CustomerEntity],
-        Inverse(CustomerEntity, "orders"),
+        AssociationOne[CustomerCoreEntity],
+        Inverse(CustomerCoreEntity, "orders"),
     ] = Rel(description="Customer who placed the order")
 
     # composition — line items cannot exist without this order
     lines: Annotated[
-        CompositeMany[OrderLineEntity],
-        Inverse(OrderLineEntity, "order"),
+        CompositeMany[OrderLineDetailEntity],
+        Inverse(OrderLineDetailEntity, "order"),
     ] = Rel(description="Line items of the order")
 
 
 @entity(description="Single line of an order", domain=ShopDomain)
-class OrderLineEntity(BaseEntity):
+class OrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Line id")
     sku: str = Field(description="Product code")
 
     order: Annotated[
-        AssociationOne[OrderEntity],
-        Inverse(OrderEntity, "lines"),
+        AssociationOne[OrderCoreEntity],
+        Inverse(OrderCoreEntity, "lines"),
     ] = Rel(description="Parent order")
 
 
-CustomerEntity.model_rebuild()
-OrderEntity.model_rebuild()
-OrderLineEntity.model_rebuild()
+CustomerCoreEntity.model_rebuild()
+OrderCoreEntity.model_rebuild()
+OrderLineDetailEntity.model_rebuild()
 ```
 
 
@@ -119,7 +124,7 @@ OrderLineEntity.model_rebuild()
 
 ## Inverse: the reverse side and the startup check
 
-`Inverse(Target, "field")` explicitly names the **paired field** on the other side. This is needed because the heuristic "find the reverse relation by type" breaks the moment an entity has two fields of the same type — whereas a single line `Inverse(OrderEntity, "lines")` is unambiguous and survives refactoring. Every declared relation must carry `Rel(description=...)` — the model stays a specification, not just code.
+`Inverse(Target, "field")` explicitly names the **paired field** on the other side. This is needed because the heuristic "find the reverse relation by type" breaks the moment an entity has two fields of the same type — whereas a single line `Inverse(OrderCoreEntity, "lines")` is unambiguous and survives refactoring. Every declared relation must carry `Rel(description=...)` — the model stays a specification, not just code.
 
 When the graph is built (and it is built when the machine is created), the coordinator **checks the mirroring**: that the paired field exists, that the types and target entities match, and that the cardinality is compatible. An error in the relation model surfaces **at startup**, not half a year later in a report. In the example this is visible in the first line: the machine assembled — which means the relations were validated.
 
@@ -130,10 +135,10 @@ For an honestly one-way link, put `NoInverse()` (the absence of a reverse side i
 Loading the related object into a container is also called **hydration**. It does not happen automatically. The [partial-loading](step-20-entity.md#one-entity-different-load-levels) rule extends to relations too: the container **always knows the id**, but the related entity may not be loaded. Reaching through an un-hydrated container is a `RelationNotLoadedError`, not a silent `None` and not a hidden query:
 
 ```python
-order = OrderEntity(
+order = OrderCoreEntity(
     id="ord-1", total=1500.0,
-    customer=AssociationOne[CustomerEntity](id="cust-1"),          # id only
-    lines=CompositeMany[OrderLineEntity](ids=("line-1", "line-2")),# ids only
+    customer=AssociationOne[CustomerCoreEntity](id="cust-1"),          # id only
+    lines=CompositeMany[OrderLineDetailEntity](ids=("line-1", "line-2")),# ids only
 )
 
 order.customer.id      # ok — the id is always there
@@ -145,14 +150,14 @@ list(order.lines)      # RelationNotLoadedError — the line entities are not hy
 To make a relation loaded, pass the entity itself (`One`) or the entities (`Many`) into the container; then attribute access is proxied to it:
 
 ```python
-customer = CustomerEntity(
+customer = CustomerCoreEntity(
     id="cust-1", name="Alice",
-    orders=AssociationMany[OrderEntity](ids=("ord-1",)),
+    orders=AssociationMany[OrderCoreEntity](ids=("ord-1",)),
 )
-order2 = OrderEntity(
+order2 = OrderCoreEntity(
     id="ord-2", total=99.0,
-    customer=AssociationOne[CustomerEntity](id="cust-1", entity=customer),  # hydrated
-    lines=CompositeMany[OrderLineEntity](entities=(), entities_loaded=True),
+    customer=AssociationOne[CustomerCoreEntity](id="cust-1", entity=customer),  # hydrated
+    lines=CompositeMany[OrderLineDetailEntity](entities=(), entities_loaded=True),
 )
 order2.customer.name   # "Alice"
 ```
@@ -178,7 +183,7 @@ uv run python examples/step_21_relations/01_relations.py
    order2.customer.name = Alice   (proxied through the loaded entity)
 ```
 
-Different queries return one `OrderEntity` with different relation-load depth — and the system controls accidental access to the not-loaded, instead of quietly slipping in a `None` or going to the database behind your back.
+Different queries return one `OrderCoreEntity` with different relation-load depth — and the system controls accidental access to the not-loaded, instead of quietly slipping in a `None` or going to the database behind your back.
 
 ## Generalization and specialization
 
@@ -188,11 +193,11 @@ Suppose we are building a catalogue of vinyl records. Every record has an identi
 
 These are different sets of information. Putting all three sets of fields on every record would make the reader of our model work out which fields belong together and which are relevant to a particular copy. Three independent association fields would describe three separate links, while our intention is one choice among kinds of pressing details.
 
-We will therefore use one class for the common record information and a separate class for each kind of pressing details. In this relationship, the common class is called the **head**, and the possible detail classes are its **alternatives**. An alternative is also called a variant or an extension. Here the head is `VinylRecordEntity`; its alternatives are `FirstPressEntity`, `RepressEntity`, and `TestPressEntity`.
+We will therefore use one class for the common record information and a separate class for each kind of pressing details. In this relationship, the common class is called the **head**, and the possible detail classes are its **alternatives**. An alternative is also called a variant or an extension. Here the head is `VinylRecordCoreEntity`; its alternatives are `FirstPressSpecEntity`, `RepressSpecEntity`, and `TestPressSpecEntity`.
 
-The head's `pressing` field can refer to any one of these alternatives. AOA calls this direction **specialization**, represented by `Specialization[FirstPressEntity | RepressEntity | TestPressEntity]`. The vertical bars are Python's union notation: the related object may have any of the listed types. Each detail class also declares a way back to the common record. That direction is **generalization**, represented by `Generalization[VinylRecordEntity]`.
+The head's `pressing` field can refer to any one of these alternatives. AOA calls this direction **specialization**, represented by `Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity]`. The vertical bars are Python's union notation: the related object may have any of the listed types. Each detail class also declares a way back to the common record. That direction is **generalization**, represented by `Generalization[VinylRecordCoreEntity]`.
 
-This declaration does not make the detail classes Python subclasses of `VinylRecordEntity`. Each class inherits directly from `BaseEntity`. Nor does it create database tables. An application may store common data and detail data in separate tables, or assemble them from another source; the declarations describe the domain objects and their relationship.
+This declaration does not make the detail classes Python subclasses of `VinylRecordCoreEntity`. The head inherits `BaseCoreEntity`; its alternatives inherit `BaseSpecEntity`. These bases express the different roles of common and variant-specific data. Nor does it create database tables. An application may store common data and detail data in separate tables, or assemble them from another source; the declarations describe the domain objects and their relationship.
 
 We also need a way to name a kind of pressing in data. We choose the strings `first`, `repress`, and `test`. These strings are **codes**; they are application vocabulary, not Python class names. The record's `media` field holds such a code. A field used to distinguish the alternatives is called a **classifier field**. The `Classifier` marker names that field and the codes declared by the model. It describes a correspondence for application code to use; it does not perform a query or construct the chosen object.
 
@@ -210,7 +215,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity, Classifier, Generalization, Inverse, Rel, Specialization
+from aoa.action_machine.domain import BaseCoreEntity, BaseSpecEntity, Classifier, Generalization, Inverse, Rel, Specialization
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -224,65 +229,65 @@ class MusicDomain(BaseDomain):
 
 
 @entity(description="Vinyl record", domain=MusicDomain)
-class VinylRecordEntity(BaseEntity):
+class VinylRecordCoreEntity(BaseCoreEntity):
     """Describe the information shared by all pressings."""
 
     id: str = Field(description="Record identifier")
     title: str = Field(description="Album title")
     media: str = Field(description="Pressing code")
     pressing: Annotated[
-        Specialization[FirstPressEntity | RepressEntity | TestPressEntity],
+        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
         Classifier(field="media", codes=Literal["first", "repress", "test"]),
         Inverse(field_name="record"),
     ] = Rel(description="Details of this pressing")
 
 
 @entity(description="First pressing", domain=MusicDomain)
-class FirstPressEntity(BaseEntity):
+class FirstPressSpecEntity(BaseSpecEntity):
     """Describe the stamper used for a first pressing."""
 
-    id: str = Field(description="Pressing identifier")
+    id: str = Field(description="The head record identifier")
     stamper: str = Field(description="Stamper code")
     record: Annotated[
-        Generalization[VinylRecordEntity],
+        Generalization[VinylRecordCoreEntity],
         Classifier("record", Literal["first"]),
-        Inverse(VinylRecordEntity, "pressing"),
+        Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
 
 @entity(description="Re-pressing", domain=MusicDomain)
-class RepressEntity(BaseEntity):
+class RepressSpecEntity(BaseSpecEntity):
     """Describe when an album was pressed again."""
 
-    id: str = Field(description="Pressing identifier")
+    id: str = Field(description="The head record identifier")
     year: int = Field(description="Re-pressing year")
     record: Annotated[
-        Generalization[VinylRecordEntity],
+        Generalization[VinylRecordCoreEntity],
         Classifier("record", Literal["repress"]),
-        Inverse(VinylRecordEntity, "pressing"),
+        Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
 
 @entity(description="Test pressing", domain=MusicDomain)
-class TestPressEntity(BaseEntity):
+class TestPressSpecEntity(BaseSpecEntity):
     """Describe who approved a test pressing."""
 
-    id: str = Field(description="Pressing identifier")
+    id: str = Field(description="The head record identifier")
     approved_by: str = Field(description="Reviewer name")
     record: Annotated[
-        Generalization[VinylRecordEntity],
+        Generalization[VinylRecordCoreEntity],
         Classifier("record", Literal["test"]),
-        Inverse(VinylRecordEntity, "pressing"),
+        Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
 
-for model in (VinylRecordEntity, FirstPressEntity, RepressEntity, TestPressEntity):
+for model in (VinylRecordCoreEntity, FirstPressSpecEntity, RepressSpecEntity, TestPressSpecEntity):
     model.model_rebuild()
 ```
 
-Read the declaration of `VinylRecordEntity.pressing` in three parts. `Specialization[...]` lists the allowed types of the related object. `Classifier(field="media", codes=Literal["first", "repress", "test"])` says where the code lives and which codes this declaration names. `Literal` describes specific values in Python's typing vocabulary. Finally, `Inverse(field_name="record")` says that the paired field on every alternative is called `record`. There is no single target class to give this head-side marker: the union already supplies the alternatives.
+Read the declaration of `VinylRecordCoreEntity.pressing` in three parts. `Specialization[...]` lists the allowed types of the related object. `Classifier(field="media", codes=Literal["first", "repress", "test"])` says where the code lives and which codes this declaration names. `Literal` describes specific values in Python's typing vocabulary. Finally, `Inverse(field_name="record")` says that the paired field on every alternative is called `record`. There is no single target class to give this head-side marker: the union already supplies the alternatives.
 
-Now read `FirstPressEntity.record` in the other direction. `Generalization[VinylRecordEntity]` identifies the common class. Its `Classifier("record", Literal["first"])` declares the alternative's own code, `first`. On this reverse side, `record` names the reverse link; it is not a second ordinary data field containing a code. `Inverse(VinylRecordEntity, "pressing")` identifies the paired field on the head. The other two alternatives follow the same pattern with their own codes and detail fields.
+Now read `FirstPressSpecEntity.record` in the other direction. `Generalization[VinylRecordCoreEntity]` identifies the common class. Its `Classifier("record", Literal["first"])` declares the alternative's own code, `first`. On this reverse side, `record` names the reverse link; it is not a second ordinary data field containing a code. `Inverse(VinylRecordCoreEntity, "pressing")` identifies the paired field on the head. The other two alternatives follow the same pattern with their own codes and detail fields.
 
 `Rel(description=...)` supplies the description of each relationship. It does not supply a loaded relation value. We pass actual containers when constructing the objects below. Because the head and alternatives refer to one another, some names appear before their classes exist. `from __future__ import annotations` postpones their evaluation, and the final `model_rebuild()` calls resolve them after all four classes have been defined. This prepares Pydantic's types; it is different from building AOA's model graph.
 
@@ -294,24 +299,24 @@ How do common record information and variant-specific information fit together?
 
 First we create the machine. Creating `ActionProductMachine` assembles a graph of the loaded declarations and checks their consistency; this is the **model build**. `loggers=[]` keeps this small experiment's output focused on its own prints. A successful build says the declarations passed their checks. It says nothing about rows in a database.
 
-Next we construct `first`, the details for one pressing. Its reverse link carries the identifier `rec-1` but no loaded record object. We then construct `record`, whose forward link carries `press-1`, the code `first`, and the already-created `first` object. The two identifiers differ deliberately: they identify different objects, and this feature does not require equal identifiers on the two sides.
+Next we construct `first`, the details for one pressing. Its reverse link carries the identifier `rec-1` but no loaded record object. We then construct `record`, whose forward link carries `rec-1`, the code `first`, and the already-created `first` object. Both identifiers are `rec-1`: the head and its variant describe the same domain object. Key equality is the specialization contract, although the current runtime does not enforce it.
 
 [Script](../../examples/step_21_relations/02_specialization.py) · [Notebook](../../examples/step_21_relations/02_specialization.ipynb)
 
 
 ```python
 ActionProductMachine(loggers=[])
-first = FirstPressEntity(
-    id="press-1",
+first = FirstPressSpecEntity(
+    id="rec-1",
     stamper="1A",
-    record=Generalization[VinylRecordEntity](id="rec-1"),
+    record=Generalization[VinylRecordCoreEntity](id="rec-1"),
 )
-record = VinylRecordEntity(
+record = VinylRecordCoreEntity(
     id="rec-1",
     title="Kind of Blue",
     media="first",
-    pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-        id="press-1",
+    pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+        id="rec-1",
         variant="first",
         entity=first,
     ),
@@ -357,8 +362,8 @@ Sometimes an application has read the identifier and the pressing code but has n
 
 
 ```python
-link = Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-    id="press-1",
+link = Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+    id="rec-1",
     variant="first",
 )
 print(link.id)
@@ -375,7 +380,7 @@ uv run python examples/step_21_relations/03_specialization_unloaded.py
 Output:
 
 ```text
-press-1
+rec-1
 first
 None
 ```
@@ -394,17 +399,17 @@ The reverse direction can also be read at two load levels. Here we construct a r
 
 
 ```python
-record = VinylRecordEntity(
+record = VinylRecordCoreEntity(
     id="rec-1",
     title="Kind of Blue",
     media="first",
-    pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-        id="press-1",
+    pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+        id="rec-1",
         variant="first",
     ),
 )
-unloaded = Generalization[VinylRecordEntity](id="rec-1")
-loaded = Generalization[VinylRecordEntity](id="rec-1", entity=record)
+unloaded = Generalization[VinylRecordCoreEntity](id="rec-1")
+loaded = Generalization[VinylRecordCoreEntity](id="rec-1", entity=record)
 print(unloaded.id, unloaded.entity)
 print(loaded.entity.title)
 ```
@@ -430,7 +435,7 @@ Does a code identify a class by its position in the union?
 
 To inspect the declared correspondence, AOA provides `EntityIntentResolver.resolve_entity_specializations`. Each returned description represents one specialization field together with its classifier and alternatives. This combination is called a **specialization axis**. The term is useful when a head has more than one such field; in our first model there is only the `pressing` axis.
 
-For this experiment, replace just the `Classifier` line on `VinylRecordEntity.pressing` with:
+For this experiment, replace just the `Classifier` line on `VinylRecordCoreEntity.pressing` with:
 
 
 ```python
@@ -446,7 +451,7 @@ Keep the union and all reverse declarations unchanged. `[0]` below selects the s
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 
 ActionProductMachine(loggers=[])
-axis = EntityIntentResolver.resolve_entity_specializations(VinylRecordEntity)[0]
+axis = EntityIntentResolver.resolve_entity_specializations(VinylRecordCoreEntity)[0]
 print("Field:", axis.field_name)
 print("Classifier:", axis.classifier_field)
 for code in axis.codes:
@@ -464,14 +469,14 @@ Output:
 ```text
 Field: pressing
 Classifier: media
-test -> TestPressEntity
-first -> FirstPressEntity
-repress -> RepressEntity
+test -> TestPressSpecEntity
+first -> FirstPressSpecEntity
+repress -> RepressSpecEntity
 ```
 
 The head lists codes in a different order from the union. Each code still points to the class that declares it on its reverse field. The resolver reads declarations; it does not load data.
 
-Notice that `test` still maps to `TestPressEntity`, although that class is third in the unchanged union. If application code reads a data code, it can look it up in this mapping and decide what to load. The resolver itself only reads class declarations. Restore the original code order before using the unmodified preparation in the following examples.
+Notice that `test` still maps to `TestPressSpecEntity`, although that class is third in the unchanged union. If application code reads a data code, it can look it up in this mapping and decide what to load. The resolver itself only reads class declarations. Restore the original code order before using the unmodified preparation in the following examples.
 
 ### Rejecting an unrelated object
 
@@ -485,18 +490,18 @@ The type argument has an immediate effect on value construction. Here we deliber
 ```python
 from pydantic import ValidationError
 
-record = VinylRecordEntity(
+record = VinylRecordCoreEntity(
     id="rec-1",
     title="Kind of Blue",
     media="first",
-    pressing=Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-        id="press-1",
+    pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+        id="rec-1",
         variant="first",
     ),
 )
 try:
-    Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-        id="press-1",
+    Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+        id="rec-1",
         variant="first",
         entity=record,
     )
@@ -520,7 +525,7 @@ ValidationError
 ['model_type']
 ```
 
-Pydantic checks the entity value against the union when constructing the container. A VinylRecordEntity is not one of the three pressing classes. This check needs no machine build.
+Pydantic checks the entity value against the union when constructing the container. A VinylRecordCoreEntity is not one of the three pressing classes. This check needs no machine build.
 
 ### A declaration does not validate a data code
 
@@ -533,11 +538,11 @@ Checking an object's type is different from checking whether its data code is de
 
 ```python
 ActionProductMachine(loggers=[])
-link = Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-    id="press-1",
+link = Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+    id="rec-1",
     variant="unknown",
 )
-record = VinylRecordEntity(id="rec-1", title="Kind of Blue", media="unknown", pressing=link)
+record = VinylRecordCoreEntity(id="rec-1", title="Kind of Blue", media="unknown", pressing=link)
 print("Model built")
 print(record.media)
 print(record.pressing.variant)
@@ -563,7 +568,7 @@ If your application requires a closed set of values for `media`, an appropriate 
 
 ### A link does not choose its object
 
-Does variant="first" require the supplied object to be a FirstPressEntity?
+Does variant="first" require the supplied object to be a FirstPressSpecEntity?
 
 There is a second, separate data question: does the supplied object agree with the supplied code? This experiment keeps a valid object type but deliberately labels a re-pressing as `first`.
 
@@ -571,13 +576,13 @@ There is a second, separate data question: does the supplied object agree with t
 
 
 ```python
-repress = RepressEntity(
-    id="press-2",
+repress = RepressSpecEntity(
+    id="rec-1",
     year=1997,
-    record=Generalization[VinylRecordEntity](id="rec-1"),
+    record=Generalization[VinylRecordCoreEntity](id="rec-1"),
 )
-link = Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-    id="press-2",
+link = Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+    id="rec-1",
     variant="first",
     entity=repress,
 )
@@ -595,10 +600,10 @@ Output:
 
 ```text
 first
-RepressEntity
+RepressSpecEntity
 ```
 
-RepressEntity is inside the union, so the object passes type validation even though its code should be repress. The container does not compare variant to the object type. A loader must enforce that agreement.
+RepressSpecEntity is inside the union, so the object passes type validation even though its code should be repress. The container does not compare variant to the object type. A loader must enforce that agreement.
 
 The result is accepted, so application code must not assume that checking the union also checks this correspondence. The same responsibility covers agreement between the record's `media`, the link's `variant`, the linked object's identifier, and the reverse link. The declarations describe the intended relationship; these containers do not establish all of those instance-level agreements.
 
@@ -614,8 +619,8 @@ After a container has been constructed, its fields cannot be assigned new values
 ```python
 from pydantic import ValidationError
 
-link = Specialization[FirstPressEntity | RepressEntity | TestPressEntity](
-    id="press-1",
+link = Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity](
+    id="rec-1",
     variant="first",
 )
 try:
@@ -646,12 +651,12 @@ The frozen_instance error means assignment was refused. The original code remain
 
 A catalogue might retain its own pressing classification and another catalogue's reported classification. This gives us two specialization fields on the same record. Each needs a separate code field. In this experiment both choices use exactly the same three detail classes and their existing `record` reverse field.
 
-Replace only the `VinylRecordEntity` class from the preparation with this complete version. The other classes and the final rebuild loop remain unchanged:
+Replace only the `VinylRecordCoreEntity` class from the preparation with this complete version. The other classes and the final rebuild loop remain unchanged:
 
 
 ```python
 @entity(description="Vinyl record", domain=MusicDomain)
-class VinylRecordEntity(BaseEntity):
+class VinylRecordCoreEntity(BaseCoreEntity):
     """Describe the information shared by all pressings."""
 
     id: str = Field(description="Record identifier")
@@ -659,12 +664,12 @@ class VinylRecordEntity(BaseEntity):
     media: str = Field(description="Pressing code")
     reported_media: str = Field(description="Pressing code reported by another catalogue")
     reported_pressing: Annotated[
-        Specialization[FirstPressEntity | RepressEntity | TestPressEntity],
+        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
         Classifier(field="reported_media", codes=Literal["first", "repress", "test"]),
         Inverse(field_name="record"),
     ] = Rel(description="Pressing reported by another catalogue")
     pressing: Annotated[
-        Specialization[FirstPressEntity | RepressEntity | TestPressEntity],
+        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
         Classifier(field="media", codes=Literal["first", "repress", "test"]),
         Inverse(field_name="record"),
     ] = Rel(description="Details of this pressing")
@@ -681,7 +686,7 @@ Can a record carry the catalogue classification and a separately reported classi
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 
 ActionProductMachine(loggers=[])
-for axis in EntityIntentResolver.resolve_entity_specializations(VinylRecordEntity):
+for axis in EntityIntentResolver.resolve_entity_specializations(VinylRecordCoreEntity):
     print(axis.field_name, "by", axis.classifier_field)
 ```
 
@@ -716,11 +721,11 @@ What does the built graph say about the declared alternatives?
 ```python
 machine = ActionProductMachine(loggers=[])
 nodes = machine.graph_coordinator.get_all_nodes()
-head = next(node for node in nodes if node.label == "VinylRecordEntity")
+head = next(node for node in nodes if node.label == "VinylRecordCoreEntity")
 for edge in head.get_all_edges():
     if edge.edge_name == "entity_specialization":
         print(edge.edge_name, edge.properties["classifier_value"], "->", edge.target_node.label)
-first_node = next(node for node in nodes if node.label == "FirstPressEntity")
+first_node = next(node for node in nodes if node.label == "FirstPressSpecEntity")
 for edge in first_node.get_all_edges():
     if edge.edge_name == "parent_entity":
         print(edge.edge_name, edge.properties["classifier_value"], "->", edge.target_node.label)
@@ -736,10 +741,10 @@ uv run python examples/step_21_relations/10_specialization_graph.py
 Output:
 
 ```text
-entity_specialization first -> FirstPressEntity
-entity_specialization repress -> RepressEntity
-entity_specialization test -> TestPressEntity
-parent_entity first -> VinylRecordEntity
+entity_specialization first -> FirstPressSpecEntity
+entity_specialization repress -> RepressSpecEntity
+entity_specialization test -> TestPressSpecEntity
+parent_entity first -> VinylRecordCoreEntity
 Columns: ['id', 'title', 'media', 'pressing']
 ```
 
@@ -754,7 +759,7 @@ Sometimes the relationship should stay in the data model but its forward edges s
 
 ```python
 pressing: Annotated[
-    Specialization[FirstPressEntity | RepressEntity | TestPressEntity],
+    Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
     Classifier(field="media", codes=Literal["first", "repress", "test"]),
     Inverse(field_name="record"),
     NoGraphEdge(),
@@ -771,8 +776,8 @@ Does hiding a specialization edge remove the field or its reverse edge?
 ```python
 machine = ActionProductMachine(loggers=[])
 nodes = machine.graph_coordinator.get_all_nodes()
-head = next(node for node in nodes if node.label == "VinylRecordEntity")
-first = next(node for node in nodes if node.label == "FirstPressEntity")
+head = next(node for node in nodes if node.label == "VinylRecordCoreEntity")
+first = next(node for node in nodes if node.label == "FirstPressSpecEntity")
 print("Forward edges:", len(head.specializations))
 print("Reverse edges:", len(first.generalizations))
 print("Field present:", any(edge.target_node.label == "pressing" for edge in head.entity_field_edges))
@@ -815,7 +820,7 @@ The [reference](../reference/intents-and-invariants.md#entity-specialization-the
 9. Which mistake in the examples produces `ValidationError`, and which inconsistent data is accepted?
 10. Why do three edges in the model graph not imply three loaded objects in a particular record?
 
-> **Exercise (ownership).** In `01_relations.py`, change `Inverse(CustomerEntity, "orders")` to a field name that does not exist and observe the build failure. Restore it, then pass two loaded `OrderLineEntity` objects to the order's `lines` container and iterate over them.
+> **Exercise (ownership).** In `01_relations.py`, change `Inverse(CustomerCoreEntity, "orders")` to a field name that does not exist and observe the build failure. Restore it, then pass two loaded `OrderLineDetailEntity` objects to the order's `lines` container and iterate over them.
 
 > **Exercise (specialization).** In `05_specialization_mapping.py`, change only the order of the codes again. Predict the printed mapping and verify it. Then change the `first` code on one side only and use the diagnostics guide to explain the mismatch.
 

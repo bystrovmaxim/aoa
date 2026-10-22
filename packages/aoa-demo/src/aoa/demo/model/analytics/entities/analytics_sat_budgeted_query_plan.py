@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.demo.model.analytics.entities.analytics_sampling_policy import AnalyticsSamplingPolicyEntity
+from aoa.demo.model.analytics.entities.analytics_sampling_policy import AnalyticsSamplingPolicyCoreEntity
 
 
 @entity(description="Budgeted interactive query facet on sampling policy branch", domain=AnalyticsDomain)
-class BudgetedQueryPlanEntity(BaseEntity):
+class BudgetedQueryPlanCoreEntity(BaseCoreEntity):
     id: str = Field(description="Plan id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Budget plan lifecycle")
 
@@ -24,11 +24,11 @@ class BudgetedQueryPlanEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     sampling_policy: Annotated[
-        AssociationOne[AnalyticsSamplingPolicyEntity],
+        AssociationOne[AnalyticsSamplingPolicyCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning sampling policy"
     )  # type: ignore[assignment]
 
 
-BudgetedQueryPlanEntity.model_rebuild()
+BudgetedQueryPlanCoreEntity.model_rebuild()

@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
-from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import AssuranceAccountPhaseAxisEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import AssuranceAccountPhaseAxisCoreEntity
 
 
 @entity(description="Portfolio identity row (v_user analogue)", domain=AssurancePortfolioDomain)
-class AssuranceFacilityActorEntity(BaseEntity):
+class AssuranceFacilityActorCoreEntity(BaseCoreEntity):
     id: str = Field(description="Actor id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Actor lifecycle")
 
@@ -24,11 +24,11 @@ class AssuranceFacilityActorEntity(BaseEntity):
     automation_vendor: str = Field(description="Runner / harness vendor label")
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
     account_phase_axis: Annotated[
-        AssociationOne[AssuranceAccountPhaseAxisEntity],
+        AssociationOne[AssuranceAccountPhaseAxisCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Credential posture snapshot"
     )  # type: ignore[assignment]
 
 
-AssuranceFacilityActorEntity.model_rebuild()
+AssuranceFacilityActorCoreEntity.model_rebuild()

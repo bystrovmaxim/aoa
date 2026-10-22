@@ -11,7 +11,7 @@ from __future__ import annotations
 from pydantic import Field
 
 from aoa.action_machine.domain import (
-    BaseEntity,
+    BaseCoreEntity,
     BaseStateEntity,
     Lifecycle,
     StateVocabulary,
@@ -161,7 +161,7 @@ class NostroLiquiditySweepLifecycle(Lifecycle, StateVocabulary):
     description="Issuer-facing dispute clock plus counterparty linkage (dual lifecycle columns)",
     domain=BillingDomain,
 )
-class IssuerDisputeWorkbenchEntity(BaseEntity):
+class IssuerDisputeWorkbenchCoreEntity(BaseCoreEntity):
     id: str = Field(description="Workbench bundle id")
     scheme_dispute_clock_lifecycle: SchemeDisputeClockLifecycle = Field(
         description="Network dispute timeline (notice → evidence → ruling → closure)",
@@ -179,7 +179,7 @@ class IssuerDisputeWorkbenchEntity(BaseEntity):
     description="Treasury cutover program tracked beside nostro sweep confirmation (dual lifecycles)",
     domain=BillingDomain,
 )
-class TreasuryCutoverBundleEntity(BaseEntity):
+class TreasuryCutoverBundleCoreEntity(BaseCoreEntity):
     id: str = Field(description="Cutover bundle id")
     rail_cutover_program_lifecycle: TreasuryCutoverProgramLifecycle = Field(
         description="Staged activation of a new settlement rail",
@@ -197,7 +197,7 @@ class TreasuryCutoverBundleEntity(BaseEntity):
     description="Reconciliation audit with KYC ring, GL wave, and scheme dispute mesh (triple lifecycle)",
     domain=BillingDomain,
 )
-class MultiRingSettlementAuditEntity(BaseEntity):
+class MultiRingSettlementAuditCoreEntity(BaseCoreEntity):
     id: str = Field(description="Audit run id")
     counterparty_kyc_ring_lifecycle: CounterpartyLinkageLifecycle = Field(
         description="Counterparty verification ring for this reconciliation",

@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
-from aoa.demo.model.assurance_portfolio.entities.ap_campaign_wave_banner import AssuranceCampaignWaveBannerEntity
-from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_campaign_wave_banner import AssuranceCampaignWaveBannerCoreEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 
 
 @entity(description="Actor ↔ execution wave duty binding (plan role analogue)", domain=AssurancePortfolioDomain)
-class AssuranceWaveSeatCouplingEntity(BaseEntity):
+class AssuranceWaveSeatCouplingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Wave seat coupling id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Wave seat coupling lifecycle")
 
@@ -25,18 +25,18 @@ class AssuranceWaveSeatCouplingEntity(BaseEntity):
     automation_vendor: str = Field(description="Runner / harness vendor label")
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
     actor: Annotated[
-        AssociationOne[AssuranceFacilityActorEntity],
+        AssociationOne[AssuranceFacilityActorCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Duty-bound actor"
     )  # type: ignore[assignment]
 
     campaign_wave: Annotated[
-        AssociationOne[AssuranceCampaignWaveBannerEntity],
+        AssociationOne[AssuranceCampaignWaveBannerCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Subject wave banner"
     )  # type: ignore[assignment]
 
 
-AssuranceWaveSeatCouplingEntity.model_rebuild()
+AssuranceWaveSeatCouplingCoreEntity.model_rebuild()

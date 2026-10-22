@@ -67,7 +67,6 @@ class CountAction(BaseAction[EmptyParams, CountResult]):
         return CountResult(count=counter.count)
 
 from contextlib import asynccontextmanager
-from aoa.action_machine.resources import Connections
 
 
 async def main():

@@ -5,22 +5,22 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
-from aoa.demo.model.billing.entities.billing_sat_narrative_correction import NarrativeCorrectionEntity
+from aoa.demo.model.billing.entities.billing_sat_narrative_correction import NarrativeCorrectionCoreEntity
 
 
 @entity(description="FX residual facet continuing ingest narrative spine", domain=BillingDomain)
-class FxResidualTagEntity(BaseEntity):
+class FxResidualTagCoreEntity(BaseCoreEntity):
     id: str = Field(description="Residual id")
     lifecycle: BillingDenseLifecycle = Field(description="FX residual lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
     currency_iso: str = Field(description="Declared ISO-4217 money unit")
     narrative: Annotated[
-        AssociationOne[NarrativeCorrectionEntity],
+        AssociationOne[NarrativeCorrectionCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream narrative correction"
@@ -32,4 +32,4 @@ class FxResidualTagEntity(BaseEntity):
     fx_feed_provider: str = Field(description="Rate feed supplier code")
 
 
-FxResidualTagEntity.model_rebuild()
+FxResidualTagCoreEntity.model_rebuild()

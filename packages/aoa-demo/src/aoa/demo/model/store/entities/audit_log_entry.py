@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.audit_log_entry_lifecycle import AuditLogEntryLifecycle
-from aoa.demo.model.store.entities.sales_core import SalesOrderEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Immutable audit row", domain=StoreDomain)
-class AuditLogEntryEntity(BaseEntity):
+class AuditLogEntryDetailEntity(BaseDetailEntity):
     id: str = Field(description="Audit id")
     lifecycle: AuditLogEntryLifecycle = Field(description="Audit entry lifecycle")
     action_performed: str = Field(description="Action label")
@@ -24,11 +24,11 @@ class AuditLogEntryEntity(BaseEntity):
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     target_order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Related order"
     )  # type: ignore[assignment]
 
 
-AuditLogEntryEntity.model_rebuild()
+AuditLogEntryDetailEntity.model_rebuild()

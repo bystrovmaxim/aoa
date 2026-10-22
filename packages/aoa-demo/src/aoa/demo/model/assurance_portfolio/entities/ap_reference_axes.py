@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 
 
 @entity(description="Lifecycle axis for credential posture (user_status analogue)", domain=AssurancePortfolioDomain)
-class AssuranceAccountPhaseAxisEntity(BaseEntity):
+class AssuranceAccountPhaseAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Account phase axis id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Axis lifecycle")
 
@@ -23,7 +23,7 @@ class AssuranceAccountPhaseAxisEntity(BaseEntity):
 
 
 @entity(description="Named duty template bucket (role catalogue analogue)", domain=AssurancePortfolioDomain)
-class AssuranceDutyTemplateAxisEntity(BaseEntity):
+class AssuranceDutyTemplateAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Duty axis id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Duty axis lifecycle")
 
@@ -36,7 +36,7 @@ class AssuranceDutyTemplateAxisEntity(BaseEntity):
 
 
 @entity(description="Atomic privilege grain (fine right analogue)", domain=AssurancePortfolioDomain)
-class AssurancePrivilegeGrainAxisEntity(BaseEntity):
+class AssurancePrivilegeGrainAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Privilege grain id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Privilege axis lifecycle")
 
@@ -49,7 +49,7 @@ class AssurancePrivilegeGrainAxisEntity(BaseEntity):
 
 
 @entity(description="Requirement taxonomy discriminator", domain=AssurancePortfolioDomain)
-class AssuranceExpectationGenreAxisEntity(BaseEntity):
+class AssuranceExpectationGenreAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Expectation genre id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Genre axis lifecycle")
 
@@ -62,7 +62,7 @@ class AssuranceExpectationGenreAxisEntity(BaseEntity):
 
 
 @entity(description="Requirement maturity runway states", domain=AssurancePortfolioDomain)
-class AssuranceExpectationPhaseAxisEntity(BaseEntity):
+class AssuranceExpectationPhaseAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Expectation phase axis id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Phase axis lifecycle")
 
@@ -75,7 +75,7 @@ class AssuranceExpectationPhaseAxisEntity(BaseEntity):
 
 
 @entity(description="Depth tier along specification spine (spec_level analogue)", domain=AssurancePortfolioDomain)
-class AssuranceSpecificationDepthAxisEntity(BaseEntity):
+class AssuranceSpecificationDepthAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Specification depth tier id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Depth axis lifecycle")
 
@@ -88,7 +88,7 @@ class AssuranceSpecificationDepthAxisEntity(BaseEntity):
 
 
 @entity(description="Delegated task intent flavours (assignment_type analogue)", domain=AssurancePortfolioDomain)
-class AssuranceDelegationIntentAxisEntity(BaseEntity):
+class AssuranceDelegationIntentAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Delegation intent id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Delegation intent axis lifecycle")
 
@@ -101,7 +101,7 @@ class AssuranceDelegationIntentAxisEntity(BaseEntity):
 
 
 @entity(description="Workstream checkpoint labels (assignment_status analogue)", domain=AssurancePortfolioDomain)
-class AssuranceCheckpointToneAxisEntity(BaseEntity):
+class AssuranceCheckpointToneAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Checkpoint tone id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Checkpoint tone axis lifecycle")
 
@@ -114,7 +114,7 @@ class AssuranceCheckpointToneAxisEntity(BaseEntity):
 
 
 @entity(description="Attachment carrier formats (attachment_type analogue)", domain=AssurancePortfolioDomain)
-class AssuranceEvidenceKindAxisEntity(BaseEntity):
+class AssuranceEvidenceKindAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Evidence carrier kind id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Evidence axis lifecycle")
 
@@ -126,12 +126,12 @@ class AssuranceEvidenceKindAxisEntity(BaseEntity):
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
 
 
-AssuranceAccountPhaseAxisEntity.model_rebuild()
-AssuranceDutyTemplateAxisEntity.model_rebuild()
-AssurancePrivilegeGrainAxisEntity.model_rebuild()
-AssuranceExpectationGenreAxisEntity.model_rebuild()
-AssuranceExpectationPhaseAxisEntity.model_rebuild()
-AssuranceSpecificationDepthAxisEntity.model_rebuild()
-AssuranceDelegationIntentAxisEntity.model_rebuild()
-AssuranceCheckpointToneAxisEntity.model_rebuild()
-AssuranceEvidenceKindAxisEntity.model_rebuild()
+AssuranceAccountPhaseAxisCoreEntity.model_rebuild()
+AssuranceDutyTemplateAxisCoreEntity.model_rebuild()
+AssurancePrivilegeGrainAxisCoreEntity.model_rebuild()
+AssuranceExpectationGenreAxisCoreEntity.model_rebuild()
+AssuranceExpectationPhaseAxisCoreEntity.model_rebuild()
+AssuranceSpecificationDepthAxisCoreEntity.model_rebuild()
+AssuranceDelegationIntentAxisCoreEntity.model_rebuild()
+AssuranceCheckpointToneAxisCoreEntity.model_rebuild()
+AssuranceEvidenceKindAxisCoreEntity.model_rebuild()

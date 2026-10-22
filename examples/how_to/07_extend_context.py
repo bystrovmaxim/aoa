@@ -39,10 +39,9 @@ from aoa.action_machine.intents.context_requires.context_requires_decorator impo
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.action_machine.resources import Connections
 
 
 # ── Extend each part by inheritance with explicit fields ─────────────────────

@@ -5,18 +5,20 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle
-from aoa.demo.model.analytics.entities.analytics_canonical_telemetry_row import AnalyticsCanonicalTelemetryRowEntity
+from aoa.demo.model.analytics.entities.analytics_canonical_telemetry_row import (
+    AnalyticsCanonicalTelemetryRowDetailEntity,
+)
 
 
 @entity(
     description="Experiment overlay anchored on canonical telemetry spine (distinct from ingest branch)",
     domain=AnalyticsDomain,
 )
-class ExperimentOverlayEntity(BaseEntity):
+class ExperimentOverlayCoreEntity(BaseCoreEntity):
     id: str = Field(description="Overlay id")
     lifecycle: AnalyticsFactLifecycle = Field(description="Experiment overlay lifecycle")
 
@@ -27,11 +29,11 @@ class ExperimentOverlayEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     canonical_row: Annotated[
-        AssociationOne[AnalyticsCanonicalTelemetryRowEntity],
+        AssociationOne[AnalyticsCanonicalTelemetryRowDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Canonical telemetry lineage parent"
     )  # type: ignore[assignment]
 
 
-ExperimentOverlayEntity.model_rebuild()
+ExperimentOverlayCoreEntity.model_rebuild()

@@ -126,7 +126,21 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 ## The data model
 
-**Entity** (`BaseEntity`, `@entity`) — a domain object: fields, relations, lifecycle. Without tables, sessions, and ORM mapping; one entity is assembled from various sources.
+**Entity** — domain information declared independently of storage. `BaseEntity` supplies shared mechanics; an application class inherits one of six kind bases. Ordinary model entities use `@entity` for their description and domain. State descriptions are declared through a lifecycle instead. See [Step 20](../tutorials/step-20-entity.md).
+
+**Entity kind** — the role represented by an instance, expressed by its kind base and matching class-name suffix. It is selected by domain meaning, not by the number of foreign keys or the presence of an `id` column. The graph exports it as `entity_kind`.
+
+**Core entity** (`BaseCoreEntity`) — an independent domain object with its own identity: an order, customer or supplier offer. References to other objects do not remove its independent meaning.
+
+**Associative entity** (`BaseAssocEntity`) — only a technical record of a connection between participants. It may have service fields such as an identifier and insertion timestamps, but no business data. A supplier offer with price and terms is Core. This narrow use of “associative” does not include every relationship or every join table.
+
+**Detail entity** (`BaseDetailEntity`) — an identifiable part of one owner, such as a line within an order. Its domain identity combines the owner with a discriminator, a value distinguishing parts within that owner. Business fields and a storage UUID do not make it independent.
+
+**Specialization entity** (`BaseSpecEntity`) — variant-specific data of the same general object, sharing the head's identity. Organisation data describes what kind of counterparty the head is; it is not another part of that counterparty.
+
+**Enumeration entity** (`BaseEnumEntity`) — a shared reference value, such as a currency identified by its code. Its additional fields describe the value; it has no business lifecycle.
+
+**State entity** (`BaseStateEntity`) — an immutable description of a lifecycle state, identified by its code within that axis. The lifecycle defines transitions; the state supplies its name and additional fields. It is excluded from ordinary Entity graph nodes.
 
 **Relations** — `Association` (equal), `Aggregation` (weak ownership), `Composition` (strong ownership); cardinality is set by the `One`/`Many` suffix. The reverse side is declared via `Inverse(...)` or explicitly absent via `NoInverse()`.
 
@@ -134,9 +148,9 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **Specialization** — a declared relationship between common information and the different kinds of details that may accompany it. For example, common record information may have first-pressing, re-pressing, or test-pressing details. The common class declares a `Specialization` field listing these alternatives. It describes possible types, not an automatic loading operation.
 
-**Head** — the class holding the common information and declaring a specialization field. `VinylRecordEntity` is the head in the tutorial: it holds the title and the link to pressing details.
+**Head** — the class holding the common information and declaring a specialization field. `VinylRecordCoreEntity` is the head in the tutorial: it holds the title and the link to pressing details.
 
-**Alternative / variant / extension** — one of the detail classes listed by a specialization field. `FirstPressEntity` is an alternative because it holds information specific to a first pressing. It declares its own code and a reverse link to the head; it need not be a Python subclass of that head.
+**Alternative / variant / extension** — one of the detail classes listed by a specialization field. `FirstPressSpecEntity` is an alternative because it holds information specific to a first pressing. It declares its own code and a reverse link to the head; it need not be a Python subclass of that head.
 
 **Classifier field** — the head's ordinary data field whose value identifies the kind of details, such as `media="first"`. On the head, `Classifier(field="media", codes=Literal["first", "repress", "test"])` names this field and declares the codes. On an alternative's reverse link, a `Classifier` marker declares that alternative's single code.
 
@@ -144,7 +158,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **Specialization axis** — one specialization field together with its classifier and alternatives. The name distinguishes multiple choices on one head, such as `pressing` and `reported_pressing`. The current validator restricts which multiple-axis arrangements are accepted.
 
-**Generalization** — for entity specialization, the reverse direction from specific details to the common entity. `Generalization[VinylRecordEntity]` holds a reference back to the record. The associated graph edge uses the `Generalization` relationship; this does not make the two Python classes inherit from one another.
+**Generalization** — for entity specialization, the reverse direction from specific details to the common entity. `Generalization[VinylRecordCoreEntity]` holds a reference back to the record. The associated graph edge uses the `Generalization` relationship; this does not make the two Python classes inherit from one another.
 
 **Inverse relation** — the other declared direction of a relationship. `Inverse(Target, "field")` names the paired field. A specialization head can use `Inverse(field_name="record")`, since its possible target classes are already listed in the type argument.
 

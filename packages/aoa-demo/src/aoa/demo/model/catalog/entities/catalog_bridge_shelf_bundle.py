@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
-from aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule import BundleCardinalityRuleEntity
+from aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule import BundleCardinalityRuleCoreEntity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
-from aoa.demo.model.catalog.entities.catalog_shelf_placement_hint import ShelfPlacementHintEntity
+from aoa.demo.model.catalog.entities.catalog_shelf_placement_hint import ShelfPlacementHintCoreEntity
 
 
 @entity(description="Associative row sewing planogram island to bundle cardinality island", domain=CatalogDomain)
-class CatalogShelfBundleLinkEntity(BaseEntity):
+class CatalogShelfBundleLinkCoreEntity(BaseCoreEntity):
     id: str = Field(description="Assoc id")
     lifecycle: CatalogDenseLifecycle = Field(description="Link lifecycle")
 
@@ -25,18 +25,18 @@ class CatalogShelfBundleLinkEntity(BaseEntity):
     hash_stale_after_sec: int = Field(description="Seconds until cached facets must invalidate", ge=0)
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
     shelf_hint: Annotated[
-        AssociationOne[ShelfPlacementHintEntity],
+        AssociationOne[ShelfPlacementHintCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Planogram spine anchor"
     )  # type: ignore[assignment]
 
     bundle_rule: Annotated[
-        AssociationOne[BundleCardinalityRuleEntity],
+        AssociationOne[BundleCardinalityRuleCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Bundle cardinality anchor"
     )  # type: ignore[assignment]
 
 
-CatalogShelfBundleLinkEntity.model_rebuild()
+CatalogShelfBundleLinkCoreEntity.model_rebuild()

@@ -1,6 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/access_cascade/entities/cascade_boundary_entity.py
 """
-CascadeBoundaryEntity — the one-sided boundary extreme of the access-cascade drawing.
+CascadeBoundaryAssocEntity — the one-sided boundary extreme of the access-cascade drawing.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -17,8 +17,8 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    CascadeBoundaryEntity
-        └── peer_boundary: AssociationOne[CascadeBoundaryEntity]  (NoInverse)
+    CascadeBoundaryAssocEntity
+        └── peer_boundary: AssociationOne[CascadeBoundaryAssocEntity]  (NoInverse)
             →  one entity_relation edge with has_inverse=False
 """
 
@@ -28,7 +28,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDomain
 
@@ -37,7 +37,7 @@ from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDom
     description="Shape: a one-sided relation boundary — the absent reverse side is the drawing",
     domain=AccessCascadeDomain,
 )
-class CascadeBoundaryEntity(BaseEntity):
+class CascadeBoundaryAssocEntity(BaseAssocEntity):
     """
     AI-CORE-BEGIN
     ROLE: Drawing fixture whose only relation deliberately has no reverse side.
@@ -49,11 +49,11 @@ class CascadeBoundaryEntity(BaseEntity):
     id: str = Field(description="Boundary row id")
 
     peer_boundary: Annotated[
-        AssociationOne[CascadeBoundaryEntity],
+        AssociationOne[CascadeBoundaryAssocEntity],
         NoInverse(),
     ] = Rel(
         description="One-sided boundary to a peer row — the absent reverse side is the shape"
     )  # type: ignore[assignment]
 
 
-CascadeBoundaryEntity.model_rebuild()
+CascadeBoundaryAssocEntity.model_rebuild()

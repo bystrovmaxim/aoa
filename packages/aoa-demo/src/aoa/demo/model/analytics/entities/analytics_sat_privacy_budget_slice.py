@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle
 
 
 @entity(description="Privacy budget ledger slice isolated as its own subgraph root", domain=AnalyticsDomain)
-class PrivacyBudgetSliceEntity(BaseEntity):
+class PrivacyBudgetSliceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Slice id")
     lifecycle: AnalyticsFactLifecycle = Field(description="Privacy slice lifecycle")
 
@@ -22,4 +22,4 @@ class PrivacyBudgetSliceEntity(BaseEntity):
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
 
 
-PrivacyBudgetSliceEntity.model_rebuild()
+PrivacyBudgetSliceCoreEntity.model_rebuild()

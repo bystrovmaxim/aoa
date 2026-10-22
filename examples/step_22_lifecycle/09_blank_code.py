@@ -5,7 +5,7 @@ Create a status with an empty or whitespace-only code.
 Run: uv run python examples/step_22_lifecycle/09_blank_code.py
 """
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity
 
 
 class OrderStateEntity(BaseStateEntity):

@@ -18,13 +18,13 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    GeneralizationHeadEntity
+    GeneralizationHeadCoreEntity
         └── details: Specialization[A | B]        → entity_specialization axis
         └── replay_ticket: AssociationOne[ReplayTicket]        → messaging domain
-    GeneralizationVariantAEntity.head: Generalization[Head]  → parent_entity edge
+    GeneralizationVariantASpecEntity.head: Generalization[Head]  → parent_entity edge
         └── touch_moment: AssociationOne[TouchMoment]         → catalog domain
         └── bin_coordinate: AssociationOne[BinCoordinate]     → inventory domain
-    GeneralizationVariantBEntity.head: Generalization[Head]  → parent_entity edge
+    GeneralizationVariantBSpecEntity.head: Generalization[Head]  → parent_entity edge
         └── audit_log: AssociationOne[AuditLogEntry]          → store domain
 """
 
@@ -36,7 +36,8 @@ from pydantic import Field
 
 from aoa.action_machine.domain import (
     AssociationOne,
-    BaseEntity,
+    BaseCoreEntity,
+    BaseSpecEntity,
     Classifier,
     Generalization,
     Inverse,
@@ -45,18 +46,18 @@ from aoa.action_machine.domain import (
     Specialization,
 )
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.entities.catalog_touch_moment import TouchMomentEntity
+from aoa.demo.model.catalog.entities.catalog_touch_moment import TouchMomentCoreEntity
 from aoa.demo.model.generalization_shapes.generalization_shapes_domain import GeneralizationShapesDomain
-from aoa.demo.model.inventory.entities.inv_bin_coordinate_stub import BinCoordinateStubEntity
-from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketEntity
-from aoa.demo.model.store.entities.audit_log_entry import AuditLogEntryEntity
+from aoa.demo.model.inventory.entities.inv_bin_coordinate_stub import BinCoordinateStubCoreEntity
+from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketCoreEntity
+from aoa.demo.model.store.entities.audit_log_entry import AuditLogEntryDetailEntity
 
 
 @entity(
     description="Shape: the specialization head — its axis and the two extensions draw the ERD generalization",
     domain=GeneralizationShapesDomain,
 )
-class GeneralizationHeadEntity(BaseEntity):
+class GeneralizationHeadCoreEntity(BaseCoreEntity):
     """
     AI-CORE-BEGIN
     ROLE: Drawing fixture head; its declared axis is one generalization shape.
@@ -69,7 +70,7 @@ class GeneralizationHeadEntity(BaseEntity):
     variant_code: str = Field(description="Classifier field selecting the variant for a row")
 
     details: Annotated[
-        Specialization[GeneralizationVariantAEntity | GeneralizationVariantBEntity],
+        Specialization[GeneralizationVariantASpecEntity | GeneralizationVariantBSpecEntity],
         Classifier(field="variant_code", codes=Literal["variant_a", "variant_b"]),
         Inverse(field_name="head"),
     ] = Rel(
@@ -77,7 +78,7 @@ class GeneralizationHeadEntity(BaseEntity):
     )  # type: ignore[assignment]
 
     replay_ticket: Annotated[
-        AssociationOne[ReplayTicketEntity],
+        AssociationOne[ReplayTicketCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Shape: a plain relation from the head into the messaging domain"
@@ -88,7 +89,7 @@ class GeneralizationHeadEntity(BaseEntity):
     description="Shape: an extension entity — the ERD draws a parent_entity arrow into the head",
     domain=GeneralizationShapesDomain,
 )
-class GeneralizationVariantAEntity(BaseEntity):
+class GeneralizationVariantASpecEntity(BaseSpecEntity):
     """
     AI-CORE-BEGIN
     ROLE: Drawing fixture extension; its reverse field is the drawn inheritance edge.
@@ -100,21 +101,21 @@ class GeneralizationVariantAEntity(BaseEntity):
     id: str = Field(description="Variant A row id")
 
     head: Annotated[
-        Generalization[GeneralizationHeadEntity],
+        Generalization[GeneralizationHeadCoreEntity],
         Classifier("head", Literal["variant_a"]),
     ] = Rel(
         description="Shape: the extension's reverse field — the parent_entity edge into the head"
     )  # type: ignore[assignment]
 
     touch_moment: Annotated[
-        AssociationOne[TouchMomentEntity],
+        AssociationOne[TouchMomentCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Shape: a direct relation from variant A into the catalog domain"
     )  # type: ignore[assignment]
 
     bin_coordinate: Annotated[
-        AssociationOne[BinCoordinateStubEntity],
+        AssociationOne[BinCoordinateStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Shape: a direct relation from variant A into the inventory domain"
@@ -125,7 +126,7 @@ class GeneralizationVariantAEntity(BaseEntity):
     description="Shape: a second extension entity — the ERD draws another parent_entity arrow into the head",
     domain=GeneralizationShapesDomain,
 )
-class GeneralizationVariantBEntity(BaseEntity):
+class GeneralizationVariantBSpecEntity(BaseSpecEntity):
     """
     AI-CORE-BEGIN
     ROLE: Drawing fixture extension; its reverse field is the drawn inheritance edge.
@@ -137,20 +138,20 @@ class GeneralizationVariantBEntity(BaseEntity):
     id: str = Field(description="Variant B row id")
 
     head: Annotated[
-        Generalization[GeneralizationHeadEntity],
+        Generalization[GeneralizationHeadCoreEntity],
         Classifier("head", Literal["variant_b"]),
     ] = Rel(
         description="Shape: the extension's reverse field — the parent_entity edge into the head"
     )  # type: ignore[assignment]
 
     audit_log: Annotated[
-        AssociationOne[AuditLogEntryEntity],
+        AssociationOne[AuditLogEntryDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Shape: a direct relation from variant B into the store domain"
     )  # type: ignore[assignment]
 
 
-GeneralizationHeadEntity.model_rebuild()
-GeneralizationVariantAEntity.model_rebuild()
-GeneralizationVariantBEntity.model_rebuild()
+GeneralizationHeadCoreEntity.model_rebuild()
+GeneralizationVariantASpecEntity.model_rebuild()
+GeneralizationVariantBSpecEntity.model_rebuild()

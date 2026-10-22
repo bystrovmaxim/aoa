@@ -9,7 +9,7 @@ by the value of a classifier field, one type is not enough to say it:
 ``Specialization[CreatedEvent | UpdatedEvent | DeletedEvent]``
     the head's side — a reference to one of the declared alternatives, carrying which
     one it is. Subscripting it with a union states the whole declaration in the type
-    position, the way ``AssociationOne[CustomerEntity]`` states a single target.
+    position, the way ``AssociationOne[CustomerCoreEntity]`` states a single target.
 
 ``Generalization[EventEntity]``
     the extension's side — a reference back to its head.
@@ -56,7 +56,7 @@ ARCHITECTURE / DATA FLOW
             ├─ code not declared             -> an explicit failure, never "no relation"
             │
             └─ code declared
-                 ├─ row loaded    -> Specialization[...](id=…, variant=…, entity=FirstPressEntity(...))
+                 ├─ row loaded    -> Specialization[...](id=…, variant=…, entity=FirstPressSpecEntity(...))
                  └─ row not loaded-> Specialization[...](id=…, variant=…)   # id and variant only
 
     the extension's side mirrors it: Generalization[Head](id=…, entity=<head row>)

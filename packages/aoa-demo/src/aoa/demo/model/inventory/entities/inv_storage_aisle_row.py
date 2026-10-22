@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvPipelineLifecycle
-from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseEntity
+from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseCoreEntity
 
 
 @entity(description="Storage aisle row inside a warehouse facility", domain=InventoryDomain)
-class StorageAisleRowEntity(BaseEntity):
+class StorageAisleRowDetailEntity(BaseDetailEntity):
     id: str = Field(description="Aisle id")
     lifecycle: InvPipelineLifecycle = Field(description="Aisle lifecycle")
 
@@ -24,11 +24,11 @@ class StorageAisleRowEntity(BaseEntity):
     dock_door_anchor: str = Field(description="Primary receiving / staging door label")
     velocity_bucket: str = Field(description="ABC / throughput velocity class")
     facility: Annotated[
-        AssociationOne[FacilityWarehouseEntity],
+        AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent facility warehouse"
     )  # type: ignore[assignment]
 
 
-StorageAisleRowEntity.model_rebuild()
+StorageAisleRowDetailEntity.model_rebuild()

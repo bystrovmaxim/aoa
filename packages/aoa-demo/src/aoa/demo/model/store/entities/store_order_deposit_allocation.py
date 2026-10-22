@@ -5,9 +5,9 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.invoice_record import InvoiceRecordEntity
+from aoa.demo.model.store.entities.invoice_record import InvoiceRecordCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
@@ -16,7 +16,7 @@ from aoa.demo.model.store.store_domain import StoreDomain
     description="Deposit allocation keyed to invoice artefacts instead of repeating order spine only",
     domain=StoreDomain,
 )
-class DepositAllocationEntity(BaseEntity):
+class DepositAllocationCoreEntity(BaseCoreEntity):
     id: str = Field(description="Allocation id")
     lifecycle: SalesOrderLifecycle = Field(description="Deposit allocation lifecycle")
 
@@ -27,11 +27,11 @@ class DepositAllocationEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     invoice: Annotated[
-        AssociationOne[InvoiceRecordEntity],
+        AssociationOne[InvoiceRecordCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Target invoice artefact"
     )  # type: ignore[assignment]
 
 
-DepositAllocationEntity.model_rebuild()
+DepositAllocationCoreEntity.model_rebuild()

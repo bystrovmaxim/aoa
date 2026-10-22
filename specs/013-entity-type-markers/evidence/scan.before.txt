@@ -1,16 +1,17 @@
 # specs/013-entity-type-markers/evidence/scan.before.txt
 # Taken on the branch base: feature/issue-210-entity-type-markers @ b09a0f2f, 2026-10-22.
 # Body captured verbatim from: UV_CACHE_DIR=./.uvcache uv run --extra dev python specs/013-entity-type-markers/evidence/scan_entity_classes.py
-# Compare with scan.after.txt once the migration of T021-T024 has run; run_checks_with_log.sh reads neither.
+# Labels re-synchronised when the evidence module stopped calling the six classes "markers"; numbers unchanged.
+# Compare with scan.after.txt once the migration of T015-T018 has run; run_checks_with_log.sh reads neither.
 
 Repository scan — entity classes
-  markers found                                       1  ['BaseStateEntity']
+  kind base classes found                             1  ['BaseStateEntity']
   classes directly on BaseEntity (real)               476
     of them decorated with @entity                    470
     of them without @entity                           6
-  classes on a marker                                 63
+  classes on a kind base class                        63
     of them on BaseStateEntity                        63
-  real classes (on the base or on a marker)           539
+  real classes (on the base or on a kind base class)  539
     with a kind suffix                                63
     without a kind suffix                             476
       CoreEntity                                      0

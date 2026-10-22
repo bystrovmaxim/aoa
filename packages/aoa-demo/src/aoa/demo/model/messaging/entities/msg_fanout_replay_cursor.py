@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.entities.msg_webhook_signature_envelope import WebhookSignatureEnvelopeEntity
+from aoa.demo.model.messaging.entities.msg_webhook_signature_envelope import WebhookSignatureEnvelopeCoreEntity
 
 
 @entity(description="Fanout replay cursor on verified webhook signatures", domain=MessagingDomain)
-class FanoutReplayCursorEntity(BaseEntity):
+class FanoutReplayCursorCoreEntity(BaseCoreEntity):
     id: str = Field(description="Cursor id")
     lifecycle: MsgDenseLifecycle = Field(description="Cursor lifecycle")
 
@@ -24,11 +24,11 @@ class FanoutReplayCursorEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
     signature_envelope: Annotated[
-        AssociationOne[WebhookSignatureEnvelopeEntity],
+        AssociationOne[WebhookSignatureEnvelopeCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Verified webhook signature row"
     )  # type: ignore[assignment]
 
 
-FanoutReplayCursorEntity.model_rebuild()
+FanoutReplayCursorCoreEntity.model_rebuild()

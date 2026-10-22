@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
-from aoa.demo.model.inventory.entities.inv_lot_quality_hold import LotQualityHoldEntity
+from aoa.demo.model.inventory.entities.inv_lot_quality_hold import LotQualityHoldCoreEntity
 
 
 @entity(description="Age stratification terminating physical operations spine", domain=InventoryDomain)
-class LotAgeBucketEntity(BaseEntity):
+class LotAgeBucketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bucket id")
     lifecycle: InvDenseLifecycle = Field(description="Age bucket lifecycle")
 
@@ -24,11 +24,11 @@ class LotAgeBucketEntity(BaseEntity):
     dock_door_anchor: str = Field(description="Primary receiving / staging door label")
     velocity_bucket: str = Field(description="ABC / throughput velocity class")
     quality_hold: Annotated[
-        AssociationOne[LotQualityHoldEntity],
+        AssociationOne[LotQualityHoldCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream hold row"
     )  # type: ignore[assignment]
 
 
-LotAgeBucketEntity.model_rebuild()
+LotAgeBucketCoreEntity.model_rebuild()

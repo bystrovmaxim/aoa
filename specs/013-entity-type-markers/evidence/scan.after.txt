@@ -1,0 +1,22 @@
+# specs/013-entity-type-markers/evidence/scan.after.txt
+# Taken after the corpus migration: feature/issue-210-entity-type-markers, 2026-10-22.
+# Command: UV_CACHE_DIR=./.uvcache uv run --extra dev python specs/013-entity-type-markers/evidence/scan_entity_classes.py
+
+Repository scan — entity classes
+  kind base classes found                             6  ['BaseAssocEntity', 'BaseCoreEntity', 'BaseDetailEntity', 'BaseEnumEntity', 'BaseSpecEntity', 'BaseStateEntity']
+  classes directly on BaseEntity (real)               0
+    of them decorated with @entity                    0
+    of them without @entity                           0
+  classes on a kind base class                        542
+    of them on BaseStateEntity                        63
+  real classes (on the base or on a kind base class)  542
+    with a kind suffix                                542
+    without a kind suffix                             0
+      CoreEntity                                      295
+      AssocEntity                                     20
+      DetailEntity                                    16
+      SpecEntity                                      148
+      EnumEntity                                      0
+      StateEntity                                     63
+  old names recorded in the map                       320
+  old names still present                             0 occurrence(s)

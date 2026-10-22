@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
-from aoa.demo.model.clinical_supply.entities.cs_care_site_unit import ClinicalCareSiteUnitEntity
+from aoa.demo.model.clinical_supply.entities.cs_care_site_unit import ClinicalCareSiteUnitCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 
 
 @entity(description="Outbound dispatch header owned by ward / service desk", domain=ClinicalSupplyDomain)
-class ClinicalOutboundParcelWaveEntity(BaseEntity):
+class ClinicalOutboundParcelWaveCoreEntity(BaseCoreEntity):
     id: str = Field(description="Parcel wave id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Outbound parcel lifecycle")
 
@@ -24,11 +24,11 @@ class ClinicalOutboundParcelWaveEntity(BaseEntity):
     quarantine_fence_id: str = Field(description="Facility quarantine corridor moniker")
     regulatory_territory: str = Field(description="Governing geography for distribution assertions")
     issuing_site: Annotated[
-        AssociationOne[ClinicalCareSiteUnitEntity],
+        AssociationOne[ClinicalCareSiteUnitCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Care unit authoring wave"
     )  # type: ignore[assignment]
 
 
-ClinicalOutboundParcelWaveEntity.model_rebuild()
+ClinicalOutboundParcelWaveCoreEntity.model_rebuild()

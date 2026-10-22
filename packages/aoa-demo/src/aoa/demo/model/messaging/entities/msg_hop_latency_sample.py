@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
-from aoa.demo.model.messaging.entities.msg_courier_attempt_ledger import CourierAttemptLedgerEntity
+from aoa.demo.model.messaging.entities.msg_courier_attempt_ledger import CourierAttemptLedgerCoreEntity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 
 
 @entity(description="Hop latency sample chained from courier ledger", domain=MessagingDomain)
-class HopLatencySampleEntity(BaseEntity):
+class HopLatencySampleCoreEntity(BaseCoreEntity):
     id: str = Field(description="Sample id")
     lifecycle: MsgDenseLifecycle = Field(description="Sample lifecycle")
 
@@ -24,11 +24,11 @@ class HopLatencySampleEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
     ledger: Annotated[
-        AssociationOne[CourierAttemptLedgerEntity],
+        AssociationOne[CourierAttemptLedgerCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Courier ledger parent"
     )  # type: ignore[assignment]
 
 
-HopLatencySampleEntity.model_rebuild()
+HopLatencySampleCoreEntity.model_rebuild()

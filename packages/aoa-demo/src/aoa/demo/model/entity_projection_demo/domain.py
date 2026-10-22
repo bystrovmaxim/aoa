@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Isolated demo domain so Maxitor can show customer/order entities plus an action
-whose ``Result`` exposes a partial JSON projection of ``ProjectionDemoOrderEntity``.
+whose ``Result`` exposes a partial JSON projection of ``ProjectionDemoOrderCoreEntity``.
 """
 
 from __future__ import annotations

@@ -5,18 +5,18 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
-from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerEntity
+from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerCoreEntity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
-from aoa.demo.model.catalog.entities.catalog_price_ribbon_snapshot import PriceRibbonSnapshotEntity
+from aoa.demo.model.catalog.entities.catalog_price_ribbon_snapshot import PriceRibbonSnapshotCoreEntity
 
 
 @entity(
     description="Associative stitching between attribution ledger and elasticity ribbon subgraph", domain=CatalogDomain
 )
-class CatalogPriceAcquisitionLinkEntity(BaseEntity):
+class CatalogPriceAcquisitionLinkCoreEntity(BaseCoreEntity):
     id: str = Field(description="Link id")
     lifecycle: CatalogDenseLifecycle = Field(description="Stitch lifecycle")
 
@@ -27,18 +27,18 @@ class CatalogPriceAcquisitionLinkEntity(BaseEntity):
     hash_stale_after_sec: int = Field(description="Seconds until cached facets must invalidate", ge=0)
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
     price_ribbon: Annotated[
-        AssociationOne[PriceRibbonSnapshotEntity],
+        AssociationOne[PriceRibbonSnapshotCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Ribbon spine anchor"
     )  # type: ignore[assignment]
 
     acquisition_ledger: Annotated[
-        AssociationOne[AcquisitionChannelLedgerEntity],
+        AssociationOne[AcquisitionChannelLedgerCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Acquisition ledger anchor"
     )  # type: ignore[assignment]
 
 
-CatalogPriceAcquisitionLinkEntity.model_rebuild()
+CatalogPriceAcquisitionLinkCoreEntity.model_rebuild()

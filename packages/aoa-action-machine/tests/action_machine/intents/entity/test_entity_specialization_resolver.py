@@ -34,7 +34,10 @@ import pytest
 from pydantic import Field
 
 from aoa.action_machine.domain import (
+    BaseAssocEntity,
+    BaseCoreEntity,
     BaseEntity,
+    BaseSpecEntity,
     Classifier,
     Generalization,
     Inverse,
@@ -75,50 +78,50 @@ def _code_of(cls: type[BaseEntity]) -> str | None:
 
 @exclude_graph_model
 @entity(description="First", domain=_SDomain)
-class _FirstEntity(BaseEntity):
+class _FirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
-        Generalization[_HeadEntity],
+        Generalization[_HeadCoreEntity],
         Classifier("record", Literal["first"]),
-        Inverse(_HeadEntity, "pressed"),
+        Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
 
 @exclude_graph_model
 @entity(description="Second", domain=_SDomain)
-class _SecondEntity(BaseEntity):
+class _SecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
-        Generalization[_HeadEntity],
+        Generalization[_HeadCoreEntity],
         Classifier("record", Literal["repress"]),
-        Inverse(_HeadEntity, "pressed"),
+        Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
 
 @exclude_graph_model
 @entity(description="Third", domain=_SDomain)
-class _ThirdEntity(BaseEntity):
+class _ThirdSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
-        Generalization[_HeadEntity],
+        Generalization[_HeadCoreEntity],
         Classifier("record", Literal["test"]),
-        Inverse(_HeadEntity, "pressed"),
+        Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
 
 @exclude_graph_model
 @entity(description="Head", domain=_SDomain)
-class _HeadEntity(BaseEntity):
+class _HeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pressed: Annotated[
-        Specialization[_FirstEntity | _SecondEntity | _ThirdEntity],
+        Specialization[_FirstSpecEntity | _SecondSpecEntity | _ThirdSpecEntity],
         Classifier(field="media", codes=Literal["first", "repress", "test"]),
         Inverse(field_name="record"),
     ] = Rel(description="how it was pressed")
 
 
-for _cls in (_FirstEntity, _SecondEntity, _ThirdEntity, _HeadEntity):
+for _cls in (_FirstSpecEntity, _SecondSpecEntity, _ThirdSpecEntity, _HeadCoreEntity):
     _cls.model_rebuild()
 
 
@@ -129,31 +132,31 @@ for _cls in (_FirstEntity, _SecondEntity, _ThirdEntity, _HeadEntity):
 
 @exclude_graph_model
 @entity(description="Silent", domain=_SDomain)
-class _SilentEntity(BaseEntity):
+class _SilentSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
-    record: Annotated[Generalization[_HeadWithSilentEntity], Inverse(_HeadWithSilentEntity, "pressed")] = Rel(
+    record: Annotated[Generalization[_HeadWithSilentCoreEntity], Inverse(_HeadWithSilentCoreEntity, "pressed")] = Rel(
         description="back, with no code"
     )
 
 
 @exclude_graph_model
 @entity(description="First for silent", domain=_SDomain)
-class _FirstForSilentEntity(BaseEntity):
+class _FirstForSilentSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
-        Generalization[_HeadWithSilentEntity],
+        Generalization[_HeadWithSilentCoreEntity],
         Classifier("record", Literal["first"]),
-        Inverse(_HeadWithSilentEntity, "pressed"),
+        Inverse(_HeadWithSilentCoreEntity, "pressed"),
     ] = Rel(description="back")
 
 
 @exclude_graph_model
 @entity(description="Head over a silent class", domain=_SDomain)
-class _HeadWithSilentEntity(BaseEntity):
+class _HeadWithSilentCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pressed: Annotated[
-        Specialization[_FirstForSilentEntity | _SilentEntity],
+        Specialization[_FirstForSilentSpecEntity | _SilentSpecEntity],
         Classifier(field="media", codes=Literal["first", "repress"]),
         Inverse(field_name="record"),
     ] = Rel(description="one class declares nothing")
@@ -166,22 +169,22 @@ class _HeadWithSilentEntity(BaseEntity):
 
 @exclude_graph_model
 @entity(description="Greedy", domain=_SDomain)
-class _GreedyEntity(BaseEntity):
+class _GreedySpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
-        Generalization[_HeadWithGreedyEntity],
+        Generalization[_HeadWithGreedyCoreEntity],
         Classifier("record", Literal["first", "repress"]),
-        Inverse(_HeadWithGreedyEntity, "pressed"),
+        Inverse(_HeadWithGreedyCoreEntity, "pressed"),
     ] = Rel(description="back, with two codes")
 
 
 @exclude_graph_model
 @entity(description="Head over a greedy class", domain=_SDomain)
-class _HeadWithGreedyEntity(BaseEntity):
+class _HeadWithGreedyCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pressed: Annotated[
-        Specialization[_GreedyEntity],
+        Specialization[_GreedySpecEntity],
         Classifier(field="media", codes=Literal["first"]),
         Inverse(field_name="record"),
     ] = Rel(description="one class declares two codes")
@@ -194,33 +197,33 @@ class _HeadWithGreedyEntity(BaseEntity):
 
 @exclude_graph_model
 @entity(description="Twin A", domain=_SDomain)
-class _TwinAEntity(BaseEntity):
+class _TwinASpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
-        Generalization[_HeadWithTwinEntity],
+        Generalization[_HeadWithTwinCoreEntity],
         Classifier("record", Literal["first"]),
-        Inverse(_HeadWithTwinEntity, "pressed"),
+        Inverse(_HeadWithTwinCoreEntity, "pressed"),
     ] = Rel(description="back")
 
 
 @exclude_graph_model
 @entity(description="Twin B", domain=_SDomain)
-class _TwinBEntity(BaseEntity):
+class _TwinBSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
-        Generalization[_HeadWithTwinEntity],
+        Generalization[_HeadWithTwinCoreEntity],
         Classifier("record", Literal["first"]),
-        Inverse(_HeadWithTwinEntity, "pressed"),
+        Inverse(_HeadWithTwinCoreEntity, "pressed"),
     ] = Rel(description="back, with the same code")
 
 
 @exclude_graph_model
 @entity(description="Head over twins", domain=_SDomain)
-class _HeadWithTwinEntity(BaseEntity):
+class _HeadWithTwinCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pressed: Annotated[
-        Specialization[_TwinAEntity | _TwinBEntity],
+        Specialization[_TwinASpecEntity | _TwinBSpecEntity],
         Classifier(field="media", codes=Literal["first", "repress"]),
         Inverse(field_name="record"),
     ] = Rel(description="two classes answer to one code")
@@ -233,25 +236,25 @@ class _HeadWithTwinEntity(BaseEntity):
 
 @exclude_graph_model
 @entity(description="Plain", domain=_SDomain)
-class _PlainEntity(BaseEntity):
+class _PlainCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     note: str = Field(description="an ordinary column")
 
 
 @exclude_graph_model
 @entity(description="Bare container", domain=_SDomain)
-class _BareContainerEntity(BaseEntity):
+class _BareContainerAssocEntity(BaseAssocEntity):
     id: str = Field(description="id")
-    pressed: Annotated[Specialization[_FirstEntity], Inverse(field_name="record")] = Rel(description="no marker")
+    pressed: Annotated[Specialization[_FirstSpecEntity], Inverse(field_name="record")] = Rel(description="no marker")
 
 
 @exclude_graph_model
 @entity(description="Quiet head", domain=_SDomain)
-class _QuietHeadEntity(BaseEntity):
+class _QuietHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pressed: Annotated[
-        Specialization[_FirstEntity],
+        Specialization[_FirstSpecEntity],
         Classifier(field="media", codes=Literal["first"]),
         NoGraphEdge(),
         Inverse(field_name="record"),
@@ -259,22 +262,22 @@ class _QuietHeadEntity(BaseEntity):
 
 
 for _cls in (
-    _SilentEntity,
-    _FirstForSilentEntity,
-    _HeadWithSilentEntity,
-    _GreedyEntity,
-    _HeadWithGreedyEntity,
-    _TwinAEntity,
-    _TwinBEntity,
-    _HeadWithTwinEntity,
-    _PlainEntity,
-    _BareContainerEntity,
-    _QuietHeadEntity,
+    _SilentSpecEntity,
+    _FirstForSilentSpecEntity,
+    _HeadWithSilentCoreEntity,
+    _GreedySpecEntity,
+    _HeadWithGreedyCoreEntity,
+    _TwinASpecEntity,
+    _TwinBSpecEntity,
+    _HeadWithTwinCoreEntity,
+    _PlainCoreEntity,
+    _BareContainerAssocEntity,
+    _QuietHeadCoreEntity,
 ):
     _cls.model_rebuild()
 
 
-def _axis(cls: type[BaseEntity] = _HeadEntity) -> EntitySpecializationIntentResolver:
+def _axis(cls: type[BaseEntity] = _HeadCoreEntity) -> EntitySpecializationIntentResolver:
     """Return the single axis declared on ``cls``."""
     axes = gather_entity_specialization_intent_resolvers(cls)
     assert len(axes) == 1
@@ -290,9 +293,9 @@ def test_an_axis_is_read_with_its_classes_codes_and_classifier() -> None:
     axis = _axis()
 
     assert axis.field_name == "pressed"
-    assert axis.head_entity is _HeadEntity
+    assert axis.head_entity is _HeadCoreEntity
     assert axis.classifier_field == "media"
-    assert axis.alternatives == (_FirstEntity, _SecondEntity, _ThirdEntity)
+    assert axis.alternatives == (_FirstSpecEntity, _SecondSpecEntity, _ThirdSpecEntity)
     assert axis.codes == ("first", "repress", "test")
     assert axis.inverse_field == "record"
     assert axis.description == "how it was pressed"
@@ -301,23 +304,23 @@ def test_an_axis_is_read_with_its_classes_codes_and_classifier() -> None:
 
 def test_declaration_order_is_preserved() -> None:
     axis = _axis()
-    assert [cls.__name__ for cls in axis.alternatives] == ["_FirstEntity", "_SecondEntity", "_ThirdEntity"]
+    assert [cls.__name__ for cls in axis.alternatives] == ["_FirstSpecEntity", "_SecondSpecEntity", "_ThirdSpecEntity"]
     assert list(axis.codes) == ["first", "repress", "test"]
 
 
 def test_the_mapping_pairs_each_class_with_the_code_it_declares() -> None:
     axis = _axis()
     assert axis.code_to_target == {
-        "first": _FirstEntity,
-        "repress": _SecondEntity,
-        "test": _ThirdEntity,
+        "first": _FirstSpecEntity,
+        "repress": _SecondSpecEntity,
+        "test": _ThirdSpecEntity,
     }
 
 
 def test_the_facade_returns_what_the_parser_returns() -> None:
     assert EntityIntentResolver.resolve_entity_specializations(
-        _HeadEntity
-    ) == gather_entity_specialization_intent_resolvers(_HeadEntity)
+        _HeadCoreEntity
+    ) == gather_entity_specialization_intent_resolvers(_HeadCoreEntity)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -335,25 +338,25 @@ def test_both_sides_agree_on_a_good_model() -> None:
 
 
 def test_a_class_that_declares_no_code_leaves_the_mapping_short() -> None:
-    axis = _axis(_HeadWithSilentEntity)
+    axis = _axis(_HeadWithSilentCoreEntity)
 
     assert axis.codes == ("first", "repress")
     assert set(axis.code_to_target) == {"first"}
-    assert _SilentEntity not in axis.code_to_target.values()
+    assert _SilentSpecEntity not in axis.code_to_target.values()
     assert len(axis.code_to_target) < len(axis.codes)
-    assert _code_of(_SilentEntity) is None
+    assert _code_of(_SilentSpecEntity) is None
 
 
 def test_a_class_that_declares_two_codes_is_refused_where_its_code_is_read() -> None:
     with pytest.raises(SpecializationDeclarationError, match="must declare exactly one code"):
-        _axis(_HeadWithGreedyEntity)
+        _axis(_HeadWithGreedyCoreEntity)
 
 
 def test_a_repeated_code_leaves_two_classes_on_one_code() -> None:
-    axis = _axis(_HeadWithTwinEntity)
+    axis = _axis(_HeadWithTwinCoreEntity)
 
     assert axis.codes == ("first", "repress")
-    assert _code_of(_TwinAEntity) == _code_of(_TwinBEntity) == "first"
+    assert _code_of(_TwinASpecEntity) == _code_of(_TwinBSpecEntity) == "first"
     assert len(axis.code_to_target) == 1, "one code, two classes: the head names a code no class owns alone"
 
 
@@ -364,21 +367,21 @@ def test_a_repeated_code_leaves_two_classes_on_one_code() -> None:
 
 def test_a_plain_scalar_field_is_not_an_axis() -> None:
     assert is_specialization_field(str) is False
-    assert gather_entity_specialization_intent_resolvers(_PlainEntity) == []
+    assert gather_entity_specialization_intent_resolvers(_PlainCoreEntity) == []
 
 
 def test_a_marker_without_a_container_is_not_an_axis() -> None:
     """An extension's reverse field carries a `Classifier` too, and is not an axis."""
-    assert gather_entity_specialization_intent_resolvers(_FirstEntity) == []
+    assert gather_entity_specialization_intent_resolvers(_FirstSpecEntity) == []
 
 
 def test_a_container_without_a_marker_is_refused() -> None:
     with pytest.raises(SpecializationDeclarationError, match="declares no Classifier marker"):
-        gather_entity_specialization_intent_resolvers(_BareContainerEntity)
+        gather_entity_specialization_intent_resolvers(_BareContainerAssocEntity)
 
 
 def test_no_graph_edge_is_carried_onto_the_axis() -> None:
-    assert _axis(_QuietHeadEntity).omit_graph_edge is True
+    assert _axis(_QuietHeadCoreEntity).omit_graph_edge is True
 
 
 def test_a_class_with_no_axis_returns_an_empty_list() -> None:

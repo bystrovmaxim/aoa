@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, NoInverse, Rel
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
@@ -17,28 +17,28 @@ class _TDomain(BaseDomain):
 
 
 @entity(description="Target", domain=_TDomain)
-class _TargetEntity(BaseEntity):
+class _TargetAssocEntity(BaseAssocEntity):
     id: str
 
 
 @entity(description="Host", domain=_TDomain)
-class _HostEntity(BaseEntity):
+class _HostAssocEntity(BaseAssocEntity):
     id: str
-    other: Annotated[AssociationOne[_TargetEntity], NoInverse()] = Rel(
+    other: Annotated[AssociationOne[_TargetAssocEntity], NoInverse()] = Rel(
         description="link",
     )  # type: ignore[assignment]
 
 
-_TargetEntity.model_rebuild()
-_HostEntity.model_rebuild()
+_TargetAssocEntity.model_rebuild()
+_HostAssocEntity.model_rebuild()
 
 
 def test_resolve_entity_relations_one_association_without_inverse() -> None:
-    resolver_rels = EntityIntentResolver.resolve_entity_relations(_HostEntity)
+    resolver_rels = EntityIntentResolver.resolve_entity_relations(_HostAssocEntity)
     assert len(resolver_rels) == 1
     r = resolver_rels[0]
     assert r.field_name == "other"
-    assert r.target_entity is _TargetEntity
+    assert r.target_entity is _TargetAssocEntity
     assert r.relation_type == "association"
     assert r.cardinality == "one"
     assert r.omit_graph_edge is False

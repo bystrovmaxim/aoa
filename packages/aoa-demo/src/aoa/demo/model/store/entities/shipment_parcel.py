@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseEntity
-from aoa.demo.model.store.entities.sales_core import SalesOrderEntity
+from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseCoreEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Shipment parcel row", domain=StoreDomain)
-class ShipmentParcelEntity(BaseEntity):
+class ShipmentParcelCoreEntity(BaseCoreEntity):
     id: str = Field(description="Parcel id")
     lifecycle: SalesOrderLifecycle = Field(description="Shipment lifecycle")
     carrier: str = Field(description="Carrier code")
@@ -25,18 +25,18 @@ class ShipmentParcelEntity(BaseEntity):
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Shipped order"
     )  # type: ignore[assignment]
 
     origin_facility: Annotated[
-        AssociationOne[FacilityWarehouseEntity],
+        AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Inventory facility staging this shipment"
     )  # type: ignore[assignment]
 
 
-ShipmentParcelEntity.model_rebuild()
+ShipmentParcelCoreEntity.model_rebuild()

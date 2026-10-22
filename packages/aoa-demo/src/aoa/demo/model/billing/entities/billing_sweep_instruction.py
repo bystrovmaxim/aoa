@@ -5,22 +5,22 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
-from aoa.demo.model.billing.entities.billing_payout_plan import BillingPayoutPlanEntity
+from aoa.demo.model.billing.entities.billing_payout_plan import BillingPayoutPlanCoreEntity
 
 
 @entity(description="Sweep instruction under payout plan", domain=BillingDomain)
-class BillingSweepInstructionEntity(BaseEntity):
+class BillingSweepInstructionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Sweep id")
     lifecycle: BillingDenseLifecycle = Field(description="Sweep lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
     currency_iso: str = Field(description="Declared ISO-4217 money unit")
     payout_plan: Annotated[
-        AssociationOne[BillingPayoutPlanEntity],
+        AssociationOne[BillingPayoutPlanCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent payout plan"
@@ -32,4 +32,4 @@ class BillingSweepInstructionEntity(BaseEntity):
     suspense_bucket_tag: str = Field(description="Default suspense bucket label")
 
 
-BillingSweepInstructionEntity.model_rebuild()
+BillingSweepInstructionCoreEntity.model_rebuild()

@@ -5,7 +5,7 @@ Use the removed string form of state().
 Run: uv run python examples/step_22_lifecycle/17_string_state.py
 """
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 
 
 class OrderStateEntity(BaseStateEntity):

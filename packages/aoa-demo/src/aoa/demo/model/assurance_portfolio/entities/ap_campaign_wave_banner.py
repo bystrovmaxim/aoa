@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 
 
 @entity(description="Execution wave facade (test_plan analogue)", domain=AssurancePortfolioDomain)
-class AssuranceCampaignWaveBannerEntity(BaseEntity):
+class AssuranceCampaignWaveBannerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Campaign wave id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Wave lifecycle")
 
@@ -22,4 +22,4 @@ class AssuranceCampaignWaveBannerEntity(BaseEntity):
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
 
 
-AssuranceCampaignWaveBannerEntity.model_rebuild()
+AssuranceCampaignWaveBannerCoreEntity.model_rebuild()

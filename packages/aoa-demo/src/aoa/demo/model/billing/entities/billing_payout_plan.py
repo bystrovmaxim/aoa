@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 
 
 @entity(description="Payout plan rollup", domain=BillingDomain)
-class BillingPayoutPlanEntity(BaseEntity):
+class BillingPayoutPlanCoreEntity(BaseCoreEntity):
     id: str = Field(description="Plan id")
     lifecycle: BillingDenseLifecycle = Field(description="Payout lifecycle")
     plan_vendor_code: str = Field(description="Internal plan mnemonic")
@@ -22,4 +22,4 @@ class BillingPayoutPlanEntity(BaseEntity):
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
 
 
-BillingPayoutPlanEntity.model_rebuild()
+BillingPayoutPlanCoreEntity.model_rebuild()

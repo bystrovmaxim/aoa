@@ -84,14 +84,14 @@ The third case is to return **part** of a domain entity, not the whole. `BaseEnt
 
 ```python
 class OrderSummaryResult(BaseResult):
-    order: OrderEntity.schema(schema=_ORDER_WIRE) = Field(  # type: ignore[valid-type]
+    order: OrderCoreEntity.schema(schema=_ORDER_WIRE) = Field(  # type: ignore[valid-type]
         description="Partial order projection (no nested customer)",
     )
 
 OrderSummaryResult.model_validate({"order": {"id": "o1", "status": "paid", "total": 99.5}})  # ok
 ```
 
-Important is what this is **not**: the field's value is a plain `dict` validated against the schema, and **not** a hydrated `OrderEntity` instance (no lifecycle, relations, or `FieldNotLoadedError`). Full entities are assembled elsewhere — in [resources](../index.md#v-data-model). The projection returns exactly the declared slice: a field outside the schema will be rejected. When you need a rich Python type on the wire (computed fields, your own structure) — use a separate `BaseModel`, not a projection.
+Important is what this is **not**: the field's value is a plain `dict` validated against the schema, and **not** a hydrated `OrderCoreEntity` instance (no lifecycle, relations, or `FieldNotLoadedError`). Full entities are assembled elsewhere — in [resources](../index.md#v-data-model). The projection returns exactly the declared slice: a field outside the schema will be rejected. When you need a rich Python type on the wire (computed fields, your own structure) — use a separate `BaseModel`, not a projection.
 
 ## Where validation happens
 

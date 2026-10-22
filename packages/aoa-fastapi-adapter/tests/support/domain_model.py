@@ -7,7 +7,7 @@ PURPOSE
 ════════════════════════════════════════════════════════════════════════════════
 
 Self-contained copy of the scenario domain model the FastAPI adapter tests rely
-on. Bundles the business domains, the minimal ``SampleEntity`` used for
+on. Bundles the business domains, the minimal ``SampleCoreEntity`` used for
 ``BaseEntity.schema()`` wire projections, and the two smoke-test actions:
 
 - ``PingAction``  — no-parameter action returning a fixed ``"pong"`` message
@@ -22,7 +22,7 @@ module has no dependency on the repository-level ``tests`` package.
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
@@ -70,7 +70,7 @@ class TestDomain(BaseDomain):
 
 @meta(description="Simple test entity", domain=TestDomain)
 @entity(description="Simple test entity", domain=TestDomain)
-class SampleEntity(BaseEntity):
+class SampleCoreEntity(BaseCoreEntity):
     """Minimal entity for basic tests. No relations or lifecycle."""
 
     id: str = Field(description="Identifier")

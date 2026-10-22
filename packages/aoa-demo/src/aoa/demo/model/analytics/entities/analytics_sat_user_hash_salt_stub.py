@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.demo.model.analytics.entities.analytics_sat_time_bucket_mapper import TimeBucketMapperEntity
+from aoa.demo.model.analytics.entities.analytics_sat_time_bucket_mapper import TimeBucketMapperCoreEntity
 
 
 @entity(description="Hash salt bookkeeping continuing time-bucket spine", domain=AnalyticsDomain)
-class UserHashSaltStubEntity(BaseEntity):
+class UserHashSaltStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Salt id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Salt stub lifecycle")
 
@@ -24,11 +24,11 @@ class UserHashSaltStubEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     bucket_mapper: Annotated[
-        AssociationOne[TimeBucketMapperEntity],
+        AssociationOne[TimeBucketMapperCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream bucket mapper facet"
     )  # type: ignore[assignment]
 
 
-UserHashSaltStubEntity.model_rebuild()
+UserHashSaltStubCoreEntity.model_rebuild()

@@ -15,7 +15,7 @@ from __future__ import annotations
 import pytest
 
 from ...action_machine.adapters.entity_projection_adapter_fixtures import EntityProjectionAdapterTestAction
-from ...support.domain_model.entities import SampleEntity
+from ...support.domain_model.entities import SampleCoreEntity
 
 
 class TestEntityProjectionResultValidation:
@@ -64,7 +64,7 @@ class TestPlainBaseEntityUnchanged:
     """Full entity models without ``.schema(...)`` keep standard Pydantic behavior."""
 
     def test_sample_entity_still_validates_as_entity(self) -> None:
-        entity = SampleEntity.model_validate({"id": "1", "name": "A", "value": 0})
+        entity = SampleCoreEntity.model_validate({"id": "1", "name": "A", "value": 0})
         assert entity.id == "1"
         assert entity.name == "A"
         assert entity.value == 0

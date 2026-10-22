@@ -35,7 +35,7 @@ ENTITYPROXY — TYPED FIELD ACCESS
 ``EntityProxy[T]`` returns field names as strings and is intended for mapper
 functions:
 
-    build(row, OrderEntity, lambda e, r: {
+    build(row, OrderCoreEntity, lambda e, r: {
         e.id: r["order_id"],        # e.id → "id"
         e.amount: r["total"],       # e.amount → "amount"
     })
@@ -63,20 +63,20 @@ Direct mapping (dictionary keys match entity fields):
 
     order = build(
         {"id": "ORD-001", "amount": 100.0, "status": "new"},
-        OrderEntity,
+        OrderCoreEntity,
     )
 
 Mapping via lambda (dictionary keys differ from fields):
 
-    order = build(row, OrderEntity, lambda e, r: {
+    order = build(row, OrderCoreEntity, lambda e, r: {
         e.id: r["order_id"],
-        e.customer: build(r, CustomerEntity, lambda e2, r2: {
+        e.customer: build(r, CustomerCoreEntity, lambda e2, r2: {
             e2.id: r2["customer_id"],
             e2.name: r2["customer_name"],
         }),
     })
 
-Proxy e is typed — the IDE suggests OrderEntity fields.
+Proxy e is typed — the IDE suggests OrderCoreEntity fields.
 """
 
 from __future__ import annotations
@@ -144,7 +144,7 @@ def build[
         entity = build({"id": "123", "name": "Test", "value": 42}, TestEntity)
 
     Example of mapping via lambda:
-        entity = build(row, OrderEntity, lambda e, r: {
+        entity = build(row, OrderCoreEntity, lambda e, r: {
             e.id: r["order_id"],
             e.amount: r["total"],
         })

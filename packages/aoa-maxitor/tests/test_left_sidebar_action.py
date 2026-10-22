@@ -26,7 +26,7 @@ _DOMAIN_ONLY = {
 
 _ENTITY_WITH_LIFECYCLE = {
     "nodes": [
-        {"id": "ent.order", "type": "Entity", "label": "Order", "properties": {"description": ""}},
+        {"id": "ent.order", "type": "Entity", "label": "Order", "properties": {"description": "", "entity_kind": "core"}},
         {"id": "lc.status", "type": "Lifecycle", "label": "order_status_lifecycle", "properties": {"field_name": "order_status"}},
     ],
     "edges": [
@@ -45,8 +45,8 @@ _FULL_GRAPH = {
     "nodes": [
         {"id": "dom.billing", "type": "Domain", "label": "Billing", "properties": {"name": "Billing", "description": ""}},
         {"id": "dom.messaging", "type": "Domain", "label": "Messaging", "properties": {"name": "Messaging", "description": ""}},
-        {"id": "ent.order", "type": "Entity", "label": "Order", "properties": {"description": ""}},
-        {"id": "ent.invoice", "type": "Entity", "label": "Invoice", "properties": {"description": ""}},
+        {"id": "ent.order", "type": "Entity", "label": "Order", "properties": {"description": "", "entity_kind": "core"}},
+        {"id": "ent.invoice", "type": "Entity", "label": "Invoice", "properties": {"description": "", "entity_kind": "core"}},
         {"id": "lc.status", "type": "Lifecycle", "label": "order_status_lifecycle", "properties": {"field_name": "order_status"}},
     ],
     "edges": [
@@ -188,7 +188,7 @@ async def test_level3_domain_row_ids() -> None:
 
 async def test_level3_entity_without_lifecycle_has_one_row() -> None:
     coordinator = {
-        "nodes": [{"id": "ent.invoice", "type": "Entity", "label": "Invoice", "properties": {"description": ""}}],
+        "nodes": [{"id": "ent.invoice", "type": "Entity", "label": "Invoice", "properties": {"description": "", "entity_kind": "core"}}],
         "edges": [],
     }
     r = await _run_to_level3(coordinator)

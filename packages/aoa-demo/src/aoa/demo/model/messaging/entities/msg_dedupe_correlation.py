@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.entities.msg_dispatcher_cursor_shard import DispatcherCursorShardEntity
+from aoa.demo.model.messaging.entities.msg_dispatcher_cursor_shard import DispatcherCursorShardCoreEntity
 
 
 @entity(description="Dedupe correlation chaining from dispatcher watermark", domain=MessagingDomain)
-class DedupeCorrelationEntity(BaseEntity):
+class DedupeCorrelationCoreEntity(BaseCoreEntity):
     id: str = Field(description="Dedupe id")
     lifecycle: MsgDenseLifecycle = Field(description="Dedupe lifecycle")
 
@@ -24,11 +24,11 @@ class DedupeCorrelationEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
     dispatcher_cursor: Annotated[
-        AssociationOne[DispatcherCursorShardEntity],
+        AssociationOne[DispatcherCursorShardCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning dispatcher shard"
     )  # type: ignore[assignment]
 
 
-DedupeCorrelationEntity.model_rebuild()
+DedupeCorrelationCoreEntity.model_rebuild()

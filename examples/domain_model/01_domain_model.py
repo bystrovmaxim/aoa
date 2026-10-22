@@ -27,7 +27,8 @@ from aoa.action_machine.context import Context
 from aoa.action_machine.domain import (
     AssociationMany,
     AssociationOne,
-    BaseEntity,
+    BaseCoreEntity,
+    BaseDetailEntity,
     BaseStateEntity,
     CompositeMany,
     Inverse,
@@ -136,20 +137,20 @@ class OrderLineLifecycle(Lifecycle, StateVocabulary):
 
 
 @entity(description="Registered customer account", domain=StoreDomain)
-class CustomerEntity(BaseEntity):
+class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer identifier")
     name: str = Field(description="Display name")
     email: str = Field(description="Contact email")
 
     # association many — customer exists independently of any order
     orders: Annotated[
-        AssociationMany[OrderEntity],
-        Inverse(OrderEntity, "customer"),
+        AssociationMany[OrderCoreEntity],
+        Inverse(OrderCoreEntity, "customer"),
     ] = Rel(description="Orders placed by this customer")
 
 
 @entity(description="Customer order", domain=StoreDomain)
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     total: float = Field(description="Order total", ge=0)
     currency: str = Field(description="Currency code", default="RUB")
@@ -157,19 +158,19 @@ class OrderEntity(BaseEntity):
 
     # association one-to-one — order and customer exist independently
     customer: Annotated[
-        AssociationOne[CustomerEntity],
-        Inverse(CustomerEntity, "orders"),
+        AssociationOne[CustomerCoreEntity],
+        Inverse(CustomerCoreEntity, "orders"),
     ] = Rel(description="Customer who placed the order")
 
     # composition one-to-many — order lines cannot exist without this order
     lines: Annotated[
-        CompositeMany[OrderLineEntity],
-        Inverse(OrderLineEntity, "order"),
+        CompositeMany[OrderLineDetailEntity],
+        Inverse(OrderLineDetailEntity, "order"),
     ] = Rel(description="Line items of the order")
 
 
 @entity(description="Single line item within an order", domain=StoreDomain)
-class OrderLineEntity(BaseEntity):
+class OrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Line item identifier")
     product_id: str = Field(description="Product identifier")
     product_name: str = Field(description="Product display name")
@@ -179,15 +180,15 @@ class OrderLineEntity(BaseEntity):
 
     # association back to parent order
     order: Annotated[
-        AssociationOne[OrderEntity],
-        Inverse(OrderEntity, "lines"),
+        AssociationOne[OrderCoreEntity],
+        Inverse(OrderCoreEntity, "lines"),
     ] = Rel(description="Parent order")
 
 
 # Rebuild forward references after all three classes are defined
-CustomerEntity.model_rebuild()
-OrderEntity.model_rebuild()
-OrderLineEntity.model_rebuild()
+CustomerCoreEntity.model_rebuild()
+OrderCoreEntity.model_rebuild()
+OrderLineDetailEntity.model_rebuild()
 
 
 # ---------------------------------------------------------------------------
@@ -208,11 +209,11 @@ class OrderResource(BaseResource):
     def get_wrapper_class(self) -> type[BaseResource] | None:
         return None  # in-memory stub: direct pass-through, no transaction wrapper
 
-    async def load_customer(self, customer_id: str) -> CustomerEntity:
+    async def load_customer(self, customer_id: str) -> CustomerCoreEntity:
         row = self._customers.get(customer_id)
         if row is None:
             raise KeyError(f"Customer {customer_id!r} not found")
-        return build(row, CustomerEntity)
+        return build(row, CustomerCoreEntity)
 
     async def save_order(self, order_id: str, customer_id: str, total: float, currency: str) -> None:
         self._orders[order_id] = {

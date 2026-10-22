@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
-from aoa.demo.model.clinical_supply.entities.cs_geographic_anchor import ClinicalGeographicAnchorEntity
+from aoa.demo.model.clinical_supply.entities.cs_geographic_anchor import ClinicalGeographicAnchorCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 
 
 @entity(description="Neutral partner root keyed for subtype projections", domain=ClinicalSupplyDomain)
-class ClinicalPartnerHubEntity(BaseEntity):
+class ClinicalPartnerHubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Partner id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Partner lifecycle")
 
@@ -24,11 +24,11 @@ class ClinicalPartnerHubEntity(BaseEntity):
     quarantine_fence_id: str = Field(description="Facility quarantine corridor moniker")
     regulatory_territory: str = Field(description="Governing geography for distribution assertions")
     site_anchor: Annotated[
-        AssociationOne[ClinicalGeographicAnchorEntity],
+        AssociationOne[ClinicalGeographicAnchorCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Registered geography"
     )  # type: ignore[assignment]
 
 
-ClinicalPartnerHubEntity.model_rebuild()
+ClinicalPartnerHubCoreEntity.model_rebuild()

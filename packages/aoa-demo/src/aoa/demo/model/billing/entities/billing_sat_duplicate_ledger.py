@@ -5,22 +5,22 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
-from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassEntity
+from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
 
 
 @entity(description="Duplicate suppression fragment attached to parse pass", domain=BillingDomain)
-class DuplicateSuppressionLedgerEntity(BaseEntity):
+class DuplicateSuppressionLedgerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ledger fragment id")
     lifecycle: BillingDenseLifecycle = Field(description="Duplicate ledger lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
     currency_iso: str = Field(description="Declared ISO-4217 money unit")
     parse_pass: Annotated[
-        AssociationOne[BillingParsePassEntity],
+        AssociationOne[BillingParsePassCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning parse pass"
@@ -32,4 +32,4 @@ class DuplicateSuppressionLedgerEntity(BaseEntity):
     last_collision_at_iso: str = Field(description="Last suppressed duplicate occurrence (UTC)")
 
 
-DuplicateSuppressionLedgerEntity.model_rebuild()
+DuplicateSuppressionLedgerCoreEntity.model_rebuild()

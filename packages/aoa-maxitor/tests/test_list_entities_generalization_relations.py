@@ -49,7 +49,7 @@ def test_generalization_rows_carry_each_extension(slice_payload: dict[str, Any])
     assert len(rows) == 3
     pairs = {(r["source"].split(".")[-1], r["target"].split(".")[-1], r["label"]) for r in rows}
     assert pairs == {
-        ("FirstPressEntity", "VinylRecordEntity", "first"),
-        ("RepressEntity", "VinylRecordEntity", "repress"),
-        ("TestPressEntity", "VinylRecordEntity", "test"),
+        ("FirstPressSpecEntity", "VinylRecordCoreEntity", "first"),
+        ("RepressSpecEntity", "VinylRecordCoreEntity", "repress"),
+        ("TestPressSpecEntity", "VinylRecordCoreEntity", "test"),
     }
