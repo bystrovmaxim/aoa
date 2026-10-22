@@ -70,7 +70,7 @@ class GeneralizationHeadCoreEntity(BaseCoreEntity):
     variant_code: str = Field(description="Classifier field selecting the variant for a row")
 
     details: Annotated[
-        Specialization[GeneralizationVariantASpecEntity | GeneralizationVariantBSpecEntity],
+        Specialization[GeneralizationVariantASpecEntity | GeneralizationVariantBSpecEntity, str],
         Classifier(field="variant_code", codes=Literal["variant_a", "variant_b"]),
         Inverse(field_name="head"),
     ] = Rel(

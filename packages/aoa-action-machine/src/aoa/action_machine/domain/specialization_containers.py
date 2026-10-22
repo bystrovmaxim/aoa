@@ -112,10 +112,9 @@ class Specialization[T, D](BaseModel):
     variant: D = Field(description="The declared value that selects this alternative")
     entity: T | None = Field(default=None, repr=False, description="The hydrated extension row")
 
-    def __class_getitem__(cls, params: Any) -> Any:
+    def __class_getitem__(cls, typevar_values: Any) -> Any:
         """Subscript with the alternatives alone (a code) or with the dictionary too (a value)."""
-        if not isinstance(params, tuple):
-            params = (params,)
+        params = typevar_values if isinstance(typevar_values, tuple) else (typevar_values,)
         if len(params) == 1:
             params = (params[0], str)
         return super().__class_getitem__(params)
@@ -176,6 +175,7 @@ class Classifier:
                 or a member is empty or not a string.
         """
         if variant is not None:
+            # pylint: disable-next=import-outside-toplevel  # the import would close a cycle at module load
             from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 
             if not isinstance(variant, BaseEnumEntity):

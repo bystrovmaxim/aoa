@@ -115,3 +115,13 @@ Every decision below was measured against the tree at `70980156` and against the
 **Rationale**: the model must not accept a code (D4, and Q3 of the design conversation), and the catalogue's `by_code` already raises; the wrapper is three explicit lines in the resource, which is where data meets the model — no new framework abstraction, and the message still names everything a reader needs.
 
 **Alternatives considered**: a framework-level `resolve_declared_value(...)` helper (one implementation, but a new public concept for three lines); letting the container accept a code and resolve it (rejected: the code would reach the model); trusting the resource to raise `KeyError` raw (a message that names neither the row nor the field).
+
+## D15 — A one-argument container bridge keeps the corpus green until the migration
+
+**Decision**: `Specialization.__class_getitem__` accepts a single type argument and supplies `str` for the dictionary, so `Specialization[A | B]` keeps `variant: str` exactly as before. Every existing axis therefore builds and type-checks while the container gains its second argument; `Specialization[A | B, Dictionary]` is the declared form. The bridge and the one `, str` it forces in the demo are removed by the migration task.
+
+**Rationale**: the container became generic before the build rules and the corpus migration could land, because those three changes cannot be merged in one reviewable commit and the tree must stay green. A bridge that reproduces today's behaviour is the only way to add the second argument without touching 110 axes in the same commit. It is a migration device, not a second grammar: the specification's declared form has two arguments, and the bridge disappears with the last old-form axis.
+
+**Alternatives considered**: landing the generic container and the migration in one commit (a 45-file, 38-notebook diff beside a validator rewrite — unreviewable); keeping `variant: str` until the migration and adding the parameter later (the container could not be tested at all until then); accepting both forms permanently (the second grammar the plan forbids).
+
+**Expiry**: the bridge is removed when `scan_dictionary_variants.py` reports no one-argument `Specialization[…]` left, i.e. at the end of the corpus migration; the demo's `, str` goes with it.

@@ -132,6 +132,17 @@ packages/*/CHANGELOG.md, docs/CHANGELOG.md
 
 Each phase is one commit, on instruction, and leaves the tree green.
 
+**Phase 5 is delivered in two commits, not one.** The container, the marker and
+`declared_variant` (5a) land first with a one-argument bridge that keeps every
+existing axis on `variant: str`; the build rules and the corpus migration (5b)
+land together afterwards, because the rule that refuses `Literal` cannot precede
+the migration of 251 declarations in 45 files and 38 notebooks. Until 5b, an axis
+written in the declared form is **not refused**: the validator gathers axes only
+where the head carries a `Classifier` marker, so such an axis produces no
+coverage check, no specialization edges and no generalization edges, and its
+container is drawn as a scalar column. The declared form must not be advertised
+before 5b lands.
+
 | # | Phase | Outcome | Green because |
 | --- | --- | --- | --- |
 | 1 | Setup and baseline | Branch confirmed; `scan_dictionary_variants.py` run; `baseline.before.json` records the demo's `enum` nodes (none), currency fields (25), axes and `Classifier` declarations; the numbers in the spec are current | No code changes |
@@ -150,6 +161,9 @@ Each phase is one commit, on instruction, and leaves the tree green.
 | --- | --- |
 | The generic container's `variant` is not validated by the dictionary's core schema | A dedicated test per parametrization: a declared value and its reference object pass, a bare code and a copy are refused; `mypy --strict` checks the second type argument at the construction sites |
 | The pairing check reads a class attribute that does not exist on a hand-built extension | `declared_variant` is derived in the Pydantic init hook for every `BaseSpecEntity` descendant; a test asserts it exists on an extension declared without any extra marker |
+| An axis in the declared form is written before 5b, and the build silently ignores it | The rule is the next commit after 5a; the plan states the intermediate behaviour in its phases, and 5b's first test asserts that a head without a marker is refused rather than skipped |
+| The strict ERD payload cannot carry a value's free-form extras | `JsonSchemaValue` refuses an object without `additionalProperties: false`, so `entity.values_json` reaches the payload as `{code, display_name}` only; the card's extra properties need a typed carrier (a JSON string, or a declared map) and T047 decides it — the contract says the card shows the extras, so the payload and the contract must be reconciled before the client work |
+| The one-argument bridge outlives the migration and becomes a second form | D15 states its expiry: the bridge and the demo's `, str` are removed by the migration task, and the scan must report no one-argument container |
 | The shared mixin is read as a kind base because it inherits `BaseEntity` | It does not inherit `BaseEntity`; a test asserts that a class inheriting the mixin and one marker has exactly one kind base, and that `_is_kind_base` stays false for the mixin |
 | The state kind's behaviour changes while its machinery moves | The `014` test suite is the contract; the move is proven by running it before and after with no edit to its assertions |
 | The dictionary's core schema accepts a constructed copy or refuses a legitimate code | Dedicated tests per input shape; a copy is refused by identity, a code by `by_code`, a mapping by its `code`; an unknown code's message names the declared set |
