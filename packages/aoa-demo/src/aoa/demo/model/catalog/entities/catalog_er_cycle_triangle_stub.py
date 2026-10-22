@@ -1,4 +1,5 @@
 # packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_er_cycle_triangle_stub.py
+# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """
 Three ``BaseEntity`` rows wired as a directed 3-cycle A\u2192B\u2192C\u2192A (catalog domain).
 
@@ -22,7 +23,6 @@ from aoa.action_machine.domain import (
     Lifecycle,
     NoInverse,
     Rel,
-    StateVocabulary,
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
@@ -35,14 +35,16 @@ class _CatalogDirectedCycleSketchStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
+    OPEN = _CatalogDirectedCycleSketchStateEntity(code="open", display_name="Open", sort_order=1)  # noqa: F821
+    SETTLED = _CatalogDirectedCycleSketchStateEntity(code="settled", display_name="Settled", sort_order=2)  # noqa: F821
 
-class _CatalogDirectedCycleSketchLifecycle(Lifecycle, StateVocabulary):
+
+
+class _CatalogDirectedCycleSketchLifecycle(Lifecycle[_CatalogDirectedCycleSketchStateEntity]):
     """Statuses and links of the _CatalogDirectedCycleSketchLifecycle axis."""
 
-    OPEN = _CatalogDirectedCycleSketchStateEntity(code="open", display_name="Open", sort_order=1)
-    SETTLED = _CatalogDirectedCycleSketchStateEntity(code="settled", display_name="Settled", sort_order=2)
 
-    _template = Lifecycle().state(OPEN).to(SETTLED).initial().state(SETTLED).final()
+    _template = Lifecycle().state(_CatalogDirectedCycleSketchStateEntity.OPEN).to(_CatalogDirectedCycleSketchStateEntity.SETTLED).initial().state(_CatalogDirectedCycleSketchStateEntity.SETTLED).final()
 
 
 @entity(

@@ -155,7 +155,7 @@ shared declared object: True
 excluded from entity graph: True
 ```
 
-`current_state` returns the code used for storage or exchange. `current_status` returns the declared object, including its additional fields. State classes do not need `@entity`; they are used by `Lifecycle`, optionally alongside `StateVocabulary`. They are excluded from ordinary Entity nodes, while the lifecycle exports its own State nodes. [Step 22](step-22-lifecycle.md) develops this distinction and the transition rules.
+`current_state` returns the code used for storage or exchange. `current_status` returns the declared object, including its additional fields. State classes do not need `@entity`; the state type declares its statuses and carries their catalogue, and `Lifecycle[StateType]` names it. They are excluded from ordinary Entity nodes, while the lifecycle exports its own State nodes. [Step 22](step-22-lifecycle.md) develops this distinction and the transition rules.
 
 ### Choose one role for each class
 

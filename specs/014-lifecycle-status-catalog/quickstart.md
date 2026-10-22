@@ -11,17 +11,17 @@ git switch feature/issue-237-state-catalog-and-lifecycle-checks
 uv sync --extra dev
 ```
 
-The corpus is measured on `main` after #210: 55 axes, 64 state types, 0 uncovered statuses.
+The corpus is measured on `main` after #210: 51 axes, 63 state types, 0 uncovered in the demo and framework tests.
 
 ## 1. The state type and its catalogue
 
 ```bash
-uv run python examples/step_22_lifecycle/22_status_fields.py
+uv run python examples/step_22_lifecycle/06_maxitor_states.py
 ```
 
 Expected: every status prints `model_dump()` with `code`, `display_name`, `sort_order`, `color`, `fill_color` and `requires_receipt`; the omitted fields show their defaults; `members`, `codes()` and `by_code("paid")` answer; `entity_type` is the state type.
 
-The same case runs cell by cell in `22_status_fields.ipynb`.
+The example keeps its existing shape; only its declaration lines were updated.
 
 ## 2. The axis and the runtime
 
@@ -39,10 +39,10 @@ uv run python examples/step_22_lifecycle/15_foreign_status.py
 
 Expected: `ForeignStateError: <axis>: status 'ghost' (OtherStateEntity) is not a declared status of OrderStateEntity. Allowed: ['draft', 'paid', 'cancelled'].`
 
-The twin case is its own example:
+The twin case is a test, not a new example:
 
 ```bash
-uv run python examples/step_22_lifecycle/21_twin_instance.py
+uv run --extra dev pytest packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle_catalog_checks.py -q -k twin
 ```
 
 Expected: `ForeignStateError` saying `status 'draft' is a different instance from the one declared on OrderStateEntity; use OrderStateEntity.DRAFT.`
@@ -50,12 +50,12 @@ Expected: `ForeignStateError` saying `status 'draft' is a different instance fro
 ## 4. The missing refusal
 
 ```bash
-uv run python examples/step_22_lifecycle/20_missing_status.py
+uv run --extra dev pytest packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle_catalog_checks.py -q -k "missing or target_only"
 ```
 
 Expected: `MissingStateError: <axis>: status(es) ['cancelled'] of OrderStateEntity do not appear in the lifecycle. Declare every status.`
 
-A member used only in `.to(...)` is covered by the same example's second part.
+The `target_only` case is a member used only in `.to(...)`.
 
 ## 5. The field errors
 
@@ -68,7 +68,7 @@ Expected: green. The cases are a misspelled field (`Extra inputs are not permitt
 ## 6. The plain escape
 
 ```bash
-uv run python examples/step_22_lifecycle/23_plain_lifecycle.py
+uv run --extra dev pytest packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle_catalog_checks.py -q -k plain
 ```
 
 Expected: a `Lifecycle` subclass with no type parameter builds and is unchecked; the template's behaviour is today's.
@@ -78,7 +78,7 @@ Expected: a `Lifecycle` subclass with no type parameter builds and is unchecked;
 ```bash
 uv run --extra dev pytest packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle_catalog_checks.py -q
 uv run --extra dev pytest packages/aoa-action-machine/tests -q
-uv run --extra dev mypy packages/
+uv run --extra dev mypy packages/*/src
 ```
 
 Expected: the three refusals are each a dedicated failing-before, passing-after test; the full suite is green; `mypy --strict` is clean with no new `# type: ignore`.
@@ -93,7 +93,7 @@ uv run python specs/014-lifecycle-status-catalog/evidence/compare_baselines.py \
 grep -rn "StateVocabulary" --include=*.py packages examples | wc -l
 ```
 
-Expected: 0 axes on `StateVocabulary`; 0 uncovered statuses; 0 differences in the baseline (statuses, labels, transitions, demo state rows, entity field types); the grep prints `0`.
+Expected: 0 axes on `StateVocabulary`; 0 uncovered in the demo and framework tests; 0 differences in the baseline (statuses, labels, transitions, demo state rows, entity field types); the grep prints `0`.
 
 ## 9. The closing check run
 

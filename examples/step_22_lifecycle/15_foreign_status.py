@@ -1,26 +1,33 @@
-"""Reject an undeclared transition target.
+"""Reject a status of another type.
 
-Reference a status which is not a member of the lifecycle class.
+Reference a status object that is not a declared member of the axis's state type.
 
 Run: uv run python examples/step_22_lifecycle/15_foreign_status.py
 """
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, ForeignStateError, Lifecycle
 
 
 class OrderStateEntity(BaseStateEntity):
     """Describe one possible order status."""
 
-foreign = OrderStateEntity(code="foreign", display_name="Foreign")
+    DRAFT = OrderStateEntity(code="draft", display_name="Draft")  # noqa: F821
+
+
+class OtherStateEntity(BaseStateEntity):
+    """A second state type, not the one the axis names."""
+
+    FOREIGN = OtherStateEntity(code="foreign", display_name="Foreign")  # noqa: F821
+
 
 # Run the case.
 try:
-    class BrokenLifecycle(Lifecycle, StateVocabulary):
-        """Intentionally reference a status outside this vocabulary."""
-        DRAFT = OrderStateEntity(code="draft", display_name="Draft")
-        _template = Lifecycle().state(DRAFT).to(foreign).initial()
-except TypeError as error:
-    assert 'is not a status of this lifecycle' in str(error)
+    class BrokenLifecycle(Lifecycle[OrderStateEntity]):
+        """Intentionally reference a status outside the axis's type."""
+
+        _template = Lifecycle().state(OrderStateEntity.DRAFT).to(OtherStateEntity.FOREIGN).initial()
+except ForeignStateError as error:
+    assert "is not a declared status" in str(error)
     print(type(error).__name__ + ": " + str(error))
 else:
     raise AssertionError("The invalid declaration was accepted")

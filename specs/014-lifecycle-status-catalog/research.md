@@ -8,7 +8,7 @@ The clarifications in the specification settle the scope. This file records the 
 
 **Decision**: inside a state type body the type's own name resolves to an internal `state(**kwargs)` factory. `state` returns a `StateSpec` placeholder. `BaseStateEntity.model_config` lists `StateSpec` in `ignored_types`, so Pydantic does not treat the placeholder as a field. `BaseStateEntity.__pydantic_init_subclass__` scans `cls.__dict__` for placeholders, replaces each with `cls(**spec.kwargs)`, and fills the catalogue.
 
-**Rationale**: the model author writes `DRAFT = OrderStateEntity(code="draft", display_name="Draft", sort_order=99)` — the simplest possible surface, typed by mypy as `OrderStateEntity`, with no `cast`, no `state(...)`, no `TYPE_CHECKING`. The status lines move unchanged from today's axis to the type, which makes the 55-axis migration mechanical. The conversion runs after the model is built, so `cls(**kwargs)` is the ordinary Pydantic constructor: required fields, defaults, types and `extra="forbid"` are checked there, at class creation.
+**Rationale**: the model author writes `DRAFT = OrderStateEntity(code="draft", display_name="Draft", sort_order=99)` — the simplest possible surface, typed by mypy as `OrderStateEntity`, with no `cast`, no `state(...)`, no `TYPE_CHECKING`. The status lines move unchanged from today's axis to the type, which makes the 51-axis migration mechanical. The conversion runs after the model is built, so `cls(**kwargs)` is the ordinary Pydantic constructor: required fields, defaults, types and `extra="forbid"` are checked there, at class creation.
 
 **Evidence**: a prototype against the current `BaseStateEntity` and `Lifecycle` produced `members == ['draft', 'paid', 'cancelled']`, a full `model_dump()` for every status, `ValidationError: Extra inputs are not permitted` for `sort_ordr=99`, `ValidationError: Field required` for a missing `code`, and `int` coercion for `sort_order="42"`.
 
@@ -75,7 +75,7 @@ Both run in `Lifecycle.__init_subclass__`, at class creation, before any graph i
 
 **Rationale**: the mixin's three jobs split — collection and duplicate codes to the hook, the template check to `Lifecycle.__init_subclass__`, the lookup API to the state type. Keeping the mixin would leave two grammars for one declaration, and the clarify chose one.
 
-**Measured surface**: 110 `StateVocabulary` mentions across Python (55 live class declarations, imports, docstrings); 12 in the framework's tests; the docs and the examples mention it too. The codemod and the scan take the Python count to zero; the docs phase rewrites the prose.
+**Measured surface**: 110 `StateVocabulary` mentions across Python (51 live class declarations, imports, docstrings); 12 in the framework's tests; the docs and the examples mention it too. The codemod and the scan take the Python count to zero; the docs phase rewrites the prose.
 
 ## D7. The hook runs after the model, not before
 
@@ -97,15 +97,15 @@ Both run in `Lifecycle.__init_subclass__`, at class creation, before any graph i
 
 **Decision**: an AST codemod moves every status assignment from the axis to the state type (the type is the first argument of the call), removes `StateVocabulary` from the bases, parameterises the axis with the type, and qualifies the bare names in `_template`. A scan and a baseline are taken before and after; the comparison is the evidence that no status, label, transition or field moved.
 
-**Rationale**: 55 axes and 64 state types are too many for hand edits; the surface is unchanged, so the move is textual. The baseline covers the demo's graph state rows and the entity field types (SC-005); the scan reports 0 axes on `StateVocabulary` and 0 uncovered statuses after.
+**Rationale**: 51 axes and 63 state types are too many for hand edits; the surface is unchanged, so the move is textual. The baseline covers the demo's graph state rows and the entity field types (SC-005); the scan reports 0 axes on `StateVocabulary` and 0 uncovered in the demo and framework tests after.
 
-**Measured corpus**: 55 axes (32 demo, 16 examples, 7 framework tests); 64 state types (32 demo, 24 examples, 8 framework tests); every demo axis already uses every declared status, so the coverage rule adds no status.
+**Measured corpus**: 51 axes (32 demo, 16 examples, 3 framework tests); 63 state types (32 demo, 24 examples, 7 framework tests); every demo axis already uses every declared status, so the coverage rule adds no status.
 
 ## D10. Typing
 
 **Decision**: model code has no `cast` and no `TYPE_CHECKING`; `DRAFT` is typed as the state type because the surface is a call to the class. `state(...)` arguments are validated by Pydantic at class creation, not by mypy; the `pydantic.mypy` plugin would check them statically and is out of scope. All bare `Lifecycle` annotations are parameterised; no new `# type: ignore`.
 
-**Rationale**: mypy resolves the self-reference in the class body to the class being defined, so the attribute type is exact; the runtime alias does not affect static analysis. The generic sweep is the price of the chosen form and is measured at 22 annotation lines.
+**Rationale**: mypy resolves the self-reference in the class body to the class being defined, so the attribute type is exact; the runtime alias does not affect static analysis. The state kind carries an explicit `__init__(**data: Any)` because a custom metaclass stops mypy synthesising the Pydantic constructor. The generic sweep is the price of the chosen form and is measured at 22 annotation lines. Ruff cannot resolve the alias and reports F821; the migration adds a per-line `# noqa: F821`, and the framework test module uses a file-level noqa.
 
 ## D11. Plain `Lifecycle` stays
 
@@ -113,11 +113,11 @@ Both run in `Lifecycle.__init_subclass__`, at class creation, before any graph i
 
 **Rationale**: not every lifecycle needs a catalogue; the escape is one test and keeps the change from forcing a type on every axis.
 
-## D12. Cases the documentation must show
+## D12. Documentation is updated in place, not rewritten
 
-**Decision**: the documentation phase ships `20_missing_status`, `21_twin_instance`, `22_status_fields` and `23_plain_lifecycle` as script and notebook beside the existing lifecycle cases, and updates the foreign-status case. Each case is executed while written (constitution VI.5).
+**Decision**: the documentation phase touches only the existing pages and the example/notebook snippets that show the old declaration: `docs/tutorials/step-22-lifecycle.md` and its `ru_draft`, `docs/reference/intents-and-invariants.md` and its `ru_draft`, the README lifecycle snippet, and the affected cells of the existing example notebooks. No new tutorial, no new example series and no wholesale re-execution. The examples' scripts migrate with the corpus (T013); the notebooks are point-edited.
 
-**Rationale**: the feature's value is in what is refused and in what is initialised; a reader who does not see the twin refusal, the missing status and the field errors will get them wrong. The reference page states the alias's shadowing cost and the plain-`Lifecycle` escape.
+**Rationale**: the entity, runtime, graph and Maxitor behaviour does not change; the only user-facing change is the declaration form. A wholesale documentation and example rewrite would be churn for its own sake. The existing pages keep their structure, and the reader sees the new form where the old one was. The touched examples are still executed while written.
 
 ## Evidence files
 

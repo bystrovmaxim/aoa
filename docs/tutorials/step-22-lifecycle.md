@@ -27,7 +27,7 @@ There are three different things to keep separate:
 | Template | Possible states, their classification and allowed transitions | `draft → paid` |
 | Lifecycle instance | A reference to the selected status object, with access to the shared rules | One order currently refers to `DRAFT` |
 
-`BaseStateEntity` supplies the required code and name. A subclass defines any extra fields that this kind of status needs. `StateVocabulary` is a **mixin**: a base class added alongside `Lifecycle` to collect its status attributes and provide lookup by code. The vocabulary is that collection; it is not a second lifecycle or a database table.
+`BaseStateEntity` supplies the required code and name. A subclass defines any extra fields that this kind of status needs and declares its statuses in its own body. The type carries their catalogue — `members`, `codes()`, `by_code()` and `entity_type`; the axis names that type as `Lifecycle[OrderStateEntity]`. The catalogue is not a second lifecycle or a database table.
 
 A template is built by chained method calls. `.state(DRAFT)` selects the state being described, `.to(PAID)` adds an allowed destination, and `.initial()` finishes that declaration as an initial state. `.intermediate()` marks a state from which work can continue. `.final()` marks a state with no outgoing transitions. This classification belongs to the template, not to fields on the status object.
 
@@ -38,24 +38,20 @@ A template is built by chained method calls. `.state(DRAFT)` selects the state b
 This complete declaration uses only two statuses. Paid is final for this particular example; a real order lifecycle may continue to shipping.
 
 ```python
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 
 
 class OrderStateEntity(BaseStateEntity):
     """Describe one possible order status."""
 
-
-class OrderLifecycle(Lifecycle, StateVocabulary):
-    """Allow a draft order to become paid."""
-
     DRAFT = OrderStateEntity(code="draft", display_name="Draft")
     PAID = OrderStateEntity(code="paid", display_name="Payment received")
 
-    _template = (
-        Lifecycle()
-        .state(DRAFT).to(PAID).initial()
-        .state(PAID).final()
-    )
+
+class OrderLifecycle(Lifecycle[OrderStateEntity]):
+    """Allow a draft order to become paid."""
+
+    _template = Lifecycle().state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID).initial().state(OrderStateEntity.PAID).final()
 
 from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity, BaseStateEntity
@@ -77,12 +73,12 @@ updated = order.model_copy(update={"lifecycle": paid})
 assert order.lifecycle.current_state == "draft"
 assert updated.lifecycle.current_state == "paid"
 assert paid is not order.lifecycle
-assert paid.current_status is OrderLifecycle.PAID
-assert order.lifecycle.current_status is OrderLifecycle.DRAFT
+assert paid.current_status is OrderStateEntity.PAID
+assert order.lifecycle.current_status is OrderStateEntity.DRAFT
 print("original:", order.lifecycle.current_state)
 print("updated:", updated.lifecycle.current_state)
 print("final:", updated.lifecycle.is_final)
-print("declared target:", paid.current_status is OrderLifecycle.PAID)
+print("declared target:", paid.current_status is OrderStateEntity.PAID)
 ```
 
 ```text
@@ -104,7 +100,7 @@ A code is suitable for identifying a state, while a screen needs a label and app
 
 ```python
 from pydantic import Field
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 
 
 class OrderStateEntity(BaseStateEntity):
@@ -112,13 +108,14 @@ class OrderStateEntity(BaseStateEntity):
 
     requires_receipt: bool = Field(default=False, description="Whether a receipt is needed")
 
-
-class OrderLifecycle(Lifecycle, StateVocabulary):
-    """Collect statuses and declare their allowed transition."""
-
     DRAFT = OrderStateEntity(code="draft", display_name="Draft")
     PAID = OrderStateEntity(code="paid", display_name="Payment received", requires_receipt=True)
-    _template = Lifecycle().state(DRAFT).to(PAID).initial().state(PAID).final()
+
+
+class OrderLifecycle(Lifecycle[OrderStateEntity]):
+    """Declare the transition; the statuses live on the type."""
+
+    _template = Lifecycle().state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID).initial().state(OrderStateEntity.PAID).final()
 ```
 
 The constructor accepts the code read from a database row. Read the selected object directly through `current_status`:
@@ -127,11 +124,11 @@ The constructor accepts the code read from a database row. Read the selected obj
 row = {"id": "ord-1", "status": "paid"}
 current = OrderLifecycle(row["status"])
 status = current.current_status
-print("codes:", OrderLifecycle.codes())
+print("codes:", OrderStateEntity.codes())
 print("current code:", current.current_state)
 print("label:", status.display_name)
 print("requires receipt:", status.requires_receipt)
-print("declared object:", status is OrderLifecycle.PAID)
+print("declared object:", status is OrderStateEntity.PAID)
 ```
 
 ```text
@@ -142,7 +139,7 @@ requires receipt: True
 declared object: True
 ```
 
-`current_status` returns exactly `OrderLifecycle.PAID`, not a copy. `current_state` returns that object's `code`, so the value to write back to a database remains `"paid"`. Internally there is one reference to the selected object, without a separate stored current code. `requires_receipt` is domain data; reading it does not make AOA issue a receipt or add a transition.
+`current_status` returns exactly `OrderStateEntity.PAID`, not a copy. `current_state` returns that object's `code`, so the value to write back to a database remains `"paid"`. Internally there is one reference to the selected object, without a separate stored current code. `requires_receipt` is domain data; reading it does not make AOA issue a receipt or add a transition.
 
 `current_state_info` serves a different purpose: it returns the template's `StateInfo`, including classification and permitted transitions. A status describes the domain meaning; the template determines whether it is initial or final and what may follow it. Lifecycle equality and hashing still use the lifecycle class and code, not the status's additional fields.
 
@@ -257,7 +254,7 @@ second template: INTERMEDIATE
 
 ## When invalid declarations fail
 
-Validation happens at different moments. Creating a status checks its fields. Defining a vocabulary class checks its members. Calling `.state()` or `.to()` checks the argument type immediately, usually while that class body is executing. Building the application graph checks the complete transition structure and exports status fields to JSON. Calling `transition()` checks a move from the current runtime state.
+Validation happens at different moments. Creating a status checks its fields. Defining a state type checks its statuses and codes; defining an axis checks the template against them. Calling `.state()` or `.to()` checks the argument type immediately, usually while that class body is executing. Building the application graph checks the complete transition structure and exports status fields to JSON. Calling `transition()` checks a move from the current runtime state.
 
 Each refusal below has its own small script and notebook. The examples catch the specific expected error and fail if the invalid declaration is accepted.
 
@@ -266,11 +263,8 @@ Each refusal below has its own small script and notebook. The examples catch the
 | Reject a blank code | `ValidationError` at object creation | [Python](../../examples/step_22_lifecycle/09_blank_code.py) · [Notebook](../../examples/step_22_lifecycle/09_blank_code.ipynb) |
 | Reject a blank display_name | `ValidationError` at object creation | [Python](../../examples/step_22_lifecycle/10_blank_display_name.py) · [Notebook](../../examples/step_22_lifecycle/10_blank_display_name.ipynb) |
 | Keep a status object immutable | `ValidationError` at assignment | [Python](../../examples/step_22_lifecycle/11_immutable_status.py) · [Notebook](../../examples/step_22_lifecycle/11_immutable_status.ipynb) |
-| Reject duplicate codes in one vocabulary | `ValueError` at class definition | [Python](../../examples/step_22_lifecycle/12_duplicate_code.py) · [Notebook](../../examples/step_22_lifecycle/12_duplicate_code.ipynb) |
-| Reject mixed status types | `TypeError` at class definition | [Python](../../examples/step_22_lifecycle/13_mixed_types.py) · [Notebook](../../examples/step_22_lifecycle/13_mixed_types.ipynb) |
-| Reject a new template without status attributes | `ValueError` at class definition | [Python](../../examples/step_22_lifecycle/14_empty_vocabulary.py) · [Notebook](../../examples/step_22_lifecycle/14_empty_vocabulary.ipynb) |
-| Reject an undeclared transition target | `TypeError` at class definition | [Python](../../examples/step_22_lifecycle/15_foreign_status.py) · [Notebook](../../examples/step_22_lifecycle/15_foreign_status.ipynb) |
-| Require Lifecycle beside StateVocabulary | `TypeError` at class definition | [Python](../../examples/step_22_lifecycle/16_mixin_without_lifecycle.py) · [Notebook](../../examples/step_22_lifecycle/16_mixin_without_lifecycle.ipynb) |
+| Reject duplicate codes on one state type | `ValueError` at class definition | [Python](../../examples/step_22_lifecycle/12_duplicate_code.py) · [Notebook](../../examples/step_22_lifecycle/12_duplicate_code.ipynb) |
+| Reject a status of another type | `ForeignStateError` at class definition | [Python](../../examples/step_22_lifecycle/15_foreign_status.py) · [Notebook](../../examples/step_22_lifecycle/15_foreign_status.ipynb) |
 | Reject a string in the template | `TypeError` at template call | [Python](../../examples/step_22_lifecycle/17_string_state.py) · [Notebook](../../examples/step_22_lifecycle/17_string_state.ipynb) |
 | Reject a string transition target in the template | `TypeError` at template call | [Python](../../examples/step_22_lifecycle/18_string_target.py) · [Notebook](../../examples/step_22_lifecycle/18_string_target.ipynb) |
 | Reject a status field without a JSON representation | `PydanticSerializationError` at graph export | [Python](../../examples/step_22_lifecycle/19_non_json_field.py) · [Notebook](../../examples/step_22_lifecycle/19_non_json_field.ipynb) |

@@ -1,4 +1,5 @@
 # packages/aoa-demo/src/aoa/demo/model/analytics/entities/analytics_er_cycle_quad_stub.py
+# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """
 Four analytics sketch entities wired as directed 4-cycle A\u2192B\u2192C\u2192D\u2192A.
 
@@ -20,7 +21,6 @@ from aoa.action_machine.domain import (
     Lifecycle,
     NoInverse,
     Rel,
-    StateVocabulary,
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
@@ -34,14 +34,16 @@ class _AnDirectedCycleSketchStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
+    OPEN = _AnDirectedCycleSketchStateEntity(code="open", display_name="Open", sort_order=1)  # noqa: F821
+    SETTLED = _AnDirectedCycleSketchStateEntity(code="settled", display_name="Settled", sort_order=2)  # noqa: F821
 
-class _AnDirectedCycleSketchLifecycle(Lifecycle, StateVocabulary):
+
+
+class _AnDirectedCycleSketchLifecycle(Lifecycle[_AnDirectedCycleSketchStateEntity]):
     """Statuses and links of the _AnDirectedCycleSketchLifecycle axis."""
 
-    OPEN = _AnDirectedCycleSketchStateEntity(code="open", display_name="Open", sort_order=1)
-    SETTLED = _AnDirectedCycleSketchStateEntity(code="settled", display_name="Settled", sort_order=2)
 
-    _template = Lifecycle().state(OPEN).to(SETTLED).initial().state(SETTLED).final()
+    _template = Lifecycle().state(_AnDirectedCycleSketchStateEntity.OPEN).to(_AnDirectedCycleSketchStateEntity.SETTLED).initial().state(_AnDirectedCycleSketchStateEntity.SETTLED).final()
 
 
 @entity(description="Analytics quad vertex A (\u2192B / \u2190D reciprocal)", domain=AnalyticsDomain)

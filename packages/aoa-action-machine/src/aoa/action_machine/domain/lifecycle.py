@@ -78,7 +78,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast, get_args, get_origin
+
+from aoa.action_machine.domain.exceptions import ForeignStateError, MissingStateError
 
 if TYPE_CHECKING:
     from aoa.action_machine.domain.state_entity import BaseStateEntity
@@ -89,6 +91,27 @@ def _state_entity_class() -> type[BaseStateEntity]:
     from aoa.action_machine.domain.state_entity import BaseStateEntity  # pylint: disable=import-outside-toplevel
 
     return BaseStateEntity
+
+
+def _status_attribute(state_type: type[BaseStateEntity], member: BaseStateEntity) -> str:
+    """Return the attribute a declared status is bound to, searching the MRO."""
+    for klass in state_type.__mro__:
+        for name, value in vars(klass).items():
+            if value is member:
+                return name
+    return member.code
+
+
+def _declared_state_type(cls: type[Lifecycle[Any]]) -> type[BaseStateEntity] | None:
+    """Return the state type an axis names, or the type it inherited."""
+    for base in cls.__dict__.get("__orig_bases__", ()):
+        origin = get_origin(base)
+        if origin is None or not isinstance(origin, type) or not issubclass(origin, Lifecycle):
+            continue
+        args = get_args(base)
+        if args and isinstance(args[0], type) and issubclass(args[0], _state_entity_class()):
+            return args[0]
+    return getattr(cls, "_state_type", None)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -238,7 +261,7 @@ class _StateBuilder:
 
     def __init__(
         self,
-        lifecycle: Lifecycle,
+        lifecycle: Lifecycle[Any],
         key: str,
         display_name: str,
         entity: BaseStateEntity | None = None,
@@ -274,15 +297,15 @@ class _StateBuilder:
             self._lifecycle._transition_entities[target.code] = target
         return self
 
-    def initial(self) -> Lifecycle:
+    def initial(self) -> Lifecycle[Any]:
         """Mark this state as ``INITIAL`` and register it on the template."""
         return self._finalize(StateType.INITIAL)
 
-    def intermediate(self) -> Lifecycle:
+    def intermediate(self) -> Lifecycle[Any]:
         """Mark this state as ``INTERMEDIATE`` and register it on the template."""
         return self._finalize(StateType.INTERMEDIATE)
 
-    def final(self) -> Lifecycle:
+    def final(self) -> Lifecycle[Any]:
         """
         Mark this state as ``FINAL`` and register it on the template.
 
@@ -297,7 +320,7 @@ class _StateBuilder:
             )
         return self._finalize(StateType.FINAL)
 
-    def _finalize(self, state_type: StateType) -> Lifecycle:
+    def _finalize(self, state_type: StateType) -> Lifecycle[Any]:
         """
         Close this state and append it to the parent template.
 
@@ -333,7 +356,7 @@ class _StateBuilder:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class Lifecycle:
+class Lifecycle[StateT]:
     """
     AI-CORE-BEGIN
         ROLE: Finite state machine for a domain object's transitions.
@@ -342,7 +365,46 @@ class Lifecycle:
         AI-CORE-END
     """
 
-    _template: Lifecycle | None = None
+    _template: Lifecycle[Any] | None = None
+    _state_type: ClassVar[type[BaseStateEntity] | None] = None
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Check an axis's template against the state type it names."""
+        super().__init_subclass__(**kwargs)
+        state_type = _declared_state_type(cls)
+        if state_type is None:
+            return
+        cls._state_type = state_type
+        template = cls.__dict__.get("_template")
+        if not isinstance(template, Lifecycle):
+            return
+        states = template.get_state_entities()
+        targets = template.get_transition_entities()
+        members = tuple(state_type.members)
+        codes = {member.code: member for member in members}
+        if not members:
+            if states:
+                raise ForeignStateError(f"{cls.__name__}: {state_type.__name__} declares no statuses.")
+            return
+        for entity in {**states, **targets}.values():
+            member = codes.get(entity.code)
+            if member is None:
+                raise ForeignStateError(
+                    f"{cls.__name__}: status {entity.code!r} ({type(entity).__name__}) "
+                    f"is not a declared status of {state_type.__name__}. Allowed: {sorted(codes)}."
+                )
+            if entity is not member:
+                attribute = _status_attribute(state_type, member)
+                raise ForeignStateError(
+                    f"{cls.__name__}: status {entity.code!r} is a different instance from the one "
+                    f"declared on {state_type.__name__}; use {state_type.__name__}.{attribute}."
+                )
+        missing = [member.code for member in members if not any(member is state for state in states.values())]
+        if missing:
+            raise MissingStateError(
+                f"{cls.__name__}: status(es) {missing} of {state_type.__name__} "
+                "do not appear in the lifecycle. Declare every status."
+            )
 
     def __init__(self, current_state: str | None = None) -> None:
         """
@@ -385,7 +447,7 @@ class Lifecycle:
             self._current_status = self._state_entities[current_state]
 
     @classmethod
-    def _get_template(cls) -> Lifecycle | None:
+    def _get_template(cls) -> Lifecycle[Any] | None:
         """
         Resolve ``_template`` from the class MRO.
 
@@ -396,7 +458,7 @@ class Lifecycle:
         for klass in cls.__mro__:
             template = klass.__dict__.get("_template")
             if template is not None and isinstance(template, Lifecycle):
-                return cast(Lifecycle, template)
+                return cast(Lifecycle[Any], template)
         return None
 
     # ─────────────────────────────────────────────────────────────────────
@@ -516,7 +578,7 @@ class Lifecycle:
         """
         return target in self.current_state_info.transitions
 
-    def transition(self, target: str) -> Lifecycle:
+    def transition(self, target: str) -> Lifecycle[Any]:
         """
         Return a **new** instance of this class with ``current_state == target``.
 

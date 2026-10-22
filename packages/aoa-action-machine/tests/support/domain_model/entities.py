@@ -66,7 +66,6 @@ from aoa.action_machine.domain import (
     Lifecycle,
     NoInverse,
     Rel,
-    StateVocabulary,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
@@ -94,8 +93,13 @@ class DraftStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
+    DRAFT = DraftStateEntity(code="draft", display_name="Draft", sort_order=1)  # noqa: F821
+    ACTIVE = DraftStateEntity(code="active", display_name="Active", sort_order=2)  # noqa: F821
+    ARCHIVED = DraftStateEntity(code="archived", display_name="Archived", sort_order=3)  # noqa: F821
 
-class DraftLifecycle(Lifecycle, StateVocabulary):
+
+
+class DraftLifecycle(Lifecycle[DraftStateEntity]):
     """
     Three-state machine: draft → active → archived.
 
@@ -103,12 +107,9 @@ class DraftLifecycle(Lifecycle, StateVocabulary):
     when ``NodeGraphCoordinator.build()`` examines entity classes.
     """
 
-    DRAFT = DraftStateEntity(code="draft", display_name="Draft", sort_order=1)
-    ACTIVE = DraftStateEntity(code="active", display_name="Active", sort_order=2)
-    ARCHIVED = DraftStateEntity(code="archived", display_name="Archived", sort_order=3)
 
     _template = (
-        Lifecycle().state(DRAFT).to(ACTIVE).initial().state(ACTIVE).to(ARCHIVED).intermediate().state(ARCHIVED).final()
+        Lifecycle().state(DraftStateEntity.DRAFT).to(DraftStateEntity.ACTIVE).initial().state(DraftStateEntity.ACTIVE).to(DraftStateEntity.ARCHIVED).intermediate().state(DraftStateEntity.ARCHIVED).final()
     )
 
 

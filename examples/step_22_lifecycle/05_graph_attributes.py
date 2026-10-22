@@ -7,7 +7,7 @@ Run: uv run python examples/step_22_lifecycle/05_graph_attributes.py
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 
 
 class OrderStateEntity(BaseStateEntity):
@@ -15,13 +15,15 @@ class OrderStateEntity(BaseStateEntity):
 
     requires_receipt: bool = Field(default=False, description="Whether a receipt is needed")
 
+    DRAFT = OrderStateEntity(code="draft", display_name="Draft")  # noqa: F821
+    PAID = OrderStateEntity(code="paid", display_name="Payment received", requires_receipt=True)  # noqa: F821
 
-class OrderLifecycle(Lifecycle, StateVocabulary):
+
+
+class OrderLifecycle(Lifecycle[OrderStateEntity]):
     """Collect statuses and declare their allowed transition."""
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft")
-    PAID = OrderStateEntity(code="paid", display_name="Payment received", requires_receipt=True)
-    _template = Lifecycle().state(DRAFT).to(PAID).initial().state(PAID).final()
+    _template = Lifecycle().state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID).initial().state(OrderStateEntity.PAID).final()
 
 import json
 
